@@ -1,6 +1,7 @@
 import type {
   Evenement, EtapeSaisie, LivrableSaisie, Mep, MepIdentiteSaisie, MepResume, ParticipantSaisie,
-  Phase, SauvegardeSaisie, SystemeSaisie, Utilisateur,
+  Phase, PlanRepliSaisie, ResolutionType, ResolutionTypeSaisie, ResultatControle, SauvegardeSaisie,
+  SystemeCatalogue, SystemeCatalogueSaisie, SystemeSaisie, TypePlan, Utilisateur,
 } from './types';
 
 export class ApiError extends Error {
@@ -81,7 +82,7 @@ export const api = {
   modifierLivrable: (id: string, lid: string, s: LivrableSaisie) => put<Mep>(`/meps/${id}/livrables/${lid}`, s),
   supprimerLivrable: (id: string, lid: string) => del<Mep>(`/meps/${id}/livrables/${lid}`),
 
-  ajouterEtape: (id: string) => post<Mep>(`/meps/${id}/etapes`, {}),
+  ajouterEtape: (id: string, plan: TypePlan = 'Deploiement') => post<Mep>(`/meps/${id}/etapes`, { plan }),
   modifierEtape: (id: string, eid: string, s: EtapeSaisie) => put<Mep>(`/meps/${id}/etapes/${eid}`, s),
   supprimerEtape: (id: string, eid: string) => del<Mep>(`/meps/${id}/etapes/${eid}`),
   deplacerEtape: (id: string, eid: string, sens: 'haut' | 'bas') => post<Mep>(`/meps/${id}/etapes/${eid}/deplacer`, { sens }),
@@ -90,6 +91,32 @@ export const api = {
     post<Mep>(`/meps/${id}/etapes/${eid}/terminer`, { revision, resultat, preuve, resultatVerifie }),
   autoriserReprise: (id: string, eid: string, revision: number) =>
     post<Mep>(`/meps/${id}/etapes/${eid}/autoriser-reprise`, { revision }),
+
+  prendreLaMain: (id: string, eid: string, revision: number) =>
+    post<Mep>(`/meps/${id}/etapes/${eid}/prendre-la-main`, { revision }),
+  appliquerResolution: (id: string, eid: string, resolutionTypeId: string, revision: number) =>
+    post<Mep>(`/meps/${id}/etapes/${eid}/resolutions`, { resolutionTypeId, revision }),
+  controlerCorrection: (id: string, rid: string, ordre: number, resultat: ResultatControle, observation: string) =>
+    post<Mep>(`/meps/${id}/resolutions/${rid}/corrections/${ordre}`, { resultat, observation }),
+  controlerVerification: (id: string, rid: string, resultat: ResultatControle, observation: string) =>
+    post<Mep>(`/meps/${id}/resolutions/${rid}/verification`, { resultat, observation }),
+
+  modifierPlanRepli: (id: string, s: PlanRepliSaisie) => put<Mep>(`/meps/${id}/plan-repli`, s),
+  declencherRetourArriere: (id: string, motif: string) => post<Mep>(`/meps/${id}/retour-arriere`, { motif }),
+  cloturer: (id: string) => post<Mep>(`/meps/${id}/cloturer`, {}),
+
+  catalogueSystemes: () => get<SystemeCatalogue[]>('/catalogue/systemes'),
+  creerSystemeCatalogue: (s: SystemeCatalogueSaisie) => post<SystemeCatalogue>('/catalogue/systemes', s),
+  modifierSystemeCatalogue: (id: string, s: SystemeCatalogueSaisie) => put<SystemeCatalogue>(`/catalogue/systemes/${id}`, s),
+  supprimerSystemeCatalogue: (id: string) => del<void>(`/catalogue/systemes/${id}`),
+  ajouterSystemeDepuisCatalogue: (id: string, catalogueId: string, impact: string) =>
+    post<Mep>(`/meps/${id}/systemes/depuis-catalogue`, { catalogueId, impact }),
+
+  resolutions: (systemeCatalogueId?: string | null) =>
+    get<ResolutionType[]>(`/resolutions${systemeCatalogueId ? `?systemeCatalogueId=${encodeURIComponent(systemeCatalogueId)}` : ''}`),
+  creerResolution: (s: Omit<ResolutionTypeSaisie, 'version'>) => post<ResolutionType>('/resolutions', s),
+  modifierResolution: (id: string, s: ResolutionTypeSaisie) => put<ResolutionType>(`/resolutions/${id}`, s),
+  supprimerResolution: (id: string) => del<void>(`/resolutions/${id}`),
 
   procedureRelue: (id: string, relue: boolean) => post<Mep>(`/meps/${id}/procedure-relue`, { relue }),
   changerPhase: (id: string, phase: Phase) => post<Mep>(`/meps/${id}/phase`, { phase }),

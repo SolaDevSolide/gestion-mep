@@ -1,8 +1,17 @@
-import type { Criticite, EtatEtape, Phase, StatutDisponibilite } from './types';
+import type { Criticite, EtatEtape, IssueMep, Phase, ResultatControle, StatutDisponibilite, StatutResolution } from './types';
+
+export type Ton = 'ok' | 'run' | 'wait' | 'done' | 'danger' | 'warn' | 'later' | 'rollback';
 
 export const LIBELLE_PHASE: Record<Phase, string> = {
   Preparation: 'Préparation',
   Execution: 'Exécution',
+  RetourArriere: 'Retour arrière',
+  Cloturee: 'Clôturée',
+};
+
+export const LIBELLE_ISSUE: Record<IssueMep, string> = {
+  Reussie: 'Clôturée : réussie',
+  Repliee: 'Clôturée : repliée',
 };
 
 export const LIBELLE_ETAT: Record<EtatEtape, string> = {
@@ -19,6 +28,14 @@ export const LIBELLE_CRITICITE: Record<Criticite, string> = {
   Bloquante: 'Bloquante',
 };
 
+export const LIBELLE_RESULTAT: Record<ResultatControle, string> = { Conforme: 'Conforme', Echec: 'Échec' };
+
+export const LIBELLE_STATUT_RESOLUTION: Record<StatutResolution, string> = {
+  EnCours: 'En cours',
+  Reussie: 'Réussie',
+  Echouee: 'Échouée',
+};
+
 export const LIBELLE_DISPONIBILITE: Record<StatutDisponibilite, string> = {
   PlanInvalide: 'Plan invalide',
   EcheanceARenseigner: 'Échéance à renseigner',
@@ -30,22 +47,54 @@ export const LIBELLE_DISPONIBILITE: Record<StatutDisponibilite, string> = {
   EnCours: 'En cours',
   ArretResolution: 'Arrêt / résolution',
   Disponible: 'Disponible',
+  ResolutionEnCours: 'Résolution en cours',
+  SiRetourArriere: 'Si retour arrière',
 };
 
-/** Famille de couleur d'une disponibilité (classe CSS dispo-xxx). */
-export function tonDisponibilite(s: StatutDisponibilite): 'ok' | 'attend' | 'cours' | 'danger' | 'fini' | 'info' {
+/** Ton (couleur sémantique) d'une disponibilité. */
+export function tonDisponibilite(s: StatutDisponibilite): Ton {
   switch (s) {
     case 'Disponible': return 'ok';
-    case 'EnCours': return 'cours';
-    case 'Terminee': return 'fini';
-    case 'ArretResolution':
-    case 'RetourArriere': return 'danger';
-    case 'Attend': return 'attend';
-    default: return 'info';
+    case 'EnCours': return 'run';
+    case 'Terminee': return 'done';
+    case 'ArretResolution': return 'danger';
+    case 'ResolutionEnCours': return 'warn';
+    case 'RetourArriere': return 'rollback';
+    case 'SiRetourArriere': return 'later';
+    case 'Attend': return 'wait';
+    default: return 'warn';
   }
 }
 
+/** Famille d'un type d'événement du journal (préfixe avant le point). */
+export const LIBELLE_FAMILLE_EVENEMENT: Record<string, string> = {
+  mep: 'MEP',
+  sauvegarde: 'Sauvegarde',
+  participant: 'Personnes',
+  systeme: 'Systèmes',
+  livrable: 'Livrables',
+  etape: 'Étapes',
+  procedure: 'Validation',
+  phase: 'Phase',
+  repli: 'Retour arrière',
+  resolution: 'Résolutions',
+};
+
+export function familleEvenement(type: string): string {
+  const i = type.indexOf('.');
+  return i < 0 ? type : type.slice(0, i);
+}
+
+export function initiales(nom: string | null | undefined): string {
+  const mots = (nom ?? '').trim().split(/\s+/).filter(Boolean);
+  if (mots.length === 0) return '?';
+  if (mots.length === 1) return mots[0].slice(0, 2).toUpperCase();
+  return (mots[0][0] + mots[mots.length - 1][0]).toUpperCase();
+}
+
 const dateHeure = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+const heureSeule = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const jourLong = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 const dateSeule = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' });
 const dateCourte = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short' });
 
@@ -53,6 +102,17 @@ export function formatDateHeure(iso: string | null | undefined): string {
   if (!iso) return '—';
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '—' : dateHeure.format(d);
+}
+
+export function formatHeureLocale(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : heureSeule.format(d);
+}
+
+export function formatJourLong(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : jourLong.format(d);
 }
 
 /** Date seule ("2026-10-09" ou ISO complet), sans décalage de fuseau pour le format DateOnly. */
@@ -125,4 +185,13 @@ export function ressembleCommande(texte: string): boolean {
 /** Libellés de rôles d'affichage pour un identifiant manquant. */
 export function nomOuTiret(nom: string | null | undefined): string {
   return nom && nom.trim() ? nom : '—';
+}
+
+/** Libellé d'une durée en minutes : « 90 min » → « 1 h 30 ». */
+export function formatMinutes(min: number | null | undefined): string {
+  if (min === null || min === undefined) return '—';
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, '0')}`;
 }

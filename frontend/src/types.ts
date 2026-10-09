@@ -1,6 +1,10 @@
 // Types alignés sur docs/api.md
 
-export type Phase = 'Preparation' | 'Execution';
+export type Phase = 'Preparation' | 'Execution' | 'RetourArriere' | 'Cloturee';
+export type IssueMep = 'Reussie' | 'Repliee';
+export type TypePlan = 'Deploiement' | 'RetourArriere';
+export type ResultatControle = 'Conforme' | 'Echec';
+export type StatutResolution = 'EnCours' | 'Reussie' | 'Echouee';
 export type EtatEtape = 'AFaire' | 'EnCours' | 'Reussie' | 'Echec';
 export type Criticite = 'Faible' | 'Moderee' | 'Elevee' | 'Bloquante';
 export type StatutDisponibilite =
@@ -13,6 +17,8 @@ export type StatutDisponibilite =
   | 'Terminee'
   | 'EnCours'
   | 'ArretResolution'
+  | 'ResolutionEnCours'
+  | 'SiRetourArriere'
   | 'Disponible';
 
 export interface Utilisateur {
@@ -30,6 +36,7 @@ export interface MepResume {
   dateMep: string | null;
   phase: Phase;
   echeanceRepli: string | null;
+  issue?: IssueMep | null;
   pilote: string | null;
   nbEtapes: number;
   nbReussies: number;
@@ -63,6 +70,7 @@ export interface Systeme {
   nom: string;
   cible: string;
   impact: string;
+  catalogueId: string | null;
 }
 
 export interface Livrable {
@@ -80,12 +88,13 @@ export interface Disponibilite {
 
 export interface Etape {
   id: string;
+  plan: TypePlan;
   code: string;
   ordre: number;
   action: string;
   systemeId: string | null;
   responsableId: string | null;
-  criticite: Criticite;
+  criticite: Criticite | null;
   etat: EtatEtape;
   instructions: string;
   resultatAttendu: string;
@@ -93,7 +102,9 @@ export interface Etape {
   debutReel: string | null;
   finReelle: string | null;
   revision: number;
+  executantId: string | null;
   dependances: string[];
+  resolutionIds: string[];
   disponibilite: Disponibilite;
 }
 
@@ -124,6 +135,10 @@ export interface Mep {
   piloteId: string | null;
   suppleantId: string | null;
   phase: Phase;
+  issue: IssueMep | null;
+  retourArriere: RetourArriereInfo | null;
+  cloture: ClotureInfo | null;
+  planRepli: PlanRepli;
   echeanceRepli: string | null;
   sauvegarde: Sauvegarde;
   procedureRelue: Validation | null;
@@ -132,9 +147,68 @@ export interface Mep {
   systemes: Systeme[];
   livrables: Livrable[];
   etapes: Etape[];
+  resolutions: ExecutionResolution[];
   erreursPlan: string[];
   droits: Droits;
 }
+
+export interface RetourArriereInfo { le: string; par: string | null; motif: string }
+export interface ClotureInfo { le: string; par: string }
+export interface PlanRepli {
+  quandDeclencher: string;
+  dureeTesteeMinutes: number | null;
+  versionARestaurer: string;
+  donneesDepuisSauvegarde: string;
+  siRepliEchoue: string;
+}
+export type PlanRepliSaisie = PlanRepli & { version: number };
+
+export interface CorrectionExecutee {
+  ordre: number;
+  instruction: string;
+  resultatAttendu: string;
+  resultat: ResultatControle | null;
+  observation: string;
+  par: string | null;
+  le: string | null;
+}
+
+export interface ExecutionResolution {
+  id: string;
+  etapeId: string;
+  resolutionTypeId: string;
+  titre: string;
+  symptomes: string;
+  diagnostic: string;
+  corrections: CorrectionExecutee[];
+  verificationInstruction: string;
+  verificationAttendu: string;
+  verificationResultat: ResultatControle | null;
+  verificationObservation: string;
+  statut: StatutResolution;
+  demarreePar: string;
+  demarreeLe: string;
+  termineeLe: string | null;
+}
+
+export interface SystemeCatalogue { id: string; nom: string; description: string; cible: string; actif: boolean }
+export type SystemeCatalogueSaisie = Omit<SystemeCatalogue, 'id'>;
+
+export interface CorrectionType { ordre: number; instruction: string; resultatAttendu: string }
+export interface ResolutionType {
+  id: string;
+  titre: string;
+  symptomes: string;
+  diagnostic: string;
+  systemeCatalogueId: string | null;
+  corrections: CorrectionType[];
+  verificationInstruction: string;
+  verificationAttendu: string;
+  actif: boolean;
+  version: number;
+  modifieeLe: string;
+}
+export type ResolutionTypeSaisie = Omit<ResolutionType, 'id' | 'actif' | 'modifieeLe'>;
 
 export interface Evenement {
   id: string;
@@ -162,8 +236,9 @@ export interface EtapeSaisie {
   action: string;
   systemeId: string | null;
   responsableId: string | null;
-  criticite: Criticite;
+  criticite: Criticite | null;
   instructions: string;
   resultatAttendu: string;
   dependances: string[];
+  resolutionIds: string[];
 }
