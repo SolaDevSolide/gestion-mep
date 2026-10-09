@@ -48,9 +48,9 @@ export default function PreparationTab() {
                   )}
                 >
                   <span className={cn('flex size-6 shrink-0 items-center justify-center rounded-md font-mono text-xs font-bold', actif ? 'bg-accent text-accent-fg' : 'bg-surface-2 text-fg-muted')}>{s.numero}</span>
-                  <span className="flex-1 whitespace-nowrap">{s.titre}</span>
+                  <span className="min-w-0 flex-1 whitespace-nowrap leading-tight lg:whitespace-normal">{s.titre}</span>
                   {ok[s.id]
-                    ? <span className="flex size-5 items-center justify-center rounded-full bg-ok-solid text-white"><Check className="size-3" strokeWidth={3} aria-hidden /><span className="sr-only">Complète</span></span>
+                    ? <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ok-solid text-white"><Check className="size-3" strokeWidth={3} aria-hidden /><span className="sr-only">Complète</span></span>
                     : <span className="size-2.5 rounded-full border-2 border-warn-solid" role="img" aria-label="À compléter" />}
                 </button>
               </li>
