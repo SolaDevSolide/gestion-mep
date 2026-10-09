@@ -11,7 +11,7 @@ namespace GestionMep.Api.Endpoints;
 public static class EtapesEndpoints
 {
     /// <summary>Applique les champs de la fiche (sans la révision) ; les dépendances passent par <see cref="Regles.DefinirDependances"/>.</summary>
-    private static void Appliquer(Mep mep, Etape e, EtapeSaisie c)
+    private static void Appliquer(Mep mep, Etape e, EtapeSaisie c, List<Guid> resolutionIds)
     {
         ServiceMep.ExigerSystemeExistant(mep, c.SystemeId);
         if (c.ResponsableId is not null) ServiceMep.TrouverParticipant(mep, c.ResponsableId, "Responsable");
@@ -21,6 +21,7 @@ public static class EtapesEndpoints
         e.Criticite = c.Criticite;
         e.Instructions = ServiceMep.Texte(c.Instructions);
         e.ResultatAttendu = ServiceMep.Texte(c.ResultatAttendu);
+        e.ResolutionIds = resolutionIds;
         Regles.DefinirDependances(mep, e, c.Dependances ?? []);
     }
 
@@ -31,15 +32,20 @@ public static class EtapesEndpoints
         {
             var mep = await svc.Charger(id);
             Regles.ExigerPreparation(mep);
+            var plan = c?.Plan ?? TypePlan.Deploiement;
+            var memePlan = mep.EtapesDu(plan).ToList();
             var etape = new Etape
             {
                 MepId = mep.Id,
-                Code = Regles.ProchainCode(mep.Etapes),
-                Ordre = mep.Etapes.Count == 0 ? 1 : mep.Etapes.Max(e => e.Ordre) + 1,
+                Plan = plan,
+                Code = Regles.ProchainCode(mep.Etapes, plan),
+                // L'ordre est propre à chaque plan.
+                Ordre = memePlan.Count == 0 ? 1 : memePlan.Max(e => e.Ordre) + 1,
                 Criticite = Criticite.Moderee,
             };
             mep.Etapes.Add(etape);
-            if (c is not null) Appliquer(mep, etape, c with { Criticite = c.Criticite ?? Criticite.Moderee });
+            if (c is not null)
+                Appliquer(mep, etape, c with { Criticite = c.Criticite ?? Criticite.Moderee }, await svc.ValiderResolutionIds(c.ResolutionIds, []));
             var dto = await svc.Enregistrer(mep, Acteur.Depuis(user), "etape.creee", $"{etape.Code} créée");
             return Results.Ok(dto);
         });
@@ -50,7 +56,7 @@ public static class EtapesEndpoints
             Regles.ExigerPreparation(mep);
             var e = ServiceMep.TrouverEtape(mep, eid);
             ServiceMep.ExigerRevision(e, c.Revision);
-            Appliquer(mep, e, c);
+            Appliquer(mep, e, c, await svc.ValiderResolutionIds(c.ResolutionIds, e.ResolutionIds));
             e.Revision++;
             return Results.Ok(await svc.Enregistrer(mep, Acteur.Depuis(user), "etape.modifiee", $"{e.Code} modifiée"));
         });
@@ -62,6 +68,12 @@ public static class EtapesEndpoints
             Regles.VerifierSuppression(mep, e);
             mep.Etapes.Remove(e);
             db.Etapes.Remove(e);
+            // Les exécutions de résolution de cette étape (restes d'une exécution annulée) partent avec elle.
+            foreach (var r in mep.Resolutions.Where(r => r.EtapeId == e.Id).ToList())
+            {
+                mep.Resolutions.Remove(r);
+                db.ExecutionsResolution.Remove(r);
+            }
             return Results.Ok(await svc.Enregistrer(mep, Acteur.Depuis(user), "etape.supprimee", $"{e.Code} supprimée"));
         });
 
@@ -74,7 +86,7 @@ public static class EtapesEndpoints
             var sens = (c.Sens ?? "").ToLowerInvariant();
             if (sens is not ("haut" or "bas")) throw ErreurHttp.Saisie("Sens attendu : haut ou bas.");
 
-            var ordonnees = mep.Etapes.OrderBy(x => x.Ordre).ToList();
+            var ordonnees = mep.EtapesDu(e.Plan).ToList(); // le déplacement reste à l'intérieur du plan de l'étape
             var i = ordonnees.IndexOf(e);
             var j = sens == "haut" ? i - 1 : i + 1;
             if (j < 0 || j >= ordonnees.Count) return Results.Ok(await svc.VersDto(mep, acteur.Id)); // déjà en bout de liste
@@ -82,6 +94,27 @@ public static class EtapesEndpoints
             ordonnees.Insert(j, e);
             for (var k = 0; k < ordonnees.Count; k++) ordonnees[k].Ordre = k + 1;
             return Results.Ok(await svc.Enregistrer(mep, acteur, "etape.deplacee", $"{e.Code} déplacée vers le {(sens == "haut" ? "haut" : "bas")}"));
+        });
+
+        // ---------- Prise de main ----------
+        api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/prendre-la-main", async (Guid id, Guid eid, RevisionSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            var e = ServiceMep.TrouverEtape(mep, eid);
+            ServiceMep.ExigerRevision(e, c.Revision);
+
+            // Un utilisateur qui n'est pas encore participant le devient (créé seulement si la prise de main aboutit).
+            var existant = mep.Participants.FirstOrDefault(p => p.UtilisateurId == acteur.Id);
+            var preneur = existant ?? new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Prise en main", UtilisateurId = acteur.Id };
+            var prevu = mep.Participants.FirstOrDefault(p => p.Id == e.ResponsableId)?.Nom;
+            Regles.PrendreLaMain(mep, e, preneur);
+            if (existant is null) mep.Participants.Add(preneur);
+
+            var detail = preneur.Id == e.ResponsableId
+                ? $"{acteur.Nom} a repris la main sur {e.Code}"
+                : $"{acteur.Nom} a pris la main sur {e.Code}" + (prevu is null ? "" : $" (prévu : {prevu})");
+            return Results.Ok(await svc.Enregistrer(mep, acteur, "etape.prise-en-main", detail));
         });
 
         // ---------- Exécution ----------

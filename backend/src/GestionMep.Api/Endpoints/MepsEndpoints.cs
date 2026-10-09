@@ -16,7 +16,10 @@ public static class MepsEndpoints
             await db.Meps.AsNoTracking().OrderByDescending(m => m.CreeLe)
                 .Select(m => new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, m.DateMep, m.Phase, m.EcheanceRepli,
                     m.Participants.Where(p => p.Id == m.PiloteId).Select(p => p.Nom).FirstOrDefault(),
-                    m.Etapes.Count(), m.Etapes.Count(e => e.Etat == EtatEtape.Reussie), m.Etapes.Count(e => e.Etat == EtatEtape.Echec)))
+                    // Avancement du déploiement uniquement (le retour arrière a son propre plan).
+                    m.Etapes.Count(e => e.Plan == TypePlan.Deploiement),
+                    m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
+                    m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec)))
                 .ToListAsync());
 
         api.MapPost("/meps", async (MepCreationSaisie corps, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) =>

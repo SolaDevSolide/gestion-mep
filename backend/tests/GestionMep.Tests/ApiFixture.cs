@@ -34,6 +34,7 @@ public class ApiFixture : IDisposable
         }
         Environment.SetEnvironmentVariable("ConnectionStrings__Mep", $"{Serveur};Database={Base}");
         Environment.SetEnvironmentVariable("Demo__Activer", "true");
+        Environment.SetEnvironmentVariable("Surveillance__Activer", "false"); // la surveillance d'arrière-plan ne doit pas interférer avec les tests
         _usine = new WebApplicationFactory<Program>();
         _ = _usine.Server; // démarre l'hôte : migration + données de démo
     }

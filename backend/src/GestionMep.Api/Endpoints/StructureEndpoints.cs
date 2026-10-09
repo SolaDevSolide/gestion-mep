@@ -49,6 +49,8 @@ public static class StructureEndpoints
             if (mep.SuppleantId == pid) throw new RegleMetierException($"{p.Nom} est le suppléant : désigner un autre suppléant d'abord.");
             var etape = mep.Etapes.FirstOrDefault(e => e.ResponsableId == pid);
             if (etape is not null) throw new RegleMetierException($"{p.Nom} est responsable de {etape.Code} : changer le responsable d'abord.");
+            var executee = mep.Etapes.FirstOrDefault(e => e.ExecutantId == pid);
+            if (executee is not null) throw new RegleMetierException($"{p.Nom} a pris la main sur {executee.Code} : il ne peut pas être supprimé.");
             if (mep.Sauvegarde.ResponsableId == pid) throw new RegleMetierException($"{p.Nom} est responsable de la sauvegarde : changer le responsable d'abord.");
             mep.Participants.Remove(p);
             return Results.Ok(await svc.Enregistrer(mep, Acteur.Depuis(user), "participant.supprime", $"Participant supprimé : {p.Nom}"));

@@ -1,7 +1,29 @@
 using GestionMep.Domain;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace GestionMep.Api.Donnees;
+
+/// <summary>Stockage d'une liste d'objets en jsonb (conversion JSON explicite, avec détection des modifications sur le contenu).</summary>
+internal static class ExtensionsJson
+{
+    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
+
+    public static PropertyBuilder<List<T>> AsJson<T>(this PropertyBuilder<List<T>> p)
+    {
+        p.HasColumnType("jsonb");
+        p.HasConversion(
+            v => JsonSerializer.Serialize(v, Options),
+            v => JsonSerializer.Deserialize<List<T>>(v, Options) ?? new List<T>(),
+            new ValueComparer<List<T>>(
+                (a, b) => JsonSerializer.Serialize(a, Options) == JsonSerializer.Serialize(b, Options),
+                v => JsonSerializer.Serialize(v, Options).GetHashCode(),
+                v => JsonSerializer.Deserialize<List<T>>(JsonSerializer.Serialize(v, Options), Options)!));
+        return p;
+    }
+}
 
 public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(options)
 {
@@ -12,6 +34,9 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<Livrable> Livrables => Set<Livrable>();
     public DbSet<Etape> Etapes => Set<Etape>();
     public DbSet<EvenementJournal> Journal => Set<EvenementJournal>();
+    public DbSet<SystemeCatalogue> SystemesCatalogue => Set<SystemeCatalogue>();
+    public DbSet<ResolutionType> ResolutionsTypes => Set<ResolutionType>();
+    public DbSet<ExecutionResolution> ExecutionsResolution => Set<ExecutionResolution>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -29,10 +54,12 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             // Garde-fou contre deux écritures simultanées (en plus de la comparaison manuelle avec la version du client).
             e.Property(x => x.Version).IsConcurrencyToken();
             e.OwnsOne(x => x.Sauvegarde);
+            e.OwnsOne(x => x.PlanRepli);
             e.HasMany(x => x.Participants).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Systemes).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Livrables).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Etapes).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Resolutions).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => x.CreeLe);
         });
 
@@ -44,7 +71,29 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         {
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.Dependances).HasColumnType("uuid[]");
+            e.Property(x => x.ResolutionIds).HasColumnType("uuid[]");
             e.HasIndex(x => new { x.MepId, x.Code }).IsUnique();
+        });
+
+        b.Entity<SystemeCatalogue>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.HasIndex(x => x.Nom).IsUnique();
+        });
+
+        b.Entity<ResolutionType>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.Corrections).AsJson();
+            // Verrou optimiste : la version reçue du client est comparée à la main, et EF protège contre les écritures simultanées.
+            e.Property(x => x.Version).IsConcurrencyToken();
+        });
+
+        b.Entity<ExecutionResolution>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.Corrections).AsJson();
+            e.HasIndex(x => x.EtapeId);
         });
 
         b.Entity<EvenementJournal>(e =>

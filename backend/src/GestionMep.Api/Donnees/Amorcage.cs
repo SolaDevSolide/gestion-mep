@@ -19,7 +19,20 @@ public static class Amorcage
 
         await db.Database.MigrateAsync();
 
-        if (await db.Utilisateurs.AnyAsync()) return;
+        if (await db.Utilisateurs.AnyAsync())
+        {
+            // Base du jalon 1 déjà amorcée : on n'ajoute que le catalogue de démonstration manquant, sans toucher aux MEP.
+            if (config.GetValue<bool>("Demo:Activer") && !await db.SystemesCatalogue.AnyAsync() && !await db.ResolutionsTypes.AnyAsync())
+            {
+                var (systemes, resolutions) = DonneesDemo.Catalogue();
+                foreach (var r in resolutions) { r.Version = 1; r.ModifieeLe = temps.GetUtcNow(); }
+                db.SystemesCatalogue.AddRange(systemes);
+                db.ResolutionsTypes.AddRange(resolutions);
+                await db.SaveChangesAsync();
+                journal.LogInformation("Catalogue et résolutions types de démonstration ajoutés.");
+            }
+            return;
+        }
 
         if (config.GetValue<bool>("Demo:Activer"))
         {
@@ -34,9 +47,14 @@ public static class Amorcage
             var bob = Creer("bob", "Bob", false);
             var claire = Creer("claire", "Claire", false);
             var maintenant = temps.GetUtcNow();
-            var mep = DonneesDemo.Creer(alice.Id, bob.Id, claire.Id, maintenant);
+            var jeu = DonneesDemo.Creer(alice.Id, bob.Id, claire.Id, maintenant);
+            var mep = jeu.Mep;
             mep.CreeLe = maintenant;
             mep.Version = 1;
+            foreach (var r in jeu.Resolutions) r.ModifieeLe = maintenant;
+            foreach (var r in jeu.Resolutions) r.Version = 1;
+            db.SystemesCatalogue.AddRange(jeu.Systemes);
+            db.ResolutionsTypes.AddRange(jeu.Resolutions);
             db.Meps.Add(mep);
             db.Journal.Add(new EvenementJournal
             {

@@ -30,6 +30,39 @@ public static class PhaseEndpoints
             return Results.Ok(await svc.Enregistrer(mep, acteur, "procedure.relue", detail));
         });
 
+        api.MapPut("/meps/{id:guid}/plan-repli", async (Guid id, PlanRepliSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            ServiceMep.ExigerVersion(mep, c.Version);
+            if (c.DureeTesteeMinutes is < 0) throw ErreurHttp.Saisie("La durée testée ne peut pas être négative.");
+            Regles.ExigerPreparation(mep);
+            var p = mep.PlanRepli;
+            p.QuandDeclencher = ServiceMep.Texte(c.QuandDeclencher);
+            p.DureeTesteeMinutes = c.DureeTesteeMinutes;
+            p.VersionARestaurer = ServiceMep.Texte(c.VersionARestaurer);
+            p.DonneesDepuisSauvegarde = ServiceMep.Texte(c.DonneesDepuisSauvegarde);
+            p.SiRepliEchoue = ServiceMep.Texte(c.SiRepliEchoue);
+            return Results.Ok(await svc.Enregistrer(mep, acteur, "repli.modifie", "Plan de retour arrière modifié"));
+        });
+
+        api.MapPost("/meps/{id:guid}/retour-arriere", async (Guid id, RetourArriereSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            Regles.DeclencherRetourArriere(mep, acteur.Id, ServiceMep.Texte(c.Motif), svc.Maintenant);
+            return Results.Ok(await svc.Enregistrer(mep, acteur, "repli.declenche", ServiceMep.DetailRetourArriere(mep, acteur.Nom)));
+        });
+
+        api.MapPost("/meps/{id:guid}/cloturer", async (Guid id, ClaimsPrincipal user, ServiceMep svc) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            Regles.Cloturer(mep, acteur.Id, svc.Maintenant);
+            var issue = mep.Issue == IssueMep.Reussie ? "réussie" : "repliée";
+            return Results.Ok(await svc.Enregistrer(mep, acteur, "mep.cloturee", $"MEP clôturée : {issue}"));
+        });
+
         api.MapPost("/meps/{id:guid}/phase", async (Guid id, PhaseSaisie corps, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var acteur = Acteur.Depuis(user);
@@ -43,7 +76,7 @@ public static class PhaseEndpoints
                     Regles.RevenirEnPreparation(mep, acteur.Id);
                     return Results.Ok(await svc.Enregistrer(mep, acteur, "phase.preparation", "Retour en préparation"));
                 default:
-                    throw ErreurHttp.Saisie("Phase attendue : Preparation ou Execution.");
+                    throw ErreurHttp.Saisie("Phase attendue : Preparation ou Execution (le retour arrière et la clôture ont leurs propres routes).");
             }
         });
     }
