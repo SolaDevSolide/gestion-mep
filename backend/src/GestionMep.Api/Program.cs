@@ -25,6 +25,9 @@ builder.Services.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = true)
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<DiffuseurMep>();
 builder.Services.AddScoped<ServiceMep>();
+// Surveillance des échéances de retour arrière (désactivable : Surveillance:Activer=false, utile en test).
+if (builder.Configuration.GetValue("Surveillance:Activer", true))
+    builder.Services.AddHostedService<SurveillanceEcheances>();
 builder.Services.AjouterAuthentification();
 
 var app = builder.Build();
@@ -42,6 +45,8 @@ api.MapMeps();
 api.MapStructure();
 api.MapEtapes();
 api.MapPhase();
+api.MapCatalogue();
+api.MapResolutions();
 // Une route /api inconnue ne doit jamais retomber sur index.html.
 api.Map("{**reste}", () => Results.Json(new { message = "Route introuvable." }, statusCode: 404));
 

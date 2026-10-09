@@ -49,6 +49,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<int>("Etat")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("ExecutantId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset?>("FinReelle")
                         .HasColumnType("timestamp with time zone");
 
@@ -62,9 +65,16 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<int>("Ordre")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Plan")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Preuve")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.PrimitiveCollection<List<Guid>>("ResolutionIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
 
                     b.Property<Guid?>("ResponsableId")
                         .HasColumnType("uuid");
@@ -123,6 +133,72 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("Journal");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.ExecutionResolution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Corrections")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("DemarreeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DemarreeParId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Diagnostic")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("EtapeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MepId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ResolutionTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Statut")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Symptomes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("TermineeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Titre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VerificationAttendu")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VerificationInstruction")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VerificationObservation")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("VerificationResultat")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EtapeId");
+
+                    b.HasIndex("MepId");
+
+                    b.ToTable("ExecutionsResolution");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.Livrable", b =>
                 {
                     b.Property<Guid>("Id")
@@ -156,6 +232,12 @@ namespace GestionMep.Api.Donnees.Migrations
             modelBuilder.Entity("GestionMep.Domain.Mep", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ClotureeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClotureeParId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreeLe")
@@ -193,6 +275,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<int?>("IndisponibiliteMinutes")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("Issue")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Objet")
                         .IsRequired()
                         .HasColumnType("text");
@@ -212,6 +297,16 @@ namespace GestionMep.Api.Donnees.Migrations
 
                     b.Property<Guid?>("ProcedureRelueParId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RetourArriereDeclencheLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RetourArriereDeclenchePar")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RetourArriereMotif")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<Guid?>("SuppleantId")
                         .HasColumnType("uuid");
@@ -265,9 +360,59 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("Participants");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.ResolutionType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Actif")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Corrections")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Diagnostic")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("ModifieeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Symptomes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("SystemeCatalogueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Titre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VerificationAttendu")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VerificationInstruction")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ResolutionsTypes");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.Systeme", b =>
                 {
                     b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CatalogueId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Cible")
@@ -290,6 +435,34 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.HasIndex("MepId");
 
                     b.ToTable("Systemes");
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.SystemeCatalogue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Actif")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Cible")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Nom")
+                        .IsUnique();
+
+                    b.ToTable("SystemesCatalogue");
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Utilisateur", b =>
@@ -338,6 +511,15 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.ExecutionResolution", b =>
+                {
+                    b.HasOne("GestionMep.Domain.Mep", null)
+                        .WithMany("Resolutions")
+                        .HasForeignKey("MepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("GestionMep.Domain.Livrable", b =>
                 {
                     b.HasOne("GestionMep.Domain.Mep", null)
@@ -349,6 +531,38 @@ namespace GestionMep.Api.Donnees.Migrations
 
             modelBuilder.Entity("GestionMep.Domain.Mep", b =>
                 {
+                    b.OwnsOne("GestionMep.Domain.PlanRepli", "PlanRepli", b1 =>
+                        {
+                            b1.Property<Guid>("MepId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("DonneesDepuisSauvegarde")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<int?>("DureeTesteeMinutes")
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("QuandDeclencher")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("SiRepliEchoue")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("VersionARestaurer")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.HasKey("MepId");
+
+                            b1.ToTable("Meps");
+
+                            b1.WithOwner()
+                                .HasForeignKey("MepId");
+                        });
+
                     b.OwnsOne("GestionMep.Domain.Sauvegarde", "Sauvegarde", b1 =>
                         {
                             b1.Property<Guid>("MepId")
@@ -395,6 +609,9 @@ namespace GestionMep.Api.Donnees.Migrations
                                 .HasForeignKey("MepId");
                         });
 
+                    b.Navigation("PlanRepli")
+                        .IsRequired();
+
                     b.Navigation("Sauvegarde")
                         .IsRequired();
                 });
@@ -424,6 +641,8 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Navigation("Livrables");
 
                     b.Navigation("Participants");
+
+                    b.Navigation("Resolutions");
 
                     b.Navigation("Systemes");
                 });

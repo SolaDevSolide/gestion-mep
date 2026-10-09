@@ -86,7 +86,16 @@ public class ApiTests : IDisposable
         var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
 
         Assert.Equal("Preparation", mep.GetProperty("phase").GetString());
-        Assert.Equal(5, mep.GetProperty("etapes").GetArrayLength());
+        // 5 étapes de déploiement + 2 de retour arrière.
+        Assert.Equal(7, mep.GetProperty("etapes").GetArrayLength());
+        Assert.Equal("RetourArriere", Etape(mep, "R0001").GetProperty("plan").GetString());
+        Assert.Equal("Si retour arrière", Dispo(mep, "R0001"));
+        Assert.Equal(1, Etape(mep, "E0005").GetProperty("resolutionIds").GetArrayLength());
+        Assert.Equal(30, mep.GetProperty("planRepli").GetProperty("dureeTesteeMinutes").GetInt32());
+        Assert.Equal(JsonValueKind.Null, mep.GetProperty("issue").ValueKind);
+        Assert.Equal(JsonValueKind.Null, mep.GetProperty("retourArriere").ValueKind);
+        Assert.Equal(3, mep.GetProperty("systemes").EnumerateArray().Count(s => s.GetProperty("catalogueId").ValueKind == JsonValueKind.String));
+        Assert.Equal(0, mep.GetProperty("resolutions").GetArrayLength());
         Assert.Equal("Disponible", Etape(mep, "E0002").GetProperty("disponibilite").GetProperty("statut").GetString());
         Assert.Equal("Attend E0002", Dispo(mep, "E0004"));
         Assert.Equal("Terminée", Dispo(mep, "E0001"));
@@ -122,7 +131,7 @@ public class ApiTests : IDisposable
         // Claire n'est pas responsable de E0002.
         var refus = await Action(claire, id, mep, "E0002", "demarrer");
         Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
-        Assert.Contains("responsable", await Message(refus));
+        Assert.Contains("Prendre la main", await Message(refus));
 
         mep = await Ok(await Action(bob, id, mep, "E0002", "demarrer"));
         Assert.Equal("En cours", Dispo(mep, "E0002"));
@@ -223,7 +232,7 @@ public class ApiTests : IDisposable
 
         // E0004 ne sert de préalable à personne : suppression possible.
         var apres = await Ok(await alice.DeleteAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0004")}"));
-        Assert.Equal(4, apres.GetProperty("etapes").GetArrayLength());
+        Assert.Equal(6, apres.GetProperty("etapes").GetArrayLength());
     }
 
     [Fact]

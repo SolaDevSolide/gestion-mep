@@ -6,9 +6,15 @@ using Npgsql;
 namespace GestionMep.Api.Services;
 
 /// <summary>Erreur renvoyée telle quelle au client sous la forme <c>{ "message": "…" }</c>.</summary>
-public class ErreurHttp(int statut, string message) : Exception(message)
+public class ErreurHttp(int statut, string message, IReadOnlyList<string>? erreurs = null) : Exception(message)
 {
     public int Statut { get; } = statut;
+    /// <summary>Liste détaillée des anomalies (champ facultatif <c>erreurs</c> du corps), en plus du message.</summary>
+    public IReadOnlyList<string>? Erreurs { get; } = erreurs;
+
+    /// <summary>422 avec toutes les anomalies d'une saisie (le message les joint).</summary>
+    public static ErreurHttp Regle(IReadOnlyList<string> erreurs, string prefixe = "") =>
+        new(422, prefixe + string.Join(" ", erreurs), erreurs);
 
     public static ErreurHttp Saisie(string message) => new(400, message);
     public static ErreurHttp Interdit(string message) => new(403, message);
@@ -36,7 +42,8 @@ public static class MiddlewareErreurs
                 if (ctx.Response.HasStarted) return;
                 ctx.Response.Clear();
                 ctx.Response.StatusCode = statut;
-                await ctx.Response.WriteAsJsonAsync(new { message });
+                if (ex is ErreurHttp { Erreurs: { } erreurs }) await ctx.Response.WriteAsJsonAsync(new { message, erreurs });
+                else await ctx.Response.WriteAsJsonAsync(new { message });
             }
         });
 
