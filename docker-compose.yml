@@ -1,0 +1,35 @@
+# Lancement complet (dev ou recette) : docker compose up --build
+# Puis ouvrir http://localhost:8080
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: gestion_mep
+      POSTGRES_USER: ${POSTGRES_USER:-mep}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mep}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mep} -d gestion_mep"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    image: ${MEP_IMAGE:-gestion-mep:local}
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Mep: Host=db;Port=5432;Database=gestion_mep;Username=${POSTGRES_USER:-mep};Password=${POSTGRES_PASSWORD:-mep}
+      Demo__Activer: ${DEMO:-true}
+      Admin__Login: ${ADMIN_LOGIN:-}
+      Admin__MotDePasse: ${ADMIN_MOT_DE_PASSE:-}
+    ports:
+      - "${PORT:-8080}:8080"
+    restart: unless-stopped
+
+volumes:
+  db-data:
