@@ -460,7 +460,7 @@ public class ReglesJalon3Tests
         Assert.Equal("Recette", copie.Environnement);
         Assert.False(copie.EstModele);
         Assert.Equal(Dave, copie.CreeParUtilisateurId);
-        Assert.Equal(source.Outil, copie.Outil);
+        Assert.Equal(source.Outil + " (copie)", copie.Outil);
         Assert.True(copie.BilanActive);
         Assert.Equal(source.PlanRepli.QuandDeclencher, copie.PlanRepli.QuandDeclencher);
         Assert.NotSame(source.PlanRepli, copie.PlanRepli);

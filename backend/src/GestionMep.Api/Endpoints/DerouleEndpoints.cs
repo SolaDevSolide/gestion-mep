@@ -35,6 +35,7 @@ public static class DerouleEndpoints
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             ServiceMep.ExigerVersion(mep, c.Version);
             var ids = (c.UtilisateurIds ?? []).Distinct().ToList();
             var comptes = await db.Utilisateurs.AsNoTracking().Where(u => ids.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
@@ -61,6 +62,7 @@ public static class DerouleEndpoints
         api.MapPost("/meps/{id:guid}/tests-recette", async (Guid id, TestRecetteSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var t = new TestRecette { Ordre = mep.TestsRecette.Count == 0 ? 1 : mep.TestsRecette.Max(x => x.Ordre) + 1 };
             Appliquer(mep, t, c);
@@ -71,6 +73,7 @@ public static class DerouleEndpoints
         api.MapPut("/meps/{id:guid}/tests-recette/{tid:guid}", async (Guid id, Guid tid, TestRecetteSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var t = TrouverTest(mep, tid);
             Appliquer(mep, t, c);
@@ -81,6 +84,7 @@ public static class DerouleEndpoints
         api.MapDelete("/meps/{id:guid}/tests-recette/{tid:guid}", async (Guid id, Guid tid, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var t = TrouverTest(mep, tid);
             mep.TestsRecette.Remove(t);
@@ -92,6 +96,7 @@ public static class DerouleEndpoints
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var t = TrouverTest(mep, tid);
             var sens = (c.Sens ?? "").ToLowerInvariant();

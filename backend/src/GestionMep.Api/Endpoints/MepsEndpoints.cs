@@ -30,9 +30,10 @@ public static class MepsEndpoints
             var outil = ServiceMep.Texte(corps.Outil);
             if (outil.Length == 0) throw ErreurHttp.Saisie("L'outil est obligatoire.");
             var mep = new Mep { Outil = outil, Objet = ServiceMep.Texte(corps.Objet), CreeLe = svc.Maintenant, CreeParUtilisateurId = acteur.Id };
-            var pilote = new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Pilote", UtilisateurId = acteur.Id };
-            mep.Participants.Add(pilote);
-            mep.PiloteId = pilote.Id;
+            // Le créateur est participant et responsable technique ; le pilote se choisit ensuite.
+            var createur = new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Responsable technique", UtilisateurId = acteur.Id };
+            mep.Participants.Add(createur);
+            mep.ResponsablesTechniques.Add(new ResponsableTechnique { ParticipantId = createur.Id, Disponibilite = DisponibiliteJourJ.Joignable });
             db.Meps.Add(mep);
             var dto = await svc.Enregistrer(mep, acteur, "mep.creee", $"MEP créée : {outil}");
             return Results.Created($"/api/meps/{mep.Id}", dto);
@@ -43,9 +44,18 @@ public static class MepsEndpoints
             var acteur = Acteur.Depuis(user);
             var source = await svc.Charger(id);
             var copie = Regles.Dupliquer(source, corps.Environnement, corps.CommeModele, acteur.Id, svc.Maintenant);
+            // Celui qui duplique doit pouvoir éditer sa copie : il en devient participant et responsable technique s'il n'y figure pas.
+            if (!Regles.PeutEditerContenu(copie, acteur.Id, acteur.EstAdmin))
+            {
+                var duplicateur = new Participant { MepId = copie.Id, Nom = acteur.Nom, Role = "Responsable technique", UtilisateurId = acteur.Id };
+                copie.Participants.Add(duplicateur);
+                copie.ResponsablesTechniques.Add(new ResponsableTechnique { ParticipantId = duplicateur.Id });
+            }
             db.Meps.Add(copie);
-            var nature = source.EstModele ? "du modèle" : "de la MEP";
-            var dto = await svc.Enregistrer(copie, acteur, "mep.creee", $"Créée par duplication {nature} « {source.Outil} »");
+            var detail = source.EstModele && !corps.CommeModele
+                ? $"MEP créée depuis le modèle « {source.Outil} »"
+                : $"MEP créée par duplication de « {source.Outil} »";
+            var dto = await svc.Enregistrer(copie, acteur, "mep.creee", detail);
             return Results.Created($"/api/meps/{copie.Id}", dto);
         });
 
@@ -56,6 +66,7 @@ public static class MepsEndpoints
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             ServiceMep.ExigerVersion(mep, corps.Version);
 
             if (corps.IndisponibiliteMinutes is < 0) throw ErreurHttp.Saisie("L'indisponibilité ne peut pas être négative.");
@@ -115,6 +126,7 @@ public static class MepsEndpoints
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             ServiceMep.ExigerVersion(mep, corps.Version);
             if (corps.ResponsableId is not null) ServiceMep.TrouverParticipant(mep, corps.ResponsableId, "Responsable de la sauvegarde");
             var s = mep.Sauvegarde;
@@ -141,7 +153,9 @@ public static class MepsEndpoints
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
-            ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote ou un administrateur peut supprimer une MEP.");
+            // Le créateur, qui n'est plus pilote d'office, peut supprimer sa MEP tant qu'elle est en préparation.
+            if (mep.CreeParUtilisateurId != acteur.Id)
+                ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote, le créateur ou un administrateur peut supprimer une MEP.");
             Regles.ExigerPreparation(mep);
             var pieces = await db.PiecesJointes.Where(p => p.MepId == id).Select(p => p.Id).ToListAsync();
             db.Meps.Remove(mep);

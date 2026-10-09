@@ -48,7 +48,9 @@ public record SystemeCatalogueDto(Guid Id, string Nom, string Description, strin
 public record ResolutionTypeDto(Guid Id, string Titre, string Symptomes, string Diagnostic, Guid? SystemeCatalogueId,
     List<CorrectionDto> Corrections, string VerificationInstruction, string VerificationAttendu, bool Actif, int Version, DateTimeOffset ModifieeLe);
 
-public record DroitsDto(bool EstPilote, bool PeutModifierPlan, Guid? ParticipantId, bool EstApprobateur);
+public record ResponsableTechniqueDto(Guid ParticipantId, List<Guid> SystemeIds, string Perimetre, DisponibiliteJourJ Disponibilite, string ContactJourJ);
+
+public record DroitsDto(bool EstPilote, bool PeutModifierPlan, Guid? ParticipantId, bool EstApprobateur, bool EstResponsableTechnique, bool PeutEditerContenu);
 
 public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle, string VersionCible, string Objet, string Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string FuseauHoraire, int? IndisponibiliteMinutes,
@@ -58,7 +60,8 @@ public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle,
     List<ParticipantDto> Participants, List<SystemeDto> Systemes, List<LivrableDto> Livrables, List<EtapeDto> Etapes,
     List<ExecutionResolutionDto> Resolutions, List<string> ErreursPlan, DroitsDto Droits,
     string Environnement, bool EstModele, int ApprobationsMinimum, List<ApprobationDto> Approbations, List<CritereValideDto> GoNoGo,
-    List<TestRecetteDto> TestsRecette, bool BilanActive, BilanDto? Bilan, string? NonRetourFranchi, List<PieceJointeDto> PiecesJointes);
+    List<TestRecetteDto> TestsRecette, bool BilanActive, BilanDto? Bilan, string? NonRetourFranchi, List<PieceJointeDto> PiecesJointes,
+    List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements);
 
 public record EvenementDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail);
 
@@ -85,6 +88,9 @@ public record EtapeSaisie(int? Revision, string? Action, Guid? SystemeId, Guid? 
 
 public record DeplacerSaisie(string? Sens);
 public record RevisionSaisie(int? Revision);
+public record PriseDeMainSaisie(int? Revision, string? Motif);
+public record ResponsableTechniqueSaisie(Guid? ParticipantId, List<Guid>? SystemeIds, string? Perimetre, DisponibiliteJourJ? Disponibilite, string? ContactJourJ);
+public record ResponsablesTechniquesSaisie(int? Version, List<ResponsableTechniqueSaisie>? Responsables);
 public record TerminerSaisie(int? Revision, EtatEtape? Resultat, string? Preuve, bool ResultatVerifie);
 public record ProcedureRelueSaisie(bool Relue);
 public record PhaseSaisie(Phase? Phase, List<Guid>? CriteresCoches = null);

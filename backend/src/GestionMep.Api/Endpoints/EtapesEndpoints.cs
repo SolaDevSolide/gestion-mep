@@ -33,6 +33,7 @@ public static class EtapesEndpoints
             ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var plan = c?.Plan ?? TypePlan.Deploiement;
             var memePlan = mep.EtapesDu(plan).ToList();
@@ -55,6 +56,7 @@ public static class EtapesEndpoints
         api.MapPut("/meps/{id:guid}/etapes/{eid:guid}", async (Guid id, Guid eid, EtapeSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var e = ServiceMep.TrouverEtape(mep, eid);
             ServiceMep.ExigerRevision(e, c.Revision);
@@ -67,6 +69,7 @@ public static class EtapesEndpoints
             StockagePiecesJointes stockage) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             var e = ServiceMep.TrouverEtape(mep, eid);
             Regles.VerifierSuppression(mep, e);
             var executions = mep.Resolutions.Where(r => r.EtapeId == e.Id).Select(r => (Guid?)r.Id).ToList();
@@ -88,6 +91,7 @@ public static class EtapesEndpoints
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var e = ServiceMep.TrouverEtape(mep, eid);
             var sens = (c.Sens ?? "").ToLowerInvariant();
@@ -104,23 +108,24 @@ public static class EtapesEndpoints
         });
 
         // ---------- Prise de main ----------
-        api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/prendre-la-main", async (Guid id, Guid eid, RevisionSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/prendre-la-main", async (Guid id, Guid eid, PriseDeMainSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
             var e = ServiceMep.TrouverEtape(mep, eid);
             ServiceMep.ExigerRevision(e, c.Revision);
+            var motif = ServiceMep.Texte(c.Motif);
 
             // Un utilisateur qui n'est pas encore participant le devient (créé seulement si la prise de main aboutit).
             var existant = mep.Participants.FirstOrDefault(p => p.UtilisateurId == acteur.Id);
             var preneur = existant ?? new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Prise en main", UtilisateurId = acteur.Id };
             var prevu = mep.Participants.FirstOrDefault(p => p.Id == e.ResponsableId)?.Nom;
-            Regles.PrendreLaMain(mep, e, preneur);
+            Regles.PrendreLaMain(mep, e, preneur, motif);
             if (existant is null) mep.Participants.Add(preneur);
 
             var detail = preneur.Id == e.ResponsableId
-                ? $"{acteur.Nom} a repris la main sur {e.Code}"
-                : $"{acteur.Nom} a pris la main sur {e.Code}" + (prevu is null ? "" : $" (prévu : {prevu})");
+                ? $"{acteur.Nom} a repris la main sur {e.Code} : {motif}"
+                : $"{acteur.Nom} a pris la main sur {e.Code}" + (prevu is null ? "" : $" (prévu : {prevu})") + $" : {motif}";
             return Results.Ok(await svc.Enregistrer(mep, acteur, "etape.prise-en-main", detail));
         });
 

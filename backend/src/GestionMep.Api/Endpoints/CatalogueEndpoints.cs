@@ -72,6 +72,7 @@ public static class CatalogueEndpoints
         api.MapPost("/meps/{id:guid}/systemes/depuis-catalogue", async (Guid id, DepuisCatalogueSaisie c, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             if (c.CatalogueId is null) throw ErreurHttp.Saisie("Le système du catalogue est obligatoire.");
             var cat = await db.SystemesCatalogue.AsNoTracking().FirstOrDefaultAsync(x => x.Id == c.CatalogueId)

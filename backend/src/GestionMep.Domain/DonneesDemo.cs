@@ -86,6 +86,13 @@ public static class DonneesDemo
 
         mep.Livrables.Add(new Livrable { MepId = mep.Id, Objet = "Package fictif", Version = "2.0-démo", Emplacement = "Aucun téléchargement à effectuer", SystemeId = api.Id });
 
+        // Responsables techniques : Bob (API) et Claire (WEB), tous deux joignables ; Alice reste pilote.
+        mep.ResponsablesTechniques =
+        [
+            new() { ParticipantId = pBob.Id, SystemeIds = [api.Id], Perimetre = "Service API de test", Disponibilite = DisponibiliteJourJ.Joignable, ContactJourJ = "Fictif — poste B" },
+            new() { ParticipantId = pClaire.Id, SystemeIds = [web.Id], Perimetre = "Interface web de test", Disponibilite = DisponibiliteJourJ.Joignable, ContactJourJ = "Fictif — poste C" },
+        ];
+
         var e1 = Etape(mep, 1, "Sauvegarde fictive vérifiée", bdd, pAlice, Criticite.Elevee, EtatEtape.Reussie,
             "SIMULATION : lire la note « sauvegarde disponible ». Ne lancer aucune commande.",
             "La note indique sauvegarde disponible.", "Prérempli : contrôle fictif validé.");
@@ -135,6 +142,7 @@ public static class DonneesDemo
         mep.ProcedureRelueLe = bob is null ? null : maintenant;
 
         var modele = Regles.Dupliquer(mep, "", commeModele: true, alice ?? Guid.Empty, maintenant);
+        modele.Environnement = "";
         modele.Outil = "Modèle : déploiement API standard";
         modele.VersionActuelle = "";
         modele.VersionCible = "";

@@ -245,7 +245,12 @@ public class ApiTests : IDisposable
         var mep = await Ok(cree);
         var id = mep.GetProperty("id").GetGuid();
         Assert.Equal(1, mep.GetProperty("participants").GetArrayLength());
-        Assert.Equal(mep.GetProperty("piloteId").GetGuid(), mep.GetProperty("droits").GetProperty("participantId").GetGuid());
+        // Le créateur n'est plus pilote : il est participant et responsable technique.
+        Assert.Equal(JsonValueKind.Null, mep.GetProperty("piloteId").ValueKind);
+        Assert.Equal(mep.GetProperty("participants")[0].GetProperty("id").GetGuid(), mep.GetProperty("droits").GetProperty("participantId").GetGuid());
+        Assert.Equal(mep.GetProperty("droits").GetProperty("participantId").GetGuid(), mep.GetProperty("responsablesTechniques")[0].GetProperty("participantId").GetGuid());
+        Assert.True(mep.GetProperty("droits").GetProperty("estResponsableTechnique").GetBoolean());
+        Assert.Contains("Renseigner le pilote.", mep.GetProperty("erreursPlan").EnumerateArray().Select(e => e.GetString()));
         Assert.True(mep.GetProperty("erreursPlan").GetArrayLength() > 0);
 
         mep = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/etapes", new { }));
@@ -263,7 +268,7 @@ public class ApiTests : IDisposable
         var deplacee = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0002")}/deplacer", new { sens = "haut" }));
         Assert.Equal("E0002", deplacee.GetProperty("etapes")[0].GetProperty("code").GetString());
 
-        // Un autre utilisateur ne peut pas supprimer la MEP ; le pilote le peut.
+        // Un autre utilisateur ne peut pas supprimer la MEP ; son créateur le peut.
         var claire = await _api.ClientConnecte("claire");
         Assert.Equal(HttpStatusCode.Forbidden, (await claire.DeleteAsync($"/api/meps/{id}")).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await bob.DeleteAsync($"/api/meps/{id}")).StatusCode);

@@ -67,7 +67,7 @@ public class ApiJalon2Tests : IDisposable
         var claire = await _api.ClientConnecte("claire");
         var participantClaire = mep.GetProperty("participants").EnumerateArray().Single(p => p.GetProperty("nom").GetString() == "Claire").GetProperty("id").GetGuid();
 
-        mep = await Ok(await Action(claire, id, mep, "E0002", "prendre-la-main"));
+        mep = await Ok(await Action(claire, id, mep, "E0002", "prendre-la-main", new { revision = Revision(mep, "E0002"), motif = "Bob est absent" }));
         Assert.Equal(participantClaire, Etape(mep, "E0002").GetProperty("executantId").GetGuid());
         Assert.NotEqual(participantClaire, Etape(mep, "E0002").GetProperty("responsableId").GetGuid());
 
@@ -81,7 +81,7 @@ public class ApiJalon2Tests : IDisposable
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(bob, id, mep, "E0002", "prendre-la-main")).StatusCode);
 
         var journal = await Journal(alice, id);
-        Assert.Contains(journal, e => e.Type == "etape.prise-en-main" && e.Auteur == "Claire" && e.Detail == "Claire a pris la main sur E0002 (prévu : Bob)");
+        Assert.Contains(journal, e => e.Type == "etape.prise-en-main" && e.Auteur == "Claire" && e.Detail == "Claire a pris la main sur E0002 (prévu : Bob) : Bob est absent");
         Assert.Contains(journal, e => e.Type == "etape.reussie" && e.Auteur == "Claire");
     }
 
@@ -94,7 +94,7 @@ public class ApiJalon2Tests : IDisposable
         var dave = await _api.ClientConnecte("dave", "motdepasse");
         Assert.Equal(JsonValueKind.Null, (await Ok(await dave.GetAsync($"/api/meps/{id}"))).GetProperty("droits").GetProperty("participantId").ValueKind);
 
-        mep = await Ok(await Action(dave, id, mep, "E0002", "prendre-la-main"));
+        mep = await Ok(await Action(dave, id, mep, "E0002", "prendre-la-main", new { revision = Revision(mep, "E0002"), motif = "Renfort" }));
         var participants = mep.GetProperty("participants").EnumerateArray().ToList();
         Assert.Equal(4, participants.Count);
         var nouveau = participants.Single(p => p.GetProperty("nom").GetString() == "Dave");

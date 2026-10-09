@@ -23,6 +23,7 @@ public static class StructureEndpoints
         api.MapPost("/meps/{id:guid}/participants", async (Guid id, ParticipantSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var nom = Requis(c.Nom, "Le nom");
             await svc.ExigerUtilisateurExistant(c.UtilisateurId);
@@ -33,6 +34,7 @@ public static class StructureEndpoints
         api.MapPut("/meps/{id:guid}/participants/{pid:guid}", async (Guid id, Guid pid, ParticipantSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var p = mep.Participants.FirstOrDefault(x => x.Id == pid) ?? throw ErreurHttp.NonTrouve("Participant introuvable.");
             p.Nom = Requis(c.Nom, "Le nom");
@@ -46,10 +48,12 @@ public static class StructureEndpoints
         api.MapDelete("/meps/{id:guid}/participants/{pid:guid}", async (Guid id, Guid pid, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var p = mep.Participants.FirstOrDefault(x => x.Id == pid) ?? throw ErreurHttp.NonTrouve("Participant introuvable.");
             if (mep.PiloteId == pid) throw new RegleMetierException($"{p.Nom} est le pilote : désigner un autre pilote d'abord.");
             if (mep.SuppleantIds.Contains(pid)) throw new RegleMetierException($"{p.Nom} est suppléant : le retirer des suppléants d'abord.");
+            if (mep.ResponsablesTechniques.Any(r => r.ParticipantId == pid)) throw new RegleMetierException($"{p.Nom} est responsable technique : le retirer des responsables techniques d'abord.");
             var etape = mep.Etapes.FirstOrDefault(e => e.ResponsableId == pid);
             if (etape is not null) throw new RegleMetierException($"{p.Nom} est responsable de {etape.Code} : changer le responsable d'abord.");
             var executee = mep.Etapes.FirstOrDefault(e => e.ExecutantId == pid);
@@ -61,10 +65,34 @@ public static class StructureEndpoints
             return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "participant.supprime", $"Participant supprimé : {p.Nom}"));
         });
 
+        // ---------- Responsables techniques ----------
+        api.MapPut("/meps/{id:guid}/responsables-techniques", async (Guid id, ResponsablesTechniquesSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, acteur);
+            ServiceMep.ExigerVersion(mep, c.Version);
+            var responsables = (c.Responsables ?? []).Select(r =>
+            {
+                if (r.ParticipantId is null) throw ErreurHttp.Saisie("Responsable technique : le participant est obligatoire.");
+                if (r.Disponibilite is null) throw ErreurHttp.Saisie("Responsable technique : la disponibilité (Joignable ou Absent) est obligatoire.");
+                return new ResponsableTechnique
+                {
+                    ParticipantId = r.ParticipantId.Value, SystemeIds = r.SystemeIds ?? [], Perimetre = r.Perimetre ?? "",
+                    Disponibilite = r.Disponibilite.Value, ContactJourJ = r.ContactJourJ ?? "",
+                };
+            }).ToList();
+            Regles.DefinirResponsablesTechniques(mep, responsables);
+            var noms = mep.ResponsablesTechniques.Count == 0 ? "aucun"
+                : string.Join(", ", mep.ResponsablesTechniques.Select(r => mep.Participants.First(p => p.Id == r.ParticipantId).Nom));
+            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "responsables-techniques.modifies", $"Responsables techniques : {noms}"));
+        });
+
         // ---------- Systèmes ----------
         api.MapPost("/meps/{id:guid}/systemes", async (Guid id, SystemeSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var nom = Requis(c.Nom, "Le nom");
             mep.Systemes.Add(new Systeme { MepId = mep.Id, Nom = nom, Cible = ServiceMep.Texte(c.Cible), Impact = ServiceMep.Texte(c.Impact) });
@@ -74,6 +102,7 @@ public static class StructureEndpoints
         api.MapPut("/meps/{id:guid}/systemes/{sid:guid}", async (Guid id, Guid sid, SystemeSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var s = mep.Systemes.FirstOrDefault(x => x.Id == sid) ?? throw ErreurHttp.NonTrouve("Système introuvable.");
             s.Nom = Requis(c.Nom, "Le nom");
@@ -85,11 +114,14 @@ public static class StructureEndpoints
         api.MapDelete("/meps/{id:guid}/systemes/{sid:guid}", async (Guid id, Guid sid, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var s = mep.Systemes.FirstOrDefault(x => x.Id == sid) ?? throw ErreurHttp.NonTrouve("Système introuvable.");
             var etape = mep.Etapes.FirstOrDefault(e => e.SystemeId == sid);
             if (etape is not null) throw new RegleMetierException($"Le système {s.Nom} est utilisé par {etape.Code} : changer le système de l'étape d'abord.");
             foreach (var l in mep.Livrables.Where(l => l.SystemeId == sid)) l.SystemeId = null;
+            if (mep.ResponsablesTechniques.Any(r => r.SystemeIds.Contains(sid)))
+                mep.ResponsablesTechniques = mep.ResponsablesTechniques.Select(r => { r.SystemeIds = r.SystemeIds.Where(x => x != sid).ToList(); return r; }).ToList();
             mep.Systemes.Remove(s);
             return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.supprime", $"Système supprimé : {s.Nom}"));
         });
@@ -98,6 +130,7 @@ public static class StructureEndpoints
         api.MapPost("/meps/{id:guid}/livrables", async (Guid id, LivrableSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var objet = Requis(c.Objet, "L'objet");
             ServiceMep.ExigerSystemeExistant(mep, c.SystemeId);
@@ -108,6 +141,7 @@ public static class StructureEndpoints
         api.MapPut("/meps/{id:guid}/livrables/{lid:guid}", async (Guid id, Guid lid, LivrableSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var l = mep.Livrables.FirstOrDefault(x => x.Id == lid) ?? throw ErreurHttp.NonTrouve("Livrable introuvable.");
             l.Objet = Requis(c.Objet, "L'objet");
@@ -121,6 +155,7 @@ public static class StructureEndpoints
         api.MapDelete("/meps/{id:guid}/livrables/{lid:guid}", async (Guid id, Guid lid, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var l = mep.Livrables.FirstOrDefault(x => x.Id == lid) ?? throw ErreurHttp.NonTrouve("Livrable introuvable.");
             mep.Livrables.Remove(l);

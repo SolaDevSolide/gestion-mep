@@ -113,7 +113,8 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
     {
         var noms = await db.Utilisateurs.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
         var pieces = await db.PiecesJointes.AsNoTracking().Where(p => p.MepId == mep.Id).ToListAsync();
-        return MepMapping.VersDto(mep, utilisateurId, noms, Maintenant, await ApprobationsMinimum(), pieces);
+        var estAdmin = utilisateurId is { } u && await db.Utilisateurs.AsNoTracking().AnyAsync(x => x.Id == u && x.EstAdmin);
+        return MepMapping.VersDto(mep, utilisateurId, noms, Maintenant, await ApprobationsMinimum(), pieces, estAdmin);
     }
 
     /// <summary>Paramètre global <see cref="ParametresGlobaux.ApprobationsMinimum"/> (1 si la ligne manque).</summary>
@@ -150,6 +151,12 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
     public static void ExigerPiloteOuAdmin(Mep mep, Acteur acteur, string message)
     {
         if (!acteur.EstAdmin && !Regles.EstPilote(mep, acteur.Id)) throw ErreurHttp.Interdit(message);
+    }
+
+    /// <summary>403 si l'acteur n'est ni responsable technique, ni pilote (ou suppléant), ni administrateur.</summary>
+    public static void ExigerEditeur(Mep mep, Acteur acteur)
+    {
+        if (!Regles.PeutEditerContenu(mep, acteur.Id, acteur.EstAdmin)) throw ErreurHttp.Interdit(Regles.MessageEditionInterdite);
     }
 
     public async Task ExigerUtilisateurExistant(Guid? utilisateurId)
