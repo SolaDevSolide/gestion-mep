@@ -3,7 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestion des MEP</title>
+    <meta name="color-scheme" content="light dark" />
+    <title>Gestion MEP</title>
+    <script>
+      (function () {
+        try {
+          var p = localStorage.getItem('mep.theme');
+          var sombre = p === 'sombre' || ((p === null || p === 'systeme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (sombre) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
     <div id="root"></div>

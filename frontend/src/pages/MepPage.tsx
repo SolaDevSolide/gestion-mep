@@ -1,42 +1,52 @@
+import { Loader2, OctagonAlert, RefreshCw, Siren } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
-import { Banniere } from '../components/Banniere';
-import { PlanCheck } from '../components/PlanCheck';
+import { formatDateHeure } from '../format';
 import { DirtyContext, type DirtyRegistry } from '../hooks';
+import { EnTeteMep } from '../mep/EnTeteMep';
+import EtapesTab from '../mep/EtapesTab';
+import ExecutionTab from '../mep/ExecutionTab';
+import JournalTab from '../mep/JournalTab';
+import PreparationTab from '../mep/PreparationTab';
+import RetourArriereTab from '../mep/RetourArriereTab';
 import { MepContext, type MepContextValue } from '../mepContext';
-import type { Mep } from '../types';
-import EtapesTab from './EtapesTab';
-import ExecutionTab from './ExecutionTab';
-import JournalTab from './JournalTab';
-import PreparationTab from './PreparationTab';
+import type { Mep, Phase } from '../types';
+import { Alerte } from '../ui/Alerte';
+import { Button } from '../ui/Button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
+import { useToast } from '../ui/Toast';
 
-type Onglet = 'preparation' | 'etapes' | 'execution' | 'journal';
-const ONGLETS: { id: Onglet; libelle: string }[] = [
-  { id: 'preparation', libelle: 'Préparation' },
-  { id: 'etapes', libelle: 'Étapes' },
-  { id: 'execution', libelle: 'Exécution' },
-  { id: 'journal', libelle: 'Journal' },
-];
+type Onglet = 'preparation' | 'etapes' | 'execution' | 'retour' | 'journal';
+const ONGLETS: Onglet[] = ['preparation', 'etapes', 'execution', 'retour', 'journal'];
 
-interface Message { id: number; type: 'succes' | 'erreur'; texte: string }
+function ongletParDefaut(m: Mep): Onglet {
+  switch (m.phase) {
+    case 'Preparation': return 'preparation';
+    case 'Execution': return 'execution';
+    case 'RetourArriere': return 'retour';
+    case 'Cloturee': return m.issue === 'Repliee' ? 'retour' : 'execution';
+  }
+}
 
 export default function MepPage() {
   const { id = '' } = useParams();
+  const toast = useToast();
+  const [params, setParams] = useSearchParams();
   const [mep, setMep] = useState<Mep | null>(null);
   const [erreurChargement, setErreurChargement] = useState('');
-  const [onglet, setOnglet] = useState<Onglet | null>(null);
   const [rechargementEnAttente, setRechargementEnAttente] = useState(false);
   const [epoch, setEpoch] = useState(0);
   const [journalTick, setJournalTick] = useState(0);
-  const [message, setMessage] = useState<Message | null>(null);
 
   const versionRef = useRef(0);
   const dirtyRef = useRef(new Map<string, boolean>());
-  const phaseRef = useRef<string | null>(null);
+  const phaseRef = useRef<Phase | null>(null);
 
   const registre = useMemo<DirtyRegistry>(() => ({ set: (k, d) => { if (d) dirtyRef.current.set(k, true); else dirtyRef.current.delete(k); } }), []);
   const saisieEnCours = () => dirtyRef.current.size > 0;
+
+  const definirOnglet = useCallback((o: Onglet) => setParams({ onglet: o }, { replace: true }), [setParams]);
 
   const appliquer = useCallback((m: Mep) => {
     versionRef.current = m.version;
@@ -44,10 +54,10 @@ export default function MepPage() {
     setRechargementEnAttente(false);
     setJournalTick((t) => t + 1);
     if (phaseRef.current !== null && phaseRef.current !== m.phase) {
-      setOnglet(m.phase === 'Execution' ? 'execution' : 'preparation');
+      setParams({ onglet: ongletParDefaut(m) }, { replace: true });
     }
     phaseRef.current = m.phase;
-  }, []);
+  }, [setParams]);
 
   const charger = useCallback(async (forcer: boolean) => {
     try {
@@ -77,13 +87,8 @@ export default function MepPage() {
     phaseRef.current = null;
     versionRef.current = 0;
     setMep(null);
-    void charger(false).then(() => undefined);
+    void charger(false);
   }, [charger]);
-
-  // Onglet initial selon la phase.
-  useEffect(() => {
-    if (mep && onglet === null) setOnglet(mep.phase === 'Execution' ? 'execution' : 'preparation');
-  }, [mep, onglet]);
 
   // Flux temps réel (SSE).
   useEffect(() => {
@@ -97,88 +102,105 @@ export default function MepPage() {
     return () => es.close();
   }, [id, synchroniser]);
 
-  // Rafraîchissement périodique (disponibilités dépendantes de l'heure).
+  // Rafraîchissement périodique (disponibilités dépendantes de l'heure, échéance automatique).
   useEffect(() => {
     const t = window.setInterval(() => void synchroniser(), 30_000);
     return () => window.clearInterval(t);
   }, [synchroniser]);
 
-  useEffect(() => {
-    if (message?.type !== 'succes') return;
-    const t = window.setTimeout(() => setMessage(null), 4000);
-    return () => window.clearTimeout(t);
-  }, [message]);
-
-  const notifier = useCallback((type: 'succes' | 'erreur', texte: string) => {
-    setMessage({ id: Date.now(), type, texte });
-  }, []);
-
   const run = useCallback<MepContextValue['run']>(async (action, succes) => {
     try {
       const m = await action();
       appliquer(m);
-      if (succes) notifier('succes', succes);
+      if (succes) toast.succes(succes);
       return true;
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        notifier('erreur', 'Quelqu’un a modifié cette MEP, les données ont été rechargées');
+        toast.erreur('Quelqu’un a modifié cette MEP, les données ont été rechargées.');
         await charger(true);
       } else if (e instanceof ApiError && e.status === 401) {
         /* redirection gérée par le client API */
       } else {
-        notifier('erreur', e instanceof Error ? e.message : 'Une erreur est survenue.');
+        toast.erreur(e instanceof Error ? e.message : 'Une erreur est survenue.');
       }
       return false;
     }
-  }, [appliquer, charger, notifier]);
+  }, [appliquer, charger, toast]);
 
-  if (erreurChargement && !mep) return <main className="page"><p className="alerte alerte-erreur" role="alert">{erreurChargement}</p></main>;
-  if (!mep) return <p className="chargement">Chargement…</p>;
+  if (erreurChargement && !mep) {
+    return (
+      <main className="p-6">
+        <Alerte ton="danger" icone={OctagonAlert} role="alert">{erreurChargement}</Alerte>
+      </main>
+    );
+  }
+  if (!mep) {
+    return (
+      <div className="flex flex-1 items-center justify-center py-24 text-fg-subtle" role="status">
+        <Loader2 className="mr-2 size-5 animate-spin" aria-hidden /> Chargement de la MEP…
+      </div>
+    );
+  }
 
-  const courant = onglet ?? 'preparation';
-  const ctx: MepContextValue = { mep, run, notifier };
+  const demande = params.get('onglet');
+  const courant: Onglet = ONGLETS.includes(demande as Onglet) ? (demande as Onglet) : ongletParDefaut(mep);
+  const repliActif = mep.phase === 'RetourArriere';
+  const ctx: MepContextValue = { mep, run };
 
   return (
     <MepContext.Provider value={ctx}>
       <DirtyContext.Provider value={registre}>
-        <Banniere />
-        <main className="page page-mep">
-          {rechargementEnAttente && (
-            <div className="alerte alerte-info bandeau-reload" role="status">
-              <span>Des modifications ont été reçues — recharger</span>
-              <button type="button" className="btn btn-petit btn-primaire" onClick={() => void charger(true)}>
-                Recharger (perd la saisie en cours)
-              </button>
+        <Tabs value={courant} onValueChange={(v) => definirOnglet(v as Onglet)} className="flex min-w-0 flex-1 flex-col">
+          <EnTeteMep
+            mep={mep}
+            onglets={
+              <TabsList aria-label="Sections de la MEP">
+                <TabsTrigger value="preparation">Préparation</TabsTrigger>
+                <TabsTrigger value="etapes">Étapes</TabsTrigger>
+                <TabsTrigger value="execution">Exécution</TabsTrigger>
+                <TabsTrigger value="retour">
+                  Retour arrière
+                  {repliActif && <span className="size-2 rounded-full bg-rollback-bg" role="img" aria-label="Retour arrière actif" />}
+                </TabsTrigger>
+                <TabsTrigger value="journal">Journal</TabsTrigger>
+              </TabsList>
+            }
+          />
+
+          {mep.phase === 'RetourArriere' && mep.retourArriere && (
+            <div role="alert" className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-rollback-bg px-6 py-3 text-white">
+              <Siren className="size-6 shrink-0" aria-hidden />
+              <p className="min-w-0 flex-1 text-[15px]">
+                <strong className="font-extrabold">Retour arrière déclenché</strong>
+                <span aria-hidden> — </span>
+                <span>{mep.retourArriere.motif}</span>
+              </p>
+              <p className="text-sm opacity-90">
+                {mep.retourArriere.par ? `Par ${mep.retourArriere.par}` : 'Déclenchement automatique'} · {formatDateHeure(mep.retourArriere.le)}
+              </p>
             </div>
           )}
-          <PlanCheck mep={mep} />
-          <nav className="onglets" role="tablist">
-            {ONGLETS.map((o) => (
-              <button
-                key={o.id}
-                type="button"
-                role="tab"
-                aria-selected={courant === o.id}
-                className={`onglet${courant === o.id ? ' onglet-actif' : ''}`}
-                onClick={() => setOnglet(o.id)}
+
+          {rechargementEnAttente && (
+            <div role="status" className="mx-6 mt-4">
+              <Alerte
+                ton="run"
+                icone={RefreshCw}
+                action={<Button taille="sm" variante="primaire" onClick={() => void charger(true)}>Recharger (perd la saisie en cours)</Button>}
               >
-                {o.libelle}
-              </button>
-            ))}
-          </nav>
-          <div key={epoch}>
-            {courant === 'preparation' && <PreparationTab />}
-            {courant === 'etapes' && <EtapesTab />}
-            {courant === 'execution' && <ExecutionTab />}
-            {courant === 'journal' && <JournalTab mepId={mep.id} tick={journalTick} />}
+                Des modifications ont été reçues — recharger
+              </Alerte>
+            </div>
+          )}
+
+          <div key={epoch} className="flex-1">
+            <TabsContent value="preparation" className="outline-none"><PreparationTab /></TabsContent>
+            <TabsContent value="etapes" className="outline-none"><EtapesTab /></TabsContent>
+            <TabsContent value="execution" className="outline-none"><ExecutionTab /></TabsContent>
+            <TabsContent value="retour" className="outline-none"><RetourArriereTab /></TabsContent>
+            <TabsContent value="journal" className="outline-none"><JournalTab mepId={mep.id} tick={journalTick} /></TabsContent>
           </div>
-        </main>
-        {message && (
-          <div className={`toast toast-${message.type}`} role={message.type === 'erreur' ? 'alert' : 'status'}>
-            <span>{message.texte}</span>
-            <button type="button" aria-label="Fermer" onClick={() => setMessage(null)}>×</button>
-          </div>
-        )}
+        </Tabs>
       </DirtyContext.Provider>
     </MepContext.Provider>
   );
