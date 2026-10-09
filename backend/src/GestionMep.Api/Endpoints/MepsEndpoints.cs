@@ -12,14 +12,16 @@ public static class MepsEndpoints
 {
     public static void MapMeps(this RouteGroupBuilder api)
     {
-        api.MapGet("/meps", async (MepDbContext db) =>
-            await db.Meps.AsNoTracking().OrderByDescending(m => m.CreeLe)
+        // ?modele=true : modèles seulement ; ?modele=false : MEP seulement ; absent : tout.
+        api.MapGet("/meps", async (bool? modele, MepDbContext db) =>
+            await db.Meps.AsNoTracking().Where(m => modele == null || m.EstModele == modele).OrderByDescending(m => m.CreeLe)
                 .Select(m => new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, m.DateMep, m.Phase, m.EcheanceRepli,
                     m.Participants.Where(p => p.Id == m.PiloteId).Select(p => p.Nom).FirstOrDefault(),
                     // Avancement du déploiement uniquement (le retour arrière a son propre plan).
                     m.Etapes.Count(e => e.Plan == TypePlan.Deploiement),
                     m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
-                    m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec)))
+                    m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
+                    m.Environnement, m.EstModele))
                 .ToListAsync());
 
         api.MapPost("/meps", async (MepCreationSaisie corps, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) =>
@@ -36,6 +38,17 @@ public static class MepsEndpoints
             return Results.Created($"/api/meps/{mep.Id}", dto);
         });
 
+        api.MapPost("/meps/{id:guid}/dupliquer", async (Guid id, DuplicationSaisie corps, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var source = await svc.Charger(id);
+            var copie = Regles.Dupliquer(source, corps.Environnement, corps.CommeModele, acteur.Id, svc.Maintenant);
+            db.Meps.Add(copie);
+            var nature = source.EstModele ? "du modèle" : "de la MEP";
+            var dto = await svc.Enregistrer(copie, acteur, "mep.creee", $"Créée par duplication {nature} « {source.Outil} »");
+            return Results.Created($"/api/meps/{copie.Id}", dto);
+        });
+
         api.MapGet("/meps/{id:guid}", async (Guid id, ClaimsPrincipal user, ServiceMep svc) =>
             Results.Ok(await svc.VersDto(await svc.Charger(id), Acteur.Depuis(user).Id)));
 
@@ -47,7 +60,9 @@ public static class MepsEndpoints
 
             if (corps.IndisponibiliteMinutes is < 0) throw ErreurHttp.Saisie("L'indisponibilité ne peut pas être négative.");
             if (corps.PiloteId is not null) ServiceMep.TrouverParticipant(mep, corps.PiloteId, "Pilote");
-            if (corps.SuppleantId is not null) ServiceMep.TrouverParticipant(mep, corps.SuppleantId, "Suppléant");
+            // suppleantIds absent (null) : inchangés.
+            var suppleants = corps.SuppleantIds ?? [.. mep.SuppleantIds];
+            foreach (var s in suppleants) ServiceMep.TrouverParticipant(mep, s, "Suppléant");
             var outil = ServiceMep.Texte(corps.Outil);
             if (outil.Length == 0) throw ErreurHttp.Saisie("L'outil est obligatoire.");
             var fuseau = ServiceMep.Texte(corps.FuseauHoraire);
@@ -69,10 +84,18 @@ public static class MepsEndpoints
             if (fuseau.Length > 0) Si(mep.FuseauHoraire, fuseau, v => mep.FuseauHoraire = v, "fuseau horaire");
             Si(mep.IndisponibiliteMinutes, corps.IndisponibiliteMinutes, v => mep.IndisponibiliteMinutes = v, "indisponibilité");
             Si(mep.PiloteId, corps.PiloteId, v => mep.PiloteId = v, "pilote");
-            Si(mep.SuppleantId, corps.SuppleantId, v => mep.SuppleantId = v, "suppléant");
+            if (!mep.SuppleantIds.SequenceEqual(suppleants)) modifs.Add(("suppléants", () => mep.SuppleantIds = [.. suppleants]));
+            // Clés facultatives (absentes : inchangées).
+            if (corps.Environnement is not null) Si(mep.Environnement, ServiceMep.Texte(corps.Environnement), v => mep.Environnement = v, "environnement");
+            if (corps.BilanActive is { } bilan) Si(mep.BilanActive, bilan, v => mep.BilanActive = v, "bilan de clôture");
             if (modifs.Count > 0)
             {
                 Regles.ExigerPreparation(mep);
+                Regles.VerifierSuppleants(mep, corps.PiloteId, suppleants);
+                var comptePilote = mep.Participants.FirstOrDefault(p => p.Id == corps.PiloteId)?.UtilisateurId;
+                var approbateur = mep.Approbations.FirstOrDefault(a => a.UtilisateurId == comptePilote);
+                if (corps.PiloteId != mep.PiloteId && comptePilote is not null && approbateur is not null)
+                    throw new RegleMetierException($"{approbateur.Nom} est approbateur : le retirer des approbateurs avant d'en faire le pilote.");
                 foreach (var m in modifs) m.Appliquer();
             }
 
@@ -85,7 +108,7 @@ public static class MepsEndpoints
                 noms.Add("échéance de retour arrière");
             }
             if (noms.Count == 0) return Results.Ok(await svc.VersDto(mep, acteur.Id));
-            return Results.Ok(await svc.Enregistrer(mep, acteur, "mep.modifiee", "MEP modifiée : " + string.Join(", ", noms)));
+            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "mep.modifiee", "MEP modifiée : " + string.Join(", ", noms)));
         });
 
         api.MapPut("/meps/{id:guid}/sauvegarde", async (Guid id, SauvegardeSaisie corps, ClaimsPrincipal user, ServiceMep svc) =>
@@ -95,6 +118,12 @@ public static class MepsEndpoints
             ServiceMep.ExigerVersion(mep, corps.Version);
             if (corps.ResponsableId is not null) ServiceMep.TrouverParticipant(mep, corps.ResponsableId, "Responsable de la sauvegarde");
             var s = mep.Sauvegarde;
+            // Le mode change la vérification du plan : il ne se modifie qu'en préparation (absent : inchangé).
+            if (corps.Mode is { } mode && mode != s.Mode)
+            {
+                Regles.ExigerPreparation(mep);
+                s.Mode = mode;
+            }
             s.Structure = corps.Structure;
             s.Donnees = corps.Donnees;
             s.Configuration = corps.Configuration;
@@ -105,17 +134,19 @@ public static class MepsEndpoints
             s.RestaurationTestee = corps.RestaurationTestee;
             s.DateTestRestauration = corps.DateTestRestauration;
             s.PreuveTestRestauration = ServiceMep.Texte(corps.PreuveTestRestauration);
-            return Results.Ok(await svc.Enregistrer(mep, acteur, "sauvegarde.modifiee", "Informations de sauvegarde modifiées"));
+            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "sauvegarde.modifiee", "Informations de sauvegarde modifiées"));
         });
 
-        api.MapDelete("/meps/{id:guid}", async (Guid id, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) =>
+        api.MapDelete("/meps/{id:guid}", async (Guid id, ClaimsPrincipal user, ServiceMep svc, MepDbContext db, StockagePiecesJointes stockage) =>
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
             ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote ou un administrateur peut supprimer une MEP.");
             Regles.ExigerPreparation(mep);
+            var pieces = await db.PiecesJointes.Where(p => p.MepId == id).Select(p => p.Id).ToListAsync();
             db.Meps.Remove(mep);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(); // les lignes des pièces jointes partent en cascade
+            foreach (var p in pieces) stockage.Supprimer(p);
             return Results.NoContent();
         });
 

@@ -6,9 +6,9 @@ namespace GestionMep.Api.Services;
 public record UtilisateurDto(Guid Id, string Login, string NomAffiche, bool EstAdmin);
 
 public record MepResumeDto(Guid Id, string Outil, string VersionCible, string Objet, DateOnly? DateMep, Phase Phase,
-    DateTimeOffset? EcheanceRepli, string? Pilote, int NbEtapes, int NbReussies, int NbEchecs);
+    DateTimeOffset? EcheanceRepli, string? Pilote, int NbEtapes, int NbReussies, int NbEchecs, string Environnement, bool EstModele);
 
-public record SauvegardeDto(bool Structure, bool Donnees, bool Configuration, Guid? ResponsableId, DateTimeOffset? RealiseeLe,
+public record SauvegardeDto(ModeSauvegarde Mode, bool Structure, bool Donnees, bool Configuration, Guid? ResponsableId, DateTimeOffset? RealiseeLe,
     string Procedure, string Copies, bool RestaurationTestee, DateOnly? DateTestRestauration, string PreuveTestRestauration);
 
 public record ValidationDto(string Par, DateTimeOffset Le);
@@ -23,7 +23,18 @@ public record DisponibiliteDto(StatutDisponibilite Statut, string Libelle);
 
 public record EtapeDto(Guid Id, TypePlan Plan, string Code, int Ordre, string Action, Guid? SystemeId, Guid? ResponsableId, Guid? ExecutantId, Criticite? Criticite,
     EtatEtape Etat, string Instructions, string ResultatAttendu, string Preuve, DateTimeOffset? DebutReel, DateTimeOffset? FinReelle,
-    int Revision, List<Guid> Dependances, List<Guid> ResolutionIds, DisponibiliteDto Disponibilite);
+    int Revision, List<Guid> Dependances, List<Guid> ResolutionIds, DisponibiliteDto Disponibilite,
+    TypeEtape Type, bool PointDeNonRetour, ValidationDto? NonRetourAutorise);
+
+public record ApprobationDto(Guid Id, Guid UtilisateurId, string Nom, DecisionApprobation? Decision, string Commentaire, DateTimeOffset? Le);
+public record CritereValideDto(string Libelle, string? Par, DateTimeOffset Le);
+public record TestRecetteDto(Guid Id, int Ordre, string Libelle, string ResultatAttendu, Guid? ResponsableId, ResultatControle? Resultat,
+    string Observation, string? Par, DateTimeOffset? Le);
+public record BilanDto(string CeQuiAMarche, string Incidents, string Actions, string? RedigePar, DateTimeOffset? Le);
+public record PieceJointeDto(Guid Id, Guid? MepId, Guid? EtapeId, Guid? ResolutionTypeId, Guid? ExecutionResolutionId, string NomFichier,
+    string TypeContenu, long Taille, string Sha256, Guid? DeposeParId, string? DeposePar, DateTimeOffset DeposeLe);
+public record CritereGoNoGoDto(Guid Id, string Libelle, int Ordre, bool Actif);
+public record ParametresDto(int ApprobationsMinimum);
 
 public record CorrectionDto(int Ordre, string Instruction, string ResultatAttendu);
 public record CorrectionExecuteeDto(int Ordre, string Instruction, string ResultatAttendu, ResultatControle? Resultat, string Observation,
@@ -37,15 +48,17 @@ public record SystemeCatalogueDto(Guid Id, string Nom, string Description, strin
 public record ResolutionTypeDto(Guid Id, string Titre, string Symptomes, string Diagnostic, Guid? SystemeCatalogueId,
     List<CorrectionDto> Corrections, string VerificationInstruction, string VerificationAttendu, bool Actif, int Version, DateTimeOffset ModifieeLe);
 
-public record DroitsDto(bool EstPilote, bool PeutModifierPlan, Guid? ParticipantId);
+public record DroitsDto(bool EstPilote, bool PeutModifierPlan, Guid? ParticipantId, bool EstApprobateur);
 
 public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle, string VersionCible, string Objet, string Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string FuseauHoraire, int? IndisponibiliteMinutes,
-    Guid? PiloteId, Guid? SuppleantId, Phase Phase, DateTimeOffset? EcheanceRepli,
+    Guid? PiloteId, List<Guid> SuppleantIds, Phase Phase, DateTimeOffset? EcheanceRepli,
     IssueMep? Issue, RetourArriereDto? RetourArriere, ClotureDto? Cloture, PlanRepliDto PlanRepli, SauvegardeDto Sauvegarde,
     ValidationDto? ProcedureRelue, ValidationDto? DemarrageAutorise,
     List<ParticipantDto> Participants, List<SystemeDto> Systemes, List<LivrableDto> Livrables, List<EtapeDto> Etapes,
-    List<ExecutionResolutionDto> Resolutions, List<string> ErreursPlan, DroitsDto Droits);
+    List<ExecutionResolutionDto> Resolutions, List<string> ErreursPlan, DroitsDto Droits,
+    string Environnement, bool EstModele, int ApprobationsMinimum, List<ApprobationDto> Approbations, List<CritereValideDto> GoNoGo,
+    List<TestRecetteDto> TestsRecette, bool BilanActive, BilanDto? Bilan, string? NonRetourFranchi, List<PieceJointeDto> PiecesJointes);
 
 public record EvenementDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail);
 
@@ -56,23 +69,33 @@ public record MepCreationSaisie(string? Outil, string? Objet);
 
 public record MepIdentiteSaisie(int? Version, string? Outil, string? VersionActuelle, string? VersionCible, string? Objet, string? Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string? FuseauHoraire, int? IndisponibiliteMinutes,
-    Guid? PiloteId, Guid? SuppleantId, DateTimeOffset? EcheanceRepli);
+    Guid? PiloteId, List<Guid>? SuppleantIds, DateTimeOffset? EcheanceRepli, string? Environnement = null, bool? BilanActive = null);
 
 public record SauvegardeSaisie(int? Version, bool Structure, bool Donnees, bool Configuration, Guid? ResponsableId, DateTimeOffset? RealiseeLe,
-    string? Procedure, string? Copies, bool RestaurationTestee, DateOnly? DateTestRestauration, string? PreuveTestRestauration);
+    string? Procedure, string? Copies, bool RestaurationTestee, DateOnly? DateTestRestauration, string? PreuveTestRestauration,
+    ModeSauvegarde? Mode = null);
 
 public record ParticipantSaisie(string? Nom, string? Role, string? Contact, Guid? UtilisateurId);
 public record SystemeSaisie(string? Nom, string? Cible, string? Impact);
 public record LivrableSaisie(string? Objet, string? Version, string? Emplacement, Guid? SystemeId);
 
 public record EtapeSaisie(int? Revision, string? Action, Guid? SystemeId, Guid? ResponsableId, Criticite? Criticite,
-    string? Instructions, string? ResultatAttendu, List<Guid>? Dependances, TypePlan? Plan = null, List<Guid>? ResolutionIds = null);
+    string? Instructions, string? ResultatAttendu, List<Guid>? Dependances, TypePlan? Plan = null, List<Guid>? ResolutionIds = null,
+    TypeEtape? Type = null, bool PointDeNonRetour = false);
 
 public record DeplacerSaisie(string? Sens);
 public record RevisionSaisie(int? Revision);
 public record TerminerSaisie(int? Revision, EtatEtape? Resultat, string? Preuve, bool ResultatVerifie);
 public record ProcedureRelueSaisie(bool Relue);
-public record PhaseSaisie(Phase? Phase);
+public record PhaseSaisie(Phase? Phase, List<Guid>? CriteresCoches = null);
+public record NoGoSaisie(string? Motif);
+public record ApprobateursSaisie(int? Version, List<Guid>? UtilisateurIds);
+public record DecisionSaisie(int? Version, DecisionApprobation? Decision, string? Commentaire);
+public record DuplicationSaisie(string? Environnement, bool CommeModele);
+public record TestRecetteSaisie(string? Libelle, string? ResultatAttendu, Guid? ResponsableId);
+public record ClotureSaisie(string? CeQuiAMarche, string? Incidents, string? Actions);
+public record CritereGoNoGoSaisie(string? Libelle, int? Ordre, bool? Actif);
+public record ParametresSaisie(int? ApprobationsMinimum);
 
 public record PlanRepliSaisie(int? Version, string? QuandDeclencher, int? DureeTesteeMinutes, string? VersionARestaurer,
     string? DonneesDepuisSauvegarde, string? SiRepliEchoue);

@@ -24,8 +24,7 @@ public class ApiJalon2Tests : IDisposable
 
     private static async Task<string> Message(HttpResponseMessage rep) => (await Lire(rep)).GetProperty("message").GetString()!;
 
-    private static async Task<Guid> IdDemo(HttpClient c) =>
-        (await Ok(await c.GetAsync("/api/meps"))).EnumerateArray().Single().GetProperty("id").GetGuid();
+    private static Task<Guid> IdDemo(HttpClient c) => AidesApi.IdDemo(c);
 
     private static JsonElement Etape(JsonElement mep, string code) =>
         mep.GetProperty("etapes").EnumerateArray().Single(e => e.GetProperty("code").GetString() == code);
@@ -53,7 +52,7 @@ public class ApiJalon2Tests : IDisposable
     {
         var alice = await _api.ClientConnecte("alice");
         var id = await IdDemo(alice);
-        var mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Execution" }));
+        var mep = await AidesApi.Go(_api, alice, id);
         return (alice, id, mep);
     }
 
@@ -218,9 +217,16 @@ public class ApiJalon2Tests : IDisposable
         mep = await Reussir(claire, id, mep, "R0002", "Service 1.0 OK");
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await claire.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { })).StatusCode);
 
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { }));
+        // Bilan activé : obligatoire, aussi pour une MEP repliée.
+        var sansBilan = await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, sansBilan.StatusCode);
+        Assert.Contains("Bilan", await Message(sansBilan));
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer",
+            new { ceQuiAMarche = "Le repli", incidents = "Service dégradé", actions = "Analyser la cause" }));
         Assert.Equal("Cloturee", mep.GetProperty("phase").GetString());
         Assert.Equal("Repliee", mep.GetProperty("issue").GetString());
+        Assert.Equal("Service dégradé", mep.GetProperty("bilan").GetProperty("incidents").GetString());
+        Assert.Equal("Alice", mep.GetProperty("bilan").GetProperty("redigePar").GetString());
         Assert.Equal("Alice", mep.GetProperty("cloture").GetProperty("par").GetString());
 
         var journal = await Journal(alice, id);
@@ -229,17 +235,26 @@ public class ApiJalon2Tests : IDisposable
     }
 
     [Fact]
-    public async Task Cloture_reussie_quand_tout_le_deploiement_est_reussi()
+    public async Task Cloture_reussie_apres_deploiement_complet_et_recette()
     {
         var (alice, id, mep) = await DemoEnExecution();
         var bob = await _api.ClientConnecte("bob");
         var claire = await _api.ClientConnecte("claire");
         mep = await Reussir(bob, id, mep, "E0002", "API démo OK");
         mep = await Reussir(claire, id, mep, "E0003", "WEB démo OK");
+        mep = await Ok(await Action(alice, id, mep, "E0004", "autoriser-non-retour"));
         mep = await Reussir(claire, id, mep, "E0004", "Parcours démo OK");
         mep = await Ok(await Action(alice, id, mep, "E0005", "autoriser-reprise"));
         mep = await Reussir(bob, id, mep, "E0005", "Incident corrigé");
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { }));
+        var refus = await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { ceQuiAMarche = "Tout", incidents = "Rien à signaler" });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
+        Assert.Contains("Passer d'abord en recette", await Message(refus));
+
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Recette" }));
+        foreach (var t in mep.GetProperty("testsRecette").EnumerateArray().ToList())
+            mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/tests-recette/{t.GetProperty("id").GetGuid()}/resultat",
+                new { resultat = "Conforme", observation = "OK" }));
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { ceQuiAMarche = "Tout", incidents = "Rien à signaler" }));
         Assert.Equal("Reussie", mep.GetProperty("issue").GetString());
         Assert.Equal("Cloturee", mep.GetProperty("phase").GetString());
         Assert.Contains(await Journal(alice, id), e => e.Detail == "MEP clôturée : réussie");
@@ -257,7 +272,7 @@ public class ApiJalon2Tests : IDisposable
             versionCible = mep.GetProperty("versionCible"), objet = mep.GetProperty("objet"), impacts = mep.GetProperty("impacts"),
             dateMep = mep.GetProperty("dateMep"), heureDebut = mep.GetProperty("heureDebut"), heureFin = mep.GetProperty("heureFin"),
             fuseauHoraire = mep.GetProperty("fuseauHoraire"), indisponibiliteMinutes = mep.GetProperty("indisponibiliteMinutes"),
-            piloteId = mep.GetProperty("piloteId"), suppleantId = mep.GetProperty("suppleantId"), echeanceRepli = echeance,
+            piloteId = mep.GetProperty("piloteId"), suppleantIds = mep.GetProperty("suppleantIds"), echeanceRepli = echeance,
         };
         Assert.Equal("Execution", (await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}", identite))).GetProperty("phase").GetString());
 
@@ -295,7 +310,7 @@ public class ApiJalon2Tests : IDisposable
         Assert.Equal(HttpStatusCode.Conflict, (await alice.PutAsJsonAsync($"/api/meps/{id}/plan-repli", corps)).StatusCode);
         Assert.Contains(await Journal(alice, id), e => e.Type == "repli.modifie");
 
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Execution" }));
+        mep = await AidesApi.Go(_api, alice, id);
         var refus = await alice.PutAsJsonAsync($"/api/meps/{id}/plan-repli", corps with { version = mep.GetProperty("version").GetInt32() });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "RetourArriere" })).StatusCode);

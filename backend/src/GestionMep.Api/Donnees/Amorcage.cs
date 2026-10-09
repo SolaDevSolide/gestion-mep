@@ -21,7 +21,7 @@ public static class Amorcage
 
         if (await db.Utilisateurs.AnyAsync())
         {
-            // Base du jalon 1 déjà amorcée : on n'ajoute que le catalogue de démonstration manquant, sans toucher aux MEP.
+            // Base d'un jalon précédent déjà amorcée : on n'ajoute que les catalogues de démonstration manquants, sans toucher aux MEP.
             if (config.GetValue<bool>("Demo:Activer") && !await db.SystemesCatalogue.AnyAsync() && !await db.ResolutionsTypes.AnyAsync())
             {
                 var (systemes, resolutions) = DonneesDemo.Catalogue();
@@ -30,6 +30,12 @@ public static class Amorcage
                 db.ResolutionsTypes.AddRange(resolutions);
                 await db.SaveChangesAsync();
                 journal.LogInformation("Catalogue et résolutions types de démonstration ajoutés.");
+            }
+            if (config.GetValue<bool>("Demo:Activer") && !await db.CriteresGoNoGo.AnyAsync())
+            {
+                db.CriteresGoNoGo.AddRange(DonneesDemo.CriteresGoNoGo());
+                await db.SaveChangesAsync();
+                journal.LogInformation("Critères go / no-go de démonstration ajoutés.");
             }
             return;
         }
@@ -51,18 +57,32 @@ public static class Amorcage
             var mep = jeu.Mep;
             mep.CreeLe = maintenant;
             mep.Version = 1;
+            // Le modèle est créé juste avant : la MEP de démonstration reste en tête de liste.
+            var modele = jeu.Modele;
+            modele.CreeLe = maintenant.AddSeconds(-1);
+            modele.Version = 1;
             foreach (var r in jeu.Resolutions) r.ModifieeLe = maintenant;
             foreach (var r in jeu.Resolutions) r.Version = 1;
             db.SystemesCatalogue.AddRange(jeu.Systemes);
             db.ResolutionsTypes.AddRange(jeu.Resolutions);
+            db.CriteresGoNoGo.AddRange(jeu.Criteres);
+            var parametres = await db.Parametres.FirstOrDefaultAsync(p => p.Id == ParametresGlobaux.IdUnique);
+            if (parametres is null) db.Parametres.Add(parametres = new ParametresGlobaux());
+            parametres.ApprobationsMinimum = DonneesDemo.ApprobationsMinimum;
+            db.Meps.Add(modele);
             db.Meps.Add(mep);
+            db.Journal.Add(new EvenementJournal
+            {
+                MepId = modele.Id, Quand = maintenant, UtilisateurId = alice.Id, Auteur = alice.NomAffiche,
+                Type = "mep.creee", Detail = "Modèle de démonstration créé",
+            });
             db.Journal.Add(new EvenementJournal
             {
                 MepId = mep.Id, Quand = maintenant, UtilisateurId = alice.Id, Auteur = alice.NomAffiche,
                 Type = "mep.creee", Detail = "MEP de démonstration créée",
             });
             await db.SaveChangesAsync();
-            journal.LogInformation("Données de démonstration créées (comptes alice, bob, claire / mot de passe demo).");
+            journal.LogInformation("Données de démonstration créées (comptes alice, bob, claire / mot de passe demo ; Claire approuve la MEP).");
             return;
         }
 

@@ -84,6 +84,18 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
     public Task<MepDto> Enregistrer(Mep mep, Acteur acteur, string type, string detail) =>
         Enregistrer(mep, acteur, [new Evenement(type, detail)]);
 
+    /// <summary>
+    /// Enregistre une modification du contenu de la MEP : en préparation, les décisions d'approbation sont remises à zéro
+    /// (<see cref="Regles.ReinitialiserApprobations"/>) et, s'il y en avait, le journal l'indique.
+    /// </summary>
+    public Task<MepDto> EnregistrerContenu(Mep mep, Acteur acteur, string type, string detail)
+    {
+        var evenements = new List<Evenement> { new(type, detail) };
+        if (Regles.ReinitialiserApprobations(mep))
+            evenements.Add(new("approbations.reinitialisees", "Approbations à refaire : la MEP a été modifiée"));
+        return Enregistrer(mep, acteur, evenements);
+    }
+
     /// <summary>Comme ci-dessus, avec plusieurs événements de journal pour une seule version (ex. résolution en échec puis retour arrière).</summary>
     public async Task<MepDto> Enregistrer(Mep mep, Acteur acteur, IEnumerable<Evenement> evenements)
     {
@@ -100,8 +112,15 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
     public async Task<MepDto> VersDto(Mep mep, Guid? utilisateurId)
     {
         var noms = await db.Utilisateurs.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
-        return MepMapping.VersDto(mep, utilisateurId, noms, Maintenant);
+        var pieces = await db.PiecesJointes.AsNoTracking().Where(p => p.MepId == mep.Id).ToListAsync();
+        return MepMapping.VersDto(mep, utilisateurId, noms, Maintenant, await ApprobationsMinimum(), pieces);
     }
+
+    /// <summary>Paramètre global <see cref="ParametresGlobaux.ApprobationsMinimum"/> (1 si la ligne manque).</summary>
+    public async Task<int> ApprobationsMinimum() =>
+        await db.Parametres.AsNoTracking().Where(p => p.Id == ParametresGlobaux.IdUnique).Select(p => (int?)p.ApprobationsMinimum).FirstOrDefaultAsync() ?? 1;
+
+    public async Task<List<CritereGoNoGo>> CriteresGoNoGo() => await db.CriteresGoNoGo.AsNoTracking().OrderBy(c => c.Ordre).ToListAsync();
 
     // ---------- Contrôles de saisie ----------
 

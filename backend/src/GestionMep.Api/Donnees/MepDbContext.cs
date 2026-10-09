@@ -23,6 +23,20 @@ internal static class ExtensionsJson
                 v => JsonSerializer.Deserialize<List<T>>(JsonSerializer.Serialize(v, Options), Options)!));
         return p;
     }
+
+    /// <summary>Objet unique facultatif stocké en jsonb (null : colonne NULL).</summary>
+    public static PropertyBuilder<T?> AsJsonObjet<T>(this PropertyBuilder<T?> p) where T : class
+    {
+        p.HasColumnType("jsonb");
+        p.HasConversion(
+            v => JsonSerializer.Serialize(v, Options),
+            v => JsonSerializer.Deserialize<T>(v, Options),
+            new ValueComparer<T?>(
+                (a, b) => JsonSerializer.Serialize(a, Options) == JsonSerializer.Serialize(b, Options),
+                v => JsonSerializer.Serialize(v, Options).GetHashCode(),
+                v => v == null ? null : JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(v, Options), Options)));
+        return p;
+    }
 }
 
 public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(options)
@@ -37,6 +51,9 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<SystemeCatalogue> SystemesCatalogue => Set<SystemeCatalogue>();
     public DbSet<ResolutionType> ResolutionsTypes => Set<ResolutionType>();
     public DbSet<ExecutionResolution> ExecutionsResolution => Set<ExecutionResolution>();
+    public DbSet<CritereGoNoGo> CriteresGoNoGo => Set<CritereGoNoGo>();
+    public DbSet<ParametresGlobaux> Parametres => Set<ParametresGlobaux>();
+    public DbSet<PieceJointe> PiecesJointes => Set<PieceJointe>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -55,6 +72,12 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Version).IsConcurrencyToken();
             e.OwnsOne(x => x.Sauvegarde);
             e.OwnsOne(x => x.PlanRepli);
+            e.Property(x => x.SuppleantIds).HasColumnType("uuid[]");
+            e.Property(x => x.Approbations).AsJson();
+            e.Property(x => x.GoNoGo).AsJson();
+            e.Property(x => x.TestsRecette).AsJson();
+            e.Property(x => x.Bilan).AsJsonObjet();
+            e.HasIndex(x => x.EstModele);
             e.HasMany(x => x.Participants).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Systemes).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Livrables).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
@@ -94,6 +117,28 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.Corrections).AsJson();
             e.HasIndex(x => x.EtapeId);
+        });
+
+        b.Entity<CritereGoNoGo>().Property(x => x.Id).ValueGeneratedNever();
+
+        b.Entity<ParametresGlobaux>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            // Ligne unique créée par la migration, avec la valeur par défaut.
+            e.HasData(new ParametresGlobaux { Id = ParametresGlobaux.IdUnique, ApprobationsMinimum = 1 });
+        });
+
+        b.Entity<PieceJointe>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.NomFichier).HasMaxLength(255);
+            e.Property(x => x.TypeContenu).HasMaxLength(255);
+            e.Property(x => x.Sha256).HasMaxLength(64);
+            // Rattachements facultatifs : la suppression du parent supprime la ligne (le fichier est effacé par l'API).
+            e.HasOne<Mep>().WithMany().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Etape>().WithMany().HasForeignKey(x => x.EtapeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<ResolutionType>().WithMany().HasForeignKey(x => x.ResolutionTypeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<ExecutionResolution>().WithMany().HasForeignKey(x => x.ExecutionResolutionId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<EvenementJournal>(e =>

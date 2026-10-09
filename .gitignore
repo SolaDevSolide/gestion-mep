@@ -8,3 +8,4 @@ dist/
 .env
 backend/src/GestionMep.Api/wwwroot/
 TestResults/
+backend/src/GestionMep.Api/pieces-jointes/

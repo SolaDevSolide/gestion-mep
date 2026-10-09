@@ -23,6 +23,26 @@ namespace GestionMep.Api.Donnees.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("GestionMep.Domain.CritereGoNoGo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Actif")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Libelle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Ordre")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CriteresGoNoGo");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.Etape", b =>
                 {
                     b.Property<Guid>("Id")
@@ -62,11 +82,20 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid>("MepId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("NonRetourAutoriseLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("NonRetourAutoriseParId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Ordre")
                         .HasColumnType("integer");
 
                     b.Property<int>("Plan")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("PointDeNonRetour")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Preuve")
                         .IsRequired()
@@ -88,6 +117,9 @@ namespace GestionMep.Api.Donnees.Migrations
 
                     b.Property<Guid?>("SystemeId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -234,6 +266,16 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Approbations")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Bilan")
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("BilanActive")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTimeOffset?>("ClotureeLe")
                         .HasColumnType("timestamp with time zone");
 
@@ -258,9 +300,20 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<DateTimeOffset?>("EcheanceRepli")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Environnement")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("EstModele")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("FuseauHoraire")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("GoNoGo")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<TimeOnly?>("HeureDebut")
                         .HasColumnType("time without time zone");
@@ -308,8 +361,13 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("SuppleantId")
-                        .HasColumnType("uuid");
+                    b.PrimitiveCollection<List<Guid>>("SuppleantIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.Property<string>("TestsRecette")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<int>("Version")
                         .IsConcurrencyToken()
@@ -327,7 +385,29 @@ namespace GestionMep.Api.Donnees.Migrations
 
                     b.HasIndex("CreeLe");
 
+                    b.HasIndex("EstModele");
+
                     b.ToTable("Meps");
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.ParametresGlobaux", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ApprobationsMinimum")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Parametres");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            ApprobationsMinimum = 1
+                        });
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Participant", b =>
@@ -358,6 +438,60 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.HasIndex("MepId");
 
                     b.ToTable("Participants");
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.PieceJointe", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("DeposeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeposeParId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("EtapeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ExecutionResolutionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("MepId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NomFichier")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid?>("ResolutionTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long>("Taille")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TypeContenu")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EtapeId");
+
+                    b.HasIndex("ExecutionResolutionId");
+
+                    b.HasIndex("MepId");
+
+                    b.HasIndex("ResolutionTypeId");
+
+                    b.ToTable("PiecesJointes");
                 });
 
             modelBuilder.Entity("GestionMep.Domain.ResolutionType", b =>
@@ -581,6 +715,9 @@ namespace GestionMep.Api.Donnees.Migrations
                             b1.Property<bool>("Donnees")
                                 .HasColumnType("boolean");
 
+                            b1.Property<int>("Mode")
+                                .HasColumnType("integer");
+
                             b1.Property<string>("PreuveTestRestauration")
                                 .IsRequired()
                                 .HasColumnType("text");
@@ -623,6 +760,29 @@ namespace GestionMep.Api.Donnees.Migrations
                         .HasForeignKey("MepId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.PieceJointe", b =>
+                {
+                    b.HasOne("GestionMep.Domain.Etape", null)
+                        .WithMany()
+                        .HasForeignKey("EtapeId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("GestionMep.Domain.ExecutionResolution", null)
+                        .WithMany()
+                        .HasForeignKey("ExecutionResolutionId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("GestionMep.Domain.Mep", null)
+                        .WithMany()
+                        .HasForeignKey("MepId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("GestionMep.Domain.ResolutionType", null)
+                        .WithMany()
+                        .HasForeignKey("ResolutionTypeId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Systeme", b =>

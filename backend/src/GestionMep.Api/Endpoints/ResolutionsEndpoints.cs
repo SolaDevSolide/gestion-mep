@@ -73,7 +73,7 @@ public static class ResolutionsEndpoints
             return Results.Ok(Dto(r));
         });
 
-        api.MapDelete("/resolutions/{id:guid}", async (Guid id, ClaimsPrincipal user, MepDbContext db, TimeProvider temps) =>
+        api.MapDelete("/resolutions/{id:guid}", async (Guid id, ClaimsPrincipal user, MepDbContext db, TimeProvider temps, StockagePiecesJointes stockage) =>
         {
             if (!Acteur.Depuis(user).EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
             var r = await db.ResolutionsTypes.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Résolution type introuvable.");
@@ -84,7 +84,15 @@ public static class ResolutionsEndpoints
                 r.Version++;
                 r.ModifieeLe = temps.GetUtcNow();
             }
-            else db.ResolutionsTypes.Remove(r);
+            else
+            {
+                // Supprimée : ses pièces jointes partent en cascade, leurs fichiers sont effacés ensuite.
+                var pieces = await db.PiecesJointes.Where(p => p.ResolutionTypeId == id).Select(p => p.Id).ToListAsync();
+                db.ResolutionsTypes.Remove(r);
+                await db.SaveChangesAsync();
+                foreach (var p in pieces) stockage.Supprimer(p);
+                return Results.NoContent();
+            }
             await db.SaveChangesAsync();
             return Results.NoContent();
         });
@@ -141,10 +149,14 @@ public static class ResolutionsEndpoints
         });
     }
 
-    /// <summary>Journal d'une résolution en échec : la résolution échoue, puis le retour arrière se déclenche automatiquement.</summary>
+    /// <summary>
+    /// Journal d'une résolution en échec : la résolution échoue, puis le retour arrière se déclenche automatiquement,
+    /// sauf point de non-retour franchi (l'étape reste en échec).
+    /// </summary>
     private static IEnumerable<ServiceMep.Evenement> EvenementsEchec(Mep mep, ExecutionResolution execution, Etape etape)
     {
         yield return new("resolution.echouee", $"Résolution « {execution.Titre} » en échec sur {etape.Code}");
-        yield return new("repli.declenche", ServiceMep.DetailRetourArriere(mep, null), Systeme: true);
+        if (mep.Phase == Phase.RetourArriere)
+            yield return new("repli.declenche", ServiceMep.DetailRetourArriere(mep, null), Systeme: true);
     }
 }
