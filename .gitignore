@@ -1,0 +1,10 @@
+bin/
+obj/
+node_modules/
+dist/
+*.user
+.vs/
+.vscode/
+.env
+backend/src/GestionMep.Api/wwwroot/
+TestResults/

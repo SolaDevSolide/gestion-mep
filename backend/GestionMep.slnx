@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GestionMep.Api/GestionMep.Api.csproj" />
+    <Project Path="src/GestionMep.Domain/GestionMep.Domain.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GestionMep.Tests/GestionMep.Tests.csproj" />
+  </Folder>
+</Solution>
