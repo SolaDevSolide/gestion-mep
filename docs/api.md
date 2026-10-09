@@ -136,3 +136,89 @@ Toutes renvoient 200 `MepDto`.
 - **Flux SSE** : la connexion envoie d'abord le commentaire `: connecté`, puis `event: maj` / `data: {"version":n}` ; si plusieurs modifications arrivent pendant qu'un client lit, seule la dernière version est livrée. Le client doit se reconnecter (EventSource le fait seul) et relire la MEP après coupure. La suppression d'une MEP n'émet pas d'événement. Diffusion en mémoire : une seule instance du serveur.
 - **Dates** : les `DateTimeOffset` reçus sont convertis en UTC ; ils sont renvoyés avec `+00:00`.
 - **Journal** : détails en français, par exemple « E0002 démarrée », « E0002 réussie : API démo OK », « E0005 en échec : … », « Participant ajouté : Dave », « MEP modifiée : objet, pilote ».
+
+---
+
+# Jalon 2 : ajouts et changements
+
+Le domaine (`backend/src/GestionMep.Domain`) porte toutes les règles ; l'API ne fait qu'appeler `Regles` (422 sur `RegleMetierException`).
+
+## Énumérations nouvelles ou étendues
+
+- `Phase` : `Preparation`, `Execution`, `RetourArriere`, `Cloturee`
+- `IssueMep` : `Reussie`, `Repliee`
+- `TypePlan` : `Deploiement`, `RetourArriere`
+- `ResultatControle` : `Conforme`, `Echec`
+- `StatutResolution` : `EnCours`, `Reussie`, `Echouee`
+- `StatutDisponibilite` : ajout de `ResolutionEnCours` et `SiRetourArriere`
+
+## MepDto : champs ajoutés
+
+```json
+{
+  "issue": null,
+  "retourArriere": null,            // ou { "le": "…", "par": "Alice" | null (automatique), "motif": "Échéance de retour arrière atteinte." }
+  "cloture": null,                  // ou { "le": "…", "par": "Alice" }
+  "planRepli": { "quandDeclencher": "", "dureeTesteeMinutes": 30, "versionARestaurer": "", "donneesDepuisSauvegarde": "", "siRepliEchoue": "" },
+  "systemes": [ { "id", "nom", "cible", "impact", "catalogueId" } ],
+  "etapes": [ EtapeDto ],           // les deux plans ; filtrer sur `plan`
+  "resolutions": [ ExecutionResolutionDto ],
+  "droits": { "estPilote", "peutModifierPlan", "participantId" }
+}
+```
+
+`EtapeDto` gagne : `plan` (`TypePlan`), `executantId` (participant ayant pris la main, ou null), `resolutionIds: [id]` (résolutions types liées). `responsableId` reste le responsable prévu ; l'exécutant effectif est `executantId ?? responsableId`.
+
+`ExecutionResolutionDto` : `{ id, etapeId, resolutionTypeId, titre, symptomes, diagnostic, corrections: [ { ordre, instruction, resultatAttendu, resultat (ResultatControle|null), observation, par (string|null), le } ], verificationInstruction, verificationAttendu, verificationResultat, verificationObservation, statut, demarreePar (string), demarreeLe, termineeLe }`.
+
+## Plan de retour arrière
+
+- `PUT /meps/{id}/plan-repli` `{ version, quandDeclencher, dureeTesteeMinutes, versionARestaurer, donneesDepuisSauvegarde, siRepliEchoue }` → 200 `MepDto`. Préparation uniquement (422 sinon). Journal `repli.modifie`.
+- Étapes de retour arrière : mêmes routes que les étapes. `POST /meps/{id}/etapes` accepte `plan` (`"Deploiement"` par défaut, ou `"RetourArriere"` → code `R0001`…). Les dépendances doivent appartenir au même plan (422). `deplacer` agit à l'intérieur du plan.
+- `POST /meps/{id}/retour-arriere` `{ motif }` → pilote/suppléant, en exécution. Journal `repli.declenche`.
+- `POST /meps/{id}/cloturer` `{}` → pilote/suppléant. En exécution : tout le déploiement réussi → `issue: Reussie`. En retour arrière : toutes les étapes de repli réussies → `issue: Repliee`. Journal `mep.cloturee`.
+- **Échéance automatique** : un service d'arrière-plan vérifie chaque minute les MEP en exécution (`Regles.AppliquerEcheance`) et toute lecture/écriture d'une MEP l'applique aussi avant de répondre ; le basculement est journalisé (`repli.declenche`, auteur « Système ») et notifié par SSE.
+- `phase` (`POST /meps/{id}/phase`) reste limité à `Execution` ↔ `Preparation`.
+
+## Prendre la main
+
+- `POST /meps/{id}/etapes/{eid}/prendre-la-main` `{ revision }` → tout utilisateur connecté. S'il n'est pas encore participant de la MEP, un participant est créé pour lui (nom = nom affiché, rôle « Prise en main », relié à son compte). Journal `etape.prise-en-main` : « Bob a pris la main sur E0003 (prévu : Claire) ».
+- `demarrer`, `terminer` et les résolutions exigent d'être l'exécutant effectif (422 sinon, avec un message qui invite à prendre la main).
+
+## Catalogue global (Paramètres)
+
+Lecture : tout utilisateur connecté. Écriture : admin (403 sinon).
+
+| Méthode | Route | Corps |
+|---|---|---|
+| GET | `/catalogue/systemes` | → `SystemeCatalogueDto[]` `{ id, nom, description, cible, actif }` (triés par nom) |
+| POST / PUT | `/catalogue/systemes[/{id}]` | `{ nom, description, cible, actif }` → `SystemeCatalogueDto` ; nom unique (400) |
+| DELETE | `/catalogue/systemes/{id}` | 204 ; s'il est utilisé par une MEP, il est seulement désactivé (`actif: false`) |
+| POST | `/meps/{id}/systemes/depuis-catalogue` | `{ catalogueId, impact }` → `MepDto` ; copie nom et cible, renseigne `catalogueId` ; préparation uniquement ; 422 si déjà présent dans la MEP |
+
+## Résolutions types (Paramètres)
+
+Lecture : tout utilisateur connecté. Création et modification : tout utilisateur connecté (le développeur en crée en préparant son étape). Suppression : admin.
+
+| Méthode | Route | Corps |
+|---|---|---|
+| GET | `/resolutions` | `?systemeCatalogueId=` facultatif → `ResolutionTypeDto[]` (actives, triées par titre) |
+| GET | `/resolutions/{id}` | → `ResolutionTypeDto` |
+| POST | `/resolutions` | `ResolutionTypeSaisie` → 201 `ResolutionTypeDto` ; 422 avec la liste de `Regles.ErreursResolutionType` |
+| PUT | `/resolutions/{id}` | `ResolutionTypeSaisie` + `version` → 200 ; 409 si version périmée. Les résolutions déjà démarrées gardent leur copie. |
+| DELETE | `/resolutions/{id}` | 204 ; désactivation si liée à une étape |
+
+`ResolutionTypeDto` : `{ id, titre, symptomes, diagnostic, systemeCatalogueId, corrections: [ { ordre, instruction, resultatAttendu } ], verificationInstruction, verificationAttendu, actif, version, modifieeLe }`.
+`ResolutionTypeSaisie` : mêmes champs sans `id`, `actif`, `modifieeLe`.
+
+`EtapeSaisie` gagne `resolutionIds: [id]` (résolutions existantes et actives, 400 sinon).
+
+## Exécution d'une résolution
+
+| Méthode | Route | Corps |
+|---|---|---|
+| POST | `/meps/{id}/etapes/{eid}/resolutions` | `{ resolutionTypeId, revision }` → `MepDto` (journal `resolution.demarree`) |
+| POST | `/meps/{id}/resolutions/{rid}/corrections/{ordre}` | `{ resultat: "Conforme"\|"Echec", observation }` → `MepDto` (journal `resolution.correction`) |
+| POST | `/meps/{id}/resolutions/{rid}/verification` | `{ resultat, observation }` → `MepDto` (journal `resolution.reussie` ou `resolution.echouee` + `repli.declenche`) |
+
+Une correction ou une vérification en échec termine la résolution et **déclenche automatiquement le retour arrière**. Une vérification conforme remet l'étape « À faire » : son exécutant peut la redémarrer.

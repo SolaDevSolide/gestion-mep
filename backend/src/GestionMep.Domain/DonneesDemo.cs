@@ -3,8 +3,47 @@ namespace GestionMep.Domain;
 /// <summary>MEP de démonstration reprise à l'identique du classeur Modele_MEP_test_navigation.xlsm.</summary>
 public static class DonneesDemo
 {
-    public static Mep Creer(Guid? alice, Guid? bob, Guid? claire, DateTimeOffset maintenant)
+    public record Jeu(Mep Mep, List<SystemeCatalogue> Systemes, List<ResolutionType> Resolutions);
+
+    /// <summary>Catalogue global de démonstration : systèmes et résolutions types.</summary>
+    public static (List<SystemeCatalogue> Systemes, List<ResolutionType> Resolutions) Catalogue()
     {
+        var bdd = new SystemeCatalogue { Nom = "BDD", Description = "Base de données de test", Cible = "Cible fictive, aucune connexion" };
+        var api = new SystemeCatalogue { Nom = "API", Description = "Service API de test", Cible = "Cible fictive, aucune connexion" };
+        var web = new SystemeCatalogue { Nom = "WEB", Description = "Interface web de test", Cible = "Cible fictive, aucune connexion" };
+        var fixApi = new ResolutionType
+        {
+            Titre = "API : réponse de test absente",
+            Symptomes = "L'appel de test de l'API ne renvoie aucune réponse ou une erreur 5xx.",
+            Diagnostic = "SIMULATION : lire « service API arrêté » dans le journal fictif.",
+            SystemeCatalogueId = api.Id,
+            Corrections =
+            [
+                new() { Ordre = 1, Instruction = "SIMULATION : lire « réponse fictive rétablie ».", ResultatAttendu = "La phrase a été lue ; aucune manipulation réelle." },
+            ],
+            VerificationInstruction = "SIMULATION : relire le résultat de la correction.",
+            VerificationAttendu = "La correction est conforme.",
+        };
+        var droitsBdd = new ResolutionType
+        {
+            Titre = "BDD : utilisateur applicatif retiré des droits",
+            Symptomes = "La connexion à la base échoue avec « permission denied for table … » ou « role does not exist ».",
+            Diagnostic = "psql -h <hôte> -U admin -d <base> -c \"\\du app_user\"\nL'utilisateur app_user est absent ou n'a plus les droits.",
+            SystemeCatalogueId = bdd.Id,
+            Corrections =
+            [
+                new() { Ordre = 1, Instruction = "psql -h <hôte> -U admin -d <base> -c \"GRANT CONNECT ON DATABASE <base> TO app_user;\"", ResultatAttendu = "GRANT" },
+                new() { Ordre = 2, Instruction = "psql -h <hôte> -U admin -d <base> -c \"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;\"", ResultatAttendu = "GRANT" },
+            ],
+            VerificationInstruction = "psql -h <hôte> -U app_user -d <base> -c \"SELECT 1;\"",
+            VerificationAttendu = "La requête renvoie 1 ligne, sans erreur de droits.",
+        };
+        return ([bdd, api, web], [fixApi, droitsBdd]);
+    }
+
+    public static Jeu Creer(Guid? alice, Guid? bob, Guid? claire, DateTimeOffset maintenant)
+    {
+        var (catalogue, resolutions) = Catalogue();
         var mep = new Mep
         {
             Outil = "Portail de démonstration",
@@ -24,9 +63,9 @@ public static class DonneesDemo
         mep.PiloteId = pAlice.Id;
         mep.SuppleantId = pBob.Id;
 
-        var bdd = Systeme(mep, "BDD", "Base de test");
-        var api = Systeme(mep, "API", "Service de test");
-        var web = Systeme(mep, "WEB", "Interface de test");
+        var bdd = Systeme(mep, catalogue[0], "Base de test");
+        var api = Systeme(mep, catalogue[1], "Service de test");
+        var web = Systeme(mep, catalogue[2], "Interface de test");
 
         mep.Livrables.Add(new Livrable { MepId = mep.Id, Objet = "Package fictif", Version = "2.0-démo", Emplacement = "Aucun téléchargement à effectuer", SystemeId = api.Id });
 
@@ -40,13 +79,34 @@ public static class DonneesDemo
         Etape(mep, 4, "Valider le parcours complet fictif", web, pClaire, Criticite.Elevee, EtatEtape.AFaire,
             "SIMULATION : attendre les deux préalables puis écrire « Parcours démo OK ».",
             "Les deux préalables sont réussis et la preuve est renseignée.", "", e2, e3);
-        Etape(mep, 5, "Incident API simulé à corriger", api, pBob, Criticite.Moderee, EtatEtape.Echec,
+        var e5 = Etape(mep, 5, "Incident API simulé à corriger", api, pBob, Criticite.Moderee, EtatEtape.Echec,
             "SIMULATION : ouvrir la fiche de résolution. Ne modifier aucun service réel.",
             "La résolution et son contrôle final sont Conforme.", "Erreur fictive : réponse de test absente.", e1);
+        e5.ResolutionIds = [resolutions[0].Id];
+        e1.ResolutionIds = [resolutions[1].Id];
+
+        // Onglet « Retour arrière » de l'Excel
+        mep.PlanRepli = new PlanRepli
+        {
+            QuandDeclencher = "Échec d'une étape sans résolution, résolution en échec, ou échéance atteinte.",
+            DureeTesteeMinutes = 30,
+            VersionARestaurer = "Version 1.0-démo fictive.",
+            DonneesDepuisSauvegarde = "Aucune donnée réelle : exercice.",
+            SiRepliEchoue = "Prévenir le pilote et l'astreinte fictive.",
+        };
+        var r1 = Etape(mep, 1, "Retour arrière simulé", api, pBob, Criticite.Elevee, EtatEtape.AFaire,
+            "SIMULATION : lire la phrase « version fictive 1.0 rétablie ». Ne lancer aucune commande.",
+            "La phrase a été lue et la preuve fictive saisie.", "");
+        r1.Plan = TypePlan.RetourArriere;
+        r1.Code = "R0001";
+        var r2 = Etape(mep, 2, "Vérifier le service rétabli", web, pClaire, Criticite.Elevee, EtatEtape.AFaire,
+            "SIMULATION : écrire « Service 1.0 OK » dans la preuve.", "La preuve contient Service 1.0 OK.", "", r1);
+        r2.Plan = TypePlan.RetourArriere;
+        r2.Code = "R0002";
 
         mep.ProcedureRelueParId = bob;
         mep.ProcedureRelueLe = bob is null ? null : maintenant;
-        return mep;
+        return new Jeu(mep, catalogue, resolutions);
     }
 
     private static Participant Participant(Mep mep, string nom, string role, string contact, Guid? utilisateur)
@@ -56,9 +116,9 @@ public static class DonneesDemo
         return p;
     }
 
-    private static Systeme Systeme(Mep mep, string nom, string impact)
+    private static Systeme Systeme(Mep mep, SystemeCatalogue c, string impact)
     {
-        var s = new Systeme { MepId = mep.Id, Nom = nom, Cible = "Cible fictive, aucune connexion", Impact = impact };
+        var s = new Systeme { MepId = mep.Id, Nom = c.Nom, Cible = c.Cible, Impact = impact, CatalogueId = c.Id };
         mep.Systemes.Add(s);
         return s;
     }
