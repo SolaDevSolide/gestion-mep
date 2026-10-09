@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # 1. Front React
-FROM node:22-alpine AS front
+FROM public.ecr.aws/docker/library/node:22-alpine AS front
 WORKDIR /src/frontend
 COPY frontend/package*.json ./
 RUN npm ci
