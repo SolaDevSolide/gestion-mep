@@ -4,6 +4,7 @@ using GestionMep.Api.Auth;
 using GestionMep.Api.Donnees;
 using GestionMep.Api.Endpoints;
 using GestionMep.Api.Services;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,12 @@ builder.Services.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = true)
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<DiffuseurMep>();
 builder.Services.AddScoped<ServiceMep>();
+// Pièces jointes : dossier Stockage:Dossier, taille maximale Stockage:TailleMaxMo (le formulaire accepte 1 Mo de marge).
+var stockage = new StockagePiecesJointes(builder.Configuration);
+builder.Services.AddSingleton(stockage);
+var limiteCorps = stockage.TailleMaxOctets + 1024 * 1024;
+builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = limiteCorps);
+builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = limiteCorps);
 // Surveillance des échéances de retour arrière (désactivable : Surveillance:Activer=false, utile en test).
 if (builder.Configuration.GetValue("Surveillance:Activer", true))
     builder.Services.AddHostedService<SurveillanceEcheances>();
@@ -47,6 +54,9 @@ api.MapEtapes();
 api.MapPhase();
 api.MapCatalogue();
 api.MapResolutions();
+api.MapDeroule();
+api.MapParametres();
+api.MapPiecesJointes();
 // Une route /api inconnue ne doit jamais retomber sur index.html.
 api.Map("{**reste}", () => Results.Json(new { message = "Route introuvable." }, statusCode: 404));
 

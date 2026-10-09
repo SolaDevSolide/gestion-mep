@@ -14,10 +14,19 @@ Corps d'erreur : `{ "message": "texte en français pour l'utilisateur" }`.
 
 ## Énumérations
 
-- `Phase` : `Preparation`, `Execution`
+Liste à jour (jalon 3) ; le détail de chaque ajout est dans la section du jalon concerné.
+
+- `Phase` : `Preparation`, `Execution`, `RetourArriere`, `Cloturee`, `Recette` (ordre de stockage ; cycle de vie : Preparation → Execution → Recette → Cloturee, ou → RetourArriere → Cloturee)
 - `EtatEtape` : `AFaire`, `EnCours`, `Reussie`, `Echec`
 - `Criticite` : `Faible`, `Moderee`, `Elevee`, `Bloquante`
-- `StatutDisponibilite` : `PlanInvalide`, `EcheanceARenseigner`, `RetourArriere`, `FicheACompleter`, `InstructionsACompleter`, `Attend`, `Terminee`, `EnCours`, `ArretResolution`, `Disponible`
+- `StatutDisponibilite` : `PlanInvalide`, `EcheanceARenseigner`, `RetourArriere`, `FicheACompleter`, `InstructionsACompleter`, `Attend`, `Terminee`, `EnCours`, `ArretResolution`, `ResolutionEnCours`, `SiRetourArriere`, `Disponible`
+- `IssueMep` : `Reussie`, `Repliee`
+- `TypePlan` : `Deploiement`, `RetourArriere`
+- `ResultatControle` : `Conforme`, `Echec`
+- `StatutResolution` : `EnCours`, `Reussie`, `Echouee`
+- `ModeSauvegarde` : `AvantMep`, `PendantMep` (jalon 3)
+- `TypeEtape` : `Standard`, `Sauvegarde` (jalon 3)
+- `DecisionApprobation` : `Approuvee`, `Refusee` (jalon 3)
 
 ## Authentification
 
@@ -236,3 +245,195 @@ Une correction ou une vérification en échec termine la résolution et **décle
 - **Résolutions types** : `GET /resolutions?systemeCatalogueId=` filtre sur l'égalité exacte (les résolutions sans système n'apparaissent que sans filtre) et ne renvoie que les actives ; `GET /resolutions/{id}` renvoie aussi une désactivée. Les corrections sont triées par `ordre` reçu puis renumérotées 1..n. `version` démarre à 1 ; un `DELETE` qui désactive incrémente `version`. Supprimer une étape supprime aussi les exécutions de résolution qui s'y rattachent.
 - **Catalogue** : nom unique sans tenir compte de la casse (400). `DELETE` désactive aussi un système référencé par une résolution type. Ajouter à une MEP un système désactivé : 422. Renommer un système du catalogue ne modifie pas les systèmes déjà copiés dans les MEP.
 - **Amorçage** : sur une base du jalon 1 déjà amorcée (utilisateurs présents) avec `Demo:Activer`, un catalogue et des résolutions types vides sont créés seuls ; les MEP existantes ne sont pas touchées (leurs systèmes n'ont donc pas de `catalogueId` et leurs étapes pas de `resolutionIds`).
+
+
+---
+
+# Jalon 3 : ajouts et changements
+
+Spécification : `conception/jalon3-spec.md`. Comme avant, toute règle du domaine (`Regles`) refusée donne **422** `{ message }` (texte français à afficher tel quel) ; 403 reste réservé aux droits propres à l'API (admin, déposant d'une pièce jointe).
+
+## Changements incompatibles (à reprendre côté front)
+
+| Avant (jalon 2) | Jalon 3 |
+|---|---|
+| `MepDto.suppleantId` (participant ou null) | **`suppleantIds: [participantId]`** (toujours un tableau, éventuellement vide) |
+| `MepIdentiteSaisie.suppleantId` | **`suppleantIds: [participantId]`** (absent ou `null` : inchangés) |
+| `POST /meps/{id}/phase { phase: "Execution" }` | décision **Go** : exige `criteresCoches` (tous les critères actifs) et les approbations ; voir « Go / no-go » |
+| `POST /meps/{id}/cloturer {}` depuis `Execution` | refusé (422 « Passer d'abord en recette… ») : la clôture réussie se fait depuis `Recette` ; corps = bilan (obligatoire si `bilanActive`) |
+| `POST /meps/{id}/retour-arriere` en `Execution` seulement | aussi en `Recette` ; refusé une fois le point de non-retour franchi |
+| `GET /meps` : uniquement des MEP | renvoie aussi les **modèles** (`estModele: true`) ; filtre `?modele=true|false` |
+| Échéance automatique : pas de bascule si tout le déploiement est réussi | bascule en `Execution` **et** `Recette` dès l'échéance atteinte, tant que la MEP n'est pas clôturée, **sauf point de non-retour franchi** |
+| `erreursPlan` | peut contenir les anomalies d'approbation et de recette (voir plus bas) |
+
+## Énumérations ajoutées
+
+- `Phase` : ajout de **`Recette`** (en fin d'énumération : valeur stockée 4, les valeurs existantes ne bougent pas).
+- `ModeSauvegarde` : `AvantMep` (défaut), `PendantMep`.
+- `TypeEtape` : `Standard` (défaut), `Sauvegarde`.
+- `DecisionApprobation` : `Approuvee`, `Refusee`.
+
+## MepDto : champs ajoutés ou modifiés
+
+```json
+{
+  "suppleantIds": ["participant id"],              // remplace suppleantId
+  "environnement": "Production",                   // texte libre (suggestions : Recette, Préproduction, Production)
+  "estModele": false,
+  "approbationsMinimum": 1,                        // paramètre global au moment de la lecture
+  "approbations": [ ApprobationDto ],
+  "goNoGo": [ { "libelle": "Sauvegarde disponible", "par": "Alice", "le": "…" } ],   // critères cochés au Go (copie figée) ; [] avant le Go
+  "testsRecette": [ TestRecetteDto ],              // triés par ordre
+  "bilanActive": true,
+  "bilan": null,                                   // ou BilanDto après la clôture
+  "nonRetourFranchi": null,                        // ou le code de l'étape point de non-retour démarrée, ex. "E0004"
+  "piecesJointes": [ PieceJointeDto ],             // toutes les pièces de la MEP (MEP, étapes, résolutions exécutées), par date de dépôt
+  "sauvegarde": { "mode": "PendantMep", "structure": true, … },
+  "droits": { "estPilote", "peutModifierPlan", "participantId", "estApprobateur": true }
+}
+```
+
+- `ApprobationDto` : `{ id, utilisateurId, nom, decision: DecisionApprobation|null, commentaire, le: DateTimeOffset|null }`. `decision: null` = en attente. `nom` = nom affiché du compte.
+- `TestRecetteDto` : `{ id, ordre, libelle, resultatAttendu, responsableId (participant|null), resultat: ResultatControle|null, observation, par: string|null, le: DateTimeOffset|null }`.
+- `BilanDto` : `{ ceQuiAMarche, incidents, actions, redigePar: string|null, le }`.
+- `PieceJointeDto` : `{ id, mepId, etapeId, resolutionTypeId, executionResolutionId, nomFichier, typeContenu, taille (octets), sha256 (hex minuscule), deposeParId, deposePar (nom|null), deposeLe }`. Un seul des rattachements est renseigné, plus `mepId` pour les pièces d'une étape ou d'une résolution exécutée.
+- `droits.estPilote` : vrai pour le pilote **et tous les suppléants**. `droits.estApprobateur` : l'utilisateur courant figure dans `approbations`.
+
+`EtapeDto` gagne : `type` (`TypeEtape`), `pointDeNonRetour` (bool), `nonRetourAutorise` (`null` ou `{ par, le }` : accord du pilote).
+
+`MepResumeDto` gagne : `environnement`, `estModele`.
+
+## Identité, suppléants, environnement, bilan
+
+`PUT /meps/{id}` (`MepIdentiteSaisie`) : `{ version, outil, versionActuelle, versionCible, objet, impacts, dateMep, heureDebut, heureFin, fuseauHoraire, indisponibiliteMinutes, piloteId, suppleantIds, echeanceRepli, environnement?, bilanActive? }`.
+
+- `suppleantIds` : participants de la MEP (400 sinon). 422 « Alice est le pilote : il ne peut pas être aussi suppléant. » ; 422 « Bob est désigné deux fois comme suppléant. ». Absent/`null` : inchangés.
+- `environnement` (texte, rogné) et `bilanActive` (bool) : facultatifs, absents/`null` = inchangés. Comme les autres champs d'identité, modifiables seulement en préparation.
+- Désigner comme pilote un participant dont le compte est approbateur : 422 (« … est approbateur : le retirer des approbateurs avant d'en faire le pilote. »).
+- Journal `mep.modifiee` : noms des champs, dont `suppléants`, `environnement`, `bilan de clôture`.
+- Un participant suppléant ou responsable d'un test de recette ne peut pas être supprimé (422).
+
+## Sauvegarde avant ou pendant la MEP
+
+- `PUT /meps/{id}/sauvegarde` : `SauvegardeSaisie` gagne `mode` (`ModeSauvegarde`, facultatif : absent/`null` = inchangé). Changer le mode n'est possible qu'en préparation (422 sinon) ; les autres champs restent modifiables dans toutes les phases.
+- `EtapeSaisie` (POST/PUT étape) gagne `type` (`TypeEtape`, absent = `Standard`) et `pointDeNonRetour` (bool, absent = false). Sur une étape du plan `RetourArriere`, `type: "Sauvegarde"` ou `pointDeNonRetour: true` → 422 « Le plan de retour arrière n'accepte ni étape de sauvegarde ni point de non-retour. ». Modifier `pointDeNonRetour` efface l'accord du pilote déjà donné.
+- `erreursPlan` en mode `PendantMep` sans étape de déploiement de type `Sauvegarde` : « Sauvegarde pendant la MEP : indiquer l'étape de déploiement de type Sauvegarde. ». En mode `PendantMep`, l'étape qui fait la sauvegarde est celle de `type: "Sauvegarde"` (affichage « La sauvegarde est faite par l'étape E000x »).
+
+## Circuit d'approbation
+
+| Méthode | Route | Corps | Qui / règles |
+|---|---|---|---|
+| PUT | `/meps/{id}/approbateurs` | `{ version, utilisateurIds: [compte] }` | tout connecté, en préparation (422 sinon). Comptes existants (400). Doublons ignorés. Le compte du pilote est refusé (422 « Alice est le pilote : il ne peut pas approuver sa propre MEP. »). Les approbateurs déjà désignés gardent leur entrée ; **toutes** les décisions sont remises à zéro. Journal `approbateurs.modifies` « Approbateurs : Claire, Bob » (« aucun » si vide). → 200 `MepDto` |
+| POST | `/meps/{id}/approbation` | `{ version, decision: "Approuvee"\|"Refusee", commentaire }` | l'approbateur désigné seulement (422 sinon), jamais le compte du pilote ; en préparation ; seulement si `erreursPlan` ne contient plus que des anomalies d'approbation (sinon 422 « Plan incomplet, approbation impossible : … »). `Refusee` exige un commentaire (422 « Expliquer le refus dans le commentaire. »). 409 si `version` périmée, 400 si `decision` absente. Journal `approbation.approuvee` « MEP approuvée par Claire[ : commentaire] » ou `approbation.refusee` « MEP refusée par Claire : commentaire ». → 200 `MepDto` |
+
+- **Remise à zéro** : en préparation, toute modification du contenu (`PUT /meps/{id}`, `PUT /sauvegarde`, participants, systèmes y compris `depuis-catalogue`, livrables, étapes : création, modification, dépendances, suppression, déplacement, `PUT /plan-repli`, tests de recette, approbateurs) remet toutes les décisions à `null`. Si au moins une décision existait, le journal reçoit en plus `approbations.reinitialisees` « Approbations à refaire : la MEP a été modifiée » (même version que la modification). Ne remettent pas à zéro : relecture de la procédure, no-go, pièces jointes, actions d'exécution. Hors préparation, les décisions restent comme trace.
+- `erreursPlan` (anomalies d'approbation, en fin de liste) : « Il faut N approbation(s). » tant que moins de N approbations `Approuvee` (N = `approbationsMinimum`, 0 = aucune exigée) ; « Claire a refusé : commentaire » pour chaque refus ; « Alice ne peut pas approuver : c'est le pilote. » si un approbateur est devenu le compte du pilote.
+
+## Go / no-go
+
+| Méthode | Route | Corps | Notes |
+|---|---|---|---|
+| POST | `/meps/{id}/phase` | `{ phase: "Execution", criteresCoches: [critereId] }` | **Go**. Pilote ou suppléant. Refus 422 dans l'ordre : modèle (« Un modèle ne passe pas en exécution : le dupliquer pour créer une MEP. »), phase, « Plan incomplet : … » (approbations comprises), critère actif non coché (« Go impossible : cocher « Supervision en place ». »). Les critères inactifs et les ids inconnus sont ignorés. Enregistre `goNoGo` (libellés des critères actifs, par ordre). Journal `gonogo.go` « Go (critère 1, critère 2…) » puis `phase.execution` « Plan passé en exécution ». |
+| POST | `/meps/{id}/no-go` | `{ motif }` | Pilote ou suppléant, en préparation, motif obligatoire (422 « Indiquer le motif du no-go. »). La MEP reste en préparation (version incrémentée). Journal `gonogo.nogo` « No-go : motif ». → 200 `MepDto` |
+
+`POST /meps/{id}/phase { phase: "Preparation" }` (retour en préparation depuis l'exécution) est inchangé ; `goNoGo` est conservé et remplacé au Go suivant.
+
+## Point de non-retour
+
+- `POST /meps/{id}/etapes/{eid}/autoriser-non-retour` `{ revision }` → pilote ou suppléant, phase `Execution`, étape `pointDeNonRetour` pas encore démarrée et pas encore autorisée (422 sinon). Renseigne `nonRetourAutorise`, incrémente `revision`. Journal `etape.non-retour-autorise` « Passage du point de non-retour E0004 autorisé ». → 200 `MepDto`.
+- `demarrer` sur une étape point de non-retour sans accord : 422 « Point de non-retour : l'accord du pilote est requis. ».
+- **Franchi** dès qu'une étape point de non-retour a été démarrée (même si elle est ensuite reprise) ; `nonRetourFranchi` donne son code. Dès lors :
+  - l'échéance ne s'applique plus au déploiement (`disponibilite` n'affiche plus « Échéance à renseigner » / « RETOUR ARRIÈRE », `terminer` en réussite, `autoriser-reprise` et les résolutions restent possibles après l'échéance) ;
+  - aucun retour arrière : ni automatique (échéance), ni manuel (`POST /retour-arriere` → 422 « Point de non-retour franchi (E0004) : corriger en avant. ») ;
+  - une résolution en échec laisse l'étape en échec, sans retour arrière (journal `resolution.echouee` seul, sans `repli.declenche`) ; le pilote peut `autoriser-reprise`.
+
+## Recette en production
+
+Préparation (préparation uniquement, sinon 422 ; chaque écriture remet les approbations à zéro) — toutes → 200 `MepDto` :
+
+| Méthode | Route | Corps |
+|---|---|---|
+| POST | `/meps/{id}/tests-recette` | `{ libelle, resultatAttendu, responsableId }` (ajouté en fin, `ordre` = max + 1). Journal `recette.test-ajoute` |
+| PUT | `/meps/{id}/tests-recette/{tid}` | idem (remplace les trois champs). Journal `recette.test-modifie` |
+| DELETE | `/meps/{id}/tests-recette/{tid}` | — ; les `ordre` sont renumérotés 1..n. Journal `recette.test-supprime` |
+| POST | `/meps/{id}/tests-recette/{tid}/deplacer` | `{ sens: "haut"\|"bas" }` (en bout de liste : sans effet). Journal `recette.test-deplace` |
+
+`responsableId` : participant de la MEP (400 sinon) ou `null`. `erreursPlan` : « Ajouter au moins un test de recette. », « Test de recette 2 : compléter Libellé, Résultat attendu, Responsable. », « Test de recette 2 : le responsable Eve n'est relié à aucun compte. ».
+
+Déroulé :
+
+| Méthode | Route | Corps | Qui / règles |
+|---|---|---|---|
+| POST | `/meps/{id}/phase` | `{ phase: "Recette" }` | pilote ou suppléant, depuis `Execution`, tout le déploiement réussi (422 « E0005 n'est pas réussie : recette impossible. »). Journal `phase.recette` « MEP passée en recette ». |
+| POST | `/meps/{id}/tests-recette/{tid}/resultat` | `{ resultat: "Conforme"\|"Echec", observation }` | responsable du test (compte relié au participant) ou pilote/suppléant ; phase `Recette` ; observation obligatoire ; un test déjà validé est refusé (le faire refaire). Journal `recette.test` « Test de recette 1 conforme : obs » / « Test de recette 1 en échec : obs ». |
+| POST | `/meps/{id}/tests-recette/{tid}/refaire` | — | pilote ou suppléant, phase `Recette`, test déjà validé : remet `resultat`, `observation`, `par`, `le` à vide. Journal `recette.refaire` « Test de recette 2 à refaire ». |
+
+En `Recette` : les étapes de déploiement sont « Terminée » et n'acceptent plus d'action (422 « La MEP est en recette : le déploiement est terminé. ») ; l'échéance s'applique (retour arrière automatique si atteinte, sauf point de non-retour franchi) ; le pilote peut `POST /retour-arriere`. La surveillance d'arrière-plan couvre `Execution` et `Recette`.
+
+## Clôture et bilan
+
+`POST /meps/{id}/cloturer` `{ ceQuiAMarche, incidents, actions }` (corps facultatif ; chaînes rognées) → pilote ou suppléant :
+
+- depuis `Recette` : tous les tests `Conforme` (422 « Test de recette 2 « Appeler l'API de test » non conforme : clôture impossible. ») → `issue: Reussie` ;
+- depuis `RetourArriere` : inchangé → `issue: Repliee` ;
+- depuis `Execution` : 422 « Passer d'abord en recette : la clôture réussie se fait après les tests de recette. » ;
+- si `bilanActive` : `ceQuiAMarche` et `incidents` obligatoires pour les deux issues (422 « Bilan : décrire ce qui a marché et les incidents (« Rien à signaler » accepté). ») ; `actions` facultatif. Le bilan est enregistré (`bilan.redigePar` = auteur de la clôture). Si `bilanActive` est faux, un bilan fourni est quand même enregistré.
+
+Journal `mep.cloturee` inchangé.
+
+## Modèles et duplication
+
+`POST /meps/{id}/dupliquer` `{ environnement?, commeModele: bool }` → tout utilisateur connecté → **201** `MepDto` de la nouvelle MEP (en-tête `Location: /api/meps/{nouvelId}`, `version: 1`).
+
+- Copie profonde en préparation, nouveaux identifiants, références remappées (pilote, suppléants, responsables, systèmes des étapes et livrables, dépendances, responsables des tests), **codes d'étapes conservés**. Le pilote et les suppléants sont ceux de la source (l'utilisateur qui duplique n'est pas ajouté).
+- Copiés : champs d'identité (sauf `dateMep` et `echeanceRepli`), participants, systèmes (avec `catalogueId`), livrables, étapes (état `AFaire`, preuve vide, dates nulles, `executantId` et `nonRetourAutorise` nuls, `revision` 0, `type`, `pointDeNonRetour`, `resolutionIds`), plan de repli, configuration de sauvegarde (`mode`, cases, responsable, procédure, copies ; sans `realiseeLe`, `restaurationTestee` = false, sans date ni preuve de test), tests de recette (résultats vides), approbateurs (décisions vides), `bilanActive`.
+- Non copiés : `echeanceRepli`, `dateMep`, procédure relue, démarrage autorisé, `goNoGo`, `bilan`, résolutions exécutées, pièces jointes.
+- `environnement` absent/`null` : celui de la source ; sinon la valeur rognée. `estModele` = `commeModele`.
+- Journal de la nouvelle MEP : `mep.creee` « Créée par duplication du modèle « Outil » » ou « … de la MEP « Outil » ».
+- Un modèle ne passe jamais en exécution (422, voir Go). Il reste modifiable en préparation comme une MEP.
+
+## Pièces jointes
+
+Dépôt en `multipart/form-data`, champ **`fichier`** (à défaut, le premier fichier du formulaire). Taille max `Stockage:TailleMaxMo` (20 Mo par défaut) → **413** `{ message: "Fichier trop volumineux : 20 Mo maximum." }`. Fichier vide, absent ou corps non multipart → 400. Le nom d'origine est assaini (sans chemin ni caractères de contrôle ou `<>:"|?*`, 200 caractères max, « fichier » s'il est vide) et sert seulement à l'affichage et au téléchargement ; le contenu est stocké sous l'Id. Le `typeContenu` est celui envoyé par le navigateur (`application/octet-stream` à défaut).
+
+| Méthode | Route | Réponse | Règles |
+|---|---|---|---|
+| GET | `/meps/{id}/pieces-jointes` | 200 `PieceJointeDto[]` | toutes les pièces de la MEP (identiques à `MepDto.piecesJointes`) |
+| POST | `/meps/{id}/pieces-jointes` | 200 `MepDto` | tout connecté ; MEP non clôturée (422 « MEP clôturée : ses pièces jointes ne sont plus modifiables. ») |
+| POST | `/meps/{id}/etapes/{eid}/pieces-jointes` | 200 `MepDto` | idem ; `etapeId` renseigné |
+| POST | `/meps/{id}/resolutions/{rid}/pieces-jointes` | 200 `MepDto` | idem ; `executionResolutionId` renseigné |
+| DELETE | `/meps/{id}/pieces-jointes/{pid}` | 200 `MepDto` | déposant, pilote ou suppléant (403 sinon) ; MEP non clôturée (422) |
+| GET | `/resolutions/{id}/pieces-jointes` | 200 `PieceJointeDto[]` | |
+| POST | `/resolutions/{id}/pieces-jointes` | 201 `PieceJointeDto` | tout connecté (comme l'édition des résolutions types) ; 404 si résolution inconnue |
+| DELETE | `/resolutions/{id}/pieces-jointes/{pid}` | 204 | admin (403) |
+| GET | `/pieces-jointes/{pid}/contenu` | 200 contenu | tout connecté ; `Content-Disposition: attachment; filename=…; filename*=UTF-8''…` (nom d'origine assaini), `Content-Type` = `typeContenu`, `X-Content-Type-Options: nosniff` ; 404 si inconnue |
+
+- Journal (pièces d'une MEP) : `piece.ajoutee` « Pièce jointe ajoutée[ à E0002 | à la résolution « Titre »] : nom » et `piece.supprimee` « Pièce jointe supprimée[ à E0002 | à une résolution] : nom ». Ces écritures incrémentent `version` et notifient le flux SSE, sans remettre les approbations à zéro.
+- Supprimer une MEP, une étape ou une résolution type (suppression réelle) supprime aussi ses pièces jointes et leurs fichiers.
+- Déploiement : volume docker `pieces-jointes` monté sur `/data/pieces-jointes` (variables `Stockage__Dossier`, `Stockage__TailleMaxMo`, `.env` : `PIECES_TAILLE_MAX_MO`).
+
+## Paramètres (admin)
+
+Lecture : tout connecté. Écriture : admin (403 sinon).
+
+| Méthode | Route | Corps | Réponse |
+|---|---|---|---|
+| GET | `/parametres` | — | 200 `{ approbationsMinimum }` |
+| PUT | `/parametres` | `{ approbationsMinimum }` (entier ≥ 0, 400 sinon) | 200 `{ approbationsMinimum }` |
+| GET | `/criteres-go-no-go` | — | 200 `CritereGoNoGoDto[]` `{ id, libelle, ordre, actif }`, actifs et inactifs, triés par `ordre` puis libellé |
+| POST | `/criteres-go-no-go` | `{ libelle, ordre?, actif? }` | 201 `CritereGoNoGoDto` ; libellé obligatoire (400) ; `ordre` absent = max + 1 ; `actif` absent = true |
+| PUT | `/criteres-go-no-go/{id}` | `{ libelle, ordre?, actif? }` | 200 ; `ordre`/`actif` absents = inchangés |
+| DELETE | `/criteres-go-no-go/{id}` | — | 204 (suppression réelle : les MEP gardent leur copie figée dans `goNoGo`) |
+
+Seuls les critères `actif` sont à cocher dans le dialogue Go / no-go.
+
+## Journal : nouveaux types
+
+`approbateurs.modifies`, `approbation.approuvee`, `approbation.refusee`, `approbations.reinitialisees`, `gonogo.go`, `gonogo.nogo`, `etape.non-retour-autorise`, `phase.recette`, `recette.test-ajoute`, `recette.test-modifie`, `recette.test-supprime`, `recette.test-deplace`, `recette.test`, `recette.refaire`, `piece.ajoutee`, `piece.supprimee` (et `mep.creee` pour une duplication).
+
+## Précisions d'implémentation (jalon 3)
+
+- **Stockage** : `SuppleantIds` en `uuid[]` (la migration `Jalon3` reprend l'ancien `SuppleantId`) ; `Approbations`, `GoNoGo`, `TestsRecette` en `jsonb`, `Bilan` en `jsonb` nullable ; `ParametresGlobaux` = table à une ligne (`Id = 1`, `ApprobationsMinimum = 1` créée par la migration). Les MEP existantes passent `bilanActive: true`, `environnement: ""`, sans approbateur ni test de recette (elles devront en avoir un pour le Go ; une MEP déjà en exécution sans test peut être clôturée depuis la recette).
+- **Démo** : comptes inchangés. MEP de démonstration : environnement « Production », Bob suppléant, Claire approbatrice (décision en attente : `erreursPlan` = `["Il faut 1 approbation(s)."]`), sauvegarde `PendantMep` faite par E0001 (`type: Sauvegarde`), E0004 point de non-retour, tests « Ouvrir la page d'accueil fictive » (Claire) et « Appeler l'API de test » (Bob), bilan actif. Modèle « Modèle : déploiement API standard » (copie de la démo, environnement vide). Critères : « Équipe présente et joignable », « Sauvegarde disponible », « Utilisateurs prévenus de l'interruption », « Supervision en place ». `approbationsMinimum = 1`. Sur une base déjà amorcée, seuls les critères de démonstration manquants sont ajoutés.
+- **Approbateur = compte** (pas un participant) : il n'a pas besoin d'être participant de la MEP. Son nom est figé dans l'approbation à la désignation (`nom` renvoie le nom affiché actuel s'il existe).
+- **Droits** : les suppléants ont tous les droits du pilote (Go, no-go, recette, clôture, retour arrière, reprise, point de non-retour, suppression de pièces jointes). Le compte du pilote principal seul est exclu des approbateurs.

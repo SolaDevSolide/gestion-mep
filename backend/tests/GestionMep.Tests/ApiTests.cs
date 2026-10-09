@@ -24,8 +24,7 @@ public class ApiTests : IDisposable
 
     private static async Task<string> Message(HttpResponseMessage rep) => (await Lire(rep)).GetProperty("message").GetString()!;
 
-    private static async Task<Guid> IdDemo(HttpClient c) =>
-        (await Ok(await c.GetAsync("/api/meps"))).EnumerateArray().Single().GetProperty("id").GetGuid();
+    private static Task<Guid> IdDemo(HttpClient c) => AidesApi.IdDemo(c);
 
     private static JsonElement Etape(JsonElement mep, string code) =>
         mep.GetProperty("etapes").EnumerateArray().Single(e => e.GetProperty("code").GetString() == code);
@@ -99,12 +98,14 @@ public class ApiTests : IDisposable
         Assert.Equal("Disponible", Etape(mep, "E0002").GetProperty("disponibilite").GetProperty("statut").GetString());
         Assert.Equal("Attend E0002", Dispo(mep, "E0004"));
         Assert.Equal("Terminée", Dispo(mep, "E0001"));
-        Assert.Equal(0, mep.GetProperty("erreursPlan").GetArrayLength());
+        // Seule l'approbation de Claire manque.
+        Assert.Equal(["Il faut 1 approbation(s)."], mep.GetProperty("erreursPlan").EnumerateArray().Select(e => e.GetString()!).ToArray());
         Assert.True(mep.GetProperty("droits").GetProperty("estPilote").GetBoolean());
         Assert.True(mep.GetProperty("droits").GetProperty("peutModifierPlan").GetBoolean());
         Assert.Equal("Bob", mep.GetProperty("procedureRelue").GetProperty("par").GetString());
 
-        var resume = (await Ok(await alice.GetAsync("/api/meps"))).EnumerateArray().Single();
+        var resume = (await Ok(await alice.GetAsync("/api/meps?modele=false"))).EnumerateArray().Single();
+        Assert.Equal("Production", resume.GetProperty("environnement").GetString());
         Assert.Equal("Alice", resume.GetProperty("pilote").GetString());
         Assert.Equal(5, resume.GetProperty("nbEtapes").GetInt32());
         Assert.Equal(1, resume.GetProperty("nbReussies").GetInt32());
@@ -123,7 +124,7 @@ public class ApiTests : IDisposable
         var claire = await _api.ClientConnecte("claire");
         var id = await IdDemo(alice);
 
-        var mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Execution" }));
+        var mep = await AidesApi.Go(_api, alice, id);
         Assert.Equal("Execution", mep.GetProperty("phase").GetString());
         Assert.Equal("Alice", mep.GetProperty("demarrageAutorise").GetProperty("par").GetString());
         Assert.False(mep.GetProperty("droits").GetProperty("peutModifierPlan").GetBoolean());
@@ -190,7 +191,7 @@ public class ApiTests : IDisposable
         {
             version = mep.GetProperty("version").GetInt32(), outil = "Portail", versionActuelle = "1", versionCible = "2", objet = "Objet",
             impacts = "", dateMep = (string?)null, heureDebut = (string?)null, heureFin = (string?)null, fuseauHoraire = "Europe/Paris",
-            indisponibiliteMinutes = 15, piloteId = mep.GetProperty("piloteId").GetGuid(), suppleantId = mep.GetProperty("suppleantId").GetGuid(),
+            indisponibiliteMinutes = 15, piloteId = mep.GetProperty("piloteId").GetGuid(), suppleantIds = mep.GetProperty("suppleantIds"),
             echeanceRepli = mep.GetProperty("echeanceRepli").GetDateTimeOffset(),
         };
         Assert.Equal(HttpStatusCode.Conflict, (await alice.PutAsJsonAsync($"/api/meps/{id}", identite)).StatusCode);
@@ -203,7 +204,7 @@ public class ApiTests : IDisposable
     {
         var alice = await _api.ClientConnecte("alice");
         var id = await IdDemo(alice);
-        var mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Execution" }));
+        var mep = await AidesApi.Go(_api, alice, id);
         var e2 = Etape(mep, "E0002");
 
         var modif = await alice.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0002")}", new

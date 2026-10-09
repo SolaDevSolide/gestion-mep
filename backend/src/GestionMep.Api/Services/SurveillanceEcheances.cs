@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GestionMep.Api.Services;
 
 /// <summary>
-/// Vérifie chaque minute les MEP en exécution dont l'échéance de retour arrière est atteinte et les fait basculer
+/// Vérifie chaque minute les MEP en exécution ou en recette dont l'échéance de retour arrière est atteinte et les fait basculer
 /// (la bascule est enregistrée, journalisée et notifiée par <see cref="ServiceMep.Charger"/>).
 /// </summary>
 public class SurveillanceEcheances(IServiceScopeFactory scopes, TimeProvider temps, ILogger<SurveillanceEcheances> journal) : BackgroundService
@@ -33,7 +33,7 @@ public class SurveillanceEcheances(IServiceScopeFactory scopes, TimeProvider tem
             {
                 var db = scope.ServiceProvider.GetRequiredService<MepDbContext>();
                 var maintenant = temps.GetUtcNow();
-                ids = await db.Meps.AsNoTracking().Where(m => m.Phase == Phase.Execution && m.EcheanceRepli != null && m.EcheanceRepli <= maintenant)
+                ids = await db.Meps.AsNoTracking().Where(m => (m.Phase == Phase.Execution || m.Phase == Phase.Recette) && m.EcheanceRepli != null && m.EcheanceRepli <= maintenant)
                     .Select(m => m.Id).ToListAsync(arret);
             }
             foreach (var id in ids)

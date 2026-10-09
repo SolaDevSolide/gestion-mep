@@ -21,6 +21,9 @@ public class ApiFixture : IDisposable
 
     private readonly WebApplicationFactory<Program> _usine;
 
+    /// <summary>Dossier temporaire des pièces jointes, supprimé à la fin.</summary>
+    public string DossierPieces { get; } = Path.Combine(Path.GetTempPath(), "gestion-mep-tests-" + Guid.NewGuid().ToString("N"));
+
     public ApiFixture()
     {
         using (var cn = new NpgsqlConnection(Serveur + ";Database=postgres"))
@@ -35,6 +38,8 @@ public class ApiFixture : IDisposable
         Environment.SetEnvironmentVariable("ConnectionStrings__Mep", $"{Serveur};Database={Base}");
         Environment.SetEnvironmentVariable("Demo__Activer", "true");
         Environment.SetEnvironmentVariable("Surveillance__Activer", "false"); // la surveillance d'arrière-plan ne doit pas interférer avec les tests
+        Environment.SetEnvironmentVariable("Stockage__Dossier", DossierPieces);
+        Environment.SetEnvironmentVariable("Stockage__TailleMaxMo", "1");
         _usine = new WebApplicationFactory<Program>();
         _ = _usine.Server; // démarre l'hôte : migration + données de démo
     }
@@ -53,5 +58,6 @@ public class ApiFixture : IDisposable
     {
         _usine.Dispose();
         NpgsqlConnection.ClearAllPools();
+        if (Directory.Exists(DossierPieces)) Directory.Delete(DossierPieces, recursive: true);
     }
 }

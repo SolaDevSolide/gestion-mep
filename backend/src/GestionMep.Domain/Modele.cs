@@ -1,6 +1,7 @@
 namespace GestionMep.Domain;
 
-public enum Phase { Preparation, Execution, RetourArriere, Cloturee }
+/// <summary>Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin.</summary>
+public enum Phase { Preparation, Execution, RetourArriere, Cloturee, Recette }
 
 /// <summary>Issue d'une MEP clôturée.</summary>
 public enum IssueMep { Reussie, Repliee }
@@ -15,6 +16,14 @@ public enum StatutResolution { EnCours, Reussie, Echouee }
 public enum EtatEtape { AFaire, EnCours, Reussie, Echec }
 
 public enum Criticite { Faible, Moderee, Elevee, Bloquante }
+
+/// <summary>Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée.</summary>
+public enum ModeSauvegarde { AvantMep, PendantMep }
+
+/// <summary>Nature d'une étape de déploiement : standard, ou étape qui réalise la sauvegarde.</summary>
+public enum TypeEtape { Standard, Sauvegarde }
+
+public enum DecisionApprobation { Approuvee, Refusee }
 
 public class Utilisateur
 {
@@ -41,7 +50,12 @@ public class Mep
     public string FuseauHoraire { get; set; } = "Europe/Paris";
     public int? IndisponibiliteMinutes { get; set; }
     public Guid? PiloteId { get; set; }
-    public Guid? SuppleantId { get; set; }
+    /// <summary>Participants suppléants du pilote : ils ont les mêmes droits que lui.</summary>
+    public List<Guid> SuppleantIds { get; set; } = [];
+    /// <summary>Environnement visé (texte libre : Recette, Préproduction, Production…).</summary>
+    public string Environnement { get; set; } = "";
+    /// <summary>Modèle de MEP : sert uniquement à être dupliqué, ne passe jamais en exécution.</summary>
+    public bool EstModele { get; set; }
 
     // Pilotage
     public Phase Phase { get; set; } = Phase.Preparation;
@@ -53,6 +67,16 @@ public class Mep
     public string RetourArriereMotif { get; set; } = "";
     public DateTimeOffset? ClotureeLe { get; set; }
     public Guid? ClotureeParId { get; set; }
+
+    // Circuit d'approbation et go / no-go
+    public List<Approbation> Approbations { get; set; } = [];
+    /// <summary>Critères go / no-go cochés lors du passage en exécution (copie figée du catalogue).</summary>
+    public List<CritereValide> GoNoGo { get; set; } = [];
+
+    // Recette en production et bilan de clôture
+    public List<TestRecette> TestsRecette { get; set; } = [];
+    public bool BilanActive { get; set; } = true;
+    public Bilan? Bilan { get; set; }
 
     // Onglet « Retour arrière » de l'Excel : déclenchement et données
     public PlanRepli PlanRepli { get; set; } = new();
@@ -196,6 +220,7 @@ public class Livrable
 
 public class Sauvegarde
 {
+    public ModeSauvegarde Mode { get; set; } = ModeSauvegarde.AvantMep;
     public bool Structure { get; set; }
     public bool Donnees { get; set; }
     public bool Configuration { get; set; }
@@ -214,6 +239,13 @@ public class Etape
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid MepId { get; set; }
     public TypePlan Plan { get; set; } = TypePlan.Deploiement;
+    /// <summary>Type de l'étape (déploiement uniquement : le retour arrière n'a que des étapes standard).</summary>
+    public TypeEtape Type { get; set; } = TypeEtape.Standard;
+    /// <summary>Point de non-retour : une fois démarrée, le retour arrière n'est plus possible (déploiement uniquement).</summary>
+    public bool PointDeNonRetour { get; set; }
+    /// <summary>Accord du pilote pour démarrer l'étape point de non-retour.</summary>
+    public Guid? NonRetourAutoriseParId { get; set; }
+    public DateTimeOffset? NonRetourAutoriseLe { get; set; }
     /// <summary>Identifiant lisible et stable (E0001… pour le déploiement, R0001… pour le retour arrière), jamais renuméroté.</summary>
     public string Code { get; set; } = "";
     public int Ordre { get; set; }
@@ -234,6 +266,89 @@ public class Etape
     public List<Guid> Dependances { get; set; } = [];
     /// <summary>Résolutions types applicables si l'étape échoue.</summary>
     public List<Guid> ResolutionIds { get; set; } = [];
+}
+
+/// <summary>Décision attendue d'un approbateur (compte de l'application) sur la MEP en préparation.</summary>
+public class Approbation
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UtilisateurId { get; set; }
+    /// <summary>Nom affiché de l'approbateur au moment de sa désignation (pour les messages).</summary>
+    public string Nom { get; set; } = "";
+    /// <summary>null : décision en attente.</summary>
+    public DecisionApprobation? Decision { get; set; }
+    public string Commentaire { get; set; } = "";
+    public DateTimeOffset? Le { get; set; }
+}
+
+/// <summary>Critère du catalogue global à cocher avant la décision Go (Paramètres).</summary>
+public class CritereGoNoGo
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Libelle { get; set; } = "";
+    public int Ordre { get; set; }
+    public bool Actif { get; set; } = true;
+}
+
+/// <summary>Critère coché lors de la décision Go (copie figée du libellé).</summary>
+public class CritereValide
+{
+    public string Libelle { get; set; } = "";
+    public Guid ParId { get; set; }
+    public DateTimeOffset Le { get; set; }
+}
+
+/// <summary>Test de recette en production, préparé avec la MEP et validé après le déploiement.</summary>
+public class TestRecette
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Ordre { get; set; }
+    public string Libelle { get; set; } = "";
+    public string ResultatAttendu { get; set; } = "";
+    /// <summary>Participant chargé du test.</summary>
+    public Guid? ResponsableId { get; set; }
+    public ResultatControle? Resultat { get; set; }
+    public string Observation { get; set; } = "";
+    public Guid? ParId { get; set; }
+    public DateTimeOffset? Le { get; set; }
+}
+
+/// <summary>Bilan rédigé à la clôture de la MEP.</summary>
+public class Bilan
+{
+    public string CeQuiAMarche { get; set; } = "";
+    public string Incidents { get; set; } = "";
+    public string Actions { get; set; } = "";
+    public Guid? RedigeParId { get; set; }
+    public DateTimeOffset? Le { get; set; }
+}
+
+/// <summary>Paramètres globaux de l'application (une seule ligne, Id = 1).</summary>
+public class ParametresGlobaux
+{
+    public const int IdUnique = 1;
+    public int Id { get; set; } = IdUnique;
+    /// <summary>Nombre d'approbations exigées avant le Go (0 : pas d'approbation).</summary>
+    public int ApprobationsMinimum { get; set; } = 1;
+}
+
+/// <summary>
+/// Fichier joint à une MEP, une étape, une résolution type ou une exécution de résolution.
+/// Le contenu est stocké sur disque sous l'Id ; <see cref="NomFichier"/> n'est jamais utilisé comme chemin.
+/// </summary>
+public class PieceJointe
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid? MepId { get; set; }
+    public Guid? EtapeId { get; set; }
+    public Guid? ResolutionTypeId { get; set; }
+    public Guid? ExecutionResolutionId { get; set; }
+    public string NomFichier { get; set; } = "";
+    public string TypeContenu { get; set; } = "application/octet-stream";
+    public long Taille { get; set; }
+    public string Sha256 { get; set; } = "";
+    public Guid? DeposeParId { get; set; }
+    public DateTimeOffset DeposeLe { get; set; }
 }
 
 public class EvenementJournal

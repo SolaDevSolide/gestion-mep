@@ -22,6 +22,8 @@ COPY --from=front /src/frontend/dist ./wwwroot
 ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
+# Dossier des pièces jointes (volume « pieces-jointes ») : il doit appartenir à l'utilisateur non root de l'image.
+RUN mkdir -p /data/pieces-jointes && chown $APP_UID /data/pieces-jointes
 USER $APP_UID
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
   CMD wget -qO- http://localhost:8080/api/sante || exit 1

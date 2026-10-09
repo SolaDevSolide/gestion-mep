@@ -3,7 +3,20 @@ namespace GestionMep.Domain;
 /// <summary>MEP de démonstration reprise à l'identique du classeur Modele_MEP_test_navigation.xlsm.</summary>
 public static class DonneesDemo
 {
-    public record Jeu(Mep Mep, List<SystemeCatalogue> Systemes, List<ResolutionType> Resolutions);
+    /// <param name="Modele">Modèle « Modèle : déploiement API standard » construit à partir de la démo.</param>
+    public record Jeu(Mep Mep, Mep Modele, List<SystemeCatalogue> Systemes, List<ResolutionType> Resolutions, List<CritereGoNoGo> Criteres);
+
+    /// <summary>Approbations exigées avant le Go dans la démonstration.</summary>
+    public const int ApprobationsMinimum = 1;
+
+    /// <summary>Critères go / no-go de démonstration.</summary>
+    public static List<CritereGoNoGo> CriteresGoNoGo() =>
+    [
+        new() { Ordre = 1, Libelle = "Équipe présente et joignable" },
+        new() { Ordre = 2, Libelle = "Sauvegarde disponible" },
+        new() { Ordre = 3, Libelle = "Utilisateurs prévenus de l'interruption" },
+        new() { Ordre = 4, Libelle = "Supervision en place" },
+    ];
 
     /// <summary>Catalogue global de démonstration : systèmes et résolutions types.</summary>
     public static (List<SystemeCatalogue> Systemes, List<ResolutionType> Resolutions) Catalogue()
@@ -52,6 +65,8 @@ public static class DonneesDemo
             Objet = "Tester les boutons, filtres, dépendances et résolutions sans agir sur un système réel.",
             DateMep = DateOnly.FromDateTime(maintenant.UtcDateTime),
             FuseauHoraire = "Europe/Paris",
+            Environnement = "Production",
+            BilanActive = true,
             // Comme l'Excel : échéance initialisée à demain 23:59.
             EcheanceRepli = new DateTimeOffset(maintenant.UtcDateTime.Date.AddDays(1).AddHours(23).AddMinutes(59), TimeSpan.Zero),
             CreeParUtilisateurId = alice,
@@ -61,7 +76,9 @@ public static class DonneesDemo
         var pBob = Participant(mep, "Bob", "Opérateur API", "Fictif — poste B", bob);
         var pClaire = Participant(mep, "Claire", "Opératrice WEB", "Fictif — poste C", claire);
         mep.PiloteId = pAlice.Id;
-        mep.SuppleantId = pBob.Id;
+        // Bob est suppléant ; Claire n'est pas suppléante : elle approuve la MEP (décision en attente).
+        mep.SuppleantIds = [pBob.Id];
+        if (claire is { } c) mep.Approbations.Add(new Approbation { UtilisateurId = c, Nom = "Claire" });
 
         var bdd = Systeme(mep, catalogue[0], "Base de test");
         var api = Systeme(mep, catalogue[1], "Service de test");
@@ -72,13 +89,17 @@ public static class DonneesDemo
         var e1 = Etape(mep, 1, "Sauvegarde fictive vérifiée", bdd, pAlice, Criticite.Elevee, EtatEtape.Reussie,
             "SIMULATION : lire la note « sauvegarde disponible ». Ne lancer aucune commande.",
             "La note indique sauvegarde disponible.", "Prérempli : contrôle fictif validé.");
+        // La sauvegarde est réalisée pendant la MEP, par E0001.
+        e1.Type = TypeEtape.Sauvegarde;
+        mep.Sauvegarde.Mode = ModeSauvegarde.PendantMep;
         var e2 = Etape(mep, 2, "Vérifier le service API fictif", api, pBob, Criticite.Moderee, EtatEtape.AFaire,
             "SIMULATION : lire cette fiche et écrire « API démo OK » dans la preuve.", "La preuve contient API démo OK.", "", e1);
         var e3 = Etape(mep, 3, "Vérifier la page WEB fictive", web, pClaire, Criticite.Faible, EtatEtape.AFaire,
             "SIMULATION : lire cette fiche et écrire « WEB démo OK » dans la preuve.", "La preuve contient WEB démo OK.", "", e1);
-        Etape(mep, 4, "Valider le parcours complet fictif", web, pClaire, Criticite.Elevee, EtatEtape.AFaire,
+        var e4 = Etape(mep, 4, "Valider le parcours complet fictif", web, pClaire, Criticite.Elevee, EtatEtape.AFaire,
             "SIMULATION : attendre les deux préalables puis écrire « Parcours démo OK ».",
             "Les deux préalables sont réussis et la preuve est renseignée.", "", e2, e3);
+        e4.PointDeNonRetour = true;
         var e5 = Etape(mep, 5, "Incident API simulé à corriger", api, pBob, Criticite.Moderee, EtatEtape.Echec,
             "SIMULATION : ouvrir la fiche de résolution. Ne modifier aucun service réel.",
             "La résolution et son contrôle final sont Conforme.", "Erreur fictive : réponse de test absente.", e1);
@@ -104,9 +125,22 @@ public static class DonneesDemo
         r2.Plan = TypePlan.RetourArriere;
         r2.Code = "R0002";
 
+        mep.TestsRecette =
+        [
+            new() { Ordre = 1, Libelle = "Ouvrir la page d'accueil fictive", ResultatAttendu = "SIMULATION : la page affiche « Portail 2.0-démo ».", ResponsableId = pClaire.Id },
+            new() { Ordre = 2, Libelle = "Appeler l'API de test", ResultatAttendu = "SIMULATION : l'appel renvoie « API 2.0-démo OK ».", ResponsableId = pBob.Id },
+        ];
+
         mep.ProcedureRelueParId = bob;
         mep.ProcedureRelueLe = bob is null ? null : maintenant;
-        return new Jeu(mep, catalogue, resolutions);
+
+        var modele = Regles.Dupliquer(mep, "", commeModele: true, alice ?? Guid.Empty, maintenant);
+        modele.Outil = "Modèle : déploiement API standard";
+        modele.VersionActuelle = "";
+        modele.VersionCible = "";
+        modele.Objet = "Modèle réutilisable : déployer une nouvelle version de l'API avec sauvegarde, point de non-retour et recette.";
+        modele.CreeParUtilisateurId = alice;
+        return new Jeu(mep, modele, catalogue, resolutions, CriteresGoNoGo());
     }
 
     private static Participant Participant(Mep mep, string nom, string role, string contact, Guid? utilisateur)

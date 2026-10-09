@@ -1,0 +1,184 @@
+using System.Security.Claims;
+using GestionMep.Api.Auth;
+using GestionMep.Api.Donnees;
+using GestionMep.Api.Services;
+using GestionMep.Domain;
+using Microsoft.EntityFrameworkCore;
+
+namespace GestionMep.Api.Endpoints;
+
+/// <summary>
+/// Pièces jointes d'une MEP, d'une étape, d'une exécution de résolution ou d'une résolution type.
+/// Dépôt en multipart/form-data (champ <c>fichier</c>) ; le contenu est stocké sur disque sous l'Id de la pièce.
+/// </summary>
+public static class PiecesJointesEndpoints
+{
+    public const string ChampFichier = "fichier";
+
+    /// <summary>Lit le fichier du formulaire et l'écrit sur disque (taille et SHA-256 calculés au passage).</summary>
+    private static async Task<PieceJointe> Recevoir(HttpRequest req, StockagePiecesJointes stockage, Acteur acteur, DateTimeOffset maintenant)
+    {
+        if (!req.HasFormContentType) throw ErreurHttp.Saisie($"Envoyer le fichier en multipart/form-data (champ « {ChampFichier} »).");
+        IFormCollection form;
+        try
+        {
+            form = await req.ReadFormAsync(req.HttpContext.RequestAborted);
+        }
+        catch (Exception ex) when (ex is InvalidDataException or BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge })
+        {
+            throw new ErreurHttp(413, stockage.MessageTropVolumineux);
+        }
+        var fichier = form.Files.GetFile(ChampFichier) ?? form.Files.FirstOrDefault()
+            ?? throw ErreurHttp.Saisie($"Aucun fichier reçu (champ « {ChampFichier} »).");
+        if (fichier.Length == 0) throw ErreurHttp.Saisie("Le fichier est vide.");
+        if (fichier.Length > stockage.TailleMaxOctets) throw new ErreurHttp(413, stockage.MessageTropVolumineux);
+
+        var piece = new PieceJointe
+        {
+            NomFichier = StockagePiecesJointes.AssainirNom(fichier.FileName),
+            TypeContenu = string.IsNullOrWhiteSpace(fichier.ContentType) || fichier.ContentType.Length > 255 ? "application/octet-stream" : fichier.ContentType,
+            DeposeParId = acteur.Id,
+            DeposeLe = maintenant,
+        };
+        await using var flux = fichier.OpenReadStream();
+        (piece.Taille, piece.Sha256) = await stockage.Ecrire(piece.Id, flux, req.HttpContext.RequestAborted);
+        return piece;
+    }
+
+    private static void ExigerNonCloturee(Mep mep)
+    {
+        if (mep.Phase == Phase.Cloturee) throw new RegleMetierException("MEP clôturée : ses pièces jointes ne sont plus modifiables.");
+    }
+
+    /// <summary>Ajoute une pièce à la MEP (journal et notification) ; le fichier est effacé si l'enregistrement échoue.</summary>
+    private static async Task<MepDto> Ajouter(Mep mep, PieceJointe piece, string cible, Acteur acteur, ServiceMep svc, MepDbContext db, StockagePiecesJointes stockage)
+    {
+        try
+        {
+            piece.MepId = mep.Id;
+            db.PiecesJointes.Add(piece);
+            return await svc.Enregistrer(mep, acteur, "piece.ajoutee", $"Pièce jointe ajoutée{cible} : {piece.NomFichier}");
+        }
+        catch
+        {
+            stockage.Supprimer(piece.Id);
+            throw;
+        }
+    }
+
+    private static string Cible(Mep mep, PieceJointe p) =>
+        p.EtapeId is { } e ? $" à {mep.Etapes.FirstOrDefault(x => x.Id == e)?.Code}"
+        : p.ExecutionResolutionId is not null ? " à une résolution" : "";
+
+    public static void MapPiecesJointes(this RouteGroupBuilder api)
+    {
+        // ---------- MEP, étape, exécution de résolution ----------
+        api.MapGet("/meps/{id:guid}/pieces-jointes", async (Guid id, MepDbContext db) =>
+        {
+            if (!await db.Meps.AnyAsync(m => m.Id == id)) throw ErreurHttp.NonTrouve("MEP introuvable.");
+            var noms = await db.Utilisateurs.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
+            return (await db.PiecesJointes.AsNoTracking().Where(p => p.MepId == id).OrderBy(p => p.DeposeLe).ToListAsync())
+                .Select(p => MepMapping.VersDto(p, noms));
+        });
+
+        api.MapPost("/meps/{id:guid}/pieces-jointes", async (Guid id, HttpRequest req, ClaimsPrincipal user, ServiceMep svc, MepDbContext db,
+            StockagePiecesJointes stockage) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            ExigerNonCloturee(mep);
+            var piece = await Recevoir(req, stockage, acteur, svc.Maintenant);
+            return Results.Ok(await Ajouter(mep, piece, "", acteur, svc, db, stockage));
+        });
+
+        api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/pieces-jointes", async (Guid id, Guid eid, HttpRequest req, ClaimsPrincipal user, ServiceMep svc,
+            MepDbContext db, StockagePiecesJointes stockage) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            var etape = ServiceMep.TrouverEtape(mep, eid);
+            ExigerNonCloturee(mep);
+            var piece = await Recevoir(req, stockage, acteur, svc.Maintenant);
+            piece.EtapeId = etape.Id;
+            return Results.Ok(await Ajouter(mep, piece, $" à {etape.Code}", acteur, svc, db, stockage));
+        });
+
+        api.MapPost("/meps/{id:guid}/resolutions/{rid:guid}/pieces-jointes", async (Guid id, Guid rid, HttpRequest req, ClaimsPrincipal user,
+            ServiceMep svc, MepDbContext db, StockagePiecesJointes stockage) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            var execution = mep.Resolutions.FirstOrDefault(r => r.Id == rid) ?? throw ErreurHttp.NonTrouve("Résolution introuvable.");
+            ExigerNonCloturee(mep);
+            var piece = await Recevoir(req, stockage, acteur, svc.Maintenant);
+            piece.ExecutionResolutionId = execution.Id;
+            return Results.Ok(await Ajouter(mep, piece, $" à la résolution « {execution.Titre} »", acteur, svc, db, stockage));
+        });
+
+        api.MapDelete("/meps/{id:guid}/pieces-jointes/{pid:guid}", async (Guid id, Guid pid, ClaimsPrincipal user, ServiceMep svc, MepDbContext db,
+            StockagePiecesJointes stockage) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            var piece = await db.PiecesJointes.FirstOrDefaultAsync(p => p.Id == pid && p.MepId == id) ?? throw ErreurHttp.NonTrouve("Pièce jointe introuvable.");
+            if (piece.DeposeParId != acteur.Id && !Regles.EstPilote(mep, acteur.Id))
+                throw ErreurHttp.Interdit("Seul le déposant ou le pilote peut supprimer cette pièce jointe.");
+            ExigerNonCloturee(mep);
+            db.PiecesJointes.Remove(piece);
+            var dto = await svc.Enregistrer(mep, acteur, "piece.supprimee", $"Pièce jointe supprimée{Cible(mep, piece)} : {piece.NomFichier}");
+            stockage.Supprimer(piece.Id);
+            return Results.Ok(dto);
+        });
+
+        // ---------- Résolution type ----------
+        api.MapGet("/resolutions/{id:guid}/pieces-jointes", async (Guid id, MepDbContext db) =>
+        {
+            if (!await db.ResolutionsTypes.AnyAsync(r => r.Id == id)) throw ErreurHttp.NonTrouve("Résolution type introuvable.");
+            var noms = await db.Utilisateurs.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
+            return (await db.PiecesJointes.AsNoTracking().Where(p => p.ResolutionTypeId == id).OrderBy(p => p.DeposeLe).ToListAsync())
+                .Select(p => MepMapping.VersDto(p, noms));
+        });
+
+        api.MapPost("/resolutions/{id:guid}/pieces-jointes", async (Guid id, HttpRequest req, ClaimsPrincipal user, MepDbContext db,
+            StockagePiecesJointes stockage, TimeProvider temps) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            if (!await db.ResolutionsTypes.AnyAsync(r => r.Id == id)) throw ErreurHttp.NonTrouve("Résolution type introuvable.");
+            var piece = await Recevoir(req, stockage, acteur, temps.GetUtcNow());
+            piece.ResolutionTypeId = id;
+            try
+            {
+                db.PiecesJointes.Add(piece);
+                await db.SaveChangesAsync();
+            }
+            catch
+            {
+                stockage.Supprimer(piece.Id);
+                throw;
+            }
+            return Results.Created($"/api/pieces-jointes/{piece.Id}/contenu", MepMapping.VersDto(piece, new Dictionary<Guid, string> { [acteur.Id] = acteur.Nom }));
+        });
+
+        api.MapDelete("/resolutions/{id:guid}/pieces-jointes/{pid:guid}", async (Guid id, Guid pid, ClaimsPrincipal user, MepDbContext db,
+            StockagePiecesJointes stockage) =>
+        {
+            if (!Acteur.Depuis(user).EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
+            var piece = await db.PiecesJointes.FirstOrDefaultAsync(p => p.Id == pid && p.ResolutionTypeId == id)
+                ?? throw ErreurHttp.NonTrouve("Pièce jointe introuvable.");
+            db.PiecesJointes.Remove(piece);
+            await db.SaveChangesAsync();
+            stockage.Supprimer(piece.Id);
+            return Results.NoContent();
+        });
+
+        // ---------- Téléchargement ----------
+        api.MapGet("/pieces-jointes/{pid:guid}/contenu", async (Guid pid, HttpContext ctx, MepDbContext db, StockagePiecesJointes stockage) =>
+        {
+            var piece = await db.PiecesJointes.AsNoTracking().FirstOrDefaultAsync(p => p.Id == pid) ?? throw ErreurHttp.NonTrouve("Pièce jointe introuvable.");
+            var flux = stockage.Ouvrir(piece.Id) ?? throw ErreurHttp.NonTrouve("Le contenu de cette pièce jointe est introuvable sur le serveur.");
+            // Toujours en téléchargement (Content-Disposition: attachment), jamais interprété par le navigateur.
+            ctx.Response.Headers.XContentTypeOptions = "nosniff";
+            return Results.File(flux, piece.TypeContenu, piece.NomFichier);
+        });
+    }
+}
