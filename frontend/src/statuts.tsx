@@ -1,5 +1,5 @@
 import {
-  CheckCircle2, Check, CircleDot, ClipboardList, Clock, Loader2, OctagonAlert, Play, Siren, TriangleAlert, Undo2, Wrench, XCircle,
+  CheckCircle2, Check, CircleDot, ClipboardCheck, ClipboardList, Clock, Loader2, OctagonAlert, Play, Siren, TriangleAlert, Undo2, Wrench, XCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { LIBELLE_DISPONIBILITE, tonDisponibilite, type Ton } from './format';
@@ -28,6 +28,7 @@ export function metaPhase(phase: Phase, issue: IssueMep | null): MetaStatut {
   switch (phase) {
     case 'Preparation': return { ton: 'wait', libelle: 'Préparation', Icone: ClipboardList };
     case 'Execution': return { ton: 'run', libelle: 'Exécution', Icone: Play };
+    case 'Recette': return { ton: 'warn', libelle: 'Recette', Icone: ClipboardCheck };
     case 'RetourArriere': return { ton: 'rollback', libelle: 'Retour arrière', Icone: Siren };
     case 'Cloturee':
       return issue === 'Repliee'

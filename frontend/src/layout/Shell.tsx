@@ -1,4 +1,4 @@
-import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, Rocket, Search, Sun, SunMoon, Wrench, Layers } from 'lucide-react';
+import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, Rocket, Search, ShieldCheck, Sun, SunMoon, Wrench, Layers } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth';
@@ -93,6 +93,7 @@ export function Shell() {
           </div>
           <Lien to="/parametres/systemes" icone={Layers} libelle="Systèmes" replie={replie} />
           <Lien to="/parametres/resolutions" icone={Wrench} libelle="Résolutions types" replie={replie} />
+          <Lien to="/parametres/go-no-go" icone={ShieldCheck} libelle="Go / no-go" replie={replie} />
         </nav>
 
         <div className="border-t border-line p-3">

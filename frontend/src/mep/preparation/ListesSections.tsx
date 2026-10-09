@@ -75,7 +75,7 @@ export function PersonnesSection() {
                     <p className="flex flex-wrap items-center gap-2 font-medium">
                       {p.nom}
                       {p.id === mep.piloteId && <Badge ton="run">Pilote</Badge>}
-                      {p.id === mep.suppleantId && <Badge>Suppléant</Badge>}
+                      {mep.suppleantIds.includes(p.id) && <Badge>Suppléant</Badge>}
                     </p>
                     <p className="truncate text-xs text-fg-subtle">{p.role || 'Rôle non précisé'}</p>
                   </div>

@@ -6,6 +6,8 @@ import { cn } from '../ui/cn';
 import { completude, type IdSection } from './completude';
 import { IdentiteSection } from './preparation/IdentiteSection';
 import { LivrablesSection, PersonnesSection, SystemesSection } from './preparation/ListesSections';
+import { PiecesSection } from './preparation/PiecesSection';
+import { RecetteSection } from './preparation/RecetteSection';
 import { SauvegardeSection, ValidationSection } from './preparation/SauvegardeValidation';
 
 const SECTIONS: { id: IdSection; numero: number; titre: string }[] = [
@@ -14,7 +16,9 @@ const SECTIONS: { id: IdSection; numero: number; titre: string }[] = [
   { id: 'systemes', numero: 3, titre: 'Systèmes' },
   { id: 'livrables', numero: 4, titre: 'Livrables' },
   { id: 'sauvegarde', numero: 5, titre: 'Sauvegarde' },
-  { id: 'validation', numero: 6, titre: 'Validation' },
+  { id: 'recette', numero: 6, titre: 'Recette' },
+  { id: 'validation', numero: 7, titre: 'Validation' },
+  { id: 'pieces', numero: 8, titre: 'Pièces jointes' },
 ];
 
 export default function PreparationTab() {
@@ -66,7 +70,9 @@ export default function PreparationTab() {
         <div hidden={section !== 'systemes'}><SystemesSection /></div>
         <div hidden={section !== 'livrables'}><LivrablesSection /></div>
         <div hidden={section !== 'sauvegarde'}><SauvegardeSection /></div>
+        <div hidden={section !== 'recette'}><RecetteSection /></div>
         <div hidden={section !== 'validation'}><ValidationSection /></div>
+        <div hidden={section !== 'pieces'}><PiecesSection /></div>
       </div>
     </div>
   );

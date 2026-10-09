@@ -1,7 +1,9 @@
 import { ArrowDown, ArrowUp, OctagonAlert, Plus, Trash2 } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useContext, useEffect, useState, type FormEvent } from 'react';
+import { AuthContext } from '../auth';
 import { api, ApiError } from '../api';
-import type { CorrectionType, ResolutionType, SystemeCatalogue } from '../types';
+import type { CorrectionType, PieceJointe, ResolutionType, SystemeCatalogue } from '../types';
+import { PiecesJointes } from '../ui/PiecesJointes';
 import { Alerte } from '../ui/Alerte';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
@@ -46,6 +48,8 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemePa
   const toast = useToast();
   const [b, setB] = useState<Brouillon>(() => depuis(initial, systemeParDefaut));
   const [systemes, setSystemes] = useState<SystemeCatalogue[]>([]);
+  const [pieces, setPieces] = useState<PieceJointe[]>([]);
+  const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState(false);
 
@@ -54,6 +58,7 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemePa
       setB(depuis(initial, systemeParDefaut));
       setErreur('');
       api.catalogueSystemes().then(setSystemes).catch(() => setSystemes([]));
+      if (initial) api.piecesResolution(initial.id).then(setPieces).catch(() => setPieces([])); else setPieces([]);
     }
   }, [open, initial, systemeParDefaut]);
 
@@ -150,6 +155,26 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemePa
           <Field label="Résultat attendu">{(id) => <Input id={id} value={b.verificationAttendu} onChange={(e) => maj({ verificationAttendu: e.target.value })} />}</Field>
         </fieldset>
       </form>
+
+      <div className="mt-5 border-t border-line pt-5">
+        {initial ? (
+          <PiecesJointes
+            titre="Pièces jointes de la résolution"
+            pieces={pieces}
+            peutSupprimer={() => admin}
+            onDeposer={async (f, signaler) => {
+              try { const p = await api.deposerPieceResolution(initial.id, f); setPieces((l) => [...l, p]); return true; }
+              catch (e) { signaler(e instanceof Error ? e.message : 'Envoi impossible.'); return false; }
+            }}
+            onSupprimer={async (p, signaler) => {
+              try { await api.supprimerPieceResolution(initial.id, p.id); setPieces((l) => l.filter((x) => x.id !== p.id)); return true; }
+              catch (e) { signaler(e instanceof Error ? e.message : 'Suppression impossible.'); return false; }
+            }}
+          />
+        ) : (
+          <p className="text-sm text-fg-subtle">Enregistrez d’abord la résolution pour pouvoir y joindre des fichiers.</p>
+        )}
+      </div>
     </Dialog>
   );
 }

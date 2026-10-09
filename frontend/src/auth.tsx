@@ -10,7 +10,7 @@ interface AuthValue {
   deconnecter: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthValue | null>(null);
+export const AuthContext = createContext<AuthValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [utilisateur, setUtilisateur] = useState<Utilisateur | null>(null);

@@ -1,4 +1,4 @@
-import { FileText, Save, ShieldAlert } from 'lucide-react';
+import { FileText, Flag, Save, ShieldAlert } from 'lucide-react';
 import { useMemo } from 'react';
 import { api } from '../api';
 import { useDraft, useReportDirty } from '../hooks';
@@ -90,9 +90,15 @@ export default function RetourArriereTab() {
     <div className="mx-auto w-full max-w-[1700px] space-y-6 px-6 py-6">
       {prep ? <FichePlan /> : <FicheLecture />}
 
-      {mep.phase === 'Execution' && mep.droits.estPilote && (
+      {mep.nonRetourFranchi && mep.phase !== 'RetourArriere' && (
+        <Alerte ton="warn" icone={Flag} titre="Retour arrière impossible : point de non-retour franchi" role="status">
+          L’étape {mep.nonRetourFranchi} a été démarrée. Il n’est plus possible de revenir en arrière, ni automatiquement à l’échéance, ni manuellement : tout problème se corrige en avant. Les étapes ci-dessous ne seront jamais exécutées.
+        </Alerte>
+      )}
+
+      {(mep.phase === 'Execution' || mep.phase === 'Recette') && mep.droits.estPilote && !mep.nonRetourFranchi && (
         <Alerte ton="rollback" icone={ShieldAlert} titre="Décision du pilote" action={<BoutonDeclencherRepli taille="md" />}>
-          Les étapes ci-dessous sont en attente. Elles ne seront exécutables qu’après le déclenchement du retour arrière.
+          Les étapes ci-dessous sont en attente. Elles ne seront exécutables qu’après le déclenchement du retour arrière (possible aussi pendant la recette).
         </Alerte>
       )}
 

@@ -1,17 +1,19 @@
-import { ArrowRight, CalendarDays, ChevronLeft } from 'lucide-react';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { ArrowRight, CalendarDays, ChevronLeft, Copy, LayoutTemplate } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { etapesDuPlan, nomParticipant, planActif, segmentsProgression } from '../domaine';
 import { formatDate, formatHeure } from '../format';
 import { metaPhase } from '../statuts';
 import type { Mep } from '../types';
 import { Avatar } from '../ui/Avatar';
+import { Button } from '../ui/Button';
 import { cn } from '../ui/cn';
 import { nommerSegment, ProgressBar } from '../ui/ProgressBar';
 import { TON } from '../ui/tons';
 import { Tooltip } from '../ui/Tooltip';
-import { StatusPill } from '../ui/StatusPill';
-import { BoutonCloturer, BoutonDeclencherRepli, BoutonPasserExecution, BoutonRevenirPreparation } from './ActionsPilote';
+import { Badge, StatusPill } from '../ui/StatusPill';
+import { BoutonCloturer, BoutonDeclencherRepli, BoutonGoNoGo, BoutonPasserRecette, BoutonRevenirPreparation } from './ActionsPilote';
+import { DuplicationDialog } from './DuplicationDialog';
 import { CompteARebours } from './CompteARebours';
 import { PlanCheck } from './PlanCheck';
 
@@ -23,6 +25,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
   const etapes = etapesDuPlan(mep, plan);
   const termine = etapes.filter((e) => e.etat === 'Reussie').length;
   const pilotes = mep.droits.estPilote;
+  const [duplication, setDuplication] = useState(false);
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -51,6 +54,8 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                 <span className="font-mono">{mep.versionCible || '?'}</span>
               </h1>
               <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime} taille="lg">{meta.libelle}</StatusPill>
+              {mep.estModele && <Badge ton="later" className="text-xs"><LayoutTemplate className="size-3.5" aria-hidden />Modèle</Badge>}
+              {mep.environnement && <Badge ton={mep.environnement.toLowerCase().startsWith('prod') ? 'warn' : undefined} className="text-xs">{mep.environnement}</Badge>}
             </div>
             <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 pl-8 text-[13px] text-fg-muted">
               {mep.objet && <span className="max-w-md truncate">{mep.objet}</span>}
@@ -60,12 +65,19 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {mep.phase === 'Execution' && <CompteARebours echeance={mep.echeanceRepli} />}
+            {(mep.phase === 'Execution' || mep.phase === 'Recette') && mep.nonRetourFranchi === null && <CompteARebours echeance={mep.echeanceRepli} />}
             {(mep.phase === 'Preparation' || (mep.phase === 'Execution' && mep.erreursPlan.length > 0)) && <PlanCheck mep={mep} />}
-            {pilotes && mep.phase === 'Preparation' && <BoutonPasserExecution />}
+            <Button taille="sm" icone={<Copy className="size-4" aria-hidden />} onClick={() => setDuplication(true)}>Dupliquer</Button>
+            {pilotes && mep.phase === 'Preparation' && <BoutonGoNoGo />}
             {pilotes && mep.phase === 'Execution' && (
               <>
                 <BoutonRevenirPreparation />
+                <BoutonDeclencherRepli />
+                <BoutonPasserRecette />
+              </>
+            )}
+            {pilotes && mep.phase === 'Recette' && (
+              <>
                 <BoutonDeclencherRepli />
                 <BoutonCloturer />
               </>
@@ -87,6 +99,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
         )}
       </div>
       <div className="mt-0.5 px-4">{onglets}</div>
+      <DuplicationDialog open={duplication} onOpenChange={setDuplication} source={{ id: mep.id, outil: mep.outil, estModele: mep.estModele, environnement: mep.environnement }} />
     </header>
   );
 }

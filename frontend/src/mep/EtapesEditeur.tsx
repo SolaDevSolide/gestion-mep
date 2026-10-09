@@ -1,11 +1,11 @@
-import { ArrowDown, ArrowUp, ListChecks, Pencil, Plus, Save, Trash2, Wrench } from 'lucide-react';
+import { ArrowDown, ArrowUp, DatabaseBackup, Flag, ListChecks, Pencil, Plus, Save, Trash2, Wrench } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { etapesDuPlan, nomParticipant } from '../domaine';
 import { LIBELLE_CRITICITE } from '../format';
 import { useMep } from '../mepContext';
 import { metaEtape } from '../statuts';
-import type { Criticite, Etape, Mep, ResolutionType, TypePlan } from '../types';
+import type { Criticite, Etape, Mep, ResolutionType, TypeEtape, TypePlan } from '../types';
 import { Avatar } from '../ui/Avatar';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -17,9 +17,28 @@ import { Sheet } from '../ui/Sheet';
 import { Badge, StatusPill } from '../ui/StatusPill';
 import { Tooltip } from '../ui/Tooltip';
 import { Checkbox } from '../ui/Checkbox';
+import { Segmented } from '../ui/Segmented';
+import { PiecesJointes } from '../ui/PiecesJointes';
+import { BadgesEtape } from './BadgesEtape';
 import { ResolutionEditeurDialog } from './ResolutionEditeur';
 import type { Ton } from '../format';
 
+
+/** Pièces jointes d'une étape (hors du fieldset : le dépôt reste possible tant que la MEP n'est pas clôturée). */
+export function PiecesEtape({ etapeId, className }: { etapeId: string; className?: string }) {
+  const { mep, run } = useMep();
+  return (
+    <PiecesJointes
+      className={className}
+      compact
+      lectureSeule={mep.phase === 'Cloturee'}
+      pilote={mep.droits.estPilote}
+      pieces={mep.piecesJointes.filter((p) => p.etapeId === etapeId)}
+      onDeposer={(f, signaler) => run(() => api.deposerPieceEtape(mep.id, etapeId, f), undefined, signaler)}
+      onSupprimer={(p, signaler) => run(() => api.supprimerPiece(mep.id, p.id), undefined, signaler)}
+    />
+  );
+}
 
 const TON_CRITICITE: Record<Criticite, Ton | undefined> = { Faible: undefined, Moderee: 'wait', Elevee: 'warn', Bloquante: 'danger' };
 
@@ -32,11 +51,14 @@ interface Brouillon {
   resultatAttendu: string;
   dependances: string[];
   resolutionIds: string[];
+  type: TypeEtape;
+  pointDeNonRetour: boolean;
 }
 
 const depuis = (e: Etape): Brouillon => ({
   action: e.action, systemeId: e.systemeId ?? '', responsableId: e.responsableId ?? '', criticite: e.criticite ?? '',
   instructions: e.instructions, resultatAttendu: e.resultatAttendu, dependances: e.dependances, resolutionIds: e.resolutionIds,
+  type: e.type, pointDeNonRetour: e.pointDeNonRetour,
 });
 
 function EtapeSheet({ etape, plan, editable, onClose }: { etape: Etape | null; plan: TypePlan; editable: boolean; onClose: () => void }) {
@@ -83,6 +105,7 @@ function EtapeSheet({ etape, plan, editable, onClose }: { etape: Etape | null; p
         revision: courante.revision, action: b.action.trim(), systemeId: b.systemeId || null, responsableId: b.responsableId || null,
         criticite: b.criticite || null, instructions: b.instructions, resultatAttendu: b.resultatAttendu.trim(),
         dependances: b.dependances, resolutionIds: b.resolutionIds,
+        type: plan === 'Deploiement' ? b.type : 'Standard', pointDeNonRetour: plan === 'Deploiement' && b.pointDeNonRetour,
       }),
       `${courante.code} enregistrée.`,
     );
@@ -106,6 +129,31 @@ function EtapeSheet({ etape, plan, editable, onClose }: { etape: Etape | null; p
       >
         <fieldset disabled={!editable} className="space-y-5">
           <Field label="Action">{(i) => <Input id={i} value={b.action} onChange={(e) => maj({ action: e.target.value })} placeholder="ex. Arrêter le service API" />}</Field>
+          {plan === 'Deploiement' && (
+            <div className="grid gap-4 rounded-lg border border-line bg-surface-2/40 p-3.5 sm:grid-cols-2">
+              <Field label="Type d’étape" hint="Une étape de sauvegarde réalise la sauvegarde pendant la MEP.">
+                {() => (
+                  <Segmented
+                    label="Type d’étape"
+                    valeur={b.type}
+                    onChange={(v) => maj({ type: v })}
+                    options={[
+                      { valeur: 'Standard', libelle: 'Standard' },
+                      { valeur: 'Sauvegarde', libelle: <><DatabaseBackup className="size-4" aria-hidden />Sauvegarde</> },
+                    ]}
+                  />
+                )}
+              </Field>
+              <div className="pt-0.5">
+                <Checkbox
+                  label={<span className="flex items-center gap-1.5 font-medium"><Flag className="size-3.5 text-warn-solid" aria-hidden />Point de non-retour</span>}
+                  description="Après cette étape, le retour arrière n’est plus possible. Le pilote doit autoriser le passage."
+                  checked={b.pointDeNonRetour}
+                  onChange={(c) => maj({ pointDeNonRetour: c })}
+                />
+              </div>
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Système">
               {(i) => (
@@ -165,6 +213,7 @@ function EtapeSheet({ etape, plan, editable, onClose }: { etape: Etape | null; p
             )}
           </div>
         </fieldset>
+        <PiecesEtape etapeId={courante.id} className="mt-5" />
       </Sheet>
       <ResolutionEditeurDialog
         open={creation}
@@ -227,6 +276,7 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
                         <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-subtle">
                           <span>{sys?.nom ?? 'Système à choisir'}</span>
                           {e.criticite && <Badge ton={TON_CRITICITE[e.criticite]}>{LIBELLE_CRITICITE[e.criticite]}</Badge>}
+                          <BadgesEtape etape={e} />
                         </span>
                       </span>
                     </button>

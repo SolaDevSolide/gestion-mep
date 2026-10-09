@@ -4,7 +4,7 @@ import type { Mep } from './types';
 export interface MepContextValue {
   mep: Mep;
   /** Exécute une action API renvoyant la MEP à jour ; gère 409/422 et affiche le message. */
-  run: (action: () => Promise<Mep>, succes?: string) => Promise<boolean>;
+  run: (action: () => Promise<Mep>, succes?: string, surErreur?: (message: string) => void) => Promise<boolean>;
 }
 
 export const MepContext = createContext<MepContextValue | null>(null);

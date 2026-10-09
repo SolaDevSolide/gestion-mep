@@ -1,6 +1,9 @@
 // Types alignés sur docs/api.md
 
-export type Phase = 'Preparation' | 'Execution' | 'RetourArriere' | 'Cloturee';
+export type Phase = 'Preparation' | 'Execution' | 'Recette' | 'RetourArriere' | 'Cloturee';
+export type ModeSauvegarde = 'AvantMep' | 'PendantMep';
+export type TypeEtape = 'Standard' | 'Sauvegarde';
+export type DecisionApprobation = 'Approuvee' | 'Refusee';
 export type IssueMep = 'Reussie' | 'Repliee';
 export type TypePlan = 'Deploiement' | 'RetourArriere';
 export type ResultatControle = 'Conforme' | 'Echec';
@@ -37,6 +40,8 @@ export interface MepResume {
   phase: Phase;
   echeanceRepli: string | null;
   issue?: IssueMep | null;
+  environnement: string;
+  estModele: boolean;
   pilote: string | null;
   nbEtapes: number;
   nbReussies: number;
@@ -44,6 +49,7 @@ export interface MepResume {
 }
 
 export interface Sauvegarde {
+  mode: ModeSauvegarde;
   structure: boolean;
   donnees: boolean;
   configuration: boolean;
@@ -105,6 +111,9 @@ export interface Etape {
   executantId: string | null;
   dependances: string[];
   resolutionIds: string[];
+  type: TypeEtape;
+  pointDeNonRetour: boolean;
+  nonRetourAutorise: { par: string | null; le: string } | null;
   disponibilite: Disponibilite;
 }
 
@@ -115,6 +124,7 @@ export interface Validation {
 
 export interface Droits {
   estPilote: boolean;
+  estApprobateur: boolean;
   peutModifierPlan: boolean;
   participantId: string | null;
 }
@@ -133,7 +143,17 @@ export interface Mep {
   fuseauHoraire: string;
   indisponibiliteMinutes: number | null;
   piloteId: string | null;
-  suppleantId: string | null;
+  suppleantIds: string[];
+  environnement: string;
+  estModele: boolean;
+  approbationsMinimum: number;
+  approbations: Approbation[];
+  goNoGo: CritereCoche[];
+  testsRecette: TestRecette[];
+  bilanActive: boolean;
+  bilan: Bilan | null;
+  nonRetourFranchi: string | null;
+  piecesJointes: PieceJointe[];
   phase: Phase;
   issue: IssueMep | null;
   retourArriere: RetourArriereInfo | null;
@@ -151,6 +171,48 @@ export interface Mep {
   erreursPlan: string[];
   droits: Droits;
 }
+
+export interface Approbation {
+  id: string;
+  utilisateurId: string;
+  nom: string;
+  decision: DecisionApprobation | null;
+  commentaire: string;
+  le: string | null;
+}
+export interface CritereCoche { libelle: string; par: string | null; le: string }
+export interface TestRecette {
+  id: string;
+  ordre: number;
+  libelle: string;
+  resultatAttendu: string;
+  responsableId: string | null;
+  resultat: ResultatControle | null;
+  observation: string;
+  par: string | null;
+  le: string | null;
+}
+export interface Bilan { ceQuiAMarche: string; incidents: string; actions: string; redigePar: string | null; le: string | null }
+export interface PieceJointe {
+  id: string;
+  mepId: string | null;
+  etapeId: string | null;
+  resolutionTypeId: string | null;
+  executionResolutionId: string | null;
+  nomFichier: string;
+  typeContenu: string;
+  taille: number;
+  sha256: string;
+  deposeParId: string | null;
+  deposePar: string | null;
+  deposeLe: string;
+}
+export interface CritereGoNoGo { id: string; libelle: string; ordre: number; actif: boolean }
+export interface CritereGoNoGoSaisie { libelle: string; ordre?: number; actif?: boolean }
+export interface ParametresGlobaux { approbationsMinimum: number }
+export interface BilanSaisie { ceQuiAMarche: string; incidents: string; actions: string }
+export interface TestRecetteSaisie { libelle: string; resultatAttendu: string; responsableId: string | null }
+export interface DuplicationSaisie { environnement?: string | null; commeModele: boolean }
 
 export interface RetourArriereInfo { le: string; par: string | null; motif: string }
 export interface ClotureInfo { le: string; par: string }
@@ -222,8 +284,8 @@ export type MepIdentiteSaisie = Pick<
   Mep,
   | 'version' | 'outil' | 'versionActuelle' | 'versionCible' | 'objet' | 'impacts' | 'dateMep'
   | 'heureDebut' | 'heureFin' | 'fuseauHoraire' | 'indisponibiliteMinutes' | 'piloteId'
-  | 'suppleantId' | 'echeanceRepli'
->;
+  | 'suppleantIds' | 'echeanceRepli'
+> & { environnement?: string; bilanActive?: boolean };
 
 export type SauvegardeSaisie = Sauvegarde & { version: number };
 
@@ -241,4 +303,6 @@ export interface EtapeSaisie {
   resultatAttendu: string;
   dependances: string[];
   resolutionIds: string[];
+  type: TypeEtape;
+  pointDeNonRetour: boolean;
 }

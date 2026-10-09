@@ -1,4 +1,4 @@
-import { bloqueurs, etapeParDefaut, planActif, segmentsProgression } from './domaine';
+import { anomaliesHorsApprobation, bloqueurs, etapeParDefaut, planActif, segmentsProgression } from './domaine';
 import { completude } from './mep/completude';
 import { etape, mep } from './test/fabrique';
 
@@ -43,6 +43,17 @@ describe('domaine', () => {
     expect(c.personnes).toBe(false);
     expect(c.systemes).toBe(false);
     expect(c.validation).toBe(false);
-    expect(completude(mep({ procedureRelue: { par: 'Bob', le: '2026-10-09T10:00:00Z' } })).validation).toBe(true);
+    const relue = { par: 'Bob', le: '2026-10-09T10:00:00Z' };
+    expect(completude(mep({ procedureRelue: relue })).validation).toBe(false); // 1 approbation exigée
+    expect(completude(mep({ procedureRelue: relue, approbationsMinimum: 0 })).validation).toBe(true);
+    const approuvee = { id: 'a1', utilisateurId: 'u1', nom: 'Claire', decision: 'Approuvee' as const, commentaire: '', le: '2026-10-09T11:00:00Z' };
+    expect(completude(mep({ procedureRelue: relue, approbations: [approuvee] })).validation).toBe(true);
+  });
+});
+
+describe('anomaliesHorsApprobation', () => {
+  it('écarte les anomalies d’approbation', () => {
+    const erreursPlan = ['Il faut 1 approbation(s).', 'Claire a refusé : trop risqué', 'Ajouter au moins un test de recette.'];
+    expect(anomaliesHorsApprobation({ erreursPlan })).toEqual(['Ajouter au moins un test de recette.']);
   });
 });

@@ -1,5 +1,5 @@
 import {
-  CheckCircle2, ClipboardCheck, FilePlus2, Flag, HandMetal, Layers, ListChecks, Package, Play, Search, ShieldCheck, Siren, Trash2, Undo2, UserRound, Wrench, XCircle, NotebookText,
+  CheckCircle2, ClipboardCheck, FilePlus2, Flag, HandMetal, Layers, ListChecks, Package, Paperclip, Play, Search, ShieldCheck, Siren, Trash2, Undo2, UserRound, Wrench, XCircle, NotebookText,
   type LucideIcon,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -34,10 +34,21 @@ function iconeEvenement(type: string): { Icone: LucideIcon; ton: Ton } {
     case 'resolution.reussie': return { Icone: CheckCircle2, ton: 'ok' };
     case 'resolution.echouee': return { Icone: XCircle, ton: 'danger' };
     case 'procedure.relue': return { Icone: ShieldCheck, ton: 'ok' };
+    case 'approbation.approuvee': return { Icone: CheckCircle2, ton: 'ok' };
+    case 'approbation.refusee': return { Icone: XCircle, ton: 'danger' };
+    case 'approbations.reinitialisees': return { Icone: Undo2, ton: 'warn' };
+    case 'gonogo.go': return { Icone: Play, ton: 'ok' };
+    case 'gonogo.nogo': return { Icone: XCircle, ton: 'danger' };
+    case 'etape.non-retour-autorise': return { Icone: ShieldCheck, ton: 'warn' };
+    case 'phase.recette': return { Icone: ClipboardCheck, ton: 'warn' };
+    case 'piece.ajoutee':
+    case 'piece.supprimee': return { Icone: Paperclip, ton: 'wait' };
     default: break;
   }
   switch (familleEvenement(type)) {
     case 'etape': return { Icone: ListChecks, ton: 'wait' };
+    case 'recette': return { Icone: ClipboardCheck, ton: 'warn' };
+    case 'approbation': return { Icone: ShieldCheck, ton: 'wait' };
     case 'participant': return { Icone: UserRound, ton: 'wait' };
     case 'systeme': return { Icone: Layers, ton: 'wait' };
     case 'livrable': return { Icone: Package, ton: 'wait' };

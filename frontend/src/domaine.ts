@@ -1,4 +1,4 @@
-import type { Etape, Mep, Participant, Phase, TypePlan } from './types';
+import type { Etape, Mep, Participant, Phase, TestRecette, TypePlan } from './types';
 import type { Segment } from './ui/ProgressBar';
 
 export const etapesDuPlan = (mep: Mep, plan: TypePlan): Etape[] =>
@@ -57,3 +57,19 @@ export function segmentsResume(nbEtapes: number, nbReussies: number, nbEchecs: n
     { valeur: Math.max(0, nbEtapes - nbReussies - nbEchecs), ton: 'wait', libelle: 'Restantes' },
   ];
 }
+
+/** Étape de déploiement qui réalise la sauvegarde (mode « pendant la MEP »). */
+export const etapeSauvegarde = (mep: Pick<Mep, 'etapes'>): Etape | undefined =>
+  mep.etapes.filter((e) => e.plan === 'Deploiement' && e.type === 'Sauvegarde').sort((a, b) => a.ordre - b.ordre)[0];
+
+export const testsRecetteTries = (mep: Pick<Mep, 'testsRecette'>): TestRecette[] => [...mep.testsRecette].sort((a, b) => a.ordre - b.ordre);
+
+/** Anomalies du plan qui ne relèvent pas du circuit d'approbation (elles bloquent la décision d'un approbateur). */
+const ESTAPPROBATION = /^Il faut \d+ approbation|a refusé :|ne peut pas approuver/;
+export const anomaliesHorsApprobation = (mep: Pick<Mep, 'erreursPlan'>): string[] => mep.erreursPlan.filter((e) => !ESTAPPROBATION.test(e));
+
+/** Le déploiement est entièrement réussi (condition du passage en recette). */
+export const deploiementReussi = (mep: Mep): boolean => {
+  const e = etapesDuPlan(mep, 'Deploiement');
+  return e.length > 0 && e.every((x) => x.etat === 'Reussie');
+};
