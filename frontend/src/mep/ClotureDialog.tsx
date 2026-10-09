@@ -49,7 +49,7 @@ export function ClotureDialog({ open, onOpenChange, repli, bilanActive, onConfir
         <>
           <Button variante="fantome" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button variante="succes" icone={<CheckCircle2 className="size-4" aria-hidden />} chargement={envoi} disabled={incomplet} onClick={() => void confirmer()}>
-            {repli ? 'Service rétabli, clôturer' : 'Clôturer la MEP'}
+            {repli ? 'Service rétabli : clôturer' : 'Clôturer la MEP'}
           </Button>
         </>
       }

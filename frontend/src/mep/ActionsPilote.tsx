@@ -46,6 +46,7 @@ export function BoutonGoNoGo({ taille = 'sm' }: { taille?: TailleBouton }) {
         onOpenChange={setOuvert}
         criteres={criteres ?? []}
         erreursPlan={mep.erreursPlan}
+        avertissements={mep.avertissements}
         onGo={(ids) => run(() => api.go(mep.id, ids), 'Go : la MEP est en exécution.')}
         onNoGo={(motif) => run(() => api.noGo(mep.id, motif), 'No-go enregistré : la MEP reste en préparation.')}
       />
@@ -82,9 +83,15 @@ export function BoutonPasserRecette({ taille = 'sm' }: { taille?: TailleBouton }
 export function BoutonRevenirPreparation({ taille = 'sm' }: { taille?: TailleBouton }) {
   const { mep, run } = useMep();
   const [ouvert, setOuvert] = useState(false);
+  const bloque = mep.nonRetourFranchi !== null;
+  const bouton = (
+    <Button taille={taille} icone={<ClipboardList className="size-4" aria-hidden />} disabled={bloque} onClick={() => setOuvert(true)}>Revenir en préparation</Button>
+  );
   return (
     <>
-      <Button taille={taille} icone={<ClipboardList className="size-4" aria-hidden />} onClick={() => setOuvert(true)}>Revenir en préparation</Button>
+      {bloque ? (
+        <Tooltip content={`Point de non-retour franchi (${mep.nonRetourFranchi}) : on ne peut plus revenir en préparation, tout problème se corrige en avant.`}><span tabIndex={0}>{bouton}</span></Tooltip>
+      ) : bouton}
       <ConfirmDialog
         open={ouvert}
         onOpenChange={setOuvert}
@@ -144,7 +151,7 @@ export function BoutonCloturer({ taille = 'sm', libelle }: { taille?: TailleBout
   const raison = restantes > 0
     ? `${restantes} étape(s) ${repli ? 'de retour arrière' : 'du déploiement'} pas encore réussie(s)`
     : nonConformes > 0 ? `${nonConformes} test(s) de recette pas encore conforme(s)` : null;
-  const texte = libelle ?? (repli ? 'Service rétabli — clôturer' : 'Clôturer : MEP réussie');
+  const texte = libelle ?? (repli ? 'Service rétabli : clôturer' : 'Clôturer : MEP réussie');
   const bouton = (
     <Button variante="succes" taille={taille} icone={<CheckCircle2 className="size-4" aria-hidden />} disabled={raison !== null} onClick={() => setOuvert(true)}>{texte}</Button>
   );

@@ -40,14 +40,14 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
     setCommeModele(false);
     const premier = depuisModele ? null : source ?? null;
     setChoix(premier?.id ?? '');
-    setEnvironnement(premier?.environnement ?? '');
+    setEnvironnement(''); // vide : l'environnement de la source est repris
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Mode « depuis un modèle » : les modèles arrivent après l'ouverture, on présélectionne le premier.
   const premierModele = depuisModele ? modeles[0] : undefined;
   useEffect(() => {
-    if (open && premierModele && !choix) { setChoix(premierModele.id); setEnvironnement(premierModele.environnement); }
+    if (open && premierModele && !choix) setChoix(premierModele.id);
   }, [open, premierModele, choix]);
 
   async function dupliquer() {
@@ -56,7 +56,7 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
     setErreur('');
     try {
       const mep = await api.dupliquer(courant.id, { environnement: environnement.trim() || null, commeModele });
-      toast.succes(commeModele ? 'Modèle créé.' : 'MEP créée par duplication.');
+      toast.succes(commeModele ? 'Modèle créé.' : courant.estModele ? 'MEP créée depuis le modèle.' : 'MEP créée par duplication.');
       onOpenChange(false);
       navigate(`/meps/${mep.id}`);
     } catch (e) {
@@ -93,7 +93,7 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
               modeles.length === 0
                 ? <p className="rounded-lg border border-dashed border-line-strong px-3 py-2.5 text-sm text-fg-subtle">Aucun modèle pour l’instant. Dupliquez une MEP en cochant « En faire un modèle ».</p>
                 : (
-                  <Select id={id} value={choix} onChange={(e) => { setChoix(e.target.value); setEnvironnement(modeles.find((m) => m.id === e.target.value)?.environnement ?? ''); }}>
+                  <Select id={id} value={choix} onChange={(e) => setChoix(e.target.value)}>
                     {modeles.map((m) => <option key={m.id} value={m.id}>{m.outil || 'Modèle sans nom'}</option>)}
                   </Select>
                 )
@@ -102,7 +102,7 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
         )}
         {!depuisModele && courant && <p className="text-sm text-fg-muted">Source : <strong className="font-semibold text-fg">{courant.outil || 'MEP sans nom'}</strong></p>}
         <Field label="Environnement" hint="Laissez vide pour reprendre celui de la source.">
-          {(id) => <ChampEnvironnement id={id} valeur={environnement} onChange={setEnvironnement} />}
+          {(id) => <ChampEnvironnement id={id} valeur={environnement} onChange={setEnvironnement} placeholder={courant?.environnement ? `Reprend « ${courant.environnement} »` : undefined} />}
         </Field>
         {!depuisModele && (
           <Checkbox label="En faire un modèle" description="Un modèle sert de base à de nouvelles MEP mais ne peut pas être exécuté." checked={commeModele} onChange={setCommeModele} />

@@ -26,8 +26,8 @@ export function mep(p: Partial<Mep> = {}): Mep {
       { id: 'p3', nom: 'Alice', role: 'Pilote', contact: '', utilisateurId: 'u3', utilisateurNom: 'Alice' },
     ],
     systemes: [{ id: 's1', nom: 'API', cible: 'srv-api-01', impact: '', catalogueId: null }],
-    livrables: [], etapes: [], resolutions: [], erreursPlan: [],
-    droits: { estPilote: false, estApprobateur: false, peutModifierPlan: false, participantId: 'p1' },
+    livrables: [], etapes: [], resolutions: [], erreursPlan: [], avertissements: [], responsablesTechniques: [],
+    droits: { estPilote: false, estApprobateur: false, estResponsableTechnique: false, peutModifierPlan: false, peutEditerContenu: false, participantId: 'p1' },
     ...p,
   };
 }

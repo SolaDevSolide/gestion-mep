@@ -50,8 +50,12 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
               </Tooltip>
               <h1 className="flex min-w-0 items-center gap-2 text-xl font-semibold tracking-tight">
                 <span className="truncate">{mep.outil || 'MEP sans nom'}</span>
-                <ArrowRight className="size-[18px] shrink-0 text-fg-subtle" aria-hidden />
-                <span className="font-mono">{mep.versionCible || '?'}</span>
+                {mep.versionCible.trim() && (
+                  <>
+                    <ArrowRight className="size-[18px] shrink-0 text-fg-subtle" aria-hidden />
+                    <span className="font-mono">{mep.versionCible}</span>
+                  </>
+                )}
               </h1>
               <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime} taille="lg">{meta.libelle}</StatusPill>
               {mep.estModele && <Badge ton="later" className="text-xs"><LayoutTemplate className="size-3.5" aria-hidden />Modèle</Badge>}

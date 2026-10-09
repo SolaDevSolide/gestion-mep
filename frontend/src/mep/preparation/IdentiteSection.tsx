@@ -24,7 +24,7 @@ export function IdentiteSection() {
   useReportDirty(d.dirty);
   const v = d.value;
 
-  const edition = mep.droits.peutModifierPlan;
+  const edition = mep.droits.peutEditerContenu;
   const peutEcheance = edition || mep.droits.estPilote;
   const lecture = !edition;
 

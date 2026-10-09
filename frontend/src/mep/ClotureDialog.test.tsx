@@ -31,6 +31,6 @@ describe('ClotureDialog', () => {
 
   it('adapte le libellé après un retour arrière', () => {
     rendre({ repli: true });
-    expect(screen.getByRole('button', { name: 'Service rétabli, clôturer' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Service rétabli : clôturer' })).toBeDisabled();
   });
 });

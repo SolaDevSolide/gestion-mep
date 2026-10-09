@@ -197,8 +197,12 @@ export default function ListeMepPage() {
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                       <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight">
                         <span className="truncate">{m.outil || 'Sans nom'}</span>
-                        <ArrowRight className="size-4 shrink-0 text-fg-subtle" aria-hidden />
-                        <span className="font-mono text-[15px] font-semibold">{m.versionCible || '?'}</span>
+                        {m.versionCible.trim() && (
+                          <>
+                            <ArrowRight className="size-4 shrink-0 text-fg-subtle" aria-hidden />
+                            <span className="font-mono text-[15px] font-semibold">{m.versionCible}</span>
+                          </>
+                        )}
                       </h2>
                       <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime}>{meta.libelle}</StatusPill>
                       {m.estModele && <Badge ton="later"><LayoutTemplate className="size-3" aria-hidden />Modèle</Badge>}

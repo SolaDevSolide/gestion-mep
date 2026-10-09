@@ -21,7 +21,7 @@ function rendre(e: Etape, opts: { m?: Partial<Mep>; participantId?: string | nul
   const actions = actionsFactices();
   const m = mep({
     etapes: [e], ...opts.m,
-    droits: { estPilote: opts.estPilote ?? false, estApprobateur: false, peutModifierPlan: false, participantId: opts.participantId === undefined ? 'p1' : opts.participantId },
+    droits: { estPilote: opts.estPilote ?? false, estApprobateur: false, estResponsableTechnique: false, peutModifierPlan: false, peutEditerContenu: false, participantId: opts.participantId === undefined ? 'p1' : opts.participantId },
   });
   const onSelectionner = vi.fn();
   render(<EtapePanneau mep={m} etape={e} resolutionsTypes={opts.types ?? []} actions={actions} onSelectionner={onSelectionner} />);
@@ -90,13 +90,28 @@ describe('EtapePanneau : exécutant et prise de main', () => {
     expect(screen.getByRole('button', { name: 'Prendre la main' })).toBeInTheDocument();
   });
 
-  it('prise de main : dialogue d’explication puis appel', async () => {
+  it('prise de main : le motif est obligatoire et transmis', async () => {
     const { actions } = rendre(etape(), { participantId: 'p2' });
     await userEvent.click(screen.getByRole('button', { name: 'Prendre la main' }));
     expect(screen.getByText(/tracée au journal/)).toBeInTheDocument();
-    const boutons = screen.getAllByRole('button', { name: 'Prendre la main' });
-    await userEvent.click(boutons[boutons.length - 1]);
-    expect(actions.prendreLaMain).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }));
+    const confirmer = () => { const b = screen.getAllByRole('button', { name: 'Prendre la main' }); return b[b.length - 1]; };
+    expect(confirmer()).toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/Pourquoi prenez-vous la main/), 'Claire est injoignable');
+    await userEvent.click(confirmer());
+    expect(actions.prendreLaMain).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Claire est injoignable');
+  });
+
+  it('badge « À vous » : visible sur mon étape à faire, masqué une fois terminée', () => {
+    const { unmount } = render(<EtapePanneau mep={mep({ etapes: [etape()], droits: { ...mep().droits, participantId: 'p1' } })} etape={etape()} resolutionsTypes={[]} actions={actionsFactices()} onSelectionner={vi.fn()} />);
+    expect(screen.getByText('À vous')).toBeInTheDocument();
+    unmount();
+    rendre(etape({ etat: 'Reussie' }, 'Terminee'));
+    expect(screen.queryByText('À vous')).toBeNull();
+  });
+
+  it('badge « À vous » masqué dans une MEP clôturée', () => {
+    rendre(etape({ etat: 'AFaire' }), { m: { phase: 'Cloturee' } });
+    expect(screen.queryByText('À vous')).toBeNull();
   });
 
   it('pas de prise de main hors de la phase d’exécution du plan', () => {
@@ -143,5 +158,37 @@ describe('EtapePanneau : échec et résolutions', () => {
     rendre(etape({ etat: 'AFaire' }, 'Disponible'), { m: { resolutions: [resolution({ statut: 'Reussie', termineeLe: '2026-10-09T21:30:00Z' })] } });
     expect(screen.getByText('Résolutions déjà appliquées')).toBeInTheDocument();
     expect(screen.getByText('Réussie')).toBeInTheDocument();
+  });
+});
+
+describe('EtapePanneau : « À appeler en cas de problème »', () => {
+  const rt = (participantId: string, systemeIds: string[], extra: Partial<Mep['responsablesTechniques'][number]> = {}) =>
+    ({ participantId, systemeIds, perimetre: '', disponibilite: 'Joignable' as const, contactJourJ: '', ...extra });
+
+  it('liste les responsables techniques du système de l’étape, avec contact et disponibilité', () => {
+    rendre(etape({ systemeId: 's1' }), {
+      m: {
+        systemes: [{ id: 's1', nom: 'API', cible: '', impact: '', catalogueId: null }, { id: 's2', nom: 'WEB', cible: '', impact: '', catalogueId: null }],
+        responsablesTechniques: [rt('p2', ['s1'], { contactJourJ: '06 11 22 33 44' }), rt('p3', ['s2'], { disponibilite: 'Absent' })],
+      },
+    });
+    const carte = screen.getByRole('region', { name: 'À appeler en cas de problème' });
+    expect(carte).toHaveTextContent('Bob');
+    expect(carte).toHaveTextContent('06 11 22 33 44');
+    expect(carte).toHaveTextContent('Joignable');
+    expect(carte).not.toHaveTextContent('Alice');
+  });
+
+  it('sans responsable technique pour le système, affiche tous les responsables (dont les absents)', () => {
+    rendre(etape({ systemeId: 's1' }), { m: { responsablesTechniques: [rt('p2', []), rt('p3', [], { disponibilite: 'Absent' })] } });
+    const carte = screen.getByRole('region', { name: 'À appeler en cas de problème' });
+    expect(carte).toHaveTextContent('Bob');
+    expect(carte).toHaveTextContent('Alice');
+    expect(carte).toHaveTextContent('Absent');
+  });
+
+  it('absent quand aucun responsable technique n’est renseigné', () => {
+    rendre(etape());
+    expect(screen.queryByRole('region', { name: 'À appeler en cas de problème' })).toBeNull();
   });
 });

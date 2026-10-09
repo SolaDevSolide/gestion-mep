@@ -4,6 +4,7 @@ export type Phase = 'Preparation' | 'Execution' | 'Recette' | 'RetourArriere' | 
 export type ModeSauvegarde = 'AvantMep' | 'PendantMep';
 export type TypeEtape = 'Standard' | 'Sauvegarde';
 export type DecisionApprobation = 'Approuvee' | 'Refusee';
+export type DisponibiliteJourJ = 'Joignable' | 'Absent';
 export type IssueMep = 'Reussie' | 'Repliee';
 export type TypePlan = 'Deploiement' | 'RetourArriere';
 export type ResultatControle = 'Conforme' | 'Echec';
@@ -122,10 +123,23 @@ export interface Validation {
   le: string;
 }
 
+export interface ResponsableTechnique {
+  participantId: string;
+  systemeIds: string[];
+  perimetre: string;
+  disponibilite: DisponibiliteJourJ;
+  contactJourJ: string;
+}
+export type ResponsableTechniqueSaisie = ResponsableTechnique;
+
 export interface Droits {
   estPilote: boolean;
   estApprobateur: boolean;
+  estResponsableTechnique: boolean;
+  /** Phase de préparation : le plan peut être modifié (par ceux qui en ont le droit). */
   peutModifierPlan: boolean;
+  /** Préparation ET droit d'édition (responsable technique, pilote, suppléant, administrateur). */
+  peutEditerContenu: boolean;
   participantId: string | null;
 }
 
@@ -169,6 +183,9 @@ export interface Mep {
   etapes: Etape[];
   resolutions: ExecutionResolution[];
   erreursPlan: string[];
+  /** Avertissements non bloquants de la vérification du plan (responsables techniques). */
+  avertissements: string[];
+  responsablesTechniques: ResponsableTechnique[];
   droits: Droits;
 }
 

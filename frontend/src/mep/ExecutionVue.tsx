@@ -47,7 +47,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
       autoriserNonRetour: (e) => run(() => api.autoriserNonRetour(mep.id, e.id, e.revision), `Passage du point de non-retour ${e.code} autorisé.`),
       deposerPiece: (e, f, signaler) => run(() => api.deposerPieceEtape(mep.id, e.id, f), undefined, signaler),
       supprimerPiece: (p, signaler) => run(() => api.supprimerPiece(mep.id, p.id), undefined, signaler),
-      prendreLaMain: (e) => run(() => api.prendreLaMain(mep.id, e.id, e.revision), `Vous avez pris la main sur ${e.code}.`),
+      prendreLaMain: (e, motif) => run(() => api.prendreLaMain(mep.id, e.id, e.revision, motif), `Vous avez pris la main sur ${e.code}.`),
       appliquerResolution: (e, rid) => run(() => api.appliquerResolution(mep.id, e.id, rid, e.revision), 'Résolution démarrée.'),
       controlerCorrection: (r, ordre, res, obs) => run(() => api.controlerCorrection(mep.id, r.id, ordre, res, obs), res === 'Conforme' ? `Correction ${ordre} conforme.` : 'Correction en échec : retour arrière déclenché.'),
       controlerVerification: (r, res, obs) => run(() => api.controlerVerification(mep.id, r.id, res, obs), res === 'Conforme' ? 'Résolution réussie : l’étape peut être redémarrée.' : 'Vérification en échec : retour arrière déclenché.'),

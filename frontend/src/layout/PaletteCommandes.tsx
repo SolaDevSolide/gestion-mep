@@ -68,7 +68,7 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                 <Entree icone={<Rocket className="size-4" />} mots={['liste', 'toutes les mep', 'accueil']} onSelect={() => aller('/')}>Toutes les mises en production</Entree>
                 {meps.map((m) => (
                   <Entree key={m.id} icone={<Rocket className="size-4" />} mots={[m.outil, m.versionCible, m.objet, m.pilote ?? '']} aide={LIBELLE_PHASE[m.phase]} onSelect={() => aller(`/meps/${m.id}`)}>
-                    {m.outil} → {m.versionCible || '?'}
+                    {m.outil}{m.versionCible.trim() && ` → ${m.versionCible}`}
                   </Entree>
                 ))}
               </Command.Group>

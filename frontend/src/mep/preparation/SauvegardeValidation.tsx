@@ -17,7 +17,7 @@ export function SauvegardeSection() {
   const d = useDraft(mep.sauvegarde);
   useReportDirty(d.dirty);
   const v = d.value;
-  const editable = mep.droits.peutModifierPlan || mep.droits.estPilote;
+  const editable = mep.droits.peutEditerContenu || mep.droits.estPilote;
   const pendant = v.mode === 'PendantMep';
   const etapeBackup = etapeSauvegarde(mep);
 
@@ -28,7 +28,7 @@ export function SauvegardeSection() {
 
   return (
     <SectionCarte
-      numero={5}
+      numero={6}
       titre="Sauvegarde"
       description="Ce qui est sauvegardé avant l’intervention, et la preuve que la restauration fonctionne."
       pied={editable && (
@@ -44,14 +44,14 @@ export function SauvegardeSection() {
           <Segmented
             label="Moment de la sauvegarde"
             valeur={v.mode}
-            disabled={!mep.droits.peutModifierPlan}
+            disabled={!mep.droits.peutEditerContenu}
             onChange={(mode) => d.update({ mode })}
             options={[
               { valeur: 'AvantMep', libelle: 'Avant la MEP' },
               { valeur: 'PendantMep', libelle: 'Pendant la MEP' },
             ]}
           />
-          {!mep.droits.peutModifierPlan && <span className="text-xs text-fg-subtle">Le mode ne se change qu’en préparation.</span>}
+          {!mep.droits.peutEditerContenu && <span className="text-xs text-fg-subtle">Le mode ne se change qu’en préparation.</span>}
         </div>
         {pendant && (
           etapeBackup ? (
@@ -109,7 +109,7 @@ export function ValidationSection() {
   const { mep, run } = useMep();
   const peut = mep.droits.peutModifierPlan && mep.droits.participantId !== null;
   return (
-    <SectionCarte numero={7} titre="Validation avant intervention" description="Relecture de la procédure, approbations, puis décision Go / no-go du pilote.">
+    <SectionCarte numero={8} titre="Validation avant intervention" description="Relecture de la procédure, approbations, puis décision Go / no-go du pilote.">
       <div className="space-y-5">
         <div>
           <Checkbox

@@ -14,7 +14,7 @@ import { FormulaireDialog, SectionCarte, vide, type ChampForm } from './Formulai
 /** Tests de recette à réaliser après le déploiement : ajout, modification, ordre, suppression. */
 export function RecetteSection() {
   const { mep, run } = useMep();
-  const edition = mep.droits.peutModifierPlan;
+  const edition = mep.droits.peutEditerContenu;
   const tests = testsRecetteTries(mep);
   const [forme, setForme] = useState<{ existant?: TestRecette } | null>(null);
   const [suppr, setSuppr] = useState<TestRecette | null>(null);
@@ -33,7 +33,7 @@ export function RecetteSection() {
 
   return (
     <SectionCarte
-      numero={6}
+      numero={7}
       titre="Recette"
       description="Les tests à réaliser en production une fois le déploiement terminé. La clôture réussie exige que tous soient conformes."
       action={edition && <Button variante="primaire" taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajouter un test</Button>}
