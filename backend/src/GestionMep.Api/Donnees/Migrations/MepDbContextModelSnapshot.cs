@@ -351,6 +351,10 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid?>("ProcedureRelueParId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ResponsablesTechniques")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTimeOffset?>("RetourArriereDeclencheLe")
                         .HasColumnType("timestamp with time zone");
 

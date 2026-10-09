@@ -25,6 +25,9 @@ public enum TypeEtape { Standard, Sauvegarde }
 
 public enum DecisionApprobation { Approuvee, Refusee }
 
+/// <summary>Disponibilité d'un responsable technique le jour de la MEP.</summary>
+public enum DisponibiliteJourJ { Joignable, Absent }
+
 public class Utilisateur
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -67,6 +70,12 @@ public class Mep
     public string RetourArriereMotif { get; set; } = "";
     public DateTimeOffset? ClotureeLe { get; set; }
     public Guid? ClotureeParId { get; set; }
+
+    /// <summary>
+    /// Développeurs / sachants de la MEP, distincts du pilote : ils ont les droits d'édition du contenu et sont à appeler
+    /// en cas de problème. Un participant n'apparaît qu'une fois.
+    /// </summary>
+    public List<ResponsableTechnique> ResponsablesTechniques { get; set; } = [];
 
     // Circuit d'approbation et go / no-go
     public List<Approbation> Approbations { get; set; } = [];
@@ -123,6 +132,17 @@ public class Participant
     public string Role { get; set; } = "";
     public string Contact { get; set; } = "";
     public Guid? UtilisateurId { get; set; }
+}
+
+/// <summary>Responsable technique d'une MEP (participant) : ce qu'il a développé et comment le joindre le jour J.</summary>
+public class ResponsableTechnique
+{
+    public Guid ParticipantId { get; set; }
+    /// <summary>Systèmes de la MEP qu'il a développés (facultatif).</summary>
+    public List<Guid> SystemeIds { get; set; } = [];
+    public string Perimetre { get; set; } = "";
+    public DisponibiliteJourJ Disponibilite { get; set; } = DisponibiliteJourJ.Joignable;
+    public string ContactJourJ { get; set; } = "";
 }
 
 /// <summary>Système impacté (tableau tSystemes).</summary>

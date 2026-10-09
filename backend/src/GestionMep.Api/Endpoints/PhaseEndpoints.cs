@@ -36,6 +36,7 @@ public static class PhaseEndpoints
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             ServiceMep.ExigerVersion(mep, c.Version);
             if (c.DureeTesteeMinutes is < 0) throw ErreurHttp.Saisie("La durée testée ne peut pas être négative.");
             Regles.ExigerPreparation(mep);

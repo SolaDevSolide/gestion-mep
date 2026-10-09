@@ -199,6 +199,36 @@ public static class Regles
         return erreurs;
     }
 
+    /// <summary>
+    /// Avertissements non bloquants du plan (ils ne figurent pas dans <see cref="ErreursPlan"/>) : pilote également responsable
+    /// technique, responsable technique absent dont les étapes ne sont pas reprenables par un autre, aucun responsable technique.
+    /// </summary>
+    public static List<string> Avertissements(Mep mep)
+    {
+        var avertissements = new List<string>();
+        string Nom(Guid id) => mep.Participants.FirstOrDefault(p => p.Id == id)?.Nom ?? "Un responsable technique";
+
+        if (mep.ResponsablesTechniques.Count == 0)
+        {
+            avertissements.Add("Aucun responsable technique renseigné.");
+            return avertissements;
+        }
+
+        if (mep.PiloteId is { } pilote && mep.ResponsablesTechniques.Any(r => r.ParticipantId == pilote))
+            avertissements.Add($"{Nom(pilote)} est à la fois responsable technique et pilote : prévoir un suppléant qui connaît le plan.");
+
+        foreach (var r in mep.ResponsablesTechniques.Where(r => r.Disponibilite == DisponibiliteJourJ.Absent))
+            foreach (var e in mep.Etapes.OrderBy(e => e.Plan).ThenBy(e => e.Ordre))
+            {
+                var concernee = e.ResponsableId == r.ParticipantId || (e.SystemeId is { } s && r.SystemeIds.Contains(s));
+                if (!concernee) continue;
+                var reprenable = !string.IsNullOrWhiteSpace(e.Instructions) && !string.IsNullOrWhiteSpace(e.ResultatAttendu) && e.ResolutionIds.Count > 0;
+                if (!reprenable)
+                    avertissements.Add($"{e.Code} : {Nom(r.ParticipantId)} sera absent, ajouter une résolution type pour que quelqu'un d'autre puisse la reprendre.");
+            }
+        return avertissements;
+    }
+
     /// <summary>Anomalies du circuit d'approbation : approbations manquantes, refus, approbateur pilote.</summary>
     public static List<string> ErreursApprobation(Mep mep, int approbationsMinimum)
     {
@@ -233,6 +263,43 @@ public static class Regles
     /// <summary>Pilote ou l'un de ses suppléants (mêmes droits).</summary>
     public static bool EstPilote(Mep mep, Guid utilisateurId) =>
         mep.Participants.Any(p => p.UtilisateurId == utilisateurId && (p.Id == mep.PiloteId || mep.SuppleantIds.Contains(p.Id)));
+
+    /// <summary>Compte relié à l'un des responsables techniques de la MEP.</summary>
+    public static bool EstResponsableTechnique(Mep mep, Guid utilisateurId) =>
+        mep.ResponsablesTechniques.Any(r => mep.Participants.Any(p => p.Id == r.ParticipantId && p.UtilisateurId == utilisateurId));
+
+    /// <summary>Droit d'éditer le contenu en préparation : responsables techniques, pilote, suppléants et administrateurs.</summary>
+    public static bool PeutEditerContenu(Mep mep, Guid utilisateurId, bool estAdmin) =>
+        estAdmin || EstPilote(mep, utilisateurId) || EstResponsableTechnique(mep, utilisateurId);
+
+    public const string MessageEditionInterdite =
+        "Seuls les responsables techniques, le pilote, ses suppléants ou un administrateur peuvent modifier cette MEP.";
+
+    /// <summary>
+    /// Définit la liste des responsables techniques : participants de la MEP, une seule fois chacun,
+    /// systèmes de la MEP, disponibilité valide. Les textes sont nettoyés.
+    /// </summary>
+    public static void DefinirResponsablesTechniques(Mep mep, IEnumerable<ResponsableTechnique> responsables)
+    {
+        ExigerPreparation(mep);
+        var liste = responsables.ToList();
+        var doublon = liste.GroupBy(r => r.ParticipantId).FirstOrDefault(g => g.Count() > 1);
+        if (doublon is not null)
+        {
+            var nom = mep.Participants.FirstOrDefault(p => p.Id == doublon.Key)?.Nom ?? "Ce participant";
+            throw new RegleMetierException($"{nom} est déjà responsable technique : un participant n'apparaît qu'une fois.");
+        }
+        foreach (var r in liste)
+        {
+            if (mep.Participants.All(p => p.Id != r.ParticipantId)) throw new RegleMetierException("Responsable technique : participant inconnu dans cette MEP.");
+            if (!Enum.IsDefined(r.Disponibilite)) throw new RegleMetierException("Responsable technique : disponibilité inconnue.");
+            if (r.SystemeIds.Any(s => mep.Systemes.All(x => x.Id != s))) throw new RegleMetierException("Responsable technique : système inconnu dans cette MEP.");
+            r.SystemeIds = r.SystemeIds.Distinct().ToList();
+            r.Perimetre = (r.Perimetre ?? "").Trim();
+            r.ContactJourJ = (r.ContactJourJ ?? "").Trim();
+        }
+        mep.ResponsablesTechniques = liste;
+    }
 
     /// <summary>Compte relié au participant pilote (hors suppléants), ou null.</summary>
     public static Guid? CompteDuPilote(Mep mep) => mep.Participants.FirstOrDefault(p => p.Id == mep.PiloteId)?.UtilisateurId;
@@ -299,6 +366,8 @@ public static class Regles
     {
         if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut revenir en préparation.");
         if (mep.Phase != Phase.Execution) throw new RegleMetierException("Retour en préparation possible seulement depuis l'exécution.");
+        if (EtapeNonRetourFranchie(mep) is { } franchie)
+            throw new RegleMetierException($"Le point de non-retour {franchie.Code} est franchi : on ne peut plus revenir en préparation, tout problème se corrige en avant.");
         var enCours = mep.Etapes.FirstOrDefault(e => e.Etat == EtatEtape.EnCours);
         if (enCours is not null) throw new RegleMetierException($"{enCours.Code} est encore en cours. Attendre sa fin.");
         if (mep.Resolutions.Any(r => r.Statut == StatutResolution.EnCours))
@@ -549,9 +618,10 @@ public static class Regles
     /// Le responsable prévu reste inchangé ; l'exécutant est tracé sur l'étape et dans le journal.
     /// </summary>
     /// <returns>Le participant qui exécutait l'étape jusque-là.</returns>
-    public static Guid? PrendreLaMain(Mep mep, Etape etape, Participant preneur)
+    public static Guid? PrendreLaMain(Mep mep, Etape etape, Participant preneur, string motif)
     {
         ExigerPhaseDuPlan(mep, etape);
+        if (string.IsNullOrWhiteSpace(motif)) throw new RegleMetierException("Indiquer pourquoi vous prenez la main.");
         if (preneur.UtilisateurId is null) throw new RegleMetierException("Seul un participant relié à un compte peut prendre la main.");
         if (etape.Etat == EtatEtape.Reussie) throw new RegleMetierException($"{etape.Code} est déjà réussie.");
         var precedent = ExecutantCourant(etape);
@@ -704,14 +774,27 @@ public static class Regles
     /// (codes d'étapes conservés). Ne sont pas copiés : échéance, date de MEP, relecture, go / no-go, bilan,
     /// résolutions exécutées, résultats (étapes, tests de recette, sauvegarde réalisée) et décisions d'approbation.
     /// </summary>
+    public const string PrefixeModele = "Modèle : ";
+
+    /// <summary>
+    /// Outil de la copie : « X (copie) » ; une MEP créée depuis un modèle reprend l'outil du modèle sans le préfixe « Modèle : ».
+    /// </summary>
+    public static string NomCopie(Mep source, bool commeModele)
+    {
+        var outil = source.Outil.Trim();
+        if (source.EstModele && !commeModele)
+            return outil.StartsWith(PrefixeModele, StringComparison.OrdinalIgnoreCase) ? outil[PrefixeModele.Length..].Trim() : outil;
+        return outil.EndsWith("(copie)", StringComparison.OrdinalIgnoreCase) ? outil : $"{outil} (copie)";
+    }
+
     public static Mep Dupliquer(Mep source, string? environnement, bool commeModele, Guid utilisateurId, DateTimeOffset maintenant)
     {
         var mep = new Mep
         {
-            Outil = source.Outil, VersionActuelle = source.VersionActuelle, VersionCible = source.VersionCible,
+            Outil = NomCopie(source, commeModele), VersionActuelle = source.VersionActuelle, VersionCible = source.VersionCible,
             Objet = source.Objet, Impacts = source.Impacts, HeureDebut = source.HeureDebut, HeureFin = source.HeureFin,
             FuseauHoraire = source.FuseauHoraire, IndisponibiliteMinutes = source.IndisponibiliteMinutes,
-            Environnement = environnement is null ? source.Environnement : environnement.Trim(),
+            Environnement = string.IsNullOrWhiteSpace(environnement) ? source.Environnement : environnement.Trim(),
             EstModele = commeModele, BilanActive = source.BilanActive,
             CreeLe = maintenant, CreeParUtilisateurId = utilisateurId,
             PlanRepli = new PlanRepli
@@ -741,6 +824,13 @@ public static class Regles
             mep.Systemes.Add(copie);
         }
         Guid? S(Guid? id) => id is { } g && systemes.TryGetValue(g, out var n) ? n : null;
+        mep.ResponsablesTechniques = source.ResponsablesTechniques
+            .Where(r => P(r.ParticipantId) is not null)
+            .Select(r => new ResponsableTechnique
+            {
+                ParticipantId = P(r.ParticipantId)!.Value, SystemeIds = r.SystemeIds.Select(id => S(id)).OfType<Guid>().ToList(),
+                Perimetre = r.Perimetre, Disponibilite = r.Disponibilite, ContactJourJ = r.ContactJourJ,
+            }).ToList();
 
         foreach (var l in source.Livrables)
             mep.Livrables.Add(new Livrable { MepId = mep.Id, Objet = l.Objet, Version = l.Version, Emplacement = l.Emplacement, SystemeId = S(l.SystemeId) });

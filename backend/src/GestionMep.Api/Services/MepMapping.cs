@@ -10,7 +10,7 @@ public static class MepMapping
             p.DeposeParId, p.DeposeParId is { } d && nomsUtilisateurs.TryGetValue(d, out var n) ? n : null, p.DeposeLe);
 
     public static MepDto VersDto(Mep m, Guid? utilisateurId, IReadOnlyDictionary<Guid, string> nomsUtilisateurs, DateTimeOffset maintenant,
-        int approbationsMinimum, IReadOnlyList<PieceJointe> pieces)
+        int approbationsMinimum, IReadOnlyList<PieceJointe> pieces, bool estAdmin = false)
     {
         string? Nom(Guid? id) => id is { } g && nomsUtilisateurs.TryGetValue(g, out var n) ? n : null;
         ValidationDto? Validation(Guid? par, DateTimeOffset? le) =>
@@ -50,7 +50,9 @@ public static class MepMapping
                 Nom(r.DemarreeParId) ?? "Inconnu", r.DemarreeLe, r.TermineeLe)).ToList(),
             Regles.ErreursPlan(m, maintenant, approbationsMinimum),
             new DroitsDto(utilisateurId is { } u && Regles.EstPilote(m, u), m.Phase == Phase.Preparation, participant?.Id,
-                utilisateurId is { } a && m.Approbations.Any(x => x.UtilisateurId == a)),
+                utilisateurId is { } a && m.Approbations.Any(x => x.UtilisateurId == a),
+                utilisateurId is { } rt && Regles.EstResponsableTechnique(m, rt),
+                m.Phase == Phase.Preparation && utilisateurId is { } ed && Regles.PeutEditerContenu(m, ed, estAdmin)),
             m.Environnement, m.EstModele, approbationsMinimum,
             m.Approbations.Select(a => new ApprobationDto(a.Id, a.UtilisateurId, Nom(a.UtilisateurId) ?? a.Nom, a.Decision, a.Commentaire, a.Le)).ToList(),
             m.GoNoGo.Select(c => new CritereValideDto(c.Libelle, Nom(c.ParId), c.Le)).ToList(),
@@ -59,6 +61,8 @@ public static class MepMapping
             m.BilanActive,
             m.Bilan is { } b ? new BilanDto(b.CeQuiAMarche, b.Incidents, b.Actions, Nom(b.RedigeParId), b.Le) : null,
             Regles.EtapeNonRetourFranchie(m)?.Code,
-            pieces.OrderBy(p => p.DeposeLe).Select(p => VersDto(p, nomsUtilisateurs)).ToList());
+            pieces.OrderBy(p => p.DeposeLe).Select(p => VersDto(p, nomsUtilisateurs)).ToList(),
+            m.ResponsablesTechniques.Select(r => new ResponsableTechniqueDto(r.ParticipantId, [.. r.SystemeIds], r.Perimetre, r.Disponibilite, r.ContactJourJ)).ToList(),
+            Regles.Avertissements(m));
     }
 }

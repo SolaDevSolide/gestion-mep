@@ -75,6 +75,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.SuppleantIds).HasColumnType("uuid[]");
             e.Property(x => x.Approbations).AsJson();
             e.Property(x => x.GoNoGo).AsJson();
+            e.Property(x => x.ResponsablesTechniques).AsJson();
             e.Property(x => x.TestsRecette).AsJson();
             e.Property(x => x.Bilan).AsJsonObjet();
             e.HasIndex(x => x.EstModele);

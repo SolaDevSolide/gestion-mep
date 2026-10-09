@@ -257,14 +257,14 @@ public class ReglesTests
         Go(m);
         var e3 = E(m, "E0003");
         var bob = m.Participants.Single(p => p.UtilisateurId == Bob);
-        var precedent = Regles.PrendreLaMain(m, e3, bob);
+        var precedent = Regles.PrendreLaMain(m, e3, bob, "Absent");
         Assert.Equal(e3.ResponsableId, precedent);
         Assert.Equal(bob.Id, e3.ExecutantId);
         Assert.NotEqual(bob.Id, e3.ResponsableId);
         Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, e3, Claire, Maintenant));
         Regles.Demarrer(m, e3, Bob, Maintenant);
         Regles.Terminer(m, e3, EtatEtape.Reussie, "WEB démo OK", true, Bob, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, e3, bob));
+        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, e3, bob, "Absent"));
     }
 
     [Fact]
@@ -272,7 +272,7 @@ public class ReglesTests
     {
         var m = Demo();
         var bob = m.Participants.Single(p => p.UtilisateurId == Bob);
-        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, E(m, "E0003"), bob));
+        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, E(m, "E0003"), bob, "Absent"));
     }
 
     [Fact]
