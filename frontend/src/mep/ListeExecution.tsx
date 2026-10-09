@@ -5,6 +5,7 @@ import type { Etape, Mep } from '../types';
 import { Avatar } from '../ui/Avatar';
 import { cn } from '../ui/cn';
 import { Badge, StatusPill } from '../ui/StatusPill';
+import { BadgesEtape } from './BadgesEtape';
 
 /** Vue liste des étapes d'exécution (alternative au graphe). */
 export function ListeExecution({ mep, etapes, selectionId, onSelect }: { mep: Mep; etapes: Etape[]; selectionId: string | null; onSelect: (id: string) => void }) {
@@ -29,6 +30,7 @@ export function ListeExecution({ mep, etapes, selectionId, onSelect }: { mep: Me
                 <span className="block truncate text-sm font-medium">{e.action || 'Sans libellé'}</span>
                 <span className="block truncate text-xs text-fg-subtle">{mep.systemes.find((s) => s.id === e.systemeId)?.nom ?? '—'}{e.criticite && ` · ${LIBELLE_CRITICITE[e.criticite]}`}</span>
               </span>
+              <BadgesEtape etape={e} />
               {mien && <Badge ton="run">À vous</Badge>}
               <span className="flex items-center gap-2 text-xs text-fg-muted">{nom && <Avatar nom={nom} taille="sm" />}{nom}</span>
               <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime} taille="sm">{meta.libelle}</StatusPill>

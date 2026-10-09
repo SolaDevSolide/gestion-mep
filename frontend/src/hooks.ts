@@ -12,6 +12,8 @@ export function useDraft<T>(source: T) {
     value,
     dirty,
     update: (patch: Partial<T>) => setDraft({ ...value, ...patch }),
+    /** Remplace tout le brouillon (valeur non objet, ex. une liste). */
+    setValeur: (v: T) => setDraft(v),
     reset: () => setDraft(null),
   };
 }

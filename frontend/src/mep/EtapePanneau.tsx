@@ -1,9 +1,9 @@
-import { Check, CircleHelp, Clock, HandMetal, History, Lock, OctagonAlert, Play, Undo2, Wrench, XCircle } from 'lucide-react';
+import { Check, CircleHelp, Clock, Flag, HandMetal, History, Lock, OctagonAlert, Play, ShieldCheck, Undo2, Wrench, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { bloqueurs, executantEffectif, nomParticipant } from '../domaine';
 import { formatDateHeure, LIBELLE_CRITICITE, LIBELLE_ETAT, LIBELLE_STATUT_RESOLUTION } from '../format';
 import { metaEtape } from '../statuts';
-import type { Etape, ExecutionResolution, Mep, ResolutionType, ResultatControle } from '../types';
+import type { Etape, ExecutionResolution, Mep, PieceJointe, ResolutionType, ResultatControle } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
@@ -11,7 +11,9 @@ import { Card } from '../ui/Card';
 import { CodeBlock } from '../ui/CodeBlock';
 import { ConfirmDialog } from '../ui/Dialog';
 import { Field, Textarea } from '../ui/Input';
+import { PiecesJointes } from '../ui/PiecesJointes';
 import { Badge, StatusPill } from '../ui/StatusPill';
+import { BadgesEtape } from './BadgesEtape';
 import { ResolutionDeroule } from './ResolutionDeroule';
 
 export interface ActionsEtape {
@@ -19,6 +21,9 @@ export interface ActionsEtape {
   terminer: (e: Etape, resultat: 'Reussie' | 'Echec', preuve: string) => Promise<boolean | void> | void;
   autoriserReprise: (e: Etape) => Promise<boolean | void> | void;
   prendreLaMain: (e: Etape) => Promise<boolean | void> | void;
+  autoriserNonRetour: (e: Etape) => Promise<boolean | void> | void;
+  deposerPiece: (e: Etape, fichier: File, signaler: (message: string) => void) => Promise<boolean>;
+  supprimerPiece: (p: PieceJointe, signaler: (message: string) => void) => Promise<boolean>;
   appliquerResolution: (e: Etape, resolutionTypeId: string) => Promise<boolean | void> | void;
   controlerCorrection: (r: ExecutionResolution, ordre: number, resultat: ResultatControle, observation: string) => Promise<boolean | void> | void;
   controlerVerification: (r: ExecutionResolution, resultat: ResultatControle, observation: string) => Promise<boolean | void> | void;
@@ -55,7 +60,8 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
   const attendus = bloqueurs(etape, memePlan);
 
   const planAgissant = (mep.phase === 'Execution' && etape.plan === 'Deploiement') || (mep.phase === 'RetourArriere' && etape.plan === 'RetourArriere');
-  const peutDemarrer = estMoi && statut === 'Disponible' && etape.etat === 'AFaire';
+  const nonRetourAttendu = etape.pointDeNonRetour && etape.etat === 'AFaire' && etape.nonRetourAutorise === null;
+  const peutDemarrer = estMoi && statut === 'Disponible' && etape.etat === 'AFaire' && !nonRetourAttendu;
   const peutTerminer = estMoi && etape.etat === 'EnCours';
   const peutPrendre = planAgissant && !estMoi && etape.etat !== 'Reussie' && statut !== 'SiRetourArriere' && statut !== 'RetourArriere';
 
@@ -73,6 +79,7 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
             <span className="rounded-md bg-surface-2 px-2 py-1 font-mono text-sm font-bold">{etape.code}</span>
             <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime} taille="lg">{meta.libelle}</StatusPill>
             {estMoi && <Badge ton="run" className="text-xs">À vous</Badge>}
+            <BadgesEtape etape={etape} />
           </div>
           <h2 className="mt-3 text-lg leading-snug font-semibold tracking-tight">{etape.action || 'Étape sans libellé'}</h2>
           <p className="mt-1 text-[13px] text-fg-muted">
@@ -101,6 +108,27 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
         {statut === 'RetourArriere' && etape.etat !== 'Echec' && <Alerte ton="rollback" icone={OctagonAlert} titre="Retour arrière">Le déploiement est arrêté : cette étape ne doit plus être exécutée.</Alerte>}
         {['PlanInvalide', 'EcheanceARenseigner', 'FicheACompleter', 'InstructionsACompleter'].includes(statut) && (
           <Alerte ton="warn" icone={OctagonAlert}>{etape.disponibilite.libelle}</Alerte>
+        )}
+
+        {/* Point de non-retour : avertissement avant démarrage */}
+        {etape.pointDeNonRetour && etape.etat === 'AFaire' && planAgissant && (
+          <Alerte
+            ton="warn"
+            icone={Flag}
+            role="alert"
+            titre="Point de non-retour"
+            action={nonRetourAttendu && mep.droits.estPilote ? (
+              <Button variante="primaire" taille="sm" icone={<ShieldCheck className="size-4" aria-hidden />} onClick={() => void actions.autoriserNonRetour(etape)}>Autoriser le passage</Button>
+            ) : undefined}
+          >
+            Une fois cette étape démarrée, <strong>il ne sera plus possible de revenir en arrière</strong> : l’échéance ne s’applique plus et tout problème devra être corrigé en avant.
+            {nonRetourAttendu
+              ? (mep.droits.estPilote ? ' Autorisez le passage pour permettre le démarrage.' : ' Le démarrage attend l’accord du pilote.')
+              : ` Passage autorisé par ${etape.nonRetourAutorise?.par ?? 'le pilote'}${etape.nonRetourAutorise ? ` le ${formatDateHeure(etape.nonRetourAutorise.le)}` : ''}.`}
+          </Alerte>
+        )}
+        {etape.pointDeNonRetour && etape.etat !== 'AFaire' && (
+          <p className="flex items-center gap-1.5 text-[13px] font-medium text-warn-fg"><Flag className="size-4 text-warn-solid" aria-hidden />Point de non-retour franchi : on corrige en avant.</p>
         )}
 
         {/* Échec */}
@@ -195,6 +223,15 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
             <p className="rounded-lg border border-line bg-surface-2/50 px-3 py-2 text-sm whitespace-pre-line">{etape.preuve}</p>
           </section>
         )}
+
+        <PiecesJointes
+          compact
+          lectureSeule={mep.phase === 'Cloturee'}
+          pilote={mep.droits.estPilote}
+          pieces={mep.piecesJointes.filter((p) => p.etapeId === etape.id)}
+          onDeposer={(f, signaler) => actions.deposerPiece(etape, f, signaler)}
+          onSupprimer={(p, signaler) => actions.supprimerPiece(p, signaler)}
+        />
 
         {historique.length > 0 && (
           <section>

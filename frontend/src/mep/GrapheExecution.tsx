@@ -6,7 +6,7 @@ import type { Etape, Mep } from '../types';
 import { Avatar } from '../ui/Avatar';
 import { cn } from '../ui/cn';
 import { TON } from '../ui/tons';
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, DatabaseBackup, Flag } from 'lucide-react';
 
 interface Props {
   mep: Mep;
@@ -81,7 +81,7 @@ export function GrapheExecution({ mep, etapes, selectionId, onSelect, estEstompe
               type="button"
               onClick={() => onSelect(e.id)}
               aria-pressed={selectionnee}
-              aria-label={`${e.code} ${e.action}, ${meta.libelle}${mien ? ', à vous' : ''}`}
+              aria-label={`${e.code} ${e.action}, ${meta.libelle}${mien ? ', à vous' : ''}${e.type === 'Sauvegarde' ? ', sauvegarde' : ''}${e.pointDeNonRetour ? ', point de non-retour' : ''}`}
               className={cn(
                 'absolute flex overflow-hidden rounded-xl border bg-surface text-left shadow-sm transition-[box-shadow,opacity,border-color] duration-150 hover:shadow-md',
                 selectionnee ? 'border-accent ring-2 ring-accent' : meta.ton === 'later' ? 'border-dashed border-line-strong' : 'border-line-strong',
@@ -94,6 +94,8 @@ export function GrapheExecution({ mep, etapes, selectionId, onSelect, estEstompe
                 <span className="flex items-center gap-1.5">
                   <span className="font-mono text-xs font-bold">{e.code}</span>
                   {mien && <span className="rounded bg-accent px-1.5 py-px text-[10px] font-bold tracking-wide text-accent-fg uppercase">À vous</span>}
+                  {e.type === 'Sauvegarde' && <span title="Étape de sauvegarde" className="inline-flex items-center gap-0.5 rounded border border-run-bd bg-run-bg px-1 py-px text-[10px] font-bold text-run-fg"><DatabaseBackup className="size-3" aria-hidden /><span className="sr-only">Sauvegarde</span></span>}
+                  {e.pointDeNonRetour && <span title="Point de non-retour" className="inline-flex items-center gap-0.5 rounded border border-warn-bd bg-warn-bg px-1 py-px text-[10px] font-bold text-warn-fg"><Flag className="size-3" aria-hidden /><span className="sr-only">Point de non-retour</span></span>}
                 </span>
                 <span className="truncate text-[13px] leading-tight font-medium">{e.action || 'Sans libellé'}</span>
                 <span className={cn('flex items-center gap-1 truncate text-[11px] font-semibold', TON[meta.ton].texte)}>

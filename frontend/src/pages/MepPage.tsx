@@ -1,14 +1,16 @@
-import { Loader2, OctagonAlert, RefreshCw, Siren } from 'lucide-react';
+import { Flag, Loader2, OctagonAlert, RefreshCw, Siren } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
 import { formatDateHeure } from '../format';
 import { DirtyContext, type DirtyRegistry } from '../hooks';
+import { BilanCarte } from '../mep/BilanCarte';
 import { EnTeteMep } from '../mep/EnTeteMep';
 import EtapesTab from '../mep/EtapesTab';
 import ExecutionTab from '../mep/ExecutionTab';
 import JournalTab from '../mep/JournalTab';
 import PreparationTab from '../mep/PreparationTab';
+import RecetteTab from '../mep/RecetteTab';
 import RetourArriereTab from '../mep/RetourArriereTab';
 import { MepContext, type MepContextValue } from '../mepContext';
 import type { Mep, Phase } from '../types';
@@ -17,13 +19,14 @@ import { Button } from '../ui/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
 import { useToast } from '../ui/Toast';
 
-type Onglet = 'preparation' | 'etapes' | 'execution' | 'retour' | 'journal';
-const ONGLETS: Onglet[] = ['preparation', 'etapes', 'execution', 'retour', 'journal'];
+type Onglet = 'preparation' | 'etapes' | 'execution' | 'recette' | 'retour' | 'journal';
+const ONGLETS: Onglet[] = ['preparation', 'etapes', 'execution', 'recette', 'retour', 'journal'];
 
 function ongletParDefaut(m: Mep): Onglet {
   switch (m.phase) {
     case 'Preparation': return 'preparation';
     case 'Execution': return 'execution';
+    case 'Recette': return 'recette';
     case 'RetourArriere': return 'retour';
     case 'Cloturee': return m.issue === 'Repliee' ? 'retour' : 'execution';
   }
@@ -108,7 +111,7 @@ export default function MepPage() {
     return () => window.clearInterval(t);
   }, [synchroniser]);
 
-  const run = useCallback<MepContextValue['run']>(async (action, succes) => {
+  const run = useCallback<MepContextValue['run']>(async (action, succes, surErreur) => {
     try {
       const m = await action();
       appliquer(m);
@@ -121,7 +124,8 @@ export default function MepPage() {
       } else if (e instanceof ApiError && e.status === 401) {
         /* redirection gérée par le client API */
       } else {
-        toast.erreur(e instanceof Error ? e.message : 'Une erreur est survenue.');
+        const message = e instanceof Error ? e.message : 'Une erreur est survenue.';
+        if (surErreur) surErreur(message); else toast.erreur(message);
       }
       return false;
     }
@@ -158,6 +162,12 @@ export default function MepPage() {
                 <TabsTrigger value="preparation">Préparation</TabsTrigger>
                 <TabsTrigger value="etapes">Étapes</TabsTrigger>
                 <TabsTrigger value="execution">Exécution</TabsTrigger>
+                {(mep.phase === 'Recette' || mep.phase === 'Cloturee') && (
+                  <TabsTrigger value="recette">
+                    Recette
+                    {mep.phase === 'Recette' && <span className="size-2 rounded-full bg-warn-solid" role="img" aria-label="Recette en cours" />}
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="retour">
                   Retour arrière
                   {repliActif && <span className="size-2 rounded-full bg-rollback-bg" role="img" aria-label="Retour arrière actif" />}
@@ -181,6 +191,19 @@ export default function MepPage() {
             </div>
           )}
 
+          {mep.nonRetourFranchi && mep.phase !== 'RetourArriere' && (
+            <div role="status" className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-warn-bd bg-warn-bg px-6 py-2.5 text-warn-fg">
+              <Flag className="size-5 shrink-0 text-warn-solid" aria-hidden />
+              <p className="min-w-0 flex-1 text-sm">
+                <strong className="font-bold">Point de non-retour franchi</strong>
+                <span aria-hidden> — </span>
+                <span>étape {mep.nonRetourFranchi} : le retour arrière n’est plus possible, on corrige en avant.</span>
+              </p>
+            </div>
+          )}
+
+          {mep.phase === 'Cloturee' && mep.bilan && <BilanCarte bilan={mep.bilan} />}
+
           {rechargementEnAttente && (
             <div role="status" className="mx-6 mt-4">
               <Alerte
@@ -197,6 +220,7 @@ export default function MepPage() {
             <TabsContent value="preparation" className="outline-none"><PreparationTab /></TabsContent>
             <TabsContent value="etapes" className="outline-none"><EtapesTab /></TabsContent>
             <TabsContent value="execution" className="outline-none"><ExecutionTab /></TabsContent>
+            <TabsContent value="recette" className="outline-none"><RecetteTab /></TabsContent>
             <TabsContent value="retour" className="outline-none"><RetourArriereTab /></TabsContent>
             <TabsContent value="journal" className="outline-none"><JournalTab mepId={mep.id} tick={journalTick} /></TabsContent>
           </div>

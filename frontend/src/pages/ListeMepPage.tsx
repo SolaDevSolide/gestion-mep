@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, Plus, Rocket, Search, TimerReset } from 'lucide-react';
+import { ArrowRight, CalendarDays, Copy, LayoutTemplate, Plus, Rocket, Search, TimerReset } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
@@ -15,12 +15,14 @@ import { Dialog } from '../ui/Dialog';
 import { EmptyState } from '../ui/EmptyState';
 import { Field, Input, Select } from '../ui/Input';
 import { ProgressBar } from '../ui/ProgressBar';
-import { StatusPill } from '../ui/StatusPill';
+import { Badge, StatusPill } from '../ui/StatusPill';
+import { Segmented } from '../ui/Segmented';
+import { DuplicationDialog, type SourceDuplication } from '../mep/DuplicationDialog';
 import { useToast } from '../ui/Toast';
 import { OctagonAlert } from 'lucide-react';
 
 function Chrono({ m, now }: { m: MepResume; now: number }) {
-  if (m.phase !== 'Execution') return null;
+  if (m.phase !== 'Execution' && m.phase !== 'Recette') return null;
   const c = calculerCompteARebours(m.echeanceRepli, now);
   if (c.niveau === 'aucun') return null;
   return (
@@ -87,15 +89,21 @@ const FILTRES: { valeur: Phase | 'toutes'; libelle: string }[] = [
   { valeur: 'toutes', libelle: 'Toutes les phases' },
   { valeur: 'Preparation', libelle: LIBELLE_PHASE.Preparation },
   { valeur: 'Execution', libelle: LIBELLE_PHASE.Execution },
+  { valeur: 'Recette', libelle: LIBELLE_PHASE.Recette },
   { valeur: 'RetourArriere', libelle: LIBELLE_PHASE.RetourArriere },
   { valeur: 'Cloturee', libelle: LIBELLE_PHASE.Cloturee },
 ];
 
 export default function ListeMepPage() {
-  const { donnees: meps, erreur } = useAsync(() => api.meps(), []);
+  const [vue, setVue] = useState<'meps' | 'modeles'>('meps');
+  const { donnees: meps, erreur } = useAsync(() => api.meps(vue === 'modeles'), [vue]);
   const [recherche, setRecherche] = useState('');
   const [phase, setPhase] = useState<Phase | 'toutes'>('toutes');
   const [creation, setCreation] = useState(false);
+  const [duplication, setDuplication] = useState<SourceDuplication | null>(null);
+  const [depuisModele, setDepuisModele] = useState(false);
+  const [modeles, setModeles] = useState<SourceDuplication[]>([]);
+  const modele = vue === 'modeles';
   const now = useNow(1000);
 
   const filtrees = useMemo(() => {
@@ -113,7 +121,18 @@ export default function ListeMepPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Mises en production</h1>
           <p className="mt-1 text-sm text-fg-subtle">Préparez, exécutez et suivez vos interventions.</p>
         </div>
-        <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => setCreation(true)}>Nouvelle MEP</Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            icone={<LayoutTemplate className="size-4" aria-hidden />}
+            onClick={() => {
+              setDepuisModele(true);
+              api.meps(true).then((l) => setModeles(l.map((m) => ({ id: m.id, outil: m.outil, estModele: true, environnement: m.environnement })))).catch(() => setModeles([]));
+            }}
+          >
+            Nouvelle MEP depuis un modèle
+          </Button>
+          <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => setCreation(true)}>Nouvelle MEP</Button>
+        </div>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -121,11 +140,20 @@ export default function ListeMepPage() {
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-subtle" aria-hidden />
           <Input aria-label="Rechercher une MEP" placeholder="Rechercher (outil, version, pilote…)" className="pl-9" value={recherche} onChange={(e) => setRecherche(e.target.value)} />
         </div>
-        <div className="w-52">
+        <Segmented
+          label="Afficher les MEP ou les modèles"
+          valeur={vue}
+          onChange={(v) => { setVue(v); setPhase('toutes'); }}
+          options={[
+            { valeur: 'meps', libelle: <><Rocket className="size-4" aria-hidden />MEP</> },
+            { valeur: 'modeles', libelle: <><LayoutTemplate className="size-4" aria-hidden />Modèles</> },
+          ]}
+        />
+        {!modele && <div className="w-52">
           <Select aria-label="Filtrer par phase" value={phase} onChange={(e) => setPhase(e.target.value as Phase | 'toutes')}>
             {FILTRES.map((f) => <option key={f.valeur} value={f.valeur}>{f.libelle}</option>)}
           </Select>
-        </div>
+        </div>}
       </div>
 
       {erreur && <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">{erreur}</Alerte>}
@@ -140,9 +168,11 @@ export default function ListeMepPage() {
         <div className="mt-6 rounded-xl border border-dashed border-line-strong bg-surface">
           <EmptyState
             icone={Rocket}
-            titre="Aucune mise en production pour l’instant"
-            description="Créez votre première MEP pour préparer le plan, désigner l’équipe et suivre l’exécution en direct."
-            action={<Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => setCreation(true)}>Nouvelle MEP</Button>}
+            titre={modele ? 'Aucun modèle pour l’instant' : 'Aucune mise en production pour l’instant'}
+            description={modele
+              ? 'Ouvrez une MEP, cliquez sur « Dupliquer » et cochez « En faire un modèle » : elle servira de base à vos prochaines interventions.'
+              : 'Créez votre première MEP pour préparer le plan, désigner l’équipe et suivre l’exécution en direct.'}
+            action={modele ? undefined : <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => setCreation(true)}>Nouvelle MEP</Button>}
           />
         </div>
       )}
@@ -157,7 +187,7 @@ export default function ListeMepPage() {
         {filtrees.map((m) => {
           const meta = metaPhase(m.phase, m.issue ?? null);
           return (
-            <li key={m.id}>
+            <li key={m.id} className="relative">
               <Link
                 to={`/meps/${m.id}`}
                 className="group block rounded-xl border border-line bg-surface p-5 shadow-sm transition-[border-color,box-shadow,transform] duration-150 hover:border-line-strong hover:shadow-md"
@@ -171,6 +201,8 @@ export default function ListeMepPage() {
                         <span className="font-mono text-[15px] font-semibold">{m.versionCible || '?'}</span>
                       </h2>
                       <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime}>{meta.libelle}</StatusPill>
+                      {m.estModele && <Badge ton="later"><LayoutTemplate className="size-3" aria-hidden />Modèle</Badge>}
+                      {m.environnement && <Badge ton={m.environnement.toLowerCase().startsWith('prod') ? 'warn' : undefined}>{m.environnement}</Badge>}
                     </div>
                     {m.objet && <p className="mt-1 line-clamp-1 text-sm text-fg-muted">{m.objet}</p>}
                   </div>
@@ -182,17 +214,28 @@ export default function ListeMepPage() {
                     </span>
                   </div>
                 </div>
-                <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+                <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 pr-32">
                   <ProgressBar className="min-w-48 flex-1" segments={segmentsResume(m.nbEtapes, m.nbReussies, m.nbEchecs)} />
                   <span className="text-xs text-fg-subtle tnum">{m.nbReussies}/{m.nbEtapes} étapes réussies{m.nbEchecs > 0 && <span className="font-semibold text-danger-solid"> · {m.nbEchecs} en échec</span>}</span>
                   <Chrono m={m} now={now} />
                 </div>
               </Link>
+              <Button
+                taille="sm"
+                className="absolute right-4 bottom-4"
+                icone={<Copy className="size-3.5" aria-hidden />}
+                aria-label={`Dupliquer ${m.outil || 'la MEP'}`}
+                onClick={() => setDuplication({ id: m.id, outil: m.outil, estModele: m.estModele, environnement: m.environnement })}
+              >
+                Dupliquer
+              </Button>
             </li>
           );
         })}
       </ul>
       <NouvelleMepDialog open={creation} onOpenChange={setCreation} />
+      <DuplicationDialog open={duplication !== null} onOpenChange={(o) => { if (!o) setDuplication(null); }} source={duplication} />
+      <DuplicationDialog open={depuisModele} onOpenChange={setDepuisModele} modeles={modeles} />
     </main>
   );
 }

@@ -1,6 +1,7 @@
 import type {
+  BilanSaisie, CritereGoNoGo, CritereGoNoGoSaisie, DecisionApprobation, DuplicationSaisie, ParametresGlobaux, PieceJointe, TestRecetteSaisie,
   Evenement, EtapeSaisie, LivrableSaisie, Mep, MepIdentiteSaisie, MepResume, ParticipantSaisie,
-  Phase, PlanRepliSaisie, ResolutionType, ResolutionTypeSaisie, ResultatControle, SauvegardeSaisie,
+  PlanRepliSaisie, ResolutionType, ResolutionTypeSaisie, ResultatControle, SauvegardeSaisie,
   SystemeCatalogue, SystemeCatalogueSaisie, SystemeSaisie, TypePlan, Utilisateur,
 } from './types';
 
@@ -21,13 +22,14 @@ export function setUnauthorizedHandler(fn: () => void) {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const formulaire = typeof FormData !== 'undefined' && body instanceof FormData;
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {
       method,
       credentials: 'include',
-      headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      headers: body !== undefined && !formulaire ? { 'Content-Type': 'application/json' } : undefined,
+      body: body === undefined ? undefined : formulaire ? (body as FormData) : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'Le serveur est injoignable. Vérifiez votre connexion.');
@@ -45,7 +47,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
       /* corps non JSON */
     }
     if (!message) {
-      message = res.status === 401 ? 'Identifiants incorrects.' : `Erreur ${res.status}.`;
+      message = res.status === 401 ? 'Identifiants incorrects.' : res.status === 413 ? 'Fichier trop volumineux.' : `Erreur ${res.status}.`;
     }
     throw new ApiError(res.status, message);
   }
@@ -53,6 +55,14 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;
 }
+
+function formulaireFichier(f: File): FormData {
+  const fd = new FormData();
+  fd.append('fichier', f, f.name);
+  return fd;
+}
+
+export const urlPieceJointe = (pid: string) => `/api/pieces-jointes/${pid}/contenu`;
 
 const get = <T>(p: string) => request<T>('GET', p);
 const post = <T>(p: string, b?: unknown) => request<T>('POST', p, b ?? {});
@@ -65,7 +75,7 @@ export const api = {
   moi: () => get<Utilisateur>('/auth/moi'),
   utilisateurs: () => get<Utilisateur[]>('/utilisateurs'),
 
-  meps: () => get<MepResume[]>('/meps'),
+  meps: (modele?: boolean) => get<MepResume[]>(`/meps${modele === undefined ? '' : `?modele=${modele}`}`),
   creerMep: (outil: string, objet: string) => post<Mep>('/meps', { outil, objet }),
   mep: (id: string) => get<Mep>(`/meps/${id}`),
   modifierIdentite: (id: string, s: MepIdentiteSaisie) => put<Mep>(`/meps/${id}`, s),
@@ -83,6 +93,8 @@ export const api = {
   supprimerLivrable: (id: string, lid: string) => del<Mep>(`/meps/${id}/livrables/${lid}`),
 
   ajouterEtape: (id: string, plan: TypePlan = 'Deploiement') => post<Mep>(`/meps/${id}/etapes`, { plan }),
+  autoriserNonRetour: (id: string, eid: string, revision: number) =>
+    post<Mep>(`/meps/${id}/etapes/${eid}/autoriser-non-retour`, { revision }),
   modifierEtape: (id: string, eid: string, s: EtapeSaisie) => put<Mep>(`/meps/${id}/etapes/${eid}`, s),
   supprimerEtape: (id: string, eid: string) => del<Mep>(`/meps/${id}/etapes/${eid}`),
   deplacerEtape: (id: string, eid: string, sens: 'haut' | 'bas') => post<Mep>(`/meps/${id}/etapes/${eid}/deplacer`, { sens }),
@@ -103,7 +115,38 @@ export const api = {
 
   modifierPlanRepli: (id: string, s: PlanRepliSaisie) => put<Mep>(`/meps/${id}/plan-repli`, s),
   declencherRetourArriere: (id: string, motif: string) => post<Mep>(`/meps/${id}/retour-arriere`, { motif }),
-  cloturer: (id: string) => post<Mep>(`/meps/${id}/cloturer`, {}),
+  cloturer: (id: string, bilan?: BilanSaisie) => post<Mep>(`/meps/${id}/cloturer`, bilan ?? {}),
+  go: (id: string, criteresCoches: string[]) => post<Mep>(`/meps/${id}/phase`, { phase: 'Execution', criteresCoches }),
+  noGo: (id: string, motif: string) => post<Mep>(`/meps/${id}/no-go`, { motif }),
+  passerEnRecette: (id: string) => post<Mep>(`/meps/${id}/phase`, { phase: 'Recette' }),
+  dupliquer: (id: string, s: DuplicationSaisie) => post<Mep>(`/meps/${id}/dupliquer`, s),
+
+  modifierApprobateurs: (id: string, version: number, utilisateurIds: string[]) => put<Mep>(`/meps/${id}/approbateurs`, { version, utilisateurIds }),
+  decider: (id: string, version: number, decision: DecisionApprobation, commentaire: string) =>
+    post<Mep>(`/meps/${id}/approbation`, { version, decision, commentaire }),
+
+  ajouterTestRecette: (id: string, s: TestRecetteSaisie) => post<Mep>(`/meps/${id}/tests-recette`, s),
+  modifierTestRecette: (id: string, tid: string, s: TestRecetteSaisie) => put<Mep>(`/meps/${id}/tests-recette/${tid}`, s),
+  supprimerTestRecette: (id: string, tid: string) => del<Mep>(`/meps/${id}/tests-recette/${tid}`),
+  deplacerTestRecette: (id: string, tid: string, sens: 'haut' | 'bas') => post<Mep>(`/meps/${id}/tests-recette/${tid}/deplacer`, { sens }),
+  resultatTestRecette: (id: string, tid: string, resultat: ResultatControle, observation: string) =>
+    post<Mep>(`/meps/${id}/tests-recette/${tid}/resultat`, { resultat, observation }),
+  refaireTestRecette: (id: string, tid: string) => post<Mep>(`/meps/${id}/tests-recette/${tid}/refaire`, {}),
+
+  // Pièces jointes : MEP, étape, résolution exécutée, résolution type.
+  deposerPieceMep: (id: string, f: File) => post<Mep>(`/meps/${id}/pieces-jointes`, formulaireFichier(f)),
+  deposerPieceEtape: (id: string, eid: string, f: File) => post<Mep>(`/meps/${id}/etapes/${eid}/pieces-jointes`, formulaireFichier(f)),
+  supprimerPiece: (id: string, pid: string) => del<Mep>(`/meps/${id}/pieces-jointes/${pid}`),
+  piecesResolution: (rid: string) => get<PieceJointe[]>(`/resolutions/${rid}/pieces-jointes`),
+  deposerPieceResolution: (rid: string, f: File) => post<PieceJointe>(`/resolutions/${rid}/pieces-jointes`, formulaireFichier(f)),
+  supprimerPieceResolution: (rid: string, pid: string) => del<void>(`/resolutions/${rid}/pieces-jointes/${pid}`),
+
+  parametres: () => get<ParametresGlobaux>('/parametres'),
+  modifierParametres: (s: ParametresGlobaux) => put<ParametresGlobaux>('/parametres', s),
+  criteresGoNoGo: () => get<CritereGoNoGo[]>('/criteres-go-no-go'),
+  creerCritere: (s: CritereGoNoGoSaisie) => post<CritereGoNoGo>('/criteres-go-no-go', s),
+  modifierCritere: (id: string, s: CritereGoNoGoSaisie) => put<CritereGoNoGo>(`/criteres-go-no-go/${id}`, s),
+  supprimerCritere: (id: string) => del<void>(`/criteres-go-no-go/${id}`),
 
   catalogueSystemes: () => get<SystemeCatalogue[]>('/catalogue/systemes'),
   creerSystemeCatalogue: (s: SystemeCatalogueSaisie) => post<SystemeCatalogue>('/catalogue/systemes', s),
@@ -119,5 +162,5 @@ export const api = {
   supprimerResolution: (id: string) => del<void>(`/resolutions/${id}`),
 
   procedureRelue: (id: string, relue: boolean) => post<Mep>(`/meps/${id}/procedure-relue`, { relue }),
-  changerPhase: (id: string, phase: Phase) => post<Mep>(`/meps/${id}/phase`, { phase }),
+  changerPhase: (id: string, phase: 'Preparation') => post<Mep>(`/meps/${id}/phase`, { phase }),
 };

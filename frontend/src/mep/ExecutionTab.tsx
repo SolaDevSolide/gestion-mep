@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useMep } from '../mepContext';
 import { Alerte } from '../ui/Alerte';
 import { EmptyState } from '../ui/EmptyState';
-import { BoutonPasserExecution } from './ActionsPilote';
+import { BoutonGoNoGo } from './ActionsPilote';
 import { ExecutionVue } from './ExecutionVue';
 
 export default function ExecutionTab() {
@@ -16,8 +16,8 @@ export default function ExecutionTab() {
           titre="L’exécution n’a pas commencé"
           description={mep.erreursPlan.length > 0
             ? `Le plan comporte ${mep.erreursPlan.length} point(s) à corriger avant de pouvoir passer en exécution (voir « Vérifier le plan »).`
-            : 'Le plan est complet. Le pilote peut passer la MEP en exécution.'}
-          action={mep.droits.estPilote ? <BoutonPasserExecution /> : undefined}
+            : 'Le plan est complet. Le pilote peut prendre la décision Go / no-go.'}
+          action={mep.droits.estPilote ? <BoutonGoNoGo /> : undefined}
         />
       </div>
     );

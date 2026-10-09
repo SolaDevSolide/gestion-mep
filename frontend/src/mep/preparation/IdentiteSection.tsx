@@ -5,6 +5,9 @@ import { useDraft, useReportDirty } from '../../hooks';
 import { useMep } from '../../mepContext';
 import type { MepIdentiteSaisie } from '../../types';
 import { Button } from '../../ui/Button';
+import { ChampEnvironnement } from '../../ui/ChampEnvironnement';
+import { Checkbox } from '../../ui/Checkbox';
+import { MultiSelect } from '../../ui/Combobox';
 import { Field, Input, Select, Textarea } from '../../ui/Input';
 import { SectionCarte, vide } from './Formulaires';
 
@@ -14,7 +17,8 @@ export function IdentiteSection() {
     version: mep.version, outil: mep.outil, versionActuelle: mep.versionActuelle, versionCible: mep.versionCible,
     objet: mep.objet, impacts: mep.impacts, dateMep: mep.dateMep, heureDebut: mep.heureDebut, heureFin: mep.heureFin,
     fuseauHoraire: mep.fuseauHoraire, indisponibiliteMinutes: mep.indisponibiliteMinutes, piloteId: mep.piloteId,
-    suppleantId: mep.suppleantId, echeanceRepli: mep.echeanceRepli,
+    suppleantIds: mep.suppleantIds, echeanceRepli: mep.echeanceRepli,
+    environnement: mep.environnement, bilanActive: mep.bilanActive,
   };
   const d = useDraft(source);
   useReportDirty(d.dirty);
@@ -66,8 +70,25 @@ export function IdentiteSection() {
               onChange={(e) => d.update({ indisponibiliteMinutes: e.target.value === '' ? null : Number(e.target.value) })} />
           )}
         </Field>
-        <Field label="Pilote">{personnes(v.piloteId, (x) => d.update({ piloteId: x }))}</Field>
-        <Field label="Suppléant">{personnes(v.suppleantId, (x) => d.update({ suppleantId: x }))}</Field>
+        <Field label="Pilote">{personnes(v.piloteId, (x) => d.update({ piloteId: x, suppleantIds: v.suppleantIds.filter((s) => s !== x) }))}</Field>
+        <Field label="Suppléants" hint="Ils ont les mêmes droits que le pilote. Le pilote ne peut pas être suppléant.">
+          {(id) => (
+            <MultiSelect
+              id={id}
+              options={mep.participants.filter((p) => p.id !== v.piloteId).map((p) => ({ valeur: p.id, libelle: p.nom, detail: p.role }))}
+              valeurs={v.suppleantIds}
+              onChange={(ids) => d.update({ suppleantIds: ids })}
+              placeholder="Aucun suppléant"
+              placeholderRecherche="Rechercher une personne…"
+              vide="Aucune autre personne : ajoutez-en dans « Personnes »."
+              disabled={lecture}
+              libelleInconnu="Personne supprimée"
+            />
+          )}
+        </Field>
+        <Field label="Environnement" hint="Où l’intervention a lieu." className="md:col-span-2">
+          {(id) => <ChampEnvironnement id={id} valeur={v.environnement ?? ''} disabled={lecture} onChange={(e) => d.update({ environnement: e })} />}
+        </Field>
         <Field label="Échéance de retour arrière (obligatoire)" hint="Passé ce délai, le retour arrière est déclenché automatiquement." className="md:col-span-2">
           {(id) => (
             <Input id={id} type="datetime-local" value={versInputDateTime(v.echeanceRepli)} disabled={!peutEcheance} className="md:max-w-xs"
@@ -77,6 +98,15 @@ export function IdentiteSection() {
         <Field label="Impacts attendus" className="md:col-span-2">
           {(id) => <Textarea id={id} rows={3} value={v.impacts} disabled={lecture} onChange={(e) => d.update({ impacts: e.target.value })} />}
         </Field>
+        <div className="md:col-span-2">
+          <Checkbox
+            label="Bilan de clôture"
+            description="À la clôture, le pilote devra décrire ce qui a marché, les incidents et les actions."
+            checked={v.bilanActive ?? true}
+            disabled={lecture}
+            onChange={(c) => d.update({ bilanActive: c })}
+          />
+        </div>
       </div>
     </SectionCarte>
   );

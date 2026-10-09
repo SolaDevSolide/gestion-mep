@@ -5,6 +5,7 @@ export type Ton = 'ok' | 'run' | 'wait' | 'done' | 'danger' | 'warn' | 'later' |
 export const LIBELLE_PHASE: Record<Phase, string> = {
   Preparation: 'Préparation',
   Execution: 'Exécution',
+  Recette: 'Recette',
   RetourArriere: 'Retour arrière',
   Cloturee: 'Clôturée',
 };
@@ -78,11 +79,17 @@ export const LIBELLE_FAMILLE_EVENEMENT: Record<string, string> = {
   phase: 'Phase',
   repli: 'Retour arrière',
   resolution: 'Résolutions',
+  approbation: 'Approbations',
+  gonogo: 'Go / no-go',
+  recette: 'Recette',
+  piece: 'Pièces jointes',
+  bilan: 'Bilan',
 };
 
 export function familleEvenement(type: string): string {
   const i = type.indexOf('.');
-  return i < 0 ? type : type.slice(0, i);
+  const famille = i < 0 ? type : type.slice(0, i);
+  return famille === 'approbateurs' || famille === 'approbations' ? 'approbation' : famille;
 }
 
 export function initiales(nom: string | null | undefined): string {
@@ -194,4 +201,14 @@ export function formatMinutes(min: number | null | undefined): string {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, '0')}`;
+}
+
+export const ENVIRONNEMENTS = ['Recette', 'Préproduction', 'Production'] as const;
+
+/** Taille d'un fichier lisible (octets, Ko, Mo). */
+export function formatTaille(octets: number): string {
+  if (octets < 1024) return `${octets} o`;
+  const nombre = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
+  if (octets < 1024 * 1024) return `${nombre.format(octets / 1024)} Ko`;
+  return `${nombre.format(octets / 1024 / 1024)} Mo`;
 }

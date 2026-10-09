@@ -13,6 +13,7 @@ function actionsFactices(): ActionsEtape {
   return {
     demarrer: vi.fn(), terminer: vi.fn(), autoriserReprise: vi.fn(), prendreLaMain: vi.fn(), appliquerResolution: vi.fn(),
     controlerCorrection: vi.fn(), controlerVerification: vi.fn(),
+    autoriserNonRetour: vi.fn(), deposerPiece: vi.fn(), supprimerPiece: vi.fn(),
   };
 }
 
@@ -20,7 +21,7 @@ function rendre(e: Etape, opts: { m?: Partial<Mep>; participantId?: string | nul
   const actions = actionsFactices();
   const m = mep({
     etapes: [e], ...opts.m,
-    droits: { estPilote: opts.estPilote ?? false, peutModifierPlan: false, participantId: opts.participantId === undefined ? 'p1' : opts.participantId },
+    droits: { estPilote: opts.estPilote ?? false, estApprobateur: false, peutModifierPlan: false, participantId: opts.participantId === undefined ? 'p1' : opts.participantId },
   });
   const onSelectionner = vi.fn();
   render(<EtapePanneau mep={m} etape={e} resolutionsTypes={opts.types ?? []} actions={actions} onSelectionner={onSelectionner} />);

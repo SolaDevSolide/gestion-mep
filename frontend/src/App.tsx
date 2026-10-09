@@ -5,6 +5,7 @@ import { Shell } from './layout/Shell';
 import ConnexionPage from './pages/ConnexionPage';
 import ListeMepPage from './pages/ListeMepPage';
 import MepPage from './pages/MepPage';
+import GoNoGoPage from './parametres/GoNoGoPage';
 import ResolutionsPage from './parametres/ResolutionsPage';
 import SystemesPage from './parametres/SystemesPage';
 
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/meps/:id" element={<MepPage />} />
         <Route path="/parametres/systemes" element={<SystemesPage />} />
         <Route path="/parametres/resolutions" element={<ResolutionsPage />} />
+        <Route path="/parametres/go-no-go" element={<GoNoGoPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
