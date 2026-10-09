@@ -1,6 +1,6 @@
 import { Check, CircleHelp, Clock, Flag, HandMetal, History, Lock, OctagonAlert, Play, ShieldCheck, Undo2, Wrench, XCircle } from 'lucide-react';
 import { useState } from 'react';
-import { bloqueurs, executantEffectif, nomParticipant } from '../domaine';
+import { bloqueurs, estAVous, executantEffectif, nomParticipant } from '../domaine';
 import { formatDateHeure, LIBELLE_CRITICITE, LIBELLE_ETAT, LIBELLE_STATUT_RESOLUTION } from '../format';
 import { metaEtape } from '../statuts';
 import type { Etape, ExecutionResolution, Mep, PieceJointe, ResolutionType, ResultatControle } from '../types';
@@ -13,6 +13,7 @@ import { ConfirmDialog } from '../ui/Dialog';
 import { Field, Textarea } from '../ui/Input';
 import { PiecesJointes } from '../ui/PiecesJointes';
 import { Badge, StatusPill } from '../ui/StatusPill';
+import { AppelerCarte } from './AppelerCarte';
 import { BadgesEtape } from './BadgesEtape';
 import { ResolutionDeroule } from './ResolutionDeroule';
 
@@ -20,7 +21,7 @@ export interface ActionsEtape {
   demarrer: (e: Etape) => Promise<boolean | void> | void;
   terminer: (e: Etape, resultat: 'Reussie' | 'Echec', preuve: string) => Promise<boolean | void> | void;
   autoriserReprise: (e: Etape) => Promise<boolean | void> | void;
-  prendreLaMain: (e: Etape) => Promise<boolean | void> | void;
+  prendreLaMain: (e: Etape, motif: string) => Promise<boolean | void> | void;
   autoriserNonRetour: (e: Etape) => Promise<boolean | void> | void;
   deposerPiece: (e: Etape, fichier: File, signaler: (message: string) => void) => Promise<boolean>;
   supprimerPiece: (p: PieceJointe, signaler: (message: string) => void) => Promise<boolean>;
@@ -46,6 +47,7 @@ function Titre({ children, icone: Icone }: { children: React.ReactNode; icone?: 
 export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectionner }: Props) {
   const [preuve, setPreuve] = useState('');
   const [confirmation, setConfirmation] = useState<'reussie' | 'echec' | 'main' | null>(null);
+  const [motifMain, setMotifMain] = useState('');
 
   const meta = metaEtape(etape);
   const statut = etape.disponibilite.statut;
@@ -78,7 +80,7 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-md bg-surface-2 px-2 py-1 font-mono text-sm font-bold">{etape.code}</span>
             <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime} taille="lg">{meta.libelle}</StatusPill>
-            {estMoi && <Badge ton="run" className="text-xs">À vous</Badge>}
+            {estAVous(mep, etape) && <Badge ton="run" className="text-xs">À vous</Badge>}
             <BadgesEtape etape={etape} />
           </div>
           <h2 className="mt-3 text-lg leading-snug font-semibold tracking-tight">{etape.action || 'Étape sans libellé'}</h2>
@@ -181,6 +183,8 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
             </p>
           </div>
         </div>
+
+        {etape.etat !== 'Reussie' && <AppelerCarte mep={mep} etape={etape} />}
 
         {/* Instructions */}
         <section>
@@ -290,13 +294,19 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
 
       <ConfirmDialog
         open={confirmation === 'main'}
-        onOpenChange={(o) => { if (!o) setConfirmation(null); }}
+        onOpenChange={(o) => { if (!o) { setConfirmation(null); setMotifMain(''); } }}
         titre={`Prendre la main sur ${etape.code} ?`}
-        description={`Vous exécuterez cette étape${nomExec ? ` à la place de ${nomExec}` : ''}. Cette prise en main est tracée au journal : qui, quand et à la place de qui.`}
+        description={`Vous exécuterez cette étape${nomExec ? ` à la place de ${nomExec}` : ''}. Cette prise en main est tracée au journal : qui, quand, à la place de qui et pourquoi.`}
         libelleConfirmer="Prendre la main"
         variante="primaire"
-        onConfirmer={() => actions.prendreLaMain(etape)}
-      />
+        taille="md"
+        desactive={!motifMain.trim()}
+        onConfirmer={async () => { const r = await actions.prendreLaMain(etape, motifMain.trim()); if (r !== false) setMotifMain(''); return r; }}
+      >
+        <Field label="Pourquoi prenez-vous la main ? *" hint="Visible de tous dans le journal.">
+          {(id) => <Textarea id={id} value={motifMain} onChange={(e) => setMotifMain(e.target.value)} rows={3} placeholder={nomExec ? `ex. ${nomExec} est injoignable, l’étape est bloquante.` : 'ex. Le responsable est injoignable.'} autoFocus />}
+        </Field>
+      </ConfirmDialog>
     </Card>
   );
 }

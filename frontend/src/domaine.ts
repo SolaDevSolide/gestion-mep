@@ -13,6 +13,12 @@ export function planActif(phase: Phase): TypePlan | null {
 
 export const executantEffectif = (e: Pick<Etape, 'executantId' | 'responsableId'>): string | null => e.executantId ?? e.responsableId;
 
+/** Badge « À vous » : seulement sur une étape à faire ou en cours, jamais sur une étape terminée ni dans une MEP clôturée. */
+export const estAVous = (mep: Pick<Mep, 'droits' | 'phase'>, e: Pick<Etape, 'executantId' | 'responsableId' | 'etat'>): boolean => {
+  const moi = mep.droits.participantId;
+  return moi !== null && executantEffectif(e) === moi && e.etat !== 'Reussie' && mep.phase !== 'Cloturee';
+};
+
 export const participantPar = (mep: Pick<Mep, 'participants'>, id: string | null | undefined): Participant | undefined =>
   id ? mep.participants.find((p) => p.id === id) : undefined;
 

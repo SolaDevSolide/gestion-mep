@@ -1,3 +1,4 @@
+import { ListeAvertissements } from './PlanCheck';
 import { ArrowLeft, OctagonAlert, Rocket, ShieldQuestion, ThumbsDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { CritereGoNoGo } from '../types';
@@ -15,6 +16,8 @@ interface Props {
   criteres: CritereGoNoGo[];
   /** Anomalies du plan encore à corriger (le serveur refusera le Go tant qu'il en reste). */
   erreursPlan?: string[];
+  /** Avertissements non bloquants de la vérification du plan. */
+  avertissements?: string[];
   chargement?: boolean;
   /** Retourne true si la décision a abouti. */
   onGo: (criteresCoches: string[]) => Promise<boolean | void> | boolean | void;
@@ -22,7 +25,7 @@ interface Props {
 }
 
 /** Décision Go / no-go : liste de contrôle à cocher, Go tant que tout n'est pas coché est impossible, no-go avec motif. */
-export function GoNoGoDialog({ open, onOpenChange, criteres, erreursPlan = [], chargement, onGo, onNoGo }: Props) {
+export function GoNoGoDialog({ open, onOpenChange, criteres, erreursPlan = [], avertissements = [], chargement, onGo, onNoGo }: Props) {
   const [coches, setCoches] = useState<string[]>([]);
   const [noGo, setNoGo] = useState(false);
   const [motif, setMotif] = useState('');
@@ -78,6 +81,7 @@ export function GoNoGoDialog({ open, onOpenChange, criteres, erreursPlan = [], c
               Le serveur refusera le Go tant que le plan est incomplet (voir « Vérifier le plan »).
             </Alerte>
           )}
+          <ListeAvertissements avertissements={avertissements} />
           {criteres.length === 0 ? (
             <Alerte ton="wait" icone={ShieldQuestion}>Aucun critère de go / no-go n’est actif : le Go peut être donné directement.</Alerte>
           ) : (

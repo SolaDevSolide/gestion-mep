@@ -38,16 +38,36 @@ describe('domaine', () => {
     const s = segmentsProgression([etape({ id: 'a', etat: 'Reussie' }), etape({ id: 'b', etat: 'EnCours' }), etape({ id: 'c', etat: 'Echec' }), etape({ id: 'd' })]);
     expect(s.map((x) => x.valeur)).toEqual([1, 1, 1, 1]);
   });
-  it('complétude des sections', () => {
+  it('complétude des sections, alignée sur les anomalies de la vérification du plan', () => {
     const c = completude(mep({ participants: [], systemes: [] }));
     expect(c.personnes).toBe(false);
     expect(c.systemes).toBe(false);
-    expect(c.validation).toBe(false);
-    const relue = { par: 'Bob', le: '2026-10-09T10:00:00Z' };
-    expect(completude(mep({ procedureRelue: relue })).validation).toBe(false); // 1 approbation exigée
-    expect(completude(mep({ procedureRelue: relue, approbationsMinimum: 0 })).validation).toBe(true);
-    const approuvee = { id: 'a1', utilisateurId: 'u1', nom: 'Claire', decision: 'Approuvee' as const, commentaire: '', le: '2026-10-09T11:00:00Z' };
-    expect(completude(mep({ procedureRelue: relue, approbations: [approuvee] })).validation).toBe(true);
+    // Validation : suit les anomalies de relecture et d'approbation.
+    expect(completude(mep({ erreursPlan: ['La procédure doit être relue par un opérateur.'] })).validation).toBe(false);
+    expect(completude(mep({ erreursPlan: ['Il faut 1 approbation(s).'] })).validation).toBe(false);
+    expect(completude(mep({ erreursPlan: ['Claire a refusé : non'] })).validation).toBe(false);
+    expect(completude(mep({ erreursPlan: [] })).validation).toBe(true);
+  });
+  it('un champ facultatif ne rend pas une section orange', () => {
+    // Heures et indisponibilité absentes, restauration non testée : la vérification du plan ne les réclame pas.
+    const base = mep({ heureDebut: null, heureFin: null, indisponibiliteMinutes: null, erreursPlan: [] });
+    base.sauvegarde.restaurationTestee = false;
+    const c = completude(base);
+    expect(c.intervention).toBe(true);
+    expect(c.sauvegarde).toBe(true);
+  });
+  it('les anomalies du plan rendent la section concernée orange', () => {
+    expect(completude(mep({ erreursPlan: ['Renseigner une échéance de retour arrière future.'] })).intervention).toBe(false);
+    expect(completude(mep({ erreursPlan: ['Renseigner le pilote.'] })).intervention).toBe(false);
+    expect(completude(mep({ erreursPlan: ['Sauvegarde pendant la MEP : indiquer l\'étape de déploiement de type Sauvegarde.'] })).sauvegarde).toBe(false);
+    expect(completude(mep({ erreursPlan: ['Ajouter au moins un test de recette.'] })).recette).toBe(false);
+    expect(completude(mep({ erreursPlan: ['Test de recette 2 : compléter Libellé.'] })).recette).toBe(false);
+  });
+  it('responsables techniques : complète s\'il y en a et sans avertissement', () => {
+    const rt = { participantId: 'p2', systemeIds: [], perimetre: '', disponibilite: 'Joignable' as const, contactJourJ: '' };
+    expect(completude(mep()).techniques).toBe(false);
+    expect(completude(mep({ responsablesTechniques: [rt] })).techniques).toBe(true);
+    expect(completude(mep({ responsablesTechniques: [rt], avertissements: ['E0002 : Bob sera absent, ajouter une résolution type pour que quelqu\'un d\'autre puisse la reprendre.'] })).techniques).toBe(false);
   });
 });
 

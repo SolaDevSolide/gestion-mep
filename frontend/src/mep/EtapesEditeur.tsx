@@ -232,7 +232,7 @@ function EtapeSheet({ etape, plan, editable, onClose }: { etape: Etape | null; p
 export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   const { mep, run } = useMep();
   const etapes = etapesDuPlan(mep, plan);
-  const editable = mep.droits.peutModifierPlan;
+  const editable = mep.droits.peutEditerContenu;
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [suppr, setSuppr] = useState<Etape | null>(null);
 

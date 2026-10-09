@@ -38,7 +38,7 @@ const Liste = ({ children }: { children: ReactNode }) => <ul className="divide-y
 
 export function PersonnesSection() {
   const { mep, run } = useMep();
-  const edition = mep.droits.peutModifierPlan;
+  const edition = mep.droits.peutEditerContenu;
   const [utilisateurs, setUtilisateurs] = useState<Utilisateur[]>([]);
   const [forme, setForme] = useState<{ existant?: Participant } | null>(null);
   const [suppr, setSuppr] = useState<Participant | null>(null);
@@ -122,7 +122,7 @@ export function PersonnesSection() {
 
 export function SystemesSection() {
   const { mep, run } = useMep();
-  const edition = mep.droits.peutModifierPlan;
+  const edition = mep.droits.peutEditerContenu;
   const [catalogue, setCatalogue] = useState<SystemeCatalogue[]>([]);
   const [choix, setChoix] = useState<string | null>(null);
   const [impact, setImpact] = useState('');
@@ -145,7 +145,7 @@ export function SystemesSection() {
 
   return (
     <SectionCarte
-      numero={3}
+      numero={4}
       titre="Systèmes"
       description="Les systèmes touchés par l’intervention, avec la cible exacte et l’impact attendu."
       action={edition && <Button taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajout libre</Button>}
@@ -217,7 +217,7 @@ export function SystemesSection() {
 
 export function LivrablesSection() {
   const { mep, run } = useMep();
-  const edition = mep.droits.peutModifierPlan;
+  const edition = mep.droits.peutEditerContenu;
   const [forme, setForme] = useState<{ existant?: Livrable } | null>(null);
   const [suppr, setSuppr] = useState<Livrable | null>(null);
   const initial = useMemo(() => ({
@@ -226,7 +226,7 @@ export function LivrablesSection() {
 
   return (
     <SectionCarte
-      numero={4}
+      numero={5}
       titre="Livrables"
       description="Les paquets, scripts et configurations à déployer, avec leur version et leur emplacement."
       action={edition && <Button variante="primaire" taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajouter</Button>}

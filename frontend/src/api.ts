@@ -2,7 +2,7 @@ import type {
   BilanSaisie, CritereGoNoGo, CritereGoNoGoSaisie, DecisionApprobation, DuplicationSaisie, ParametresGlobaux, PieceJointe, TestRecetteSaisie,
   Evenement, EtapeSaisie, LivrableSaisie, Mep, MepIdentiteSaisie, MepResume, ParticipantSaisie,
   PlanRepliSaisie, ResolutionType, ResolutionTypeSaisie, ResultatControle, SauvegardeSaisie,
-  SystemeCatalogue, SystemeCatalogueSaisie, SystemeSaisie, TypePlan, Utilisateur,
+  ResponsableTechniqueSaisie, SystemeCatalogue, SystemeCatalogueSaisie, SystemeSaisie, TypePlan, Utilisateur,
 } from './types';
 
 export class ApiError extends Error {
@@ -104,8 +104,10 @@ export const api = {
   autoriserReprise: (id: string, eid: string, revision: number) =>
     post<Mep>(`/meps/${id}/etapes/${eid}/autoriser-reprise`, { revision }),
 
-  prendreLaMain: (id: string, eid: string, revision: number) =>
-    post<Mep>(`/meps/${id}/etapes/${eid}/prendre-la-main`, { revision }),
+  prendreLaMain: (id: string, eid: string, revision: number, motif: string) =>
+    post<Mep>(`/meps/${id}/etapes/${eid}/prendre-la-main`, { revision, motif }),
+  modifierResponsablesTechniques: (id: string, version: number, responsables: ResponsableTechniqueSaisie[]) =>
+    put<Mep>(`/meps/${id}/responsables-techniques`, { version, responsables }),
   appliquerResolution: (id: string, eid: string, resolutionTypeId: string, revision: number) =>
     post<Mep>(`/meps/${id}/etapes/${eid}/resolutions`, { resolutionTypeId, revision }),
   controlerCorrection: (id: string, rid: string, ordre: number, resultat: ResultatControle, observation: string) =>

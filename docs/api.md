@@ -437,3 +437,96 @@ Seuls les critères `actif` sont à cocher dans le dialogue Go / no-go.
 - **Démo** : comptes inchangés. MEP de démonstration : environnement « Production », Bob suppléant, Claire approbatrice (décision en attente : `erreursPlan` = `["Il faut 1 approbation(s)."]`), sauvegarde `PendantMep` faite par E0001 (`type: Sauvegarde`), E0004 point de non-retour, tests « Ouvrir la page d'accueil fictive » (Claire) et « Appeler l'API de test » (Bob), bilan actif. Modèle « Modèle : déploiement API standard » (copie de la démo, environnement vide). Critères : « Équipe présente et joignable », « Sauvegarde disponible », « Utilisateurs prévenus de l'interruption », « Supervision en place ». `approbationsMinimum = 1`. Sur une base déjà amorcée, seuls les critères de démonstration manquants sont ajoutés.
 - **Approbateur = compte** (pas un participant) : il n'a pas besoin d'être participant de la MEP. Son nom est figé dans l'approbation à la désignation (`nom` renvoie le nom affiché actuel s'il existe).
 - **Droits** : les suppléants ont tous les droits du pilote (Go, no-go, recette, clôture, retour arrière, reprise, point de non-retour, suppression de pièces jointes). Le compte du pilote principal seul est exclu des approbateurs.
+
+# Jalon 3.1 : ajouts et changements
+
+Le **pilote** est la personne responsable de la mise en production ; les développeurs deviennent des **responsables techniques**, distincts du pilote. Objectif : qu'une MEP se passe bien même quand le développeur n'est pas disponible.
+
+## Changements incompatibles (à reprendre côté front)
+
+| Avant | Maintenant |
+|---|---|
+| `POST /meps` faisait du créateur le pilote. | Le créateur est ajouté comme **participant relié à son compte** (rôle « Responsable technique ») et comme **responsable technique** (`Joignable`). `piloteId` vaut `null` : le pilote se choisit ensuite (`erreursPlan` contient « Renseigner le pilote. » tant que ce n'est pas fait). |
+| `POST /meps/{id}/etapes/{eid}/prendre-la-main` `{ revision }`. | `{ revision, motif }` : le **motif est obligatoire** (voir plus bas). |
+| Tout utilisateur connecté pouvait modifier le contenu d'une MEP en préparation. | **403** pour qui n'est ni responsable technique, ni pilote, ni suppléant, ni administrateur (voir « Droits d'édition »). |
+| `POST /meps/{id}/phase` `{ phase: "Preparation" }` réussissait tant qu'aucune étape n'était en cours. | **422** dès que le point de non-retour est franchi (voir plus bas). |
+| `POST /meps/{id}/dupliquer` : `environnement: ""` donnait une MEP sans environnement ; la copie gardait le titre de l'original ; le journal disait « Créée par duplication … ». | `environnement` vide ou absent = **reprendre celui de la source** ; l'outil de la copie est « *outil* (copie) » ; journal « MEP créée par duplication de « … » » ou « MEP créée depuis le modèle « … » ». |
+| `DELETE /meps/{id}` : pilote ou administrateur. | Pilote, **créateur** ou administrateur (le créateur n'est plus pilote d'office). |
+
+## MepDto : champs ajoutés
+
+| Champ | Type | Précisions |
+|---|---|---|
+| `responsablesTechniques` | `ResponsableTechniqueDto[]` | Liste vide pour les MEP existantes (la migration `Jalon31` ajoute la colonne `jsonb` avec `'[]'`). |
+| `avertissements` | `string[]` | Avertissements **non bloquants** de la vérification du plan, séparés de `erreursPlan` (voir plus bas). |
+| `droits.estResponsableTechnique` | `bool` | Le compte courant est relié à l'un des responsables techniques. |
+| `droits.peutEditerContenu` | `bool` | MEP en préparation **et** compte autorisé à modifier le contenu. `droits.peutModifierPlan` garde son sens (la MEP est en préparation). |
+
+`ResponsableTechniqueDto` :
+
+```json
+{
+  "participantId": "guid",
+  "systemeIds": ["guid"],
+  "perimetre": "texte libre",
+  "disponibilite": "Joignable | Absent",
+  "contactJourJ": "texte libre"
+}
+```
+
+`systemeIds` est facultatif (ce que la personne a développé : systèmes de la MEP). Un participant n'apparaît qu'une seule fois.
+
+## Responsables techniques
+
+`PUT /meps/{id}/responsables-techniques` `{ version, responsables: [{ participantId, systemeIds?, perimetre?, disponibilite, contactJourJ? }] }` → **remplace toute la liste**. Droits d'édition requis, MEP en préparation. → 200 `MepDto`.
+
+- 400 : `participantId` ou `disponibilite` manquants ; 409 : `version` périmée ; 403 : voir « Droits d'édition ».
+- 422 : participant en double (« Bob est déjà responsable technique : un participant n'apparaît qu'une fois. »), participant ou système inconnu de la MEP, MEP hors préparation.
+- Journal `responsables-techniques.modifies` : « Responsables techniques : Bob, Claire » (ou « aucun »). Comme toute modification de contenu, cela remet les approbations à zéro.
+- Un participant responsable technique ne peut pas être supprimé de la MEP (422 « … est responsable technique : le retirer des responsables techniques d'abord. »). Supprimer un système le retire des `systemeIds` concernés.
+- **Duplication** : les responsables techniques sont copiés (identifiants de participants et de systèmes remappés). Celui qui duplique, s'il n'est pas déjà autorisé à éditer la copie, y devient participant et responsable technique.
+- **Démo** : Bob responsable technique de l'API (joignable, contact « Fictif — poste B »), Claire responsable technique du WEB (joignable, « Fictif — poste C »). Alice reste pilote : aucun avertissement.
+
+## Droits d'édition du contenu (403)
+
+Les comptes suivants peuvent modifier le contenu d'une MEP : **responsables techniques**, **pilote**, **suppléants** et **administrateurs**. Tout autre compte reçoit :
+
+```
+403 { "message": "Seuls les responsables techniques, le pilote, ses suppléants ou un administrateur peuvent modifier cette MEP." }
+```
+
+Routes concernées (le contrôle est fait avant les autres règles : phase, version, saisie) : `PUT /meps/{id}`, `PUT /meps/{id}/sauvegarde`, `PUT /meps/{id}/plan-repli`, `PUT /meps/{id}/responsables-techniques`, `PUT /meps/{id}/approbateurs`, participants, systèmes (y compris `depuis-catalogue`), livrables, étapes (création, modification, suppression, déplacement) et tests de recette (création, modification, suppression, déplacement).
+
+**Exceptions inchangées** : la décision d'approbation (l'approbateur désigné), « procédure relue » (n'importe quel participant relié à un compte), les pièces jointes, et toutes les actions d'exécution (démarrer, terminer, prendre la main, résolutions, résultats de recette…) qui ont leurs propres règles. Les modifications réservées au pilote (échéance de retour arrière, Go, no-go, clôture…) sont inchangées.
+
+## Avertissements de la vérification du plan
+
+La vérification du plan renvoie désormais **deux listes** : `erreursPlan` (anomalies, qui bloquent le Go) et `avertissements` (non bloquants, jamais comptés dans `erreursPlan`, n'empêchent ni l'approbation ni le Go). Ordre :
+
+1. Aucun responsable technique : « Aucun responsable technique renseigné. » (seul avertissement dans ce cas).
+2. Pilote également responsable technique : « Alice est à la fois responsable technique et pilote : prévoir un suppléant qui connaît le plan. »
+3. Pour chaque responsable technique **Absent**, pour chaque étape (déploiement ou retour arrière) dont il est le responsable **ou** rattachée à l'un de ses systèmes, si l'étape n'a pas à la fois des instructions, un résultat attendu et au moins une résolution type : « E0002 : Bob sera absent, ajouter une résolution type pour que quelqu'un d'autre puisse la reprendre. »
+
+## Prendre la main : motif obligatoire
+
+`POST /meps/{id}/etapes/{eid}/prendre-la-main` `{ revision, motif }`. Un motif vide ou composé d'espaces est refusé : **422** « Indiquer pourquoi vous prenez la main. ». Journal `etape.prise-en-main` : « Alice a pris la main sur E0002 (prévu : Bob) : *motif* » (ou « Alice a repris la main sur E0002 : *motif* » quand le preneur est le responsable prévu).
+
+## Revenir en préparation
+
+`POST /meps/{id}/phase` `{ phase: "Preparation" }` est refusé (**422**) une fois le point de non-retour franchi : « Le point de non-retour E0004 est franchi : on ne peut plus revenir en préparation, tout problème se corrige en avant. » (`nonRetourFranchi` du `MepDto` indique l'étape ; le front désactive le bouton).
+
+## Duplication, modèles
+
+- Outil de la copie : « *outil* (copie) » ; pour une MEP créée **depuis un modèle**, l'outil du modèle sans le préfixe « Modèle : » (pas de suffixe). Un modèle créé par duplication est « *outil* (copie) ».
+- `environnement` vide/absent : celui de la source.
+- Journal `mep.creee` : « MEP créée depuis le modèle « Modèle : … » » ou « MEP créée par duplication de « … » ».
+
+## Journal : nouveaux types
+
+`responsables-techniques.modifies`. Le détail de `etape.prise-en-main` contient maintenant le motif.
+
+## Précisions d'implémentation (jalon 3.1)
+
+- **Stockage** : `Meps.ResponsablesTechniques` en `jsonb` (`disponibilite` stockée en entier : 0 = Joignable, 1 = Absent). Migration `Jalon31` : colonne `NOT NULL DEFAULT '[]'` ; les MEP existantes n'ont aucun responsable technique (avertissement « Aucun responsable technique renseigné. »).
+- **Énumération** : `DisponibiliteJourJ` = `Joignable | Absent` (texte dans l'API, comme les autres énumérations).
+- **Front (indicateurs de complétude)** : alignés sur `erreursPlan` ; un champ facultatif (heures, indisponibilité, restauration testée) ne rend plus une section orange. La section « Responsables techniques » est orange tant qu'il n'y en a aucun ou qu'un avertissement subsiste. Les sections de la préparation sont renumérotées (Responsables techniques = 3, Pièces jointes = 9).

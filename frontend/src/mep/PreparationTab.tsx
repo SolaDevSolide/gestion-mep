@@ -5,6 +5,7 @@ import { Alerte } from '../ui/Alerte';
 import { cn } from '../ui/cn';
 import { completude, type IdSection } from './completude';
 import { IdentiteSection } from './preparation/IdentiteSection';
+import { ResponsablesTechniquesSection } from './preparation/ResponsablesTechniquesSection';
 import { LivrablesSection, PersonnesSection, SystemesSection } from './preparation/ListesSections';
 import { PiecesSection } from './preparation/PiecesSection';
 import { RecetteSection } from './preparation/RecetteSection';
@@ -13,12 +14,13 @@ import { SauvegardeSection, ValidationSection } from './preparation/SauvegardeVa
 const SECTIONS: { id: IdSection; numero: number; titre: string }[] = [
   { id: 'intervention', numero: 1, titre: 'Intervention' },
   { id: 'personnes', numero: 2, titre: 'Personnes' },
-  { id: 'systemes', numero: 3, titre: 'Systèmes' },
-  { id: 'livrables', numero: 4, titre: 'Livrables' },
-  { id: 'sauvegarde', numero: 5, titre: 'Sauvegarde' },
-  { id: 'recette', numero: 6, titre: 'Recette' },
-  { id: 'validation', numero: 7, titre: 'Validation' },
-  { id: 'pieces', numero: 8, titre: 'Pièces jointes' },
+  { id: 'techniques', numero: 3, titre: 'Responsables techniques' },
+  { id: 'systemes', numero: 4, titre: 'Systèmes' },
+  { id: 'livrables', numero: 5, titre: 'Livrables' },
+  { id: 'sauvegarde', numero: 6, titre: 'Sauvegarde' },
+  { id: 'recette', numero: 7, titre: 'Recette' },
+  { id: 'validation', numero: 8, titre: 'Validation' },
+  { id: 'pieces', numero: 9, titre: 'Pièces jointes' },
 ];
 
 export default function PreparationTab() {
@@ -58,6 +60,11 @@ export default function PreparationTab() {
       </nav>
 
       <div className="min-w-0 space-y-4">
+        {mep.droits.peutModifierPlan && !mep.droits.peutEditerContenu && (
+          <Alerte ton="wait" icone={Eye}>
+            Lecture seule : seuls les responsables techniques, le pilote, ses suppléants ou un administrateur peuvent modifier cette MEP.
+          </Alerte>
+        )}
         {!mep.droits.peutModifierPlan && (
           <Alerte ton="wait" icone={Eye}>
             Lecture seule : la MEP n’est plus en préparation.
@@ -67,6 +74,7 @@ export default function PreparationTab() {
         {/* Toutes les sections restent montées : un brouillon non enregistré survit au changement de section. */}
         <div hidden={section !== 'intervention'}><IdentiteSection /></div>
         <div hidden={section !== 'personnes'}><PersonnesSection /></div>
+        <div hidden={section !== 'techniques'}><ResponsablesTechniquesSection /></div>
         <div hidden={section !== 'systemes'}><SystemesSection /></div>
         <div hidden={section !== 'livrables'}><LivrablesSection /></div>
         <div hidden={section !== 'sauvegarde'}><SauvegardeSection /></div>

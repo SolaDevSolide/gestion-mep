@@ -17,7 +17,7 @@ function FichePlan() {
   const d = useDraft<PlanRepli>(mep.planRepli);
   useReportDirty(d.dirty);
   const v = d.value;
-  const edition = mep.droits.peutModifierPlan;
+  const edition = mep.droits.peutEditerContenu;
 
   async function enregistrer() {
     const ok = await run(() => api.modifierPlanRepli(mep.id, { ...v, version: mep.version }), 'Plan de retour arrière enregistré.');

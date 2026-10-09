@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { calculerGraphe, DIMENSIONS_PAR_DEFAUT, placerGraphe } from '../graphe';
-import { executantEffectif, nomParticipant } from '../domaine';
+import { estAVous, executantEffectif, nomParticipant } from '../domaine';
 import { metaEtape } from '../statuts';
 import type { Etape, Mep } from '../types';
 import { Avatar } from '../ui/Avatar';
@@ -34,7 +34,6 @@ export function GrapheExecution({ mep, etapes, selectionId, onSelect, estEstompe
   const parId = useMemo(() => new Map(etapes.map((e) => [e.id, e])), [etapes]);
 
   if (etapes.length === 0) return null;
-  const moi = mep.droits.participantId;
 
   return (
     <div className="overflow-x-auto rounded-xl border border-line bg-surface p-2 shadow-sm" tabIndex={0} aria-label="Arbre d’exécution (défilement horizontal)">
@@ -71,7 +70,7 @@ export function GrapheExecution({ mep, etapes, selectionId, onSelect, estEstompe
           if (!e) return null;
           const meta = metaEtape(e);
           const exec = executantEffectif(e);
-          const mien = moi !== null && exec === moi;
+          const mien = estAVous(mep, e);
           const nom = nomParticipant(mep, exec);
           const selectionnee = selectionId === e.id;
           const Icone = meta.Icone;

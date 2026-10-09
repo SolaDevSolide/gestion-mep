@@ -1,4 +1,4 @@
-import { executantEffectif, nomParticipant } from '../domaine';
+import { estAVous, executantEffectif, nomParticipant } from '../domaine';
 import { LIBELLE_CRITICITE } from '../format';
 import { metaEtape } from '../statuts';
 import type { Etape, Mep } from '../types';
@@ -9,14 +9,13 @@ import { BadgesEtape } from './BadgesEtape';
 
 /** Vue liste des étapes d'exécution (alternative au graphe). */
 export function ListeExecution({ mep, etapes, selectionId, onSelect }: { mep: Mep; etapes: Etape[]; selectionId: string | null; onSelect: (id: string) => void }) {
-  const moi = mep.droits.participantId;
   return (
     <ol className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
       {etapes.map((e) => {
         const meta = metaEtape(e);
         const exec = executantEffectif(e);
         const nom = nomParticipant(mep, exec);
-        const mien = moi !== null && exec === moi;
+        const mien = estAVous(mep, e);
         return (
           <li key={e.id}>
             <button
