@@ -12,8 +12,8 @@ export function Alerte({ ton, icone: Icone, titre, children, action, className, 
       <div className="min-w-0 flex-1">
         {titre && <p className="font-semibold">{titre}</p>}
         {children && <div className={cn(titre && 'mt-0.5', 'whitespace-pre-line')}>{children}</div>}
+        {action && <div className="mt-2.5">{action}</div>}
       </div>
-      {action}
     </div>
   );
 }
