@@ -72,6 +72,7 @@ export const LIBELLE_FAMILLE_EVENEMENT: Record<string, string> = {
   mep: 'MEP',
   sauvegarde: 'Sauvegarde',
   participant: 'Personnes',
+  'responsables-techniques': 'Responsables techniques',
   systeme: 'Systèmes',
   livrable: 'Livrables',
   etape: 'Étapes',

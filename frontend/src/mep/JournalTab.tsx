@@ -13,7 +13,7 @@ import { cn } from '../ui/cn';
 import { EmptyState } from '../ui/EmptyState';
 import { Input, Select } from '../ui/Input';
 import { TON } from '../ui/tons';
-import { OctagonAlert } from 'lucide-react';
+import { Code2, OctagonAlert } from 'lucide-react';
 
 function iconeEvenement(type: string): { Icone: LucideIcon; ton: Ton } {
   switch (type) {
@@ -49,6 +49,7 @@ function iconeEvenement(type: string): { Icone: LucideIcon; ton: Ton } {
     case 'etape': return { Icone: ListChecks, ton: 'wait' };
     case 'recette': return { Icone: ClipboardCheck, ton: 'warn' };
     case 'approbation': return { Icone: ShieldCheck, ton: 'wait' };
+    case 'responsables-techniques': return { Icone: Code2, ton: 'wait' };
     case 'participant': return { Icone: UserRound, ton: 'wait' };
     case 'systeme': return { Icone: Layers, ton: 'wait' };
     case 'livrable': return { Icone: Package, ton: 'wait' };
