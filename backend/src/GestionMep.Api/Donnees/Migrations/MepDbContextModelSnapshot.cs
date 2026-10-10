@@ -528,6 +528,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<DateTimeOffset>("ModifieeLe")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("ModifieeParId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Symptomes")
                         .IsRequired()
                         .HasColumnType("text");
@@ -653,6 +656,65 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsUnique();
 
                     b.ToTable("Utilisateurs");
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.VersionResolutionType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Actif")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Corrections")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Diagnostic")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("ModifieeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ModifieeParId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ResolutionTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Symptomes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.PrimitiveCollection<List<Guid>>("SystemeCatalogueIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.Property<string>("Titre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VerificationAttendu")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VerificationInstruction")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResolutionTypeId", "Version");
+
+                    b.ToTable("VersionsResolutionType");
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Etape", b =>
@@ -849,6 +911,15 @@ namespace GestionMep.Api.Donnees.Migrations
                         });
 
                     b.Navigation("Sauvegarde")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.VersionResolutionType", b =>
+                {
+                    b.HasOne("GestionMep.Domain.ResolutionType", null)
+                        .WithMany()
+                        .HasForeignKey("ResolutionTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

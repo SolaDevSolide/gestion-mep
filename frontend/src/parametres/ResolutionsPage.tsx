@@ -1,4 +1,4 @@
-import { ListOrdered, OctagonAlert, Pencil, Plus, Search, Trash2, Wrench } from 'lucide-react';
+import { History, ListOrdered, OctagonAlert, Pencil, Plus, Search, Trash2, Wrench } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
@@ -16,6 +16,7 @@ import { Input, Select } from '../ui/Input';
 import { Badge } from '../ui/StatusPill';
 import { Markdown } from '../ui/Instructions';
 import { Tooltip } from '../ui/Tooltip';
+import { auteurModification, HistoriqueResolutionDialog } from './HistoriqueResolution';
 import { useToast } from '../ui/Toast';
 
 export default function ResolutionsPage() {
@@ -29,6 +30,7 @@ export default function ResolutionsPage() {
   const [systeme, setSysteme] = useState('');
   const [edition, setEdition] = useState<{ existant?: ResolutionType } | null>(null);
   const [suppr, setSuppr] = useState<ResolutionType | null>(null);
+  const [historique, setHistorique] = useState<ResolutionType | null>(null);
 
   const noms = useMemo(() => new Map((cat.donnees ?? []).map((s) => [s.id, s.nom])), [cat.donnees]);
   const filtrees = useMemo(() => {
@@ -88,11 +90,13 @@ export default function ResolutionsPage() {
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-0.5">
+                  <Tooltip content="Historique"><BoutonIcone label={`Historique de ${r.titre}`} taille="sm" onClick={() => setHistorique(r)}><History className="size-4" aria-hidden /></BoutonIcone></Tooltip>
                   <Tooltip content="Modifier"><BoutonIcone label={`Modifier ${r.titre}`} taille="sm" onClick={() => setEdition({ existant: r })}><Pencil className="size-4" aria-hidden /></BoutonIcone></Tooltip>
                   {admin && <Tooltip content="Supprimer"><BoutonIcone label={`Supprimer ${r.titre}`} taille="sm" onClick={() => setSuppr(r)}><Trash2 className="size-4" aria-hidden /></BoutonIcone></Tooltip>}
                 </div>
               </div>
               {r.symptomes ? <Markdown className="mt-3 line-clamp-3 text-fg-muted" source={r.symptomes} /> : <p className="mt-3 text-sm text-fg-muted">Symptômes non décrits.</p>}
+              <p className="mt-auto pt-3 text-xs text-fg-subtle">{auteurModification(r)} · version {r.version}</p>
             </Card>
           </li>
         ))}
@@ -105,6 +109,7 @@ export default function ResolutionsPage() {
         initial={edition?.existant}
         onEnregistree={() => res.recharger()}
       />
+      <HistoriqueResolutionDialog resolution={historique} onFermer={() => setHistorique(null)} />
       <ConfirmDialog
         open={suppr !== null}
         onOpenChange={(o) => { if (!o) setSuppr(null); }}

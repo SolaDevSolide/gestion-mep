@@ -334,8 +334,16 @@ export interface ResolutionType {
   actif: boolean;
   version: number;
   modifieeLe: string;
+  /** Auteur de la dernière modification (null : démo ou fiche antérieure au suivi). */
+  modifieeParId: string | null;
+  modifieeParNom: string | null;
 }
-export type ResolutionTypeSaisie = Omit<ResolutionType, 'id' | 'actif' | 'modifieeLe'>;
+export type ResolutionTypeSaisie = Omit<ResolutionType, 'id' | 'actif' | 'modifieeLe' | 'modifieeParId' | 'modifieeParNom'>;
+
+/** Version archivée d'une résolution type (historique, la plus récente d'abord). */
+export interface VersionResolutionType extends Omit<ResolutionType, 'id'> {
+  action: 'creee' | 'modifiee' | 'desactivee' | 'existante';
+}
 
 export interface Evenement {
   id: string;

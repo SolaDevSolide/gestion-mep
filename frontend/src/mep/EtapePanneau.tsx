@@ -99,7 +99,8 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
   const peutDemarrer = (moi !== null || pilote || admin) && statut === 'Disponible' && etape.etat === 'AFaire' && !nonRetourAttendu;
   const peutTerminer = etape.etat === 'EnCours' && (estExecutant || pilote);
   const peutAgirResolution = estExecutant || pilote;
-  const peutPrendre = planAgissant && moi !== null && !estExecutant && etape.executantId !== null && (etape.etat === 'EnCours' || etape.etat === 'Echec');
+  // Prise de main : participants (dont pilote et suppléants) et administrateurs.
+  const peutPrendre = planAgissant && (moi !== null || admin) && !estExecutant && etape.executantId !== null && (etape.etat === 'EnCours' || etape.etat === 'Echec');
   const peutCommenter = (estExecutant || pilote || admin) && PHASES_COMMENTAIRE.includes(mep.phase);
   const enEchec = etape.etat === 'Echec';
 

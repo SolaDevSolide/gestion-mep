@@ -14,7 +14,7 @@ const laMep = mep({
 });
 const creee: ResolutionType = {
   id: 'r-neuve', titre: 'WEB : purge du cache CDN refusée', symptomes: '', diagnostic: '', systemeCatalogueIds: ['c-web'], corrections: [],
-  verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-10T10:00:00Z',
+  verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-10T10:00:00Z', modifieeParId: null, modifieeParNom: null,
 };
 
 vi.mock('../api', () => ({

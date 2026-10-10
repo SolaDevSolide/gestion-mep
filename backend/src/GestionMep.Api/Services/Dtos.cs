@@ -53,7 +53,12 @@ public record ExecutionResolutionDto(Guid Id, Guid EtapeId, Guid ResolutionTypeI
 
 public record SystemeCatalogueDto(Guid Id, string Nom, string Description, string Cible, bool Actif);
 public record ResolutionTypeDto(Guid Id, string Titre, string Symptomes, string Diagnostic, List<Guid> SystemeCatalogueIds,
-    List<CorrectionDto> Corrections, string VerificationInstruction, string VerificationAttendu, bool Actif, int Version, DateTimeOffset ModifieeLe);
+    List<CorrectionDto> Corrections, string VerificationInstruction, string VerificationAttendu, bool Actif, int Version, DateTimeOffset ModifieeLe,
+    Guid? ModifieeParId, string? ModifieeParNom);
+
+public record VersionResolutionTypeDto(int Version, string Action, DateTimeOffset ModifieeLe, Guid? ModifieeParId, string? ModifieeParNom,
+    string Titre, string Symptomes, string Diagnostic, List<Guid> SystemeCatalogueIds, List<CorrectionDto> Corrections,
+    string VerificationInstruction, string VerificationAttendu, bool Actif);
 
 public record ResponsableTechniqueDto(Guid ParticipantId, List<Guid> SystemeIds, string Perimetre, DisponibiliteJourJ Disponibilite, string ContactJourJ);
 

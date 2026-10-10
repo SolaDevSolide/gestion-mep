@@ -113,6 +113,10 @@ public static class MepsEndpoints
             if (corps.BilanActive is { } bilan) Si(mep.BilanActive, bilan, v => mep.BilanActive = v, "bilan de clôture");
             if (modifs.Count > 0)
             {
+                // Pilote et suppléants ont le Go et la clôture : seul le pilote actuel (ou un suppléant) ou un administrateur les change.
+                // Sans pilote encore désigné, tout éditeur peut le choisir.
+                if (mep.PiloteId is not null && modifs.Any(m => m.Nom is "pilote" or "suppléants"))
+                    ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote, un suppléant ou un administrateur peut changer le pilote ou les suppléants.");
                 Regles.ExigerPreparation(mep);
                 Regles.VerifierSuppleants(mep, corps.PiloteId, suppleants);
                 var comptePilote = mep.Participants.FirstOrDefault(p => p.Id == corps.PiloteId)?.UtilisateurId;
