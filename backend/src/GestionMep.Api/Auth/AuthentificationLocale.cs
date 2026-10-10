@@ -17,7 +17,9 @@ public static class AuthentificationLocale
 {
     public const string Cookie = "gestion-mep.auth";
 
-    public static IServiceCollection AjouterAuthentification(this IServiceCollection services)
+    /// <param name="env">Hors Development, le cookie est toujours marqué Secure : derrière le reverse proxy HTTPS,
+    /// Kestrel ne voit que du HTTP et <c>SameAsRequest</c> l'enverrait en clair.</param>
+    public static IServiceCollection AjouterAuthentification(this IServiceCollection services, IHostEnvironment env)
     {
         services.AddSingleton<IPasswordHasher<Utilisateur>, PasswordHasher<Utilisateur>>();
         services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -26,7 +28,7 @@ public static class AuthentificationLocale
                 o.Cookie.Name = Cookie;
                 o.Cookie.HttpOnly = true;
                 o.Cookie.SameSite = SameSiteMode.Lax;
-                o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                o.Cookie.SecurePolicy = env.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
                 o.ExpireTimeSpan = TimeSpan.FromHours(12);
                 o.SlidingExpiration = true;
                 // API : jamais de redirection vers une page de connexion.

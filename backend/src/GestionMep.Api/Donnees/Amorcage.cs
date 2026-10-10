@@ -17,6 +17,9 @@ public static class Amorcage
         var temps = sp.GetRequiredService<TimeProvider>();
         var journal = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Amorcage");
 
+        if (config.GetValue<bool>("Demo:Activer") && !sp.GetRequiredService<IHostEnvironment>().IsDevelopment())
+            journal.LogWarning("Mode démonstration activé hors développement (Demo:Activer / DEMO=true) : comptes alice, bob, claire avec le mot de passe « demo ». À désactiver sur un serveur partagé.");
+
         await db.Database.MigrateAsync();
         await PlacerEtapesAnciennes(db, journal);
 
