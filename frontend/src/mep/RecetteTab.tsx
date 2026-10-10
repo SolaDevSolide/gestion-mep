@@ -9,6 +9,7 @@ import { useDraft, useReportDirty } from '../hooks';
 import { useMep } from '../mepContext';
 import type { EtapeTest, FicheRecette, Systeme } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { AvisConflit } from '../ui/AvisConflit';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { cn } from '../ui/cn';
@@ -55,6 +56,7 @@ function FicheEdition({ fiche }: { fiche: FicheRecette }) {
   const majEtape = (i: number, patch: Partial<EtapeBrouillon>) => d.update({ etapes: v.etapes.map((e, k) => (k === i ? { ...e, ...patch } : e)) });
 
   async function enregistrer() {
+    if (d.conflit) return;
     setEnvoi(true);
     try {
       const ok = await run(
@@ -107,12 +109,13 @@ function FicheEdition({ fiche }: { fiche: FicheRecette }) {
         </ol>
       )}
 
+      <AvisConflit brouillon={d} />
       <div className="flex flex-wrap items-center gap-2">
         <Button taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => d.update({ etapes: [...v.etapes, { cle: `nouvelle-${++compteur.current}`, instructions: '', resultatAttendu: '' }] })}>Ajouter une étape de test</Button>
         <span className="ml-auto flex items-center gap-2">
           <Button variante="danger-doux" taille="sm" icone={<Trash2 className="size-4" aria-hidden />} onClick={() => setSuppr(true)}>Supprimer la fiche</Button>
           {d.dirty && <Button variante="fantome" taille="sm" onClick={d.reset}>Annuler les modifications</Button>}
-          <Button variante="primaire" taille="sm" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty} chargement={envoi} onClick={() => void enregistrer()}>Enregistrer la fiche</Button>
+          <Button variante="primaire" taille="sm" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty || d.conflit} chargement={envoi} onClick={() => void enregistrer()}>Enregistrer la fiche</Button>
         </span>
       </div>
 

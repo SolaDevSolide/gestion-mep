@@ -6,6 +6,7 @@ import { couleurSysteme, styleSysteme } from '../../couleursSysteme';
 import { useMep } from '../../mepContext';
 import type { ModeSauvegarde, StatutSauvegarde, Systeme } from '../../types';
 import { Alerte } from '../../ui/Alerte';
+import { AvisConflit } from '../../ui/AvisConflit';
 import { Button } from '../../ui/Button';
 import { Checkbox } from '../../ui/Checkbox';
 import { EmptyState } from '../../ui/EmptyState';
@@ -27,6 +28,7 @@ function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
   const invalide = v.statut === 'ARenseigner' || (v.statut === 'NonRequise' && !v.justification.trim());
 
   async function enregistrer() {
+    if (d.conflit) return;
     const s = { ...v, contenu: v.statut === 'Requise' ? v.contenu.trim() : '', justification: v.statut === 'NonRequise' ? v.justification.trim() : '' };
     const ok = await run(() => api.modifierSauvegardeSysteme(mep.id, systeme.id, { ...s, version: mep.version }), `Sauvegarde de ${systeme.nom} enregistrée.`);
     if (ok) d.reset();
@@ -50,10 +52,11 @@ function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
         {edition && d.dirty && (
           <span className="ml-auto flex items-center gap-2">
             <Button variante="fantome" taille="sm" onClick={d.reset}>Annuler</Button>
-            <Button variante="primaire" taille="sm" icone={<Save className="size-4" aria-hidden />} disabled={invalide} onClick={() => void enregistrer()}>Enregistrer</Button>
+            <Button variante="primaire" taille="sm" icone={<Save className="size-4" aria-hidden />} disabled={invalide || d.conflit} onClick={() => void enregistrer()}>Enregistrer</Button>
           </span>
         )}
       </div>
+      <AvisConflit brouillon={d} />
 
       {v.statut === 'Requise' && (
         <div className="grid gap-4 md:grid-cols-[14rem_minmax(0,1fr)]">
@@ -98,6 +101,7 @@ export function SauvegardeSection() {
   const aucunSauvegarde = mep.systemes.length > 0 && mep.systemes.every((s) => s.sauvegarde.statut === 'NonRequise');
 
   async function enregistrer() {
+    if (d.conflit) return;
     const ok = await run(() => api.modifierSauvegarde(mep.id, { ...v, version: mep.version }), 'Sauvegarde enregistrée.');
     if (ok) d.reset();
   }
@@ -109,11 +113,12 @@ export function SauvegardeSection() {
       description="Par système : requise ou non, quand et comment."
       pied={editable && (
         <>
-          <Button variante="primaire" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty} onClick={() => void enregistrer()}>Enregistrer</Button>
+          <Button variante="primaire" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty || d.conflit} onClick={() => void enregistrer()}>Enregistrer</Button>
           {d.dirty && <Button variante="fantome" onClick={d.reset}>Annuler les modifications</Button>}
         </>
       )}
     >
+      <AvisConflit brouillon={d} className="mb-4" />
       {aucunSauvegarde && (
         <div className="mb-4">
           <Alerte ton="warn" icone={TriangleAlert} role="status" titre="Aucun système n’est sauvegardé">

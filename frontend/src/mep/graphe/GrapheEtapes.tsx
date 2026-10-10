@@ -24,7 +24,7 @@ interface Props {
   groupeSelection?: string | null;
   onGroupeSelection?: (cle: string | null) => void;
   /** Déplacement d'une fiche (ligne affichée, position dans la ligne). */
-  onPlacer?: (id: string, ligne: number, position: number) => void;
+  onPlacer?: (id: string, ligne: number, position: number, auClavier?: boolean) => void;
   /** Lien particulier : `vers` attendra `de` (validité déjà vérifiée). */
   onLier?: (de: string, vers: string) => void;
   /** Bloc fantôme : ligne existante, ou null pour une nouvelle ligne en bas. */
@@ -344,12 +344,38 @@ export function GrapheEtapes(props: Props) {
     appui.current = { id, x: ev.clientX, y: ev.clientY, dx: carte ? ev.clientX - carte.left : 0, dy: carte ? ev.clientY - carte.top : 0 };
   }
 
+  // Fiche à refocaliser après un déplacement au clavier (elle peut changer de ligne, donc de parent).
+  const focusApres = useRef<string | null>(null);
+  useEffect(() => {
+    const id = focusApres.current;
+    if (!id) return;
+    focusApres.current = null;
+    graphe.current?.querySelector<HTMLElement>(`[data-carte="${id}"]`)?.focus();
+  }, [etapes]);
+
   function clavierCarte(ev: KeyboardEvent<HTMLDivElement>, id: string) {
     if (ev.key === 'Enter' || ev.key === ' ') {
       ev.preventDefault();
       onGroupeSelection?.(null);
       onSelection(id);
+      return;
     }
+    // Équivalent clavier du glisser-déposer : Alt + flèches.
+    if (!edition || !ev.altKey || !props.onPlacer) return;
+    const ligne = ligneDe.get(id);
+    if (ligne === undefined) return;
+    const index = lignes[ligne].findIndex((e) => e.id === id);
+    const seule = lignes[ligne].length === 1;
+    let cible: [number, number] | null = null;
+    if (ev.key === 'ArrowLeft' && index > 0) cible = [ligne, index - 1];
+    else if (ev.key === 'ArrowRight' && index < lignes[ligne].length - 1) cible = [ligne, index + 1];
+    else if (ev.key === 'ArrowUp' && ligne > 0) cible = [ligne - 1, Math.min(index, lignes[ligne - 1].length)];
+    else if (ev.key === 'ArrowDown' && !(seule && ligne === lignes.length - 1)) cible = [ligne + 1, ligne + 1 < lignes.length ? Math.min(index, lignes[ligne + 1].length) : 0];
+    if (!ev.key.startsWith('Arrow')) return;
+    ev.preventDefault();
+    if (!cible) return;
+    focusApres.current = id;
+    props.onPlacer(id, cible[0], cible[1], true);
   }
 
   // ---------- Liens ----------
@@ -374,7 +400,10 @@ export function GrapheEtapes(props: Props) {
             tabIndex={0}
             aria-pressed={selection === e.id}
             aria-label={libelleCarte(mep, e, mode)}
+            aria-keyshortcuts={edition ? 'Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight' : undefined}
             onKeyDown={(ev) => clavierCarte(ev, e.id)}
+            // La souris passe par le pointeur (appuyer / relâcher) ; un clic sans pointeur (detail 0) vient d'un lecteur d'écran.
+            onClick={(ev) => { if (ev.detail === 0) { onGroupeSelection?.(null); onSelection(e.id); } }}
             className={cn('rounded-lg', edition ? 'cursor-grab' : 'cursor-pointer')}
           >
             <CarteEtape mep={mep} etape={e} mode={mode} descriptions={descriptions} selectionnee={selection === e.id} estompee={estEstompee?.(e)} cible={cible} />

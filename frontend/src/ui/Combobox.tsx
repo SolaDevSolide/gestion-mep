@@ -2,7 +2,7 @@ import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { Command } from 'cmdk';
 import { useState, type ReactNode } from 'react';
 import { cn } from './cn';
-import { Popover, PopoverContent, PopoverTrigger } from './Popover';
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from './Popover';
 
 export interface OptionCombo { valeur: string; libelle: string; detail?: string }
 
@@ -71,11 +71,12 @@ interface MultiProps {
 export function MultiSelect({ id, options, valeurs, onChange, placeholder, placeholderRecherche = 'Rechercher…', vide = 'Aucun résultat.', disabled, pied, libelleInconnu = 'Inconnu' }: MultiProps) {
   const [ouvert, setOuvert] = useState(false);
   const basculer = (v: string) => onChange(valeurs.includes(v) ? valeurs.filter((x) => x !== v) : [...valeurs, v]);
+  // Les boutons « Retirer » sont frères du déclencheur, pas dedans : un bouton ne peut pas contenir d'éléments interactifs.
   return (
     <Popover open={ouvert} onOpenChange={setOuvert}>
-      <PopoverTrigger asChild>
-        <button id={id} type="button" disabled={disabled} className={DECLENCHEUR} aria-haspopup="listbox">
-          <span className="flex min-w-0 flex-1 flex-wrap gap-1">
+      <PopoverAnchor asChild>
+        <div className={cn(DECLENCHEUR, 'relative', disabled && 'cursor-not-allowed opacity-60')}>
+          <span className="pointer-events-none relative z-[1] flex min-w-0 flex-1 flex-wrap gap-1">
             {valeurs.length === 0 && <span className="text-fg-subtle">{placeholder}</span>}
             {valeurs.map((v) => {
               const o = options.find((x) => x.valeur === v);
@@ -83,24 +84,27 @@ export function MultiSelect({ id, options, valeurs, onChange, placeholder, place
                 <span key={v} className="inline-flex max-w-full items-center gap-1 rounded-md border border-line bg-surface-2 py-0.5 pr-1 pl-2 text-xs font-medium text-fg">
                   <span className="truncate">{o?.libelle ?? libelleInconnu}</span>
                   {!disabled && (
-                    <span
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       aria-label={`Retirer ${o?.libelle ?? libelleInconnu}`}
-                      className="rounded p-0.5 text-fg-subtle hover:bg-line hover:text-fg"
-                      onClick={(e) => { e.stopPropagation(); basculer(v); }}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); basculer(v); } }}
+                      className="pointer-events-auto rounded p-0.5 text-fg-subtle hover:bg-line hover:text-fg"
+                      onClick={() => basculer(v)}
                     >
                       <X className="size-3" aria-hidden />
-                    </span>
+                    </button>
                   )}
                 </span>
               );
             })}
           </span>
-          <ChevronsUpDown className="size-4 shrink-0 text-fg-subtle" aria-hidden />
-        </button>
-      </PopoverTrigger>
+          <PopoverTrigger asChild>
+            <button id={id} type="button" disabled={disabled} aria-haspopup="listbox" className="absolute inset-0 flex items-center justify-end rounded-lg pr-3 disabled:cursor-not-allowed">
+              <span className="sr-only">{valeurs.length === 0 ? placeholder : `${valeurs.length} sélectionné${valeurs.length > 1 ? 's' : ''}`}</span>
+              <ChevronsUpDown className="size-4 shrink-0 text-fg-subtle" aria-hidden />
+            </button>
+          </PopoverTrigger>
+        </div>
+      </PopoverAnchor>
       <PopoverContent className="p-0">
         <Liste options={options} selection={valeurs} onToggle={basculer} placeholderRecherche={placeholderRecherche} vide={vide} pied={pied} />
       </PopoverContent>

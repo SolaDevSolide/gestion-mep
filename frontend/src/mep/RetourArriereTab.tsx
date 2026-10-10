@@ -5,6 +5,7 @@ import { useDraft, useReportDirty } from '../hooks';
 import { useMep } from '../mepContext';
 import type { PlanRepli } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { AvisConflit } from '../ui/AvisConflit';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Input, Textarea } from '../ui/Input';
@@ -20,6 +21,7 @@ function FichePlan() {
   const edition = mep.droits.peutEditerContenu;
 
   async function enregistrer() {
+    if (d.conflit) return;
     const ok = await run(() => api.modifierPlanRepli(mep.id, { ...v, version: mep.version }), 'Plan de retour arrière enregistré.');
     if (ok) d.reset();
   }
@@ -47,9 +49,10 @@ function FichePlan() {
           {(id) => <Textarea id={id} rows={2} disabled={!edition} value={v.siRepliEchoue} onChange={(e) => d.update({ siRepliEchoue: e.target.value })} placeholder="Plan B, personne à joindre…" />}
         </Field>
       </div>
+      <AvisConflit brouillon={d} className="mx-5 mb-4" />
       {edition && (
         <div className="flex items-center gap-3 border-t border-line bg-surface-2/50 px-5 py-3">
-          <Button variante="primaire" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty} onClick={() => void enregistrer()}>Enregistrer la fiche</Button>
+          <Button variante="primaire" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty || d.conflit} onClick={() => void enregistrer()}>Enregistrer la fiche</Button>
           {d.dirty && <Button variante="fantome" onClick={d.reset}>Annuler les modifications</Button>}
         </div>
       )}
