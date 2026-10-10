@@ -1683,6 +1683,39 @@
         }
       }
     },
+    "/api/resolutions/{id}/versions": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VersionResolutionTypeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/meps/{id}/etapes/{eid}/resolutions": {
       "post": {
         "tags": [
@@ -5751,7 +5784,9 @@
           "verificationAttendu",
           "actif",
           "version",
-          "modifieeLe"
+          "modifieeLe",
+          "modifieeParId",
+          "modifieeParNom"
         ],
         "type": "object",
         "properties": {
@@ -5797,6 +5832,19 @@
           "modifieeLe": {
             "type": "string",
             "format": "date-time"
+          },
+          "modifieeParId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "modifieeParNom": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -6596,6 +6644,81 @@
           "le": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "VersionResolutionTypeDto": {
+        "required": [
+          "version",
+          "action",
+          "modifieeLe",
+          "modifieeParId",
+          "modifieeParNom",
+          "titre",
+          "symptomes",
+          "diagnostic",
+          "systemeCatalogueIds",
+          "corrections",
+          "verificationInstruction",
+          "verificationAttendu",
+          "actif"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "action": {
+            "type": "string"
+          },
+          "modifieeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modifieeParId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "modifieeParNom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "titre": {
+            "type": "string"
+          },
+          "symptomes": {
+            "type": "string"
+          },
+          "diagnostic": {
+            "type": "string"
+          },
+          "systemeCatalogueIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "corrections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CorrectionDto"
+            }
+          },
+          "verificationInstruction": {
+            "type": "string"
+          },
+          "verificationAttendu": {
+            "type": "string"
+          },
+          "actif": {
+            "type": "boolean"
           }
         }
       }
