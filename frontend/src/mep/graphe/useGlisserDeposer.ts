@@ -1,17 +1,32 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type MutableRefObject, type PointerEvent as PointerEventReact, type RefObject } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MutableRefObject,
+  type PointerEvent as PointerEventReact,
+  type RefObject,
+} from 'react';
 import { courbeTemporaire, lienPossible, type Lien, type Point } from '../../graphe';
 import type { Etape } from '../../types';
 import type { DeplacementVue } from './useZoomVue';
 
 /** Cible d'un glisser de fiche : ligne, position d'insertion, et repère bleu (repère du graphe non zoomé). */
-export interface Cible { ligne: number; index: number; x: number; haut: number; bas: number }
+export interface Cible {
+  ligne: number;
+  index: number;
+  x: number;
+  haut: number;
+  bas: number;
+}
 
 export type Glisse =
   | { t: 'carte'; id: string; cible: Cible | null }
   | { t: 'lien'; de: string; cote: 'haut' | 'bas'; survol: string | null; possible: boolean };
 
 /** Position de la fiche glissée : suit exactement le pointeur (transformation GPU, aucune aimantation). */
-export const transformClone = (p: { x: number; y: number }, zoom: number) => `translate3d(${p.x}px, ${p.y}px, 0) scale(${zoom}) rotate(1.5deg)`;
+export const transformClone = (p: { x: number; y: number }, zoom: number) =>
+  `translate3d(${p.x}px, ${p.y}px, 0) scale(${zoom}) rotate(1.5deg)`;
 
 interface Options {
   zone: RefObject<HTMLDivElement>;
@@ -43,7 +58,10 @@ export function useGlisserDeposer(options: Options) {
   const [glisse, setGlisse] = useState<Glisse | null>(null);
   // Copie synchrone de `glisse` : les événements du pointeur peuvent se suivre avant le rendu suivant.
   const glisseRef = useRef<Glisse | null>(null);
-  const majGlisse = (g: Glisse | null) => { glisseRef.current = g; setGlisse(g); };
+  const majGlisse = (g: Glisse | null) => {
+    glisseRef.current = g;
+    setGlisse(g);
+  };
 
   // Valeurs courantes pour les écouteurs du document.
   const etat = useRef(options);
@@ -61,7 +79,9 @@ export function useGlisserDeposer(options: Options) {
     return { x: (r.left + r.width / 2 - b.left) / z, y: ((cote === 'bas' ? r.bottom : r.top) - b.top) / z };
   };
   const noeudSous = (x: number, y: number, cible: EventTarget | null): string | null => {
-    const el = (typeof document.elementFromPoint === 'function' ? document.elementFromPoint(x, y) : null) ?? (cible instanceof Element ? cible : null);
+    const el =
+      (typeof document.elementFromPoint === 'function' ? document.elementFromPoint(x, y) : null) ??
+      (cible instanceof Element ? cible : null);
     const n = el?.closest<HTMLElement>('[data-noeud]');
     return n && graphe.current?.contains(n) ? n.dataset.noeud! : null;
   };
@@ -81,23 +101,41 @@ export function useGlisserDeposer(options: Options) {
       for (const l of gr.querySelectorAll<HTMLElement>('[data-ligne]')) {
         const r = l.getBoundingClientRect();
         const d = Math.abs((r.top + r.bottom) / 2 - y);
-        if (d < dist) { dist = d; meilleur = l; }
+        if (d < dist) {
+          dist = d;
+          meilleur = l;
+        }
       }
       rang = dist < 60 ? meilleur : null;
     }
     if (!rang) return null;
     const autres = [...rang.querySelectorAll<HTMLElement>('[data-noeud]')].filter((n) => n.dataset.noeud !== id);
-    let index = autres.findIndex((n) => { const r = n.getBoundingClientRect(); return x < r.left + r.width / 2; });
+    let index = autres.findIndex((n) => {
+      const r = n.getBoundingClientRect();
+      return x < r.left + r.width / 2;
+    });
     if (index < 0) index = autres.length;
     const z = zoomRef.current;
     const base = gr.getBoundingClientRect();
-    const groupe = (rang.firstElementChild as HTMLElement | null)?.getBoundingClientRect() ?? rang.getBoundingClientRect();
+    const groupe =
+      (rang.firstElementChild as HTMLElement | null)?.getBoundingClientRect() ?? rang.getBoundingClientRect();
     const demiEcart = 11 * z;
     const repere = autres[index]?.getBoundingClientRect().left;
     const dernier = autres[autres.length - 1]?.getBoundingClientRect().right;
     const fantome = rang.querySelector('button')?.getBoundingClientRect().left;
-    const xr = repere !== undefined ? repere - demiEcart : dernier !== undefined ? dernier + demiEcart : (fantome ?? groupe.left + groupe.width / 2) - demiEcart;
-    return { ligne: Number(rang.dataset.ligne), index, x: (xr - base.left) / z, haut: (groupe.top - base.top) / z, bas: (groupe.bottom - base.top) / z };
+    const xr =
+      repere !== undefined
+        ? repere - demiEcart
+        : dernier !== undefined
+          ? dernier + demiEcart
+          : (fantome ?? groupe.left + groupe.width / 2) - demiEcart;
+    return {
+      ligne: Number(rang.dataset.ligne),
+      index,
+      x: (xr - base.left) / z,
+      haut: (groupe.top - base.top) / z,
+      bas: (groupe.bottom - base.top) / z,
+    };
   };
 
   useEffect(() => {
@@ -118,7 +156,8 @@ export function useGlisserDeposer(options: Options) {
         const b = gr.getBoundingClientRect();
         const A = point(g.de, g.cote);
         const B = { x: (ev.clientX - b.left) / zoomRef.current, y: (ev.clientY - b.top) / zoomRef.current };
-        if (A && trace.current) trace.current.setAttribute('d', g.cote === 'bas' ? courbeTemporaire(A, B) : courbeTemporaire(B, A));
+        if (A && trace.current)
+          trace.current.setAttribute('d', g.cote === 'bas' ? courbeTemporaire(A, B) : courbeTemporaire(B, A));
         const n = noeudSous(ev.clientX, ev.clientY, null);
         const survol = n && n !== g.de ? n : null;
         const [de, vers] = g.cote === 'bas' ? [g.de, survol] : [survol, g.de];
@@ -148,7 +187,8 @@ export function useGlisserDeposer(options: Options) {
         const [de, vers] = g.cote === 'bas' ? [g.de, n] : [n, g.de];
         const verdict = lienPossible(de, vers, lignesDe, liensCourants);
         const code = (id: string) => ls.flat().find((e) => e.id === id)?.code ?? id;
-        if (verdict === 'remonte') p.onMessage?.('Un lien descend toujours : placez d’abord l’étape qui attend sur une ligne plus basse.');
+        if (verdict === 'remonte')
+          p.onMessage?.('Un lien descend toujours : placez d’abord l’étape qui attend sur une ligne plus basse.');
         else if (verdict === 'existe') p.onMessage?.(`Le lien ${code(de)} → ${code(vers)} existe déjà.`);
         else p.onLier?.(de, vers);
         return;
@@ -172,7 +212,11 @@ export function useGlisserDeposer(options: Options) {
         }
       }
     }
-    function annuler() { appui.current = null; etat.current.vue.annuler(); majGlisse(null); }
+    function annuler() {
+      appui.current = null;
+      etat.current.vue.annuler();
+      majGlisse(null);
+    }
 
     document.addEventListener('pointermove', deplacer);
     document.addEventListener('pointerup', lacher);
@@ -190,7 +234,11 @@ export function useGlisserDeposer(options: Options) {
     const n = cible.closest<HTMLElement>('[data-noeud]');
     if (!n) {
       // Fond du graphe (ni fiche, ni rond, ni lien, ni bouton) : on fait glisser la vue.
-      if (cible.closest('button, [role="button"], input, select, textarea, a, [data-controles]') || !options.zone.current) return;
+      if (
+        cible.closest('button, [role="button"], input, select, textarea, a, [data-controles]') ||
+        !options.zone.current
+      )
+        return;
       ev.preventDefault();
       options.vue.saisir(ev.clientX, ev.clientY);
       return;
@@ -204,7 +252,13 @@ export function useGlisserDeposer(options: Options) {
       return;
     }
     const carte = n.querySelector<HTMLElement>('[data-carte]')?.getBoundingClientRect();
-    appui.current = { id, x: ev.clientX, y: ev.clientY, dx: carte ? ev.clientX - carte.left : 0, dy: carte ? ev.clientY - carte.top : 0 };
+    appui.current = {
+      id,
+      x: ev.clientX,
+      y: ev.clientY,
+      dx: carte ? ev.clientX - carte.left : 0,
+      dy: carte ? ev.clientY - carte.top : 0,
+    };
   }
 
   // Fiche à refocaliser après un déplacement au clavier (elle peut changer de ligne, donc de parent).
@@ -233,7 +287,8 @@ export function useGlisserDeposer(options: Options) {
     if (ev.key === 'ArrowLeft' && index > 0) cible = [ligne, index - 1];
     else if (ev.key === 'ArrowRight' && index < lignes[ligne].length - 1) cible = [ligne, index + 1];
     else if (ev.key === 'ArrowUp' && ligne > 0) cible = [ligne - 1, Math.min(index, lignes[ligne - 1].length)];
-    else if (ev.key === 'ArrowDown' && !(seule && ligne === lignes.length - 1)) cible = [ligne + 1, ligne + 1 < lignes.length ? Math.min(index, lignes[ligne + 1].length) : 0];
+    else if (ev.key === 'ArrowDown' && !(seule && ligne === lignes.length - 1))
+      cible = [ligne + 1, ligne + 1 < lignes.length ? Math.min(index, lignes[ligne + 1].length) : 0];
     if (!ev.key.startsWith('Arrow')) return;
     ev.preventDefault();
     if (!cible) return;

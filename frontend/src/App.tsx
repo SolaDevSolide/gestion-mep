@@ -28,20 +28,20 @@ function Protege() {
 export default function App() {
   return (
     <>
-    <NouvelleVersion />
-    <Routes>
-      <Route path="/connexion" element={<ConnexionPage />} />
-      <Route element={<Protege />}>
-        <Route path="/" element={<ListeMepPage />} />
-        <Route path="/meps/:id" element={<MepPage />} />
-        <Route path="/profil" element={<ProfilPage />} />
-        <Route path="/parametres/systemes" element={<SystemesPage />} />
-        <Route path="/parametres/resolutions" element={<ResolutionsPage />} />
-        <Route path="/parametres/resolutions/nouvelle" element={<NouvelleResolutionPage />} />
-        <Route path="/parametres/go-no-go" element={<GoNoGoPage />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      <NouvelleVersion />
+      <Routes>
+        <Route path="/connexion" element={<ConnexionPage />} />
+        <Route element={<Protege />}>
+          <Route path="/" element={<ListeMepPage />} />
+          <Route path="/meps/:id" element={<MepPage />} />
+          <Route path="/profil" element={<ProfilPage />} />
+          <Route path="/parametres/systemes" element={<SystemesPage />} />
+          <Route path="/parametres/resolutions" element={<ResolutionsPage />} />
+          <Route path="/parametres/resolutions/nouvelle" element={<NouvelleResolutionPage />} />
+          <Route path="/parametres/go-no-go" element={<GoNoGoPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </>
   );
 }

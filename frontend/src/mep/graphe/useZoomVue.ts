@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type RefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type RefObject,
+} from 'react';
 
 export const ZOOM_MIN = 0.3;
 export const ZOOM_MAX = 1.5;
@@ -35,16 +43,24 @@ export function useZoomVue(
   const deplacementVue = useRef<{ x: number; y: number; sl: number; st: number } | null>(null);
   const [vueSaisie, setVueSaisie] = useState(false);
 
-  const zoomer = useCallback((cible: number, cx?: number, cy?: number) => {
-    const z = zone.current;
-    const z2 = Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, cible)) * 100) / 100;
-    if (!z || z2 === zoomRef.current) return;
-    const r = z.getBoundingClientRect();
-    const x = cx === undefined ? r.width / 2 : cx - r.left;
-    const y = cy === undefined ? Math.min(r.height, z.clientHeight) / 2 : cy - r.top;
-    ancre.current = { px: (z.scrollLeft + x) / zoomRef.current, py: (z.scrollTop + y) / zoomRef.current, cx: x, cy: y };
-    setZoom(z2);
-  }, [zone, zoomRef]);
+  const zoomer = useCallback(
+    (cible: number, cx?: number, cy?: number) => {
+      const z = zone.current;
+      const z2 = Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, cible)) * 100) / 100;
+      if (!z || z2 === zoomRef.current) return;
+      const r = z.getBoundingClientRect();
+      const x = cx === undefined ? r.width / 2 : cx - r.left;
+      const y = cy === undefined ? Math.min(r.height, z.clientHeight) / 2 : cy - r.top;
+      ancre.current = {
+        px: (z.scrollLeft + x) / zoomRef.current,
+        py: (z.scrollTop + y) / zoomRef.current,
+        cx: x,
+        cy: y,
+      };
+      setZoom(z2);
+    },
+    [zone, zoomRef],
+  );
 
   // Graphe centré horizontalement à l'ouverture.
   useLayoutEffect(() => {
@@ -58,7 +74,9 @@ export function useZoomVue(
     if (!a || !z) return;
     z.scrollLeft = a.px * zoom - a.cx;
     z.scrollTop = a.py * zoom - a.cy;
-    const t = window.setTimeout(() => { ancre.current = null; }, 0);
+    const t = window.setTimeout(() => {
+      ancre.current = null;
+    }, 0);
     return () => window.clearTimeout(t);
   }, [zoom, taille.largeur, taille.hauteur]);
   // Ctrl + molette : zoom autour du pointeur (écouteur non passif pour empêcher le zoom de la page).
@@ -85,7 +103,10 @@ export function useZoomVue(
     const z2 = Math.min(1, z.clientWidth / largeurContenu, hauteurDispo / Math.max(1, g.offsetHeight));
     ancre.current = null;
     setZoom(Math.round(Math.max(ZOOM_MIN, z2) * 100) / 100);
-    requestAnimationFrame(() => { z.scrollLeft = Math.max(0, (z.scrollWidth - z.clientWidth) / 2); z.scrollTop = 0; });
+    requestAnimationFrame(() => {
+      z.scrollLeft = Math.max(0, (z.scrollWidth - z.clientWidth) / 2);
+      z.scrollTop = 0;
+    });
   }
 
   // Fonctions stables (seulement des refs) : les écouteurs du document les gardent d'un rendu à l'autre.
@@ -109,14 +130,21 @@ export function useZoomVue(
       setVueSaisie(false);
       return true;
     },
-    annuler: () => { deplacementVue.current = null; setVueSaisie(false); },
+    annuler: () => {
+      deplacementVue.current = null;
+      setVueSaisie(false);
+    },
   }));
 
   return { zoom, zoomer, ajuster, vueSaisie, vue };
 }
 
 /** Étape choisie depuis le panneau (ou le clavier) hors du champ : on la recentre dans la zone. */
-export function useRecentrerSelection(zone: RefObject<HTMLDivElement>, graphe: RefObject<HTMLDivElement>, selection: string | null) {
+export function useRecentrerSelection(
+  zone: RefObject<HTMLDivElement>,
+  graphe: RefObject<HTMLDivElement>,
+  selection: string | null,
+) {
   useEffect(() => {
     const z = zone.current;
     const el = selection ? graphe.current?.querySelector<HTMLElement>(`[data-carte="${selection}"]`) : null;
@@ -124,6 +152,10 @@ export function useRecentrerSelection(zone: RefObject<HTMLDivElement>, graphe: R
     const zr = z.getBoundingClientRect();
     const r = el.getBoundingClientRect();
     if (r.left >= zr.left && r.right <= zr.right && r.top >= zr.top && r.bottom <= zr.bottom) return;
-    z.scrollTo({ left: z.scrollLeft + (r.left + r.width / 2) - (zr.left + zr.width / 2), top: z.scrollTop + (r.top + r.height / 2) - (zr.top + Math.min(zr.height, z.clientHeight) / 2), behavior: 'smooth' });
+    z.scrollTo({
+      left: z.scrollLeft + (r.left + r.width / 2) - (zr.left + zr.width / 2),
+      top: z.scrollTop + (r.top + r.height / 2) - (zr.top + Math.min(zr.height, z.clientHeight) / 2),
+      behavior: 'smooth',
+    });
   }, [selection]);
 }

@@ -32,7 +32,12 @@ describe('domaine', () => {
     expect(planActif('Preparation')).toBeNull();
   });
   it('segments de progression', () => {
-    const s = segmentsProgression([etape({ id: 'a', etat: 'Reussie' }), etape({ id: 'b', etat: 'EnCours' }), etape({ id: 'c', etat: 'Echec' }), etape({ id: 'd' })]);
+    const s = segmentsProgression([
+      etape({ id: 'a', etat: 'Reussie' }),
+      etape({ id: 'b', etat: 'EnCours' }),
+      etape({ id: 'c', etat: 'Echec' }),
+      etape({ id: 'd' }),
+    ]);
     expect(s.map((x) => x.valeur)).toEqual([1, 1, 1, 1]);
   });
   it('complétude des sections, alignée sur les anomalies de la vérification du plan', () => {
@@ -55,22 +60,51 @@ describe('domaine', () => {
     expect(c.sauvegarde).toBe(true);
   });
   it('les anomalies du plan rendent la section concernée orange', () => {
-    expect(completude(mep({ erreursPlan: ['Renseigner une échéance de retour arrière future.'] })).intervention).toBe(false);
+    expect(completude(mep({ erreursPlan: ['Renseigner une échéance de retour arrière future.'] })).intervention).toBe(
+      false,
+    );
     expect(completude(mep({ erreursPlan: ['Renseigner le pilote.'] })).intervention).toBe(false);
-    expect(completude(mep({ erreursPlan: ['Sauvegarde de API pendant la MEP : ajouter une étape de déploiement de type Sauvegarde sur ce système.'] })).sauvegarde).toBe(false);
+    expect(
+      completude(
+        mep({
+          erreursPlan: [
+            'Sauvegarde de API pendant la MEP : ajouter une étape de déploiement de type Sauvegarde sur ce système.',
+          ],
+        }),
+      ).sauvegarde,
+    ).toBe(false);
     expect(completude(mep()).sauvegarde).toBe(false); // le système est encore « à renseigner »
   });
-  it('responsables techniques : complète s\'il y en a et sans avertissement', () => {
-    const rt = { participantId: 'p2', systemeIds: [], perimetre: '', disponibilite: 'Joignable' as const, contactJourJ: '' };
+  it("responsables techniques : complète s'il y en a et sans avertissement", () => {
+    const rt = {
+      participantId: 'p2',
+      systemeIds: [],
+      perimetre: '',
+      disponibilite: 'Joignable' as const,
+      contactJourJ: '',
+    };
     expect(completude(mep()).techniques).toBe(false);
     expect(completude(mep({ responsablesTechniques: [rt] })).techniques).toBe(true);
-    expect(completude(mep({ responsablesTechniques: [rt], avertissements: ['E0002 : Bob sera absent, ajouter une résolution type pour que quelqu\'un d\'autre puisse la reprendre.'] })).techniques).toBe(false);
+    expect(
+      completude(
+        mep({
+          responsablesTechniques: [rt],
+          avertissements: [
+            "E0002 : Bob sera absent, ajouter une résolution type pour que quelqu'un d'autre puisse la reprendre.",
+          ],
+        }),
+      ).techniques,
+    ).toBe(false);
   });
 });
 
 describe('anomaliesHorsApprobation', () => {
   it('écarte les anomalies d’approbation', () => {
-    const erreursPlan = ['Il faut 1 approbation(s).', 'Claire a refusé : trop risqué', 'Ajouter au moins une fiche de recette.'];
+    const erreursPlan = [
+      'Il faut 1 approbation(s).',
+      'Claire a refusé : trop risqué',
+      'Ajouter au moins une fiche de recette.',
+    ];
     expect(anomaliesHorsApprobation({ erreursPlan })).toEqual(['Ajouter au moins une fiche de recette.']);
   });
 });

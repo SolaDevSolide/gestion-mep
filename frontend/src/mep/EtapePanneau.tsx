@@ -20,7 +20,12 @@ import { Surcouche } from './graphe/EspaceEtape';
 
 export interface ActionsEtape {
   demarrer: (e: Etape) => Promise<boolean | void> | void;
-  terminer: (e: Etape, resultat: 'Reussie' | 'Echec', preuve: string, commentaire?: string) => Promise<boolean | void> | void;
+  terminer: (
+    e: Etape,
+    resultat: 'Reussie' | 'Echec',
+    preuve: string,
+    commentaire?: string,
+  ) => Promise<boolean | void> | void;
   commenter: (e: Etape, commentaire: string) => Promise<boolean | void> | void;
   autoriserReprise: (e: Etape) => Promise<boolean | void> | void;
   prendreLaMain: (e: Etape, motif: string) => Promise<boolean | void> | void;
@@ -28,8 +33,17 @@ export interface ActionsEtape {
   deposerPiece: (e: Etape, fichier: File, signaler: (message: string) => void) => Promise<boolean>;
   supprimerPiece: (p: PieceJointe, signaler: (message: string) => void) => Promise<boolean>;
   appliquerResolution: (e: Etape, resolutionTypeId: string) => Promise<boolean | void> | void;
-  controlerCorrection: (r: ExecutionResolution, ordre: number, resultat: ResultatControle, observation: string) => Promise<boolean | void> | void;
-  controlerVerification: (r: ExecutionResolution, resultat: ResultatControle, observation: string) => Promise<boolean | void> | void;
+  controlerCorrection: (
+    r: ExecutionResolution,
+    ordre: number,
+    resultat: ResultatControle,
+    observation: string,
+  ) => Promise<boolean | void> | void;
+  controlerVerification: (
+    r: ExecutionResolution,
+    resultat: ResultatControle,
+    observation: string,
+  ) => Promise<boolean | void> | void;
 }
 
 interface Props {
@@ -49,7 +63,14 @@ interface Props {
  * Démarrer : tout participant relié à un compte, le pilote ou un administrateur ; il en devient l'exécutant.
  * Les droits sont calculés par `droitsEtape`, les colonnes rendues par `EtapeInfos`, `EtapeInstructions` et `EtapeRetour`.
  */
-export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectionner, onFermer = () => undefined }: Props) {
+export function EtapePanneau({
+  mep,
+  etape,
+  resolutionsTypes,
+  actions,
+  onSelectionner,
+  onFermer = () => undefined,
+}: Props) {
   const [preuve, setPreuve] = useState('');
   const [confirmation, setConfirmation] = useState<'reussie' | 'echec' | 'main' | null>(null);
   const [motifMain, setMotifMain] = useState('');
@@ -60,20 +81,35 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
   const droits = droitsEtape(mep, etape, admin);
   const nomExec = nomParticipant(mep, etape.executantId);
   const { enCours, historique } = resolutionsDeLEtape(mep, etape);
-  const liees = etape.resolutionIds.map((id) => resolutionsTypes.find((r) => r.id === id)).filter((r): r is ResolutionType => !!r);
+  const liees = etape.resolutionIds
+    .map((id) => resolutionsTypes.find((r) => r.id === id))
+    .filter((r): r is ResolutionType => !!r);
   const commentaireAEnvoyer = commentaire.dirty ? commentaire.value.trim() : undefined;
 
   const barre = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
       <span className="rounded-md bg-surface-2 px-2 py-0.5 font-mono text-sm font-bold">{etape.code}</span>
-      <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime}>{meta.libelle}</StatusPill>
-      {estAVous(mep, etape) && <Badge ton="run" className="text-xs">À vous</Badge>}
+      <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime}>
+        {meta.libelle}
+      </StatusPill>
+      {estAVous(mep, etape) && (
+        <Badge ton="run" className="text-xs">
+          À vous
+        </Badge>
+      )}
       <BadgesEtape etape={etape} />
-      <h2 className="min-w-0 text-lg leading-snug font-semibold tracking-tight">{etape.action || 'Étape sans libellé'}</h2>
+      <h2 className="min-w-0 text-lg leading-snug font-semibold tracking-tight">
+        {etape.action || 'Étape sans libellé'}
+      </h2>
       {(etape.criticite || etape.dureeEstimeeMinutes !== null) && (
         <span className="text-[13px] text-fg-muted">
           {etape.criticite && LIBELLE_CRITICITE[etape.criticite]}
-          {etape.dureeEstimeeMinutes !== null && <>{etape.criticite && ' · '}{etape.dureeEstimeeMinutes} min</>}
+          {etape.dureeEstimeeMinutes !== null && (
+            <>
+              {etape.criticite && ' · '}
+              {etape.dureeEstimeeMinutes} min
+            </>
+          )}
         </span>
       )}
     </div>
@@ -85,20 +121,56 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
         etiquette={`Étape ${etape.code}`}
         onDemandeFermeture={onFermer}
         barre={barre}
-        gauche={<EtapeInfos mep={mep} etape={etape} liees={liees} historique={historique} peutPrendreLaMain={droits.peutPrendreLaMain} onPrendreLaMain={() => setConfirmation('main')} onSelectionner={onSelectionner} />}
-        centre={<EtapeInstructions mep={mep} etape={etape} droits={droits} liees={liees} enCours={enCours} actions={actions} />}
-        droite={<EtapeRetour mep={mep} etape={etape} droits={droits} preuve={preuve} onPreuve={setPreuve} commentaire={commentaire} actions={actions} onTerminer={setConfirmation} />}
+        gauche={
+          <EtapeInfos
+            mep={mep}
+            etape={etape}
+            liees={liees}
+            historique={historique}
+            peutPrendreLaMain={droits.peutPrendreLaMain}
+            onPrendreLaMain={() => setConfirmation('main')}
+            onSelectionner={onSelectionner}
+          />
+        }
+        centre={
+          <EtapeInstructions
+            mep={mep}
+            etape={etape}
+            droits={droits}
+            liees={liees}
+            enCours={enCours}
+            actions={actions}
+          />
+        }
+        droite={
+          <EtapeRetour
+            mep={mep}
+            etape={etape}
+            droits={droits}
+            preuve={preuve}
+            onPreuve={setPreuve}
+            commentaire={commentaire}
+            actions={actions}
+            onTerminer={setConfirmation}
+          />
+        }
       />
 
       <ConfirmDialog
         open={confirmation === 'reussie'}
-        onOpenChange={(o) => { if (!o) setConfirmation(null); }}
+        onOpenChange={(o) => {
+          if (!o) setConfirmation(null);
+        }}
         titre={`${etape.code} réussie ?`}
         description="Confirmez que vous avez contrôlé le résultat."
         libelleConfirmer="J’ai vérifié et obtenu le résultat attendu"
         variante="succes"
         taille="md"
-        onConfirmer={async () => { const r = await actions.terminer(etape, 'Reussie', preuve.trim(), commentaireAEnvoyer); if (r !== false) setPreuve(''); return r; }}
+        onConfirmer={async () => {
+          const r = await actions.terminer(etape, 'Reussie', preuve.trim(), commentaireAEnvoyer);
+          if (r !== false) setPreuve('');
+          return r;
+        }}
       >
         {etape.resultatAttendu.trim() && (
           <div className="rounded-lg border border-ok-bd bg-ok-bg px-3.5 py-3 text-sm text-ok-fg">
@@ -110,28 +182,54 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
 
       <ConfirmDialog
         open={confirmation === 'echec'}
-        onOpenChange={(o) => { if (!o) setConfirmation(null); }}
+        onOpenChange={(o) => {
+          if (!o) setConfirmation(null);
+        }}
         titre={`Déclarer l’échec de ${etape.code} ?`}
         libelleConfirmer="Déclarer l’échec"
         variante="danger"
-        onConfirmer={async () => { const r = await actions.terminer(etape, 'Echec', preuve.trim(), commentaireAEnvoyer); if (r !== false) setPreuve(''); return r; }}
+        onConfirmer={async () => {
+          const r = await actions.terminer(etape, 'Echec', preuve.trim(), commentaireAEnvoyer);
+          if (r !== false) setPreuve('');
+          return r;
+        }}
       >
-        <Alerte ton="danger" icone={OctagonAlert}>Arrêtez et prévenez le pilote. Les résolutions liées vous seront proposées.</Alerte>
+        <Alerte ton="danger" icone={OctagonAlert}>
+          Arrêtez et prévenez le pilote. Les résolutions liées vous seront proposées.
+        </Alerte>
       </ConfirmDialog>
 
       <ConfirmDialog
         open={confirmation === 'main'}
-        onOpenChange={(o) => { if (!o) { setConfirmation(null); setMotifMain(''); } }}
+        onOpenChange={(o) => {
+          if (!o) {
+            setConfirmation(null);
+            setMotifMain('');
+          }
+        }}
         titre={`Prendre la main sur ${etape.code} ?`}
         description={`Vous poursuivrez cette étape${nomExec ? ` à la place de ${nomExec}` : ''}. Tracé au journal.`}
         libelleConfirmer="Prendre la main"
         variante="primaire"
         taille="md"
         desactive={!motifMain.trim()}
-        onConfirmer={async () => { const r = await actions.prendreLaMain(etape, motifMain.trim()); if (r !== false) setMotifMain(''); return r; }}
+        onConfirmer={async () => {
+          const r = await actions.prendreLaMain(etape, motifMain.trim());
+          if (r !== false) setMotifMain('');
+          return r;
+        }}
       >
         <Field label="Pourquoi prenez-vous la main ? *">
-          {(id) => <Textarea id={id} value={motifMain} onChange={(e) => setMotifMain(e.target.value)} rows={3} placeholder={nomExec ? `ex. ${nomExec} est injoignable.` : 'ex. L’exécutant est injoignable.'} autoFocus />}
+          {(id) => (
+            <Textarea
+              id={id}
+              value={motifMain}
+              onChange={(e) => setMotifMain(e.target.value)}
+              rows={3}
+              placeholder={nomExec ? `ex. ${nomExec} est injoignable.` : 'ex. L’exécutant est injoignable.'}
+              autoFocus
+            />
+          )}
         </Field>
       </ConfirmDialog>
     </>

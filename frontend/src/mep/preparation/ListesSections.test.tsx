@@ -6,13 +6,31 @@ import { mep, utilisateur } from '../../test/fabrique';
 import { TooltipProvider } from '../../ui/Tooltip';
 import { PersonnesSection } from './ListesSections';
 
-vi.mock('../../api', () => ({ api: { utilisateurs: vi.fn(), ajouterParticipant: vi.fn(), modifierParticipant: vi.fn(), catalogueSystemes: vi.fn(async () => []) } }));
+vi.mock('../../api', () => ({
+  api: {
+    utilisateurs: vi.fn(),
+    ajouterParticipant: vi.fn(),
+    modifierParticipant: vi.fn(),
+    catalogueSystemes: vi.fn(async () => []),
+  },
+}));
 
 function rendre() {
-  vi.mocked(api.utilisateurs).mockResolvedValue([utilisateur({ id: 'u7', login: 'dana', nomAffiche: 'Dana', role: 'DBA', contact: 'dana@x.fr' })]);
-  const run = vi.fn(async (action?: () => Promise<unknown>) => { await action?.(); return true; });
+  vi.mocked(api.utilisateurs).mockResolvedValue([
+    utilisateur({ id: 'u7', login: 'dana', nomAffiche: 'Dana', role: 'DBA', contact: 'dana@x.fr' }),
+  ]);
+  const run = vi.fn(async (action?: () => Promise<unknown>) => {
+    await action?.();
+    return true;
+  });
   const m = mep({ phase: 'Preparation', droits: { ...mep().droits, peutEditerContenu: true, peutModifierPlan: true } });
-  render(<MepContext.Provider value={{ mep: m, run } as never}><TooltipProvider><PersonnesSection /></TooltipProvider></MepContext.Provider>);
+  render(
+    <MepContext.Provider value={{ mep: m, run } as never}>
+      <TooltipProvider>
+        <PersonnesSection />
+      </TooltipProvider>
+    </MepContext.Provider>,
+  );
   return { run };
 }
 
@@ -39,6 +57,11 @@ describe('Personnes : ajout depuis un compte', () => {
     const boutons = screen.getAllByRole('button', { name: 'Ajouter' });
     await userEvent.click(boutons[boutons.length - 1]);
     await waitFor(() => expect(run).toHaveBeenCalled());
-    expect(api.ajouterParticipant).toHaveBeenCalledWith('m1', { nom: 'Dana', role: 'Pilote', contact: 'dana@x.fr', utilisateurId: 'u7' });
+    expect(api.ajouterParticipant).toHaveBeenCalledWith('m1', {
+      nom: 'Dana',
+      role: 'Pilote',
+      contact: 'dana@x.fr',
+      utilisateurId: 'u7',
+    });
   });
 });

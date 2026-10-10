@@ -2,7 +2,19 @@ import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from './cn';
 
-export function EmptyState({ icone: Icone, titre, description, action, className }: { icone: LucideIcon; titre: string; description?: ReactNode; action?: ReactNode; className?: string }) {
+export function EmptyState({
+  icone: Icone,
+  titre,
+  description,
+  action,
+  className,
+}: {
+  icone: LucideIcon;
+  titre: string;
+  description?: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}) {
   return (
     <div className={cn('flex flex-col items-center justify-center px-6 py-14 text-center', className)}>
       <div className="relative mb-5 flex size-24 items-center justify-center" aria-hidden>

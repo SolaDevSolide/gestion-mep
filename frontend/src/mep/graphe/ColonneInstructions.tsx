@@ -23,7 +23,11 @@ export function ColonneInstructions({ fiche: v, onChange }: Props) {
           placeholder="ex. `GET /sante` renvoie 200 avec la version 2.4.0."
           className="border border-line-strong bg-surface text-fg placeholder:text-fg-subtle"
         />
-        {v.resultatAttendu.trim() && <div className="rounded-md border border-dashed border-line bg-surface px-3 py-2"><Markdown source={v.resultatAttendu} /></div>}
+        {v.resultatAttendu.trim() && (
+          <div className="rounded-md border border-dashed border-line bg-surface px-3 py-2">
+            <Markdown source={v.resultatAttendu} />
+          </div>
+        )}
       </Bloc>
     </>
   );

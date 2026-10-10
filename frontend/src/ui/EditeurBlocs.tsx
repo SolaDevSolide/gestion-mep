@@ -1,6 +1,36 @@
-import { ArrowDown, ArrowUp, Bold, Code2, Eye, Italic, Link2, List, ListChecks, PenLine, Plus, SquareTerminal, Trash2, Type } from 'lucide-react';
-import { forwardRef, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type TextareaHTMLAttributes } from 'react';
-import { decouperBlocs, formaterMarkdown, recomposerBlocs, type ActionFormat, type Bloc, type TypeBloc } from '../blocs';
+import {
+  ArrowDown,
+  ArrowUp,
+  Bold,
+  Code2,
+  Eye,
+  Italic,
+  Link2,
+  List,
+  ListChecks,
+  PenLine,
+  Plus,
+  SquareTerminal,
+  Trash2,
+  Type,
+} from 'lucide-react';
+import {
+  forwardRef,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type TextareaHTMLAttributes,
+} from 'react';
+import {
+  decouperBlocs,
+  formaterMarkdown,
+  recomposerBlocs,
+  type ActionFormat,
+  type Bloc,
+  type TypeBloc,
+} from '../blocs';
 import { BoutonIcone, Button } from './Button';
 import { cn } from './cn';
 import { Markdown } from './Instructions';
@@ -32,10 +62,10 @@ function depuis(valeur: string, typeInitial: TypeBloc): BlocEdite[] {
 }
 
 /** Zone de saisie dont la hauteur suit le contenu (plus de petite zone à faire défiler). */
-export const ZoneAuto = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement> & { minLignes?: number }>(function ZoneAuto(
-  { className, minLignes = 2, value, ...rest },
-  refExterne,
-) {
+export const ZoneAuto = forwardRef<
+  HTMLTextAreaElement,
+  TextareaHTMLAttributes<HTMLTextAreaElement> & { minLignes?: number }
+>(function ZoneAuto({ className, minLignes = 2, value, ...rest }, refExterne) {
   const ref = useRef<HTMLTextAreaElement | null>(null);
   useLayoutEffect(() => {
     const el = ref.current;
@@ -52,7 +82,10 @@ export const ZoneAuto = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
       }}
       rows={minLignes}
       value={value}
-      className={cn('block w-full resize-none overflow-hidden rounded-md px-3 py-2 text-sm leading-relaxed focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-80', className)}
+      className={cn(
+        'block w-full resize-none overflow-hidden rounded-md px-3 py-2 text-sm leading-relaxed focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-80',
+        className,
+      )}
       {...rest}
     />
   );
@@ -70,8 +103,20 @@ const OUTILS: { action: ActionFormat; libelle: string; Icone: typeof Bold }[] = 
 type OnContenu = (contenu: string, selection?: [number, number]) => void;
 
 /** Bloc Texte : barre d'outils markdown, Écrire / Aperçu (ou côte à côte). */
-function BlocTexte({ bloc, nom, disabled, disposition, onContenu, zoneRef }: {
-  bloc: BlocEdite; nom: string; disabled?: boolean; disposition: 'onglets' | 'cote'; onContenu: OnContenu; zoneRef: (el: HTMLTextAreaElement | null) => void;
+function BlocTexte({
+  bloc,
+  nom,
+  disabled,
+  disposition,
+  onContenu,
+  zoneRef,
+}: {
+  bloc: BlocEdite;
+  nom: string;
+  disabled?: boolean;
+  disposition: 'onglets' | 'cote';
+  onContenu: OnContenu;
+  zoneRef: (el: HTMLTextAreaElement | null) => void;
 }) {
   const [vue, setVue] = useState<'ecrire' | 'apercu'>('ecrire');
   const zone = useRef<HTMLTextAreaElement | null>(null);
@@ -87,14 +132,20 @@ function BlocTexte({ bloc, nom, disabled, disposition, onContenu, zoneRef }: {
 
   const saisie = (
     <ZoneAuto
-      ref={(el) => { zone.current = el; zoneRef(el); }}
+      ref={(el) => {
+        zone.current = el;
+        zoneRef(el);
+      }}
       aria-label={`${nom} (texte)`}
       minLignes={3}
       disabled={disabled}
       value={bloc.contenu}
       onChange={(e) => onContenu(e.target.value)}
       onKeyDown={(e) => {
-        if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'i')) { e.preventDefault(); formater(e.key === 'b' ? 'gras' : 'italique'); }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'i')) {
+          e.preventDefault();
+          formater(e.key === 'b' ? 'gras' : 'italique');
+        }
       }}
       placeholder={'Décrivez l’action… ex. Prévenir le support **avant** de lancer.\n- [ ] vérifier le tableau de bord'}
       className="border border-line-strong bg-surface text-fg placeholder:text-fg-subtle"
@@ -102,7 +153,11 @@ function BlocTexte({ bloc, nom, disabled, disposition, onContenu, zoneRef }: {
   );
   const apercu = (
     <div className="min-h-[4.5rem] rounded-md border border-dashed border-line bg-surface-2/40 px-3 py-2">
-      {bloc.contenu.trim() ? <Markdown source={bloc.contenu} /> : <p className="text-sm text-fg-subtle">Rien à afficher pour l’instant.</p>}
+      {bloc.contenu.trim() ? (
+        <Markdown source={bloc.contenu} />
+      ) : (
+        <p className="text-sm text-fg-subtle">Rien à afficher pour l’instant.</p>
+      )}
     </div>
   );
 
@@ -110,17 +165,30 @@ function BlocTexte({ bloc, nom, disabled, disposition, onContenu, zoneRef }: {
     <div className="grid gap-2">
       <div className="flex flex-wrap items-center gap-1">
         {!cote && (
-          <div role="tablist" aria-label={`${nom} : mode`} className="mr-2 inline-flex rounded-md border border-line bg-surface-2 p-0.5">
-            {([['ecrire', 'Écrire', PenLine], ['apercu', 'Aperçu', Eye]] as const).map(([v, lib, Icone]) => (
+          <div
+            role="tablist"
+            aria-label={`${nom} : mode`}
+            className="mr-2 inline-flex rounded-md border border-line bg-surface-2 p-0.5"
+          >
+            {(
+              [
+                ['ecrire', 'Écrire', PenLine],
+                ['apercu', 'Aperçu', Eye],
+              ] as const
+            ).map(([v, lib, Icone]) => (
               <button
                 key={v}
                 type="button"
                 role="tab"
                 aria-selected={vue === v}
                 onClick={() => setVue(v)}
-                className={cn('inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-fg-subtle hover:text-fg', vue === v && 'bg-surface text-fg shadow-sm')}
+                className={cn(
+                  'inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium text-fg-subtle hover:text-fg',
+                  vue === v && 'bg-surface text-fg shadow-sm',
+                )}
               >
-                <Icone className="size-3.5" aria-hidden />{lib}
+                <Icone className="size-3.5" aria-hidden />
+                {lib}
               </button>
             ))}
           </div>
@@ -128,7 +196,14 @@ function BlocTexte({ bloc, nom, disabled, disposition, onContenu, zoneRef }: {
         {!disabled && (cote || vue === 'ecrire') && (
           <div role="toolbar" aria-label={`${nom} : mise en forme`} className="inline-flex items-center gap-0.5">
             {OUTILS.map(({ action, libelle, Icone }) => (
-              <BoutonIcone key={action} label={libelle} taille="sm" className="size-7" onMouseDown={(e) => e.preventDefault()} onClick={() => formater(action)}>
+              <BoutonIcone
+                key={action}
+                label={libelle}
+                taille="sm"
+                className="size-7"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => formater(action)}
+              >
                 <Icone className="size-3.5" aria-hidden />
               </BoutonIcone>
             ))}
@@ -136,20 +211,48 @@ function BlocTexte({ bloc, nom, disabled, disposition, onContenu, zoneRef }: {
         )}
       </div>
       {cote ? (
-        <div className="grid gap-2 lg:grid-cols-2">{saisie}<div><p className="mb-1 text-[10px] font-semibold tracking-wide text-fg-subtle uppercase">Aperçu</p>{apercu}</div></div>
-      ) : vue === 'ecrire' ? saisie : apercu}
+        <div className="grid gap-2 lg:grid-cols-2">
+          {saisie}
+          <div>
+            <p className="mb-1 text-[10px] font-semibold tracking-wide text-fg-subtle uppercase">Aperçu</p>
+            {apercu}
+          </div>
+        </div>
+      ) : vue === 'ecrire' ? (
+        saisie
+      ) : (
+        apercu
+      )}
     </div>
   );
 }
 
 /** Bloc Code : zone sombre à chasse fixe ; Tab insère deux espaces (Échap puis Tab pour sortir). */
-function BlocCode({ bloc, nom, disabled, onContenu, onLangage, zoneRef }: {
-  bloc: BlocEdite; nom: string; disabled?: boolean; onContenu: OnContenu; onLangage: (l: string) => void; zoneRef: (el: HTMLTextAreaElement | null) => void;
+function BlocCode({
+  bloc,
+  nom,
+  disabled,
+  onContenu,
+  onLangage,
+  zoneRef,
+}: {
+  bloc: BlocEdite;
+  nom: string;
+  disabled?: boolean;
+  onContenu: OnContenu;
+  onLangage: (l: string) => void;
+  zoneRef: (el: HTMLTextAreaElement | null) => void;
 }) {
   const sortie = useRef(false);
   function clavier(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Escape') { sortie.current = true; return; }
-    if (e.key !== 'Tab' || e.shiftKey || sortie.current) { sortie.current = false; return; }
+    if (e.key === 'Escape') {
+      sortie.current = true;
+      return;
+    }
+    if (e.key !== 'Tab' || e.shiftKey || sortie.current) {
+      sortie.current = false;
+      return;
+    }
     e.preventDefault();
     const el = e.currentTarget;
     const d = el.selectionStart;
@@ -191,7 +294,15 @@ function BlocCode({ bloc, nom, disabled, onContenu, onLangage, zoneRef }: {
  * Éditeur d'instructions en blocs : chaque bloc est Texte (markdown, barre d'outils, aperçu) ou Code (chasse fixe,
  * copiable en exécution). La valeur émise est la chaîne markdown recomposée ; les blocs vides restent affichés localement.
  */
-export function EditeurBlocs({ valeur, onChange, label, typeInitial = 'texte', disabled, className, disposition = 'onglets' }: Props) {
+export function EditeurBlocs({
+  valeur,
+  onChange,
+  label,
+  typeInitial = 'texte',
+  disabled,
+  className,
+  disposition = 'onglets',
+}: Props) {
   const [blocs, setBlocs] = useState<BlocEdite[]>(() => depuis(valeur, typeInitial));
   const [insertion, setInsertion] = useState<number | null>(null);
   const emis = useRef(valeur);
@@ -247,40 +358,123 @@ export function EditeurBlocs({ valeur, onChange, label, typeInitial = 'texte', d
     <div role="group" aria-label={label} className={cn('grid gap-2', className)}>
       {blocs.map((b, i) => {
         const nom = `${label}, bloc ${i + 1}`;
-        const zoneRef = (el: HTMLTextAreaElement | null) => { if (el) zones.current.set(b.cle, el); else zones.current.delete(b.cle); };
+        const zoneRef = (el: HTMLTextAreaElement | null) => {
+          if (el) zones.current.set(b.cle, el);
+          else zones.current.delete(b.cle);
+        };
         return (
           <div key={b.cle} className="grid gap-2">
-            <section aria-label={nom} className={cn('grid gap-2 rounded-xl border bg-surface p-3 shadow-sm', b.type === 'code' ? 'border-line-strong' : 'border-line')}>
+            <section
+              aria-label={nom}
+              className={cn(
+                'grid gap-2 rounded-xl border bg-surface p-3 shadow-sm',
+                b.type === 'code' ? 'border-line-strong' : 'border-line',
+              )}
+            >
               <header className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex size-6 items-center justify-center rounded-md bg-surface-2 font-mono text-[11px] font-bold text-fg-muted" aria-hidden>{i + 1}</span>
+                <span
+                  className="inline-flex size-6 items-center justify-center rounded-md bg-surface-2 font-mono text-[11px] font-bold text-fg-muted"
+                  aria-hidden
+                >
+                  {i + 1}
+                </span>
                 <Segmented
                   label={`Type du bloc ${i + 1}`}
                   valeur={b.type}
                   disabled={disabled}
                   onChange={(t) => maj(i, { type: t })}
                   options={[
-                    { valeur: 'texte', libelle: <><Type className="size-3.5" aria-hidden />Texte</> },
-                    { valeur: 'code', libelle: <><SquareTerminal className="size-3.5" aria-hidden />Code</> },
+                    {
+                      valeur: 'texte',
+                      libelle: (
+                        <>
+                          <Type className="size-3.5" aria-hidden />
+                          Texte
+                        </>
+                      ),
+                    },
+                    {
+                      valeur: 'code',
+                      libelle: (
+                        <>
+                          <SquareTerminal className="size-3.5" aria-hidden />
+                          Code
+                        </>
+                      ),
+                    },
                   ]}
                 />
                 {!disabled && (
                   <span className="ml-auto flex items-center">
-                    <BoutonIcone label={`Monter le bloc ${i + 1}`} taille="sm" disabled={i === 0} onClick={() => deplacer(i, -1)}><ArrowUp className="size-4" aria-hidden /></BoutonIcone>
-                    <BoutonIcone label={`Descendre le bloc ${i + 1}`} taille="sm" disabled={i === blocs.length - 1} onClick={() => deplacer(i, 1)}><ArrowDown className="size-4" aria-hidden /></BoutonIcone>
-                    <BoutonIcone label={`Supprimer le bloc ${i + 1}`} taille="sm" className="hover:text-danger-solid" onClick={() => supprimer(i)}><Trash2 className="size-4" aria-hidden /></BoutonIcone>
+                    <BoutonIcone
+                      label={`Monter le bloc ${i + 1}`}
+                      taille="sm"
+                      disabled={i === 0}
+                      onClick={() => deplacer(i, -1)}
+                    >
+                      <ArrowUp className="size-4" aria-hidden />
+                    </BoutonIcone>
+                    <BoutonIcone
+                      label={`Descendre le bloc ${i + 1}`}
+                      taille="sm"
+                      disabled={i === blocs.length - 1}
+                      onClick={() => deplacer(i, 1)}
+                    >
+                      <ArrowDown className="size-4" aria-hidden />
+                    </BoutonIcone>
+                    <BoutonIcone
+                      label={`Supprimer le bloc ${i + 1}`}
+                      taille="sm"
+                      className="hover:text-danger-solid"
+                      onClick={() => supprimer(i)}
+                    >
+                      <Trash2 className="size-4" aria-hidden />
+                    </BoutonIcone>
                   </span>
                 )}
               </header>
-              {b.type === 'texte'
-                ? <BlocTexte bloc={b} nom={nom} disabled={disabled} disposition={disposition} zoneRef={zoneRef} onContenu={(c, s) => contenu(i, c, s)} />
-                : <BlocCode bloc={b} nom={nom} disabled={disabled} zoneRef={zoneRef} onContenu={(c, s) => contenu(i, c, s)} onLangage={(l) => maj(i, { langage: l || undefined })} />}
+              {b.type === 'texte' ? (
+                <BlocTexte
+                  bloc={b}
+                  nom={nom}
+                  disabled={disabled}
+                  disposition={disposition}
+                  zoneRef={zoneRef}
+                  onContenu={(c, s) => contenu(i, c, s)}
+                />
+              ) : (
+                <BlocCode
+                  bloc={b}
+                  nom={nom}
+                  disabled={disabled}
+                  zoneRef={zoneRef}
+                  onContenu={(c, s) => contenu(i, c, s)}
+                  onLangage={(l) => maj(i, { langage: l || undefined })}
+                />
+              )}
             </section>
             {!disabled && i < blocs.length - 1 && (
               <div className="flex items-center justify-center gap-1.5">
                 {insertion === i ? (
                   <>
-                    <Button taille="sm" variante="fantome" icone={<Type className="size-3.5" aria-hidden />} onClick={() => inserer(i + 1, 'texte')} aria-label={`Insérer un bloc texte après le bloc ${i + 1}`}>Texte</Button>
-                    <Button taille="sm" variante="fantome" icone={<SquareTerminal className="size-3.5" aria-hidden />} onClick={() => inserer(i + 1, 'code')} aria-label={`Insérer un bloc code après le bloc ${i + 1}`}>Code</Button>
+                    <Button
+                      taille="sm"
+                      variante="fantome"
+                      icone={<Type className="size-3.5" aria-hidden />}
+                      onClick={() => inserer(i + 1, 'texte')}
+                      aria-label={`Insérer un bloc texte après le bloc ${i + 1}`}
+                    >
+                      Texte
+                    </Button>
+                    <Button
+                      taille="sm"
+                      variante="fantome"
+                      icone={<SquareTerminal className="size-3.5" aria-hidden />}
+                      onClick={() => inserer(i + 1, 'code')}
+                      aria-label={`Insérer un bloc code après le bloc ${i + 1}`}
+                    >
+                      Code
+                    </Button>
                   </>
                 ) : (
                   <button
@@ -300,8 +494,22 @@ export function EditeurBlocs({ valeur, onChange, label, typeInitial = 'texte', d
       })}
       {!disabled && (
         <div className="flex flex-wrap gap-1.5">
-          <Button taille="sm" icone={<Plus className="size-3.5" aria-hidden />} onClick={() => inserer(blocs.length, 'texte')} aria-label="Ajouter un bloc texte">Texte</Button>
-          <Button taille="sm" icone={<Plus className="size-3.5" aria-hidden />} onClick={() => inserer(blocs.length, 'code')} aria-label="Ajouter un bloc code">Code</Button>
+          <Button
+            taille="sm"
+            icone={<Plus className="size-3.5" aria-hidden />}
+            onClick={() => inserer(blocs.length, 'texte')}
+            aria-label="Ajouter un bloc texte"
+          >
+            Texte
+          </Button>
+          <Button
+            taille="sm"
+            icone={<Plus className="size-3.5" aria-hidden />}
+            onClick={() => inserer(blocs.length, 'code')}
+            aria-label="Ajouter un bloc code"
+          >
+            Code
+          </Button>
         </div>
       )}
     </div>

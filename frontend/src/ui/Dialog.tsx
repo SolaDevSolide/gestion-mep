@@ -17,7 +17,16 @@ interface DialogProps {
   className?: string;
 }
 
-export function Dialog({ open, onOpenChange, titre, description, taille = 'md', pied, children, className }: DialogProps) {
+export function Dialog({
+  open,
+  onOpenChange,
+  titre,
+  description,
+  taille = 'md',
+  pied,
+  children,
+  className,
+}: DialogProps) {
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
@@ -25,7 +34,8 @@ export function Dialog({ open, onOpenChange, titre, description, taille = 'md', 
           <D.Content
             className={cn(
               'relative my-auto w-full rounded-2xl border border-line bg-surface shadow-lg outline-none data-[state=open]:animate-pop-in',
-              LARGEURS[taille], className,
+              LARGEURS[taille],
+              className,
             )}
             aria-describedby={description ? undefined : undefined}
           >
@@ -35,15 +45,23 @@ export function Dialog({ open, onOpenChange, titre, description, taille = 'md', 
                 {description ? (
                   <D.Description className="mt-1 text-sm text-fg-muted">{description}</D.Description>
                 ) : (
-                  <D.Description className="sr-only">{typeof titre === 'string' ? titre : 'Boîte de dialogue'}</D.Description>
+                  <D.Description className="sr-only">
+                    {typeof titre === 'string' ? titre : 'Boîte de dialogue'}
+                  </D.Description>
                 )}
               </div>
               <D.Close asChild>
-                <BoutonIcone label="Fermer" taille="sm" className="-mt-1 -mr-2"><X className="size-4" aria-hidden /></BoutonIcone>
+                <BoutonIcone label="Fermer" taille="sm" className="-mt-1 -mr-2">
+                  <X className="size-4" aria-hidden />
+                </BoutonIcone>
               </D.Close>
             </div>
             <div className="px-6 py-5">{children}</div>
-            {pied && <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-2xl border-t border-line bg-surface-2/60 px-6 py-3.5">{pied}</div>}
+            {pied && (
+              <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-2xl border-t border-line bg-surface-2/60 px-6 py-3.5">
+                {pied}
+              </div>
+            )}
           </D.Content>
         </D.Overlay>
       </D.Portal>
@@ -66,7 +84,18 @@ interface ConfirmProps {
 }
 
 /** Confirmation en dialogue (jamais window.confirm). */
-export function ConfirmDialog({ open, onOpenChange, titre, description, children, libelleConfirmer, variante = 'primaire', desactive, onConfirmer, taille = 'sm' }: ConfirmProps) {
+export function ConfirmDialog({
+  open,
+  onOpenChange,
+  titre,
+  description,
+  children,
+  libelleConfirmer,
+  variante = 'primaire',
+  desactive,
+  onConfirmer,
+  taille = 'sm',
+}: ConfirmProps) {
   const [occupe, setOccupe] = useState(false);
   async function confirmer() {
     setOccupe(true);
@@ -86,8 +115,12 @@ export function ConfirmDialog({ open, onOpenChange, titre, description, children
       taille={taille}
       pied={
         <>
-          <Button variante="fantome" onClick={() => onOpenChange(false)}>Annuler</Button>
-          <Button variante={variante} chargement={occupe} disabled={desactive} onClick={() => void confirmer()}>{libelleConfirmer}</Button>
+          <Button variante="fantome" onClick={() => onOpenChange(false)}>
+            Annuler
+          </Button>
+          <Button variante={variante} chargement={occupe} disabled={desactive} onClick={() => void confirmer()}>
+            {libelleConfirmer}
+          </Button>
         </>
       }
     >

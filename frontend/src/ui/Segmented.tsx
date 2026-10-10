@@ -2,15 +2,35 @@ import { ToggleGroup } from 'radix-ui';
 import type { ReactNode } from 'react';
 import { cn } from './cn';
 
-interface Option<T extends string> { valeur: T; libelle: ReactNode; titre?: string }
+interface Option<T extends string> {
+  valeur: T;
+  libelle: ReactNode;
+  titre?: string;
+}
 
 /** Choix exclusif compact (Graphe / Liste, filtres de phase). */
-export function Segmented<T extends string>({ valeur, onChange, options, label, className, disabled }: { valeur: T; onChange: (v: T) => void; options: Option<T>[]; label: string; className?: string; disabled?: boolean }) {
+export function Segmented<T extends string>({
+  valeur,
+  onChange,
+  options,
+  label,
+  className,
+  disabled,
+}: {
+  valeur: T;
+  onChange: (v: T) => void;
+  options: Option<T>[];
+  label: string;
+  className?: string;
+  disabled?: boolean;
+}) {
   return (
     <ToggleGroup.Root
       type="single"
       value={valeur}
-      onValueChange={(v) => { if (v) onChange(v as T); }}
+      onValueChange={(v) => {
+        if (v) onChange(v as T);
+      }}
       aria-label={label}
       disabled={disabled}
       className={cn('inline-flex rounded-lg border border-line bg-surface-2 p-0.5', className)}

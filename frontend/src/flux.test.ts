@@ -8,12 +8,27 @@ class FauxFlux {
   readyState = FauxFlux.CONNECTING;
   ferme = false;
   private ecouteurs = new Map<string, ((ev: Event) => void)[]>();
-  constructor(public url: string) { FauxFlux.instances.push(this); }
-  addEventListener(type: string, f: (ev: Event) => void) { this.ecouteurs.set(type, [...(this.ecouteurs.get(type) ?? []), f]); }
-  close() { this.ferme = true; this.readyState = FauxFlux.CLOSED; }
-  emettre(type: string, ev: Event = new Event(type)) { for (const f of this.ecouteurs.get(type) ?? []) f(ev); }
-  ouvrir() { this.readyState = FauxFlux.OPEN; this.emettre('open'); }
-  echouer(definitif: boolean) { this.readyState = definitif ? FauxFlux.CLOSED : FauxFlux.CONNECTING; this.emettre('error'); }
+  constructor(public url: string) {
+    FauxFlux.instances.push(this);
+  }
+  addEventListener(type: string, f: (ev: Event) => void) {
+    this.ecouteurs.set(type, [...(this.ecouteurs.get(type) ?? []), f]);
+  }
+  close() {
+    this.ferme = true;
+    this.readyState = FauxFlux.CLOSED;
+  }
+  emettre(type: string, ev: Event = new Event(type)) {
+    for (const f of this.ecouteurs.get(type) ?? []) f(ev);
+  }
+  ouvrir() {
+    this.readyState = FauxFlux.OPEN;
+    this.emettre('open');
+  }
+  echouer(definitif: boolean) {
+    this.readyState = definitif ? FauxFlux.CLOSED : FauxFlux.CONNECTING;
+    this.emettre('error');
+  }
 }
 
 describe('ouvrirFlux', () => {

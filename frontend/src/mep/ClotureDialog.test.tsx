@@ -19,7 +19,11 @@ describe('ClotureDialog', () => {
     expect(clore).toBeEnabled();
     await userEvent.type(screen.getByLabelText('Actions'), 'Automatiser');
     await userEvent.click(clore);
-    expect(onConfirmer).toHaveBeenCalledWith({ ceQuiAMarche: 'Tout', incidents: 'Rien à signaler', actions: 'Automatiser' });
+    expect(onConfirmer).toHaveBeenCalledWith({
+      ceQuiAMarche: 'Tout',
+      incidents: 'Rien à signaler',
+      actions: 'Automatiser',
+    });
   });
 
   it('n’affiche aucun champ quand le bilan est désactivé', async () => {

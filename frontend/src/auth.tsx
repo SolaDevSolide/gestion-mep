@@ -27,7 +27,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [navigate]);
 
   useEffect(() => {
-    api.moi()
+    api
+      .moi()
       .then(setUtilisateur)
       .catch(() => setUtilisateur(null))
       .finally(() => setChargement(false));
@@ -38,13 +39,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const deconnecter = useCallback(async () => {
-    try { await api.deconnexion(); } finally {
+    try {
+      await api.deconnexion();
+    } finally {
       setUtilisateur(null);
       void navigate('/connexion', { replace: true });
     }
   }, [navigate]);
 
-  const value = useMemo(() => ({ utilisateur, chargement, connecter, deconnecter, majUtilisateur: setUtilisateur }), [utilisateur, chargement, connecter, deconnecter]);
+  const value = useMemo(
+    () => ({ utilisateur, chargement, connecter, deconnecter, majUtilisateur: setUtilisateur }),
+    [utilisateur, chargement, connecter, deconnecter],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

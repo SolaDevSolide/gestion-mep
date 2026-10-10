@@ -8,7 +8,9 @@ const rendu = (source: string) => {
 
 describe('rendreMarkdown', () => {
   it('garde le markdown courant : titres, gras, listes, code, tableaux, liens', () => {
-    const div = rendu('# Titre\n\n**gras** et `code`\n\n- un\n- deux\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n[doc](https://exemple.fr)');
+    const div = rendu(
+      '# Titre\n\n**gras** et `code`\n\n- un\n- deux\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n[doc](https://exemple.fr)',
+    );
     expect(div.querySelector('h1')?.textContent).toBe('Titre');
     expect(div.querySelector('strong')?.textContent).toBe('gras');
     expect(div.querySelectorAll('li')).toHaveLength(2);
@@ -30,7 +32,9 @@ describe('rendreMarkdown', () => {
   });
 
   it('retire style, class, formulaires et champs de saisie', () => {
-    const div = rendu('<a href="https://x.fr" style="position:fixed;inset:0" class="z">lien</a>\n\n<form action="https://x.fr"><input type="password" name="mdp"><button>OK</button></form>');
+    const div = rendu(
+      '<a href="https://x.fr" style="position:fixed;inset:0" class="z">lien</a>\n\n<form action="https://x.fr"><input type="password" name="mdp"><button>OK</button></form>',
+    );
     expect(div.querySelector('[style]')).toBeNull();
     expect(div.querySelector('[class]')).toBeNull();
     expect(div.querySelector('form')).toBeNull();
@@ -39,7 +43,9 @@ describe('rendreMarkdown', () => {
   });
 
   it('retire les scripts, gestionnaires et URL dangereuses', () => {
-    const div = rendu('<img src="/a.png" onerror="alert(1)"><script>alert(1)</script>[x](javascript:alert(1)) [y](//evil.fr) <iframe src="https://x.fr"></iframe>');
+    const div = rendu(
+      '<img src="/a.png" onerror="alert(1)"><script>alert(1)</script>[x](javascript:alert(1)) [y](//evil.fr) <iframe src="https://x.fr"></iframe>',
+    );
     expect(div.innerHTML).not.toMatch(/onerror|script|javascript|iframe|evil/);
   });
 

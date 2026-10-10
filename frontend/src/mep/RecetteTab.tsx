@@ -38,17 +38,23 @@ export default function RecetteTab() {
     <div className="mx-auto w-full max-w-5xl space-y-5 px-6 py-6">
       {bilan.total > 0 && (enRecette || mep.phase === 'Cloturee') ? (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <ProgressBar className="min-w-48 flex-1" segments={[
-            { valeur: bilan.conformes, ton: 'ok', libelle: 'Conformes' },
-            { valeur: bilan.echecs, ton: 'danger', libelle: 'Échecs' },
-            { valeur: bilan.restantes, ton: 'wait', libelle: 'Restantes' },
-          ]} />
-          <p className="text-sm font-medium text-fg-muted tnum">{bilan.conformes}/{bilan.total} conforme{bilan.conformes > 1 ? 's' : ''}{bilan.echecs > 0 && <span className="font-semibold text-danger-solid"> · {bilan.echecs} en échec</span>}</p>
+          <ProgressBar
+            className="min-w-48 flex-1"
+            segments={[
+              { valeur: bilan.conformes, ton: 'ok', libelle: 'Conformes' },
+              { valeur: bilan.echecs, ton: 'danger', libelle: 'Échecs' },
+              { valeur: bilan.restantes, ton: 'wait', libelle: 'Restantes' },
+            ]}
+          />
+          <p className="text-sm font-medium text-fg-muted tnum">
+            {bilan.conformes}/{bilan.total} conforme{bilan.conformes > 1 ? 's' : ''}
+            {bilan.echecs > 0 && <span className="font-semibold text-danger-solid"> · {bilan.echecs} en échec</span>}
+          </p>
         </div>
       ) : (
         <p className="text-sm text-fg-muted">
-          {fiches.length} fiche{fiches.length > 1 ? 's' : ''} de recette, {bilan.total} étape{bilan.total > 1 ? 's' : ''} de test.
-
+          {fiches.length} fiche{fiches.length > 1 ? 's' : ''} de recette, {bilan.total} étape
+          {bilan.total > 1 ? 's' : ''} de test.
         </p>
       )}
 
@@ -62,36 +68,71 @@ export default function RecetteTab() {
           ton={mep.nonRetourFranchi ? 'warn' : 'rollback'}
           icone={ShieldAlert}
           titre="Décision du pilote"
-          action={<div className="flex flex-wrap items-center gap-2"><BoutonDeclencherRepli taille="md" /><BoutonCloturer taille="md" /></div>}
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <BoutonDeclencherRepli taille="md" />
+              <BoutonCloturer taille="md" />
+            </div>
+          }
         >
           {mep.nonRetourFranchi
             ? `Point de non-retour franchi (${mep.nonRetourFranchi}) : le retour arrière n’est plus possible, on corrige en avant.`
-            : "Clôture réussie : toutes les étapes de test doivent être conformes."}
+            : 'Clôture réussie : toutes les étapes de test doivent être conformes.'}
         </Alerte>
       )}
 
       {mep.systemes.length === 0 && sansSysteme.length === 0 ? (
-        <Card><EmptyState icone={ClipboardCheck} titre="Aucun système" description="Ajoutez les systèmes de la MEP en préparation : la recette s’organise par système." /></Card>
+        <Card>
+          <EmptyState
+            icone={ClipboardCheck}
+            titre="Aucun système"
+            description="Ajoutez les systèmes de la MEP en préparation : la recette s’organise par système."
+          />
+        </Card>
       ) : (
         <div className="space-y-5">
           {mep.systemes.map((s) => (
-            <SectionSysteme key={s.id} systeme={s} fiches={fiches.filter((f) => f.systemeId === s.id)} peutAgir={peutAgir} onAjouter={() => setAjout({ systemeId: s.id })} />
+            <SectionSysteme
+              key={s.id}
+              systeme={s}
+              fiches={fiches.filter((f) => f.systemeId === s.id)}
+              peutAgir={peutAgir}
+              onAjouter={() => setAjout({ systemeId: s.id })}
+            />
           ))}
           {(sansSysteme.length > 0 || edition) && (
-            <SectionSysteme systeme={null} fiches={sansSysteme} peutAgir={peutAgir} onAjouter={() => setAjout({ systemeId: null })} />
+            <SectionSysteme
+              systeme={null}
+              fiches={sansSysteme}
+              peutAgir={peutAgir}
+              onAjouter={() => setAjout({ systemeId: null })}
+            />
           )}
         </div>
       )}
 
       <FormulaireDialog
         open={ajout !== null}
-        onOpenChange={(o) => { if (!o) setAjout(null); }}
+        onOpenChange={(o) => {
+          if (!o) setAjout(null);
+        }}
         titre="Ajouter une recette"
-        description={ajout?.systemeId ? `Pour le système ${mep.systemes.find((s) => s.id === ajout.systemeId)?.nom ?? ''}. Vous ajouterez ensuite ses étapes de test.` : 'Sans système. Vous ajouterez ensuite ses étapes de test.'}
-        champs={[{ cle: 'titre', label: 'Titre de la fiche', requis: true, large: true, placeholder: 'ex. Tables clients' }]}
+        description={
+          ajout?.systemeId
+            ? `Pour le système ${mep.systemes.find((s) => s.id === ajout.systemeId)?.nom ?? ''}. Vous ajouterez ensuite ses étapes de test.`
+            : 'Sans système. Vous ajouterez ensuite ses étapes de test.'
+        }
+        champs={[
+          { cle: 'titre', label: 'Titre de la fiche', requis: true, large: true, placeholder: 'ex. Tables clients' },
+        ]}
         initial={INITIAL_AJOUT}
         libelleValider="Ajouter"
-        onValider={(v) => run(() => api.ajouterFicheRecette(mep.id, ajout?.systemeId ?? null, v.titre.trim()), 'Fiche de recette ajoutée.')}
+        onValider={(v) =>
+          run(
+            () => api.ajouterFicheRecette(mep.id, ajout?.systemeId ?? null, v.titre.trim()),
+            'Fiche de recette ajoutée.',
+          )
+        }
       />
     </div>
   );

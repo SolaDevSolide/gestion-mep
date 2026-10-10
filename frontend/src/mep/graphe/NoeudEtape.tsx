@@ -20,10 +20,31 @@ interface Props {
 }
 
 /** Fiche du graphe activable (souris, clavier, lecteur d'écran) avec, en édition, ses ronds pour tirer un lien. */
-export function NoeudEtape({ mep, etape: e, mode, edition, descriptions, selectionnee, estompee, glissee, cible, onClavier, onActiver }: Props) {
+export function NoeudEtape({
+  mep,
+  etape: e,
+  mode,
+  edition,
+  descriptions,
+  selectionnee,
+  estompee,
+  glissee,
+  cible,
+  onClavier,
+  onActiver,
+}: Props) {
   return (
-    <div data-noeud={e.id} className={cn('group pointer-events-auto relative', edition && 'touch-none', glissee && 'opacity-30')}>
-      {edition && <span data-port="haut" title="Tirer vers une étape au-dessus" className="absolute -top-[7px] left-1/2 z-[2] -ml-[7px] size-3.5 cursor-crosshair rounded-full border-2 border-accent bg-surface opacity-55 transition-[opacity,transform] duration-150 group-hover:scale-110 group-hover:opacity-100 hover:bg-accent" />}
+    <div
+      data-noeud={e.id}
+      className={cn('group pointer-events-auto relative', edition && 'touch-none', glissee && 'opacity-30')}
+    >
+      {edition && (
+        <span
+          data-port="haut"
+          title="Tirer vers une étape au-dessus"
+          className="absolute -top-[7px] left-1/2 z-[2] -ml-[7px] size-3.5 cursor-crosshair rounded-full border-2 border-accent bg-surface opacity-55 transition-[opacity,transform] duration-150 group-hover:scale-110 group-hover:opacity-100 hover:bg-accent"
+        />
+      )}
       <div
         data-carte={e.id}
         role="button"
@@ -33,12 +54,28 @@ export function NoeudEtape({ mep, etape: e, mode, edition, descriptions, selecti
         aria-keyshortcuts={edition ? 'Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight' : undefined}
         onKeyDown={onClavier}
         // La souris passe par le pointeur (appuyer / relâcher) ; un clic sans pointeur (detail 0) vient d'un lecteur d'écran.
-        onClick={(ev) => { if (ev.detail === 0) onActiver(); }}
+        onClick={(ev) => {
+          if (ev.detail === 0) onActiver();
+        }}
         className={cn('rounded-lg', edition ? 'cursor-grab' : 'cursor-pointer')}
       >
-        <CarteEtape mep={mep} etape={e} mode={mode} descriptions={descriptions} selectionnee={selectionnee} estompee={estompee} cible={cible} />
+        <CarteEtape
+          mep={mep}
+          etape={e}
+          mode={mode}
+          descriptions={descriptions}
+          selectionnee={selectionnee}
+          estompee={estompee}
+          cible={cible}
+        />
       </div>
-      {edition && <span data-port="bas" title="Tirer vers une étape en dessous" className="absolute -bottom-[7px] left-1/2 z-[2] -ml-[7px] size-3.5 cursor-crosshair rounded-full border-2 border-accent bg-surface opacity-55 transition-[opacity,transform] duration-150 group-hover:scale-110 group-hover:opacity-100 hover:bg-accent" />}
+      {edition && (
+        <span
+          data-port="bas"
+          title="Tirer vers une étape en dessous"
+          className="absolute -bottom-[7px] left-1/2 z-[2] -ml-[7px] size-3.5 cursor-crosshair rounded-full border-2 border-accent bg-surface opacity-55 transition-[opacity,transform] duration-150 group-hover:scale-110 group-hover:opacity-100 hover:bg-accent"
+        />
+      )}
     </div>
   );
 }
