@@ -24,6 +24,8 @@ Il est découpé en huit sections. Chacune affiche son état (complète ou à co
 7. **Validation** : relecture de la procédure, approbations, et rappel du Go.
 8. **Pièces jointes** : documents utiles (procédures, captures, scripts).
 
+![Onglet Préparation et ses huit sections](images/preparation.png)
+
 ## Le plan d'étapes (onglet Étapes)
 
 Le plan de déploiement se dessine comme un graphe, de haut en bas :
@@ -33,6 +35,8 @@ Le plan de déploiement se dessine comme un graphe, de haut en bas :
 - **glisser-déposer** une étape la déplace sur une autre ligne ou entre deux étapes ;
 - « + Étape » au bout d'une ligne et « + Nouvelle ligne » en bas ajoutent des étapes ;
 - un lien remonte toujours vers une ligne au-dessus : le plan ne peut pas boucler.
+
+![Graphe des étapes : lignes parallèles et barrière du point de non-retour](images/graphe-des-etapes.png)
 
 Cliquer une étape ouvre son **espace d'édition** :
 
@@ -44,6 +48,8 @@ Cliquer une étape ouvre son **espace d'édition** :
 - **résolutions types** liées à l'étape (voir plus bas) ;
 - **point de non-retour** : à cocher pour l'étape après laquelle on ne peut plus revenir en arrière ;
 - pièces jointes de l'étape.
+
+![Espace d'édition d'une étape : systèmes, criticité, blocs Texte et Code](images/edition-etape.png)
 
 Les codes d'étape (`E0001` pour le déploiement, `R0001` pour le retour arrière) ne sont jamais renumérotés.
 
@@ -77,6 +83,8 @@ Le bouton « Vérifier le plan » liste :
 - les **anomalies**, qui bloquent le Go : échéance absente ou passée, pilote manquant ou non relié à un compte, plan de déploiement ou de retour arrière vide, graphe invalide, étape incomplète (action, système, criticité, instructions, résultat attendu), sauvegarde non renseignée ou non justifiée, sauvegarde pendant la MEP sans étape de sauvegarde, recette absente ou incomplète, procédure non relue, approbations manquantes ou refusées ;
 - les **avertissements**, qui ne bloquent pas : aucun responsable technique, responsable technique absent le jour J, pilote qui est aussi responsable technique, aucun système sauvegardé, système sans recette.
 
+![« Vérifier le plan » : il manque une approbation](images/verifier-le-plan.png)
+
 ## Relecture et approbations
 
 Dans la section Validation :
@@ -84,6 +92,8 @@ Dans la section Validation :
 - **Procédure relue** : à cocher par une personne de la MEP reliée à un compte, idéalement un opérateur qui n'a pas écrit le plan.
 - **Approbations** : les approbateurs désignés approuvent ou refusent (commentaire obligatoire en cas de refus). Le pilote ne peut pas être approbateur. Le nombre minimum d'approbations est un paramètre global (1 par défaut). Un approbateur ne peut se prononcer que lorsqu'il ne reste plus d'autre anomalie.
 - Toute modification du contenu après une approbation l'efface : « Approbations à refaire ».
+
+![Section Validation vue par l'approbatrice](images/approbation.png)
 
 Quand le plan est complet, le pilote ou un suppléant donne le Go (voir [Cycle de vie](Cycle-de-vie.md#go--no-go--passage-en-exécution)).
 

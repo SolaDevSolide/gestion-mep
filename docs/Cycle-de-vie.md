@@ -2,13 +2,27 @@
 
 Une MEP passe par cinq phases. Seuls le **pilote** et ses **suppléants** la font changer de phase ; un administrateur n'a pas ce droit s'il n'est pas lui-même pilote ou suppléant. Le détail de chaque droit est dans [Droits par rôle](Droits.md).
 
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> Préparation
+    Préparation --> Exécution : Go
+    Préparation --> Préparation : No-go (motif)
+    Exécution --> Préparation : Revenir en préparation
+    Exécution --> Recette : Passer en recette
+    Recette --> Réussie : Clôturer
+    Exécution --> RetourArrière : manuel, échéance ou résolution en échec
+    Recette --> RetourArrière : manuel
+    RetourArrière --> Repliée : Service rétabli
+    state "Retour arrière" as RetourArrière
+    state "Clôturée (réussie)" as Réussie
+    state "Clôturée (repliée)" as Repliée
+    Réussie --> [*]
+    Repliée --> [*]
 ```
-Préparation ──Go──▶ Exécution ──▶ Recette ──▶ Clôturée (réussie)
-     ▲                  │             │
-     └── revenir ───────┘             │
-                        ▼             ▼
-                    Retour arrière ──────▶ Clôturée (repliée)
-```
+
+> [!IMPORTANT]
+> Une fois le **point de non-retour** franchi, les flèches vers « Retour arrière » et « Préparation » disparaissent : on ne peut plus que corriger en avant, puis passer en recette.
 
 ## Préparation
 
@@ -23,6 +37,8 @@ Le pilote ou un suppléant ouvre « Go / no-go ». Le Go n'est possible que si :
 - le plan ne présente plus aucune anomalie, approbations comprises ;
 - tous les critères go / no-go sont cochés (par exemple « Équipe présente et joignable », « Sauvegarde disponible ») ;
 - la MEP n'est pas un modèle.
+
+![Fenêtre Go / no-go, les quatre critères cochés](images/go-no-go.png)
 
 Les critères cochés sont enregistrés avec la MEP. Un **no-go** exige un motif : la MEP reste en préparation et le journal garde la trace de la décision. Le moment du Go devient la date de début de la MEP.
 

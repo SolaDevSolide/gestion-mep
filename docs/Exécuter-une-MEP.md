@@ -27,9 +27,22 @@ Filtres en haut du graphe :
 - **Mes systèmes** : mettre en avant les étapes de certains systèmes ;
 - **À moi** : les étapes que j'exécute.
 
+![Onglet Exécution : trois étapes réussies, une en échec, le point de non-retour en attente](images/execution.png)
+
 Les étapes filtrées sont estompées, pas masquées. Les choix sont mémorisés pour chaque MEP.
 
 ## Dérouler une étape
+
+```mermaid
+flowchart LR
+    A[Disponible] -- Démarrer --> B[En cours]
+    B -- "Réussie<br/>(preuve)" --> C[Réussie]
+    B -- "Échec<br/>(preuve obligatoire)" --> D[Échec]
+    D -- Appliquer une résolution --> E[Résolution en cours]
+    E -- tout conforme --> A
+    E -- correction ou vérification en échec --> F[[Retour arrière automatique]]
+    D -- Autoriser la reprise --> A
+```
 
 1. Cliquer une étape disponible, lire les instructions. Les blocs de code ont un bouton « Copier ».
 2. **Démarrer** : vous devenez l'exécutant de l'étape. Toute personne de la MEP reliée à un compte peut démarrer une étape disponible ; un administrateur aussi (il est alors ajouté à la MEP comme exécutant).
@@ -50,7 +63,12 @@ L'étape en échec propose ses **résolutions prévues** (« Problème connu ? �
 2. pour chaque correction : l'appliquer, noter l'observation, déclarer « Conforme » ou « Échec » ;
 3. après les corrections, la **vérification finale**.
 
-Si tout est conforme, l'étape revient à faire et peut être redémarrée. **Si une correction ou la vérification finale échoue, le retour arrière se déclenche automatiquement** (sauf si le point de non-retour est franchi).
+![Résolution guidée en cours sur une étape en échec](images/resolution-guidee.png)
+
+Si tout est conforme, l'étape revient à faire et peut être redémarrée.
+
+> [!CAUTION]
+> Si une correction ou la vérification finale échoue, **le retour arrière se déclenche automatiquement** (sauf si le point de non-retour est franchi).
 
 Sans résolution adaptée, le pilote ou un suppléant peut cliquer « Autoriser la reprise » pour que l'étape soit refaite, ou déclencher le retour arrière.
 
@@ -58,7 +76,10 @@ Une résolution utile qui manquait peut être créée depuis « Paramètres › 
 
 ## Point de non-retour
 
-L'étape point de non-retour est encadrée de rouge. Avant qu'on puisse la démarrer, le pilote ou un suppléant doit cliquer **« Autoriser le passage »**. Dès qu'elle démarre, un bandeau rappelle que le retour arrière n'est plus possible : tout problème se corrige en avant.
+L'étape point de non-retour est encadrée de rouge. Avant qu'on puisse la démarrer, le pilote ou un suppléant doit cliquer **« Autoriser le passage »**.
+
+> [!WARNING]
+> Dès qu'elle démarre, le retour arrière n'est plus possible, ni manuel ni automatique : tout problème se corrige en avant. Un bandeau le rappelle à tous.
 
 ## Revenir en préparation
 
@@ -81,6 +102,8 @@ Si la recette révèle un problème et que le point de non-retour n'est pas fran
 ## Le journal
 
 L'onglet **Journal** retrace tout, du plus récent au plus ancien, groupé par jour : qui a fait quoi et quand, motifs des prises de main, du no-go et du retour arrière, critères cochés au Go, résultats de recette. Une recherche et un filtre par type d'événement aident à s'y retrouver.
+
+![Onglet Journal](images/journal.png)
 
 ## Travailler à plusieurs
 

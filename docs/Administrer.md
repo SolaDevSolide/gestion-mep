@@ -12,6 +12,8 @@ Il est créé au premier démarrage, sur une base vide, à partir des variables 
 
 Menu « Administration › Console d'administration », visible des seuls administrateurs. Trois onglets.
 
+![Console d'administration, onglet Comptes](images/console-admin.png)
+
 ### Comptes
 
 - **Nouveau compte** : identifiant, nom affiché, rôle (par exemple « Développeur API »), contact, case « Administrateur ».
