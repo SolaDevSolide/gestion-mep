@@ -36,3 +36,7 @@ La procédure complète (configuration, HTTPS, sauvegardes, mises à jour, comma
 | [Contribuer](CONTRIBUTING.md) | Développeurs : lancer sans Docker, tests, conventions, migrations |
 | [Architecture](docs/architecture.md) | Organisation du code et principes |
 | [API](docs/api.md) | Contrat de l'API ([OpenAPI](docs/openapi.json)) |
+
+## Licence
+
+Distribué sous licence [MIT](LICENSE) : utilisation, modification et redistribution libres, y compris commerciales.
