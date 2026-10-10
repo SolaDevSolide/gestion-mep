@@ -315,7 +315,7 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
       )}
 
       {peutTerminer ? (
-        <Field label="Preuve : ce que vous avez constaté" hint="Obligatoire en cas d’échec.">
+        <Field label="Preuve : ce que vous avez constaté" hint="Facultative si l’étape réussit, obligatoire en cas d’échec.">
           {(id) => <Textarea id={id} rows={8} value={preuve} onChange={(e) => setPreuve(e.target.value)} placeholder="Sortie de commande, capture décrite, constat…" className="min-h-40" />}
         </Field>
       ) : etape.preuve.trim() && etape.etat === 'Reussie' && (
