@@ -99,7 +99,6 @@ Le test `OpenApiTests` échoue tant que `docs/openapi.json` ne correspond pas à
 
 - Une route ajoutée ou modifiée est décrite dans [docs/api.md](docs/api.md).
 - Un changement d'installation, de configuration ou de sauvegarde est reporté dans [docs/exploitation.md](docs/exploitation.md).
-- Les spécifications d'un nouveau jalon vont dans [docs/specs/](docs/specs/).
 
 ## Branches et pull requests
 

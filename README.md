@@ -37,6 +37,10 @@ La procédure complète (configuration, HTTPS, sauvegardes, mises à jour, comma
 | [Architecture](docs/architecture.md) | Organisation du code et principes |
 | [API](docs/api.md) | Contrat de l'API ([OpenAPI](docs/openapi.json)) |
 
+## Sécurité
+
+Une faille de sécurité se signale en privé, sans ticket public : voir [SECURITY.md](SECURITY.md).
+
 ## Licence
 
 Distribué sous licence [MIT](LICENSE) : utilisation, modification et redistribution libres, y compris commerciales.

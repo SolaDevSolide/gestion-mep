@@ -22,7 +22,7 @@ public static partial class Regles
             }
         }
 
-        // Parcours en profondeur avec trois couleurs, comme Visiter() dans l'Excel.
+        // Parcours en profondeur avec trois couleurs.
         var couleur = new Dictionary<Guid, int>();
         bool Visiter(Etape e)
         {

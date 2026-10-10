@@ -109,7 +109,7 @@ public class Mep
     public bool BilanActive { get; set; } = true;
     public Bilan? Bilan { get; set; }
 
-    // Onglet « Retour arrière » de l'Excel : déclenchement et données
+    // Plan de retour arrière : déclenchement et données
     public PlanRepli PlanRepli { get; set; } = new();
 
     // 4. Sauvegarde
@@ -124,7 +124,7 @@ public class Mep
     public DateTimeOffset CreeLe { get; set; } = DateTimeOffset.UtcNow;
     public Guid? CreeParUtilisateurId { get; set; }
 
-    /// <summary>Compteur de révision pour le verrou optimiste (équivalent de la colonne « Révision » de l'Excel).</summary>
+    /// <summary>Compteur de révision pour le verrou optimiste.</summary>
     public int Version { get; set; }
 
     public List<Participant> Participants { get; set; } = [];

@@ -538,7 +538,7 @@ La vérification du plan renvoie désormais **deux listes** : `erreursPlan` (ano
 
 # Jalon 4 : ajouts et changements
 
-Spécification : `docs/specs/jalon4-spec.md` ; maquette : `docs/maquettes/jalon4-etapes.html`. Principes inchangés : règle métier = **422** `{ message }`, 403 réservé aux droits propres à l'API, codes d'étape stables, toute écriture journalise et notifie le flux SSE, toute modification du contenu en préparation remet les approbations à zéro.
+Principes inchangés : règle métier = **422** `{ message }`, 403 réservé aux droits propres à l'API, codes d'étape stables, toute écriture journalise et notifie le flux SSE, toute modification du contenu en préparation remet les approbations à zéro.
 
 ## Changements incompatibles (à reprendre côté front)
 
@@ -710,7 +710,6 @@ Aucun changement de schéma : `instructions`, `resultatAttendu`, `symptomes`, `d
 
 # Jalon 4.2 : ajouts et changements
 
-Spécification : `docs/specs/jalon4-2-spec.md` (sections D à G pour le back).
 
 ## Changements incompatibles (à reprendre côté front)
 

@@ -4,7 +4,7 @@ namespace GestionMep.Domain;
 public static partial class Regles
 {
     /// <summary>
-    /// Équivalent de DisponibiliteDonnees, évalué dans le même ordre que l'Excel pour le déploiement.
+    /// Disponibilité d'une étape, évaluée dans un ordre fixe : le premier motif qui bloque l'emporte.
     /// Les étapes du retour arrière ne sont disponibles qu'une fois celui-ci déclenché, et ne dépendent pas de l'échéance.
     /// </summary>
     public static Disponibilite Disponibilite(Mep mep, Etape etape, DateTimeOffset maintenant)

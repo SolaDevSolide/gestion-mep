@@ -1,6 +1,6 @@
 # Architecture
 
-Ce document décrit comment l'application est construite. Le contrat d'API est dans [api.md](api.md), les spécifications par jalon dans [specs/](specs/), l'installation et la maintenance en production dans [exploitation.md](exploitation.md).
+Ce document décrit comment l'application est construite. Le contrat d'API est dans [api.md](api.md), l'installation et la maintenance en production dans [exploitation.md](exploitation.md).
 
 ## Vue d'ensemble
 
@@ -28,7 +28,7 @@ Deux projets dans `backend/src`, testés par `backend/tests/GestionMep.Tests`.
 Aucune dépendance vers ASP.NET ni EF Core.
 
 - `Modele.cs` : entités (`Mep`, `Etape`, `Participant`, `Systeme`, `ResolutionType`, `FicheRecette`, `Approbation`…) et énumérations.
-- `Regles.cs` et `Regles.*.cs` : toutes les règles, en fonctions statiques pures d'une même classe partielle, un fichier par domaine (`Regles.Graphe.cs`, `Regles.Disponibilite.cs`, `Regles.Droits.cs`, `Regles.Phases.cs`, `Regles.Recette.cs`, `Regles.Resolutions.cs`…). Elles reprennent les macros VBA du modèle Excel d'origine (disponibilité d'une étape, validité du graphe, vérification du plan, transitions), complétées par les jalons suivants (approbations, go / no-go, point de non-retour, recette, retour arrière, résolutions types, duplication, graphe par lignes).
+- `Regles.cs` et `Regles.*.cs` : toutes les règles, en fonctions statiques pures d'une même classe partielle, un fichier par domaine (`Regles.Graphe.cs`, `Regles.Disponibilite.cs`, `Regles.Droits.cs`, `Regles.Phases.cs`, `Regles.Recette.cs`, `Regles.Resolutions.cs`…). Elles couvrent la disponibilité d'une étape, la validité du graphe, la vérification du plan, les transitions de phase, les approbations, le go / no-go, le point de non-retour, la recette, le retour arrière, les résolutions types et la duplication.
 - Un refus lève `RegleMetierException` avec un message en français destiné à l'utilisateur. L'API le traduit en **422**.
 - L'heure courante est toujours passée en paramètre (`maintenant`) : les règles se testent sans horloge.
 - `DonneesDemo.cs` : jeu de démonstration (comptes `alice`, `bob`, `claire`, MEP d'exemple).

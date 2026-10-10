@@ -128,7 +128,7 @@ public static class DonneesDemo
             FuseauHoraire = "Europe/Paris",
             Environnement = "Production",
             BilanActive = true,
-            // Comme l'Excel : échéance initialisée à demain 23:59.
+            // Échéance initialisée à demain 23:59.
             EcheanceRepli = new DateTimeOffset(maintenant.UtcDateTime.Date.AddDays(1).AddHours(23).AddMinutes(59), TimeSpan.Zero),
             CreeParUtilisateurId = alice,
         };
@@ -199,7 +199,7 @@ public static class DonneesDemo
         Etape(mep, TypePlan.Deploiement, 9, 4, "Contrôle final", [bdd, api, web], pAlice, 15, Criticite.Elevee, EtatEtape.AFaire,
             "- [ ] Passer une commande test\n- [ ] Vérifier qu'elle apparaît dans le MDM\n- [ ] Vérifier les tableaux de bord", "Tous les contrôles sont verts.", "", e8);
 
-        // Onglet « Retour arrière » de l'Excel
+        // Plan de retour arrière
         mep.PlanRepli = new PlanRepli
         {
             QuandDeclencher = "Échec d'une étape sans résolution, résolution en échec, ou échéance atteinte.",

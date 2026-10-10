@@ -23,9 +23,8 @@ public enum StatutDisponibilite
 public record Disponibilite(StatutDisponibilite Statut, string Libelle);
 
 /// <summary>
-/// Règles du plan de MEP, reprises des macros VBA du modèle Excel
-/// (modules Collaboration et frmEtape : MEPDisponibilite, ErreurGraphe, ErreursPlan, ChangerEtat…),
-/// complétées par le retour arrière, la prise de main et les résolutions types.
+/// Règles du plan de MEP : disponibilité des étapes, validité du graphe, anomalies du plan, changements d'état,
+/// retour arrière, prise de main et résolutions types.
 /// </summary>
 public static partial class Regles
 {
