@@ -25,12 +25,17 @@ public class ErreurHttp(int statut, string message, IReadOnlyList<string>? erreu
 /// <summary>Traduit les exceptions en réponses JSON : règle métier 422, saisie 400, conflit 409…</summary>
 public static class MiddlewareErreurs
 {
+    private const string MessageTropVolumineux = "Requête trop volumineuse.";
+
     public static void UtiliserGestionErreurs(this WebApplication app) =>
         app.Use(async (ctx, suivant) =>
         {
             try
             {
                 await suivant();
+                // Corps trop gros détecté par Kestrel pendant la lecture du JSON : le statut 413 est posé sans message.
+                if (ctx.Response.StatusCode == StatusCodes.Status413PayloadTooLarge && !ctx.Response.HasStarted)
+                    await ctx.Response.WriteAsJsonAsync(new { message = MessageTropVolumineux });
             }
             catch (OperationCanceledException) when (ctx.RequestAborted.IsCancellationRequested)
             {
@@ -53,6 +58,8 @@ public static class MiddlewareErreurs
         {
             case ErreurHttp e: return (e.Statut, e.Message);
             case GestionMep.Domain.RegleMetierException e: return (422, e.Message);
+            case BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge }:
+                return (413, MessageTropVolumineux);
             case BadHttpRequestException:
                 return (400, "Requête invalide : corps JSON absent, mal formé ou contenant une valeur inconnue.");
             case DbUpdateConcurrencyException:
