@@ -2,6 +2,7 @@ import { Flag, Loader2, OctagonAlert, RefreshCw, Siren } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
+import { ouvrirFlux } from '../flux';
 import { formatDateHeure } from '../format';
 import { DirtyContext, type DirtyRegistry } from '../hooks';
 import { BilanCarte } from '../mep/BilanCarte';
@@ -93,17 +94,12 @@ export default function MepPage() {
     void charger(false);
   }, [charger]);
 
-  // Flux temps réel (SSE).
-  useEffect(() => {
-    const es = new EventSource(`/api/meps/${id}/flux`, { withCredentials: true });
-    es.addEventListener('maj', (ev) => {
-      try {
-        const { version } = JSON.parse((ev as MessageEvent<string>).data) as { version: number };
-        if (version > versionRef.current) void synchroniser();
-      } catch { /* événement illisible */ }
-    });
-    return () => es.close();
-  }, [id, synchroniser]);
+  // Flux temps réel (SSE), recréé après une erreur HTTP.
+  useEffect(() => ouvrirFlux(
+    `/api/meps/${id}/flux`,
+    (version) => { if (version > versionRef.current) void synchroniser(); },
+    () => void synchroniser(),
+  ), [id, synchroniser]);
 
   // Rafraîchissement périodique (disponibilités dépendantes de l'heure, échéance automatique).
   useEffect(() => {
