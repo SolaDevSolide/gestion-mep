@@ -1,376 +1,140 @@
-// Types alignés sur docs/api.md
+// Types de l'API : façade sur les types générés depuis le contrat OpenAPI (docs/openapi.json → src/api/schema.d.ts,
+// `npm run api:types`). Les noms exportés restent ceux du front ; un changement de DTO côté serveur se voit à la compilation.
+import type { components } from './api/schema';
 
-export type Phase = 'Preparation' | 'Execution' | 'Recette' | 'RetourArriere' | 'Cloturee';
-export type ModeSauvegarde = 'AvantMep' | 'PendantMep';
-export type TypeEtape = 'Standard' | 'Sauvegarde';
-export type DecisionApprobation = 'Approuvee' | 'Refusee';
-export type DisponibiliteJourJ = 'Joignable' | 'Absent';
-export type IssueMep = 'Reussie' | 'Repliee';
-export type TypePlan = 'Deploiement' | 'RetourArriere';
-export type ResultatControle = 'Conforme' | 'Echec';
-export type StatutResolution = 'EnCours' | 'Reussie' | 'Echouee';
-export type EtatEtape = 'AFaire' | 'EnCours' | 'Reussie' | 'Echec';
-export type Criticite = 'Faible' | 'Moderee' | 'Elevee' | 'Bloquante';
-export type StatutDisponibilite =
-  | 'PlanInvalide'
-  | 'EcheanceARenseigner'
-  | 'RetourArriere'
-  | 'FicheACompleter'
-  | 'InstructionsACompleter'
-  | 'Attend'
-  | 'Terminee'
-  | 'EnCours'
-  | 'ArretResolution'
-  | 'ResolutionEnCours'
-  | 'SiRetourArriere'
-  | 'Disponible';
+type S = components['schemas'];
+
+/**
+ * Le générateur OpenAPI d'ASP.NET perd le `null` d'une propriété dont le type est un objet nullable
+ * (`RetourArriereDto? RetourArriere`…) : le contrat la déclare non nullable alors que le serveur envoie `null`.
+ * `Nullables` rétablit ces propriétés d'après Services/Dtos.cs ; une propriété disparue du contrat casse la compilation.
+ */
+type Nullables<T, K extends keyof T> = Omit<T, K> & { [P in K]: T[P] | null };
+
+/**
+ * Forme qu'accepte le serveur pour une saisie : le désérialiseur .NET met à null un champ absent, donc un champ
+ * nullable du contrat (déclaré obligatoire par le générateur) peut aussi être omis.
+ */
+type Souple<T> = T extends (infer U)[]
+  ? Souple<U>[]
+  : T extends object
+    ? { [K in keyof T as null extends T[K] ? K : never]?: Souple<T[K]> } & { [K in keyof T as null extends T[K] ? never : K]: Souple<T[K]> }
+    : T;
+
+/**
+ * Saisie écrite côté front (plus stricte que le contrat : champs non nuls, champs facultatifs omis),
+ * vérifiée à la compilation contre le schéma de l'API : chaque champ doit y exister avec un type compatible.
+ */
+type SaisieVerifiee<Schema, F extends Souple<Schema> & Record<Exclude<keyof F, keyof Schema>, never>> = F;
+
+// ---------- Énumérations ----------
+
+export type Phase = S['Phase'];
+export type ModeSauvegarde = NonNullable<S['ModeSauvegarde']>;
+export type TypeEtape = NonNullable<S['TypeEtape']>;
+export type DecisionApprobation = NonNullable<S['DecisionApprobation']>;
+export type DisponibiliteJourJ = NonNullable<S['DisponibiliteJourJ']>;
+export type IssueMep = NonNullable<S['MepDto']['issue']>;
+export type TypePlan = NonNullable<S['TypePlan']>;
+export type ResultatControle = NonNullable<S['ResultatControle']>;
+export type StatutResolution = S['ExecutionResolutionDto']['statut'];
+export type EtatEtape = NonNullable<S['EtatEtape']>;
+export type Criticite = NonNullable<S['Criticite']>;
+export type StatutDisponibilite = S['DisponibiliteDto']['statut'];
+export type StatutSauvegarde = NonNullable<S['StatutSauvegarde']>;
+
+// ---------- Sorties (DTO) ----------
 
 /** Expertise d'un compte sur un système du catalogue (« Expert de la zone facturation »). */
-export interface Expertise {
-  systemeCatalogueId: string;
-  detail: string;
-}
+export type Expertise = S['ExpertiseDto'];
+export type Utilisateur = S['UtilisateurDto'];
 
-export interface Utilisateur {
-  id: string;
-  login: string;
-  nomAffiche: string;
-  estAdmin: boolean;
-  role: string;
-  contact: string;
-  expertises: Expertise[];
-}
+/** `dateMep` : date du Go si elle existe ; `creeLe` : date de création (affichée tant que la MEP n'a pas démarré). */
+export type MepResume = S['MepResumeDto'];
 
-export interface ProfilSaisie {
+export type Sauvegarde = S['SauvegardeDto'];
+export type Participant = S['ParticipantDto'];
+/** Sauvegarde d'un système de la MEP : requise (quoi, quand) ou non requise (justification). */
+export type SauvegardeSysteme = S['SauvegardeSystemeDto'];
+export type Systeme = S['SystemeDto'];
+export type Livrable = S['LivrableDto'];
+export type Disponibilite = S['DisponibiliteDto'];
+export type Validation = S['ValidationDto'];
+
+/**
+ * Étape du plan : `ligne` (0 = en haut) et `ordre` (position dans la ligne) placent l'étape dans le graphe ;
+ * `commentaire` : commentaire facultatif de l'exécutant (modifiable pendant l'exécution).
+ */
+export type Etape = Nullables<S['EtapeDto'], 'nonRetourAutorise'>;
+
+export type ResponsableTechnique = S['ResponsableTechniqueDto'];
+
+/**
+ * `peutModifierPlan` : phase de préparation, le plan peut être modifié (par ceux qui en ont le droit) ;
+ * `peutEditerContenu` : préparation ET droit d'édition (responsable technique, pilote, suppléant, administrateur).
+ */
+export type Droits = S['DroitsDto'];
+
+export type Approbation = S['ApprobationDto'];
+export type CritereCoche = S['CritereValideDto'];
+/** Étape de test d'une fiche de recette (instructions et résultat attendu en markdown). */
+export type EtapeTest = S['EtapeTestDto'];
+/** Fiche de recette d'un système de la MEP (systemeId null = « sans système »). */
+export type FicheRecette = S['FicheRecetteDto'];
+export type Bilan = S['BilanDto'];
+export type PieceJointe = S['PieceJointeDto'];
+export type CritereGoNoGo = S['CritereGoNoGoDto'];
+export type ParametresGlobaux = SaisieVerifiee<S['ParametresSaisie'], S['ParametresDto']>;
+export type RetourArriereInfo = S['RetourArriereDto'];
+export type ClotureInfo = S['ClotureDto'];
+export type PlanRepli = S['PlanRepliDto'];
+export type CorrectionExecutee = S['CorrectionExecuteeDto'];
+export type ExecutionResolution = S['ExecutionResolutionDto'];
+export type SystemeCatalogue = S['SystemeCatalogueDto'];
+export type CorrectionType = S['CorrectionDto'];
+/** `systemeCatalogueIds` vide = tous les systèmes ; `modifieeParId` null : démo ou fiche antérieure au suivi. */
+export type ResolutionType = S['ResolutionTypeDto'];
+/** Version archivée d'une résolution type (historique, la plus récente d'abord). `action` : creee, modifiee, desactivee ou existante. */
+export type VersionResolutionType = S['VersionResolutionTypeDto'];
+export type Evenement = S['EvenementDto'];
+
+/** `avertissements` : avertissements non bloquants de la vérification du plan (responsables techniques). */
+export type Mep = Omit<
+  Nullables<S['MepDto'], 'retourArriere' | 'cloture' | 'procedureRelue' | 'demarrageAutorise' | 'bilan'>,
+  'etapes'
+> & { etapes: Etape[] };
+
+// ---------- Entrées (saisies) ----------
+
+/** `nomAffiche` absent : inchangé. */
+export type ProfilSaisie = SaisieVerifiee<S['ProfilSaisie'], {
   nomAffiche?: string;
   role: string;
   contact: string;
   expertises: Expertise[];
-}
+}>;
 
-export interface MepResume {
-  id: string;
-  outil: string;
-  versionCible: string;
-  objet: string;
-  /** Date du Go (démarrage) si elle existe, sinon null. */
-  dateMep: string | null;
-  /** Date de création (affichée tant que la MEP n’a pas démarré), si fournie par l’API. */
-  creeLe?: string | null;
-  phase: Phase;
-  echeanceRepli: string | null;
-  issue?: IssueMep | null;
-  environnement: string;
-  estModele: boolean;
-  pilote: string | null;
-  nbEtapes: number;
-  nbReussies: number;
-  nbEchecs: number;
-}
-
-export interface Sauvegarde {
-  mode: ModeSauvegarde;
-  structure: boolean;
-  donnees: boolean;
-  configuration: boolean;
-  responsableId: string | null;
-  realiseeLe: string | null;
-  procedure: string;
-  copies: string;
-  restaurationTestee: boolean;
-  dateTestRestauration: string | null;
-  preuveTestRestauration: string;
-}
-
-export interface Participant {
-  id: string;
-  nom: string;
-  role: string;
-  contact: string;
-  utilisateurId: string | null;
-  utilisateurNom: string | null;
-}
-
-export type StatutSauvegarde = 'ARenseigner' | 'Requise' | 'NonRequise';
-
-/** Sauvegarde d'un système de la MEP : requise (quoi, quand) ou non requise (justification). */
-export interface SauvegardeSysteme {
-  statut: StatutSauvegarde;
-  moment: ModeSauvegarde;
-  contenu: string;
-  justification: string;
-}
-export type SauvegardeSystemeSaisie = SauvegardeSysteme & { version: number };
-
-export interface Systeme {
-  id: string;
-  nom: string;
-  cible: string;
-  impact: string;
-  catalogueId: string | null;
-  sauvegarde: SauvegardeSysteme;
-}
-
-export interface Livrable {
-  id: string;
-  objet: string;
-  version: string;
-  emplacement: string;
-  systemeId: string | null;
-}
-
-export interface Disponibilite {
-  statut: StatutDisponibilite;
-  libelle: string;
-}
-
-export interface Etape {
-  id: string;
-  plan: TypePlan;
-  code: string;
-  /** Ligne du graphe (0 = en haut), par plan. */
-  ligne: number;
-  /** Position dans la ligne (0, 1, 2…). */
-  ordre: number;
-  action: string;
-  /** Systèmes de la MEP touchés par l'étape (plusieurs possibles). */
-  systemeIds: string[];
-  responsableId: string | null;
-  criticite: Criticite | null;
-  dureeEstimeeMinutes: number | null;
-  etat: EtatEtape;
-  instructions: string;
-  resultatAttendu: string;
-  preuve: string;
-  /** Commentaire facultatif de l’exécutant (modifiable pendant l’exécution). */
-  commentaire: string;
-  debutReel: string | null;
-  finReelle: string | null;
-  revision: number;
-  executantId: string | null;
-  dependances: string[];
-  resolutionIds: string[];
-  type: TypeEtape;
-  pointDeNonRetour: boolean;
-  nonRetourAutorise: { par: string | null; le: string } | null;
-  disponibilite: Disponibilite;
-}
-
-export interface Validation {
-  par: string;
-  le: string;
-}
-
-export interface ResponsableTechnique {
-  participantId: string;
-  systemeIds: string[];
-  perimetre: string;
-  disponibilite: DisponibiliteJourJ;
-  contactJourJ: string;
-}
-export type ResponsableTechniqueSaisie = ResponsableTechnique;
-
-export interface Droits {
-  estPilote: boolean;
-  estApprobateur: boolean;
-  estResponsableTechnique: boolean;
-  /** Phase de préparation : le plan peut être modifié (par ceux qui en ont le droit). */
-  peutModifierPlan: boolean;
-  /** Préparation ET droit d'édition (responsable technique, pilote, suppléant, administrateur). */
-  peutEditerContenu: boolean;
-  participantId: string | null;
-}
-
-export interface Mep {
-  id: string;
-  version: number;
-  outil: string;
-  versionActuelle: string;
-  versionCible: string;
-  objet: string;
-  impacts: string;
-  dateMep: string | null;
-  heureDebut: string | null;
-  heureFin: string | null;
-  fuseauHoraire: string;
-  indisponibiliteMinutes: number | null;
-  piloteId: string | null;
-  suppleantIds: string[];
-  environnement: string;
-  estModele: boolean;
-  approbationsMinimum: number;
-  approbations: Approbation[];
-  goNoGo: CritereCoche[];
-  fichesRecette: FicheRecette[];
-  bilanActive: boolean;
-  bilan: Bilan | null;
-  nonRetourFranchi: string | null;
-  piecesJointes: PieceJointe[];
-  phase: Phase;
-  issue: IssueMep | null;
-  retourArriere: RetourArriereInfo | null;
-  cloture: ClotureInfo | null;
-  planRepli: PlanRepli;
-  echeanceRepli: string | null;
-  sauvegarde: Sauvegarde;
-  procedureRelue: Validation | null;
-  demarrageAutorise: Validation | null;
-  participants: Participant[];
-  systemes: Systeme[];
-  livrables: Livrable[];
-  etapes: Etape[];
-  resolutions: ExecutionResolution[];
-  erreursPlan: string[];
-  /** Avertissements non bloquants de la vérification du plan (responsables techniques). */
-  avertissements: string[];
-  responsablesTechniques: ResponsableTechnique[];
-  droits: Droits;
-}
-
-export interface Approbation {
-  id: string;
-  utilisateurId: string;
-  nom: string;
-  decision: DecisionApprobation | null;
-  commentaire: string;
-  le: string | null;
-}
-export interface CritereCoche { libelle: string; par: string | null; le: string }
-/** Étape de test d'une fiche de recette (instructions et résultat attendu en markdown). */
-export interface EtapeTest {
-  id: string;
-  ordre: number;
-  instructions: string;
-  resultatAttendu: string;
-  resultat: ResultatControle | null;
-  observation: string;
-  par: string | null;
-  le: string | null;
-}
-/** Fiche de recette d'un système de la MEP (systemeId null = « sans système »). */
-export interface FicheRecette {
-  id: string;
-  ordre: number;
-  systemeId: string | null;
-  titre: string;
-  etapes: EtapeTest[];
-}
-export interface EtapeTestSaisie { id?: string; instructions: string; resultatAttendu: string }
-export interface FicheRecetteSaisie { systemeId: string | null; titre: string; etapes: EtapeTestSaisie[] }
-export interface Bilan { ceQuiAMarche: string; incidents: string; actions: string; redigePar: string | null; le: string | null }
-export interface PieceJointe {
-  id: string;
-  mepId: string | null;
-  etapeId: string | null;
-  resolutionTypeId: string | null;
-  executionResolutionId: string | null;
-  nomFichier: string;
-  typeContenu: string;
-  taille: number;
-  sha256: string;
-  deposeParId: string | null;
-  deposePar: string | null;
-  deposeLe: string;
-}
-export interface CritereGoNoGo { id: string; libelle: string; ordre: number; actif: boolean }
-export interface CritereGoNoGoSaisie { libelle: string; ordre?: number; actif?: boolean }
-export interface ParametresGlobaux { approbationsMinimum: number }
-export interface BilanSaisie { ceQuiAMarche: string; incidents: string; actions: string }
-export interface DuplicationSaisie { environnement?: string | null; commeModele: boolean }
-
-export interface RetourArriereInfo { le: string; par: string | null; motif: string }
-export interface ClotureInfo { le: string; par: string }
-export interface PlanRepli {
-  quandDeclencher: string;
-  dureeTesteeMinutes: number | null;
-  versionARestaurer: string;
-  donneesDepuisSauvegarde: string;
-  siRepliEchoue: string;
-}
-export type PlanRepliSaisie = PlanRepli & { version: number };
-
-export interface CorrectionExecutee {
-  ordre: number;
-  instruction: string;
-  resultatAttendu: string;
-  resultat: ResultatControle | null;
-  observation: string;
-  par: string | null;
-  le: string | null;
-}
-
-export interface ExecutionResolution {
-  id: string;
-  etapeId: string;
-  resolutionTypeId: string;
-  titre: string;
-  symptomes: string;
-  diagnostic: string;
-  corrections: CorrectionExecutee[];
-  verificationInstruction: string;
-  verificationAttendu: string;
-  verificationResultat: ResultatControle | null;
-  verificationObservation: string;
-  statut: StatutResolution;
-  demarreePar: string;
-  demarreeLe: string;
-  termineeLe: string | null;
-}
-
-export interface SystemeCatalogue { id: string; nom: string; description: string; cible: string; actif: boolean }
-export type SystemeCatalogueSaisie = Omit<SystemeCatalogue, 'id'>;
-
-export interface CorrectionType { ordre: number; instruction: string; resultatAttendu: string }
-export interface ResolutionType {
-  id: string;
-  titre: string;
-  symptomes: string;
-  diagnostic: string;
-  /** Systèmes du catalogue concernés (vide = tous les systèmes). */
-  systemeCatalogueIds: string[];
-  corrections: CorrectionType[];
-  verificationInstruction: string;
-  verificationAttendu: string;
-  actif: boolean;
-  version: number;
-  modifieeLe: string;
-  /** Auteur de la dernière modification (null : démo ou fiche antérieure au suivi). */
-  modifieeParId: string | null;
-  modifieeParNom: string | null;
-}
-export type ResolutionTypeSaisie = Omit<ResolutionType, 'id' | 'actif' | 'modifieeLe' | 'modifieeParId' | 'modifieeParNom'>;
-
-/** Version archivée d'une résolution type (historique, la plus récente d'abord). */
-export interface VersionResolutionType extends Omit<ResolutionType, 'id'> {
-  action: 'creee' | 'modifiee' | 'desactivee' | 'existante';
-}
-
-export interface Evenement {
-  id: string;
-  quand: string;
-  auteur: string;
-  type: string;
-  detail: string;
-}
-
-export type MepIdentiteSaisie = Pick<
+export type MepIdentiteSaisie = SaisieVerifiee<S['MepIdentiteSaisie'], Pick<
   Mep,
   | 'version' | 'outil' | 'versionActuelle' | 'versionCible' | 'objet' | 'impacts'
   | 'fuseauHoraire' | 'indisponibiliteMinutes' | 'piloteId'
   | 'suppleantIds' | 'echeanceRepli'
-> & { environnement?: string; bilanActive?: boolean };
+> & { environnement?: string; bilanActive?: boolean }>;
 
-export type SauvegardeSaisie = Sauvegarde & { version: number };
+export type SauvegardeSaisie = SaisieVerifiee<S['SauvegardeSaisie'], Sauvegarde & { version: number }>;
+export type SauvegardeSystemeSaisie = SaisieVerifiee<S['SauvegardeSystemeSaisie'], SauvegardeSysteme & { version: number }>;
+export type PlanRepliSaisie = SaisieVerifiee<S['PlanRepliSaisie'], PlanRepli & { version: number }>;
+export type ResponsableTechniqueSaisie = SaisieVerifiee<S['ResponsableTechniqueSaisie'], ResponsableTechnique>;
 
-export interface ParticipantSaisie { nom: string; role: string; contact: string; utilisateurId: string | null }
-export interface SystemeSaisie { nom: string; cible: string; impact: string }
-export interface LivrableSaisie { objet: string; version: string; emplacement: string; systemeId: string | null }
+export type ParticipantSaisie = SaisieVerifiee<S['ParticipantSaisie'], { nom: string; role: string; contact: string; utilisateurId: string | null }>;
+export type SystemeSaisie = SaisieVerifiee<S['SystemeSaisie'], { nom: string; cible: string; impact: string }>;
+export type LivrableSaisie = SaisieVerifiee<S['LivrableSaisie'], { objet: string; version: string; emplacement: string; systemeId: string | null }>;
 
-export interface EtapeSaisie {
+export type EtapeSaisie = SaisieVerifiee<S['EtapeSaisie'], {
   revision: number;
   action: string;
   systemeIds: string[];
-  /** Ignoré par le serveur depuis le jalon 4.2 (l’exécutant est celui qui démarre). */
+  /** Ignoré par le serveur depuis le jalon 4.2 (l'exécutant est celui qui démarre). */
   responsableId?: string | null;
   criticite: Criticite | null;
   dureeEstimeeMinutes: number | null;
@@ -380,4 +144,18 @@ export interface EtapeSaisie {
   resolutionIds: string[];
   type: TypeEtape;
   pointDeNonRetour: boolean;
-}
+}>;
+
+/** `id` absent : nouvelle étape de test. */
+export type EtapeTestSaisie = SaisieVerifiee<S['EtapeTestSaisie'], { id?: string; instructions: string; resultatAttendu: string }>;
+export type FicheRecetteSaisie = SaisieVerifiee<S['FicheRecetteSaisie'], { systemeId: string | null; titre: string; etapes: EtapeTestSaisie[] }>;
+/** Bilan saisi à la clôture (corps de `POST /meps/{id}/cloturer`). */
+export type BilanSaisie = SaisieVerifiee<S['ClotureSaisie'], { ceQuiAMarche: string; incidents: string; actions: string }>;
+export type DuplicationSaisie = SaisieVerifiee<S['DuplicationSaisie'], { environnement?: string | null; commeModele: boolean }>;
+
+export type CritereGoNoGoSaisie = SaisieVerifiee<S['CritereGoNoGoSaisie'], { libelle: string; ordre?: number; actif?: boolean }>;
+export type SystemeCatalogueSaisie = SaisieVerifiee<S['SystemeCatalogueSaisie'], Omit<SystemeCatalogue, 'id'>>;
+export type ResolutionTypeSaisie = SaisieVerifiee<
+  S['ResolutionTypeSaisie'],
+  Omit<ResolutionType, 'id' | 'actif' | 'modifieeLe' | 'modifieeParId' | 'modifieeParNom'>
+>;
