@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
+import { NouvelleVersion } from './layout/NouvelleVersion';
 import { Shell } from './layout/Shell';
 import ConnexionPage from './pages/ConnexionPage';
 import ListeMepPage from './pages/ListeMepPage';
@@ -26,6 +27,8 @@ function Protege() {
 
 export default function App() {
   return (
+    <>
+    <NouvelleVersion />
     <Routes>
       <Route path="/connexion" element={<ConnexionPage />} />
       <Route element={<Protege />}>
@@ -39,5 +42,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }

@@ -41,12 +41,25 @@ var app = builder.Build();
 
 app.UtiliserGestionErreurs();
 app.UseDefaultFiles();
-app.UseStaticFiles();
+// index.html n'est jamais mis en cache : après un déploiement, le navigateur charge la nouvelle version (les fichiers
+// de /assets ont un nom haché et peuvent, eux, rester en cache).
+var fichiersStatiques = new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.File.Name.Equals("index.html", StringComparison.OrdinalIgnoreCase))
+            ctx.Context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+    },
+};
+app.UseStaticFiles(fichiersStatiques);
 app.UseAuthentication();
 app.UseAuthorization();
 
 var api = app.MapGroup("/api").RequireAuthorization();
 api.MapGet("/sante", () => Results.Ok(new { statut = "ok" })).AllowAnonymous();
+// Version du front servi (empreinte de index.html) : un onglet ouvert la compare pour proposer de recharger après un déploiement.
+var versionFront = VersionFront(app.Environment);
+api.MapGet("/version", () => Results.Ok(new { version = versionFront })).AllowAnonymous();
 api.MapAuth();
 api.MapMeps();
 api.MapStructure();
@@ -60,10 +73,17 @@ api.MapPiecesJointes();
 // Une route /api inconnue ne doit jamais retomber sur index.html.
 api.Map("{**reste}", () => Results.Json(new { message = "Route introuvable." }, statusCode: 404));
 
-app.MapFallbackToFile("index.html");
+app.MapFallbackToFile("index.html", fichiersStatiques);
 
 await Amorcage.Executer(app.Services);
 await app.RunAsync();
+
+static string VersionFront(IWebHostEnvironment env)
+{
+    var index = env.WebRootPath is null ? null : Path.Combine(env.WebRootPath, "index.html");
+    if (index is null || !File.Exists(index)) return "dev";
+    return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(index)))[..12].ToLowerInvariant();
+}
 
 /// <summary>Exposé pour WebApplicationFactory (tests d'intégration).</summary>
 public partial class Program;

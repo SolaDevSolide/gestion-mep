@@ -99,18 +99,31 @@ public class ReglesTests
     }
 
     [Fact]
-    public void Resultat_exige_demarrage_preuve_et_confirmation()
+    public void Resultat_exige_demarrage_confirmation_et_preuve_en_echec()
     {
         var m = Demo();
         Go(m);
         var e4 = E(m, "E0004");
         Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "ok", true, Alice, Maintenant));
         Regles.Demarrer(m, e4, Alice, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "  ", true, Alice, Maintenant));
         Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "ok", false, Alice, Maintenant));
+        // Un échec doit être décrit.
+        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Echec, "  ", false, Alice, Maintenant));
         Regles.Terminer(m, e4, EtatEtape.Echec, "erreur 500", false, Alice, Maintenant);
         Assert.Equal(EtatEtape.Echec, e4.Etat);
         Assert.Equal(Maintenant, e4.FinReelle);
+    }
+
+    [Fact]
+    public void Reussite_sans_preuve_acceptee()
+    {
+        var m = Demo();
+        Go(m);
+        var e4 = E(m, "E0004");
+        Regles.Demarrer(m, e4, Alice, Maintenant);
+        Regles.Terminer(m, e4, EtatEtape.Reussie, "", true, Alice, Maintenant);
+        Assert.Equal(EtatEtape.Reussie, e4.Etat);
+        Assert.Equal("", e4.Preuve);
     }
 
     [Fact]
