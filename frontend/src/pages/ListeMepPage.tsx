@@ -185,7 +185,8 @@ export default function ListeMepPage() {
 
       <ul className="mt-6 space-y-3">
         {filtrees.map((m) => {
-          const meta = metaPhase(m.phase, m.issue ?? null);
+          // MepResumeDto ne porte pas l'issue : une MEP clôturée après repli s'affiche « Clôturée : réussie » (à ajouter côté API).
+          const meta = metaPhase(m.phase, null);
           return (
             <li key={m.id} className="relative">
               <Link
