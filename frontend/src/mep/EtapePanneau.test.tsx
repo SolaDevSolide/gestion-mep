@@ -1,14 +1,15 @@
 import { render as rendu, screen, within } from '@testing-library/react';
-import type { ReactElement } from 'react';
+import type { ComponentProps, ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
+import { AuthContext } from '../auth';
 import { EtapePanneau, type ActionsEtape } from './EtapePanneau';
 import { etape, mep, resolution } from '../test/fabrique';
 import type { Etape, Mep, ResolutionType } from '../types';
 
 const typeRes: ResolutionType = {
   id: 't1', titre: 'API ne répond plus', symptomes: 'Erreur 502 sur /sante', diagnostic: '', systemeCatalogueIds: [], corrections: [],
-  verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-09T10:00:00Z',
+  verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-09T10:00:00Z', modifieeParId: null, modifieeParNom: null,
 };
 
 // Le panneau contient des liens (onglet Retour arrière) : rendu dans un routeur.
@@ -119,6 +120,20 @@ describe('EtapePanneau : exécutant et prise de main', () => {
     unmount();
     rendre(etape(), { participantId: 'p2' });
     expect(screen.queryByRole('button', { name: 'Prendre la main' })).toBeNull();
+  });
+
+  it('prise de main : réservée aux participants et aux administrateurs', () => {
+    const e = etape({ etat: 'Echec', executantId: 'p1' }, 'ArretResolution');
+    const { unmount } = render(<EtapePanneau mep={mep({ droits: { ...mep().droits, participantId: null } })} etape={e} resolutionsTypes={[]} actions={actionsFactices()} onSelectionner={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Prendre la main' })).toBeNull();
+    unmount();
+    const admin = { utilisateur: { id: 'u9', login: 'eve', nomAffiche: 'Eve', estAdmin: true } } as unknown as ComponentProps<typeof AuthContext.Provider>['value'];
+    render(
+      <AuthContext.Provider value={admin}>
+        <EtapePanneau mep={mep({ droits: { ...mep().droits, participantId: null } })} etape={e} resolutionsTypes={[]} actions={actionsFactices()} onSelectionner={vi.fn()} />
+      </AuthContext.Provider>,
+    );
+    expect(screen.getByRole('button', { name: 'Prendre la main' })).toBeInTheDocument();
   });
 
   it('badge « À vous » : sur l’étape que j’exécute, masqué une fois terminée', () => {

@@ -121,8 +121,8 @@ public static class PiecesJointesEndpoints
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
             var piece = await db.PiecesJointes.FirstOrDefaultAsync(p => p.Id == pid && p.MepId == id) ?? throw ErreurHttp.NonTrouve("Pièce jointe introuvable.");
-            if (piece.DeposeParId != acteur.Id && !Regles.EstPilote(mep, acteur.Id))
-                throw ErreurHttp.Interdit("Seul le déposant ou le pilote peut supprimer cette pièce jointe.");
+            if (piece.DeposeParId != acteur.Id && !Regles.EstPilote(mep, acteur.Id) && !acteur.EstAdmin)
+                throw ErreurHttp.Interdit("Seul le déposant, le pilote, un suppléant ou un administrateur peut supprimer cette pièce jointe.");
             ExigerNonCloturee(mep);
             db.PiecesJointes.Remove(piece);
             var dto = await svc.Enregistrer(mep, acteur, "piece.supprimee", $"Pièce jointe supprimée{Cible(mep, piece)} : {piece.NomFichier}");

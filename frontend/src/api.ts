@@ -1,7 +1,7 @@
 import type {
   BilanSaisie, CritereGoNoGo, CritereGoNoGoSaisie, DecisionApprobation, DuplicationSaisie, ParametresGlobaux, PieceJointe, FicheRecetteSaisie, ProfilSaisie, SauvegardeSystemeSaisie,
   Evenement, EtapeSaisie, LivrableSaisie, Mep, MepIdentiteSaisie, MepResume, ParticipantSaisie,
-  PlanRepliSaisie, ResolutionType, ResolutionTypeSaisie, ResultatControle, SauvegardeSaisie,
+  PlanRepliSaisie, ResolutionType, ResolutionTypeSaisie, ResultatControle, SauvegardeSaisie, VersionResolutionType,
   ResponsableTechniqueSaisie, SystemeCatalogue, SystemeCatalogueSaisie, SystemeSaisie, TypePlan, Utilisateur,
 } from './types';
 
@@ -170,6 +170,7 @@ export const api = {
     get<ResolutionType[]>(`/resolutions${systemeCatalogueId ? `?systemeCatalogueId=${encodeURIComponent(systemeCatalogueId)}` : ''}`),
   creerResolution: (s: Omit<ResolutionTypeSaisie, 'version'>) => post<ResolutionType>('/resolutions', s),
   modifierResolution: (id: string, s: ResolutionTypeSaisie) => put<ResolutionType>(`/resolutions/${id}`, s),
+  versionsResolution: (id: string) => get<VersionResolutionType[]>(`/resolutions/${id}/versions`),
   supprimerResolution: (id: string) => del<void>(`/resolutions/${id}`),
 
   procedureRelue: (id: string, relue: boolean) => post<Mep>(`/meps/${id}/procedure-relue`, { relue }),

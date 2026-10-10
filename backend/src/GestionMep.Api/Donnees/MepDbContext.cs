@@ -50,6 +50,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<EvenementJournal> Journal => Set<EvenementJournal>();
     public DbSet<SystemeCatalogue> SystemesCatalogue => Set<SystemeCatalogue>();
     public DbSet<ResolutionType> ResolutionsTypes => Set<ResolutionType>();
+    public DbSet<VersionResolutionType> VersionsResolutionType => Set<VersionResolutionType>();
     public DbSet<ExecutionResolution> ExecutionsResolution => Set<ExecutionResolution>();
     public DbSet<CritereGoNoGo> CriteresGoNoGo => Set<CritereGoNoGo>();
     public DbSet<ParametresGlobaux> Parametres => Set<ParametresGlobaux>();
@@ -119,6 +120,15 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.SystemeCatalogueIds).HasColumnType("uuid[]");
             // Verrou optimiste : la version reçue du client est comparée à la main, et EF protège contre les écritures simultanées.
             e.Property(x => x.Version).IsConcurrencyToken();
+        });
+
+        b.Entity<VersionResolutionType>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.Corrections).AsJson();
+            e.Property(x => x.SystemeCatalogueIds).HasColumnType("uuid[]");
+            e.HasOne<ResolutionType>().WithMany().HasForeignKey(x => x.ResolutionTypeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.ResolutionTypeId, x.Version });
         });
 
         b.Entity<ExecutionResolution>(e =>

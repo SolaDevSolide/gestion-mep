@@ -10,7 +10,7 @@ import { EtapesEditeur } from './EtapesEditeur';
 import { changerModeEspace } from './graphe/EspaceEtape';
 
 const res = (id: string, titre: string, systemeCatalogueIds: string[], symptomes = ''): ResolutionType => ({
-  id, titre, symptomes, diagnostic: '', systemeCatalogueIds, corrections: [], verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-10T10:00:00Z',
+  id, titre, symptomes, diagnostic: '', systemeCatalogueIds, corrections: [], verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-10T10:00:00Z', modifieeParId: null, modifieeParNom: null,
 });
 
 vi.mock('../api', () => ({
