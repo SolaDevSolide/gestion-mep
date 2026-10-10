@@ -748,10 +748,12 @@ public static class Regles
         if (etape.Etat != EtatEtape.EnCours) throw new RegleMetierException("Démarrer l'action avant de déclarer son résultat.");
         if (etape.Plan == TypePlan.Deploiement && resultat == EtatEtape.Reussie && EcheanceAtteinte(mep, maintenant))
             throw new RegleMetierException("Échéance atteinte. Arrêter, prévenir le pilote et appliquer le retour arrière.");
-        if (string.IsNullOrWhiteSpace(preuve)) throw new RegleMetierException("Renseigner la preuve du résultat ou le message d'erreur.");
+        // La preuve n'est exigée qu'en cas d'échec : un succès se constate, un échec doit être décrit.
+        if (resultat == EtatEtape.Echec && string.IsNullOrWhiteSpace(preuve))
+            throw new RegleMetierException("Décrire l'erreur constatée dans la preuve.");
         if (resultat == EtatEtape.Reussie && !resultatVerifie)
             throw new RegleMetierException("Confirmer avoir vérifié et obtenu le résultat attendu.");
-        etape.Preuve = preuve;
+        etape.Preuve = preuve?.Trim() ?? "";
         if (commentaire is not null) etape.Commentaire = commentaire.Trim();
         etape.FinReelle = maintenant;
         etape.Etat = resultat;
