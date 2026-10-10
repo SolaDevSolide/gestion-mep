@@ -39,9 +39,9 @@ builder.Services.AddScoped<ServiceMep>();
 // Pièces jointes : dossier Stockage:Dossier, taille maximale Stockage:TailleMaxMo (le formulaire accepte 1 Mo de marge).
 var stockage = new StockagePiecesJointes(builder.Configuration);
 builder.Services.AddSingleton(stockage);
-var limiteCorps = stockage.TailleMaxOctets + 1024 * 1024;
-builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = limiteCorps);
-builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = limiteCorps);
+builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = stockage.TailleMaxOctets + 1024 * 1024);
+// Corps limité à 1 Mo, sauf sur les routes de dépôt de fichiers (voir PiecesJointesEndpoints.AccepterFichier).
+builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = LimitesRequetes.CorpsParDefaut);
 // Surveillance des échéances de retour arrière (désactivable : Surveillance:Activer=false, utile en test).
 if (builder.Configuration.GetValue("Surveillance:Activer", true))
     builder.Services.AddHostedService<SurveillanceEcheances>();
@@ -58,6 +58,8 @@ var app = builder.Build();
 
 // En premier : adresse et schéma du client derrière le reverse proxy (limite par IP, journaux).
 app.UseForwardedHeaders();
+if (!app.Environment.IsDevelopment()) app.UseHsts();
+app.UtiliserEnTetesSecurite(app.Environment.WebRootPath is { } racine ? Path.Combine(racine, "index.html") : null);
 app.UtiliserGestionErreurs();
 app.UseDefaultFiles();
 // index.html n'est jamais mis en cache : après un déploiement, le navigateur charge la nouvelle version (les fichiers
