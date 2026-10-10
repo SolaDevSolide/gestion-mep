@@ -1,6 +1,6 @@
 # Contribuer
 
-Ce guide s'adresse à un développeur qui reprend le code. L'architecture est décrite dans [docs/architecture.md](docs/architecture.md).
+Ce guide s'adresse à un développeur qui reprend le code. L'architecture est décrite dans [docs/Architecture.md](docs/Architecture.md).
 
 ## Prérequis
 
@@ -97,13 +97,16 @@ Le test `OpenApiTests` échoue tant que `docs/openapi.json` ne correspond pas à
 
 ## Documentation
 
-- Une route ajoutée ou modifiée est décrite dans [docs/api.md](docs/api.md).
-- Un changement d'installation, de configuration ou de sauvegarde est reporté dans [docs/exploitation.md](docs/exploitation.md).
+La documentation vit dans `docs/` et ce fichier. À chaque fusion sur `main`, l'action `Wiki` la recopie dans le wiki GitHub du dépôt : on modifie toujours `docs/`, jamais le wiki directement (il serait écrasé).
+
+- Une route ajoutée ou modifiée est décrite par le contrat OpenAPI (voir ci-dessus) ; une nouvelle convention de l'API va dans [docs/API.md](docs/API.md).
+- Un changement d'installation ou de configuration est reporté dans [docs/Installer.md](docs/Installer.md), un changement de mise à jour, de sauvegarde ou de commande dans [docs/Exploiter.md](docs/Exploiter.md).
+- Un changement visible par les utilisateurs met à jour la page de guide concernée, et [docs/Droits.md](docs/Droits.md) s'il touche aux droits.
+- Une nouvelle page s'ajoute à plat dans `docs/` (le nom du fichier devient le titre de la page du wiki) et dans [docs/_Sidebar.md](docs/_Sidebar.md).
 
 ## Branches et pull requests
 
-- Après un clone : `git config blame.ignoreRevsFile .git-blame-ignore-revs`, pour que `git blame` saute le commit de formatage global (GitHub l'applique tout seul).
-
 - `main` est toujours déployable : chaque fusion publie une image.
-- Travailler sur une branche, ouvrir une pull request vers `main`. La branche `main` est protégée : pas de push direct, CI verte (`backend`, `frontend`, `image`) et branche à jour exigées avant la fusion, qui se fait en « Squash and merge » (un commit par PR, branche supprimée ensuite).
+- Travailler sur une branche nommée selon sa nature (`fonctionnalites/…`, `correctifs/…`, `docs/…`) et ouvrir une pull request vers `main`. La branche `main` est protégée : pas de push direct, CI verte (`backend`, `frontend`, `image`) et branche à jour exigées avant la fusion, qui se fait en « Squash and merge » (un commit par PR, branche supprimée ensuite).
+- Après un clone : `git config blame.ignoreRevsFile .git-blame-ignore-revs`, pour que `git blame` saute le commit de formatage global (GitHub l'applique tout seul).
 - Messages de commit en français, à l'impératif ou au nominal, qui disent ce qui change pour l'utilisateur.

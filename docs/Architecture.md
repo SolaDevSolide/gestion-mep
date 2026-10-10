@@ -1,6 +1,6 @@
 # Architecture
 
-Ce document décrit comment l'application est construite. Le contrat d'API est dans [api.md](api.md), l'installation et la maintenance en production dans [exploitation.md](exploitation.md).
+Cette page décrit comment l'application est construite, pour un développeur qui reprend le code. Le contrat d'API est décrit dans [API](API.md), l'installation dans [Installer](Installer.md) et les conventions de développement dans [Contribuer](../CONTRIBUTING.md).
 
 ## Vue d'ensemble
 
@@ -80,7 +80,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 ### Base de données
 
 - PostgreSQL via Npgsql. Les listes et petits objets attachés à une entité (dépendances, systèmes d'une étape, responsables techniques, expertises…) sont stockés en `jsonb` via `AsJson` / `AsJsonObjet` (`MepDbContext.cs`).
-- Les migrations sont dans `Donnees/Migrations`. Voir [CONTRIBUTING.md](../CONTRIBUTING.md#créer-une-migration) pour en créer une.
+- Les migrations sont dans `Donnees/Migrations`. Voir [Contribuer](../CONTRIBUTING.md#créer-une-migration) pour en créer une.
 
 ### Authentification
 
@@ -88,11 +88,11 @@ Aucune dépendance vers ASP.NET ni EF Core.
 - Connexion limitée par adresse IP (fenêtre d'une minute) et compte bloqué quelques minutes après 5 échecs consécutifs.
 - Toute requête `/api` qui modifie doit porter l'en-tête `X-Requested-With` (protection CSRF) ; le front l'ajoute toujours.
 - Toutes les réponses portent une politique de contenu (CSP) qui interdit l'affichage dans un cadre, ainsi que `nosniff` et `Referrer-Policy`. Les corps de requête sont limités à 1 Mo, sauf sur les routes de dépôt de pièces jointes.
-- Le reste de l'API ne lit que les claims `NameIdentifier`, `Name` et `Role` via `Acteur.Depuis(user)`. Un SSO Microsoft Entra ID s'ajoutera dans `Auth/AuthentificationLocale.cs` sans toucher aux endpoints.
+- Le reste de l'API ne lit que les claims `NameIdentifier`, `Name` et `Role` via `Acteur.Depuis(user)`. Un SSO OpenID Connect (Microsoft Entra ID…) s'ajoute dans `Auth/AuthentificationLocale.cs` sans toucher aux endpoints.
 
 ## Front-end
 
-React 18 + TypeScript 7 + Vite, Tailwind CSS 4 et primitives Radix. Le détail est dans [frontend/README.md](../frontend/README.md).
+React 18 + TypeScript 7 + Vite, Tailwind CSS 4 et primitives Radix. Le détail des commandes et des dossiers est dans [frontend/README.md](../frontend/README.md).
 
 - Une page par route (`src/pages`, `src/parametres`), les onglets d'une MEP dans `src/mep`.
 - La logique pure (graphe, disponibilité, recherche, blocs d'instructions, formats) est isolée dans des modules testés sans DOM : `graphe.ts`, `domaine.ts`, `recherche.ts`, `blocs.ts`, `format.ts`.
