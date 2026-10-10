@@ -10,11 +10,12 @@ export type ModeEspace = 'plein' | 'panneau';
 const CLE = 'mep.espace.mode';
 const abonnes = new Set<() => void>();
 
+/** Par défaut : panneau latéral ; le plein écran n'est retenu que si l'utilisateur l'a choisi. */
 function lireMode(): ModeEspace {
   try {
-    return window.localStorage.getItem(CLE) === 'panneau' ? 'panneau' : 'plein';
+    return window.localStorage.getItem(CLE) === 'plein' ? 'plein' : 'panneau';
   } catch {
-    return 'plein';
+    return 'panneau';
   }
 }
 let modeCourant: ModeEspace | null = null;
@@ -30,7 +31,7 @@ export function useModeEspace(): ModeEspace {
   return useSyncExternalStore(
     (f) => { abonnes.add(f); return () => { abonnes.delete(f); }; },
     () => (modeCourant ??= lireMode()),
-    () => 'plein',
+    () => 'panneau',
   );
 }
 
