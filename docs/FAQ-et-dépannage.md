@@ -54,6 +54,9 @@ Le dossier des clés de session n'est pas conservé : vérifier le volume `cles`
 **L'application ne démarre pas.**
 Lire `docker compose logs app`, puis lancer `docker compose exec app gestion-mep config verifier`, qui contrôle la base, les migrations, les dossiers et la présence d'un administrateur.
 
+**Une sauvegarde `avant-mise-a-jour-…` ou `avant-import-…` est restée dans le volume `sauvegardes`.**
+Les contrôles après la mise à jour ou l'importation ont trouvé un écart (table disparue, lignes en moins, fichier joint manquant) : il est décrit dans le journal d'administration (type `donnees.controle-echoue`) et dans `docker compose logs app`. Garder l'archive et, si des données manquent, la recharger : voir [Exploiter](Exploiter.md#restaurer-ou-déménager).
+
 **Peut-on lancer plusieurs instances derrière un répartiteur de charge ?**
 Pas encore : le temps réel est diffusé en mémoire et les migrations tournent au démarrage. Une seule instance à la fois.
 

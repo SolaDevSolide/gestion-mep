@@ -19,7 +19,7 @@ flowchart LR
 ```
 
 - **Une seule image Docker** contient l'API et le front déjà construit : l'API sert les fichiers statiques et renvoie `index.html` pour toute route qui n'est pas sous `/api`.
-- **PostgreSQL** est la seule dépendance externe. Le schéma est migré automatiquement au démarrage (EF Core).
+- **PostgreSQL** est la seule dépendance externe. Le schéma est migré automatiquement au démarrage (EF Core), après une sauvegarde automatique contrôlée (voir [Exploiter](Exploiter.md#mettre-à-jour)).
 - **Pièces jointes** : fichiers sur disque (volume Docker), métadonnées en base.
 - **Instance unique** : le flux temps réel est diffusé en mémoire et les migrations tournent au démarrage. Pour plusieurs instances, il faudrait remplacer `DiffuseurMep` par `LISTEN/NOTIFY` PostgreSQL et sortir les migrations du démarrage.
 
@@ -51,9 +51,10 @@ Aucune dépendance vers ASP.NET ni EF Core.
 | `Services/DiffuseurMep.cs` | Diffusion en mémoire de la dernière version de chaque MEP aux abonnés du flux SSE. |
 | `Services/SurveillanceEcheances.cs` | Tâche de fond : chaque minute, bascule en retour arrière les MEP dont l'échéance est atteinte. |
 | `Services/StockagePiecesJointes.cs` | Écriture, lecture et suppression des fichiers joints. |
+| `Services/Sauvegardes.cs` | Archive de la base (COPY binaire par table) et des pièces jointes ; sauvegarde avant migration ou importation, contrôle qu'aucune donnée n'est perdue, puis suppression de la sauvegarde. |
 | `Securite/` | Protections HTTP : en-têtes du proxy inverse, limite des tentatives de connexion (par IP et par compte), en-tête anti-CSRF exigé, en-têtes de sécurité (CSP…), taille maximale des requêtes, sonde `--sante` de l'image Docker. |
 | `Auth/` | Comptes locaux, cookie de session, `Acteur` (utilisateur courant). C'est le seul dossier à modifier pour brancher un SSO OpenID Connect. |
-| `Donnees/` | `MepDbContext`, migrations EF Core, `Amorcage` (migration, démonstration ou compte administrateur initial). |
+| `Donnees/` | `MepDbContext`, migrations EF Core, `Amorcage` (migration précédée d'une sauvegarde, démonstration ou compte administrateur initial). |
 
 ### Déroulé d'une requête d'écriture
 
@@ -96,7 +97,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 
 ## Front-end
 
-React 18 + TypeScript 7 + Vite, Tailwind CSS 4 et primitives Radix. Le détail des commandes et des dossiers est dans [frontend/README.md](../frontend/README.md).
+React 19 + TypeScript 7 + Vite, Tailwind CSS 4 et primitives Radix. Le détail des commandes et des dossiers est dans [frontend/README.md](../frontend/README.md).
 
 - Une page par route (`src/pages`, `src/parametres`), les onglets d'une MEP dans `src/mep`.
 - La logique pure (graphe, disponibilité, recherche, blocs d'instructions, formats) est isolée dans des modules testés sans DOM : `graphe.ts`, `domaine.ts`, `recherche.ts`, `blocs.ts`, `format.ts`.

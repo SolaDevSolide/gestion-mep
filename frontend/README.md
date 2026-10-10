@@ -1,6 +1,6 @@
 # Front-end
 
-React 18, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https://www.radix-ui.com/) et icônes Lucide. En production, le résultat de `npm run build` est servi par l'API .NET (dossier `wwwroot` de l'image).
+React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https://www.radix-ui.com/) et icônes Lucide. En production, le résultat de `npm run build` est servi par l'API .NET (dossier `wwwroot` de l'image).
 
 ## Commandes
 
