@@ -4,7 +4,7 @@ export function etape(p: Partial<Etape> = {}, statut: StatutDisponibilite = 'Dis
   return {
     id: 'e1', plan: 'Deploiement', code: 'E0001', ligne: 0, ordre: 0, action: 'Redémarrer le service', systemeIds: ['s1'], responsableId: 'p1',
     criticite: 'Moderee', dureeEstimeeMinutes: 10, etat: 'AFaire', instructions: '```\nsystemctl restart api\n```', resultatAttendu: 'Service actif',
-    preuve: '', debutReel: null, finReelle: null, revision: 1, executantId: null, dependances: [], resolutionIds: [],
+    preuve: '', commentaire: '', debutReel: null, finReelle: null, revision: 1, executantId: null, dependances: [], resolutionIds: [],
     type: 'Standard', pointDeNonRetour: false, nonRetourAutorise: null,
     disponibilite: { statut, libelle: statut }, ...p,
   };

@@ -71,12 +71,24 @@ public class ReglesTests
     }
 
     [Fact]
-    public void Seul_l_executant_execute_son_action()
+    public void Qui_demarre_devient_executant_et_seul_lui_ou_le_pilote_termine()
     {
         var m = Demo();
         Go(m);
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0004"), Claire, Maintenant));
+        var e4 = E(m, "E0004");
+        Assert.Null(e4.ExecutantId);
+        // Plus de responsable prévu : Claire démarre E0004 (prévue autrefois pour Alice).
+        Regles.Demarrer(m, e4, Claire, Maintenant);
+        Assert.Equal(m.Participants.Single(p => p.UtilisateurId == Claire).Id, e4.ExecutantId);
+        var ex = Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "OK", true, Guid.NewGuid(), Maintenant));
         Assert.Contains("Prendre la main", ex.Message);
+        // Le pilote (ou un suppléant) peut terminer à la place de l'exécutant.
+        Regles.Terminer(m, e4, EtatEtape.Reussie, "OK", true, Alice, Maintenant);
+        // Un compte qui n'est pas participant ne démarre pas (l'API en fait un participant s'il est administrateur).
+        var refus = Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0006"), Guid.NewGuid(), Maintenant));
+        Assert.Contains("participant relié à un compte", refus.Message);
+        var sansCompte = new Participant { MepId = m.Id, Nom = "Eve" };
+        Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0006"), sansCompte, Maintenant));
     }
 
     [Fact]
@@ -87,18 +99,31 @@ public class ReglesTests
     }
 
     [Fact]
-    public void Resultat_exige_demarrage_preuve_et_confirmation()
+    public void Resultat_exige_demarrage_confirmation_et_preuve_en_echec()
     {
         var m = Demo();
         Go(m);
         var e4 = E(m, "E0004");
         Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "ok", true, Alice, Maintenant));
         Regles.Demarrer(m, e4, Alice, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "  ", true, Alice, Maintenant));
         Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "ok", false, Alice, Maintenant));
+        // Un échec doit être décrit.
+        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Echec, "  ", false, Alice, Maintenant));
         Regles.Terminer(m, e4, EtatEtape.Echec, "erreur 500", false, Alice, Maintenant);
         Assert.Equal(EtatEtape.Echec, e4.Etat);
         Assert.Equal(Maintenant, e4.FinReelle);
+    }
+
+    [Fact]
+    public void Reussite_sans_preuve_acceptee()
+    {
+        var m = Demo();
+        Go(m);
+        var e4 = E(m, "E0004");
+        Regles.Demarrer(m, e4, Alice, Maintenant);
+        Regles.Terminer(m, e4, EtatEtape.Reussie, "", true, Alice, Maintenant);
+        Assert.Equal(EtatEtape.Reussie, e4.Etat);
+        Assert.Equal("", e4.Preuve);
     }
 
     [Fact]
@@ -262,20 +287,28 @@ public class ReglesTests
     }
 
     [Fact]
-    public void Prendre_la_main_permet_d_executer_a_la_place_du_responsable()
+    public void Prendre_la_main_sur_une_etape_en_cours_demarree_par_un_autre()
     {
         var m = Demo();
         Go(m);
         var e6 = E(m, "E0006");
         var bob = m.Participants.Single(p => p.UtilisateurId == Bob);
-        var precedent = Regles.PrendreLaMain(m, e6, bob, "Absent");
-        Assert.Equal(e6.ResponsableId, precedent);
+        var claire = m.Participants.Single(p => p.UtilisateurId == Claire);
+        // Pas encore démarrée : il suffit de la démarrer.
+        var ex = Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, e6, bob, "Absent"));
+        Assert.Contains("n'est pas démarrée", ex.Message);
+        Regles.Demarrer(m, e6, Claire, Maintenant);
+        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, e6, claire, "Moi")); // déjà exécutante
+        var precedent = Regles.PrendreLaMain(m, e6, bob, "Claire est absente");
+        Assert.Equal(claire.Id, precedent);
         Assert.Equal(bob.Id, e6.ExecutantId);
-        Assert.NotEqual(bob.Id, e6.ResponsableId);
-        Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, e6, Claire, Maintenant));
-        Regles.Demarrer(m, e6, Bob, Maintenant);
+        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e6, EtatEtape.Reussie, "OK", true, Claire, Maintenant));
         Regles.Terminer(m, e6, EtatEtape.Reussie, "WEB démo OK", true, Bob, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, e6, bob, "Absent"));
+        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, e6, claire, "Absent"));
+        // Une étape en échec démarrée par un autre se reprend aussi en main.
+        Assert.Equal(EtatEtape.Echec, E(m, "E0005").Etat);
+        Regles.PrendreLaMain(m, E(m, "E0005"), claire, "Bob est absent");
+        Assert.Equal(claire.Id, E(m, "E0005").ExecutantId);
     }
 
     [Fact]

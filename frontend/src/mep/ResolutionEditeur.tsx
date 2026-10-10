@@ -8,7 +8,9 @@ import { Alerte } from '../ui/Alerte';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
 import { EditeurBlocs } from '../ui/EditeurBlocs';
-import { Field, Input, Select, Textarea } from '../ui/Input';
+import { Field, Input, Textarea } from '../ui/Input';
+import { cn } from '../ui/cn';
+import { couleurSysteme, styleSysteme } from '../couleursSysteme';
 import { Instructions, Markdown } from '../ui/Instructions';
 import { useToast } from '../ui/Toast';
 import { PuceSysteme } from './graphe/systemes';
@@ -18,7 +20,7 @@ export interface CorrectionBrouillon { cle: number; instruction: string; resulta
 /** Saisie d'une résolution type ; les instructions sont des chaînes markdown (blocs Texte / Code). */
 export interface BrouillonResolution {
   titre: string;
-  systemeCatalogueId: string;
+  systemeCatalogueIds: string[];
   symptomes: string;
   diagnostic: string;
   corrections: CorrectionBrouillon[];
@@ -29,10 +31,10 @@ export interface BrouillonResolution {
 let numero = 0;
 const correctionVide = (): CorrectionBrouillon => ({ cle: ++numero, instruction: '', resultatAttendu: '' });
 
-export function brouillonDepuis(r: ResolutionType | undefined, systemeParDefaut: string | null | undefined): BrouillonResolution {
+export function brouillonDepuis(r: ResolutionType | undefined, systemesParDefaut: string[] = []): BrouillonResolution {
   return {
     titre: r?.titre ?? '',
-    systemeCatalogueId: r?.systemeCatalogueId ?? systemeParDefaut ?? '',
+    systemeCatalogueIds: r?.systemeCatalogueIds ?? systemesParDefaut,
     symptomes: r?.symptomes ?? '',
     diagnostic: r?.diagnostic ?? '',
     corrections: r ? [...r.corrections].sort((a, b) => a.ordre - b.ordre).map((c) => ({ cle: ++numero, instruction: c.instruction, resultatAttendu: c.resultatAttendu })) : [correctionVide()],
@@ -44,7 +46,7 @@ export function brouillonDepuis(r: ResolutionType | undefined, systemeParDefaut:
 export function saisieResolution(b: BrouillonResolution): Omit<ResolutionTypeSaisie, 'version'> {
   return {
     titre: b.titre.trim(),
-    systemeCatalogueId: b.systemeCatalogueId || null,
+    systemeCatalogueIds: b.systemeCatalogueIds,
     symptomes: b.symptomes.trim(),
     diagnostic: b.diagnostic.trim(),
     corrections: b.corrections.map((c, i) => ({ ordre: i + 1, instruction: c.instruction.trim(), resultatAttendu: c.resultatAttendu.trim() })),
@@ -76,19 +78,30 @@ export function FormulaireResolution({ b, onChange, systemes, autoFocus }: {
 
   return (
     <div className="grid gap-5">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Titre *">{(id) => <Input id={id} value={b.titre} onChange={(e) => maj({ titre: e.target.value })} placeholder="ex. API : le service ne démarre pas" autoFocus={autoFocus} />}</Field>
-        <Field label="Système" hint="Sert à proposer cette résolution sur les étapes de ce système.">
-          {(id) => (
-            <Select id={id} value={b.systemeCatalogueId} onChange={(e) => maj({ systemeCatalogueId: e.target.value })}>
-              <option value="">— tous les systèmes —</option>
-              {systemes.map((s) => <option key={s.id} value={s.id}>{s.nom}{s.description ? ` · ${s.description}` : ''}{s.actif ? '' : ' (inactif)'}</option>)}
-            </Select>
-          )}
-        </Field>
-      </div>
+      <Field label="Titre *">{(id) => <Input id={id} value={b.titre} onChange={(e) => maj({ titre: e.target.value })} placeholder="ex. API : le service ne démarre pas" autoFocus={autoFocus} />}</Field>
+      <fieldset className="grid gap-1.5">
+        <legend className="mb-1.5 text-[13px] font-medium">Systèmes <span className="font-normal text-fg-subtle">(aucun = tous)</span></legend>
+        <div className="flex flex-wrap gap-1.5">
+          {systemes.filter((s) => s.actif || b.systemeCatalogueIds.includes(s.id)).map((s) => {
+            const actif = b.systemeCatalogueIds.includes(s.id);
+            return (
+              <button
+                key={s.id}
+                type="button"
+                aria-pressed={actif}
+                title={s.description || undefined}
+                onClick={() => maj({ systemeCatalogueIds: actif ? b.systemeCatalogueIds.filter((x) => x !== s.id) : [...b.systemeCatalogueIds, s.id] })}
+                className={cn('inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-[13px] font-semibold', !actif && 'border-line-strong text-fg-subtle hover:text-fg')}
+                style={actif ? styleSysteme(s.nom) : undefined}
+              >
+                <i className="size-2 rounded-full" style={{ background: couleurSysteme(s.nom) }} aria-hidden />{s.nom}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
 
-      <Field label="Symptômes (markdown) : comment reconnaître le problème">
+      <Field label="Symptômes (markdown)">
         {(id) => (
           <div className="grid gap-1.5">
             <Textarea id={id} rows={3} value={b.symptomes} onChange={(e) => maj({ symptomes: e.target.value })} placeholder="ex. Après le déploiement, `GET /sante` renvoie **503**." />
@@ -103,7 +116,7 @@ export function FormulaireResolution({ b, onChange, systemes, autoFocus }: {
       </Field>
 
       <section className="grid gap-1.5">
-        <Intertitre>Diagnostic : comment le confirmer</Intertitre>
+        <Intertitre>Diagnostic</Intertitre>
         <EditeurBlocs label="Diagnostic" typeInitial="code" valeur={b.diagnostic} onChange={(md) => maj({ diagnostic: md })} />
       </section>
 
@@ -137,12 +150,12 @@ export function FormulaireResolution({ b, onChange, systemes, autoFocus }: {
 
 /** Aperçu en direct, tel que l'opérateur verra la résolution en exécution. */
 export function ApercuResolution({ b, systemes }: { b: BrouillonResolution; systemes: SystemeCatalogue[] }) {
-  const systeme = systemes.find((s) => s.id === b.systemeCatalogueId);
+  const choisis = systemes.filter((s) => b.systemeCatalogueIds.includes(s.id));
   return (
     <div className="grid gap-3.5">
       <Intertitre>Aperçu en exécution</Intertitre>
       <p className="text-base font-semibold">{b.titre.trim() || 'Sans titre'}</p>
-      <div>{systeme ? <PuceSysteme nom={systeme.nom} description={systeme.description || undefined} /> : <span className="text-[13px] text-fg-subtle">Tous les systèmes</span>}</div>
+      <div className="flex flex-wrap gap-1.5">{choisis.length ? choisis.map((s) => <PuceSysteme key={s.id} nom={s.nom} />) : <span className="text-[13px] text-fg-subtle">Tous les systèmes</span>}</div>
       <Markdown source={`**Symptômes** : ${b.symptomes.trim() || '_à compléter_'}`} />
       <section className="grid gap-1.5">
         <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-fg-subtle uppercase"><Stethoscope className="size-3.5" aria-hidden />Diagnostic</p>
@@ -171,14 +184,14 @@ interface Props {
   onOpenChange: (o: boolean) => void;
   /** Résolution à modifier ; absente pour une création. */
   initial?: ResolutionType;
-  systemeParDefaut?: string | null;
+  systemesParDefaut?: string[];
   onEnregistree: (r: ResolutionType) => void;
 }
 
 /** Éditeur complet d'une résolution type en dialogue (modification depuis Paramètres › Résolutions types). */
-export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemeParDefaut, onEnregistree }: Props) {
+export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesParDefaut, onEnregistree }: Props) {
   const toast = useToast();
-  const [b, setB] = useState<BrouillonResolution>(() => brouillonDepuis(initial, systemeParDefaut));
+  const [b, setB] = useState<BrouillonResolution>(() => brouillonDepuis(initial, systemesParDefaut));
   const [systemes, setSystemes] = useState<SystemeCatalogue[]>([]);
   const [pieces, setPieces] = useState<PieceJointe[]>([]);
   const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
@@ -187,12 +200,12 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemePa
 
   useEffect(() => {
     if (open) {
-      setB(brouillonDepuis(initial, systemeParDefaut));
+      setB(brouillonDepuis(initial, systemesParDefaut));
       setErreur('');
       api.catalogueSystemes().then(setSystemes).catch(() => setSystemes([]));
       if (initial) api.piecesResolution(initial.id).then(setPieces).catch(() => setPieces([])); else setPieces([]);
     }
-  }, [open, initial, systemeParDefaut]);
+  }, [open, initial, systemesParDefaut]);
 
   async function enregistrer(e: FormEvent) {
     e.preventDefault();
@@ -219,7 +232,6 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemePa
       onOpenChange={onOpenChange}
       taille="lg"
       titre={initial ? 'Modifier la résolution type' : 'Nouvelle résolution type'}
-      description="Une procédure de correction écrite à l’avance, que l’opérateur déroule pas à pas en cas d’échec."
       pied={
         <>
           <Button variante="fantome" onClick={() => onOpenChange(false)}>Annuler</Button>

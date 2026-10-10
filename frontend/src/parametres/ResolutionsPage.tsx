@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useAsync } from '../hooks';
+import { correspond, termes } from '../recherche';
 import { ResolutionEditeurDialog } from '../mep/ResolutionEditeur';
 import type { ResolutionType } from '../types';
 import { Alerte } from '../ui/Alerte';
@@ -31,19 +32,18 @@ export default function ResolutionsPage() {
 
   const noms = useMemo(() => new Map((cat.donnees ?? []).map((s) => [s.id, s.nom])), [cat.donnees]);
   const filtrees = useMemo(() => {
-    const q = recherche.trim().toLowerCase();
+    const ts = termes(recherche);
     return (res.donnees ?? []).filter((r) =>
-      (!systeme || (systeme === 'aucun' ? r.systemeCatalogueId === null : r.systemeCatalogueId === systeme)) &&
-      (!q || r.titre.toLowerCase().includes(q) || r.symptomes.toLowerCase().includes(q)),
+      (!systeme || (systeme === 'aucun' ? r.systemeCatalogueIds.length === 0 : r.systemeCatalogueIds.includes(systeme))) &&
+      correspond({ titre: r.titre, textes: [r.symptomes, r.diagnostic, ...r.systemeCatalogueIds.map((s) => noms.get(s) ?? '')] }, ts),
     );
-  }, [res.donnees, recherche, systeme]);
+  }, [res.donnees, recherche, systeme, noms]);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Résolutions types</h1>
-          <p className="mt-1 text-sm text-fg-subtle">Des procédures de correction écrites à l’avance, proposées automatiquement quand une étape échoue.</p>
         </div>
         <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => navigate('/parametres/resolutions/nouvelle')}>Nouvelle résolution</Button>
       </div>
@@ -83,7 +83,7 @@ export default function ResolutionsPage() {
                 <div className="min-w-0">
                   <h2 className="flex items-center gap-2 font-semibold"><Wrench className="size-4 shrink-0 text-warn-solid" aria-hidden /><span className="truncate">{r.titre}</span></h2>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <Badge>{r.systemeCatalogueId ? noms.get(r.systemeCatalogueId) ?? 'Système' : 'Tous les systèmes'}</Badge>
+                    {r.systemeCatalogueIds.length ? r.systemeCatalogueIds.map((s) => <Badge key={s}>{noms.get(s) ?? 'Système'}</Badge>) : <Badge>Tous les systèmes</Badge>}
                     <Badge><ListOrdered className="size-3" aria-hidden />{r.corrections.length} correction{r.corrections.length > 1 ? 's' : ''}</Badge>
                   </div>
                 </div>

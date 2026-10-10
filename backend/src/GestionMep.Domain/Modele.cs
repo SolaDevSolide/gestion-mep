@@ -62,6 +62,7 @@ public class Mep
     public string VersionCible { get; set; } = "";
     public string Objet { get; set; } = "";
     public string Impacts { get; set; } = "";
+    /// <summary>Obsolètes depuis le jalon 4.2 (gardés pour l'existant, plus modifiables) : début = Go, fin = clôture.</summary>
     public DateOnly? DateMep { get; set; }
     public TimeOnly? HeureDebut { get; set; }
     public TimeOnly? HeureFin { get; set; }
@@ -212,7 +213,8 @@ public class ResolutionType
     public string Symptomes { get; set; } = "";
     /// <summary>Comment confirmer le diagnostic avant de corriger.</summary>
     public string Diagnostic { get; set; } = "";
-    public Guid? SystemeCatalogueId { get; set; }
+    /// <summary>Systèmes du catalogue concernés (un, plusieurs ou aucun).</summary>
+    public List<Guid> SystemeCatalogueIds { get; set; } = [];
     public List<Correction> Corrections { get; set; } = [];
     public string VerificationInstruction { get; set; } = "";
     public string VerificationAttendu { get; set; } = "";
@@ -313,14 +315,17 @@ public class Etape
     /// <summary>Systèmes de la MEP concernés par l'étape (un ou plusieurs).</summary>
     public List<Guid> SystemeIds { get; set; } = [];
     public int? DureeEstimeeMinutes { get; set; }
+    /// <summary>Obsolète depuis le jalon 4.2 : plus de responsable prévu, conservé en base sans effet.</summary>
     public Guid? ResponsableId { get; set; }
-    /// <summary>Participant ayant pris la main sur l'étape à la place du responsable ; null sinon.</summary>
+    /// <summary>Participant qui a démarré l'étape ou qui a pris la main ; null tant qu'elle n'est pas démarrée.</summary>
     public Guid? ExecutantId { get; set; }
     public Criticite? Criticite { get; set; } = Domain.Criticite.Moderee;
     public EtatEtape Etat { get; set; } = EtatEtape.AFaire;
     public string Instructions { get; set; } = "";
     public string ResultatAttendu { get; set; } = "";
     public string Preuve { get; set; } = "";
+    /// <summary>Commentaire facultatif de l'exécution (en plus de la preuve) ; conservé après une reprise, non copié à la duplication.</summary>
+    public string Commentaire { get; set; } = "";
     public DateTimeOffset? DebutReel { get; set; }
     public DateTimeOffset? FinReelle { get; set; }
     public int Revision { get; set; }

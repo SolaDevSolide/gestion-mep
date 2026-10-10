@@ -69,7 +69,7 @@ function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
               />
             </div>
           </div>
-          <ChampBlocs label="Quoi et comment ?" hint="Ce qui est sauvegardé, la commande ou l’outil, l’emplacement." valeur={v.contenu} disabled={!edition} onChange={(contenu) => d.update({ contenu })} />
+          <ChampBlocs label="Quoi et comment ?" valeur={v.contenu} disabled={!edition} onChange={(contenu) => d.update({ contenu })} />
           {v.moment === 'PendantMep' && (
             <div className="md:col-span-2">
               <Alerte ton={manqueEtape ? 'warn' : 'run'} icone={DatabaseBackup} titre={manqueEtape ? 'Aucune étape de sauvegarde sur ce système' : 'Sauvegarde réalisée par une étape du plan'}>
@@ -81,7 +81,7 @@ function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
       )}
 
       {v.statut === 'NonRequise' && (
-        <Field label="Justification *" hint="Pourquoi ce système n’a pas besoin d’être sauvegardé (obligatoire).">
+        <Field label="Justification *">
           {(id) => <Textarea id={id} rows={2} disabled={!edition} value={v.justification} onChange={(e) => d.update({ justification: e.target.value })} placeholder="ex. Aucune donnée : le service est sans état." />}
         </Field>
       )}
@@ -106,7 +106,7 @@ export function SauvegardeSection() {
     <SectionCarte
       numero={6}
       titre="Sauvegarde"
-      description="Pour chaque système : doit-il être sauvegardé, quand et comment, ou pourquoi non. Puis la preuve que la restauration fonctionne."
+      description="Par système : requise ou non, quand et comment."
       pied={editable && (
         <>
           <Button variante="primaire" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty} onClick={() => void enregistrer()}>Enregistrer</Button>
@@ -163,7 +163,7 @@ export function ValidationSection() {
   const { mep, run } = useMep();
   const peut = mep.droits.peutModifierPlan && mep.droits.participantId !== null;
   return (
-    <SectionCarte numero={7} titre="Validation avant intervention" description="Relecture de la procédure, approbations, puis décision Go / no-go du pilote.">
+    <SectionCarte numero={7} titre="Validation avant intervention" description="Relecture, approbations, puis Go du pilote.">
       <div className="space-y-5">
         <div>
           <Checkbox

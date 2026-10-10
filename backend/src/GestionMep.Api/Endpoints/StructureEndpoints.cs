@@ -54,10 +54,8 @@ public static class StructureEndpoints
             if (mep.PiloteId == pid) throw new RegleMetierException($"{p.Nom} est le pilote : désigner un autre pilote d'abord.");
             if (mep.SuppleantIds.Contains(pid)) throw new RegleMetierException($"{p.Nom} est suppléant : le retirer des suppléants d'abord.");
             if (mep.ResponsablesTechniques.Any(r => r.ParticipantId == pid)) throw new RegleMetierException($"{p.Nom} est responsable technique : le retirer des responsables techniques d'abord.");
-            var etape = mep.Etapes.FirstOrDefault(e => e.ResponsableId == pid);
-            if (etape is not null) throw new RegleMetierException($"{p.Nom} est responsable de {etape.Code} : changer le responsable d'abord.");
-            var executee = mep.Etapes.FirstOrDefault(e => e.ExecutantId == pid);
-            if (executee is not null) throw new RegleMetierException($"{p.Nom} a pris la main sur {executee.Code} : il ne peut pas être supprimé.");
+            var executee = mep.EtapesTriees().FirstOrDefault(e => e.ExecutantId == pid);
+            if (executee is not null) throw new RegleMetierException($"{p.Nom} a exécuté {executee.Code} : il ne peut pas être supprimé.");
             if (mep.Sauvegarde.ResponsableId == pid) throw new RegleMetierException($"{p.Nom} est responsable de la sauvegarde : changer le responsable d'abord.");
             mep.Participants.Remove(p);
             return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "participant.supprime", $"Participant supprimé : {p.Nom}"));

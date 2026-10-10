@@ -1,6 +1,6 @@
 import { Save } from 'lucide-react';
 import { api } from '../../api';
-import { depuisInputDateTime, versInputDateTime } from '../../format';
+import { depuisInputDateTime, formatDateHeure, versInputDateTime } from '../../format';
 import { useDraft, useReportDirty } from '../../hooks';
 import { useMep } from '../../mepContext';
 import type { MepIdentiteSaisie } from '../../types';
@@ -15,7 +15,7 @@ export function IdentiteSection() {
   const { mep, run } = useMep();
   const source: MepIdentiteSaisie = {
     version: mep.version, outil: mep.outil, versionActuelle: mep.versionActuelle, versionCible: mep.versionCible,
-    objet: mep.objet, impacts: mep.impacts, dateMep: mep.dateMep, heureDebut: mep.heureDebut, heureFin: mep.heureFin,
+    objet: mep.objet, impacts: mep.impacts,
     fuseauHoraire: mep.fuseauHoraire, indisponibiliteMinutes: mep.indisponibiliteMinutes, piloteId: mep.piloteId,
     suppleantIds: mep.suppleantIds, echeanceRepli: mep.echeanceRepli,
     environnement: mep.environnement, bilanActive: mep.bilanActive,
@@ -44,7 +44,6 @@ export function IdentiteSection() {
     <SectionCarte
       numero={1}
       titre="Intervention"
-      description="L’outil concerné, les versions, la fenêtre d’intervention et l’échéance de retour arrière."
       pied={peutEcheance && (
         <>
           <Button variante="primaire" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty} onClick={() => void enregistrer()}>Enregistrer</Button>
@@ -58,10 +57,9 @@ export function IdentiteSection() {
         <Field label="Objet">{(id) => <Input id={id} value={v.objet} disabled={lecture} onChange={(e) => d.update({ objet: e.target.value })} />}</Field>
         <Field label="Version actuelle">{(id) => <Input id={id} className="font-mono" value={v.versionActuelle} disabled={lecture} onChange={(e) => d.update({ versionActuelle: e.target.value })} />}</Field>
         <Field label="Version cible">{(id) => <Input id={id} className="font-mono" value={v.versionCible} disabled={lecture} onChange={(e) => d.update({ versionCible: e.target.value })} />}</Field>
-        <Field label="Date de la MEP">{(id) => <Input id={id} type="date" value={v.dateMep ?? ''} disabled={lecture} onChange={(e) => d.update({ dateMep: vide(e.target.value) })} />}</Field>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Heure de début">{(id) => <Input id={id} type="time" value={(v.heureDebut ?? '').slice(0, 5)} disabled={lecture} onChange={(e) => d.update({ heureDebut: e.target.value ? `${e.target.value}:00` : null })} />}</Field>
-          <Field label="Heure de fin">{(id) => <Input id={id} type="time" value={(v.heureFin ?? '').slice(0, 5)} disabled={lecture} onChange={(e) => d.update({ heureFin: e.target.value ? `${e.target.value}:00` : null })} />}</Field>
+        <div className="grid grid-cols-2 gap-4 text-sm" aria-label="Dates constatées">
+          <p><span className="block text-[13px] font-medium">Démarrée le</span><span className="text-fg-muted">{mep.demarrageAutorise ? formatDateHeure(mep.demarrageAutorise.le) : "—"}</span></p>
+          <p><span className="block text-[13px] font-medium">Terminée le</span><span className="text-fg-muted">{mep.cloture ? formatDateHeure(mep.cloture.le) : "—"}</span></p>
         </div>
         <Field label="Fuseau horaire">{(id) => <Input id={id} value={v.fuseauHoraire} disabled={lecture} onChange={(e) => d.update({ fuseauHoraire: e.target.value })} />}</Field>
         <Field label="Indisponibilité prévue (minutes)">
@@ -86,10 +84,10 @@ export function IdentiteSection() {
             />
           )}
         </Field>
-        <Field label="Environnement" hint="Où l’intervention a lieu." className="md:col-span-2">
+        <Field label="Environnement" className="md:col-span-2">
           {(id) => <ChampEnvironnement id={id} valeur={v.environnement ?? ''} disabled={lecture} onChange={(e) => d.update({ environnement: e })} />}
         </Field>
-        <Field label="Échéance de retour arrière (obligatoire)" hint="Passé ce délai, le retour arrière est déclenché automatiquement." className="md:col-span-2">
+        <Field label="Échéance de retour arrière (obligatoire)" className="md:col-span-2">
           {(id) => (
             <Input id={id} type="datetime-local" value={versInputDateTime(v.echeanceRepli)} disabled={!peutEcheance} className="md:max-w-xs"
               onChange={(e) => d.update({ echeanceRepli: depuisInputDateTime(e.target.value) })} />
@@ -101,7 +99,6 @@ export function IdentiteSection() {
         <div className="md:col-span-2">
           <Checkbox
             label="Bilan de clôture"
-            description="À la clôture, le pilote devra décrire ce qui a marché, les incidents et les actions."
             checked={v.bilanActive ?? true}
             disabled={lecture}
             onChange={(c) => d.update({ bilanActive: c })}

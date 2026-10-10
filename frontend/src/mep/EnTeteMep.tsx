@@ -2,7 +2,7 @@ import { ArrowRight, CalendarDays, ChevronLeft, Copy, LayoutTemplate } from 'luc
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { etapesDuPlan, nomParticipant, planActif, segmentsProgression } from '../domaine';
-import { formatDate, formatHeure } from '../format';
+import { formatDateHeure } from '../format';
 import { metaPhase } from '../statuts';
 import type { Mep } from '../types';
 import { Avatar } from '../ui/Avatar';
@@ -63,7 +63,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
             </div>
             <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 pl-8 text-[13px] text-fg-muted">
               {mep.objet && <span className="max-w-md truncate">{mep.objet}</span>}
-              <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-3.5 text-fg-subtle" aria-hidden />{formatDate(mep.dateMep)}{mep.heureDebut && ` · ${formatHeure(mep.heureDebut)}`}</span>
+              <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-3.5 text-fg-subtle" aria-hidden />Démarrée le {mep.demarrageAutorise ? formatDateHeure(mep.demarrageAutorise.le) : "—"}{mep.cloture && ` · Terminée le ${formatDateHeure(mep.cloture.le)}`}</span>
               {pilote && <span className="inline-flex items-center gap-1.5"><Avatar nom={pilote} taille="xs" />Pilote : {pilote}</span>}
             </p>
           </div>

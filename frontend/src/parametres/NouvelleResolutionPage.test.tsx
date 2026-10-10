@@ -13,7 +13,7 @@ const laMep = mep({
   etapes: [etape({ id: 'e6', code: 'E0006', action: 'Publication du portail', systemeIds: ['s2', 's1'], resolutionIds: ['r-existante'], revision: 4 })],
 });
 const creee: ResolutionType = {
-  id: 'r-neuve', titre: 'WEB : purge du cache CDN refusée', symptomes: '', diagnostic: '', systemeCatalogueId: 'c-web', corrections: [],
+  id: 'r-neuve', titre: 'WEB : purge du cache CDN refusée', symptomes: '', diagnostic: '', systemeCatalogueIds: ['c-web'], corrections: [],
   verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-10T10:00:00Z',
 };
 
@@ -52,7 +52,8 @@ describe('NouvelleResolutionPage', () => {
     rendre('/parametres/resolutions/nouvelle?mep=m1&etape=e6');
     const bouton = await screen.findByRole('button', { name: 'Enregistrer et lier à E0006' });
     expect(screen.getByRole('link', { name: /Retour à E0006 · Publication du portail/ })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByLabelText('Système')).toHaveValue('c-web'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'WEB', pressed: true })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'API', pressed: true })).toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText('Titre *'), 'WEB : purge du cache CDN refusée');
     await userEvent.type(screen.getByLabelText('Diagnostic, bloc 1 (code)'), 'curl -I https://cdn');
@@ -63,7 +64,7 @@ describe('NouvelleResolutionPage', () => {
     await userEvent.click(bouton);
     await waitFor(() => expect(api.modifierEtape).toHaveBeenCalled());
     expect(api.creerResolution).toHaveBeenCalledWith(expect.objectContaining({
-      titre: 'WEB : purge du cache CDN refusée', systemeCatalogueId: 'c-web', diagnostic: '```\ncurl -I https://cdn\n```',
+      titre: 'WEB : purge du cache CDN refusée', systemeCatalogueIds: ['c-api', 'c-web'], diagnostic: '```\ncurl -I https://cdn\n```',
     }));
     expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e6', expect.objectContaining({ revision: 4, resolutionIds: ['r-existante', 'r-neuve'] }));
     expect(await screen.findByText('Destination : /meps/m1?onglet=etapes&etape=e6')).toBeInTheDocument();
@@ -82,5 +83,18 @@ describe('NouvelleResolutionPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(await screen.findByText('Destination : /parametres/resolutions')).toBeInTheDocument();
     expect(api.modifierEtape).not.toHaveBeenCalled();
+  });
+});
+
+describe('NouvelleResolutionPage : systèmes multiples et titre proposé', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('titre pré-rempli par la recherche, plusieurs systèmes sélectionnables', async () => {
+    rendre('/parametres/resolutions/nouvelle?titre=LDAP%20muet');
+    expect(screen.getByLabelText('Titre *')).toHaveValue('LDAP muet');
+    await userEvent.click(await screen.findByRole('button', { name: 'API', pressed: false }));
+    await userEvent.click(screen.getByRole('button', { name: 'WEB', pressed: false }));
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(api.creerResolution).toHaveBeenCalledWith(expect.objectContaining({ titre: 'LDAP muet', systemeCatalogueIds: ['c-api', 'c-web'] }));
   });
 });
