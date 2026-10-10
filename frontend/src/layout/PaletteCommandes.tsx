@@ -9,6 +9,7 @@ import {
   NotebookText,
   Play,
   Rocket,
+  ShieldUser,
   Sun,
   SunMoon,
   Undo2,
@@ -19,6 +20,7 @@ import { Dialog as D } from 'radix-ui';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { useAuth } from '../auth';
 import { LIBELLE_PHASE } from '../format';
 import { useTheme } from '../theme';
 import type { MepResume } from '../types';
@@ -65,6 +67,7 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { definir, sombre } = useTheme();
+  const { utilisateur } = useAuth();
   const [meps, setMeps] = useState<MepResume[]>([]);
 
   useEffect(() => {
@@ -188,6 +191,17 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                   Paramètres : Go / no-go et approbations
                 </Entree>
               </Command.Group>
+              {utilisateur?.estAdmin && (
+                <Command.Group heading="Administration" className={GROUPE}>
+                  <Entree
+                    icone={<ShieldUser className="size-4" />}
+                    mots={['administration', 'admin', 'console', 'comptes', 'utilisateurs', 'journal']}
+                    onSelect={() => aller('/admin')}
+                  >
+                    Console d’administration
+                  </Entree>
+                </Command.Group>
+              )}
               <Command.Group heading="Compte" className={GROUPE}>
                 <Entree
                   icone={<UserRound className="size-4" />}

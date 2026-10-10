@@ -166,6 +166,8 @@ export function utilisateur(p: Partial<Utilisateur> = {}): Utilisateur {
     role: '',
     contact: '',
     expertises: [],
+    actif: true,
+    doitChangerMotDePasse: false,
     ...p,
   };
 }

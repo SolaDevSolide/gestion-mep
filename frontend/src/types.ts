@@ -43,6 +43,20 @@ export type StatutSauvegarde = NonNullable<S['StatutSauvegarde']>;
 /** Expertise d'un compte sur un système du catalogue (« Expert de la zone facturation »). */
 export type Expertise = S['ExpertiseDto'];
 export type Utilisateur = S['UtilisateurDto'];
+export type EvenementAdmin = S['EvenementAdminDto'];
+/** Réponse à la création ou à la réinitialisation : le mot de passe provisoire n'est donné qu'une fois. */
+export type CompteAvecMotDePasse = S['CompteEtMotDePasseDto'];
+export type TypeEvenementAdmin =
+  | 'compte.cree'
+  | 'compte.modifie'
+  | 'compte.desactive'
+  | 'compte.reactive'
+  | 'compte.mdp-reinitialise'
+  | 'compte.mdp-change'
+  | 'parametres.modifies'
+  | 'critere.cree'
+  | 'critere.modifie'
+  | 'critere.supprime';
 
 /** `dateMep` : date du Go si elle existe ; `creeLe` : date de création (affichée tant que la MEP n'a pas démarré). */
 export type MepResume = S['MepResumeDto'];
@@ -192,3 +206,15 @@ export type ResolutionTypeSaisie = SaisieVerifiee<
   S['ResolutionTypeSaisie'],
   Omit<ResolutionType, 'id' | 'actif' | 'modifieeLe' | 'modifieeParId' | 'modifieeParNom'>
 >;
+
+// ---------- Administration ----------
+
+export type ChangementMotDePasseSaisie = SaisieVerifiee<
+  S['ChangementMotDePasseSaisie'],
+  { ancien: string; nouveau: string }
+>;
+export type CompteSaisie = SaisieVerifiee<
+  S['CompteModification'],
+  { nomAffiche: string; estAdmin: boolean; role: string; contact: string }
+>;
+export type NouveauCompteSaisie = SaisieVerifiee<S['CompteSaisie'], CompteSaisie & { login: string }>;

@@ -23,6 +23,8 @@ EXPOSE 8080
 # Dossiers des pièces jointes et des clés de session (volumes « pieces-jointes » et « cles ») : ils doivent appartenir à
 # l'utilisateur non root de l'image.
 RUN mkdir -p /data/pieces-jointes /data/cles && chown $APP_UID /data/pieces-jointes /data/cles
+# Commandes d'exploitation : « docker compose exec app gestion-mep aide ».
+RUN printf '#!/bin/sh\nexec dotnet /app/GestionMep.Api.dll "$@"\n' > /usr/local/bin/gestion-mep && chmod 755 /usr/local/bin/gestion-mep
 USER $APP_UID
 # L'image aspnet n'a ni curl ni wget : l'application interroge elle-même /api/sante.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \

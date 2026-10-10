@@ -11,6 +11,7 @@ import {
   UserRound,
   Wrench,
   Layers,
+  ShieldUser,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
@@ -139,6 +140,19 @@ export function Shell() {
           <Lien to="/parametres/systemes" icone={Layers} libelle="Systèmes" replie={replie} />
           <Lien to="/parametres/resolutions" icone={Wrench} libelle="Résolutions types" replie={replie} />
           <Lien to="/parametres/go-no-go" icone={ShieldCheck} libelle="Go / no-go" replie={replie} />
+          {utilisateur?.estAdmin && (
+            <>
+              <div
+                className={cn(
+                  'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase',
+                  replie && 'text-center px-0',
+                )}
+              >
+                {replie ? '···' : 'Administration'}
+              </div>
+              <Lien to="/admin" icone={ShieldUser} libelle="Console d’administration" replie={replie} />
+            </>
+          )}
           <div
             className={cn(
               'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase',

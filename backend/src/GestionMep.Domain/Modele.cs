@@ -43,6 +43,12 @@ public class Utilisateur
     public string Contact { get; set; } = "";
     /// <summary>Systèmes du catalogue que la personne connaît : sert à suggérer les responsables techniques.</summary>
     public List<Expertise> Expertises { get; set; } = [];
+    /// <summary>Compte désactivé par un administrateur : connexion refusée et sessions coupées.</summary>
+    public bool Actif { get; set; } = true;
+    /// <summary>Mot de passe provisoire (création ou réinitialisation par un administrateur) : à changer avant toute autre action.</summary>
+    public bool DoitChangerMotDePasse { get; set; }
+    /// <summary>Renouvelé à chaque changement de mot de passe ou désactivation : les sessions ouvertes avant sont refusées.</summary>
+    public Guid TamponSecurite { get; set; } = Guid.NewGuid();
 }
 
 /// <summary>Expertise d'un compte sur un système du catalogue (ex. « Expert de la zone facturation »).</summary>
@@ -462,6 +468,18 @@ public class PieceJointe
     public string Sha256 { get; set; } = "";
     public Guid? DeposeParId { get; set; }
     public DateTimeOffset DeposeLe { get; set; }
+}
+
+/// <summary>Journal d'administration : comptes, paramètres globaux, critères go / no-go (hors MEP).</summary>
+public class EvenementAdmin
+{
+    public long Id { get; set; }
+    public DateTimeOffset Quand { get; set; } = DateTimeOffset.UtcNow;
+    /// <summary>Auteur connecté ; null pour une commande d'exploitation (ligne de commande).</summary>
+    public Guid? UtilisateurId { get; set; }
+    public string Auteur { get; set; } = "";
+    public string Type { get; set; } = "";
+    public string Detail { get; set; } = "";
 }
 
 public class EvenementJournal

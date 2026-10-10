@@ -4,7 +4,7 @@ namespace GestionMep.Api.Services;
 
 // ---------- Sorties ----------
 public record ExpertiseDto(Guid SystemeCatalogueId, string Detail);
-public record UtilisateurDto(Guid Id, string Login, string NomAffiche, bool EstAdmin, string Role, string Contact, List<ExpertiseDto> Expertises);
+public record UtilisateurDto(Guid Id, string Login, string NomAffiche, bool EstAdmin, string Role, string Contact, List<ExpertiseDto> Expertises, bool Actif, bool DoitChangerMotDePasse);
 
 /// <summary><c>DateMep</c> : date du Go (dans le fuseau de la MEP) ou null ; <c>CreeLe</c> : création de la MEP.</summary>
 public record MepResumeDto(Guid Id, string Outil, string VersionCible, string Objet, DateOnly? DateMep, Phase Phase,
@@ -79,6 +79,11 @@ public record EvenementDto(long Id, DateTimeOffset Quand, string Auteur, string 
 
 // ---------- Entrées ----------
 public record ConnexionSaisie(string? Login, string? MotDePasse);
+public record ChangementMotDePasseSaisie(string? Ancien, string? Nouveau);
+public record CompteSaisie(string? Login, string? NomAffiche, bool EstAdmin, string? Role, string? Contact);
+public record CompteModification(string? NomAffiche, bool EstAdmin, string? Role, string? Contact);
+public record CompteEtMotDePasseDto(UtilisateurDto Utilisateur, string MotDePasseProvisoire);
+public record EvenementAdminDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail);
 public record UtilisateurSaisie(string? Login, string? NomAffiche, string? MotDePasse, bool EstAdmin, string? Role = null, string? Contact = null);
 public record ExpertiseSaisie(Guid? SystemeCatalogueId, string? Detail);
 /// <summary><c>NomAffiche</c> absent ou null : inchangé.</summary>

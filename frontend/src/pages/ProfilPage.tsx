@@ -10,6 +10,7 @@ import { Card, CardHeader } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
 import { Field, Input, Select } from '../ui/Input';
 import { useToast } from '../ui/Toast';
+import { FormulaireMotDePasse } from './FormulaireMotDePasse';
 
 interface Brouillon {
   nomAffiche: string;
@@ -170,6 +171,16 @@ export default function ProfilPage() {
               Annuler les modifications
             </Button>
           )}
+        </div>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader titre="Mot de passe" description="Choisissez un mot de passe personnel d’au moins 10 caractères." />
+        <div className="max-w-md px-5 py-5">
+          <FormulaireMotDePasse
+            libelleAncien="Mot de passe actuel"
+            onChange={() => toast.succes('Mot de passe modifié.')}
+          />
         </div>
       </Card>
     </main>
