@@ -105,5 +105,5 @@ Le test `OpenApiTests` échoue tant que `docs/openapi.json` ne correspond pas à
 - Après un clone : `git config blame.ignoreRevsFile .git-blame-ignore-revs`, pour que `git blame` saute le commit de formatage global (GitHub l'applique tout seul).
 
 - `main` est toujours déployable : chaque fusion publie une image.
-- Travailler sur une branche, ouvrir une pull request vers `main`, attendre la CI verte avant de fusionner.
+- Travailler sur une branche, ouvrir une pull request vers `main`. La branche `main` est protégée : pas de push direct, CI verte (`backend`, `frontend`, `image`) et branche à jour exigées avant la fusion, qui se fait en « Squash and merge » (un commit par PR, branche supprimée ensuite).
 - Messages de commit en français, à l'impératif ou au nominal, qui disent ce qui change pour l'utilisateur.
