@@ -9,3 +9,4 @@ dist/
 backend/src/GestionMep.Api/wwwroot/
 TestResults/
 backend/src/GestionMep.Api/pieces-jointes/
+backend/src/GestionMep.Api/sauvegardes/

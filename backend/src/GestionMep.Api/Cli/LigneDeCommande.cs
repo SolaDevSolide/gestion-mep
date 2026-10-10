@@ -16,7 +16,7 @@ namespace GestionMep.Api.Cli;
 /// </summary>
 public static class LigneDeCommande
 {
-    private static readonly string[] Commandes = ["aide", "--help", "-h", "version", "--version", "migrer", "config", "comptes"];
+    private static readonly string[] Commandes = ["aide", "--help", "-h", "version", "--version", "migrer", "config", "comptes", "sauvegarder", "importer"];
 
     private const string Aide = """
         gestion-mep : commandes d'exploitation
@@ -29,6 +29,10 @@ public static class LigneDeCommande
           gestion-mep comptes reactiver <login>               Réactive le compte
           gestion-mep config verifier                         Vérifie base, migrations, dossiers, comptes admin
           gestion-mep migrer                                  Applique les migrations de la base sans démarrer l'application
+                                                              (sauvegarde préalable, supprimée si les contrôles passent)
+          gestion-mep sauvegarder [fichier.tar.gz]            Archive la base et les pièces jointes (défaut : dossier des sauvegardes)
+          gestion-mep importer <fichier.tar.gz>               Remplace base et pièces jointes par une archive (application arrêtée) ;
+                                                              sauvegarde préalable, supprimée si les contrôles passent
           gestion-mep version                                 Version de l'application
 
         Dans Docker : docker compose exec app gestion-mep <commande>
@@ -45,6 +49,9 @@ public static class LigneDeCommande
             {
                 ["version" or "--version"] => Version(),
                 ["migrer"] => await Migrer(),
+                ["sauvegarder"] => await Sauvegarder(null),
+                ["sauvegarder", var fichier] when !fichier.StartsWith('-') => await Sauvegarder(fichier),
+                ["importer", var archive] when !archive.StartsWith('-') => await Importer(archive),
                 ["config", "verifier"] => await VerifierConfig(),
                 ["comptes", "lister"] => await Lister(),
                 ["comptes", "creer", var login, .. var options] => await Creer(login, options),
@@ -92,16 +99,37 @@ public static class LigneDeCommande
 
     private static async Task<int> Migrer()
     {
-        await using var db = Base(Configuration());
+        var config = Configuration();
+        await using var db = Base(config);
         var enAttente = (await db.Database.GetPendingMigrationsAsync()).ToList();
         if (enAttente.Count == 0)
         {
             Console.WriteLine("Base à jour : aucune migration à appliquer.");
             return 0;
         }
-        await db.Database.MigrateAsync();
+        var ok = await ServiceSauvegardes(config).MigrerAvecSauvegarde(db, JournalAdmin.AuteurLigneDeCommande);
         Console.WriteLine($"{enAttente.Count} migration(s) appliquée(s) : {string.Join(", ", enAttente)}.");
+        return ok ? 0 : 1;
+    }
+
+    private static Sauvegardes ServiceSauvegardes(IConfiguration config) =>
+        new(Sauvegardes.DossierConfigure(config), new StockagePiecesJointes(config).Dossier,
+            Console.WriteLine, m => Console.Error.WriteLine($"Erreur : {m}"));
+
+    private static async Task<int> Sauvegarder(string? fichier)
+    {
+        var config = Configuration();
+        await using var db = Base(config);
+        var sauvegardes = ServiceSauvegardes(config);
+        await sauvegardes.Exporter(db, fichier ?? Path.Combine(sauvegardes.Dossier, $"sauvegarde-{Sauvegardes.Horodatage()}.tar.gz"));
         return 0;
+    }
+
+    private static async Task<int> Importer(string archive)
+    {
+        var config = Configuration();
+        await using var db = Base(config);
+        return await ServiceSauvegardes(config).Importer(db, archive, JournalAdmin.AuteurLigneDeCommande) ? 0 : 1;
     }
 
     private static async Task<Utilisateur> Compte(MepDbContext db, string login)
@@ -196,6 +224,7 @@ public static class LigneDeCommande
         if (config.GetValue<bool>("Demo:Activer")) Attention("Mode démonstration activé (DEMO=true) : comptes alice, bob, claire / demo. À désactiver sur un serveur partagé.");
 
         VerifierDossier("Pièces jointes", string.IsNullOrWhiteSpace(config["Stockage:Dossier"]) ? StockagePiecesJointes.DossierParDefaut : config["Stockage:Dossier"]!, obligatoire: true);
+        VerifierDossier("Sauvegardes", Sauvegardes.DossierConfigure(config), obligatoire: true);
         if (config["Cles:Dossier"] is { Length: > 0 } cles) VerifierDossier("Clés de session", cles, obligatoire: true);
         else Attention("Cles:Dossier non défini : les sessions seront perdues à chaque recréation du conteneur.");
 

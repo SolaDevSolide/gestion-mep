@@ -1,3 +1,4 @@
+using GestionMep.Api.Services;
 using GestionMep.Domain;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +21,10 @@ public static class Amorcage
         if (config.GetValue<bool>("Demo:Activer") && !sp.GetRequiredService<IHostEnvironment>().IsDevelopment())
             journal.LogWarning("Mode démonstration activé hors développement (Demo:Activer / DEMO=true) : comptes alice, bob, claire avec le mot de passe « demo ». À désactiver sur un serveur partagé.");
 
-        await db.Database.MigrateAsync();
+        // Migrations en attente : sauvegarde préalable, contrôle des données, puis suppression de la sauvegarde si rien n'est perdu.
+        var sauvegardes = new Sauvegardes(Sauvegardes.DossierConfigure(config), sp.GetRequiredService<StockagePiecesJointes>().Dossier,
+            m => journal.LogInformation("{Message}", m), m => journal.LogError("{Message}", m));
+        await sauvegardes.MigrerAvecSauvegarde(db, "Mise à jour au démarrage");
         await PlacerEtapesAnciennes(db, journal);
 
         if (await db.Utilisateurs.AnyAsync())
