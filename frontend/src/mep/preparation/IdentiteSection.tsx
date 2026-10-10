@@ -71,7 +71,7 @@ export function IdentiteSection() {
           )}
         </Field>
         <Field label="Pilote">{personnes(v.piloteId, (x) => d.update({ piloteId: x, suppleantIds: v.suppleantIds.filter((s) => s !== x) }))}</Field>
-        <Field label="Suppléants" hint="Ils ont les mêmes droits que le pilote. Le pilote ne peut pas être suppléant.">
+        <Field label="Suppléants" hint="Ils ont les mêmes droits que le pilote.">
           {(id) => (
             <MultiSelect
               id={id}

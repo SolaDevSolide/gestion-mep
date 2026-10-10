@@ -66,6 +66,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("uuid[]");
 
+                    b.Property<int?>("DureeEstimeeMinutes")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Etat")
                         .HasColumnType("integer");
 
@@ -78,6 +81,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<string>("Instructions")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("Ligne")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("MepId")
                         .HasColumnType("uuid");
@@ -115,8 +121,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<int>("Revision")
                         .HasColumnType("integer");
 
-                    b.Property<Guid?>("SystemeId")
-                        .HasColumnType("uuid");
+                    b.PrimitiveCollection<List<Guid>>("SystemeIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");
@@ -307,6 +314,10 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<bool>("EstModele")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("FichesRecette")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("FuseauHoraire")
                         .IsRequired()
                         .HasColumnType("text");
@@ -368,10 +379,6 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.PrimitiveCollection<List<Guid>>("SuppleantIds")
                         .IsRequired()
                         .HasColumnType("uuid[]");
-
-                    b.Property<string>("TestsRecette")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
 
                     b.Property<int>("Version")
                         .IsConcurrencyToken()
@@ -608,8 +615,16 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Contact")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<bool>("EstAdmin")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("Expertises")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("Login")
                         .IsRequired()
@@ -620,6 +635,10 @@ namespace GestionMep.Api.Donnees.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("NomAffiche")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Role")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -795,6 +814,36 @@ namespace GestionMep.Api.Donnees.Migrations
                         .WithMany("Systemes")
                         .HasForeignKey("MepId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("GestionMep.Domain.SauvegardeSysteme", "Sauvegarde", b1 =>
+                        {
+                            b1.Property<Guid>("SystemeId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Contenu")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("Justification")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<int>("Moment")
+                                .HasColumnType("integer");
+
+                            b1.Property<int>("Statut")
+                                .HasColumnType("integer");
+
+                            b1.HasKey("SystemeId");
+
+                            b1.ToTable("Systemes");
+
+                            b1.WithOwner()
+                                .HasForeignKey("SystemeId");
+                        });
+
+                    b.Navigation("Sauvegarde")
                         .IsRequired();
                 });
 

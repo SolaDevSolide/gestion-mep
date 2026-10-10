@@ -166,9 +166,10 @@ describe('EtapePanneau : « À appeler en cas de problème »', () => {
     ({ participantId, systemeIds, perimetre: '', disponibilite: 'Joignable' as const, contactJourJ: '', ...extra });
 
   it('liste les responsables techniques du système de l’étape, avec contact et disponibilité', () => {
-    rendre(etape({ systemeId: 's1' }), {
+    const base = mep().systemes[0];
+    rendre(etape({ systemeIds: ['s1'] }), {
       m: {
-        systemes: [{ id: 's1', nom: 'API', cible: '', impact: '', catalogueId: null }, { id: 's2', nom: 'WEB', cible: '', impact: '', catalogueId: null }],
+        systemes: [{ ...base, id: 's1', nom: 'API', cible: '' }, { ...base, id: 's2', nom: 'WEB', cible: '' }],
         responsablesTechniques: [rt('p2', ['s1'], { contactJourJ: '06 11 22 33 44' }), rt('p3', ['s2'], { disponibilite: 'Absent' })],
       },
     });
@@ -180,7 +181,7 @@ describe('EtapePanneau : « À appeler en cas de problème »', () => {
   });
 
   it('sans responsable technique pour le système, affiche tous les responsables (dont les absents)', () => {
-    rendre(etape({ systemeId: 's1' }), { m: { responsablesTechniques: [rt('p2', []), rt('p3', [], { disponibilite: 'Absent' })] } });
+    rendre(etape({ systemeIds: ['s1'] }), { m: { responsablesTechniques: [rt('p2', []), rt('p3', [], { disponibilite: 'Absent' })] } });
     const carte = screen.getByRole('region', { name: 'À appeler en cas de problème' });
     expect(carte).toHaveTextContent('Bob');
     expect(carte).toHaveTextContent('Alice');
@@ -190,5 +191,66 @@ describe('EtapePanneau : « À appeler en cas de problème »', () => {
   it('absent quand aucun responsable technique n’est renseigné', () => {
     rendre(etape());
     expect(screen.queryByRole('region', { name: 'À appeler en cas de problème' })).toBeNull();
+  });
+
+  it('étape sur plusieurs systèmes : responsables de chacun de ses systèmes', () => {
+    const base = mep().systemes[0];
+    rendre(etape({ systemeIds: ['s1', 's2'] }), {
+      m: {
+        systemes: [{ ...base, id: 's1', nom: 'API' }, { ...base, id: 's2', nom: 'WEB' }, { ...base, id: 's3', nom: 'BDD' }],
+        responsablesTechniques: [rt('p2', ['s1']), rt('p1', ['s2']), rt('p3', ['s3'])],
+      },
+    });
+    const carte = screen.getByRole('region', { name: 'À appeler en cas de problème' });
+    expect(carte).toHaveTextContent('Bob');
+    expect(carte).toHaveTextContent('Claire');
+    expect(carte).not.toHaveTextContent('Alice');
+  });
+});
+
+describe('EtapePanneau : instructions en blocs (markdown + Copier)', () => {
+  const instructions = 'Prévenir le **support** avant de lancer.\n\n```\ncd /opt/commandes && ./deploy.sh 2.4.0\n```\n\n- [ ] vérifier le groupe `app-commandes`';
+
+  it('rend le texte en markdown et les blocs de code avec un bouton Copier', () => {
+    rendre(etape({ instructions, resultatAttendu: '`GET /sante` renvoie **200**' }));
+    expect(screen.getByText('support', { selector: 'strong' })).toBeInTheDocument();
+    expect(screen.getByText('cd /opt/commandes && ./deploy.sh 2.4.0', { selector: 'code' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).toBeDisabled();
+    expect(screen.getByText('GET /sante', { selector: 'code' })).toBeInTheDocument();
+    expect(screen.getByText('200', { selector: 'strong' })).toBeInTheDocument();
+  });
+
+  it('Copier met la commande exacte dans le presse-papiers', async () => {
+    const user = userEvent.setup();
+    const ecrire = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    rendre(etape({ instructions }));
+    await user.click(screen.getByRole('button', { name: /Copier la commande 1/ }));
+    expect(ecrire).toHaveBeenCalledWith('cd /opt/commandes && ./deploy.sh 2.4.0');
+    expect(await screen.findByRole('button', { name: 'Copié' })).toBeInTheDocument();
+  });
+
+  it('presse-papiers refusé : le texte est sélectionné et un message l’indique', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('refus'));
+    rendre(etape({ instructions }));
+    await user.click(screen.getByRole('button', { name: /Copier la commande 1/ }));
+    expect(await screen.findByText(/Copie refusée/)).toBeInTheDocument();
+    expect(window.getSelection()?.toString()).toBe('cd /opt/commandes && ./deploy.sh 2.4.0');
+  });
+
+  it('n’interprète pas le HTML dangereux', () => {
+    rendre(etape({ instructions: 'Texte <img src=x onerror="alert(1)"> <script>alert(2)</script>' }));
+    expect(document.querySelector('script')).toBeNull();
+    expect(document.querySelector('img')?.getAttribute('onerror') ?? null).toBeNull();
+  });
+
+  it('liste les préalables avec leur état', async () => {
+    const prealable = etape({ id: 'e0', code: 'E0000', action: 'Sauvegarde BDD', etat: 'Reussie' }, 'Terminee');
+    const e = etape({ dependances: ['e0'] });
+    const onSelectionner = vi.fn();
+    render(<EtapePanneau mep={mep({ etapes: [prealable, e] })} etape={e} resolutionsTypes={[]} actions={actionsFactices()} onSelectionner={onSelectionner} />);
+    const bouton = screen.getByRole('button', { name: /E0000.*Sauvegarde BDD.*Réussie/ });
+    await userEvent.click(bouton);
+    expect(onSelectionner).toHaveBeenCalledWith('e0');
   });
 });

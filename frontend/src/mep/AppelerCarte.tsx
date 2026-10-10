@@ -4,14 +4,14 @@ import type { Etape, Mep } from '../types';
 import { BadgeDisponibilite } from './preparation/ResponsablesTechniquesSection';
 
 /**
- * Encart « À appeler en cas de problème » du panneau d'une étape : les responsables techniques du système de l'étape
+ * Encart « À appeler en cas de problème » du panneau d'une étape : les responsables techniques des systèmes de l'étape
  * (à défaut, tous), avec leur contact du jour J et leur disponibilité.
  */
 export function AppelerCarte({ mep, etape }: { mep: Mep; etape: Etape }) {
-  const duSysteme = etape.systemeId ? mep.responsablesTechniques.filter((r) => r.systemeIds.includes(etape.systemeId!)) : [];
+  const duSysteme = mep.responsablesTechniques.filter((r) => r.systemeIds.some((s) => etape.systemeIds.includes(s)));
   const liste = duSysteme.length > 0 ? duSysteme : mep.responsablesTechniques;
   if (liste.length === 0) return null;
-  const systeme = mep.systemes.find((s) => s.id === etape.systemeId)?.nom;
+  const systeme = mep.systemes.filter((s) => etape.systemeIds.includes(s.id)).map((s) => s.nom).join(', ');
 
   return (
     <section aria-label="À appeler en cas de problème" className="rounded-lg border border-line bg-surface-2/50">

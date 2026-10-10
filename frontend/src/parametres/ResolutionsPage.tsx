@@ -1,5 +1,6 @@
 import { ListOrdered, OctagonAlert, Pencil, Plus, Search, Trash2, Wrench } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useAsync } from '../hooks';
@@ -12,12 +13,14 @@ import { ConfirmDialog } from '../ui/Dialog';
 import { EmptyState } from '../ui/EmptyState';
 import { Input, Select } from '../ui/Input';
 import { Badge } from '../ui/StatusPill';
+import { Markdown } from '../ui/Instructions';
 import { Tooltip } from '../ui/Tooltip';
 import { useToast } from '../ui/Toast';
 
 export default function ResolutionsPage() {
   const { utilisateur } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const admin = utilisateur?.estAdmin ?? false;
   const res = useAsync(() => api.resolutions(), []);
   const cat = useAsync(() => api.catalogueSystemes(), []);
@@ -42,7 +45,7 @@ export default function ResolutionsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Résolutions types</h1>
           <p className="mt-1 text-sm text-fg-subtle">Des procédures de correction écrites à l’avance, proposées automatiquement quand une étape échoue.</p>
         </div>
-        <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => setEdition({})}>Nouvelle résolution</Button>
+        <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => navigate('/parametres/resolutions/nouvelle')}>Nouvelle résolution</Button>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -67,7 +70,7 @@ export default function ResolutionsPage() {
             icone={Wrench}
             titre={res.donnees.length === 0 ? 'Aucune résolution type' : 'Aucun résultat'}
             description={res.donnees.length === 0 ? 'Écrivez une première procédure : symptômes, corrections ordonnées et vérification finale.' : 'Aucune résolution ne correspond à ces critères.'}
-            action={res.donnees.length === 0 ? <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => setEdition({})}>Nouvelle résolution</Button> : undefined}
+            action={res.donnees.length === 0 ? <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => navigate('/parametres/resolutions/nouvelle')}>Nouvelle résolution</Button> : undefined}
           />
         </Card>
       )}
@@ -89,7 +92,7 @@ export default function ResolutionsPage() {
                   {admin && <Tooltip content="Supprimer"><BoutonIcone label={`Supprimer ${r.titre}`} taille="sm" onClick={() => setSuppr(r)}><Trash2 className="size-4" aria-hidden /></BoutonIcone></Tooltip>}
                 </div>
               </div>
-              <p className="mt-3 line-clamp-3 text-sm text-fg-muted">{r.symptomes || 'Symptômes non décrits.'}</p>
+              {r.symptomes ? <Markdown className="mt-3 line-clamp-3 text-fg-muted" source={r.symptomes} /> : <p className="mt-3 text-sm text-fg-muted">Symptômes non décrits.</p>}
             </Card>
           </li>
         ))}

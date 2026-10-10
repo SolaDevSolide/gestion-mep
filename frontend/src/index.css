@@ -126,3 +126,15 @@ body { background: var(--bg); color: var(--fg); font-size: 14px; line-height: 1.
     scroll-behavior: auto !important;
   }
 }
+
+/* Couleurs des systèmes (puces, sections de recette et de sauvegarde) : voir couleursSysteme.ts */
+:root {
+  --sys-0: #6b3fa0; --sys-0-bg: #efe7f8; --sys-1: #0f7d78; --sys-1-bg: #e0f3f1; --sys-2: #a85d00; --sys-2-bg: #fbeedd;
+  --sys-3: #2b59c3; --sys-3-bg: #e6edfb; --sys-4: #b0306b; --sys-4-bg: #fbe6ef; --sys-5: #5b7a12; --sys-5-bg: #eef4dd;
+  --sys-6: #a1342a; --sys-6-bg: #fbe8e5; --sys-7: #4a5568; --sys-7-bg: #eceef2;
+}
+:root.dark {
+  --sys-0: #b79ae6; --sys-0-bg: #2c2140; --sys-1: #5cc9c1; --sys-1-bg: #15322f; --sys-2: #f0b060; --sys-2-bg: #3a2a14;
+  --sys-3: #8fb0f5; --sys-3-bg: #1c2a4a; --sys-4: #f08cbb; --sys-4-bg: #3a1a2a; --sys-5: #b5d36a; --sys-5-bg: #26301a;
+  --sys-6: #f09a90; --sys-6-bg: #3b1d19; --sys-7: #b3bccb; --sys-7-bg: #20242c;
+}

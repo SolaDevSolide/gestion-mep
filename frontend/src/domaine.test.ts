@@ -51,6 +51,7 @@ describe('domaine', () => {
   it('un champ facultatif ne rend pas une section orange', () => {
     // Heures et indisponibilité absentes, restauration non testée : la vérification du plan ne les réclame pas.
     const base = mep({ heureDebut: null, heureFin: null, indisponibiliteMinutes: null, erreursPlan: [] });
+    base.systemes[0].sauvegarde = { statut: 'Requise', moment: 'AvantMep', contenu: '', justification: '' };
     base.sauvegarde.restaurationTestee = false;
     const c = completude(base);
     expect(c.intervention).toBe(true);
@@ -59,9 +60,8 @@ describe('domaine', () => {
   it('les anomalies du plan rendent la section concernée orange', () => {
     expect(completude(mep({ erreursPlan: ['Renseigner une échéance de retour arrière future.'] })).intervention).toBe(false);
     expect(completude(mep({ erreursPlan: ['Renseigner le pilote.'] })).intervention).toBe(false);
-    expect(completude(mep({ erreursPlan: ['Sauvegarde pendant la MEP : indiquer l\'étape de déploiement de type Sauvegarde.'] })).sauvegarde).toBe(false);
-    expect(completude(mep({ erreursPlan: ['Ajouter au moins un test de recette.'] })).recette).toBe(false);
-    expect(completude(mep({ erreursPlan: ['Test de recette 2 : compléter Libellé.'] })).recette).toBe(false);
+    expect(completude(mep({ erreursPlan: ['Sauvegarde de API pendant la MEP : ajouter une étape de déploiement de type Sauvegarde sur ce système.'] })).sauvegarde).toBe(false);
+    expect(completude(mep()).sauvegarde).toBe(false); // le système est encore « à renseigner »
   });
   it('responsables techniques : complète s\'il y en a et sans avertissement', () => {
     const rt = { participantId: 'p2', systemeIds: [], perimetre: '', disponibilite: 'Joignable' as const, contactJourJ: '' };
@@ -73,7 +73,7 @@ describe('domaine', () => {
 
 describe('anomaliesHorsApprobation', () => {
   it('écarte les anomalies d’approbation', () => {
-    const erreursPlan = ['Il faut 1 approbation(s).', 'Claire a refusé : trop risqué', 'Ajouter au moins un test de recette.'];
-    expect(anomaliesHorsApprobation({ erreursPlan })).toEqual(['Ajouter au moins un test de recette.']);
+    const erreursPlan = ['Il faut 1 approbation(s).', 'Claire a refusé : trop risqué', 'Ajouter au moins une fiche de recette.'];
+    expect(anomaliesHorsApprobation({ erreursPlan })).toEqual(['Ajouter au moins une fiche de recette.']);
   });
 });

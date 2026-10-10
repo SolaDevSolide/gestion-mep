@@ -8,19 +8,17 @@ import { IdentiteSection } from './preparation/IdentiteSection';
 import { ResponsablesTechniquesSection } from './preparation/ResponsablesTechniquesSection';
 import { LivrablesSection, PersonnesSection, SystemesSection } from './preparation/ListesSections';
 import { PiecesSection } from './preparation/PiecesSection';
-import { RecetteSection } from './preparation/RecetteSection';
 import { SauvegardeSection, ValidationSection } from './preparation/SauvegardeValidation';
 
 const SECTIONS: { id: IdSection; numero: number; titre: string }[] = [
   { id: 'intervention', numero: 1, titre: 'Intervention' },
   { id: 'personnes', numero: 2, titre: 'Personnes' },
-  { id: 'techniques', numero: 3, titre: 'Responsables techniques' },
-  { id: 'systemes', numero: 4, titre: 'Systèmes' },
+  { id: 'systemes', numero: 3, titre: 'Systèmes' },
+  { id: 'techniques', numero: 4, titre: 'Responsables techniques' },
   { id: 'livrables', numero: 5, titre: 'Livrables' },
   { id: 'sauvegarde', numero: 6, titre: 'Sauvegarde' },
-  { id: 'recette', numero: 7, titre: 'Recette' },
-  { id: 'validation', numero: 8, titre: 'Validation' },
-  { id: 'pieces', numero: 9, titre: 'Pièces jointes' },
+  { id: 'validation', numero: 7, titre: 'Validation' },
+  { id: 'pieces', numero: 8, titre: 'Pièces jointes' },
 ];
 
 export default function PreparationTab() {
@@ -74,11 +72,10 @@ export default function PreparationTab() {
         {/* Toutes les sections restent montées : un brouillon non enregistré survit au changement de section. */}
         <div hidden={section !== 'intervention'}><IdentiteSection /></div>
         <div hidden={section !== 'personnes'}><PersonnesSection /></div>
-        <div hidden={section !== 'techniques'}><ResponsablesTechniquesSection /></div>
         <div hidden={section !== 'systemes'}><SystemesSection /></div>
+        <div hidden={section !== 'techniques'}><ResponsablesTechniquesSection /></div>
         <div hidden={section !== 'livrables'}><LivrablesSection /></div>
         <div hidden={section !== 'sauvegarde'}><SauvegardeSection /></div>
-        <div hidden={section !== 'recette'}><RecetteSection /></div>
         <div hidden={section !== 'validation'}><ValidationSection /></div>
         <div hidden={section !== 'pieces'}><PiecesSection /></div>
       </div>

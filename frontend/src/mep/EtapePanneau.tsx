@@ -1,4 +1,4 @@
-import { Check, CircleHelp, Clock, Flag, HandMetal, History, Lock, OctagonAlert, Play, ShieldCheck, Undo2, Wrench, XCircle } from 'lucide-react';
+import { Check, CircleHelp, Clock, Flag, HandMetal, History, Lock, Network, OctagonAlert, Play, ShieldCheck, Undo2, Wrench, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { bloqueurs, estAVous, executantEffectif, nomParticipant } from '../domaine';
 import { formatDateHeure, LIBELLE_CRITICITE, LIBELLE_ETAT, LIBELLE_STATUT_RESOLUTION } from '../format';
@@ -8,13 +8,15 @@ import { Alerte } from '../ui/Alerte';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { CodeBlock } from '../ui/CodeBlock';
 import { ConfirmDialog } from '../ui/Dialog';
+import { Instructions, Markdown } from '../ui/Instructions';
 import { Field, Textarea } from '../ui/Input';
 import { PiecesJointes } from '../ui/PiecesJointes';
 import { Badge, StatusPill } from '../ui/StatusPill';
 import { AppelerCarte } from './AppelerCarte';
 import { BadgesEtape } from './BadgesEtape';
+import { etatCarte } from './graphe/etatCarte';
+import { PuceSysteme, systemesDe } from './graphe/systemes';
 import { ResolutionDeroule } from './ResolutionDeroule';
 
 export interface ActionsEtape {
@@ -57,8 +59,9 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
   const nomExec = nomParticipant(mep, execId);
   const nomPrevu = nomParticipant(mep, etape.responsableId);
   const priseEnMain = etape.executantId !== null && etape.executantId !== etape.responsableId;
-  const systeme = mep.systemes.find((s) => s.id === etape.systemeId);
+  const systemes = systemesDe(mep, etape.systemeIds);
   const memePlan = mep.etapes.filter((e) => e.plan === etape.plan);
+  const prealables = etape.dependances.map((id) => memePlan.find((e) => e.id === id)).filter((e): e is Etape => !!e);
   const attendus = bloqueurs(etape, memePlan);
 
   const planAgissant = (mep.phase === 'Execution' && etape.plan === 'Deploiement') || (mep.phase === 'RetourArriere' && etape.plan === 'RetourArriere');
@@ -85,10 +88,13 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
           </div>
           <h2 className="mt-3 text-lg leading-snug font-semibold tracking-tight">{etape.action || 'Étape sans libellé'}</h2>
           <p className="mt-1 text-[13px] text-fg-muted">
-            {systeme ? <>{systeme.nom}{systeme.cible && <> · <span className="font-mono">{systeme.cible}</span></>}</> : 'Système non précisé'}
-            {etape.criticite && <> · Criticité {LIBELLE_CRITICITE[etape.criticite].toLowerCase()}</>}
+            {etape.criticite ? <>Criticité {LIBELLE_CRITICITE[etape.criticite].toLowerCase()}</> : 'Criticité non précisée'}
             <> · {LIBELLE_ETAT[etape.etat]}</>
+            {etape.dureeEstimeeMinutes !== null && <> · {etape.dureeEstimeeMinutes} min prévues</>}
           </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {systemes.length > 0 ? systemes.map((s) => <PuceSysteme key={s.id} nom={s.nom} description={s.cible || undefined} />) : <span className="text-[13px] text-fg-subtle">Système non précisé</span>}
+          </div>
         </header>
 
         {/* Raison exacte d'un blocage */}
@@ -149,7 +155,7 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
                   {liees.map((r) => (
                     <li key={r.id} className="rounded-lg border border-warn-bd bg-warn-bg/40 p-3.5">
                       <p className="flex items-center gap-2 font-semibold"><Wrench className="size-4 text-warn-solid" aria-hidden />{r.titre}</p>
-                      {r.symptomes.trim() && <p className="mt-1 text-sm whitespace-pre-line text-fg-muted"><span className="font-medium text-fg">Symptômes : </span>{r.symptomes}</p>}
+                      {r.symptomes.trim() && <Markdown className="mt-1 text-fg-muted" source={`**Symptômes** : ${r.symptomes}`} />}
                       <div className="mt-3 flex flex-wrap items-center gap-3">
                         <Button variante="primaire" disabled={!estMoi} icone={<Wrench className="size-4" aria-hidden />} onClick={() => void actions.appliquerResolution(etape, r.id)}>Appliquer cette résolution</Button>
                         {!estMoi && <span className="flex items-center gap-1 text-xs text-fg-subtle"><Lock className="size-3.5" aria-hidden />Prenez la main pour l’appliquer.</span>}
@@ -186,15 +192,35 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
 
         {etape.etat !== 'Reussie' && <AppelerCarte mep={mep} etape={etape} />}
 
+        {/* Préalables et leur état */}
+        <section>
+          <Titre icone={Network}>Préalables</Titre>
+          {prealables.length === 0 ? <p className="text-sm text-fg-subtle">Aucun : l’étape peut démarrer dès le Go.</p> : (
+            <ul className="grid gap-1">
+              {prealables.map((p) => {
+                const ep = etatCarte(p);
+                return (
+                  <li key={p.id}>
+                    <button type="button" onClick={() => onSelectionner(p.id)} className="flex w-full items-center justify-between gap-2 rounded-md bg-surface-2 px-2 py-1 text-left text-[13px] hover:bg-sunken">
+                      <span className="min-w-0 truncate"><b className="mr-1.5 font-mono text-xs font-medium">{p.code}</b>{p.action || 'sans libellé'}</span>
+                      <StatusPill taille="sm" ton={ep.ton} icone={ep.Icone}>{ep.libelle}</StatusPill>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
         {/* Instructions */}
         <section>
           <Titre icone={Play}>Instructions exactes</Titre>
-          {etape.instructions.trim() ? <CodeBlock code={etape.instructions} titre="Instructions" /> : <p className="text-sm text-fg-subtle">Aucune instruction renseignée.</p>}
+          <Instructions source={etape.instructions} vide="Aucune instruction renseignée." />
         </section>
         {etape.resultatAttendu.trim() && (
           <section className="rounded-lg border border-ok-bd bg-ok-bg px-3.5 py-3 text-ok-fg">
             <Titre icone={Check}>Résultat attendu</Titre>
-            <p className="text-sm whitespace-pre-line">{etape.resultatAttendu}</p>
+            <Markdown source={etape.resultatAttendu} />
           </section>
         )}
 
@@ -276,7 +302,7 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
         {etape.resultatAttendu.trim() && (
           <div className="rounded-lg border border-ok-bd bg-ok-bg px-3.5 py-3 text-sm text-ok-fg">
             <p className="text-[11px] font-semibold tracking-wide uppercase">Résultat attendu</p>
-            <p className="whitespace-pre-line">{etape.resultatAttendu}</p>
+            <Markdown source={etape.resultatAttendu} />
           </div>
         )}
       </ConfirmDialog>
