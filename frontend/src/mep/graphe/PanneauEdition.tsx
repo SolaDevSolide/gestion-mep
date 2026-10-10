@@ -1,8 +1,7 @@
-import { DatabaseBackup, Save, Trash2, TriangleAlert, X } from 'lucide-react';
+import { DatabaseBackup, Save, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api';
-import { couleurSysteme, styleSysteme } from '../../couleursSysteme';
 import { nomParticipant } from '../../domaine';
 import { LIBELLE_CRITICITE } from '../../format';
 import { construireLignes, indexLignes, type Lien } from '../../graphe';
@@ -11,16 +10,14 @@ import { useMep } from '../../mepContext';
 import type { Criticite, Etape, EtapeSaisie, Mep, ResolutionType, SystemeCatalogue, TypeEtape, TypePlan } from '../../types';
 import { AvisConflit } from '../../ui/AvisConflit';
 import { Button } from '../../ui/Button';
-import { Checkbox } from '../../ui/Checkbox';
-import { cn } from '../../ui/cn';
-import { EditeurBlocs, ZoneAuto } from '../../ui/EditeurBlocs';
-import { Field, Input, Select } from '../../ui/Input';
 import { Instructions, Markdown } from '../../ui/Instructions';
-import { PiecesJointes } from '../../ui/PiecesJointes';
-import { Segmented } from '../../ui/Segmented';
+import { ColonneFiche } from './ColonneFiche';
+import { ColonneInstructions } from './ColonneInstructions';
+import { ColonneLiens, ItemLien, PiecesEtape } from './ColonneLiens';
 import { Bloc, Surcouche } from './EspaceEtape';
-import { SelecteurResolutions } from './SelecteurResolutions';
 import { PuceSysteme, systemesDe } from './systemes';
+
+export { PiecesEtape };
 
 /** Saisie complète d'une étape à partir de son état serveur (pour un PUT qui ne change qu'un champ, ex. les liens). */
 export function saisieDepuis(e: Etape): EtapeSaisie {
@@ -31,23 +28,8 @@ export function saisieDepuis(e: Etape): EtapeSaisie {
   };
 }
 
-/** Pièces jointes d'une étape (dépôt possible tant que la MEP n'est pas clôturée). */
-export function PiecesEtape({ etapeId, className }: { etapeId: string; className?: string }) {
-  const { mep, run } = useMep();
-  return (
-    <PiecesJointes
-      className={className}
-      compact
-      lectureSeule={mep.phase === 'Cloturee'}
-      pilote={mep.droits.estPilote}
-      pieces={mep.piecesJointes.filter((p) => p.etapeId === etapeId)}
-      onDeposer={(f, signaler) => run(() => api.deposerPieceEtape(mep.id, etapeId, f), undefined, signaler)}
-      onSupprimer={(p, signaler) => run(() => api.supprimerPiece(mep.id, p.id), undefined, signaler)}
-    />
-  );
-}
-
-interface Fiche {
+/** Brouillon de la fiche d'une étape (champs saisis tels quels, ex. la durée en texte). */
+export interface Fiche {
   action: string;
   type: TypeEtape;
   systemeIds: string[];
@@ -89,22 +71,6 @@ interface Props {
   onLier: (de: string, vers: string) => void;
   onDelier: (liens: Lien[]) => void;
   onSelection: (id: string | null) => void;
-}
-
-/** Ligne compacte d'une liste de liens (préalables / débloque). */
-function ItemLien({ etape, onRetirer, libelleRetrait, onOuvrir }: { etape: Etape; onRetirer?: () => void; libelleRetrait: string; onOuvrir: () => void }) {
-  return (
-    <li className="inline-flex max-w-full items-center gap-0.5 rounded-full border border-line bg-surface-2/60 py-0.5 pr-0.5 pl-2 text-[13px]">
-      <button type="button" className="min-w-0 truncate text-left hover:text-accent-text" onClick={onOuvrir} title={`${etape.code} · ${etape.action || 'sans libellé'}`} aria-label={`${etape.code} ${etape.action || 'sans libellé'}`}>
-        <b className="font-mono text-xs font-semibold">{etape.code}</b>
-      </button>
-      {onRetirer && (
-        <button type="button" className="shrink-0 rounded p-0.5 text-fg-subtle hover:bg-danger-bg hover:text-danger-solid" aria-label={libelleRetrait} onClick={onRetirer}>
-          <X className="size-3.5" aria-hidden />
-        </button>
-      )}
-    </li>
-  );
 }
 
 /** Badges de la barre du haut : code, type, point de non-retour. */
@@ -178,9 +144,6 @@ export function PanneauEdition(props: Props) {
     else setSuppr(false);
   }
 
-  const basculerSysteme = (id: string) =>
-    d.update({ systemeIds: v.systemeIds.includes(id) ? v.systemeIds.filter((x) => x !== id) : mep.systemes.filter((s) => s.id === id || v.systemeIds.includes(s.id)).map((s) => s.id) });
-
   const barre = (
     <div className="grid gap-2">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -212,135 +175,29 @@ export function PanneauEdition(props: Props) {
     </div>
   );
 
-  const gauche = (
-    <>
-      <Bloc titre="Systèmes">
-        <div className="flex flex-wrap gap-1.5">
-          {mep.systemes.map((s) => {
-            const actif = v.systemeIds.includes(s.id);
-            return (
-              <button
-                key={s.id}
-                type="button"
-                aria-pressed={actif}
-                onClick={() => basculerSysteme(s.id)}
-                className={cn('inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-[13px] font-semibold transition-colors', !actif && 'border-line-strong text-fg-subtle hover:text-fg')}
-                style={actif ? styleSysteme(s.nom) : undefined}
-              >
-                <i className="size-2 rounded-full" style={{ background: couleurSysteme(s.nom) }} aria-hidden />{s.nom}
-              </button>
-            );
-          })}
-          {mep.systemes.length === 0 && <span className="text-sm text-fg-subtle">Aucun système dans la MEP.</span>}
-        </div>
-      </Bloc>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Criticité">
-          {(id) => (
-            <Select id={id} value={v.criticite} onChange={(e) => d.update({ criticite: e.target.value as Criticite | '' })}>
-              <option value="">—</option>
-              {(Object.keys(LIBELLE_CRITICITE) as Criticite[]).map((c) => <option key={c} value={c}>{LIBELLE_CRITICITE[c]}</option>)}
-            </Select>
-          )}
-        </Field>
-        <Field label="Durée (min)">
-          {(id) => <Input id={id} type="number" min={0} inputMode="numeric" placeholder="facultatif" value={v.duree} onChange={(e) => d.update({ duree: e.target.value })} />}
-        </Field>
-      </div>
-      {plan === 'Deploiement' && (
-        <>
-          <Bloc titre="Type">
-            <Segmented
-              label="Type d’étape"
-              valeur={v.type}
-              onChange={(t) => d.update({ type: t })}
-              options={[{ valeur: 'Standard', libelle: 'Standard' }, { valeur: 'Sauvegarde', libelle: <><DatabaseBackup className="size-3.5" aria-hidden />Sauvegarde</> }]}
-            />
-          </Bloc>
-          <div className="rounded-lg border-[1.5px] border-rollback-solid bg-danger-bg/60 px-3 py-2 text-danger-fg" title="Démarrer cette étape exigera l’accord du pilote ; ensuite, plus de retour arrière.">
-            <Checkbox label={<span className="font-semibold">Point de non-retour</span>} checked={v.pointDeNonRetour} onChange={(c) => d.update({ pointDeNonRetour: c })} />
-          </div>
-        </>
-      )}
-    </>
-  );
-
-  const centre = (
-    <>
-      <Bloc titre="Instructions exactes">
-        <EditeurBlocs label="Instructions" valeur={v.instructions} onChange={(md) => d.update({ instructions: md })} />
-      </Bloc>
-      <Bloc titre="Résultat attendu">
-        <ZoneAuto
-          aria-label="Résultat attendu"
-          value={v.resultatAttendu}
-          onChange={(e) => d.update({ resultatAttendu: e.target.value })}
-          placeholder="ex. `GET /sante` renvoie 200 avec la version 2.4.0."
-          className="border border-line-strong bg-surface text-fg placeholder:text-fg-subtle"
-        />
-        {v.resultatAttendu.trim() && <div className="rounded-md border border-dashed border-line bg-surface px-3 py-2"><Markdown source={v.resultatAttendu} /></div>}
-      </Bloc>
-    </>
-  );
-
+  const gauche = <ColonneFiche mep={mep} plan={plan} fiche={v} onChange={d.update} />;
+  const centre = <ColonneInstructions fiche={v} onChange={d.update} />;
   const droite = (
-    <>
-      <Bloc titre={`Attend (${prealables.length})`}>
-        {prealables.length > 0 && (
-          <ul className="flex flex-wrap gap-1">
-            {prealables.map((p) => (
-              <ItemLien key={p.id} etape={p} onOuvrir={() => onSelection(p.id)} libelleRetrait={`Retirer le préalable ${p.code}`} onRetirer={() => onDelier([{ de: p.id, vers: etape.id }])} />
-            ))}
-          </ul>
-        )}
-        {r > 0 && prealables.length === 0 && <p className="text-xs text-fg-subtle">Aucun : démarrable dès le Go.</p>}
-        {ajoutsAvant.length > 0 && (
-          <Select aria-label="Ajouter un préalable" className="h-8 text-[13px]" value="" onChange={(e) => { if (e.target.value) onLier(e.target.value, etape.id); }}>
-            <option value="">+ Préalable…</option>
-            {ajoutsAvant.map((x) => <option key={x.id} value={x.id}>{x.code} · {x.action || 'sans libellé'}</option>)}
-          </Select>
-        )}
-      </Bloc>
-      <Bloc titre={`Débloque (${suivants.length})`}>
-        {suivants.length > 0 && (
-          <ul className="flex flex-wrap gap-1">
-            {suivants.map((s) => (
-              <ItemLien key={s.id} etape={s} onOuvrir={() => onSelection(s.id)} libelleRetrait={`Retirer le lien vers ${s.code}`} onRetirer={() => onDelier([{ de: etape.id, vers: s.id }])} />
-            ))}
-          </ul>
-        )}
-        {ajoutsApres.length > 0 && (
-          <Select aria-label="Ajouter une étape qui attend celle-ci" className="h-8 text-[13px]" value="" onChange={(e) => { if (e.target.value) onLier(etape.id, e.target.value); }}>
-            <option value="">+ Étape qui l’attend…</option>
-            {ajoutsApres.map((x) => <option key={x.id} value={x.id}>{x.code} · {x.action || 'sans libellé'}</option>)}
-          </Select>
-        )}
-      </Bloc>
-      <Bloc titre={`Résolutions en cas d’échec (${v.resolutionIds.length})`}>
-        <SelecteurResolutions
-          resolutions={resolutions}
-          catalogue={catalogue}
-          liees={v.resolutionIds}
-          onChange={(ids) => d.update({ resolutionIds: ids })}
-          systemesEtape={catalogueIds}
-          onCreer={(titre) => void creerResolution(titre)}
-        />
-      </Bloc>
-      <PiecesEtape etapeId={etape.id} />
-      <div className="border-t border-line pt-3">
-        {suppr ? (
-          <div role="alertdialog" aria-label={`Supprimer ${etape.code}`} className="grid gap-2 rounded-lg border border-danger-bd bg-danger-bg/60 p-2.5">
-            <p className="text-sm font-medium text-danger-fg">Supprimer {etape.code} définitivement ?</p>
-            <div className="flex flex-wrap gap-2">
-              <Button variante="danger" taille="sm" icone={<Trash2 className="size-4" aria-hidden />} onClick={() => void supprimer()}>Supprimer définitivement</Button>
-              <Button variante="fantome" taille="sm" onClick={() => setSuppr(false)} autoFocus>Annuler</Button>
-            </div>
-          </div>
-        ) : (
-          <Button variante="danger-doux" taille="sm" icone={<Trash2 className="size-4" aria-hidden />} onClick={() => setSuppr(true)}>Supprimer l’étape</Button>
-        )}
-      </div>
-    </>
+    <ColonneLiens
+      etape={etape}
+      ligne={r}
+      prealables={prealables}
+      suivants={suivants}
+      ajoutsAvant={ajoutsAvant}
+      ajoutsApres={ajoutsApres}
+      resolutions={resolutions}
+      catalogue={catalogue}
+      resolutionIds={v.resolutionIds}
+      onResolutions={(ids) => d.update({ resolutionIds: ids })}
+      systemesEtape={catalogueIds}
+      onCreerResolution={(titre) => void creerResolution(titre)}
+      onLier={onLier}
+      onDelier={onDelier}
+      onSelection={onSelection}
+      suppr={suppr}
+      onSuppr={setSuppr}
+      onSupprimer={() => void supprimer()}
+    />
   );
 
   return <Surcouche etiquette={`Étape ${etape.code}`} onDemandeFermeture={fermer} barre={barre} gauche={gauche} centre={centre} droite={droite} />;
