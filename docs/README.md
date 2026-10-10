@@ -26,3 +26,4 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 - **Exécution** : chacun voit ce qui est disponible, démarre une étape, la termine avec une preuve, ou applique une résolution guidée en cas d'échec. Les écrans se mettent à jour en direct pour tous.
 - **Sécurité de l'intervention** : go / no-go sur critères, point de non-retour soumis à l'accord du pilote, échéance de retour arrière surveillée en permanence, recette avant clôture, bilan.
 - **Traçabilité** : chaque action est horodatée et attribuée, y compris quand quelqu'un prend la main sur l'étape d'un autre.
+- **Exploitation** : sauvegarde automatique de la base et des pièces jointes avant chaque mise à jour du schéma ou importation, supprimée seulement si les contrôles internes confirment qu'aucune donnée n'a été perdue ; commandes `gestion-mep sauvegarder` et `gestion-mep importer` pour les sauvegardes régulières, les restaurations et les changements de serveur.

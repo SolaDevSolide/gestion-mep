@@ -5,7 +5,7 @@ Ce guide s'adresse à un développeur qui reprend le code. L'architecture est d�
 ## Prérequis
 
 - SDK .NET 10 (la bande exacte est fixée par `backend/global.json`)
-- Node.js 22
+- Node.js 26 (version de la CI et de l'image ; 22.22 ou plus fonctionne aussi)
 - PostgreSQL 16 sur `localhost:5432`, utilisateur `postgres`, mot de passe `postgres` (ou Docker : `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:16`)
 
 ```bash
@@ -80,7 +80,7 @@ dotnet ef migrations add AjoutCommentaireEtape --project src/GestionMep.Api --ou
 - Donner un **nom descriptif** du changement (`AjoutCommentaireEtape`), pas un numéro de jalon.
 - Relire le fichier généré : une colonne renommée apparaît souvent comme une suppression puis un ajout, ce qui perd les données.
 - Une migration qui transforme des données existantes a son test (exemple : `MigrationJalon4Tests.cs`).
-- La migration s'applique toute seule au prochain démarrage de l'API.
+- La migration s'applique toute seule au prochain démarrage de l'API, après une sauvegarde automatique (`Services/Sauvegardes.cs`). Les contrôles qui suivent exigent qu'aucune table ne disparaisse et qu'aucune ne perde de lignes : une migration qui supprime des données volontairement laissera la sauvegarde en place et un écart dans le journal d'administration.
 
 ## Contrat d'API (OpenAPI)
 
