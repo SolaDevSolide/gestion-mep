@@ -159,8 +159,8 @@ export function ResponsablesTechniquesSection() {
                   <div className="min-w-0">
                     <p className="flex flex-wrap items-center gap-2 font-medium">
                       {nom(r.participantId)}
-                      <BadgeDisponibilite valeur={r.disponibilite} />
-                      {estPilote && <Badge ton="run">Pilote</Badge>}
+                      {!mep.estModele && <BadgeDisponibilite valeur={r.disponibilite} />}
+                      {estPilote && !mep.estModele && <Badge ton="run">Pilote</Badge>}
                     </p>
                     <p className="flex items-center gap-1 text-xs text-fg-subtle">
                       <Phone className="size-3" aria-hidden />
@@ -335,19 +335,22 @@ export function ResponsablesTechniquesSection() {
               />
             )}
           </Field>
-          <Field label="Disponibilité le jour J">
-            {() => (
-              <Segmented<DisponibiliteJourJ>
-                label="Disponibilité le jour J"
-                valeur={brouillon.disponibilite}
-                onChange={(disponibilite) => setBrouillon({ ...brouillon, disponibilite })}
-                options={[
-                  { valeur: 'Joignable', libelle: 'Joignable' },
-                  { valeur: 'Absent', libelle: 'Absent' },
-                ]}
-              />
-            )}
-          </Field>
+          {/* La disponibilité se donne pour chaque MEP, pas dans un modèle. */}
+          {!mep.estModele && (
+            <Field label="Disponibilité le jour J">
+              {() => (
+                <Segmented<DisponibiliteJourJ>
+                  label="Disponibilité le jour J"
+                  valeur={brouillon.disponibilite}
+                  onChange={(disponibilite) => setBrouillon({ ...brouillon, disponibilite })}
+                  options={[
+                    { valeur: 'Joignable', libelle: 'Joignable' },
+                    { valeur: 'Absent', libelle: 'Absent' },
+                  ]}
+                />
+              )}
+            </Field>
+          )}
           <Field label="Contact le jour J">
             {(id) => (
               <Input

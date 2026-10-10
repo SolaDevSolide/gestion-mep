@@ -73,9 +73,11 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                   </>
                 )}
               </h1>
-              <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime} taille="lg">
-                {meta.libelle}
-              </StatusPill>
+              {!mep.estModele && (
+                <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime} taille="lg">
+                  {meta.libelle}
+                </StatusPill>
+              )}
               {mep.estModele && (
                 <Badge ton="later" className="text-xs">
                   <LayoutTemplate className="size-3.5" aria-hidden />
@@ -93,12 +95,14 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
             </div>
             <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 pl-8 text-[13px] text-fg-muted">
               {mep.objet && <span className="max-w-md truncate">{mep.objet}</span>}
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarDays className="size-3.5 text-fg-subtle" aria-hidden />
-                Démarrée le {mep.demarrageAutorise ? formatDateHeure(mep.demarrageAutorise.le) : '—'}
-                {mep.cloture && ` · Terminée le ${formatDateHeure(mep.cloture.le)}`}
-              </span>
-              {pilote && (
+              {!mep.estModele && (
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarDays className="size-3.5 text-fg-subtle" aria-hidden />
+                  Démarrée le {mep.demarrageAutorise ? formatDateHeure(mep.demarrageAutorise.le) : '—'}
+                  {mep.cloture && ` · Terminée le ${formatDateHeure(mep.cloture.le)}`}
+                </span>
+              )}
+              {pilote && !mep.estModele && (
                 <span className="inline-flex items-center gap-1.5">
                   <Avatar nom={pilote} taille="xs" />
                   Pilote : {pilote}
@@ -114,10 +118,15 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
             {(mep.phase === 'Preparation' || (mep.phase === 'Execution' && mep.erreursPlan.length > 0)) && (
               <PlanCheck mep={mep} />
             )}
-            <Button taille="sm" icone={<Copy className="size-4" aria-hidden />} onClick={() => setDuplication(true)}>
-              Dupliquer
+            <Button
+              taille="sm"
+              variante={mep.estModele ? 'primaire' : undefined}
+              icone={<Copy className="size-4" aria-hidden />}
+              onClick={() => setDuplication(true)}
+            >
+              {mep.estModele ? 'Créer une MEP depuis ce modèle' : 'Dupliquer'}
             </Button>
-            {pilotes && mep.phase === 'Preparation' && <BoutonGoNoGo />}
+            {pilotes && mep.phase === 'Preparation' && !mep.estModele && <BoutonGoNoGo />}
             {pilotes && mep.phase === 'Execution' && (
               <>
                 <BoutonRevenirPreparation />

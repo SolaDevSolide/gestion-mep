@@ -3442,9 +3442,11 @@ export interface components {
             /** Format: uuid */
             systemeId: null | string;
         };
+        /** @description Création d'une MEP, ou d'un modèle si `Modele` vaut true. */
         MepCreationSaisie: {
             outil: null | string;
             objet: null | string;
+            modele?: null | boolean;
         };
         MepDto: {
             /** Format: uuid */

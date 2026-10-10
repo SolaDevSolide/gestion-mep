@@ -176,7 +176,11 @@ export default function MepPage() {
   }
 
   const demande = params.get('onglet');
-  const courant: Onglet = ONGLETS.includes(demande as Onglet) ? (demande as Onglet) : ongletParDefaut(mep);
+  // Un modèle n'a pas d'onglet Exécution.
+  const courant: Onglet =
+    ONGLETS.includes(demande as Onglet) && !(mep.estModele && demande === 'execution')
+      ? (demande as Onglet)
+      : ongletParDefaut(mep);
   const repliActif = mep.phase === 'RetourArriere';
   const ctx: MepContextValue = { mep, run };
 
@@ -194,7 +198,7 @@ export default function MepPage() {
               <TabsList aria-label="Sections de la MEP">
                 <TabsTrigger value="preparation">Préparation</TabsTrigger>
                 <TabsTrigger value="etapes">Étapes</TabsTrigger>
-                <TabsTrigger value="execution">Exécution</TabsTrigger>
+                {!mep.estModele && <TabsTrigger value="execution">Exécution</TabsTrigger>}
                 <TabsTrigger value="retour">
                   Retour arrière
                   {repliActif && (

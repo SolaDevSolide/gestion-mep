@@ -43,13 +43,14 @@ public static class MepsEndpoints
             var acteur = Acteur.Depuis(user);
             var outil = ServiceMep.Texte(corps.Outil);
             if (outil.Length == 0) throw ErreurHttp.Saisie("L'outil est obligatoire.");
-            var mep = new Mep { Outil = outil, Objet = ServiceMep.Texte(corps.Objet), CreeLe = svc.Maintenant, CreeParUtilisateurId = acteur.Id };
+            var modele = corps.Modele == true;
+            var mep = new Mep { Outil = outil, Objet = ServiceMep.Texte(corps.Objet), EstModele = modele, CreeLe = svc.Maintenant, CreeParUtilisateurId = acteur.Id };
             // Le créateur est participant et responsable technique ; le pilote se choisit ensuite.
             var createur = new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Responsable technique", UtilisateurId = acteur.Id };
             mep.Participants.Add(createur);
             mep.ResponsablesTechniques.Add(new ResponsableTechnique { ParticipantId = createur.Id, Disponibilite = DisponibiliteJourJ.Joignable });
             db.Meps.Add(mep);
-            var dto = await svc.Enregistrer(mep, acteur, "mep.creee", $"MEP créée : {outil}");
+            var dto = await svc.Enregistrer(mep, acteur, "mep.creee", modele ? $"Modèle créé : {outil}" : $"MEP créée : {outil}");
             return Results.Created($"/api/meps/{mep.Id}", dto);
         });
 

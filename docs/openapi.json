@@ -4362,8 +4362,15 @@
               "null",
               "string"
             ]
+          },
+          "modele": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
-        }
+        },
+        "description": "Création d'une MEP, ou d'un modèle si `Modele` vaut true."
       },
       "MepDto": {
         "required": [

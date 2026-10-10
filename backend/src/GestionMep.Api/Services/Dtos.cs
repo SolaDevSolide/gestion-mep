@@ -88,7 +88,8 @@ public record UtilisateurSaisie(string? Login, string? NomAffiche, string? MotDe
 public record ExpertiseSaisie(Guid? SystemeCatalogueId, string? Detail);
 /// <summary><c>NomAffiche</c> absent ou null : inchangé.</summary>
 public record ProfilSaisie(string? NomAffiche, string? Role, string? Contact, List<ExpertiseSaisie>? Expertises);
-public record MepCreationSaisie(string? Outil, string? Objet);
+/// <summary>Création d'une MEP, ou d'un modèle si <c>Modele</c> vaut true.</summary>
+public record MepCreationSaisie(string? Outil, string? Objet, bool? Modele = null);
 
 public record MepIdentiteSaisie(int? Version, string? Outil, string? VersionActuelle, string? VersionCible, string? Objet, string? Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string? FuseauHoraire, int? IndisponibiliteMinutes,
