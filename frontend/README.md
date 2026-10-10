@@ -12,6 +12,7 @@ React 18, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 | `npm run format` / `npm run format:check` | Prettier |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run build` | Typage puis construction dans `dist/` |
+| `npm run api:types` | Régénère `src/api/schema.d.ts` depuis `docs/openapi.json` |
 
 ## Organisation
 
@@ -30,8 +31,9 @@ Logique pure, testée sans DOM :
 
 | Module | Rôle |
 |---|---|
-| `api.ts` | Client HTTP : une fonction par route, erreurs converties en `ApiError` (statut + message français) |
-| `types.ts` | Types des données échangées avec l'API (alignés sur `backend/src/GestionMep.Api/Services/Dtos.cs`) |
+| `api.ts` | Client HTTP : une fonction par route, erreurs converties en `ApiError` (statut + message français), en-tête anti-CSRF `X-Requested-With` sur chaque requête |
+| `types.ts` | Noms courts des types de l'API (`Mep`, `Etape`…), alias des types générés |
+| `api/schema.d.ts` | Types générés depuis `docs/openapi.json` par `npm run api:types` ; ne jamais modifier à la main |
 | `domaine.ts` | Règles d'affichage : plan actif, étapes à vous, bloqueurs, progression, bilan de recette |
 | `graphe.ts` | Lignes du graphe, liens, tracé des jonctions |
 | `recherche.ts` | Recherche insensible aux accents, score et surlignage |
@@ -58,11 +60,12 @@ await run(() => api.demarrerEtape(mep.id, etape.id, etape.revision), 'Étape dé
 ### Brouillons et saisie en cours
 
 - `useDraft(source)` (`hooks.ts`) garde la saisie d'un formulaire : tant que l'utilisateur n'a rien modifié, le formulaire suit la source ; dès qu'il tape, sa saisie prime.
+- Le brouillon mémorise aussi la source au début de la saisie. Si elle change ensuite (modification d'un collègue reçue entre-temps), `conflit` passe à vrai : `ui/AvisConflit.tsx` affiche « Modifié pendant votre saisie » et bloque l'enregistrement jusqu'à ce que l'utilisateur abandonne sa saisie ou la garde (`garderSaisie`). La source ne doit contenir que les champs du formulaire, pas la version de la MEP.
 - `useReportDirty(dirty)` signale à `MepPage` qu'une saisie est en cours (`DirtyContext`). Un rechargement venu d'ailleurs ne remplace alors pas l'écran : un bandeau propose de recharger.
 
 ### Temps réel
 
-`MepPage` ouvre un flux SSE (`/api/meps/{id}/flux`). Chaque événement `maj` porte la nouvelle version de la MEP ; si elle est plus récente que celle affichée, la MEP est rechargée. Un rafraîchissement toutes les 30 secondes complète le flux, car certaines disponibilités dépendent de l'heure (échéance de retour arrière).
+`MepPage` ouvre un flux SSE (`/api/meps/{id}/flux`). Chaque événement `maj` porte la nouvelle version de la MEP ; si elle est plus récente que celle affichée, la MEP est rechargée. Après une erreur (par exemple un 502 pendant un déploiement), le flux est recréé avec un délai croissant de 1 à 30 secondes. Un rafraîchissement toutes les 30 secondes complète le flux, car certaines disponibilités dépendent de l'heure (échéance de retour arrière).
 
 ### Nouvelle version
 
