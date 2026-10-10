@@ -25,17 +25,17 @@ export default function NouvelleResolutionPage() {
   const etape = (etapeId && mep.donnees?.etapes.find((e) => e.id === etapeId)) || null;
 
   // `titre` : texte cherché dans le sélecteur de résolutions de l'étape.
-  const [b, setB] = useState<BrouillonResolution>(() => ({ ...brouillonDepuis(undefined, null), titre: params.get('titre') ?? '' }));
+  const [b, setB] = useState<BrouillonResolution>(() => ({ ...brouillonDepuis(undefined), titre: params.get('titre') ?? '' }));
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState(false);
   const systemeInitialise = useRef(false);
 
-  // Système pré-sélectionné : celui (du catalogue) du premier système de l'étape.
+  // Systèmes pré-sélectionnés : ceux (du catalogue) des systèmes de l'étape.
   useEffect(() => {
     if (systemeInitialise.current || !etape || !mep.donnees) return;
     systemeInitialise.current = true;
-    const premier = mep.donnees.systemes.find((s) => s.id === etape.systemeIds[0]);
-    if (premier?.catalogueId) setB((x) => (x.systemeCatalogueId ? x : { ...x, systemeCatalogueId: premier.catalogueId! }));
+    const ids = mep.donnees.systemes.filter((s) => etape.systemeIds.includes(s.id)).map((s) => s.catalogueId).filter((c): c is string => !!c);
+    if (ids.length) setB((x) => (x.systemeCatalogueIds.length ? x : { ...x, systemeCatalogueIds: ids }));
   }, [etape, mep.donnees]);
 
   const retour = etape && mepId
@@ -78,10 +78,7 @@ export default function NouvelleResolutionPage() {
           <ArrowLeft className="size-4" aria-hidden />{libelleRetour}
         </Link>
       </nav>
-      <h1 className="text-2xl font-semibold tracking-tight">Nouvelle fiche de résolution</h1>
-      <p className="mt-1 text-sm text-fg-subtle">
-        Elle sera enregistrée dans le catalogue des résolutions types{etape ? <>, et liée à <span className="font-mono">{etape.code}</span></> : null}.
-      </p>
+      <h1 className="text-2xl font-semibold tracking-tight">Nouvelle fiche de résolution{etape ? <span className="ml-2 text-base font-normal text-fg-subtle">liée à <span className="font-mono">{etape.code}</span></span> : null}</h1>
       {mepId && mep.erreur && (
         <Alerte ton="warn" icone={TriangleAlert} className="mt-4">MEP introuvable ({mep.erreur}) : la fiche sera créée sans être liée à une étape.</Alerte>
       )}

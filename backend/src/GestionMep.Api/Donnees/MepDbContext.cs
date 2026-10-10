@@ -116,6 +116,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         {
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.Corrections).AsJson();
+            e.Property(x => x.SystemeCatalogueIds).HasColumnType("uuid[]");
             // Verrou optimiste : la version reçue du client est comparée à la main, et EF protège contre les écritures simultanées.
             e.Property(x => x.Version).IsConcurrencyToken();
         });

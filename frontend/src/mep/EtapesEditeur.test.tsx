@@ -8,8 +8,8 @@ import type { Mep, ResolutionType } from '../types';
 import { TooltipProvider } from '../ui/Tooltip';
 import { EtapesEditeur } from './EtapesEditeur';
 
-const res = (id: string, titre: string, systemeCatalogueId: string | null, symptomes = ''): ResolutionType => ({
-  id, titre, symptomes, diagnostic: '', systemeCatalogueId, corrections: [], verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-10T10:00:00Z',
+const res = (id: string, titre: string, systemeCatalogueIds: string[], symptomes = ''): ResolutionType => ({
+  id, titre, symptomes, diagnostic: '', systemeCatalogueIds, corrections: [], verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-10T10:00:00Z',
 });
 
 vi.mock('../api', () => ({
@@ -19,9 +19,9 @@ vi.mock('../api', () => ({
       { id: 'c-web', nom: 'WEB', description: 'Portail public', cible: '', actif: true },
     ]),
     resolutions: vi.fn(async () => [
-      res('r1', 'API : le service ne démarre pas', 'c-api', 'GET /sante renvoie 503'),
-      res('r2', 'WEB : purge du cache CDN refusée', 'c-web', 'Publication refusée (403)'),
-      res('r3', 'Procédure générale de redémarrage', null),
+      res('r1', 'API : le service ne démarre pas', ['c-api'], 'GET /sante renvoie 503'),
+      res('r2', 'WEB : purge du cache CDN refusée', ['c-web'], 'Publication refusée (403)'),
+      res('r3', 'Procédure générale de redémarrage', []),
     ]),
     modifierEtape: vi.fn(async () => ({})),
     ajouterEtape: vi.fn(async () => ({ etapes: [] })),
@@ -72,7 +72,6 @@ function rendre(m: Mep) {
 }
 
 const carte = (nom: RegExp) => screen.getByRole('button', { name: nom });
-const onglet = (nom: RegExp) => userEvent.click(screen.getByRole('tab', { name: nom }));
 
 describe('EtapesEditeur : graphe en préparation', () => {
   beforeEach(() => { vi.clearAllMocks(); window.localStorage.clear(); });
@@ -92,22 +91,20 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(within(vue).getByRole('button', { name: /Zoom 100 %/ })).toBeInTheDocument();
   });
 
-  it('Entrée sur une fiche ouvre le panneau ; un préalable s’ajoute depuis l’onglet Liens', async () => {
+  it('Entrée sur une fiche ouvre l’espace d’édition ; un préalable s’ajoute', async () => {
     rendre(planExemple());
     carte(/^E0003/).focus();
     await userEvent.keyboard('{Enter}');
     expect(screen.getByLabelText('Action')).toHaveValue('Contrôle final');
-    const panneau = screen.getByRole('complementary', { name: 'Détail de la sélection' });
-    await onglet(/Liens/);
+    const panneau = screen.getByRole('dialog');
     expect(within(panneau).getByRole('button', { name: 'Retirer le préalable E0001' })).toBeInTheDocument();
     await userEvent.selectOptions(within(panneau).getByLabelText('Ajouter un préalable'), 'e2');
     expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e3', expect.objectContaining({ dependances: ['e1', 'e2'], action: 'Contrôle final', systemeIds: ['s1'] }));
   });
 
-  it('retire un préalable depuis l’onglet Liens', async () => {
+  it('retire un préalable', async () => {
     rendre(planExemple());
     await userEvent.click(carte(/^E0003/));
-    await onglet(/Liens/);
     await userEvent.click(screen.getByRole('button', { name: 'Retirer le préalable E0001' }));
     expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e3', expect.objectContaining({ dependances: [] }));
   });
@@ -117,11 +114,10 @@ describe('EtapesEditeur : graphe en préparation', () => {
     rendre(planExemple({ systemes: [base, { ...base, id: 's2', nom: 'BDD' }] }));
     await userEvent.click(carte(/^E0001/));
     await userEvent.click(screen.getByRole('button', { name: 'BDD', pressed: false }));
-    expect(screen.getByRole('status')).toHaveTextContent('Modifications non enregistrées');
-    const duree = screen.getByLabelText('Durée estimée (min)');
+    expect(screen.getByRole('status')).toHaveTextContent('Non enregistré');
+    const duree = screen.getByLabelText('Durée (min)');
     await userEvent.clear(duree);
     await userEvent.type(duree, '20');
-    await onglet(/Instructions/);
     await userEvent.click(screen.getByRole('button', { name: 'Ajouter un bloc code' }));
     await userEvent.type(screen.getByLabelText('Instructions, bloc 2 (code)'), 'pg_dump clients');
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
@@ -131,18 +127,35 @@ describe('EtapesEditeur : graphe en préparation', () => {
     }));
   });
 
-  it('onglets : compteurs et pastille d’anomalie', async () => {
-    rendre(planExemple({ etapes: [etape({ id: 'e1', code: 'E0001', ligne: 0, ordre: 0, criticite: null, resultatAttendu: '' })] }));
+  it('tout est visible sans onglets : fiche, instructions, liens, résolutions ; points à compléter résumés', async () => {
+    rendre(planExemple({ etapes: [etape({ id: 'e1', code: 'E0001', ligne: 0, ordre: 0, criticite: null, resultatAttendu: '', dureeEstimeeMinutes: null })] }));
     await userEvent.click(carte(/^E0001/));
-    expect(screen.getByRole('tab', { name: /Liens\s*0/ })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /À compléter : la criticité/ })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /À compléter : le résultat attendu/ })).toBeInTheDocument();
+    const espace = screen.getByRole('dialog');
+    expect(within(espace).queryByRole('tab')).toBeNull();
+    expect(within(espace).queryByLabelText('Responsable')).toBeNull();
+    for (const t of ['Systèmes', 'Instructions exactes', 'Résultat attendu', 'Attend (0)', 'Débloque (0)', 'Résolutions en cas d’échec (0)']) {
+      expect(within(espace).getByRole('heading', { name: t })).toBeInTheDocument();
+    }
+    expect(within(espace).getByText(/À compléter : la criticité, le résultat attendu\./)).toBeInTheDocument();
+  });
+
+  it('fermer avec des modifications non enregistrées : garde', async () => {
+    rendre(planExemple());
+    await userEvent.click(carte(/^E0003/));
+    await userEvent.type(screen.getByLabelText('Action'), ' bis');
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByRole('alertdialog', { name: 'Modifications non enregistrées' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+    expect(screen.getByLabelText('Action')).toHaveValue('Contrôle final bis');
+    await userEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Fermer sans enregistrer' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(api.modifierEtape).not.toHaveBeenCalled();
   });
 
   it('résolutions : recherche sans accents, même système en tête, Entrée pour lier', async () => {
     rendre(planExemple());
     await userEvent.click(carte(/^E0003/));
-    await onglet(/Résolutions/);
     const liste = await screen.findByRole('listbox', { name: 'Résolutions trouvées' });
     // Filtre présélectionné sur le système de l'étape (API) : WEB est masqué, la fiche « tous systèmes » reste.
     expect(within(liste).getAllByRole('option').map((o) => o.textContent)).toEqual([
@@ -155,7 +168,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(within(liste).getByText('refusée', { selector: 'mark' })).toBeInTheDocument();
     await userEvent.keyboard('{Enter}');
     expect(screen.getByRole('button', { name: /Retirer la résolution WEB : purge du cache CDN refusée/ })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Résolutions\s*1/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Résolutions en cas d’échec (1)' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e3', expect.objectContaining({ resolutionIds: ['r2'] }));
   });
@@ -163,18 +176,16 @@ describe('EtapesEditeur : graphe en préparation', () => {
   it('résolutions : les correspondances masquées par le filtre de systèmes sont proposées', async () => {
     rendre(planExemple());
     await userEvent.click(carte(/^E0003/));
-    await onglet(/Résolutions/);
     await userEvent.type(await screen.findByRole('combobox', { name: 'Ajouter une résolution' }), 'purge');
-    await userEvent.click(screen.getByRole('button', { name: /1 autre résultat dans d’autres systèmes/ }));
+    await userEvent.click(screen.getByRole('button', { name: /1 autre dans d’autres systèmes/ }));
     expect(within(screen.getByRole('listbox')).getByRole('option')).toHaveTextContent('WEB : purge du cache CDN refusée');
   });
 
   it('résolutions : créer une fiche avec le texte cherché comme titre', async () => {
     rendre(planExemple());
     await userEvent.click(carte(/^E0003/));
-    await onglet(/Résolutions/);
     await userEvent.type(await screen.findByRole('combobox', { name: 'Ajouter une résolution' }), 'LDAP muet');
-    await userEvent.click(screen.getByRole('button', { name: /Créer une nouvelle fiche de résolution « LDAP muet »/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Nouvelle fiche de résolution « LDAP muet »/ }));
     expect(await screen.findByText('Destination : /parametres/resolutions/nouvelle?mep=m1&etape=e3&titre=LDAP+muet')).toBeInTheDocument();
   });
 

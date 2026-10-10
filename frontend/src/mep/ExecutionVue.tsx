@@ -1,5 +1,5 @@
 import { ListFilter, Network, User } from 'lucide-react';
-import { useCallback, useMemo, useState, type KeyboardEvent } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { api } from '../api';
 import { etapeParDefaut, etapesDuPlan, executantEffectif } from '../domaine';
 import { useAsync, useLocalStorageState } from '../hooks';
@@ -9,17 +9,15 @@ import { cn } from '../ui/cn';
 import { MultiSelect } from '../ui/Combobox';
 import { EmptyState } from '../ui/EmptyState';
 import { EtapePanneau, type ActionsEtape } from './EtapePanneau';
-import { ConteneurPanneau, usePanneauLateral } from './graphe/PanneauLateral';
 import { GrapheEtapes } from './graphe/GrapheEtapes';
-import { PanneauResume } from './graphe/PanneauResume';
+import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
 import { descriptionsSystemes } from './graphe/systemes';
 
-/** Vue d'exécution d'un plan : graphe des étapes (états, liens verts une fois les préalables réussis), panneau de l'étape. */
+/** Vue d'exécution d'un plan : graphe des étapes (états, liens verts une fois les préalables réussis), espace de l'étape ouverte. */
 export function ExecutionVue({ plan }: { plan: TypePlan }) {
   const { mep, run } = useMep();
   const etapes = etapesDuPlan(mep, plan);
   const moi = mep.droits.participantId;
-  const panneau = usePanneauLateral();
 
   const [mesSystemes, setMesSystemes] = useLocalStorageState<string[]>(`mep.${mep.id}.mesSystemes`, []);
   const [aMoi, setAMoi] = useLocalStorageState<boolean>(`mep.${mep.id}.aMoi`, false);
@@ -29,9 +27,9 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
   const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue.donnees), [mep, catalogue.donnees]);
 
   const defaut = useMemo(() => etapeParDefaut(etapes, moi), [etapes, moi]);
-  // undefined = pas encore de choix (étape mise en avant par défaut) ; null = panneau fermé.
-  const selection = choix === null ? null : (choix && etapes.some((e) => e.id === choix) ? choix : null) ?? defaut?.id ?? null;
-  const etape = etapes.find((e) => e.id === selection) ?? null;
+  // undefined = pas de choix (l'étape par défaut est seulement mise en avant) ; null = fermé ; un id = espace de l'étape ouvert.
+  const ouverte = typeof choix === 'string' ? etapes.find((e) => e.id === choix) ?? null : null;
+  const selection = ouverte?.id ?? (choix === null ? null : defaut?.id ?? null);
 
   const filtreActif = mesSystemes.length > 0 || aMoi;
   const garde = useCallback(
@@ -42,11 +40,12 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
   const visibles = etapes.filter(garde);
 
   const actions = useMemo<ActionsEtape>(() => {
-    const suivante = (ok: boolean) => { if (ok) setChoix(undefined); return ok; };
+    // Étape réussie : l'espace se ferme ; en échec, il reste ouvert sur les résolutions.
+    const suivante = (ok: boolean, resultat: 'Reussie' | 'Echec') => { if (ok && resultat === 'Reussie') setChoix(undefined); return ok; };
     return {
       demarrer: (e) => run(() => api.demarrerEtape(mep.id, e.id, e.revision), `${e.code} démarrée.`),
       terminer: async (e, resultat, preuve) =>
-        suivante(await run(() => api.terminerEtape(mep.id, e.id, e.revision, resultat, preuve, resultat === 'Reussie'), resultat === 'Reussie' ? `${e.code} réussie.` : `${e.code} en échec.`)),
+        suivante(await run(() => api.terminerEtape(mep.id, e.id, e.revision, resultat, preuve, resultat === 'Reussie'), resultat === 'Reussie' ? `${e.code} réussie.` : `${e.code} en échec.`), resultat),
       autoriserReprise: (e) => run(() => api.autoriserReprise(mep.id, e.id, e.revision), 'Reprise autorisée.'),
       autoriserNonRetour: (e) => run(() => api.autoriserNonRetour(mep.id, e.id, e.revision), `Passage du point de non-retour ${e.code} autorisé.`),
       deposerPiece: (e, f, signaler) => run(() => api.deposerPieceEtape(mep.id, e.id, f), undefined, signaler),
@@ -62,13 +61,8 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
     return <EmptyState icone={Network} titre="Aucune étape" description="Ce plan ne comporte aucune étape." />;
   }
 
-  function clavier(ev: KeyboardEvent<HTMLDivElement>) {
-    const t = ev.target;
-    if (ev.key === 'Escape' && !ev.defaultPrevented && !(t instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) setChoix(null);
-  }
-
   return (
-    <div onKeyDown={clavier}>
+    <div>
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <div className="w-full min-w-56 sm:w-80">
           <MultiSelect
@@ -97,26 +91,22 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
             <ListFilter className="size-4" aria-hidden />Effacer les filtres ({visibles.length}/{etapes.length})
           </button>
         )}
-        <p className="ml-auto text-[13px] text-fg-subtle">Une étape devient disponible quand tous ses préalables sont réussis.</p>
+        <span className="ml-auto flex items-center gap-2"><ResumePlan etapes={etapes} /><AideGraphe edition={false} /></span>
       </div>
 
-      <div className={panneau.classesGrille} style={panneau.styleGrille}>
-        <GrapheEtapes
-          mep={mep}
-          plan={plan}
-          etapes={etapes}
-          mode="execution"
-          descriptions={descriptions}
-          selection={selection}
-          onSelection={setChoix}
-          estEstompee={filtreActif ? (e) => !garde(e) : undefined}
-        />
-        <ConteneurPanneau etiquette="Étape sélectionnée" {...panneau}>
-          {etape
-            ? <EtapePanneau key={etape.id} mep={mep} etape={etape} resolutionsTypes={resolutionsTypes ?? []} actions={actions} onSelectionner={setChoix} onFermer={() => setChoix(null)} />
-            : <PanneauResume plan={plan} etapes={etapes} aide={false} />}
-        </ConteneurPanneau>
-      </div>
+      <GrapheEtapes
+        mep={mep}
+        plan={plan}
+        etapes={etapes}
+        mode="execution"
+        descriptions={descriptions}
+        selection={selection}
+        onSelection={setChoix}
+        estEstompee={filtreActif ? (e) => !garde(e) : undefined}
+      />
+      {ouverte && (
+        <EtapePanneau key={ouverte.id} mep={mep} etape={ouverte} resolutionsTypes={resolutionsTypes ?? []} actions={actions} onSelectionner={setChoix} onFermer={() => setChoix(null)} />
+      )}
     </div>
   );
 }

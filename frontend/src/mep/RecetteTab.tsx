@@ -339,13 +339,13 @@ export default function RecetteTab() {
       ) : (
         <p className="text-sm text-fg-muted">
           {fiches.length} fiche{fiches.length > 1 ? 's' : ''} de recette, {bilan.total} étape{bilan.total > 1 ? 's' : ''} de test.
-          {mep.phase === 'Preparation' && ' Elles seront déroulées une fois le déploiement terminé ; la clôture réussie exige que toutes soient conformes.'}
+          
         </p>
       )}
 
       {enRecette && bilan.echecs > 0 && (
         <Alerte ton="danger" icone={XCircle} role="alert" titre="Une étape de test est en échec">
-          La clôture réussie est impossible tant qu’une étape n’est pas conforme. Le pilote peut faire refaire l’étape ou déclencher le retour arrière.
+          Clôture impossible tant qu’une étape n’est pas conforme.
         </Alerte>
       )}
       {enRecette && mep.droits.estPilote && (
@@ -357,7 +357,7 @@ export default function RecetteTab() {
         >
           {mep.nonRetourFranchi
             ? `Point de non-retour franchi (${mep.nonRetourFranchi}) : le retour arrière n’est plus possible, on corrige en avant.`
-            : 'Le retour arrière reste possible pendant la recette. La clôture réussie exige que toutes les étapes de test soient conformes.'}
+            : "Clôture réussie : toutes les étapes de test doivent être conformes."}
         </Alerte>
       )}
 

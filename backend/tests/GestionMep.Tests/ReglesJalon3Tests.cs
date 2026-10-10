@@ -451,7 +451,8 @@ public class ReglesJalon3Tests
             Assert.Equal(s.SystemeIds.Count, e.SystemeIds.Count);
             Assert.All(e.SystemeIds, id => Assert.Contains(id, systemes));
             Assert.Equal((s.Ligne, s.Ordre, s.DureeEstimeeMinutes), (e.Ligne, e.Ordre, e.DureeEstimeeMinutes));
-            Assert.Contains(e.ResponsableId!.Value, ids);
+            Assert.Null(e.ResponsableId); // obsolète depuis le jalon 4.2
+            Assert.Null(e.ExecutantId);
             Assert.Equal(s.Dependances.Select(d => source.Etapes.Single(x => x.Id == d).Code), e.Dependances.Select(d => copie.Etapes.Single(x => x.Id == d).Code));
         }
         Assert.Null(Regles.ErreurGraphe(copie, TypePlan.Deploiement));

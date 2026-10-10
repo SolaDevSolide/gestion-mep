@@ -98,7 +98,7 @@ public static class Regles
             }
         }
 
-        if (string.IsNullOrWhiteSpace(etape.Action) || etape.SystemeIds.Count == 0 || etape.ResponsableId is null || etape.Criticite is null)
+        if (string.IsNullOrWhiteSpace(etape.Action) || etape.SystemeIds.Count == 0 || etape.Criticite is null)
             return new(StatutDisponibilite.FicheACompleter, "Fiche à compléter");
         if (string.IsNullOrWhiteSpace(etape.Instructions) || string.IsNullOrWhiteSpace(etape.ResultatAttendu))
             return new(StatutDisponibilite.InstructionsACompleter, "Instructions à compléter");
@@ -169,16 +169,12 @@ public static class Regles
             var manquants = new List<string>();
             if (string.IsNullOrWhiteSpace(e.Action)) manquants.Add("Action");
             if (e.SystemeIds.Count == 0) manquants.Add("Système");
-            if (e.ResponsableId is null) manquants.Add("Responsable");
             if (e.Criticite is null) manquants.Add("Criticité");
             if (string.IsNullOrWhiteSpace(e.Instructions)) manquants.Add("Instructions exactes");
             if (string.IsNullOrWhiteSpace(e.ResultatAttendu)) manquants.Add("Résultat attendu");
             if (manquants.Count > 0) erreurs.Add($"{e.Code} : compléter {string.Join(", ", manquants)}.");
             if (e.Action.TrimStart().StartsWith("Exemple", StringComparison.OrdinalIgnoreCase))
                 erreurs.Add($"{e.Code} : remplacer l'action d'exemple par une action réelle.");
-            var responsable = mep.Participants.FirstOrDefault(p => p.Id == e.ResponsableId);
-            if (responsable is { UtilisateurId: null })
-                erreurs.Add($"{e.Code} : le responsable {responsable.Nom} n'est relié à aucun compte.");
         }
 
         erreurs.AddRange(ErreursRecette(mep));
@@ -251,7 +247,7 @@ public static class Regles
             foreach (var r in mep.ResponsablesTechniques.Where(r => r.Disponibilite == DisponibiliteJourJ.Absent))
                 foreach (var e in mep.EtapesTriees())
                 {
-                    var concernee = e.ResponsableId == r.ParticipantId || e.SystemeIds.Any(r.SystemeIds.Contains);
+                    var concernee = e.SystemeIds.Any(r.SystemeIds.Contains);
                     if (!concernee) continue;
                     var reprenable = !string.IsNullOrWhiteSpace(e.Instructions) && !string.IsNullOrWhiteSpace(e.ResultatAttendu) && e.ResolutionIds.Count > 0;
                     if (!reprenable)
@@ -351,13 +347,16 @@ public static class Regles
         if (doublon is not null) throw new RegleMetierException($"{Nom(doublon.Key)} est désigné deux fois comme suppléant.");
     }
 
-    /// <summary>Participant qui exécute l'étape : celui qui a pris la main, sinon le responsable.</summary>
-    public static Guid? ExecutantCourant(Etape etape) => etape.ExecutantId ?? etape.ResponsableId;
+    /// <summary>
+    /// Participant qui exécute l'étape : celui qui l'a démarrée ou qui a pris la main (null avant le démarrage).
+    /// Depuis le jalon 4.2, il n'y a plus de responsable prévu : <see cref="Etape.ResponsableId"/> est sans effet.
+    /// </summary>
+    public static Guid? ExecutantCourant(Etape etape) => etape.ExecutantId;
 
     public static bool EstExecutant(Mep mep, Etape etape, Guid utilisateurId)
     {
         var executant = ExecutantCourant(etape);
-        return mep.Participants.Any(p => p.Id == executant && p.UtilisateurId == utilisateurId);
+        return executant is not null && mep.Participants.Any(p => p.Id == executant && p.UtilisateurId == utilisateurId);
     }
 
     /// <summary>Ajout, suppression et modification du plan réservés à la préparation (StructureAutorisee).</summary>
@@ -713,15 +712,26 @@ public static class Regles
 
     // ---------- Exécution d'une étape (ChangerEtat) ----------
 
-    public static void Demarrer(Mep mep, Etape etape, Guid utilisateurId, DateTimeOffset maintenant)
+    /// <summary>Démarrage par le participant relié au compte donné (voir l'autre surcharge).</summary>
+    public static void Demarrer(Mep mep, Etape etape, Guid utilisateurId, DateTimeOffset maintenant) =>
+        Demarrer(mep, etape, mep.Participants.FirstOrDefault(p => p.UtilisateurId == utilisateurId), maintenant);
+
+    /// <summary>
+    /// Démarrage d'une étape disponible par un participant relié à un compte (pilote et suppléants compris ; un administrateur
+    /// non participant le devient côté API) : il en devient l'exécutant.
+    /// </summary>
+    public static void Demarrer(Mep mep, Etape etape, Participant? executant, DateTimeOffset maintenant)
     {
-        ExigerExecution(mep, etape, utilisateurId);
+        ExigerPhaseDuPlan(mep, etape);
+        if (executant?.UtilisateurId is null)
+            throw new RegleMetierException("Seul un participant relié à un compte, le pilote ou un administrateur peut démarrer une étape.");
         var dispo = Disponibilite(mep, etape, maintenant);
         if (dispo.Statut != StatutDisponibilite.Disponible)
             throw new RegleMetierException($"Démarrage impossible : {dispo.Libelle}");
         if (etape.PointDeNonRetour && etape.NonRetourAutoriseParId is null)
             throw new RegleMetierException("Point de non-retour : l'accord du pilote est requis.");
         etape.Etat = EtatEtape.EnCours;
+        etape.ExecutantId = executant.Id;
         etape.DebutReel = maintenant;
         etape.FinReelle = null;
         etape.Revision++;
@@ -746,8 +756,8 @@ public static class Regles
     }
 
     /// <summary>
-    /// Prise de main : un autre participant exécute l'étape à la place du responsable (absent, indisponible…).
-    /// Le responsable prévu reste inchangé ; l'exécutant est tracé sur l'étape et dans le journal.
+    /// Prise de main : un participant poursuit à la place de l'exécutant une étape en cours ou en échec (exécutant absent,
+    /// indisponible…). Le nouvel exécutant est tracé sur l'étape et dans le journal.
     /// </summary>
     /// <returns>Le participant qui exécutait l'étape jusque-là.</returns>
     public static Guid? PrendreLaMain(Mep mep, Etape etape, Participant preneur, string motif)
@@ -756,9 +766,11 @@ public static class Regles
         if (string.IsNullOrWhiteSpace(motif)) throw new RegleMetierException("Indiquer pourquoi vous prenez la main.");
         if (preneur.UtilisateurId is null) throw new RegleMetierException("Seul un participant relié à un compte peut prendre la main.");
         if (etape.Etat == EtatEtape.Reussie) throw new RegleMetierException($"{etape.Code} est déjà réussie.");
+        if (etape.Etat == EtatEtape.AFaire || etape.ExecutantId is null)
+            throw new RegleMetierException($"{etape.Code} n'est pas démarrée : il suffit de la démarrer.");
         var precedent = ExecutantCourant(etape);
         if (precedent == preneur.Id) throw new RegleMetierException("Vous exécutez déjà cette étape.");
-        etape.ExecutantId = preneur.Id == etape.ResponsableId ? null : preneur.Id;
+        etape.ExecutantId = preneur.Id;
         etape.Revision++;
         return precedent;
     }
@@ -796,11 +808,15 @@ public static class Regles
             throw new RegleMetierException("Le retour arrière n'est pas déclenché.");
     }
 
+    public const string MessageAutreExecutant =
+        "Cette étape est exécutée par quelqu'un d'autre. Utiliser « Prendre la main » pour la poursuivre à sa place.";
+
+    /// <summary>Terminer une étape, lancer ou dérouler une résolution : l'exécutant, ou le pilote / un suppléant.</summary>
     private static void ExigerExecution(Mep mep, Etape etape, Guid utilisateurId)
     {
         ExigerPhaseDuPlan(mep, etape);
-        if (!EstExecutant(mep, etape, utilisateurId))
-            throw new RegleMetierException("Cette étape est attribuée à quelqu'un d'autre. Utiliser « Prendre la main » pour l'exécuter à sa place.");
+        if (!EstExecutant(mep, etape, utilisateurId) && !EstPilote(mep, utilisateurId))
+            throw new RegleMetierException(MessageAutreExecutant);
     }
 
     // ---------- Résolutions types ----------
@@ -882,8 +898,8 @@ public static class Regles
         if (execution.Statut != StatutResolution.EnCours) throw new RegleMetierException("Cette résolution est terminée.");
         var etape = mep.Etapes.Single(e => e.Id == execution.EtapeId);
         if (mep.Phase != Phase.Execution) throw new RegleMetierException("Le déploiement est arrêté : appliquer le retour arrière.");
-        if (!EstExecutant(mep, etape, utilisateurId))
-            throw new RegleMetierException("Cette étape est attribuée à quelqu'un d'autre. Utiliser « Prendre la main » pour l'exécuter à sa place.");
+        if (!EstExecutant(mep, etape, utilisateurId) && !EstPilote(mep, utilisateurId))
+            throw new RegleMetierException(MessageAutreExecutant);
         return etape;
     }
 
@@ -903,7 +919,7 @@ public static class Regles
 
     /// <summary>
     /// Copie profonde d'une MEP, en préparation, avec de nouveaux identifiants et toutes les références remappées
-    /// (codes d'étapes, lignes et positions conservés). Ne sont pas copiés : échéance, date de MEP, relecture, go / no-go, bilan,
+    /// (codes d'étapes, lignes et positions conservés). Ne sont pas copiés : échéance, date et heures de MEP, responsable des étapes (obsolète), relecture, go / no-go, bilan,
     /// résolutions exécutées, résultats (étapes, recettes, sauvegarde réalisée) et décisions d'approbation.
     /// </summary>
     public const string PrefixeModele = "Modèle : ";
@@ -924,7 +940,7 @@ public static class Regles
         var mep = new Mep
         {
             Outil = NomCopie(source, commeModele), VersionActuelle = source.VersionActuelle, VersionCible = source.VersionCible,
-            Objet = source.Objet, Impacts = source.Impacts, HeureDebut = source.HeureDebut, HeureFin = source.HeureFin,
+            Objet = source.Objet, Impacts = source.Impacts,
             FuseauHoraire = source.FuseauHoraire, IndisponibiliteMinutes = source.IndisponibiliteMinutes,
             Environnement = string.IsNullOrWhiteSpace(environnement) ? source.Environnement : environnement.Trim(),
             EstModele = commeModele, BilanActive = source.BilanActive,
@@ -987,7 +1003,7 @@ public static class Regles
             {
                 Id = etapes[e.Id], MepId = mep.Id, Plan = e.Plan, Type = e.Type, PointDeNonRetour = e.PointDeNonRetour,
                 Code = e.Code, Ligne = e.Ligne, Ordre = e.Ordre, Action = e.Action, SystemeIds = e.SystemeIds.Select(id => S(id)).OfType<Guid>().ToList(),
-                DureeEstimeeMinutes = e.DureeEstimeeMinutes, ResponsableId = P(e.ResponsableId),
+                DureeEstimeeMinutes = e.DureeEstimeeMinutes,
                 Criticite = e.Criticite, Instructions = e.Instructions, ResultatAttendu = e.ResultatAttendu,
                 Dependances = e.Dependances.Where(etapes.ContainsKey).Select(d => etapes[d]).ToList(),
                 ResolutionIds = [.. e.ResolutionIds],

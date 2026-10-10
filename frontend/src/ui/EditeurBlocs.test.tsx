@@ -24,11 +24,11 @@ describe('EditeurBlocs', () => {
     expect(screen.getByText('ok', { selector: 'strong' })).toBeInTheDocument();
   });
 
-  it('valeur vide : état vide explicite, rien n’est émis', () => {
+  it('valeur vide : un bloc vide avec exemple, rien n’est émis', () => {
     const onChange = vi.fn();
     render(<Hote initial="" onChange={onChange} />);
     expect(screen.getByLabelText('Instructions, bloc 1 (texte)')).toHaveValue('');
-    expect(screen.getByText(/Aucune instruction pour l’instant/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Instructions, bloc 1 (texte)')).toHaveAttribute('placeholder', expect.stringContaining('Décrivez l’action'));
     expect(onChange).not.toHaveBeenCalled();
   });
 
