@@ -1,0 +1,44 @@
+name: Wiki
+
+# Recopie la documentation (docs/*.md et CONTRIBUTING.md) dans le wiki GitHub du dépôt.
+# Le wiki n'est qu'un miroir : toute modification se fait dans docs/, par pull request.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/*.md"
+      - "CONTRIBUTING.md"
+      - ".github/scripts/miroir_wiki.py"
+      - ".github/workflows/wiki.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  miroir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Récupérer le wiki
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.wiki.git" wiki \
+            || { echo "::error::Wiki introuvable : activer le wiki dans Settings et créer une première page à la main, une seule fois."; exit 1; }
+      - name: Générer les pages
+        run: |
+          find wiki -maxdepth 1 -name '*.md' -delete
+          python3 .github/scripts/miroir_wiki.py . wiki "${{ github.repository }}"
+      - name: Publier
+        working-directory: wiki
+        run: |
+          git add -A
+          if git diff --cached --quiet; then echo "Wiki déjà à jour."; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Miroir de docs/ (${GITHUB_SHA::7})"
+          git push

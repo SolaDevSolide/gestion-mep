@@ -24,18 +24,16 @@ Ouvrir http://localhost:8080 et se connecter avec `alice` (administratrice), `bo
 
 ## Installer sur un serveur
 
-L'image est publiée sur `ghcr.io/soladevsolide/gestion-mep`. Il suffit de `docker-compose.yml` et d'un fichier `.env` tiré de `.env.example`, derrière un proxy inverse HTTPS. La base est migrée automatiquement au démarrage.
-
-La procédure complète (configuration, HTTPS, sauvegardes, mises à jour, commandes d'administration) est dans le [guide d'exploitation](docs/exploitation.md).
+L'image est publiée sur `ghcr.io/soladevsolide/gestion-mep`. Il suffit de `docker-compose.yml` et d'un fichier `.env` tiré de `.env.example`, derrière un proxy inverse HTTPS. La base est migrée automatiquement au démarrage. La procédure complète est dans [Installer](docs/Installer.md).
 
 ## Documentation
 
-| Document | Pour qui |
-|---|---|
-| [Guide d'exploitation](docs/exploitation.md) | Équipe informatique qui installe et maintient l'application |
-| [Contribuer](CONTRIBUTING.md) | Développeurs : lancer sans Docker, tests, conventions, migrations |
-| [Architecture](docs/architecture.md) | Organisation du code et principes |
-| [API](docs/api.md) | Contrat de l'API ([OpenAPI](docs/openapi.json)) |
+La documentation est dans [docs/](docs/README.md), recopiée dans le wiki du dépôt :
+
+- [Démarrage rapide](docs/Démarrage-rapide.md) et [cycle de vie d'une MEP](docs/Cycle-de-vie.md) ;
+- guides : [préparer](docs/Préparer-une-MEP.md) et [exécuter](docs/Exécuter-une-MEP.md) une MEP, [administrer](docs/Administrer.md) ;
+- équipe informatique : [installer](docs/Installer.md), [exploiter](docs/Exploiter.md) ;
+- développeurs : [contribuer](CONTRIBUTING.md), [architecture](docs/Architecture.md), [API](docs/API.md).
 
 ## Sécurité
 
