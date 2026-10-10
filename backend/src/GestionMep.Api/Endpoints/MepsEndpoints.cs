@@ -10,19 +10,33 @@ namespace GestionMep.Api.Endpoints;
 
 public static class MepsEndpoints
 {
+    /// <summary>Date d'un instant dans le fuseau de la MEP (UTC si le fuseau est inconnu) ; null si l'instant est absent.</summary>
+    private static DateOnly? DateLocale(DateTimeOffset? instant, string fuseau)
+    {
+        if (instant is not { } i) return null;
+        try { return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(i, TimeZoneInfo.FindSystemTimeZoneById(fuseau)).DateTime); }
+        catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException or ArgumentException) { return DateOnly.FromDateTime(i.UtcDateTime); }
+    }
+
     public static void MapMeps(this RouteGroupBuilder api)
     {
         // ?modele=true : modèles seulement ; ?modele=false : MEP seulement ; absent : tout.
         api.MapGet("/meps", async (bool? modele, MepDbContext db) =>
-            await db.Meps.AsNoTracking().Where(m => modele == null || m.EstModele == modele).OrderByDescending(m => m.CreeLe)
-                .Select(m => new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, m.DateMep, m.Phase, m.EcheanceRepli,
-                    m.Participants.Where(p => p.Id == m.PiloteId).Select(p => p.Nom).FirstOrDefault(),
+            (await db.Meps.AsNoTracking().Where(m => modele == null || m.EstModele == modele).OrderByDescending(m => m.CreeLe)
+                .Select(m => new
+                {
+                    m.Id, m.Outil, m.VersionCible, m.Objet, m.DemarrageAutoriseLe, m.FuseauHoraire, m.Phase, m.EcheanceRepli,
+                    Pilote = m.Participants.Where(p => p.Id == m.PiloteId).Select(p => p.Nom).FirstOrDefault(),
                     // Avancement du déploiement uniquement (le retour arrière a son propre plan).
-                    m.Etapes.Count(e => e.Plan == TypePlan.Deploiement),
-                    m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
-                    m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
-                    m.Environnement, m.EstModele))
-                .ToListAsync());
+                    NbEtapes = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement),
+                    NbReussies = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
+                    NbEchecs = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
+                    m.Environnement, m.EstModele, m.CreeLe,
+                })
+                .ToListAsync())
+            // dateMep : date du Go (la date saisie n'existe plus depuis le jalon 4.2).
+            .Select(m => new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, DateLocale(m.DemarrageAutoriseLe, m.FuseauHoraire), m.Phase,
+                m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs, m.Environnement, m.EstModele, m.CreeLe)));
 
         api.MapPost("/meps", async (MepCreationSaisie corps, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) =>
         {
@@ -89,9 +103,7 @@ public static class MepsEndpoints
             Si(mep.VersionCible, ServiceMep.Texte(corps.VersionCible), v => mep.VersionCible = v, "version cible");
             Si(mep.Objet, ServiceMep.Texte(corps.Objet), v => mep.Objet = v, "objet");
             Si(mep.Impacts, ServiceMep.Texte(corps.Impacts), v => mep.Impacts = v, "impacts");
-            Si(mep.DateMep, corps.DateMep, v => mep.DateMep = v, "date");
-            Si(mep.HeureDebut, corps.HeureDebut, v => mep.HeureDebut = v, "heure de début");
-            Si(mep.HeureFin, corps.HeureFin, v => mep.HeureFin = v, "heure de fin");
+            // dateMep, heureDebut, heureFin : ignorés depuis le jalon 4.2 (début = Go, fin = clôture).
             if (fuseau.Length > 0) Si(mep.FuseauHoraire, fuseau, v => mep.FuseauHoraire = v, "fuseau horaire");
             Si(mep.IndisponibiliteMinutes, corps.IndisponibiliteMinutes, v => mep.IndisponibiliteMinutes = v, "indisponibilité");
             Si(mep.PiloteId, corps.PiloteId, v => mep.PiloteId = v, "pilote");

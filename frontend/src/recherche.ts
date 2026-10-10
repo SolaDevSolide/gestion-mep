@@ -87,3 +87,14 @@ export function surligner(texte: string, ts: string[]): Segment[] {
   }
   return segments;
 }
+
+/**
+ * Résolution multi-systèmes : elle s'applique à un ensemble de systèmes si elle n'en cible aucun (tous les systèmes)
+ * ou au moins un de l'ensemble.
+ */
+export const concerne = (systemesResolution: string[], systemes: string[]): boolean =>
+  systemesResolution.length === 0 || systemesResolution.some((s) => systemes.includes(s));
+
+/** « Même système » que l'étape : au moins un système en commun (une résolution « tous systèmes » ne compte pas). */
+export const memeSysteme = (systemesResolution: string[], systemesEtape: string[]): boolean =>
+  systemesResolution.some((s) => systemesEtape.includes(s));

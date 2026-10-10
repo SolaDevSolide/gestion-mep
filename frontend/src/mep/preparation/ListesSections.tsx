@@ -67,7 +67,7 @@ export function PersonnesSection() {
     <SectionCarte
       numero={2}
       titre="Personnes"
-      description="Qui participe à l’intervention. Reliez chaque personne à son compte pour qu’elle puisse exécuter ses étapes."
+      description="Reliez chaque personne à son compte pour qu’elle puisse exécuter ses étapes."
       action={edition && <Button variante="primaire" taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajouter</Button>}
     >
       {mep.participants.length === 0 ? (
@@ -157,7 +157,7 @@ export function SystemesSection() {
     <SectionCarte
       numero={3}
       titre="Systèmes"
-      description="Les systèmes touchés par l’intervention, avec la cible exacte et l’impact attendu."
+      description="Systèmes touchés, cible et impact."
       action={edition && <Button taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajout libre</Button>}
     >
       {edition && (
@@ -238,7 +238,7 @@ export function LivrablesSection() {
     <SectionCarte
       numero={5}
       titre="Livrables"
-      description="Les paquets, scripts et configurations à déployer, avec leur version et leur emplacement."
+      description="Ce qui est déployé, version et emplacement."
       action={edition && <Button variante="primaire" taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajouter</Button>}
     >
       {mep.livrables.length === 0 ? (

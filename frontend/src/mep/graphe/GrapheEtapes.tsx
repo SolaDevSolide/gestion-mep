@@ -33,8 +33,11 @@ interface Props {
   estEstompee?: (e: Etape) => boolean;
 }
 
+/** Cible d'un glisser de fiche : ligne, position d'insertion, et repère bleu (repère du graphe non zoomé). */
+interface Cible { ligne: number; index: number; x: number; haut: number; bas: number }
+
 type Glisse =
-  | { t: 'carte'; id: string; cible: { ligne: number; index: number } | null }
+  | { t: 'carte'; id: string; cible: Cible | null }
   | { t: 'lien'; de: string; cote: 'haut' | 'bas'; survol: string | null; possible: boolean };
 
 interface Geometrie { ancrages: Record<string, Ancrage>; largeur: number; hauteur: number; zone: number }
@@ -44,6 +47,9 @@ const ZOOM_MAX = 1.5;
 const PAS_ZOOM = 1.2;
 /** Marge horizontale du graphe (place des blocs fantômes « + Étape »). */
 const MARGE_X = 150;
+
+/** Position de la fiche glissée : suit exactement le pointeur (transformation GPU, aucune aimantation). */
+const transformClone = (p: { x: number; y: number }, zoom: number) => `translate3d(${p.x}px, ${p.y}px, 0) scale(${zoom}) rotate(1.5deg)`;
 
 const COULEUR = { neutre: 'var(--fg-subtle)', accent: 'var(--accent)', ok: 'var(--ok-solid)' } as const;
 
@@ -191,8 +197,11 @@ export function GrapheEtapes(props: Props) {
     return n && graphe.current?.contains(n) ? n.dataset.noeud! : null;
   };
 
-  /** Ligne survolée (ou la plus proche à moins de 60 px) et position d'insertion parmi les autres fiches. */
-  const cibleSous = (x: number, y: number, id: string): { ligne: number; index: number } | null => {
+  /**
+   * Ligne survolée (ou la plus proche à moins de 60 px), position d'insertion parmi les autres fiches et place du repère
+   * (repère du graphe non zoomé). Rien ne bouge dans le graphe pendant le glisser : seul le repère indique la cible.
+   */
+  const cibleSous = (x: number, y: number, id: string): Cible | null => {
     const gr = graphe.current;
     if (!gr) return null;
     const sous = typeof document.elementFromPoint === 'function' ? document.elementFromPoint(x, y) : null;
@@ -211,7 +220,15 @@ export function GrapheEtapes(props: Props) {
     const autres = [...rang.querySelectorAll<HTMLElement>('[data-noeud]')].filter((n) => n.dataset.noeud !== id);
     let index = autres.findIndex((n) => { const r = n.getBoundingClientRect(); return x < r.left + r.width / 2; });
     if (index < 0) index = autres.length;
-    return { ligne: Number(rang.dataset.ligne), index };
+    const z = zoomRef.current;
+    const base = gr.getBoundingClientRect();
+    const groupe = (rang.firstElementChild as HTMLElement | null)?.getBoundingClientRect() ?? rang.getBoundingClientRect();
+    const demiEcart = 11 * z;
+    const repere = autres[index]?.getBoundingClientRect().left;
+    const dernier = autres[autres.length - 1]?.getBoundingClientRect().right;
+    const fantome = rang.querySelector('button')?.getBoundingClientRect().left;
+    const xr = repere !== undefined ? repere - demiEcart : dernier !== undefined ? dernier + demiEcart : (fantome ?? groupe.left + groupe.width / 2) - demiEcart;
+    return { ligne: Number(rang.dataset.ligne), index, x: (xr - base.left) / z, haut: (groupe.top - base.top) / z, bas: (groupe.bottom - base.top) / z };
   };
 
   useEffect(() => {
@@ -248,8 +265,7 @@ export function GrapheEtapes(props: Props) {
       // Fiche : le clone suit la souris ; on cherche la ligne survolée et la position d'insertion.
       positionClone.current = { x: ev.clientX - (a?.dx ?? 0), y: ev.clientY - (a?.dy ?? 0) };
       if (clone.current) {
-        clone.current.style.left = `${positionClone.current.x}px`;
-        clone.current.style.top = `${positionClone.current.y}px`;
+        clone.current.style.transform = transformClone(positionClone.current, zoomRef.current);
       }
       const cible = cibleSous(ev.clientX, ev.clientY, g.id);
       if (cible?.ligne !== g.cible?.ligne || cible?.index !== g.cible?.index) majGlisse({ ...g, cible });
@@ -288,7 +304,7 @@ export function GrapheEtapes(props: Props) {
         const n = noeudSous(ev.clientX, ev.clientY, ev.target);
         if (n === a.id) {
           p.onGroupeSelection?.(null);
-          p.onSelection(p.selection === a.id ? null : a.id);
+          p.onSelection(a.id);
         }
       }
     }
@@ -344,9 +360,8 @@ export function GrapheEtapes(props: Props) {
 
   const glisseCarte = glisse?.t === 'carte' ? glisse : null;
   const glisseLien = glisse?.t === 'lien' ? glisse : null;
-  const marque = <div key="emplacement" aria-hidden className="w-2 shrink-0 self-stretch rounded bg-accent" />;
 
-  const rendreLigne = (ids: Etape[], r: number) => {
+  const rendreLigne = (ids: Etape[]) => {
     const cartes = ids.map((e) => {
       const source = glisseCarte?.id === e.id || glisseLien?.de === e.id;
       const cible = glisseLien && glisseLien.survol === e.id ? (glisseLien.possible ? 'ok' : 'ko') : null;
@@ -368,12 +383,6 @@ export function GrapheEtapes(props: Props) {
         </div>
       );
     });
-    if (glisseCarte?.cible?.ligne === r) {
-      const autres = cartes.filter((c) => c.key !== glisseCarte.id);
-      const avant = autres[glisseCarte.cible.index]?.key;
-      const pos = avant === undefined ? cartes.length : cartes.findIndex((c) => c.key === avant);
-      cartes.splice(pos, 0, marque);
-    }
     return cartes;
   };
 
@@ -441,14 +450,21 @@ export function GrapheEtapes(props: Props) {
           })}
           {glisseLien && <path ref={trace} style={{ stroke: COULEUR.accent }} strokeWidth={2.4} strokeDasharray="6 5" fill="none" markerEnd={`url(#${idSvg}-accent)`} />}
         </svg>
+        {glisseCarte?.cible && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute z-[3] w-2 rounded bg-accent shadow-[0_0_0_3px_var(--accent-soft)]"
+            style={{ left: glisseCarte.cible.x - 4, top: glisseCarte.cible.haut, height: Math.max(40, glisseCarte.cible.bas - glisseCarte.cible.haut) }}
+          />
+        )}
 
         {lignes.map((ids, r) => {
           const pnr = ids.filter((e) => e.pointDeNonRetour);
           return (
             <Fragment key={r}>
               <div data-ligne={r} className="pointer-events-none relative z-[1] flex justify-center">
-                <div className={cn('relative flex min-h-[60px] items-stretch gap-[22px] rounded-[10px]', glisseCarte?.cible?.ligne === r && 'outline-2 outline-offset-8 outline-accent outline-dashed')}>
-                  {rendreLigne(ids, r)}
+                <div className="relative flex min-h-[60px] items-stretch gap-[22px] rounded-[10px]">
+                  {rendreLigne(ids)}
                   {edition && onAjouter && (
                     <button
                       type="button"
@@ -475,8 +491,7 @@ export function GrapheEtapes(props: Props) {
 
         {edition && onAjouter && (
           <div data-ligne={sansFin} className="pointer-events-none relative z-[1] flex justify-center">
-            <div className={cn('relative flex items-stretch gap-[22px] rounded-[10px]', glisseCarte?.cible?.ligne === sansFin && 'outline-2 outline-offset-8 outline-accent outline-dashed')}>
-              {glisseCarte?.cible?.ligne === sansFin && marque}
+            <div className="relative flex items-stretch gap-[22px] rounded-[10px]">
               <button
                 type="button"
                 onClick={() => onAjouter(null)}
@@ -507,7 +522,7 @@ export function GrapheEtapes(props: Props) {
           ref={clone}
           aria-hidden
           className="pointer-events-none fixed z-50 rounded-lg opacity-90 shadow-lg"
-          style={{ left: positionClone.current.x, top: positionClone.current.y, transform: `scale(${zoom}) rotate(2deg)`, transformOrigin: '0 0' }}
+          style={{ left: 0, top: 0, transform: transformClone(positionClone.current, zoom), transformOrigin: '0 0', willChange: 'transform' }}
         >
           <CarteEtape mep={mep} etape={parId.get(glisseCarte.id)!} mode={mode} descriptions={descriptions} />
         </div>,

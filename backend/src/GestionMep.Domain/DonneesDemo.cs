@@ -28,7 +28,7 @@ public static class DonneesDemo
 
     /// <summary>
     /// Catalogue global de démonstration : systèmes (BDD, API, WEB, LDAP, MDM, BATCH, dans cet ordre)
-    /// et résolutions types (API, BDD, WEB, dans cet ordre).
+    /// et résolutions types (API, BDD, WEB, API + BDD, dans cet ordre).
     /// </summary>
     public static (List<SystemeCatalogue> Systemes, List<ResolutionType> Resolutions) Catalogue()
     {
@@ -43,7 +43,7 @@ public static class DonneesDemo
             Titre = "API : réponse de test absente",
             Symptomes = "Après le déploiement, l'appel de test de l'API ne renvoie **aucune réponse** ou une erreur **5xx**.",
             Diagnostic = "SIMULATION : lire le journal fictif du service.\n\n" + Code("journalctl -u commandes --since \"10 min ago\" | tail -50"),
-            SystemeCatalogueId = api.Id,
+            SystemeCatalogueIds = [api.Id],
             Corrections =
             [
                 new() { Ordre = 1, Instruction = "SIMULATION : lire sans lancer.\n\n" + Code("sudo systemctl restart commandes"), ResultatAttendu = "Le service passe à « active (running) »." },
@@ -56,7 +56,7 @@ public static class DonneesDemo
             Titre = "BDD : utilisateur applicatif retiré des droits",
             Symptomes = "La connexion à la base échoue avec `permission denied for table …` ou `role does not exist`.",
             Diagnostic = Code("psql -h <hôte> -U admin -d <base> -c \"\\du app_user\"") + "\n\nL'utilisateur app_user est absent ou n'a plus les droits.",
-            SystemeCatalogueId = bdd.Id,
+            SystemeCatalogueIds = [bdd.Id],
             Corrections =
             [
                 new() { Ordre = 1, Instruction = Code("psql -h <hôte> -U admin -d <base> -c \"GRANT CONNECT ON DATABASE <base> TO app_user;\""), ResultatAttendu = "GRANT" },
@@ -70,7 +70,7 @@ public static class DonneesDemo
             Titre = "WEB : purge du cache CDN refusée",
             Symptomes = "La publication échoue avec **403** au moment de la purge du cache.",
             Diagnostic = "Vérifier dans la console CDN que le **jeton de purge** n'a pas expiré.",
-            SystemeCatalogueId = web.Id,
+            SystemeCatalogueIds = [web.Id],
             Corrections =
             [
                 new() { Ordre = 1, Instruction = "Générer un nouveau jeton dans la console CDN, puis le mettre dans `CDN_TOKEN` sur le serveur de build.", ResultatAttendu = "Nouveau jeton enregistré." },
@@ -79,7 +79,21 @@ public static class DonneesDemo
             VerificationInstruction = "Ouvrir le portail en navigation privée.",
             VerificationAttendu = "La nouvelle version s'affiche.",
         };
-        return ([bdd, api, web, ldap, mdm, batch], [fixApi, droitsBdd, cdnWeb]);
+        var connexionBascule = new ResolutionType
+        {
+            Titre = "API + BDD : connexion refusée après bascule",
+            Symptomes = "Après la bascule des données, l'API journalise `connection refused` ou `password authentication failed` vers la base.",
+            Diagnostic = "SIMULATION : vérifier la chaîne de connexion de l'API.\n\n" + Code("grep -i datasource /opt/commandes/application.properties"),
+            SystemeCatalogueIds = [api.Id, bdd.Id],
+            Corrections =
+            [
+                new() { Ordre = 1, Instruction = "Remettre l'hôte et l'utilisateur de la nouvelle base dans la configuration de l'API.", ResultatAttendu = "Configuration corrigée." },
+                new() { Ordre = 2, Instruction = Code("sudo systemctl restart commandes"), ResultatAttendu = "Le service passe à « active (running) »." },
+            ],
+            VerificationInstruction = Code("curl -fsS https://commandes.exemple.invalid/sante"),
+            VerificationAttendu = "Réponse 200 et base joignable.",
+        };
+        return ([bdd, api, web, ldap, mdm, batch], [fixApi, droitsBdd, cdnWeb, connexionBascule]);
     }
 
     /// <summary>Profils des comptes de démonstration (rôle, contact, expertises sur le catalogue de <see cref="Catalogue"/>).</summary>
@@ -111,7 +125,6 @@ public static class DonneesDemo
             VersionActuelle = "1.0-démo",
             VersionCible = "2.0-démo",
             Objet = "Tester le graphe des étapes, les recettes et les résolutions sans agir sur un système réel.",
-            DateMep = DateOnly.FromDateTime(maintenant.UtcDateTime),
             FuseauHoraire = "Europe/Paris",
             Environnement = "Production",
             BilanActive = true,
@@ -180,6 +193,7 @@ public static class DonneesDemo
             "**Irréversible** : les anciennes commandes sont converties au nouveau format et poussées vers le MDM.\n\n" + Code("./migrer-donnees.sh --appliquer"),
             "Les commandes existantes sont visibles dans la nouvelle API et dans le MDM.", "", e4, e5, e6);
         e7.PointDeNonRetour = true;
+        e7.ResolutionIds = [resolutions[3].Id];
         var e8 = Etape(mep, TypePlan.Deploiement, 8, 3, "Bascule du portail vers l'API 2.0", [web, api], pClaire, 15, Criticite.Elevee, EtatEtape.AFaire,
             "Mettre `API_URL=https://commandes.exemple.invalid/v2` dans la configuration du portail, puis redémarrer.", "Le portail affiche les commandes.", "", e7);
         Etape(mep, TypePlan.Deploiement, 9, 4, "Contrôle final", [bdd, api, web], pAlice, 15, Criticite.Elevee, EtatEtape.AFaire,
@@ -251,15 +265,18 @@ public static class DonneesDemo
             Etapes = etapes.Select((t, i) => new EtapeTest { Ordre = i + 1, Instructions = t.Instructions, ResultatAttendu = t.Attendu }).ToList(),
         });
 
-    /// <summary>Étape n° <paramref name="n"/> du plan, placée en fin de la ligne <paramref name="ligne"/>.</summary>
-    private static Etape Etape(Mep mep, TypePlan plan, int n, int ligne, string action, Systeme[] systemes, Participant responsable, int duree,
+    /// <summary>
+    /// Étape n° <paramref name="n"/> du plan, placée en fin de la ligne <paramref name="ligne"/>. Plus de responsable prévu :
+    /// <paramref name="qui"/> n'est retenu comme exécutant que si l'étape a déjà été démarrée (état autre que À faire).
+    /// </summary>
+    private static Etape Etape(Mep mep, TypePlan plan, int n, int ligne, string action, Systeme[] systemes, Participant qui, int duree,
         Criticite criticite, EtatEtape etat, string instructions, string attendu, string preuve, params Etape[] prealables)
     {
         var e = new Etape
         {
             MepId = mep.Id, Plan = plan, Code = $"{(plan == TypePlan.Deploiement ? 'E' : 'R')}{n:0000}", Ligne = ligne,
             Ordre = mep.Etapes.Count(x => x.Plan == plan && x.Ligne == ligne), Action = action, SystemeIds = systemes.Select(s => s.Id).ToList(),
-            DureeEstimeeMinutes = duree, ResponsableId = responsable.Id, Criticite = criticite, Etat = etat, Instructions = instructions,
+            DureeEstimeeMinutes = duree, ExecutantId = etat == EtatEtape.AFaire ? null : qui.Id, Criticite = criticite, Etat = etat, Instructions = instructions,
             ResultatAttendu = attendu, Preuve = preuve, Dependances = prealables.Select(p => p.Id).ToList(),
             Revision = etat == EtatEtape.AFaire ? 0 : 1,
         };

@@ -6,8 +6,10 @@ namespace GestionMep.Api.Services;
 public record ExpertiseDto(Guid SystemeCatalogueId, string Detail);
 public record UtilisateurDto(Guid Id, string Login, string NomAffiche, bool EstAdmin, string Role, string Contact, List<ExpertiseDto> Expertises);
 
+/// <summary><c>DateMep</c> : date du Go (dans le fuseau de la MEP) ou null ; <c>CreeLe</c> : création de la MEP.</summary>
 public record MepResumeDto(Guid Id, string Outil, string VersionCible, string Objet, DateOnly? DateMep, Phase Phase,
-    DateTimeOffset? EcheanceRepli, string? Pilote, int NbEtapes, int NbReussies, int NbEchecs, string Environnement, bool EstModele);
+    DateTimeOffset? EcheanceRepli, string? Pilote, int NbEtapes, int NbReussies, int NbEchecs, string Environnement, bool EstModele,
+    DateTimeOffset CreeLe);
 
 public record SauvegardeDto(ModeSauvegarde Mode, bool Structure, bool Donnees, bool Configuration, Guid? ResponsableId, DateTimeOffset? RealiseeLe,
     string Procedure, string Copies, bool RestaurationTestee, DateOnly? DateTestRestauration, string PreuveTestRestauration);
@@ -50,7 +52,7 @@ public record ExecutionResolutionDto(Guid Id, Guid EtapeId, Guid ResolutionTypeI
     string DemarreePar, DateTimeOffset DemarreeLe, DateTimeOffset? TermineeLe);
 
 public record SystemeCatalogueDto(Guid Id, string Nom, string Description, string Cible, bool Actif);
-public record ResolutionTypeDto(Guid Id, string Titre, string Symptomes, string Diagnostic, Guid? SystemeCatalogueId,
+public record ResolutionTypeDto(Guid Id, string Titre, string Symptomes, string Diagnostic, List<Guid> SystemeCatalogueIds,
     List<CorrectionDto> Corrections, string VerificationInstruction, string VerificationAttendu, bool Actif, int Version, DateTimeOffset ModifieeLe);
 
 public record ResponsableTechniqueDto(Guid ParticipantId, List<Guid> SystemeIds, string Perimetre, DisponibiliteJourJ Disponibilite, string ContactJourJ);
@@ -121,7 +123,7 @@ public record RetourArriereSaisie(string? Motif);
 public record SystemeCatalogueSaisie(string? Nom, string? Description, string? Cible, bool? Actif);
 public record DepuisCatalogueSaisie(Guid? CatalogueId, string? Impact);
 public record CorrectionSaisie(int? Ordre, string? Instruction, string? ResultatAttendu);
-public record ResolutionTypeSaisie(int? Version, string? Titre, string? Symptomes, string? Diagnostic, Guid? SystemeCatalogueId,
+public record ResolutionTypeSaisie(int? Version, string? Titre, string? Symptomes, string? Diagnostic, List<Guid>? SystemeCatalogueIds,
     List<CorrectionSaisie>? Corrections, string? VerificationInstruction, string? VerificationAttendu);
 public record DemarrerResolutionSaisie(Guid? ResolutionTypeId, int? Revision);
 public record ControleSaisie(ResultatControle? Resultat, string? Observation);

@@ -172,7 +172,7 @@ function BlocCode({ bloc, nom, disabled, onContenu, onLangage, zoneRef }: {
         className="overflow-x-auto border border-[#2b3340] bg-[#11161d] font-mono text-[13px] whitespace-pre text-[#e6edf3] placeholder:text-[#8b97a6]"
       />
       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-fg-subtle">
-        <span>Copié tel quel en exécution · Tab insère des espaces (Échap puis Tab pour sortir)</span>
+        <span title="Tab insère deux espaces ; Échap puis Tab pour sortir de la zone.">Copiable en exécution</span>
         {!disabled && (
           <input
             aria-label={`${nom} : langage (facultatif)`}
@@ -242,15 +242,9 @@ export function EditeurBlocs({ valeur, onChange, label, typeInitial = 'texte', d
     setInsertion(null);
     changer([...blocs.slice(0, position), nouveau, ...blocs.slice(position)]);
   };
-  const vide = blocs.every((b) => !b.contenu.trim());
 
   return (
     <div role="group" aria-label={label} className={cn('grid gap-2', className)}>
-      {vide && !disabled && (
-        <p className="rounded-lg border border-dashed border-line bg-surface-2/40 px-3 py-2 text-xs text-fg-subtle">
-          Aucune instruction pour l’instant. Un bloc <b className="text-fg-muted">Texte</b> pour expliquer (markdown), un bloc <b className="text-fg-muted">Code</b> par commande à copier telle quelle.
-        </p>
-      )}
       {blocs.map((b, i) => {
         const nom = `${label}, bloc ${i + 1}`;
         const zoneRef = (el: HTMLTextAreaElement | null) => { if (el) zones.current.set(b.cle, el); else zones.current.delete(b.cle); };

@@ -76,6 +76,7 @@ public class MigrationJalon4Tests
             await db.GetService<IMigrator>().MigrateAsync("Jalon31");
 
         Guid mep = Guid.NewGuid(), systeme = Guid.NewGuid(), compte = Guid.NewGuid(), test1 = Guid.NewGuid(), test2 = Guid.NewGuid();
+        Guid catalogue = Guid.NewGuid(), resolution = Guid.NewGuid();
         Guid e1 = Guid.NewGuid(), e2 = Guid.NewGuid(), e3 = Guid.NewGuid(), e4 = Guid.NewGuid(), r1 = Guid.NewGuid();
         await using (var cn = new NpgsqlConnection(chaine))
         {
@@ -90,6 +91,9 @@ public class MigrationJalon4Tests
                     """),
             });
             await Inserer(cn, "Systemes", new() { ["Id"] = systeme, ["MepId"] = mep, ["Nom"] = "API" });
+            await Inserer(cn, "SystemesCatalogue", new() { ["Id"] = catalogue, ["Nom"] = "API" });
+            await Inserer(cn, "ResolutionsTypes", new() { ["Id"] = resolution, ["Titre"] = "Avec système", ["SystemeCatalogueId"] = catalogue });
+            await Inserer(cn, "ResolutionsTypes", new() { ["Id"] = Guid.NewGuid(), ["Titre"] = "Sans système", ["SystemeCatalogueId"] = null });
             async Task Etape(Guid id, string code, int ordre, int plan, Guid? systemeId, params Guid[] deps) =>
                 await Inserer(cn, "Etapes", new()
                 {
@@ -131,6 +135,11 @@ public class MigrationJalon4Tests
         var t2 = fiche.Etapes[1];
         Assert.Equal(("Appeler l'API", ResultatControle.Conforme, "OK", compte), (t2.Instructions, t2.Resultat, t2.Observation, t2.ParId!.Value));
         Assert.Equal(new DateTimeOffset(2026, 10, 9, 10, 0, 0, TimeSpan.Zero), t2.Le);
+
+        // Jalon 4.2 : le système de la résolution type devient une liste.
+        var resolutions = await lecture.ResolutionsTypes.AsNoTracking().ToDictionaryAsync(r => r.Titre);
+        Assert.Equal([catalogue], resolutions["Avec système"].SystemeCatalogueIds);
+        Assert.Empty(resolutions["Sans système"].SystemeCatalogueIds);
 
         var u = await lecture.Utilisateurs.AsNoTracking().SingleAsync(x => x.Id == compte);
         Assert.Equal(("", ""), (u.Role, u.Contact));

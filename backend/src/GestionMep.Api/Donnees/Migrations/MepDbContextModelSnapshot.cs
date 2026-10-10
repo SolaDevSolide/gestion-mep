@@ -528,8 +528,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("SystemeCatalogueId")
-                        .HasColumnType("uuid");
+                    b.PrimitiveCollection<List<Guid>>("SystemeCatalogueIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
 
                     b.Property<string>("Titre")
                         .IsRequired()
