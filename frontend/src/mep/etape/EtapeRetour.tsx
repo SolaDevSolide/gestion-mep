@@ -58,7 +58,7 @@ function CommentaireEtape({ etape, peutCommenter, commentaire, actions }: { etap
       />
       {commentaire.dirty && (
         <div className="flex items-center gap-2">
-          <Button taille="sm" icone={<Save className="size-4" aria-hidden />} onClick={async () => { const ok = await actions.commenter(etape, commentaire.value.trim()); if (ok !== false) commentaire.reset(); }}>Enregistrer le commentaire</Button>
+          <Button taille="sm" icone={<Save className="size-4" aria-hidden />} onClick={() => void (async () => { const ok = await actions.commenter(etape, commentaire.value.trim()); if (ok !== false) commentaire.reset(); })()}>Enregistrer le commentaire</Button>
           <Button taille="sm" variante="fantome" onClick={commentaire.reset}>Annuler</Button>
         </div>
       )}
