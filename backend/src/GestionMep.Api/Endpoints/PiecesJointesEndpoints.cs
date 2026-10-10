@@ -28,7 +28,7 @@ public static class PiecesJointesEndpoints
         {
             throw new ErreurHttp(413, stockage.MessageTropVolumineux);
         }
-        var fichier = form.Files.GetFile(ChampFichier) ?? form.Files.FirstOrDefault()
+        var fichier = form.Files.GetFile(ChampFichier) ?? (form.Files.Count > 0 ? form.Files[0] : null)
             ?? throw ErreurHttp.Saisie($"Aucun fichier reçu (champ « {ChampFichier} »).");
         if (fichier.Length == 0) throw ErreurHttp.Saisie("Le fichier est vide.");
         if (fichier.Length > stockage.TailleMaxOctets) throw new ErreurHttp(413, stockage.MessageTropVolumineux);
