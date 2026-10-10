@@ -11,6 +11,7 @@ import { useAstuce } from './graphe/astuce';
 import { BarreSystemes } from './graphe/BarreSystemes';
 import { GrapheEtapes, groupeDepuisCle } from './graphe/GrapheEtapes';
 import { PanneauEdition, saisieDepuis } from './graphe/PanneauEdition';
+import { ConteneurPanneau, usePanneauLateral } from './graphe/PanneauLateral';
 import { PanneauLiens } from './graphe/PanneauLiens';
 import { PanneauResume } from './graphe/PanneauResume';
 import { descriptionsSystemes } from './graphe/systemes';
@@ -18,8 +19,6 @@ import { descriptionsSystemes } from './graphe/systemes';
 const AIDE = 'Préparation : glissez une fiche pour la déplacer ; tirez le rond du bas d’une fiche vers une autre pour un lien particulier ; cliquez sur un lien pour le sélectionner.';
 const estSaisie = (el: EventTarget | null) => el instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
 
-/** Classes du panneau de droite (collant sous l'en-tête de la MEP sur grand écran). */
-export const CLASSES_PANNEAU = 'min-w-0 xl:sticky xl:top-[calc(var(--entete-h,12rem)+1rem)] xl:max-h-[calc(100vh-var(--entete-h,12rem)-2rem)] xl:overflow-y-auto xl:rounded-xl';
 
 /** Éditeur du plan en graphe (préparation) : systèmes impactés, graphe des étapes, panneau de droite. */
 export function EtapesEditeur({ plan }: { plan: TypePlan }) {
@@ -30,6 +29,7 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   const [choix, setChoix] = useState<string | null>(() => params.get('etape'));
   const [cleGroupe, setCleGroupe] = useState<string | null>(null);
   const [nouvelle, setNouvelle] = useState<string | null>(null);
+  const panneau = usePanneauLateral();
   const astuce = useAstuce(modifiable ? AIDE : 'Lecture seule : cliquez sur une étape pour afficher son détail.');
   const catalogue = useAsync(() => api.catalogueSystemes(), []);
   const resolutions = useAsync(() => api.resolutions(), []);
@@ -105,7 +105,7 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
     <div className="grid gap-3" onKeyDown={clavier}>
       <BarreSystemes modifiable={modifiable} catalogue={catalogue.donnees ?? []} descriptions={descriptions} onMessage={astuce.afficher} />
       <p aria-live="polite" className={cn('min-h-[1.4em] text-[13px]', astuce.flash ? 'font-semibold text-rollback-solid' : 'text-fg-subtle')}>{astuce.texte}</p>
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className={panneau.classesGrille} style={panneau.styleGrille}>
         <GrapheEtapes
           mep={mep}
           plan={plan}
@@ -122,7 +122,7 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
           onAjouter={(l) => void ajouter(l)}
           onMessage={astuce.afficher}
         />
-        <aside aria-label="Détail de la sélection" className={CLASSES_PANNEAU}>
+        <ConteneurPanneau etiquette="Détail de la sélection" {...panneau}>
           {groupe ? (
             <PanneauLiens groupe={groupe} etapes={etapes} onSupprimer={(l) => void delier(l)} onFermer={() => setCleGroupe(null)} />
           ) : etape ? (
@@ -134,6 +134,7 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
               etapes={etapes}
               modifiable={modifiable}
               resolutions={resolutions.donnees ?? []}
+              catalogue={catalogue.donnees ?? []}
               focusAction={nouvelle === etape.id}
               onLier={(de, vers) => void lier(de, vers)}
               onDelier={(l) => void delier(l)}
@@ -142,7 +143,7 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
           ) : (
             <PanneauResume plan={plan} etapes={etapes} aide={modifiable} />
           )}
-        </aside>
+        </ConteneurPanneau>
       </div>
     </div>
   );
