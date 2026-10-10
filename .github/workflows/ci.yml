@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   backend:
@@ -48,6 +47,10 @@ jobs:
   image:
     needs: [backend, frontend]
     runs-on: ubuntu-latest
+    # Seul ce job publie l'image : les jobs de test (y compris sur les PR) n'ont que la lecture.
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
