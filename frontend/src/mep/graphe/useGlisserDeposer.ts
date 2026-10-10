@@ -29,8 +29,8 @@ export const transformClone = (p: { x: number; y: number }, zoom: number) =>
   `translate3d(${p.x}px, ${p.y}px, 0) scale(${zoom}) rotate(1.5deg)`;
 
 interface Options {
-  zone: RefObject<HTMLDivElement>;
-  graphe: RefObject<HTMLDivElement>;
+  zone: RefObject<HTMLDivElement | null>;
+  graphe: RefObject<HTMLDivElement | null>;
   zoomRef: MutableRefObject<number>;
   /** Déplacement de la vue (fond du graphe), qui partage les écouteurs du pointeur. */
   vue: DeplacementVue;
