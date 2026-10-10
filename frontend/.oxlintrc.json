@@ -95,7 +95,9 @@
           "presentation"
         ]
       }
-    ]
+    ],
+    "react/immutability": "warn",
+    "react/preserve-manual-memoization": "warn"
   },
   "overrides": [
     {

@@ -135,7 +135,7 @@ export function PanneauEdition(props: Props) {
     if (d.dirty && !(await enregistrer())) return;
     const q = new URLSearchParams({ mep: mep.id, etape: etape.id });
     if (titre) q.set('titre', titre);
-    navigate(`/parametres/resolutions/nouvelle?${q.toString()}`);
+    void navigate(`/parametres/resolutions/nouvelle?${q.toString()}`);
   }
 
   async function supprimer() {
