@@ -20,9 +20,22 @@ export function auteurModification(r: Pick<ResolutionType, 'modifieeLe' | 'modif
 }
 
 /** Historique des versions d'une résolution type : qui a changé quoi, et quand. */
-export function HistoriqueResolutionDialog({ resolution, onFermer }: { resolution: ResolutionType | null; onFermer: () => void }) {
+export function HistoriqueResolutionDialog({
+  resolution,
+  onFermer,
+}: {
+  resolution: ResolutionType | null;
+  onFermer: () => void;
+}) {
   return (
-    <Dialog open={resolution !== null} onOpenChange={(o) => { if (!o) onFermer(); }} titre={`Historique de « ${resolution?.titre ?? ''} »`} taille="lg">
+    <Dialog
+      open={resolution !== null}
+      onOpenChange={(o) => {
+        if (!o) onFermer();
+      }}
+      titre={`Historique de « ${resolution?.titre ?? ''} »`}
+      taille="lg"
+    >
       {resolution && <Versions id={resolution.id} />}
     </Dialog>
   );
@@ -30,7 +43,12 @@ export function HistoriqueResolutionDialog({ resolution, onFermer }: { resolutio
 
 function Versions({ id }: { id: string }) {
   const versions = useAsync(() => api.versionsResolution(id), [id]);
-  if (versions.erreur) return <Alerte ton="danger" icone={OctagonAlert} role="alert">{versions.erreur}</Alerte>;
+  if (versions.erreur)
+    return (
+      <Alerte ton="danger" icone={OctagonAlert} role="alert">
+        {versions.erreur}
+      </Alerte>
+    );
   if (versions.donnees === null) return <p className="text-sm text-fg-muted">Chargement…</p>;
   return (
     <ol className="grid gap-3">
@@ -39,13 +57,21 @@ function Versions({ id }: { id: string }) {
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <Badge>v{v.version}</Badge>
             <span className="font-medium">{ACTIONS[v.action]}</span>
-            <span className="text-fg-muted">{v.modifieeParNom ? `par ${v.modifieeParNom}` : 'auteur inconnu'} le {formatDateHeure(v.modifieeLe)}</span>
+            <span className="text-fg-muted">
+              {v.modifieeParNom ? `par ${v.modifieeParNom}` : 'auteur inconnu'} le {formatDateHeure(v.modifieeLe)}
+            </span>
           </div>
           <p className="mt-2 text-sm font-medium">{v.titre}</p>
           <ol className="mt-1 list-decimal pl-5 text-sm text-fg-muted">
-            {v.corrections.map((c) => <li key={c.ordre}><span className="font-mono text-xs">{c.instruction}</span> → {c.resultatAttendu}</li>)}
+            {v.corrections.map((c) => (
+              <li key={c.ordre}>
+                <span className="font-mono text-xs">{c.instruction}</span> → {c.resultatAttendu}
+              </li>
+            ))}
           </ol>
-          <p className="mt-1 text-sm text-fg-muted">Vérification : {v.verificationInstruction} → {v.verificationAttendu}</p>
+          <p className="mt-1 text-sm text-fg-muted">
+            Vérification : {v.verificationInstruction} → {v.verificationAttendu}
+          </p>
         </li>
       ))}
     </ol>

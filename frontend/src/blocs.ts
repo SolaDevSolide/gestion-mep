@@ -42,7 +42,9 @@ export function decouperBlocs(source: string | null | undefined): Bloc[] {
     let j = i + 1;
     while (j < lignes.length && !fin.test(lignes[j])) code.push(lignes[j++]);
     pousserTexte();
-    blocs.push(m[2] ? { type: 'code', contenu: code.join('\n'), langage: m[2] } : { type: 'code', contenu: code.join('\n') });
+    blocs.push(
+      m[2] ? { type: 'code', contenu: code.join('\n'), langage: m[2] } : { type: 'code', contenu: code.join('\n') },
+    );
     // Bloc non fermé : il court jusqu'à la fin (comme en CommonMark).
     i = j;
   }
@@ -100,7 +102,11 @@ export function formaterMarkdown(valeur: string, debut: number, fin: number, act
   if (action === 'gras' || action === 'italique' || action === 'code') {
     const [g, d, exemple] = ENTOURAGE[action];
     const texte = choix || exemple;
-    return { valeur: `${avant}${g}${texte}${d}${apres}`, debut: debut + g.length, fin: debut + g.length + texte.length };
+    return {
+      valeur: `${avant}${g}${texte}${d}${apres}`,
+      debut: debut + g.length,
+      fin: debut + g.length + texte.length,
+    };
   }
   if (action === 'lien') {
     const texte = choix || 'texte du lien';
@@ -120,5 +126,9 @@ export function formaterMarkdown(valeur: string, debut: number, fin: number, act
   const deja = lignes.every((l) => l.startsWith(prefixe));
   const nouvelles = lignes.map((l) => (deja ? l.slice(prefixe.length) : `${prefixe}${l}`));
   const bloc = nouvelles.join('\n');
-  return { valeur: valeur.slice(0, debutLigne) + bloc + valeur.slice(finLigne), debut: debutLigne, fin: debutLigne + bloc.length };
+  return {
+    valeur: valeur.slice(0, debutLigne) + bloc + valeur.slice(finLigne),
+    debut: debutLigne,
+    fin: debutLigne + bloc.length,
+  };
 }

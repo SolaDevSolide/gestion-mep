@@ -1,8 +1,33 @@
 import type {
-  BilanSaisie, CritereGoNoGo, CritereGoNoGoSaisie, DecisionApprobation, DuplicationSaisie, ParametresGlobaux, PieceJointe, FicheRecetteSaisie, ProfilSaisie, SauvegardeSystemeSaisie,
-  Evenement, EtapeSaisie, LivrableSaisie, Mep, MepIdentiteSaisie, MepResume, ParticipantSaisie,
-  PlanRepliSaisie, ResolutionType, ResolutionTypeSaisie, ResultatControle, SauvegardeSaisie, VersionResolutionType,
-  ResponsableTechniqueSaisie, SystemeCatalogue, SystemeCatalogueSaisie, SystemeSaisie, TypePlan, Utilisateur,
+  BilanSaisie,
+  CritereGoNoGo,
+  CritereGoNoGoSaisie,
+  DecisionApprobation,
+  DuplicationSaisie,
+  ParametresGlobaux,
+  PieceJointe,
+  FicheRecetteSaisie,
+  ProfilSaisie,
+  SauvegardeSystemeSaisie,
+  Evenement,
+  EtapeSaisie,
+  LivrableSaisie,
+  Mep,
+  MepIdentiteSaisie,
+  MepResume,
+  ParticipantSaisie,
+  PlanRepliSaisie,
+  ResolutionType,
+  ResolutionTypeSaisie,
+  ResultatControle,
+  SauvegardeSaisie,
+  VersionResolutionType,
+  ResponsableTechniqueSaisie,
+  SystemeCatalogue,
+  SystemeCatalogueSaisie,
+  SystemeSaisie,
+  TypePlan,
+  Utilisateur,
 } from './types';
 
 export class ApiError extends Error {
@@ -29,7 +54,10 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
       method,
       credentials: 'include',
       // X-Requested-With : exigé par l'API sur toute requête qui modifie (protection CSRF, un formulaire d'un autre site ne peut pas l'ajouter).
-      headers: body !== undefined && !formulaire ? { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' } : { 'X-Requested-With': 'fetch' },
+      headers:
+        body !== undefined && !formulaire
+          ? { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' }
+          : { 'X-Requested-With': 'fetch' },
       body: body === undefined ? undefined : formulaire ? (body as FormData) : JSON.stringify(body),
     });
   } catch {
@@ -48,7 +76,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
       /* corps non JSON */
     }
     if (!message) {
-      message = res.status === 401 ? 'Identifiants incorrects.' : res.status === 413 ? 'Fichier trop volumineux.' : `Erreur ${res.status}.`;
+      message =
+        res.status === 401
+          ? 'Identifiants incorrects.'
+          : res.status === 413
+            ? 'Fichier trop volumineux.'
+            : `Erreur ${res.status}.`;
     }
     throw new ApiError(res.status, message);
   }
@@ -85,19 +118,25 @@ export const api = {
   journal: (id: string) => get<Evenement[]>(`/meps/${id}/journal`),
 
   ajouterParticipant: (id: string, s: ParticipantSaisie) => post<Mep>(`/meps/${id}/participants`, s),
-  modifierParticipant: (id: string, pid: string, s: ParticipantSaisie) => put<Mep>(`/meps/${id}/participants/${pid}`, s),
+  modifierParticipant: (id: string, pid: string, s: ParticipantSaisie) =>
+    put<Mep>(`/meps/${id}/participants/${pid}`, s),
   supprimerParticipant: (id: string, pid: string) => del<Mep>(`/meps/${id}/participants/${pid}`),
   ajouterSysteme: (id: string, s: SystemeSaisie) => post<Mep>(`/meps/${id}/systemes`, s),
   modifierSysteme: (id: string, sid: string, s: SystemeSaisie) => put<Mep>(`/meps/${id}/systemes/${sid}`, s),
   supprimerSysteme: (id: string, sid: string) => del<Mep>(`/meps/${id}/systemes/${sid}`),
-  modifierSauvegardeSysteme: (id: string, sid: string, s: SauvegardeSystemeSaisie) => put<Mep>(`/meps/${id}/systemes/${sid}/sauvegarde`, s),
+  modifierSauvegardeSysteme: (id: string, sid: string, s: SauvegardeSystemeSaisie) =>
+    put<Mep>(`/meps/${id}/systemes/${sid}/sauvegarde`, s),
   ajouterLivrable: (id: string, s: LivrableSaisie) => post<Mep>(`/meps/${id}/livrables`, s),
   modifierLivrable: (id: string, lid: string, s: LivrableSaisie) => put<Mep>(`/meps/${id}/livrables/${lid}`, s),
   supprimerLivrable: (id: string, lid: string) => del<Mep>(`/meps/${id}/livrables/${lid}`),
 
   /** Création : `ligne` absente = nouvelle ligne en bas, `position` absente = en fin de ligne ; liens par défaut calculés par le serveur. */
   ajouterEtape: (id: string, plan: TypePlan = 'Deploiement', ligne?: number, position?: number) =>
-    post<Mep>(`/meps/${id}/etapes`, { plan, ...(ligne === undefined ? {} : { ligne }), ...(position === undefined ? {} : { position }) }),
+    post<Mep>(`/meps/${id}/etapes`, {
+      plan,
+      ...(ligne === undefined ? {} : { ligne }),
+      ...(position === undefined ? {} : { position }),
+    }),
   /** Place une étape (ligne, position dans la ligne) ; `ligne` = nombre de lignes pour une nouvelle ligne en bas. */
   placerEtape: (id: string, eid: string, ligne: number, position: number, liensParDefaut = true) =>
     post<Mep>(`/meps/${id}/etapes/${eid}/placer`, { ligne, position, liensParDefaut }),
@@ -105,9 +144,24 @@ export const api = {
     post<Mep>(`/meps/${id}/etapes/${eid}/autoriser-non-retour`, { revision }),
   modifierEtape: (id: string, eid: string, s: EtapeSaisie) => put<Mep>(`/meps/${id}/etapes/${eid}`, s),
   supprimerEtape: (id: string, eid: string) => del<Mep>(`/meps/${id}/etapes/${eid}`),
-  demarrerEtape: (id: string, eid: string, revision: number) => post<Mep>(`/meps/${id}/etapes/${eid}/demarrer`, { revision }),
-  terminerEtape: (id: string, eid: string, revision: number, resultat: 'Reussie' | 'Echec', preuve: string, resultatVerifie: boolean, commentaire?: string) =>
-    post<Mep>(`/meps/${id}/etapes/${eid}/terminer`, { revision, resultat, preuve, resultatVerifie, ...(commentaire === undefined ? {} : { commentaire }) }),
+  demarrerEtape: (id: string, eid: string, revision: number) =>
+    post<Mep>(`/meps/${id}/etapes/${eid}/demarrer`, { revision }),
+  terminerEtape: (
+    id: string,
+    eid: string,
+    revision: number,
+    resultat: 'Reussie' | 'Echec',
+    preuve: string,
+    resultatVerifie: boolean,
+    commentaire?: string,
+  ) =>
+    post<Mep>(`/meps/${id}/etapes/${eid}/terminer`, {
+      revision,
+      resultat,
+      preuve,
+      resultatVerifie,
+      ...(commentaire === undefined ? {} : { commentaire }),
+    }),
   /** Commentaire facultatif d'une étape (exécutant, pilote / suppléant, admin ; pendant l'exécution, la recette ou le retour arrière). */
   commenterEtape: (id: string, eid: string, revision: number, commentaire: string) =>
     put<Mep>(`/meps/${id}/etapes/${eid}/commentaire`, { revision, commentaire }),
@@ -133,24 +187,30 @@ export const api = {
   passerEnRecette: (id: string) => post<Mep>(`/meps/${id}/phase`, { phase: 'Recette' }),
   dupliquer: (id: string, s: DuplicationSaisie) => post<Mep>(`/meps/${id}/dupliquer`, s),
 
-  modifierApprobateurs: (id: string, version: number, utilisateurIds: string[]) => put<Mep>(`/meps/${id}/approbateurs`, { version, utilisateurIds }),
+  modifierApprobateurs: (id: string, version: number, utilisateurIds: string[]) =>
+    put<Mep>(`/meps/${id}/approbateurs`, { version, utilisateurIds }),
   decider: (id: string, version: number, decision: DecisionApprobation, commentaire: string) =>
     post<Mep>(`/meps/${id}/approbation`, { version, decision, commentaire }),
 
-  ajouterFicheRecette: (id: string, systemeId: string | null, titre: string) => post<Mep>(`/meps/${id}/fiches-recette`, { systemeId, titre }),
-  modifierFicheRecette: (id: string, fid: string, s: FicheRecetteSaisie) => put<Mep>(`/meps/${id}/fiches-recette/${fid}`, s),
+  ajouterFicheRecette: (id: string, systemeId: string | null, titre: string) =>
+    post<Mep>(`/meps/${id}/fiches-recette`, { systemeId, titre }),
+  modifierFicheRecette: (id: string, fid: string, s: FicheRecetteSaisie) =>
+    put<Mep>(`/meps/${id}/fiches-recette/${fid}`, s),
   supprimerFicheRecette: (id: string, fid: string) => del<Mep>(`/meps/${id}/fiches-recette/${fid}`),
   resultatEtapeTest: (id: string, fid: string, tid: string, resultat: ResultatControle, observation: string) =>
     post<Mep>(`/meps/${id}/fiches-recette/${fid}/etapes/${tid}/resultat`, { resultat, observation }),
   refaireFicheRecette: (id: string, fid: string) => post<Mep>(`/meps/${id}/fiches-recette/${fid}/refaire`, {}),
-  refaireEtapeTest: (id: string, fid: string, tid: string) => post<Mep>(`/meps/${id}/fiches-recette/${fid}/etapes/${tid}/refaire`, {}),
+  refaireEtapeTest: (id: string, fid: string, tid: string) =>
+    post<Mep>(`/meps/${id}/fiches-recette/${fid}/etapes/${tid}/refaire`, {}),
 
   // Pièces jointes : MEP, étape, résolution exécutée, résolution type.
   deposerPieceMep: (id: string, f: File) => post<Mep>(`/meps/${id}/pieces-jointes`, formulaireFichier(f)),
-  deposerPieceEtape: (id: string, eid: string, f: File) => post<Mep>(`/meps/${id}/etapes/${eid}/pieces-jointes`, formulaireFichier(f)),
+  deposerPieceEtape: (id: string, eid: string, f: File) =>
+    post<Mep>(`/meps/${id}/etapes/${eid}/pieces-jointes`, formulaireFichier(f)),
   supprimerPiece: (id: string, pid: string) => del<Mep>(`/meps/${id}/pieces-jointes/${pid}`),
   piecesResolution: (rid: string) => get<PieceJointe[]>(`/resolutions/${rid}/pieces-jointes`),
-  deposerPieceResolution: (rid: string, f: File) => post<PieceJointe>(`/resolutions/${rid}/pieces-jointes`, formulaireFichier(f)),
+  deposerPieceResolution: (rid: string, f: File) =>
+    post<PieceJointe>(`/resolutions/${rid}/pieces-jointes`, formulaireFichier(f)),
   supprimerPieceResolution: (rid: string, pid: string) => del<void>(`/resolutions/${rid}/pieces-jointes/${pid}`),
 
   parametres: () => get<ParametresGlobaux>('/parametres'),
@@ -162,13 +222,16 @@ export const api = {
 
   catalogueSystemes: () => get<SystemeCatalogue[]>('/catalogue/systemes'),
   creerSystemeCatalogue: (s: SystemeCatalogueSaisie) => post<SystemeCatalogue>('/catalogue/systemes', s),
-  modifierSystemeCatalogue: (id: string, s: SystemeCatalogueSaisie) => put<SystemeCatalogue>(`/catalogue/systemes/${id}`, s),
+  modifierSystemeCatalogue: (id: string, s: SystemeCatalogueSaisie) =>
+    put<SystemeCatalogue>(`/catalogue/systemes/${id}`, s),
   supprimerSystemeCatalogue: (id: string) => del<void>(`/catalogue/systemes/${id}`),
   ajouterSystemeDepuisCatalogue: (id: string, catalogueId: string, impact: string) =>
     post<Mep>(`/meps/${id}/systemes/depuis-catalogue`, { catalogueId, impact }),
 
   resolutions: (systemeCatalogueId?: string | null) =>
-    get<ResolutionType[]>(`/resolutions${systemeCatalogueId ? `?systemeCatalogueId=${encodeURIComponent(systemeCatalogueId)}` : ''}`),
+    get<ResolutionType[]>(
+      `/resolutions${systemeCatalogueId ? `?systemeCatalogueId=${encodeURIComponent(systemeCatalogueId)}` : ''}`,
+    ),
   creerResolution: (s: Omit<ResolutionTypeSaisie, 'version'>) => post<ResolutionType>('/resolutions', s),
   modifierResolution: (id: string, s: ResolutionTypeSaisie) => put<ResolutionType>(`/resolutions/${id}`, s),
   versionsResolution: (id: string) => get<VersionResolutionType[]>(`/resolutions/${id}/versions`),

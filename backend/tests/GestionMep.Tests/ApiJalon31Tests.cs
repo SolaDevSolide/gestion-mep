@@ -50,7 +50,7 @@ public class ApiJalon31Tests : IDisposable
         var rt = mep.GetProperty("responsablesTechniques").EnumerateArray().Single();
         Assert.Equal(Participant(mep, "Bob"), rt.GetProperty("participantId").GetGuid());
         Assert.Equal("Joignable", rt.GetProperty("disponibilite").GetString());
-        Assert.False(Liste(mep, "avertissements").Contains("Aucun responsable technique renseigné."));
+        Assert.DoesNotContain("Aucun responsable technique renseigné.", Liste(mep, "avertissements"));
         Assert.Contains("Renseigner le pilote.", Liste(mep, "erreursPlan"));
         Assert.False(mep.GetProperty("droits").GetProperty("estPilote").GetBoolean());
         Assert.True(mep.GetProperty("droits").GetProperty("peutEditerContenu").GetBoolean());

@@ -1,0 +1,19 @@
+<Project>
+  <!-- Réglages communs à tous les projets .NET du dépôt (API, domaine, tests). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+
+    <!-- Qualité : tout avertissement bloque la compilation, analyseurs .NET au niveau recommandé. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Les commentaires XML sont vérifiés (balises, cref) ; un membre public sans commentaire,
+         ou dont seuls certains paramètres sont décrits, n'est pas une erreur. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+</Project>

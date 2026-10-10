@@ -1,0 +1,6771 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Gestion MEP",
+    "description": "API de préparation et d'exécution des mises en production. Contrat détaillé : docs/api.md.",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/sante": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/version": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/auth/connexion": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnexionSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/auth/deconnexion": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/auth/moi": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/utilisateurs": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UtilisateurDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UtilisateurSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/utilisateurs/moi/profil": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfilSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/utilisateurs/{uid}/profil": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "uid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfilSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "modele",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MepResumeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MepCreationSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/dupliquer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicationSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MepIdentiteSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/sauvegarde": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SauvegardeSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/journal": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvenementDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/flux": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/participants": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParticipantSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/participants/{pid}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParticipantSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/responsables-techniques": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsablesTechniquesSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/systemes": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemeSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/systemes/{sid}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemeSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/systemes/{sid}/sauvegarde": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SauvegardeSystemeSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/livrables": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LivrableSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/livrables/{lid}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "lid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LivrableSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "lid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/EtapeSaisie"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes/{eid}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EtapeSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes/{eid}/placer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlacerSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes/{eid}/prendre-la-main": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriseDeMainSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes/{eid}/demarrer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevisionSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes/{eid}/terminer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TerminerSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes/{eid}/commentaire": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentaireSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes/{eid}/autoriser-non-retour": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevisionSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes/{eid}/autoriser-reprise": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevisionSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/procedure-relue": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcedureRelueSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/plan-repli": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanRepliSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/retour-arriere": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetourArriereSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/cloturer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ClotureSaisie"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/no-go": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoGoSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/phase": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhaseSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/catalogue/systemes": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SystemeCatalogueDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemeCatalogueSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/catalogue/systemes/{id}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemeCatalogueSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/systemes/depuis-catalogue": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepuisCatalogueSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/resolutions": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "systemeCatalogueId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResolutionTypeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolutionTypeSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/resolutions/{id}": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionTypeDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolutionTypeSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/resolutions/{id}/versions": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VersionResolutionTypeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes/{eid}/resolutions": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemarrerResolutionSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/resolutions/{rid}/corrections/{ordre}": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "rid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ordre",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControleSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/resolutions/{rid}/verification": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "rid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControleSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/approbateurs": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprobateursSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/approbation": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/fiches-recette": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FicheRecetteCreationSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/fiches-recette/{fid}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FicheRecetteSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/fiches-recette/{fid}/etapes/{tid}/resultat": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControleSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/fiches-recette/{fid}/refaire": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/fiches-recette/{fid}/etapes/{tid}/refaire": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/parametres": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParametresDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParametresSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/criteres-go-no-go": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CritereGoNoGoDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CritereGoNoGoSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/criteres-go-no-go/{id}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CritereGoNoGoSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/pieces-jointes": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PieceJointeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes/{eid}/pieces-jointes": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/resolutions/{rid}/pieces-jointes": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "rid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/pieces-jointes/{pid}": {
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/resolutions/{id}/pieces-jointes": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PieceJointeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/resolutions/{id}/pieces-jointes/{pid}": {
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/pieces-jointes/{pid}/contenu": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApprobateursSaisie": {
+        "required": [
+          "version",
+          "utilisateurIds"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "utilisateurIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "ApprobationDto": {
+        "required": [
+          "id",
+          "utilisateurId",
+          "nom",
+          "decision",
+          "commentaire",
+          "le"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "utilisateurId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "Approuvee",
+              "Refusee",
+              null
+            ]
+          },
+          "commentaire": {
+            "type": "string"
+          },
+          "le": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "BilanDto": {
+        "required": [
+          "ceQuiAMarche",
+          "incidents",
+          "actions",
+          "redigePar",
+          "le"
+        ],
+        "type": "object",
+        "properties": {
+          "ceQuiAMarche": {
+            "type": "string"
+          },
+          "incidents": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "string"
+          },
+          "redigePar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "le": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ClotureDto": {
+        "required": [
+          "le",
+          "par"
+        ],
+        "type": "object",
+        "properties": {
+          "le": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "par": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ClotureSaisie": {
+        "required": [
+          "ceQuiAMarche",
+          "incidents",
+          "actions"
+        ],
+        "type": "object",
+        "properties": {
+          "ceQuiAMarche": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "incidents": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actions": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CommentaireSaisie": {
+        "required": [
+          "revision",
+          "commentaire"
+        ],
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "commentaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConnexionSaisie": {
+        "required": [
+          "login",
+          "motDePasse"
+        ],
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "motDePasse": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ControleSaisie": {
+        "required": [
+          "resultat",
+          "observation"
+        ],
+        "type": "object",
+        "properties": {
+          "resultat": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResultatControle"
+              }
+            ]
+          },
+          "observation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CorrectionDto": {
+        "required": [
+          "ordre",
+          "instruction",
+          "resultatAttendu"
+        ],
+        "type": "object",
+        "properties": {
+          "ordre": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "instruction": {
+            "type": "string"
+          },
+          "resultatAttendu": {
+            "type": "string"
+          }
+        }
+      },
+      "CorrectionExecuteeDto": {
+        "required": [
+          "ordre",
+          "instruction",
+          "resultatAttendu",
+          "resultat",
+          "observation",
+          "par",
+          "le"
+        ],
+        "type": "object",
+        "properties": {
+          "ordre": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "instruction": {
+            "type": "string"
+          },
+          "resultatAttendu": {
+            "type": "string"
+          },
+          "resultat": {
+            "enum": [
+              "Conforme",
+              "Echec",
+              null
+            ]
+          },
+          "observation": {
+            "type": "string"
+          },
+          "par": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "le": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "CorrectionSaisie": {
+        "required": [
+          "ordre",
+          "instruction",
+          "resultatAttendu"
+        ],
+        "type": "object",
+        "properties": {
+          "ordre": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "instruction": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "resultatAttendu": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CritereGoNoGoDto": {
+        "required": [
+          "id",
+          "libelle",
+          "ordre",
+          "actif"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "libelle": {
+            "type": "string"
+          },
+          "ordre": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "actif": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CritereGoNoGoSaisie": {
+        "required": [
+          "libelle",
+          "ordre",
+          "actif"
+        ],
+        "type": "object",
+        "properties": {
+          "libelle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ordre": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "actif": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "CritereValideDto": {
+        "required": [
+          "libelle",
+          "par",
+          "le"
+        ],
+        "type": "object",
+        "properties": {
+          "libelle": {
+            "type": "string"
+          },
+          "par": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "le": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Criticite": {
+        "enum": [
+          "Faible",
+          "Moderee",
+          "Elevee",
+          "Bloquante",
+          null
+        ]
+      },
+      "DecisionApprobation": {
+        "enum": [
+          "Approuvee",
+          "Refusee",
+          null
+        ]
+      },
+      "DecisionSaisie": {
+        "required": [
+          "version",
+          "decision",
+          "commentaire"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "decision": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DecisionApprobation"
+              }
+            ]
+          },
+          "commentaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DemarrerResolutionSaisie": {
+        "required": [
+          "resolutionTypeId",
+          "revision"
+        ],
+        "type": "object",
+        "properties": {
+          "resolutionTypeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "DepuisCatalogueSaisie": {
+        "required": [
+          "catalogueId",
+          "impact"
+        ],
+        "type": "object",
+        "properties": {
+          "catalogueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "impact": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DisponibiliteDto": {
+        "required": [
+          "statut",
+          "libelle"
+        ],
+        "type": "object",
+        "properties": {
+          "statut": {
+            "enum": [
+              "PlanInvalide",
+              "EcheanceARenseigner",
+              "RetourArriere",
+              "FicheACompleter",
+              "InstructionsACompleter",
+              "Attend",
+              "Terminee",
+              "EnCours",
+              "ArretResolution",
+              "ResolutionEnCours",
+              "SiRetourArriere",
+              "Disponible"
+            ]
+          },
+          "libelle": {
+            "type": "string"
+          }
+        }
+      },
+      "DisponibiliteJourJ": {
+        "enum": [
+          "Joignable",
+          "Absent",
+          null
+        ]
+      },
+      "DroitsDto": {
+        "required": [
+          "estPilote",
+          "peutModifierPlan",
+          "participantId",
+          "estApprobateur",
+          "estResponsableTechnique",
+          "peutEditerContenu"
+        ],
+        "type": "object",
+        "properties": {
+          "estPilote": {
+            "type": "boolean"
+          },
+          "peutModifierPlan": {
+            "type": "boolean"
+          },
+          "participantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "estApprobateur": {
+            "type": "boolean"
+          },
+          "estResponsableTechnique": {
+            "type": "boolean"
+          },
+          "peutEditerContenu": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DuplicationSaisie": {
+        "required": [
+          "environnement",
+          "commeModele"
+        ],
+        "type": "object",
+        "properties": {
+          "environnement": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "commeModele": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EtapeDto": {
+        "required": [
+          "id",
+          "plan",
+          "code",
+          "ligne",
+          "ordre",
+          "action",
+          "systemeIds",
+          "responsableId",
+          "executantId",
+          "criticite",
+          "dureeEstimeeMinutes",
+          "etat",
+          "instructions",
+          "resultatAttendu",
+          "preuve",
+          "commentaire",
+          "debutReel",
+          "finReelle",
+          "revision",
+          "dependances",
+          "resolutionIds",
+          "disponibilite",
+          "type",
+          "pointDeNonRetour",
+          "nonRetourAutorise"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plan": {
+            "enum": [
+              "Deploiement",
+              "RetourArriere"
+            ],
+            "description": "Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière."
+          },
+          "code": {
+            "type": "string"
+          },
+          "ligne": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ordre": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "action": {
+            "type": "string"
+          },
+          "systemeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "responsableId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "executantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "criticite": {
+            "enum": [
+              "Faible",
+              "Moderee",
+              "Elevee",
+              "Bloquante",
+              null
+            ]
+          },
+          "dureeEstimeeMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "etat": {
+            "enum": [
+              "AFaire",
+              "EnCours",
+              "Reussie",
+              "Echec"
+            ]
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "resultatAttendu": {
+            "type": "string"
+          },
+          "preuve": {
+            "type": "string"
+          },
+          "commentaire": {
+            "type": "string"
+          },
+          "debutReel": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "finReelle": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dependances": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "resolutionIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "disponibilite": {
+            "required": [
+              "statut",
+              "libelle"
+            ],
+            "type": "object",
+            "properties": {
+              "statut": {
+                "enum": [
+                  "PlanInvalide",
+                  "EcheanceARenseigner",
+                  "RetourArriere",
+                  "FicheACompleter",
+                  "InstructionsACompleter",
+                  "Attend",
+                  "Terminee",
+                  "EnCours",
+                  "ArretResolution",
+                  "ResolutionEnCours",
+                  "SiRetourArriere",
+                  "Disponible"
+                ]
+              },
+              "libelle": {
+                "type": "string"
+              }
+            }
+          },
+          "type": {
+            "enum": [
+              "Standard",
+              "Sauvegarde"
+            ],
+            "description": "Nature d'une étape de déploiement : standard, ou étape qui réalise la sauvegarde."
+          },
+          "pointDeNonRetour": {
+            "type": "boolean"
+          },
+          "nonRetourAutorise": {
+            "required": [
+              "par",
+              "le"
+            ],
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "par": {
+                "type": "string"
+              },
+              "le": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        },
+        "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche)."
+      },
+      "EtapeSaisie": {
+        "required": [
+          "revision",
+          "action",
+          "systemeIds",
+          "responsableId",
+          "criticite",
+          "instructions",
+          "resultatAttendu",
+          "dependances"
+        ],
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "action": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "systemeIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "responsableId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "criticite": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Criticite"
+              }
+            ]
+          },
+          "instructions": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "resultatAttendu": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dependances": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "plan": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TypePlan"
+              }
+            ]
+          },
+          "resolutionIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TypeEtape"
+              }
+            ]
+          },
+          "pointDeNonRetour": {
+            "type": "boolean",
+            "default": false
+          },
+          "dureeEstimeeMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "ligne": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "position": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "`Ligne` et `Position` ne servent qu'à la création (`POST /etapes`)."
+      },
+      "EtapeTestDto": {
+        "required": [
+          "id",
+          "ordre",
+          "instructions",
+          "resultatAttendu",
+          "resultat",
+          "observation",
+          "par",
+          "le"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ordre": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "resultatAttendu": {
+            "type": "string"
+          },
+          "resultat": {
+            "enum": [
+              "Conforme",
+              "Echec",
+              null
+            ]
+          },
+          "observation": {
+            "type": "string"
+          },
+          "par": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "le": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "EtapeTestSaisie": {
+        "required": [
+          "id",
+          "instructions",
+          "resultatAttendu"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "instructions": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "resultatAttendu": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "EtatEtape": {
+        "enum": [
+          "AFaire",
+          "EnCours",
+          "Reussie",
+          "Echec",
+          null
+        ]
+      },
+      "EvenementDto": {
+        "required": [
+          "id",
+          "quand",
+          "auteur",
+          "type",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "quand": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "auteur": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "ExecutionResolutionDto": {
+        "required": [
+          "id",
+          "etapeId",
+          "resolutionTypeId",
+          "titre",
+          "symptomes",
+          "diagnostic",
+          "corrections",
+          "verificationInstruction",
+          "verificationAttendu",
+          "verificationResultat",
+          "verificationObservation",
+          "statut",
+          "demarreePar",
+          "demarreeLe",
+          "termineeLe"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "etapeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resolutionTypeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "titre": {
+            "type": "string"
+          },
+          "symptomes": {
+            "type": "string"
+          },
+          "diagnostic": {
+            "type": "string"
+          },
+          "corrections": {
+            "type": "array",
+            "items": {
+              "required": [
+                "ordre",
+                "instruction",
+                "resultatAttendu",
+                "resultat",
+                "observation",
+                "par",
+                "le"
+              ],
+              "type": "object",
+              "properties": {
+                "ordre": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "instruction": {
+                  "type": "string"
+                },
+                "resultatAttendu": {
+                  "type": "string"
+                },
+                "resultat": {
+                  "enum": [
+                    "Conforme",
+                    "Echec",
+                    null
+                  ]
+                },
+                "observation": {
+                  "type": "string"
+                },
+                "par": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "le": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "verificationInstruction": {
+            "type": "string"
+          },
+          "verificationAttendu": {
+            "type": "string"
+          },
+          "verificationResultat": {
+            "enum": [
+              "Conforme",
+              "Echec",
+              null
+            ]
+          },
+          "verificationObservation": {
+            "type": "string"
+          },
+          "statut": {
+            "enum": [
+              "EnCours",
+              "Reussie",
+              "Echouee"
+            ]
+          },
+          "demarreePar": {
+            "type": "string"
+          },
+          "demarreeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "termineeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ExpertiseDto": {
+        "required": [
+          "systemeCatalogueId",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "systemeCatalogueId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "ExpertiseSaisie": {
+        "required": [
+          "systemeCatalogueId",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "systemeCatalogueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "FicheRecetteCreationSaisie": {
+        "required": [
+          "systemeId",
+          "titre"
+        ],
+        "type": "object",
+        "properties": {
+          "systemeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "titre": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "FicheRecetteDto": {
+        "required": [
+          "id",
+          "ordre",
+          "systemeId",
+          "titre",
+          "etapes"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ordre": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "systemeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "titre": {
+            "type": "string"
+          },
+          "etapes": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "ordre",
+                "instructions",
+                "resultatAttendu",
+                "resultat",
+                "observation",
+                "par",
+                "le"
+              ],
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "ordre": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "instructions": {
+                  "type": "string"
+                },
+                "resultatAttendu": {
+                  "type": "string"
+                },
+                "resultat": {
+                  "enum": [
+                    "Conforme",
+                    "Echec",
+                    null
+                  ]
+                },
+                "observation": {
+                  "type": "string"
+                },
+                "par": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "le": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        }
+      },
+      "FicheRecetteSaisie": {
+        "required": [
+          "systemeId",
+          "titre",
+          "etapes"
+        ],
+        "type": "object",
+        "properties": {
+          "systemeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "titre": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "etapes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/EtapeTestSaisie"
+            }
+          }
+        }
+      },
+      "IssueMep": {
+        "enum": [
+          "Reussie",
+          "Repliee",
+          null
+        ]
+      },
+      "LivrableDto": {
+        "required": [
+          "id",
+          "objet",
+          "version",
+          "emplacement",
+          "systemeId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "objet": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "emplacement": {
+            "type": "string"
+          },
+          "systemeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "LivrableSaisie": {
+        "required": [
+          "objet",
+          "version",
+          "emplacement",
+          "systemeId"
+        ],
+        "type": "object",
+        "properties": {
+          "objet": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emplacement": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "systemeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "MepCreationSaisie": {
+        "required": [
+          "outil",
+          "objet"
+        ],
+        "type": "object",
+        "properties": {
+          "outil": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "objet": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MepDto": {
+        "required": [
+          "id",
+          "version",
+          "outil",
+          "versionActuelle",
+          "versionCible",
+          "objet",
+          "impacts",
+          "dateMep",
+          "heureDebut",
+          "heureFin",
+          "fuseauHoraire",
+          "indisponibiliteMinutes",
+          "piloteId",
+          "suppleantIds",
+          "phase",
+          "echeanceRepli",
+          "issue",
+          "retourArriere",
+          "cloture",
+          "planRepli",
+          "sauvegarde",
+          "procedureRelue",
+          "demarrageAutorise",
+          "participants",
+          "systemes",
+          "livrables",
+          "etapes",
+          "resolutions",
+          "erreursPlan",
+          "droits",
+          "environnement",
+          "estModele",
+          "approbationsMinimum",
+          "approbations",
+          "goNoGo",
+          "fichesRecette",
+          "bilanActive",
+          "bilan",
+          "nonRetourFranchi",
+          "piecesJointes",
+          "responsablesTechniques",
+          "avertissements"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "outil": {
+            "type": "string"
+          },
+          "versionActuelle": {
+            "type": "string"
+          },
+          "versionCible": {
+            "type": "string"
+          },
+          "objet": {
+            "type": "string"
+          },
+          "impacts": {
+            "type": "string"
+          },
+          "dateMep": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "heureDebut": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "time"
+          },
+          "heureFin": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "time"
+          },
+          "fuseauHoraire": {
+            "type": "string"
+          },
+          "indisponibiliteMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "piloteId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "suppleantIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "phase": {
+            "enum": [
+              "Preparation",
+              "Execution",
+              "RetourArriere",
+              "Cloturee",
+              "Recette"
+            ],
+            "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin."
+          },
+          "echeanceRepli": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "issue": {
+            "enum": [
+              "Reussie",
+              "Repliee",
+              null
+            ]
+          },
+          "retourArriere": {
+            "required": [
+              "le",
+              "par",
+              "motif"
+            ],
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "le": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "par": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "motif": {
+                "type": "string"
+              }
+            },
+            "description": "`Par` vaut null quand le retour arrière s'est déclenché automatiquement."
+          },
+          "cloture": {
+            "required": [
+              "le",
+              "par"
+            ],
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "le": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "par": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              }
+            }
+          },
+          "planRepli": {
+            "required": [
+              "quandDeclencher",
+              "dureeTesteeMinutes",
+              "versionARestaurer",
+              "donneesDepuisSauvegarde",
+              "siRepliEchoue"
+            ],
+            "type": "object",
+            "properties": {
+              "quandDeclencher": {
+                "type": "string"
+              },
+              "dureeTesteeMinutes": {
+                "type": [
+                  "null",
+                  "integer"
+                ],
+                "format": "int32"
+              },
+              "versionARestaurer": {
+                "type": "string"
+              },
+              "donneesDepuisSauvegarde": {
+                "type": "string"
+              },
+              "siRepliEchoue": {
+                "type": "string"
+              }
+            }
+          },
+          "sauvegarde": {
+            "required": [
+              "mode",
+              "structure",
+              "donnees",
+              "configuration",
+              "responsableId",
+              "realiseeLe",
+              "procedure",
+              "copies",
+              "restaurationTestee",
+              "dateTestRestauration",
+              "preuveTestRestauration"
+            ],
+            "type": "object",
+            "properties": {
+              "mode": {
+                "enum": [
+                  "AvantMep",
+                  "PendantMep"
+                ],
+                "description": "Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée."
+              },
+              "structure": {
+                "type": "boolean"
+              },
+              "donnees": {
+                "type": "boolean"
+              },
+              "configuration": {
+                "type": "boolean"
+              },
+              "responsableId": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "uuid"
+              },
+              "realiseeLe": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "procedure": {
+                "type": "string"
+              },
+              "copies": {
+                "type": "string"
+              },
+              "restaurationTestee": {
+                "type": "boolean"
+              },
+              "dateTestRestauration": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date"
+              },
+              "preuveTestRestauration": {
+                "type": "string"
+              }
+            }
+          },
+          "procedureRelue": {
+            "required": [
+              "par",
+              "le"
+            ],
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "par": {
+                "type": "string"
+              },
+              "le": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "demarrageAutorise": {
+            "required": [
+              "par",
+              "le"
+            ],
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "par": {
+                "type": "string"
+              },
+              "le": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "nom",
+                "role",
+                "contact",
+                "utilisateurId",
+                "utilisateurNom"
+              ],
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "nom": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "contact": {
+                  "type": "string"
+                },
+                "utilisateurId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "utilisateurNom": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                }
+              }
+            }
+          },
+          "systemes": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "nom",
+                "cible",
+                "impact",
+                "catalogueId",
+                "sauvegarde"
+              ],
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "nom": {
+                  "type": "string"
+                },
+                "cible": {
+                  "type": "string"
+                },
+                "impact": {
+                  "type": "string"
+                },
+                "catalogueId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "sauvegarde": {
+                  "required": [
+                    "statut",
+                    "moment",
+                    "contenu",
+                    "justification"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "statut": {
+                      "enum": [
+                        "ARenseigner",
+                        "Requise",
+                        "NonRequise"
+                      ],
+                      "description": "Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu."
+                    },
+                    "moment": {
+                      "enum": [
+                        "AvantMep",
+                        "PendantMep"
+                      ],
+                      "description": "Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée."
+                    },
+                    "contenu": {
+                      "type": "string"
+                    },
+                    "justification": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "livrables": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "objet",
+                "version",
+                "emplacement",
+                "systemeId"
+              ],
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "objet": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                },
+                "emplacement": {
+                  "type": "string"
+                },
+                "systemeId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "etapes": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "plan",
+                "code",
+                "ligne",
+                "ordre",
+                "action",
+                "systemeIds",
+                "responsableId",
+                "executantId",
+                "criticite",
+                "dureeEstimeeMinutes",
+                "etat",
+                "instructions",
+                "resultatAttendu",
+                "preuve",
+                "commentaire",
+                "debutReel",
+                "finReelle",
+                "revision",
+                "dependances",
+                "resolutionIds",
+                "disponibilite",
+                "type",
+                "pointDeNonRetour",
+                "nonRetourAutorise"
+              ],
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "plan": {
+                  "enum": [
+                    "Deploiement",
+                    "RetourArriere"
+                  ],
+                  "description": "Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière."
+                },
+                "code": {
+                  "type": "string"
+                },
+                "ligne": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "ordre": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "action": {
+                  "type": "string"
+                },
+                "systemeIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "responsableId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "executantId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "criticite": {
+                  "enum": [
+                    "Faible",
+                    "Moderee",
+                    "Elevee",
+                    "Bloquante",
+                    null
+                  ]
+                },
+                "dureeEstimeeMinutes": {
+                  "type": [
+                    "null",
+                    "integer"
+                  ],
+                  "format": "int32"
+                },
+                "etat": {
+                  "enum": [
+                    "AFaire",
+                    "EnCours",
+                    "Reussie",
+                    "Echec"
+                  ]
+                },
+                "instructions": {
+                  "type": "string"
+                },
+                "resultatAttendu": {
+                  "type": "string"
+                },
+                "preuve": {
+                  "type": "string"
+                },
+                "commentaire": {
+                  "type": "string"
+                },
+                "debutReel": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                },
+                "finReelle": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                },
+                "revision": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "dependances": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "resolutionIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "disponibilite": {
+                  "required": [
+                    "statut",
+                    "libelle"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "statut": {
+                      "enum": [
+                        "PlanInvalide",
+                        "EcheanceARenseigner",
+                        "RetourArriere",
+                        "FicheACompleter",
+                        "InstructionsACompleter",
+                        "Attend",
+                        "Terminee",
+                        "EnCours",
+                        "ArretResolution",
+                        "ResolutionEnCours",
+                        "SiRetourArriere",
+                        "Disponible"
+                      ]
+                    },
+                    "libelle": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "type": {
+                  "enum": [
+                    "Standard",
+                    "Sauvegarde"
+                  ],
+                  "description": "Nature d'une étape de déploiement : standard, ou étape qui réalise la sauvegarde."
+                },
+                "pointDeNonRetour": {
+                  "type": "boolean"
+                },
+                "nonRetourAutorise": {
+                  "required": [
+                    "par",
+                    "le"
+                  ],
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "properties": {
+                    "par": {
+                      "type": "string"
+                    },
+                    "le": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              },
+              "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche)."
+            }
+          },
+          "resolutions": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "etapeId",
+                "resolutionTypeId",
+                "titre",
+                "symptomes",
+                "diagnostic",
+                "corrections",
+                "verificationInstruction",
+                "verificationAttendu",
+                "verificationResultat",
+                "verificationObservation",
+                "statut",
+                "demarreePar",
+                "demarreeLe",
+                "termineeLe"
+              ],
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "etapeId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "resolutionTypeId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "titre": {
+                  "type": "string"
+                },
+                "symptomes": {
+                  "type": "string"
+                },
+                "diagnostic": {
+                  "type": "string"
+                },
+                "corrections": {
+                  "type": "array",
+                  "items": {
+                    "required": [
+                      "ordre",
+                      "instruction",
+                      "resultatAttendu",
+                      "resultat",
+                      "observation",
+                      "par",
+                      "le"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "ordre": {
+                        "type": "integer",
+                        "format": "int32"
+                      },
+                      "instruction": {
+                        "type": "string"
+                      },
+                      "resultatAttendu": {
+                        "type": "string"
+                      },
+                      "resultat": {
+                        "enum": [
+                          "Conforme",
+                          "Echec",
+                          null
+                        ]
+                      },
+                      "observation": {
+                        "type": "string"
+                      },
+                      "par": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      },
+                      "le": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "verificationInstruction": {
+                  "type": "string"
+                },
+                "verificationAttendu": {
+                  "type": "string"
+                },
+                "verificationResultat": {
+                  "enum": [
+                    "Conforme",
+                    "Echec",
+                    null
+                  ]
+                },
+                "verificationObservation": {
+                  "type": "string"
+                },
+                "statut": {
+                  "enum": [
+                    "EnCours",
+                    "Reussie",
+                    "Echouee"
+                  ]
+                },
+                "demarreePar": {
+                  "type": "string"
+                },
+                "demarreeLe": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "termineeLe": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "erreursPlan": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "droits": {
+            "required": [
+              "estPilote",
+              "peutModifierPlan",
+              "participantId",
+              "estApprobateur",
+              "estResponsableTechnique",
+              "peutEditerContenu"
+            ],
+            "type": "object",
+            "properties": {
+              "estPilote": {
+                "type": "boolean"
+              },
+              "peutModifierPlan": {
+                "type": "boolean"
+              },
+              "participantId": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "uuid"
+              },
+              "estApprobateur": {
+                "type": "boolean"
+              },
+              "estResponsableTechnique": {
+                "type": "boolean"
+              },
+              "peutEditerContenu": {
+                "type": "boolean"
+              }
+            }
+          },
+          "environnement": {
+            "type": "string"
+          },
+          "estModele": {
+            "type": "boolean"
+          },
+          "approbationsMinimum": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "approbations": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "utilisateurId",
+                "nom",
+                "decision",
+                "commentaire",
+                "le"
+              ],
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "utilisateurId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "nom": {
+                  "type": "string"
+                },
+                "decision": {
+                  "enum": [
+                    "Approuvee",
+                    "Refusee",
+                    null
+                  ]
+                },
+                "commentaire": {
+                  "type": "string"
+                },
+                "le": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "goNoGo": {
+            "type": "array",
+            "items": {
+              "required": [
+                "libelle",
+                "par",
+                "le"
+              ],
+              "type": "object",
+              "properties": {
+                "libelle": {
+                  "type": "string"
+                },
+                "par": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "le": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "fichesRecette": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "ordre",
+                "systemeId",
+                "titre",
+                "etapes"
+              ],
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "ordre": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "systemeId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "titre": {
+                  "type": "string"
+                },
+                "etapes": {
+                  "type": "array",
+                  "items": {
+                    "required": [
+                      "id",
+                      "ordre",
+                      "instructions",
+                      "resultatAttendu",
+                      "resultat",
+                      "observation",
+                      "par",
+                      "le"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "ordre": {
+                        "type": "integer",
+                        "format": "int32"
+                      },
+                      "instructions": {
+                        "type": "string"
+                      },
+                      "resultatAttendu": {
+                        "type": "string"
+                      },
+                      "resultat": {
+                        "enum": [
+                          "Conforme",
+                          "Echec",
+                          null
+                        ]
+                      },
+                      "observation": {
+                        "type": "string"
+                      },
+                      "par": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
+                      },
+                      "le": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "bilanActive": {
+            "type": "boolean"
+          },
+          "bilan": {
+            "required": [
+              "ceQuiAMarche",
+              "incidents",
+              "actions",
+              "redigePar",
+              "le"
+            ],
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "ceQuiAMarche": {
+                "type": "string"
+              },
+              "incidents": {
+                "type": "string"
+              },
+              "actions": {
+                "type": "string"
+              },
+              "redigePar": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "le": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              }
+            }
+          },
+          "nonRetourFranchi": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "piecesJointes": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "mepId",
+                "etapeId",
+                "resolutionTypeId",
+                "executionResolutionId",
+                "nomFichier",
+                "typeContenu",
+                "taille",
+                "sha256",
+                "deposeParId",
+                "deposePar",
+                "deposeLe"
+              ],
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "mepId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "etapeId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "resolutionTypeId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "executionResolutionId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "nomFichier": {
+                  "type": "string"
+                },
+                "typeContenu": {
+                  "type": "string"
+                },
+                "taille": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "sha256": {
+                  "type": "string"
+                },
+                "deposeParId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "deposePar": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "deposeLe": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "responsablesTechniques": {
+            "type": "array",
+            "items": {
+              "required": [
+                "participantId",
+                "systemeIds",
+                "perimetre",
+                "disponibilite",
+                "contactJourJ"
+              ],
+              "type": "object",
+              "properties": {
+                "participantId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "systemeIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "perimetre": {
+                  "type": "string"
+                },
+                "disponibilite": {
+                  "enum": [
+                    "Joignable",
+                    "Absent"
+                  ],
+                  "description": "Disponibilité d'un responsable technique le jour de la MEP."
+                },
+                "contactJourJ": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "avertissements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "MepIdentiteSaisie": {
+        "required": [
+          "version",
+          "outil",
+          "versionActuelle",
+          "versionCible",
+          "objet",
+          "impacts",
+          "dateMep",
+          "heureDebut",
+          "heureFin",
+          "fuseauHoraire",
+          "indisponibiliteMinutes",
+          "piloteId",
+          "suppleantIds",
+          "echeanceRepli"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "outil": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "versionActuelle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "versionCible": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "objet": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "impacts": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dateMep": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "heureDebut": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "time"
+          },
+          "heureFin": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "time"
+          },
+          "fuseauHoraire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "indisponibiliteMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "piloteId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "suppleantIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "echeanceRepli": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "environnement": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bilanActive": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "MepResumeDto": {
+        "required": [
+          "id",
+          "outil",
+          "versionCible",
+          "objet",
+          "dateMep",
+          "phase",
+          "echeanceRepli",
+          "pilote",
+          "nbEtapes",
+          "nbReussies",
+          "nbEchecs",
+          "environnement",
+          "estModele",
+          "creeLe",
+          "issue"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outil": {
+            "type": "string"
+          },
+          "versionCible": {
+            "type": "string"
+          },
+          "objet": {
+            "type": "string"
+          },
+          "dateMep": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/Phase"
+          },
+          "echeanceRepli": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "pilote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nbEtapes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nbReussies": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nbEchecs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "environnement": {
+            "type": "string"
+          },
+          "estModele": {
+            "type": "boolean"
+          },
+          "creeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "issue": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/IssueMep"
+              }
+            ]
+          }
+        },
+        "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP."
+      },
+      "ModeSauvegarde": {
+        "enum": [
+          "AvantMep",
+          "PendantMep",
+          null
+        ]
+      },
+      "NoGoSaisie": {
+        "required": [
+          "motif"
+        ],
+        "type": "object",
+        "properties": {
+          "motif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ParametresDto": {
+        "required": [
+          "approbationsMinimum"
+        ],
+        "type": "object",
+        "properties": {
+          "approbationsMinimum": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ParametresSaisie": {
+        "required": [
+          "approbationsMinimum"
+        ],
+        "type": "object",
+        "properties": {
+          "approbationsMinimum": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ParticipantDto": {
+        "required": [
+          "id",
+          "nom",
+          "role",
+          "contact",
+          "utilisateurId",
+          "utilisateurNom"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "contact": {
+            "type": "string"
+          },
+          "utilisateurId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "utilisateurNom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ParticipantSaisie": {
+        "required": [
+          "nom",
+          "role",
+          "contact",
+          "utilisateurId"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contact": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "utilisateurId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "Phase": {
+        "enum": [
+          "Preparation",
+          "Execution",
+          "RetourArriere",
+          "Cloturee",
+          "Recette"
+        ],
+        "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin."
+      },
+      "PhaseSaisie": {
+        "required": [
+          "phase"
+        ],
+        "type": "object",
+        "properties": {
+          "phase": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Phase"
+              }
+            ]
+          },
+          "criteresCoches": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "PieceJointeDto": {
+        "required": [
+          "id",
+          "mepId",
+          "etapeId",
+          "resolutionTypeId",
+          "executionResolutionId",
+          "nomFichier",
+          "typeContenu",
+          "taille",
+          "sha256",
+          "deposeParId",
+          "deposePar",
+          "deposeLe"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mepId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "etapeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "resolutionTypeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "executionResolutionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "nomFichier": {
+            "type": "string"
+          },
+          "typeContenu": {
+            "type": "string"
+          },
+          "taille": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "deposeParId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "deposePar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "deposeLe": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PlacerSaisie": {
+        "required": [
+          "ligne",
+          "position"
+        ],
+        "type": "object",
+        "properties": {
+          "ligne": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "position": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "liensParDefaut": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "PlanRepliDto": {
+        "required": [
+          "quandDeclencher",
+          "dureeTesteeMinutes",
+          "versionARestaurer",
+          "donneesDepuisSauvegarde",
+          "siRepliEchoue"
+        ],
+        "type": "object",
+        "properties": {
+          "quandDeclencher": {
+            "type": "string"
+          },
+          "dureeTesteeMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "versionARestaurer": {
+            "type": "string"
+          },
+          "donneesDepuisSauvegarde": {
+            "type": "string"
+          },
+          "siRepliEchoue": {
+            "type": "string"
+          }
+        }
+      },
+      "PlanRepliSaisie": {
+        "required": [
+          "version",
+          "quandDeclencher",
+          "dureeTesteeMinutes",
+          "versionARestaurer",
+          "donneesDepuisSauvegarde",
+          "siRepliEchoue"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "quandDeclencher": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dureeTesteeMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "versionARestaurer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "donneesDepuisSauvegarde": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "siRepliEchoue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PriseDeMainSaisie": {
+        "required": [
+          "revision",
+          "motif"
+        ],
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "motif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ProcedureRelueSaisie": {
+        "required": [
+          "relue"
+        ],
+        "type": "object",
+        "properties": {
+          "relue": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ProfilSaisie": {
+        "required": [
+          "nomAffiche",
+          "role",
+          "contact",
+          "expertises"
+        ],
+        "type": "object",
+        "properties": {
+          "nomAffiche": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contact": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expertises": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ExpertiseSaisie"
+            }
+          }
+        },
+        "description": "`NomAffiche` absent ou null : inchangé."
+      },
+      "ResolutionTypeDto": {
+        "required": [
+          "id",
+          "titre",
+          "symptomes",
+          "diagnostic",
+          "systemeCatalogueIds",
+          "corrections",
+          "verificationInstruction",
+          "verificationAttendu",
+          "actif",
+          "version",
+          "modifieeLe",
+          "modifieeParId",
+          "modifieeParNom"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "titre": {
+            "type": "string"
+          },
+          "symptomes": {
+            "type": "string"
+          },
+          "diagnostic": {
+            "type": "string"
+          },
+          "systemeCatalogueIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "corrections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CorrectionDto"
+            }
+          },
+          "verificationInstruction": {
+            "type": "string"
+          },
+          "verificationAttendu": {
+            "type": "string"
+          },
+          "actif": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modifieeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modifieeParId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "modifieeParNom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResolutionTypeSaisie": {
+        "required": [
+          "version",
+          "titre",
+          "symptomes",
+          "diagnostic",
+          "systemeCatalogueIds",
+          "corrections",
+          "verificationInstruction",
+          "verificationAttendu"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "titre": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "symptomes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "diagnostic": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "systemeCatalogueIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "corrections": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CorrectionSaisie"
+            }
+          },
+          "verificationInstruction": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "verificationAttendu": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResponsablesTechniquesSaisie": {
+        "required": [
+          "version",
+          "responsables"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "responsables": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ResponsableTechniqueSaisie"
+            }
+          }
+        }
+      },
+      "ResponsableTechniqueDto": {
+        "required": [
+          "participantId",
+          "systemeIds",
+          "perimetre",
+          "disponibilite",
+          "contactJourJ"
+        ],
+        "type": "object",
+        "properties": {
+          "participantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "systemeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "perimetre": {
+            "type": "string"
+          },
+          "disponibilite": {
+            "enum": [
+              "Joignable",
+              "Absent"
+            ],
+            "description": "Disponibilité d'un responsable technique le jour de la MEP."
+          },
+          "contactJourJ": {
+            "type": "string"
+          }
+        }
+      },
+      "ResponsableTechniqueSaisie": {
+        "required": [
+          "participantId",
+          "systemeIds",
+          "perimetre",
+          "disponibilite",
+          "contactJourJ"
+        ],
+        "type": "object",
+        "properties": {
+          "participantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "systemeIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "perimetre": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "disponibilite": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DisponibiliteJourJ"
+              }
+            ]
+          },
+          "contactJourJ": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResultatControle": {
+        "enum": [
+          "Conforme",
+          "Echec",
+          null
+        ]
+      },
+      "RetourArriereDto": {
+        "required": [
+          "le",
+          "par",
+          "motif"
+        ],
+        "type": "object",
+        "properties": {
+          "le": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "par": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "motif": {
+            "type": "string"
+          }
+        },
+        "description": "`Par` vaut null quand le retour arrière s'est déclenché automatiquement."
+      },
+      "RetourArriereSaisie": {
+        "required": [
+          "motif"
+        ],
+        "type": "object",
+        "properties": {
+          "motif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RevisionSaisie": {
+        "required": [
+          "revision"
+        ],
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "SauvegardeDto": {
+        "required": [
+          "mode",
+          "structure",
+          "donnees",
+          "configuration",
+          "responsableId",
+          "realiseeLe",
+          "procedure",
+          "copies",
+          "restaurationTestee",
+          "dateTestRestauration",
+          "preuveTestRestauration"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "enum": [
+              "AvantMep",
+              "PendantMep"
+            ],
+            "description": "Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée."
+          },
+          "structure": {
+            "type": "boolean"
+          },
+          "donnees": {
+            "type": "boolean"
+          },
+          "configuration": {
+            "type": "boolean"
+          },
+          "responsableId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "realiseeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "procedure": {
+            "type": "string"
+          },
+          "copies": {
+            "type": "string"
+          },
+          "restaurationTestee": {
+            "type": "boolean"
+          },
+          "dateTestRestauration": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "preuveTestRestauration": {
+            "type": "string"
+          }
+        }
+      },
+      "SauvegardeSaisie": {
+        "required": [
+          "version",
+          "structure",
+          "donnees",
+          "configuration",
+          "responsableId",
+          "realiseeLe",
+          "procedure",
+          "copies",
+          "restaurationTestee",
+          "dateTestRestauration",
+          "preuveTestRestauration"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "structure": {
+            "type": "boolean"
+          },
+          "donnees": {
+            "type": "boolean"
+          },
+          "configuration": {
+            "type": "boolean"
+          },
+          "responsableId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "realiseeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "procedure": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "copies": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "restaurationTestee": {
+            "type": "boolean"
+          },
+          "dateTestRestauration": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "preuveTestRestauration": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mode": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ModeSauvegarde"
+              }
+            ]
+          }
+        }
+      },
+      "SauvegardeSystemeDto": {
+        "required": [
+          "statut",
+          "moment",
+          "contenu",
+          "justification"
+        ],
+        "type": "object",
+        "properties": {
+          "statut": {
+            "enum": [
+              "ARenseigner",
+              "Requise",
+              "NonRequise"
+            ],
+            "description": "Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu."
+          },
+          "moment": {
+            "enum": [
+              "AvantMep",
+              "PendantMep"
+            ],
+            "description": "Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée."
+          },
+          "contenu": {
+            "type": "string"
+          },
+          "justification": {
+            "type": "string"
+          }
+        }
+      },
+      "SauvegardeSystemeSaisie": {
+        "required": [
+          "version",
+          "statut",
+          "moment",
+          "contenu",
+          "justification"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "statut": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/StatutSauvegarde"
+              }
+            ]
+          },
+          "moment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ModeSauvegarde"
+              }
+            ]
+          },
+          "contenu": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "justification": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "StatutSauvegarde": {
+        "enum": [
+          "ARenseigner",
+          "Requise",
+          "NonRequise",
+          null
+        ]
+      },
+      "SystemeCatalogueDto": {
+        "required": [
+          "id",
+          "nom",
+          "description",
+          "cible",
+          "actif"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "cible": {
+            "type": "string"
+          },
+          "actif": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SystemeCatalogueSaisie": {
+        "required": [
+          "nom",
+          "description",
+          "cible",
+          "actif"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cible": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actif": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "SystemeDto": {
+        "required": [
+          "id",
+          "nom",
+          "cible",
+          "impact",
+          "catalogueId",
+          "sauvegarde"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "cible": {
+            "type": "string"
+          },
+          "impact": {
+            "type": "string"
+          },
+          "catalogueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sauvegarde": {
+            "required": [
+              "statut",
+              "moment",
+              "contenu",
+              "justification"
+            ],
+            "type": "object",
+            "properties": {
+              "statut": {
+                "enum": [
+                  "ARenseigner",
+                  "Requise",
+                  "NonRequise"
+                ],
+                "description": "Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu."
+              },
+              "moment": {
+                "enum": [
+                  "AvantMep",
+                  "PendantMep"
+                ],
+                "description": "Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée."
+              },
+              "contenu": {
+                "type": "string"
+              },
+              "justification": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "SystemeSaisie": {
+        "required": [
+          "nom",
+          "cible",
+          "impact"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cible": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "impact": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TerminerSaisie": {
+        "required": [
+          "revision",
+          "resultat",
+          "preuve",
+          "resultatVerifie"
+        ],
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "resultat": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EtatEtape"
+              }
+            ]
+          },
+          "preuve": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "resultatVerifie": {
+            "type": "boolean"
+          },
+          "commentaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TypeEtape": {
+        "enum": [
+          "Standard",
+          "Sauvegarde",
+          null
+        ]
+      },
+      "TypePlan": {
+        "enum": [
+          "Deploiement",
+          "RetourArriere",
+          null
+        ]
+      },
+      "UtilisateurDto": {
+        "required": [
+          "id",
+          "login",
+          "nomAffiche",
+          "estAdmin",
+          "role",
+          "contact",
+          "expertises"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "login": {
+            "type": "string"
+          },
+          "nomAffiche": {
+            "type": "string"
+          },
+          "estAdmin": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": "string"
+          },
+          "contact": {
+            "type": "string"
+          },
+          "expertises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpertiseDto"
+            }
+          }
+        }
+      },
+      "UtilisateurSaisie": {
+        "required": [
+          "login",
+          "nomAffiche",
+          "motDePasse",
+          "estAdmin"
+        ],
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nomAffiche": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "motDePasse": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "estAdmin": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contact": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ValidationDto": {
+        "required": [
+          "par",
+          "le"
+        ],
+        "type": "object",
+        "properties": {
+          "par": {
+            "type": "string"
+          },
+          "le": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "VersionResolutionTypeDto": {
+        "required": [
+          "version",
+          "action",
+          "modifieeLe",
+          "modifieeParId",
+          "modifieeParNom",
+          "titre",
+          "symptomes",
+          "diagnostic",
+          "systemeCatalogueIds",
+          "corrections",
+          "verificationInstruction",
+          "verificationAttendu",
+          "actif"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "action": {
+            "type": "string"
+          },
+          "modifieeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modifieeParId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "modifieeParNom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "titre": {
+            "type": "string"
+          },
+          "symptomes": {
+            "type": "string"
+          },
+          "diagnostic": {
+            "type": "string"
+          },
+          "systemeCatalogueIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "corrections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CorrectionDto"
+            }
+          },
+          "verificationInstruction": {
+            "type": "string"
+          },
+          "verificationAttendu": {
+            "type": "string"
+          },
+          "actif": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "GestionMep.Api"
+    }
+  ]
+}

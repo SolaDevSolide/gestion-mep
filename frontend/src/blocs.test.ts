@@ -8,11 +8,14 @@ describe('decouperBlocs', () => {
   });
 
   it('texte seul : un bloc Texte, lignes vides de bord retirées', () => {
-    expect(decouperBlocs('\n\nFaire la **sauvegarde**.\n- a\n- b\n\n')).toEqual([{ type: 'texte', contenu: 'Faire la **sauvegarde**.\n- a\n- b' }]);
+    expect(decouperBlocs('\n\nFaire la **sauvegarde**.\n- a\n- b\n\n')).toEqual([
+      { type: 'texte', contenu: 'Faire la **sauvegarde**.\n- a\n- b' },
+    ]);
   });
 
   it('alterne texte et code délimité', () => {
-    const md = 'Prévenir le support.\n\n```\ncd /opt/commandes && ./deploy.sh 2.4.0\n```\n\nPuis vérifier `GET /sante`.';
+    const md =
+      'Prévenir le support.\n\n```\ncd /opt/commandes && ./deploy.sh 2.4.0\n```\n\nPuis vérifier `GET /sante`.';
     expect(decouperBlocs(md)).toEqual([
       { type: 'texte', contenu: 'Prévenir le support.' },
       { type: 'code', contenu: 'cd /opt/commandes && ./deploy.sh 2.4.0' },
@@ -21,11 +24,16 @@ describe('decouperBlocs', () => {
   });
 
   it('code sur plusieurs lignes, langage conservé, indentation intacte', () => {
-    expect(decouperBlocs('```bash\nif true; then\n  echo ok\nfi\n```')).toEqual([{ type: 'code', contenu: 'if true; then\n  echo ok\nfi', langage: 'bash' }]);
+    expect(decouperBlocs('```bash\nif true; then\n  echo ok\nfi\n```')).toEqual([
+      { type: 'code', contenu: 'if true; then\n  echo ok\nfi', langage: 'bash' },
+    ]);
   });
 
   it('bloc de code non fermé : court jusqu’à la fin', () => {
-    expect(decouperBlocs('Texte\n```\nls -la')).toEqual([{ type: 'texte', contenu: 'Texte' }, { type: 'code', contenu: 'ls -la' }]);
+    expect(decouperBlocs('Texte\n```\nls -la')).toEqual([
+      { type: 'texte', contenu: 'Texte' },
+      { type: 'code', contenu: 'ls -la' },
+    ]);
   });
 
   it('accepte les fins de ligne Windows et les clôtures plus longues', () => {
@@ -39,12 +47,22 @@ describe('decouperBlocs', () => {
 
 describe('recomposerBlocs', () => {
   it('délimite les blocs de code et sépare par une ligne vide', () => {
-    const blocs: Bloc[] = [{ type: 'texte', contenu: 'Avant' }, { type: 'code', contenu: 'pg_dump clients > s.sql' }, { type: 'texte', contenu: 'Après' }];
+    const blocs: Bloc[] = [
+      { type: 'texte', contenu: 'Avant' },
+      { type: 'code', contenu: 'pg_dump clients > s.sql' },
+      { type: 'texte', contenu: 'Après' },
+    ];
     expect(recomposerBlocs(blocs)).toBe('Avant\n\n```\npg_dump clients > s.sql\n```\n\nAprès');
   });
 
   it('ignore les blocs vides', () => {
-    expect(recomposerBlocs([{ type: 'texte', contenu: '  ' }, { type: 'code', contenu: '' }, { type: 'code', contenu: 'ls' }])).toBe('```\nls\n```');
+    expect(
+      recomposerBlocs([
+        { type: 'texte', contenu: '  ' },
+        { type: 'code', contenu: '' },
+        { type: 'code', contenu: 'ls' },
+      ]),
+    ).toBe('```\nls\n```');
     expect(recomposerBlocs([])).toBe('');
   });
 
@@ -55,7 +73,10 @@ describe('recomposerBlocs', () => {
   it('aller-retour : découper(recomposer(blocs)) redonne les blocs', () => {
     const blocs: Bloc[] = [
       { type: 'code', contenu: 'sudo systemctl restart commandes' },
-      { type: 'texte', contenu: 'Si le journal indique **port déjà utilisé** :\n- arrêter l’ancienne instance\n- relancer' },
+      {
+        type: 'texte',
+        contenu: 'Si le journal indique **port déjà utilisé** :\n- arrêter l’ancienne instance\n- relancer',
+      },
       { type: 'code', contenu: 'curl -fsS https://commandes.interne/sante\n  | jq .version', langage: 'sh' },
       { type: 'code', contenu: 'echo ```' },
     ];
@@ -77,8 +98,16 @@ describe('premiereLigne', () => {
 
 describe('formaterMarkdown (barre d’outils)', () => {
   it('entoure la sélection', () => {
-    expect(formaterMarkdown('faire la sauvegarde', 9, 19, 'gras')).toEqual({ valeur: 'faire la **sauvegarde**', debut: 11, fin: 21 });
-    expect(formaterMarkdown('lancer deploy.sh', 7, 16, 'code')).toEqual({ valeur: 'lancer `deploy.sh`', debut: 8, fin: 17 });
+    expect(formaterMarkdown('faire la sauvegarde', 9, 19, 'gras')).toEqual({
+      valeur: 'faire la **sauvegarde**',
+      debut: 11,
+      fin: 21,
+    });
+    expect(formaterMarkdown('lancer deploy.sh', 7, 16, 'code')).toEqual({
+      valeur: 'lancer `deploy.sh`',
+      debut: 8,
+      fin: 17,
+    });
   });
 
   it('sans sélection : insère un exemple sélectionné', () => {

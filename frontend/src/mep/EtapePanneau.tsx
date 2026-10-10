@@ -1,31 +1,31 @@
-import { Check, CheckCircle2, CircleHelp, Clock, Flag, HandMetal, History, Lock, OctagonAlert, Play, RotateCcw, Save, ShieldCheck, Undo2, Wrench, XCircle } from 'lucide-react';
+import { OctagonAlert } from 'lucide-react';
 import { useContext, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { AuthContext } from '../auth';
-import { bloqueurs, estAVous, nomParticipant } from '../domaine';
-import { formatDateHeure, LIBELLE_CRITICITE, LIBELLE_STATUT_RESOLUTION } from '../format';
+import { estAVous, nomParticipant } from '../domaine';
+import { LIBELLE_CRITICITE } from '../format';
 import { useDraft } from '../hooks';
 import { metaEtape } from '../statuts';
 import type { Etape, ExecutionResolution, Mep, PieceJointe, ResolutionType, ResultatControle } from '../types';
 import { Alerte } from '../ui/Alerte';
-import { Avatar } from '../ui/Avatar';
-import { Button } from '../ui/Button';
 import { ConfirmDialog } from '../ui/Dialog';
-import { ZoneAuto } from '../ui/EditeurBlocs';
-import { Instructions, Markdown } from '../ui/Instructions';
+import { Markdown } from '../ui/Instructions';
 import { Field, Textarea } from '../ui/Input';
-import { PiecesJointes } from '../ui/PiecesJointes';
 import { Badge, StatusPill } from '../ui/StatusPill';
-import { AppelerCarte } from './AppelerCarte';
 import { BadgesEtape } from './BadgesEtape';
-import { Bloc, Surcouche } from './graphe/EspaceEtape';
-import { etatCarte } from './graphe/etatCarte';
-import { PuceSysteme, systemesDe } from './graphe/systemes';
-import { ResolutionDeroule } from './ResolutionDeroule';
+import { droitsEtape, resolutionsDeLEtape } from './droitsEtape';
+import { EtapeInfos } from './etape/EtapeInfos';
+import { EtapeInstructions } from './etape/EtapeInstructions';
+import { EtapeRetour } from './etape/EtapeRetour';
+import { Surcouche } from './graphe/EspaceEtape';
 
 export interface ActionsEtape {
   demarrer: (e: Etape) => Promise<boolean | void> | void;
-  terminer: (e: Etape, resultat: 'Reussie' | 'Echec', preuve: string, commentaire?: string) => Promise<boolean | void> | void;
+  terminer: (
+    e: Etape,
+    resultat: 'Reussie' | 'Echec',
+    preuve: string,
+    commentaire?: string,
+  ) => Promise<boolean | void> | void;
   commenter: (e: Etape, commentaire: string) => Promise<boolean | void> | void;
   autoriserReprise: (e: Etape) => Promise<boolean | void> | void;
   prendreLaMain: (e: Etape, motif: string) => Promise<boolean | void> | void;
@@ -33,8 +33,17 @@ export interface ActionsEtape {
   deposerPiece: (e: Etape, fichier: File, signaler: (message: string) => void) => Promise<boolean>;
   supprimerPiece: (p: PieceJointe, signaler: (message: string) => void) => Promise<boolean>;
   appliquerResolution: (e: Etape, resolutionTypeId: string) => Promise<boolean | void> | void;
-  controlerCorrection: (r: ExecutionResolution, ordre: number, resultat: ResultatControle, observation: string) => Promise<boolean | void> | void;
-  controlerVerification: (r: ExecutionResolution, resultat: ResultatControle, observation: string) => Promise<boolean | void> | void;
+  controlerCorrection: (
+    r: ExecutionResolution,
+    ordre: number,
+    resultat: ResultatControle,
+    observation: string,
+  ) => Promise<boolean | void> | void;
+  controlerVerification: (
+    r: ExecutionResolution,
+    resultat: ResultatControle,
+    observation: string,
+  ) => Promise<boolean | void> | void;
 }
 
 interface Props {
@@ -47,35 +56,21 @@ interface Props {
   onFermer?: () => void;
 }
 
-/** Liste compacte d'étapes liées avec leur état (préalables, débloque). */
-function ListeEtats({ etapes, vide, onSelectionner }: { etapes: Etape[]; vide: string; onSelectionner: (id: string) => void }) {
-  if (etapes.length === 0) return <p className="text-[13px] text-fg-subtle">{vide}</p>;
-  return (
-    <ul className="grid grid-cols-[minmax(0,1fr)] gap-1">
-      {etapes.map((p) => {
-        const ep = etatCarte(p);
-        return (
-          <li key={p.id}>
-            <button type="button" onClick={() => onSelectionner(p.id)} className="flex w-full items-center justify-between gap-2 rounded-md bg-surface-2/60 px-2 py-1 text-left text-[13px] hover:bg-surface-2">
-              <span className="min-w-0 truncate"><b className="mr-1.5 font-mono text-xs font-semibold">{p.code}</b>{p.action || 'sans libellé'}</span>
-              <StatusPill taille="sm" className="shrink-0" ton={ep.ton} icone={ep.Icone}>{ep.libelle}</StatusPill>
-            </button>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-const PHASES_COMMENTAIRE = ['Execution', 'Recette', 'RetourArriere'];
-
 /**
  * Espace d'une étape en exécution.
  * Gauche : état, exécutant, personnes à appeler, systèmes, liens. Centre : instructions (ou déroulé de résolution en
  * cas d'échec). Droite : le retour (preuve, pièces jointes, commentaire) et les actions.
  * Démarrer : tout participant relié à un compte, le pilote ou un administrateur ; il en devient l'exécutant.
+ * Les droits sont calculés par `droitsEtape`, les colonnes rendues par `EtapeInfos`, `EtapeInstructions` et `EtapeRetour`.
  */
-export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectionner, onFermer = () => undefined }: Props) {
+export function EtapePanneau({
+  mep,
+  etape,
+  resolutionsTypes,
+  actions,
+  onSelectionner,
+  onFermer = () => undefined,
+}: Props) {
   const [preuve, setPreuve] = useState('');
   const [confirmation, setConfirmation] = useState<'reussie' | 'echec' | 'main' | null>(null);
   const [motifMain, setMotifMain] = useState('');
@@ -83,305 +78,99 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
   const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
 
   const meta = metaEtape(etape);
-  const statut = etape.disponibilite.statut;
-  const moi = mep.droits.participantId;
-  const pilote = mep.droits.estPilote;
-  const estExecutant = moi !== null && etape.executantId === moi;
+  const droits = droitsEtape(mep, etape, admin);
   const nomExec = nomParticipant(mep, etape.executantId);
-  const systemes = systemesDe(mep, etape.systemeIds);
-  const memePlan = mep.etapes.filter((e) => e.plan === etape.plan);
-  const prealables = etape.dependances.map((id) => memePlan.find((e) => e.id === id)).filter((e): e is Etape => !!e);
-  const suivants = memePlan.filter((e) => e.dependances.includes(etape.id));
-  const attendus = bloqueurs(etape, memePlan);
-
-  const planAgissant = (mep.phase === 'Execution' && etape.plan === 'Deploiement') || (mep.phase === 'RetourArriere' && etape.plan === 'RetourArriere');
-  const nonRetourAttendu = etape.pointDeNonRetour && etape.etat === 'AFaire' && etape.nonRetourAutorise === null;
-  const peutDemarrer = (moi !== null || pilote || admin) && statut === 'Disponible' && etape.etat === 'AFaire' && !nonRetourAttendu;
-  const peutTerminer = etape.etat === 'EnCours' && (estExecutant || pilote);
-  const peutAgirResolution = estExecutant || pilote;
-  // Prise de main : participants (dont pilote et suppléants) et administrateurs.
-  const peutPrendre = planAgissant && (moi !== null || admin) && !estExecutant && etape.executantId !== null && (etape.etat === 'EnCours' || etape.etat === 'Echec');
-  const peutCommenter = (estExecutant || pilote || admin) && PHASES_COMMENTAIRE.includes(mep.phase);
-  const enEchec = etape.etat === 'Echec';
-
-  const resolutionsEtape = mep.resolutions.filter((r) => r.etapeId === etape.id).sort((a, b) => a.demarreeLe.localeCompare(b.demarreeLe));
-  const enCours = resolutionsEtape.find((r) => r.statut === 'EnCours');
-  const derniere = resolutionsEtape[resolutionsEtape.length - 1];
-  const historique = resolutionsEtape.filter((r) => r.statut !== 'EnCours');
-  const liees = etape.resolutionIds.map((id) => resolutionsTypes.find((r) => r.id === id)).filter((r): r is ResolutionType => !!r);
-  const pieces = mep.piecesJointes.filter((p) => p.etapeId === etape.id);
-  const resolutionReussie = !enCours && derniere?.statut === 'Reussie' && etape.etat === 'AFaire';
-  const resolutionEchouee = !enCours && derniere?.statut === 'Echouee' && enEchec;
+  const { enCours, historique } = resolutionsDeLEtape(mep, etape);
+  const liees = etape.resolutionIds
+    .map((id) => resolutionsTypes.find((r) => r.id === id))
+    .filter((r): r is ResolutionType => !!r);
   const commentaireAEnvoyer = commentaire.dirty ? commentaire.value.trim() : undefined;
 
   const barre = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
       <span className="rounded-md bg-surface-2 px-2 py-0.5 font-mono text-sm font-bold">{etape.code}</span>
-      <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime}>{meta.libelle}</StatusPill>
-      {estAVous(mep, etape) && <Badge ton="run" className="text-xs">À vous</Badge>}
+      <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime}>
+        {meta.libelle}
+      </StatusPill>
+      {estAVous(mep, etape) && (
+        <Badge ton="run" className="text-xs">
+          À vous
+        </Badge>
+      )}
       <BadgesEtape etape={etape} />
-      <h2 className="min-w-0 text-lg leading-snug font-semibold tracking-tight">{etape.action || 'Étape sans libellé'}</h2>
+      <h2 className="min-w-0 text-lg leading-snug font-semibold tracking-tight">
+        {etape.action || 'Étape sans libellé'}
+      </h2>
       {(etape.criticite || etape.dureeEstimeeMinutes !== null) && (
         <span className="text-[13px] text-fg-muted">
           {etape.criticite && LIBELLE_CRITICITE[etape.criticite]}
-          {etape.dureeEstimeeMinutes !== null && <>{etape.criticite && ' · '}{etape.dureeEstimeeMinutes} min</>}
+          {etape.dureeEstimeeMinutes !== null && (
+            <>
+              {etape.criticite && ' · '}
+              {etape.dureeEstimeeMinutes} min
+            </>
+          )}
         </span>
       )}
     </div>
   );
 
-  // ---------- Gauche : informations ----------
-  const gauche = (
-    <>
-      {statut === 'Attend' && (
-        <Alerte ton="wait" icone={Clock} titre="En attente">
-          <ul className="mt-1 space-y-1">
-            {attendus.length === 0 && <li>{etape.disponibilite.libelle}</li>}
-            {attendus.map((b) => (
-              <li key={b.id}>
-                Bloquée par{' '}
-                <button type="button" className="font-mono font-bold underline underline-offset-2 hover:text-accent-text" onClick={() => onSelectionner(b.id)}>{b.code}</button>
-              </li>
-            ))}
-          </ul>
-        </Alerte>
-      )}
-      {statut === 'SiRetourArriere' && <Alerte ton="later" icone={Undo2}>Seulement en cas de retour arrière.</Alerte>}
-      {statut === 'RetourArriere' && etape.etat !== 'Echec' && <Alerte ton="rollback" icone={OctagonAlert} titre="Retour arrière">Ne plus exécuter cette étape.</Alerte>}
-      {['PlanInvalide', 'EcheanceARenseigner', 'FicheACompleter', 'InstructionsACompleter'].includes(statut) && (
-        <Alerte ton="warn" icone={OctagonAlert}>{etape.disponibilite.libelle}</Alerte>
-      )}
-
-      <Bloc titre="Exécutant">
-        <div className="flex items-center gap-2.5 text-sm">
-          {nomExec ? <Avatar nom={nomExec} taille="sm" /> : <span className="size-6 rounded-full border border-dashed border-line-strong" />}
-          <div className="min-w-0">
-            <p className="font-medium">{nomExec ?? 'Pas encore démarrée'}</p>
-            {(etape.debutReel || etape.finReelle) && (
-              <p className="text-xs text-fg-subtle">
-                {etape.debutReel && `Démarrée le ${formatDateHeure(etape.debutReel)}`}
-                {etape.finReelle && ` · terminée le ${formatDateHeure(etape.finReelle)}`}
-              </p>
-            )}
-          </div>
-        </div>
-        {peutPrendre && <Button taille="sm" icone={<HandMetal className="size-4" aria-hidden />} onClick={() => setConfirmation('main')}>Prendre la main</Button>}
-      </Bloc>
-
-      <AppelerCarte mep={mep} etape={etape} />
-
-      <Bloc titre="Systèmes">
-        <div className="flex flex-wrap gap-1.5">
-          {systemes.length > 0 ? systemes.map((s) => <PuceSysteme key={s.id} nom={s.nom} />) : <span className="text-[13px] text-fg-subtle">Non précisé</span>}
-        </div>
-      </Bloc>
-      <Bloc titre={`Attend (${prealables.length})`}><ListeEtats etapes={prealables} vide="Aucun préalable." onSelectionner={onSelectionner} /></Bloc>
-      <Bloc titre={`Débloque (${suivants.length})`}><ListeEtats etapes={suivants} vide="Aucune." onSelectionner={onSelectionner} /></Bloc>
-      {!enEchec && (
-        <Bloc titre={`Résolutions prévues (${liees.length})`}>
-          {liees.length === 0 ? <p className="text-[13px] text-fg-subtle">Aucune.</p> : (
-            <ul className="grid gap-1">{liees.map((r) => <li key={r.id} className="flex items-center gap-1.5 text-[13px]"><Wrench className="size-3.5 shrink-0 text-warn-solid" aria-hidden />{r.titre}</li>)}</ul>
-          )}
-        </Bloc>
-      )}
-      {historique.length > 0 && (
-        <section>
-          <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase"><History className="size-3.5" aria-hidden />Résolutions déjà appliquées</h3>
-          <ul className="grid gap-1.5">
-            {historique.map((r) => (
-              <li key={r.id}>
-                <details className="rounded-md border border-line bg-surface-2/40">
-                  <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-2.5 py-1.5 text-[13px]">
-                    <span className="font-medium">{r.titre}</span>
-                    <StatusPill taille="sm" ton={r.statut === 'Reussie' ? 'ok' : 'danger'} icone={r.statut === 'Reussie' ? Check : XCircle}>{LIBELLE_STATUT_RESOLUTION[r.statut]}</StatusPill>
-                    <span className="text-xs text-fg-subtle">{r.demarreePar} · {formatDateHeure(r.demarreeLe)}</span>
-                  </summary>
-                  <ol className="space-y-1 border-t border-line px-2.5 py-1.5 text-xs text-fg-muted">
-                    {r.corrections.map((c) => (
-                      <li key={c.ordre}><span className="font-mono">Correction {c.ordre}</span> : {c.resultat ?? 'non réalisée'}{c.observation && ` — ${c.observation}`}</li>
-                    ))}
-                    <li><span className="font-mono">Vérification</span> : {r.verificationResultat ?? 'non réalisée'}{r.verificationObservation && ` — ${r.verificationObservation}`}</li>
-                  </ol>
-                </details>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </>
-  );
-
-  // ---------- Centre : instructions, ou déroulé de résolution en cas d'échec ----------
-  const instructions = (
-    <>
-      <Bloc titre="Instructions exactes">
-        <Instructions source={etape.instructions} vide="Aucune instruction renseignée." />
-      </Bloc>
-      {etape.resultatAttendu.trim() && (
-        <section className="rounded-lg border border-ok-bd bg-ok-bg px-3.5 py-3 text-ok-fg">
-          <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] uppercase"><Check className="size-3.5" aria-hidden />Résultat attendu</h3>
-          <Markdown source={etape.resultatAttendu} />
-        </section>
-      )}
-    </>
-  );
-
-  const centre = (
-    <>
-      {resolutionReussie && (
-        <Alerte
-          ton="ok"
-          icone={CheckCircle2}
-          role="status"
-          titre="Résolution réussie : l’étape est de nouveau à faire."
-          action={peutDemarrer ? (
-            <Button variante="primaire" icone={<RotateCcw className="size-4" aria-hidden />} onClick={() => void actions.demarrer(etape)}>Redémarrer l’étape</Button>
-          ) : undefined}
-        >
-          {!peutDemarrer && etape.disponibilite.libelle}
-        </Alerte>
-      )}
-      {resolutionEchouee && (
-        <Alerte
-          ton="danger"
-          icone={OctagonAlert}
-          role="alert"
-          titre={mep.phase === 'RetourArriere' ? 'Résolution en échec : retour arrière déclenché.' : 'Résolution en échec.'}
-          action={mep.phase === 'RetourArriere' ? <Link to="?onglet=retour" className="font-semibold underline">Ouvrir l’onglet Retour arrière</Link> : undefined}
-        >
-          {mep.phase === 'RetourArriere' ? 'Le déploiement est arrêté : suivez le plan de retour arrière.' : 'Point de non-retour franchi : l’étape reste en échec, prévenez le pilote.'}
-        </Alerte>
-      )}
-      {enEchec ? (
-        <>
-          {!resolutionEchouee && (
-            <Alerte ton="danger" icone={OctagonAlert} role="alert" titre="Arrêter, prévenir le pilote, ne rien improviser.">
-              {etape.preuve.trim() ? <>Preuve : {etape.preuve}</> : 'L’étape est en échec.'}
-            </Alerte>
-          )}
-          {enCours ? (
-            <ResolutionDeroule resolution={enCours} peutAgir={peutAgirResolution} actions={actions} />
-          ) : !resolutionEchouee && (liees.length > 0 ? (
-            <section>
-              <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><CircleHelp className="size-4" aria-hidden />Problème connu ?</h3>
-              <ul className="grid gap-2">
-                {liees.map((r) => (
-                  <li key={r.id} className="rounded-lg border border-warn-bd bg-warn-bg/40 p-3">
-                    <p className="flex items-center gap-2 font-semibold"><Wrench className="size-4 text-warn-solid" aria-hidden />{r.titre}</p>
-                    {r.symptomes.trim() && <Markdown className="mt-1 text-fg-muted" source={`**Symptômes** : ${r.symptomes}`} />}
-                    <div className="mt-2 flex flex-wrap items-center gap-3">
-                      <Button variante="primaire" taille="sm" disabled={!peutAgirResolution} icone={<Wrench className="size-4" aria-hidden />} onClick={() => void actions.appliquerResolution(etape, r.id)}>Appliquer cette résolution</Button>
-                      {!peutAgirResolution && <span className="flex items-center gap-1 text-xs text-fg-subtle"><Lock className="size-3.5" aria-hidden />Réservé à l’exécutant ou au pilote.</span>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : (
-            <Alerte ton="warn" icone={OctagonAlert}>Aucune résolution prévue : arrêter et prévenir le pilote.</Alerte>
-          ))}
-          {pilote && !enCours && !resolutionEchouee && (
-            <div><Button icone={<Play className="size-4" aria-hidden />} onClick={() => void actions.autoriserReprise(etape)}>Autoriser la reprise</Button></div>
-          )}
-          <details className="rounded-lg border border-line bg-surface px-3 py-2">
-            <summary className="cursor-pointer text-sm font-medium">Instructions de l’étape</summary>
-            <div className="mt-3 grid gap-4">{instructions}</div>
-          </details>
-        </>
-      ) : instructions}
-    </>
-  );
-
-  // ---------- Droite : le retour et les actions ----------
-  const droite = (
-    <>
-      {etape.pointDeNonRetour && etape.etat === 'AFaire' && planAgissant && (
-        <Alerte
-          ton="warn"
-          icone={Flag}
-          role="alert"
-          titre="Point de non-retour"
-          action={nonRetourAttendu && pilote ? (
-            <Button variante="primaire" taille="sm" icone={<ShieldCheck className="size-4" aria-hidden />} onClick={() => void actions.autoriserNonRetour(etape)}>Autoriser le passage</Button>
-          ) : undefined}
-        >
-          Après le démarrage, <strong>plus de retour arrière</strong>.
-          {nonRetourAttendu
-            ? (pilote ? ' Autorisez le passage.' : ' En attente de l’accord du pilote.')
-            : ` Autorisé par ${etape.nonRetourAutorise?.par ?? 'le pilote'}${etape.nonRetourAutorise ? ` le ${formatDateHeure(etape.nonRetourAutorise.le)}` : ''}.`}
-        </Alerte>
-      )}
-      {etape.pointDeNonRetour && etape.etat !== 'AFaire' && (
-        <p className="flex items-center gap-1.5 text-[13px] font-medium text-warn-fg"><Flag className="size-4 text-warn-solid" aria-hidden />Point de non-retour franchi.</p>
-      )}
-
-      {peutTerminer ? (
-        <Field label="Preuve : ce que vous avez constaté" hint="Facultative si l’étape réussit, obligatoire en cas d’échec.">
-          {(id) => <Textarea id={id} rows={8} value={preuve} onChange={(e) => setPreuve(e.target.value)} placeholder="Sortie de commande, capture décrite, constat…" className="min-h-40" />}
-        </Field>
-      ) : etape.preuve.trim() && etape.etat === 'Reussie' && (
-        <Bloc titre="Preuve"><p className="rounded-md bg-surface-2/60 px-2.5 py-1.5 text-sm whitespace-pre-line">{etape.preuve}</p></Bloc>
-      )}
-
-      <PiecesJointes
-        compact
-        lectureSeule={mep.phase === 'Cloturee'}
-        pilote={pilote}
-        pieces={pieces}
-        onDeposer={(f, signaler) => actions.deposerPiece(etape, f, signaler)}
-        onSupprimer={(p, signaler) => actions.supprimerPiece(p, signaler)}
-      />
-
-      {peutCommenter ? (
-        <div className="grid gap-1.5">
-          <label htmlFor={`commentaire-${etape.id}`} className="text-[13px] font-medium">Commentaire <span className="font-normal text-fg-subtle">(facultatif)</span></label>
-          <ZoneAuto
-            id={`commentaire-${etape.id}`}
-            value={commentaire.value}
-            onChange={(e) => commentaire.setValeur(e.target.value)}
-            placeholder="Remarque pour le pilote, la suite, le bilan…"
-            className="border border-line-strong bg-surface text-fg placeholder:text-fg-subtle"
-          />
-          {commentaire.dirty && (
-            <div className="flex items-center gap-2">
-              <Button taille="sm" icone={<Save className="size-4" aria-hidden />} onClick={async () => { const ok = await actions.commenter(etape, commentaire.value.trim()); if (ok !== false) commentaire.reset(); }}>Enregistrer le commentaire</Button>
-              <Button taille="sm" variante="fantome" onClick={commentaire.reset}>Annuler</Button>
-            </div>
-          )}
-        </div>
-      ) : etape.commentaire?.trim() && (
-        <Bloc titre="Commentaire"><p className="rounded-md bg-surface-2/60 px-2.5 py-1.5 text-sm whitespace-pre-line">{etape.commentaire}</p></Bloc>
-      )}
-
-      {((peutDemarrer && !resolutionReussie) || peutTerminer) && (
-        <div className="sticky bottom-0 -mx-4 -mb-4 grid gap-2 border-t border-line bg-surface px-4 py-3">
-          {peutDemarrer && !resolutionReussie && (
-            <Button variante="primaire" taille="lg" className="h-12 w-full" icone={<Play className="size-5" aria-hidden />} onClick={() => void actions.demarrer(etape)}>Démarrer</Button>
-          )}
-          {peutTerminer && (
-            <div className="grid grid-cols-2 gap-2">
-              <Button variante="succes" taille="lg" className="h-12" icone={<Check className="size-5" aria-hidden />} onClick={() => setConfirmation('reussie')}>Réussie</Button>
-              <Button variante="danger" taille="lg" className="h-12" icone={<XCircle className="size-5" aria-hidden />} disabled={!preuve.trim()} onClick={() => setConfirmation('echec')}>Échec</Button>
-            </div>
-          )}
-        </div>
-      )}
-    </>
-  );
-
   return (
     <>
-      <Surcouche etiquette={`Étape ${etape.code}`} onDemandeFermeture={onFermer} barre={barre} gauche={gauche} centre={centre} droite={droite} />
+      <Surcouche
+        etiquette={`Étape ${etape.code}`}
+        onDemandeFermeture={onFermer}
+        barre={barre}
+        gauche={
+          <EtapeInfos
+            mep={mep}
+            etape={etape}
+            liees={liees}
+            historique={historique}
+            peutPrendreLaMain={droits.peutPrendreLaMain}
+            onPrendreLaMain={() => setConfirmation('main')}
+            onSelectionner={onSelectionner}
+          />
+        }
+        centre={
+          <EtapeInstructions
+            mep={mep}
+            etape={etape}
+            droits={droits}
+            liees={liees}
+            enCours={enCours}
+            actions={actions}
+          />
+        }
+        droite={
+          <EtapeRetour
+            mep={mep}
+            etape={etape}
+            droits={droits}
+            preuve={preuve}
+            onPreuve={setPreuve}
+            commentaire={commentaire}
+            actions={actions}
+            onTerminer={setConfirmation}
+          />
+        }
+      />
 
       <ConfirmDialog
         open={confirmation === 'reussie'}
-        onOpenChange={(o) => { if (!o) setConfirmation(null); }}
+        onOpenChange={(o) => {
+          if (!o) setConfirmation(null);
+        }}
         titre={`${etape.code} réussie ?`}
         description="Confirmez que vous avez contrôlé le résultat."
         libelleConfirmer="J’ai vérifié et obtenu le résultat attendu"
         variante="succes"
         taille="md"
-        onConfirmer={async () => { const r = await actions.terminer(etape, 'Reussie', preuve.trim(), commentaireAEnvoyer); if (r !== false) setPreuve(''); return r; }}
+        onConfirmer={async () => {
+          const r = await actions.terminer(etape, 'Reussie', preuve.trim(), commentaireAEnvoyer);
+          if (r !== false) setPreuve('');
+          return r;
+        }}
       >
         {etape.resultatAttendu.trim() && (
           <div className="rounded-lg border border-ok-bd bg-ok-bg px-3.5 py-3 text-sm text-ok-fg">
@@ -393,28 +182,54 @@ export function EtapePanneau({ mep, etape, resolutionsTypes, actions, onSelectio
 
       <ConfirmDialog
         open={confirmation === 'echec'}
-        onOpenChange={(o) => { if (!o) setConfirmation(null); }}
+        onOpenChange={(o) => {
+          if (!o) setConfirmation(null);
+        }}
         titre={`Déclarer l’échec de ${etape.code} ?`}
         libelleConfirmer="Déclarer l’échec"
         variante="danger"
-        onConfirmer={async () => { const r = await actions.terminer(etape, 'Echec', preuve.trim(), commentaireAEnvoyer); if (r !== false) setPreuve(''); return r; }}
+        onConfirmer={async () => {
+          const r = await actions.terminer(etape, 'Echec', preuve.trim(), commentaireAEnvoyer);
+          if (r !== false) setPreuve('');
+          return r;
+        }}
       >
-        <Alerte ton="danger" icone={OctagonAlert}>Arrêtez et prévenez le pilote. Les résolutions liées vous seront proposées.</Alerte>
+        <Alerte ton="danger" icone={OctagonAlert}>
+          Arrêtez et prévenez le pilote. Les résolutions liées vous seront proposées.
+        </Alerte>
       </ConfirmDialog>
 
       <ConfirmDialog
         open={confirmation === 'main'}
-        onOpenChange={(o) => { if (!o) { setConfirmation(null); setMotifMain(''); } }}
+        onOpenChange={(o) => {
+          if (!o) {
+            setConfirmation(null);
+            setMotifMain('');
+          }
+        }}
         titre={`Prendre la main sur ${etape.code} ?`}
         description={`Vous poursuivrez cette étape${nomExec ? ` à la place de ${nomExec}` : ''}. Tracé au journal.`}
         libelleConfirmer="Prendre la main"
         variante="primaire"
         taille="md"
         desactive={!motifMain.trim()}
-        onConfirmer={async () => { const r = await actions.prendreLaMain(etape, motifMain.trim()); if (r !== false) setMotifMain(''); return r; }}
+        onConfirmer={async () => {
+          const r = await actions.prendreLaMain(etape, motifMain.trim());
+          if (r !== false) setMotifMain('');
+          return r;
+        }}
       >
         <Field label="Pourquoi prenez-vous la main ? *">
-          {(id) => <Textarea id={id} value={motifMain} onChange={(e) => setMotifMain(e.target.value)} rows={3} placeholder={nomExec ? `ex. ${nomExec} est injoignable.` : 'ex. L’exécutant est injoignable.'} autoFocus />}
+          {(id) => (
+            <Textarea
+              id={id}
+              value={motifMain}
+              onChange={(e) => setMotifMain(e.target.value)}
+              rows={3}
+              placeholder={nomExec ? `ex. ${nomExec} est injoignable.` : 'ex. L’exécutant est injoignable.'}
+              autoFocus
+            />
+          )}
         </Field>
       </ConfirmDialog>
     </>

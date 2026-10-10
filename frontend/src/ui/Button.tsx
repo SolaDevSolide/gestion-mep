@@ -31,7 +31,17 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
-  { variante = 'secondaire', taille = 'md', chargement = false, icone, className, children, disabled, type = 'button', ...rest },
+  {
+    variante = 'secondaire',
+    taille = 'md',
+    chargement = false,
+    icone,
+    className,
+    children,
+    disabled,
+    type = 'button',
+    ...rest
+  },
   ref,
 ) {
   return (
@@ -42,7 +52,9 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
       className={cn(
         'inline-flex shrink-0 items-center justify-center font-medium whitespace-nowrap transition-[background-color,box-shadow,filter,color] duration-150 select-none',
         'disabled:cursor-not-allowed disabled:opacity-50 active:translate-y-px',
-        VARIANTES[variante], TAILLES[taille], className,
+        VARIANTES[variante],
+        TAILLES[taille],
+        className,
       )}
       {...rest}
     >

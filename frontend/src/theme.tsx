@@ -1,7 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 export type PreferenceTheme = 'systeme' | 'clair' | 'sombre';
-interface ThemeValue { preference: PreferenceTheme; sombre: boolean; definir: (p: PreferenceTheme) => void; basculer: () => void }
+interface ThemeValue {
+  preference: PreferenceTheme;
+  sombre: boolean;
+  definir: (p: PreferenceTheme) => void;
+  basculer: () => void;
+}
 
 const CLE = 'mep.theme';
 const ThemeContext = createContext<ThemeValue | null>(null);
@@ -15,7 +20,8 @@ function lire(): PreferenceTheme {
   }
 }
 
-const systemeSombre = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+const systemeSombre = () =>
+  typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [preference, setPreference] = useState<PreferenceTheme>(lire);
@@ -36,7 +42,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const definir = useCallback((p: PreferenceTheme) => {
     setPreference(p);
-    try { window.localStorage.setItem(CLE, p); } catch { /* stockage indisponible */ }
+    try {
+      window.localStorage.setItem(CLE, p);
+    } catch {
+      /* stockage indisponible */
+    }
   }, []);
   const basculer = useCallback(() => definir(sombre ? 'clair' : 'sombre'), [definir, sombre]);
 

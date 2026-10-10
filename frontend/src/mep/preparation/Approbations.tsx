@@ -25,29 +25,61 @@ function DecisionDialog({ decision, onClose }: { decision: DecisionApprobation |
   async function valider() {
     if (!decision) return;
     setEnvoi(true);
-    const ok = await run(() => api.decider(mep.id, mep.version, decision, commentaire.trim()), refus ? 'Refus enregistré.' : 'MEP approuvée.');
+    const ok = await run(
+      () => api.decider(mep.id, mep.version, decision, commentaire.trim()),
+      refus ? 'Refus enregistré.' : 'MEP approuvée.',
+    );
     setEnvoi(false);
-    if (ok) { setCommentaire(''); onClose(); }
+    if (ok) {
+      setCommentaire('');
+      onClose();
+    }
   }
 
   return (
     <Dialog
       open={decision !== null}
-      onOpenChange={(o) => { if (!o) { setCommentaire(''); onClose(); } }}
+      onOpenChange={(o) => {
+        if (!o) {
+          setCommentaire('');
+          onClose();
+        }
+      }}
       taille="sm"
       titre={refus ? 'Refuser la MEP' : 'Approuver la MEP'}
-      description={refus ? 'Le refus bloque le Go tant que la MEP n’est pas corrigée. Dites précisément ce qu’il faut changer.' : 'Vous confirmez avoir relu le plan et jugé l’intervention prête.'}
+      description={
+        refus
+          ? 'Le refus bloque le Go tant que la MEP n’est pas corrigée. Dites précisément ce qu’il faut changer.'
+          : 'Vous confirmez avoir relu le plan et jugé l’intervention prête.'
+      }
       pied={
         <>
-          <Button variante="fantome" onClick={onClose}>Annuler</Button>
-          <Button variante={refus ? 'danger' : 'succes'} icone={refus ? <ThumbsDown className="size-4" aria-hidden /> : <ThumbsUp className="size-4" aria-hidden />} chargement={envoi} disabled={refus && !commentaire.trim()} onClick={() => void valider()}>
+          <Button variante="fantome" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button
+            variante={refus ? 'danger' : 'succes'}
+            icone={refus ? <ThumbsDown className="size-4" aria-hidden /> : <ThumbsUp className="size-4" aria-hidden />}
+            chargement={envoi}
+            disabled={refus && !commentaire.trim()}
+            onClick={() => void valider()}
+          >
             {refus ? 'Refuser' : 'Approuver'}
           </Button>
         </>
       }
     >
       <Field label={refus ? 'Commentaire (obligatoire)' : 'Commentaire (facultatif)'}>
-        {(id) => <Textarea id={id} rows={3} value={commentaire} onChange={(e) => setCommentaire(e.target.value)} autoFocus placeholder={refus ? 'ex. Le plan de retour arrière ne couvre pas la base.' : 'ex. Relu, RAS.'} />}
+        {(id) => (
+          <Textarea
+            id={id}
+            rows={3}
+            value={commentaire}
+            onChange={(e) => setCommentaire(e.target.value)}
+            autoFocus
+            placeholder={refus ? 'ex. Le plan de retour arrière ne couvre pas la base.' : 'ex. Relu, RAS.'}
+          />
+        )}
       </Field>
     </Dialog>
   );
@@ -73,7 +105,9 @@ export function ApprobationsBloc() {
   const d = useDraft(idsDesignes);
   useReportDirty(d.dirty);
 
-  const options = (utilisateurs ?? []).filter((u) => u.id !== compteDuPilote).map((u) => ({ valeur: u.id, libelle: u.nomAffiche, detail: u.login }));
+  const options = (utilisateurs ?? [])
+    .filter((u) => u.id !== compteDuPilote)
+    .map((u) => ({ valeur: u.id, libelle: u.nomAffiche, detail: u.login }));
   const approuvees = mep.approbations.filter((a) => a.decision === 'Approuvee').length;
   const refus = mep.approbations.filter((a) => a.decision === 'Refusee');
   const requis = mep.approbationsMinimum;
@@ -81,7 +115,11 @@ export function ApprobationsBloc() {
   const aReinitialiser = useMemo(() => {
     const evts = (journal ?? []).filter((e) => e.type.startsWith('approbation'));
     const dernier = evts.reduce<(typeof evts)[number] | null>((m, e) => (m === null || e.id > m.id ? e : m), null);
-    return dernier?.type === 'approbations.reinitialisees' && mep.approbations.length > 0 && mep.approbations.every((a) => a.decision === null);
+    return (
+      dernier?.type === 'approbations.reinitialisees' &&
+      mep.approbations.length > 0 &&
+      mep.approbations.every((a) => a.decision === null)
+    );
   }, [journal, mep.approbations]);
 
   async function enregistrer() {
@@ -93,21 +131,34 @@ export function ApprobationsBloc() {
   return (
     <div className="border-t border-line pt-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-[13px] font-semibold"><UserCheck className="size-4 text-accent-text" aria-hidden />Approbations</h3>
+        <h3 className="flex items-center gap-2 text-[13px] font-semibold">
+          <UserCheck className="size-4 text-accent-text" aria-hidden />
+          Approbations
+        </h3>
         <p className="text-xs font-medium text-fg-muted tnum" aria-live="polite">
-          {requis === 0 ? 'Aucune approbation exigée' : `${approuvees}/${requis} approbation${requis > 1 ? 's' : ''} requise${requis > 1 ? 's' : ''}`}
+          {requis === 0
+            ? 'Aucune approbation exigée'
+            : `${approuvees}/${requis} approbation${requis > 1 ? 's' : ''} requise${requis > 1 ? 's' : ''}`}
         </p>
       </div>
 
       {aReinitialiser && enPreparation && (
         <Alerte ton="warn" icone={RotateCcw} role="status" className="mt-3" titre="Approbations à refaire">
-          La MEP a été modifiée : les décisions précédentes ont été effacées et chaque approbateur doit se prononcer de nouveau.
+          La MEP a été modifiée : les décisions précédentes ont été effacées et chaque approbateur doit se prononcer de
+          nouveau.
         </Alerte>
       )}
 
       {enPreparation && (
         <div className="mt-3 space-y-2.5">
-          <Field label="Approbateurs" hint={compteDuPilote ? 'Choisis parmi les comptes. Le compte du pilote est exclu : on n’approuve pas sa propre MEP.' : 'Choisis parmi les comptes.'}>
+          <Field
+            label="Approbateurs"
+            hint={
+              compteDuPilote
+                ? 'Choisis parmi les comptes. Le compte du pilote est exclu : on n’approuve pas sa propre MEP.'
+                : 'Choisis parmi les comptes.'
+            }
+          >
             {(id) => (
               <MultiSelect
                 id={id}
@@ -124,9 +175,21 @@ export function ApprobationsBloc() {
           <AvisConflit brouillon={d} />
           {d.dirty && (
             <div className="flex flex-wrap items-center gap-3">
-              <Button variante="primaire" taille="sm" icone={<Save className="size-4" aria-hidden />} disabled={d.conflit} onClick={() => void enregistrer()}>Enregistrer les approbateurs</Button>
-              <Button variante="fantome" taille="sm" onClick={d.reset}>Annuler</Button>
-              {mep.approbations.some((a) => a.decision !== null) && <span className="text-xs text-warn-fg">Les décisions déjà prises seront effacées.</span>}
+              <Button
+                variante="primaire"
+                taille="sm"
+                icone={<Save className="size-4" aria-hidden />}
+                disabled={d.conflit}
+                onClick={() => void enregistrer()}
+              >
+                Enregistrer les approbateurs
+              </Button>
+              <Button variante="fantome" taille="sm" onClick={d.reset}>
+                Annuler
+              </Button>
+              {mep.approbations.some((a) => a.decision !== null) && (
+                <span className="text-xs text-warn-fg">Les décisions déjà prises seront effacées.</span>
+              )}
             </div>
           )}
         </div>
@@ -134,10 +197,15 @@ export function ApprobationsBloc() {
 
       {mep.approbations.length === 0 ? (
         <p className="mt-3 rounded-lg border border-dashed border-line-strong px-3.5 py-3 text-sm text-fg-subtle">
-          {requis === 0 ? 'Aucune approbation n’est exigée pour cette MEP.' : `Aucun approbateur désigné : ${requis} approbation${requis > 1 ? 's' : ''} exigée${requis > 1 ? 's' : ''} avant le Go.`}
+          {requis === 0
+            ? 'Aucune approbation n’est exigée pour cette MEP.'
+            : `Aucun approbateur désigné : ${requis} approbation${requis > 1 ? 's' : ''} exigée${requis > 1 ? 's' : ''} avant le Go.`}
         </p>
       ) : (
-        <ul className="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-line" aria-label="Décisions des approbateurs">
+        <ul
+          className="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-line"
+          aria-label="Décisions des approbateurs"
+        >
           {mep.approbations.map((a) => {
             const st = STATUT[a.decision ?? 'attente'];
             const moi = utilisateur?.id === a.utilisateurId;
@@ -146,18 +214,39 @@ export function ApprobationsBloc() {
                 <div className="flex min-w-0 flex-1 basis-56 items-start gap-3">
                   <Avatar nom={a.nom} />
                   <div className="min-w-0">
-                    <p className="font-medium">{a.nom}{moi && <span className="ml-2 text-xs font-normal text-fg-subtle">(vous)</span>}</p>
-                    {a.decision && (
-                      <p className="text-xs text-fg-subtle">{a.le ? formatDateHeure(a.le) : ''}</p>
+                    <p className="font-medium">
+                      {a.nom}
+                      {moi && <span className="ml-2 text-xs font-normal text-fg-subtle">(vous)</span>}
+                    </p>
+                    {a.decision && <p className="text-xs text-fg-subtle">{a.le ? formatDateHeure(a.le) : ''}</p>}
+                    {a.commentaire.trim() && (
+                      <p className="mt-1 text-sm whitespace-pre-line text-fg-muted">« {a.commentaire} »</p>
                     )}
-                    {a.commentaire.trim() && <p className="mt-1 text-sm whitespace-pre-line text-fg-muted">« {a.commentaire} »</p>}
                   </div>
                 </div>
-                <StatusPill taille="md" ton={st.ton} icone={st.Icone}>{st.libelle}</StatusPill>
+                <StatusPill taille="md" ton={st.ton} icone={st.Icone}>
+                  {st.libelle}
+                </StatusPill>
                 {moi && enPreparation && a.decision === null && (
                   <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                    <Button variante="succes" taille="sm" icone={<ThumbsUp className="size-4" aria-hidden />} disabled={bloquees.length > 0} onClick={() => setDecision('Approuvee')}>Approuver</Button>
-                    <Button variante="danger-doux" taille="sm" icone={<ThumbsDown className="size-4" aria-hidden />} disabled={bloquees.length > 0} onClick={() => setDecision('Refusee')}>Refuser</Button>
+                    <Button
+                      variante="succes"
+                      taille="sm"
+                      icone={<ThumbsUp className="size-4" aria-hidden />}
+                      disabled={bloquees.length > 0}
+                      onClick={() => setDecision('Approuvee')}
+                    >
+                      Approuver
+                    </Button>
+                    <Button
+                      variante="danger-doux"
+                      taille="sm"
+                      icone={<ThumbsDown className="size-4" aria-hidden />}
+                      disabled={bloquees.length > 0}
+                      onClick={() => setDecision('Refusee')}
+                    >
+                      Refuser
+                    </Button>
                   </div>
                 )}
               </li>
@@ -166,11 +255,19 @@ export function ApprobationsBloc() {
         </ul>
       )}
 
-      {mep.droits.estApprobateur && enPreparation && bloquees.length > 0 && mep.approbations.some((a) => a.utilisateurId === utilisateur?.id && a.decision === null) && (
-        <Alerte ton="wait" icone={ShieldCheck} className="mt-3" titre="Plan incomplet : décision impossible pour l’instant">
-          {bloquees.join('\n')}
-        </Alerte>
-      )}
+      {mep.droits.estApprobateur &&
+        enPreparation &&
+        bloquees.length > 0 &&
+        mep.approbations.some((a) => a.utilisateurId === utilisateur?.id && a.decision === null) && (
+          <Alerte
+            ton="wait"
+            icone={ShieldCheck}
+            className="mt-3"
+            titre="Plan incomplet : décision impossible pour l’instant"
+          >
+            {bloquees.join('\n')}
+          </Alerte>
+        )}
       {refus.length > 0 && enPreparation && (
         <Alerte ton="danger" icone={XCircle} className="mt-3" titre="Refus à traiter">
           {refus.map((r) => `${r.nom} : ${r.commentaire}`).join('\n')}

@@ -18,7 +18,6 @@ import { descriptionsSystemes } from './graphe/systemes';
 
 const estSaisie = (el: EventTarget | null) => el instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
 
-
 /** Éditeur du plan en graphe (préparation) : systèmes impactés, graphe des étapes, espace d'édition de l'étape ouverte. */
 export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   const { mep, run } = useMep();
@@ -48,7 +47,10 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   async function ajouter(ligne: number | null) {
     const avant = new Set(mep.etapes.map((e) => e.id));
     let apres: Mep | undefined;
-    const ok = await run(async () => (apres = await api.ajouterEtape(mep.id, plan, ligne ?? undefined)), 'Étape ajoutée.');
+    const ok = await run(
+      async () => (apres = await api.ajouterEtape(mep.id, plan, ligne ?? undefined)),
+      'Étape ajoutée.',
+    );
     const creee = ok && apres ? apres.etapes.find((e) => !avant.has(e.id)) : undefined;
     if (creee) {
       setChoix(creee.id);
@@ -63,16 +65,23 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
     if (ok) {
       // Au clavier, la fiche garde le focus dans le graphe pour enchaîner les déplacements.
       if (!auClavier) selectionner(id);
-      if (avant !== ligne) astuce.afficher(`${code(id)} déplacée : liens recréés avec la ligne au-dessus et la ligne en dessous.`);
+      if (avant !== ligne)
+        astuce.afficher(`${code(id)} déplacée : liens recréés avec la ligne au-dessus et la ligne en dessous.`);
     }
   }
 
   async function lier(de: string, vers: string) {
     const cible = mep.etapes.find((e) => e.id === vers);
     if (!cible) return;
-    if (cible.dependances.includes(de)) { astuce.afficher(`Le lien ${code(de)} → ${code(vers)} existe déjà.`); return; }
+    if (cible.dependances.includes(de)) {
+      astuce.afficher(`Le lien ${code(de)} → ${code(vers)} existe déjà.`);
+      return;
+    }
     const message = `Lien créé : ${code(vers)} attendra ${code(de)}.`;
-    const ok = await run(() => api.modifierEtape(mep.id, vers, { ...saisieDepuis(cible), dependances: [...cible.dependances, de] }), message);
+    const ok = await run(
+      () => api.modifierEtape(mep.id, vers, { ...saisieDepuis(cible), dependances: [...cible.dependances, de] }),
+      message,
+    );
     if (ok) astuce.afficher(message);
   }
 
@@ -83,16 +92,30 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
     for (const [vers, sources] of parCible) {
       const cible = mep.etapes.find((e) => e.id === vers);
       if (!cible) continue;
-      const ok = await run(() => api.modifierEtape(mep.id, vers, { ...saisieDepuis(cible), dependances: cible.dependances.filter((d) => !sources.includes(d)) }));
+      const ok = await run(() =>
+        api.modifierEtape(mep.id, vers, {
+          ...saisieDepuis(cible),
+          dependances: cible.dependances.filter((d) => !sources.includes(d)),
+        }),
+      );
       if (!ok) return;
     }
-    astuce.afficher(liens.length > 1 ? `${liens.length} liens supprimés.` : `Lien supprimé : ${code(liens[0].de)} → ${code(liens[0].vers)}.`);
+    astuce.afficher(
+      liens.length > 1
+        ? `${liens.length} liens supprimés.`
+        : `Lien supprimé : ${code(liens[0].de)} → ${code(liens[0].vers)}.`,
+    );
     setCleGroupe(null);
   }
 
   function clavier(ev: KeyboardEvent<HTMLDivElement>) {
     // Les touches tapées dans l'espace d'une étape (surcouche, rendue en portail) remontent ici : on les ignore.
-    if (estSaisie(ev.target) || ev.defaultPrevented || (ev.target instanceof Element && ev.target.closest('[role="dialog"], [role="alertdialog"]'))) return;
+    if (
+      estSaisie(ev.target) ||
+      ev.defaultPrevented ||
+      (ev.target instanceof Element && ev.target.closest('[role="dialog"], [role="alertdialog"]'))
+    )
+      return;
     if (ev.key === 'Escape' && cleGroupe) {
       setChoix(null);
       setCleGroupe(null);
@@ -103,11 +126,20 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   }
 
   return (
+    // Raccourcis délégués (Échap, Suppr) : les touches viennent des fiches et liens focusables du graphe.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div className="grid gap-3" onKeyDown={clavier}>
-      <BarreSystemes modifiable={modifiable} catalogue={catalogue.donnees ?? []} descriptions={descriptions} onMessage={astuce.afficher} />
+      <BarreSystemes
+        modifiable={modifiable}
+        catalogue={catalogue.donnees ?? []}
+        descriptions={descriptions}
+        onMessage={astuce.afficher}
+      />
       <div className="flex min-h-7 flex-wrap items-center gap-x-4 gap-y-1">
         <ResumePlan etapes={etapes} />
-        <p aria-live="polite" className="min-w-0 flex-1 text-[13px] font-semibold text-rollback-solid">{astuce.flash ? astuce.texte : ''}</p>
+        <p aria-live="polite" className="min-w-0 flex-1 text-[13px] font-semibold text-rollback-solid">
+          {astuce.flash ? astuce.texte : ''}
+        </p>
         <AideGraphe edition={modifiable} />
       </div>
       <div className={cn('relative', etape && modeEspace === 'panneau' && 'min-[1100px]:pr-[608px]')}>
@@ -121,7 +153,10 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
           selection={selection}
           onSelection={selectionner}
           groupeSelection={groupe?.cle ?? null}
-          onGroupeSelection={(c) => { setCleGroupe(c); if (c) setChoix(null); }}
+          onGroupeSelection={(c) => {
+            setCleGroupe(c);
+            if (c) setChoix(null);
+          }}
           onPlacer={(id, l, p, auClavier) => void placer(id, l, p, auClavier)}
           onLier={(de, vers) => void lier(de, vers)}
           onAjouter={(l) => void ajouter(l)}
@@ -129,7 +164,12 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
         />
         {groupe && (
           <div className="absolute top-3 right-3 z-20">
-            <PanneauLiens groupe={groupe} etapes={etapes} onSupprimer={(l) => void delier(l)} onFermer={() => setCleGroupe(null)} />
+            <PanneauLiens
+              groupe={groupe}
+              etapes={etapes}
+              onSupprimer={(l) => void delier(l)}
+              onFermer={() => setCleGroupe(null)}
+            />
           </div>
         )}
       </div>

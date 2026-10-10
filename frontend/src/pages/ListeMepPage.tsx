@@ -29,7 +29,11 @@ function Chrono({ m, now }: { m: MepResume; now: number }) {
     <span
       className={cn(
         'inline-flex items-center gap-1.5 font-mono text-xs tnum',
-        c.niveau === 'depasse' ? 'font-bold text-danger-solid' : c.niveau === 'attention' ? 'font-semibold text-warn-solid' : 'text-fg-muted',
+        c.niveau === 'depasse'
+          ? 'font-bold text-danger-solid'
+          : c.niveau === 'attention'
+            ? 'font-semibold text-warn-solid'
+            : 'text-fg-muted',
       )}
       title="Temps restant avant l’échéance de retour arrière"
     >
@@ -55,7 +59,7 @@ function NouvelleMepDialog({ open, onOpenChange }: { open: boolean; onOpenChange
       const mep = await api.creerMep(outil.trim(), objet.trim());
       toast.succes('MEP créée.');
       onOpenChange(false);
-      navigate(`/meps/${mep.id}`);
+      void navigate(`/meps/${mep.id}`);
     } catch (err) {
       setErreur(err instanceof Error ? err.message : 'Création impossible.');
     } finally {
@@ -71,15 +75,49 @@ function NouvelleMepDialog({ open, onOpenChange }: { open: boolean; onOpenChange
       description="Vous en serez le pilote. Le plan se prépare ensuite, section par section."
       pied={
         <>
-          <Button variante="fantome" onClick={() => onOpenChange(false)}>Annuler</Button>
-          <Button type="submit" form="form-nouvelle-mep" variante="primaire" chargement={envoi} disabled={!outil.trim()}>Créer la MEP</Button>
+          <Button variante="fantome" onClick={() => onOpenChange(false)}>
+            Annuler
+          </Button>
+          <Button
+            type="submit"
+            form="form-nouvelle-mep"
+            variante="primaire"
+            chargement={envoi}
+            disabled={!outil.trim()}
+          >
+            Créer la MEP
+          </Button>
         </>
       }
     >
       <form id="form-nouvelle-mep" onSubmit={(e) => void creer(e)} className="space-y-4">
-        <Field label="Outil ou application">{(id) => <Input id={id} value={outil} onChange={(e) => setOutil(e.target.value)} placeholder="ex. Portail clients" autoFocus required />}</Field>
-        <Field label="Objet de l’intervention">{(id) => <Input id={id} value={objet} onChange={(e) => setObjet(e.target.value)} placeholder="ex. Passage en version 4.2 et migration de la base" />}</Field>
-        {erreur && <Alerte ton="danger" icone={OctagonAlert} role="alert">{erreur}</Alerte>}
+        <Field label="Outil ou application">
+          {(id) => (
+            <Input
+              id={id}
+              value={outil}
+              onChange={(e) => setOutil(e.target.value)}
+              placeholder="ex. Portail clients"
+              autoFocus
+              required
+            />
+          )}
+        </Field>
+        <Field label="Objet de l’intervention">
+          {(id) => (
+            <Input
+              id={id}
+              value={objet}
+              onChange={(e) => setObjet(e.target.value)}
+              placeholder="ex. Passage en version 4.2 et migration de la base"
+            />
+          )}
+        </Field>
+        {erreur && (
+          <Alerte ton="danger" icone={OctagonAlert} role="alert">
+            {erreur}
+          </Alerte>
+        )}
       </form>
     </Dialog>
   );
@@ -108,9 +146,10 @@ export default function ListeMepPage() {
 
   const filtrees = useMemo(() => {
     const q = recherche.trim().toLowerCase();
-    return (meps ?? []).filter((m) =>
-      (phase === 'toutes' || m.phase === phase) &&
-      (!q || [m.outil, m.versionCible, m.objet, m.pilote ?? ''].some((t) => t.toLowerCase().includes(q))),
+    return (meps ?? []).filter(
+      (m) =>
+        (phase === 'toutes' || m.phase === phase) &&
+        (!q || [m.outil, m.versionCible, m.objet, m.pilote ?? ''].some((t) => t.toLowerCase().includes(q))),
     );
   }, [meps, recherche, phase]);
 
@@ -126,41 +165,94 @@ export default function ListeMepPage() {
             icone={<LayoutTemplate className="size-4" aria-hidden />}
             onClick={() => {
               setDepuisModele(true);
-              api.meps(true).then((l) => setModeles(l.map((m) => ({ id: m.id, outil: m.outil, estModele: true, environnement: m.environnement })))).catch(() => setModeles([]));
+              api
+                .meps(true)
+                .then((l) =>
+                  setModeles(
+                    l.map((m) => ({ id: m.id, outil: m.outil, estModele: true, environnement: m.environnement })),
+                  ),
+                )
+                .catch(() => setModeles([]));
             }}
           >
             Nouvelle MEP depuis un modèle
           </Button>
-          <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => setCreation(true)}>Nouvelle MEP</Button>
+          <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => setCreation(true)}>
+            Nouvelle MEP
+          </Button>
         </div>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <div className="relative min-w-60 flex-1 sm:max-w-sm">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-subtle" aria-hidden />
-          <Input aria-label="Rechercher une MEP" placeholder="Rechercher (outil, version, pilote…)" className="pl-9" value={recherche} onChange={(e) => setRecherche(e.target.value)} />
+          <Search
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-subtle"
+            aria-hidden
+          />
+          <Input
+            aria-label="Rechercher une MEP"
+            placeholder="Rechercher (outil, version, pilote…)"
+            className="pl-9"
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+          />
         </div>
         <Segmented
           label="Afficher les MEP ou les modèles"
           valeur={vue}
-          onChange={(v) => { setVue(v); setPhase('toutes'); }}
+          onChange={(v) => {
+            setVue(v);
+            setPhase('toutes');
+          }}
           options={[
-            { valeur: 'meps', libelle: <><Rocket className="size-4" aria-hidden />MEP</> },
-            { valeur: 'modeles', libelle: <><LayoutTemplate className="size-4" aria-hidden />Modèles</> },
+            {
+              valeur: 'meps',
+              libelle: (
+                <>
+                  <Rocket className="size-4" aria-hidden />
+                  MEP
+                </>
+              ),
+            },
+            {
+              valeur: 'modeles',
+              libelle: (
+                <>
+                  <LayoutTemplate className="size-4" aria-hidden />
+                  Modèles
+                </>
+              ),
+            },
           ]}
         />
-        {!modele && <div className="w-52">
-          <Select aria-label="Filtrer par phase" value={phase} onChange={(e) => setPhase(e.target.value as Phase | 'toutes')}>
-            {FILTRES.map((f) => <option key={f.valeur} value={f.valeur}>{f.libelle}</option>)}
-          </Select>
-        </div>}
+        {!modele && (
+          <div className="w-52">
+            <Select
+              aria-label="Filtrer par phase"
+              value={phase}
+              onChange={(e) => setPhase(e.target.value as Phase | 'toutes')}
+            >
+              {FILTRES.map((f) => (
+                <option key={f.valeur} value={f.valeur}>
+                  {f.libelle}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
       </div>
 
-      {erreur && <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">{erreur}</Alerte>}
+      {erreur && (
+        <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">
+          {erreur}
+        </Alerte>
+      )}
 
       {meps === null && !erreur && (
         <div className="mt-6 space-y-3" aria-busy="true">
-          {[0, 1, 2].map((i) => <div key={i} className="h-24 animate-pulse rounded-xl border border-line bg-surface" />)}
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-xl border border-line bg-surface" />
+          ))}
         </div>
       )}
 
@@ -169,23 +261,49 @@ export default function ListeMepPage() {
           <EmptyState
             icone={Rocket}
             titre={modele ? 'Aucun modèle pour l’instant' : 'Aucune mise en production pour l’instant'}
-            description={modele
-              ? 'Ouvrez une MEP, cliquez sur « Dupliquer » et cochez « En faire un modèle » : elle servira de base à vos prochaines interventions.'
-              : 'Créez votre première MEP pour préparer le plan, désigner l’équipe et suivre l’exécution en direct.'}
-            action={modele ? undefined : <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => setCreation(true)}>Nouvelle MEP</Button>}
+            description={
+              modele
+                ? 'Ouvrez une MEP, cliquez sur « Dupliquer » et cochez « En faire un modèle » : elle servira de base à vos prochaines interventions.'
+                : 'Créez votre première MEP pour préparer le plan, désigner l’équipe et suivre l’exécution en direct.'
+            }
+            action={
+              modele ? undefined : (
+                <Button
+                  variante="primaire"
+                  icone={<Plus className="size-4" aria-hidden />}
+                  onClick={() => setCreation(true)}
+                >
+                  Nouvelle MEP
+                </Button>
+              )
+            }
           />
         </div>
       )}
 
       {meps !== null && meps.length > 0 && filtrees.length === 0 && (
         <div className="mt-6 rounded-xl border border-dashed border-line-strong bg-surface">
-          <EmptyState icone={Search} titre="Aucun résultat" description="Aucune MEP ne correspond à ces critères." action={<Button onClick={() => { setRecherche(''); setPhase('toutes'); }}>Effacer les filtres</Button>} />
+          <EmptyState
+            icone={Search}
+            titre="Aucun résultat"
+            description="Aucune MEP ne correspond à ces critères."
+            action={
+              <Button
+                onClick={() => {
+                  setRecherche('');
+                  setPhase('toutes');
+                }}
+              >
+                Effacer les filtres
+              </Button>
+            }
+          />
         </div>
       )}
 
       <ul className="mt-6 space-y-3">
         {filtrees.map((m) => {
-          const meta = metaPhase(m.phase, m.issue ?? null);
+          const meta = metaPhase(m.phase, m.issue);
           return (
             <li key={m.id} className="relative">
               <Link
@@ -204,14 +322,32 @@ export default function ListeMepPage() {
                           </>
                         )}
                       </h2>
-                      <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime}>{meta.libelle}</StatusPill>
-                      {m.estModele && <Badge ton="later"><LayoutTemplate className="size-3" aria-hidden />Modèle</Badge>}
-                      {m.environnement && <Badge ton={m.environnement.toLowerCase().startsWith('prod') ? 'warn' : undefined}>{m.environnement}</Badge>}
+                      <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime}>
+                        {meta.libelle}
+                      </StatusPill>
+                      {m.estModele && (
+                        <Badge ton="later">
+                          <LayoutTemplate className="size-3" aria-hidden />
+                          Modèle
+                        </Badge>
+                      )}
+                      {m.environnement && (
+                        <Badge ton={m.environnement.toLowerCase().startsWith('prod') ? 'warn' : undefined}>
+                          {m.environnement}
+                        </Badge>
+                      )}
                     </div>
                     {m.objet && <p className="mt-1 line-clamp-1 text-sm text-fg-muted">{m.objet}</p>}
                   </div>
                   <div className="flex items-center gap-5 text-sm text-fg-muted">
-                    <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4 text-fg-subtle" aria-hidden />{m.dateMep ? `Démarrée le ${formatDate(m.dateMep)}` : m.creeLe ? `Créée le ${formatDate(m.creeLe)}` : "Pas encore démarrée"}</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <CalendarDays className="size-4 text-fg-subtle" aria-hidden />
+                      {m.dateMep
+                        ? `Démarrée le ${formatDate(m.dateMep)}`
+                        : m.creeLe
+                          ? `Créée le ${formatDate(m.creeLe)}`
+                          : 'Pas encore démarrée'}
+                    </span>
                     <span className="inline-flex items-center gap-2">
                       {m.pilote ? <Avatar nom={m.pilote} taille="sm" /> : null}
                       <span>{m.pilote ?? 'Pas de pilote'}</span>
@@ -219,8 +355,16 @@ export default function ListeMepPage() {
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 pr-32">
-                  <ProgressBar className="min-w-48 flex-1" segments={segmentsResume(m.nbEtapes, m.nbReussies, m.nbEchecs)} />
-                  <span className="text-xs text-fg-subtle tnum">{m.nbReussies}/{m.nbEtapes} étapes réussies{m.nbEchecs > 0 && <span className="font-semibold text-danger-solid"> · {m.nbEchecs} en échec</span>}</span>
+                  <ProgressBar
+                    className="min-w-48 flex-1"
+                    segments={segmentsResume(m.nbEtapes, m.nbReussies, m.nbEchecs)}
+                  />
+                  <span className="text-xs text-fg-subtle tnum">
+                    {m.nbReussies}/{m.nbEtapes} étapes réussies
+                    {m.nbEchecs > 0 && (
+                      <span className="font-semibold text-danger-solid"> · {m.nbEchecs} en échec</span>
+                    )}
+                  </span>
                   <Chrono m={m} now={now} />
                 </div>
               </Link>
@@ -229,7 +373,9 @@ export default function ListeMepPage() {
                 className="absolute right-4 bottom-4"
                 icone={<Copy className="size-3.5" aria-hidden />}
                 aria-label={`Dupliquer ${m.outil || 'la MEP'}`}
-                onClick={() => setDuplication({ id: m.id, outil: m.outil, estModele: m.estModele, environnement: m.environnement })}
+                onClick={() =>
+                  setDuplication({ id: m.id, outil: m.outil, estModele: m.estModele, environnement: m.environnement })
+                }
               >
                 Dupliquer
               </Button>
@@ -238,7 +384,13 @@ export default function ListeMepPage() {
         })}
       </ul>
       <NouvelleMepDialog open={creation} onOpenChange={setCreation} />
-      <DuplicationDialog open={duplication !== null} onOpenChange={(o) => { if (!o) setDuplication(null); }} source={duplication} />
+      <DuplicationDialog
+        open={duplication !== null}
+        onOpenChange={(o) => {
+          if (!o) setDuplication(null);
+        }}
+        source={duplication}
+      />
       <DuplicationDialog open={depuisModele} onOpenChange={setDepuisModele} modeles={modeles} />
     </main>
   );

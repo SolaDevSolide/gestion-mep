@@ -5,10 +5,13 @@ export function useAstuce(defaut: string, duree = 5000) {
   const [message, setMessage] = useState<string | null>(null);
   const minuteur = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(minuteur.current), []);
-  const flash = useCallback((m: string) => {
-    setMessage(m);
-    window.clearTimeout(minuteur.current);
-    minuteur.current = window.setTimeout(() => setMessage(null), duree);
-  }, [duree]);
+  const flash = useCallback(
+    (m: string) => {
+      setMessage(m);
+      window.clearTimeout(minuteur.current);
+      minuteur.current = window.setTimeout(() => setMessage(null), duree);
+    },
+    [duree],
+  );
   return { texte: message ?? defaut, flash: message !== null, afficher: flash };
 }

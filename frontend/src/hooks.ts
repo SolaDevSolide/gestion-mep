@@ -65,7 +65,11 @@ export function useLocalStorageState<T>(key: string, initial: T): [T, (v: T) => 
   }
   const set = (v: T) => {
     setValue(v);
-    try { window.localStorage.setItem(key, JSON.stringify(v)); } catch { /* stockage indisponible */ }
+    try {
+      window.localStorage.setItem(key, JSON.stringify(v));
+    } catch {
+      /* stockage indisponible */
+    }
   };
   return [value, set];
 }
@@ -88,9 +92,18 @@ export function useAsync<T>(charger: () => Promise<T>, deps: unknown[]) {
   useEffect(() => {
     let annule = false;
     charger()
-      .then((d) => { if (!annule) { setDonnees(d); setErreur(''); } })
-      .catch((e: unknown) => { if (!annule) setErreur(e instanceof Error ? e.message : 'Chargement impossible.'); });
-    return () => { annule = true; };
+      .then((d) => {
+        if (!annule) {
+          setDonnees(d);
+          setErreur('');
+        }
+      })
+      .catch((e: unknown) => {
+        if (!annule) setErreur(e instanceof Error ? e.message : 'Chargement impossible.');
+      });
+    return () => {
+      annule = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, tick]);
   return { donnees, erreur, recharger: () => setTick((t) => t + 1), setDonnees };

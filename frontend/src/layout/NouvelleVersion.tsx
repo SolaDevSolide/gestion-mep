@@ -36,7 +36,11 @@ export function NouvelleVersion() {
     const minuteur = window.setInterval(() => void verifier(), INTERVALLE_MS);
     const auFocus = () => void verifier();
     window.addEventListener('focus', auFocus);
-    return () => { actif = false; window.clearInterval(minuteur); window.removeEventListener('focus', auFocus); };
+    return () => {
+      actif = false;
+      window.clearInterval(minuteur);
+      window.removeEventListener('focus', auFocus);
+    };
   }, []);
 
   if (!disponible) return null;
@@ -45,7 +49,9 @@ export function NouvelleVersion() {
       <div className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-fg shadow-lg">
         <RefreshCw className="size-4 text-accent-text" aria-hidden />
         <span>Une nouvelle version de l’application est disponible.</span>
-        <Button variante="primaire" taille="sm" onClick={() => window.location.reload()}>Recharger</Button>
+        <Button variante="primaire" taille="sm" onClick={() => window.location.reload()}>
+          Recharger
+        </Button>
       </div>
     </div>
   );

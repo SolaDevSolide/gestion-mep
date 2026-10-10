@@ -6,7 +6,8 @@ import { decouperBlocs } from '../blocs';
 import { Button } from './Button';
 import { cn } from './cn';
 
-const echapper = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+const echapper = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 /**
  * Liste blanche du markdown : uniquement ce que produit marked (GFM). Ni `style`, ni `class`, ni formulaire, ni image externe :
@@ -14,8 +15,34 @@ const echapper = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<
  */
 const CONFIG_ASSAINISSEMENT = {
   ALLOWED_TAGS: [
-    'p', 'br', 'hr', 'strong', 'em', 'del', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'input',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'p',
+    'br',
+    'hr',
+    'strong',
+    'em',
+    'del',
+    's',
+    'code',
+    'pre',
+    'blockquote',
+    'ul',
+    'ol',
+    'li',
+    'input',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'a',
+    'img',
+    'table',
+    'thead',
+    'tbody',
+    'tr',
+    'th',
+    'td',
   ],
   ALLOWED_ATTR: ['href', 'title', 'src', 'alt', 'type', 'checked', 'disabled', 'start', 'align'],
   ALLOW_DATA_ATTR: false,
@@ -114,27 +141,55 @@ export function BlocCode({ code, libelle = 'Copier la commande' }: { code: strin
         taille="sm"
         className="absolute top-1.5 right-1.5 h-7 px-2 text-xs"
         onClick={() => void copier()}
-        icone={etat === 'copie' ? <Check className="size-3.5 text-ok-solid" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+        icone={
+          etat === 'copie' ? (
+            <Check className="size-3.5 text-ok-solid" aria-hidden />
+          ) : (
+            <Copy className="size-3.5" aria-hidden />
+          )
+        }
         aria-label={etat === 'copie' ? 'Copié' : libelle}
         title={libelle}
       >
         {etat === 'copie' ? 'Copié' : 'Copier'}
       </Button>
-      {etat === 'refus' && <p className="mt-1 text-xs font-medium text-warn-fg">Copie refusée par le navigateur : le texte est sélectionné, faites Ctrl+C.</p>}
-      <span className="sr-only" role="status">{etat === 'copie' ? 'Copié dans le presse-papiers' : ''}</span>
+      {etat === 'refus' && (
+        <p className="mt-1 text-xs font-medium text-warn-fg">
+          Copie refusée par le navigateur : le texte est sélectionné, faites Ctrl+C.
+        </p>
+      )}
+      <span className="sr-only" role="status">
+        {etat === 'copie' ? 'Copié dans le presse-papiers' : ''}
+      </span>
     </div>
   );
 }
 
 /** Instructions en lecture (exécution) : texte markdown rendu, blocs de code copiables. */
-export function Instructions({ source, vide = 'Aucune instruction.', className }: { source: string; vide?: string | null; className?: string }) {
+export function Instructions({
+  source,
+  vide = 'Aucune instruction.',
+  className,
+}: {
+  source: string;
+  vide?: string | null;
+  className?: string;
+}) {
   const blocs = useMemo(() => decouperBlocs(source), [source]);
   if (blocs.length === 0) return vide ? <p className={cn('text-sm text-fg-subtle', className)}>{vide}</p> : null;
   return (
     <div className={cn('grid min-w-0 gap-2', className)}>
-      {blocs.map((b, i) => (b.type === 'code'
-        ? <BlocCode key={i} code={b.contenu} libelle={`Copier la commande ${blocs.slice(0, i + 1).filter((x) => x.type === 'code').length}`} />
-        : <Markdown key={i} source={b.contenu} />))}
+      {blocs.map((b, i) =>
+        b.type === 'code' ? (
+          <BlocCode
+            key={i}
+            code={b.contenu}
+            libelle={`Copier la commande ${blocs.slice(0, i + 1).filter((x) => x.type === 'code').length}`}
+          />
+        ) : (
+          <Markdown key={i} source={b.contenu} />
+        ),
+      )}
     </div>
   );
 }

@@ -2,7 +2,8 @@ import type { Etape, EtapeTest, FicheRecette, Mep, Participant, Phase, Responsab
 import type { Segment } from './ui/ProgressBar';
 
 /** Ordre du graphe : par ligne, puis par position dans la ligne. */
-export const parPosition = (a: Pick<Etape, 'ligne' | 'ordre'>, b: Pick<Etape, 'ligne' | 'ordre'>): number => a.ligne - b.ligne || a.ordre - b.ordre;
+export const parPosition = (a: Pick<Etape, 'ligne' | 'ordre'>, b: Pick<Etape, 'ligne' | 'ordre'>): number =>
+  a.ligne - b.ligne || a.ordre - b.ordre;
 
 export const etapesDuPlan = (mep: Mep, plan: TypePlan): Etape[] =>
   mep.etapes.filter((e) => e.plan === plan).sort(parPosition);
@@ -23,8 +24,10 @@ export const estAVous = (mep: Pick<Mep, 'droits' | 'phase'>, e: Pick<Etape, 'exe
   return moi !== null && executantEffectif(e) === moi && e.etat !== 'Reussie' && mep.phase !== 'Cloturee';
 };
 
-export const participantPar = (mep: Pick<Mep, 'participants'>, id: string | null | undefined): Participant | undefined =>
-  id ? mep.participants.find((p) => p.id === id) : undefined;
+export const participantPar = (
+  mep: Pick<Mep, 'participants'>,
+  id: string | null | undefined,
+): Participant | undefined => (id ? mep.participants.find((p) => p.id === id) : undefined);
 
 export const nomParticipant = (mep: Pick<Mep, 'participants'>, id: string | null | undefined): string | null =>
   participantPar(mep, id)?.nom ?? null;
@@ -73,12 +76,20 @@ export const etapeSauvegarde = (mep: Pick<Mep, 'etapes'>): Etape | undefined =>
   mep.etapes.filter((e) => e.plan === 'Deploiement' && e.type === 'Sauvegarde').sort(parPosition)[0];
 
 export const fichesRecetteTriees = (mep: Pick<Mep, 'fichesRecette'>): FicheRecette[] =>
-  [...mep.fichesRecette].sort((a, b) => a.ordre - b.ordre).map((f) => ({ ...f, etapes: [...f.etapes].sort((a, b) => a.ordre - b.ordre) }));
+  [...mep.fichesRecette]
+    .sort((a, b) => a.ordre - b.ordre)
+    .map((f) => ({ ...f, etapes: [...f.etapes].sort((a, b) => a.ordre - b.ordre) }));
 
 /** Étapes de test de toutes les fiches. */
-export const etapesTestRecette = (mep: Pick<Mep, 'fichesRecette'>): EtapeTest[] => mep.fichesRecette.flatMap((f) => f.etapes);
+export const etapesTestRecette = (mep: Pick<Mep, 'fichesRecette'>): EtapeTest[] =>
+  mep.fichesRecette.flatMap((f) => f.etapes);
 
-export interface BilanRecette { total: number; conformes: number; echecs: number; restantes: number }
+export interface BilanRecette {
+  total: number;
+  conformes: number;
+  echecs: number;
+  restantes: number;
+}
 export function bilanRecette(mep: Pick<Mep, 'fichesRecette'>): BilanRecette {
   const e = etapesTestRecette(mep);
   const conformes = e.filter((t) => t.resultat === 'Conforme').length;
@@ -87,19 +98,25 @@ export function bilanRecette(mep: Pick<Mep, 'fichesRecette'>): BilanRecette {
 }
 
 /** Responsables techniques d'un système : participants désignés pour ce système (contact du jour J en recette). */
-export function responsablesDuSysteme(mep: Pick<Mep, 'responsablesTechniques' | 'participants'>, systemeId: string | null): { participant: Participant; contactJourJ: string; disponibilite: ResponsableTechnique['disponibilite'] }[] {
+export function responsablesDuSysteme(
+  mep: Pick<Mep, 'responsablesTechniques' | 'participants'>,
+  systemeId: string | null,
+): { participant: Participant; contactJourJ: string; disponibilite: ResponsableTechnique['disponibilite'] }[] {
   if (!systemeId) return [];
   return mep.responsablesTechniques
     .filter((r) => r.systemeIds.includes(systemeId))
     .flatMap((r) => {
       const participant = mep.participants.find((p) => p.id === r.participantId);
-      return participant ? [{ participant, contactJourJ: r.contactJourJ || participant.contact, disponibilite: r.disponibilite }] : [];
+      return participant
+        ? [{ participant, contactJourJ: r.contactJourJ || participant.contact, disponibilite: r.disponibilite }]
+        : [];
     });
 }
 
 /** Anomalies du plan qui ne relèvent pas du circuit d'approbation (elles bloquent la décision d'un approbateur). */
 const ESTAPPROBATION = /^Il faut \d+ approbation|a refusé :|ne peut pas approuver/;
-export const anomaliesHorsApprobation = (mep: Pick<Mep, 'erreursPlan'>): string[] => mep.erreursPlan.filter((e) => !ESTAPPROBATION.test(e));
+export const anomaliesHorsApprobation = (mep: Pick<Mep, 'erreursPlan'>): string[] =>
+  mep.erreursPlan.filter((e) => !ESTAPPROBATION.test(e));
 
 /** Le déploiement est entièrement réussi (condition du passage en recette). */
 export const deploiementReussi = (mep: Mep): boolean => {

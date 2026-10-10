@@ -8,17 +8,18 @@
 
 /** Minuscules sans accents (é → e, Œ → oe…). */
 export function normaliser(s: string | null | undefined): string {
-  return (s ?? '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/œ/gi, 'oe')
-    .replace(/æ/gi, 'ae')
-    .toLowerCase();
+  return (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/gi, 'oe').replace(/æ/gi, 'ae').toLowerCase();
 }
 
 /** Mots de la recherche, normalisés, sans doublon. */
 export function termes(recherche: string): string[] {
-  return [...new Set(normaliser(recherche).split(/[\s,;]+/).filter(Boolean))];
+  return [
+    ...new Set(
+      normaliser(recherche)
+        .split(/[\s,;]+/)
+        .filter(Boolean),
+    ),
+  ];
 }
 
 export interface DocumentRecherche {
@@ -68,9 +69,12 @@ export function surligner(texte: string, ts: string[]): Segment[] {
   const origine: number[] = [];
   for (let i = 0; i < texte.length; i++) {
     const n = normaliser(texte[i]);
-    for (const c of n) { norm += c; origine.push(i); }
+    for (const c of n) {
+      norm += c;
+      origine.push(i);
+    }
   }
-  const marque = new Array<boolean>(texte.length).fill(false);
+  const marque = Array.from({ length: texte.length }, () => false);
   for (const t of ts) {
     if (!t) continue;
     let p = norm.indexOf(t);

@@ -10,7 +10,19 @@ import { EtapesEditeur } from './EtapesEditeur';
 import { changerModeEspace } from './graphe/EspaceEtape';
 
 const res = (id: string, titre: string, systemeCatalogueIds: string[], symptomes = ''): ResolutionType => ({
-  id, titre, symptomes, diagnostic: '', systemeCatalogueIds, corrections: [], verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-10T10:00:00Z', modifieeParId: null, modifieeParNom: null,
+  id,
+  titre,
+  symptomes,
+  diagnostic: '',
+  systemeCatalogueIds,
+  corrections: [],
+  verificationInstruction: '',
+  verificationAttendu: '',
+  actif: true,
+  version: 1,
+  modifieeLe: '2026-10-10T10:00:00Z',
+  modifieeParId: null,
+  modifieeParNom: null,
 });
 
 vi.mock('../api', () => ({
@@ -33,7 +45,14 @@ vi.mock('../api', () => ({
   },
 }));
 
-const droitsEdition = { estPilote: true, estApprobateur: false, estResponsableTechnique: false, peutModifierPlan: true, peutEditerContenu: true, participantId: 'p3' };
+const droitsEdition = {
+  estPilote: true,
+  estApprobateur: false,
+  estResponsableTechnique: false,
+  peutModifierPlan: true,
+  peutEditerContenu: true,
+  participantId: 'p3',
+};
 
 function planExemple(p: Partial<Mep> = {}): Mep {
   const base = mep().systemes[0];
@@ -52,11 +71,19 @@ function planExemple(p: Partial<Mep> = {}): Mep {
 
 function Destination() {
   const l = useLocation();
-  return <p>Destination : {l.pathname}{l.search}</p>;
+  return (
+    <p>
+      Destination : {l.pathname}
+      {l.search}
+    </p>
+  );
 }
 
 function rendre(m: Mep) {
-  const run = vi.fn(async (action: () => Promise<unknown>) => { await action(); return true; });
+  const run = vi.fn(async (action: () => Promise<unknown>) => {
+    await action();
+    return true;
+  });
   const arbre = (mm: Mep) => (
     <MemoryRouter initialEntries={['/meps/m1']}>
       <TooltipProvider>
@@ -76,7 +103,11 @@ function rendre(m: Mep) {
 const carte = (nom: RegExp) => screen.getByRole('button', { name: nom });
 
 describe('EtapesEditeur : graphe en préparation', () => {
-  beforeEach(() => { vi.clearAllMocks(); window.localStorage.clear(); changerModeEspace('plein'); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+    changerModeEspace('plein');
+  });
 
   it('affiche les lignes, la barrière du point de non-retour, les blocs fantômes et les contrôles de vue', async () => {
     rendre(planExemple());
@@ -101,7 +132,11 @@ describe('EtapesEditeur : graphe en préparation', () => {
     const panneau = screen.getByRole('dialog');
     expect(within(panneau).getByRole('button', { name: 'Retirer le préalable E0001' })).toBeInTheDocument();
     await userEvent.selectOptions(within(panneau).getByLabelText('Ajouter un préalable'), 'e2');
-    expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e3', expect.objectContaining({ dependances: ['e1', 'e2'], action: 'Contrôle final', systemeIds: ['s1'] }));
+    expect(api.modifierEtape).toHaveBeenCalledWith(
+      'm1',
+      'e3',
+      expect.objectContaining({ dependances: ['e1', 'e2'], action: 'Contrôle final', systemeIds: ['s1'] }),
+    );
   });
 
   it('un lecteur d’écran ouvre une fiche (clic sans pointeur)', () => {
@@ -136,13 +171,23 @@ describe('EtapesEditeur : graphe en préparation', () => {
     await userEvent.click(carte(/^E0003/));
     await userEvent.type(screen.getByLabelText('Action'), ' bis');
     // Un collègue modifie le résultat attendu ; la MEP est rechargée par une autre action.
-    rerendre({ ...m, version: m.version + 1, etapes: m.etapes.map((e) => (e.id === 'e3' ? { ...e, revision: e.revision + 1, resultatAttendu: 'Revu par Bob' } : e)) });
+    rerendre({
+      ...m,
+      version: m.version + 1,
+      etapes: m.etapes.map((e) =>
+        e.id === 'e3' ? { ...e, revision: e.revision + 1, resultatAttendu: 'Revu par Bob' } : e,
+      ),
+    });
     expect(screen.getByRole('alert')).toHaveTextContent('Modifié pendant votre saisie');
     expect(screen.getByLabelText('Action')).toHaveValue('Contrôle final bis');
     expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeDisabled();
     await userEvent.click(screen.getByRole('button', { name: 'Garder ma saisie' }));
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
-    expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e3', expect.objectContaining({ action: 'Contrôle final bis', revision: m.etapes[2].revision + 1 }));
+    expect(api.modifierEtape).toHaveBeenCalledWith(
+      'm1',
+      'e3',
+      expect.objectContaining({ action: 'Contrôle final bis', revision: m.etapes[2].revision + 1 }),
+    );
   });
 
   it('retire un préalable', async () => {
@@ -164,19 +209,46 @@ describe('EtapesEditeur : graphe en préparation', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Ajouter un bloc code' }));
     await userEvent.type(screen.getByLabelText('Instructions, bloc 2 (code)'), 'pg_dump clients');
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
-    expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e1', expect.objectContaining({
-      systemeIds: ['s1', 's2'], dureeEstimeeMinutes: 20, type: 'Sauvegarde',
-      instructions: '```\nsystemctl restart api\n```\n\n```\npg_dump clients\n```',
-    }));
+    expect(api.modifierEtape).toHaveBeenCalledWith(
+      'm1',
+      'e1',
+      expect.objectContaining({
+        systemeIds: ['s1', 's2'],
+        dureeEstimeeMinutes: 20,
+        type: 'Sauvegarde',
+        instructions: '```\nsystemctl restart api\n```\n\n```\npg_dump clients\n```',
+      }),
+    );
   });
 
   it('tout est visible sans onglets : fiche, instructions, liens, résolutions ; points à compléter résumés', async () => {
-    rendre(planExemple({ etapes: [etape({ id: 'e1', code: 'E0001', ligne: 0, ordre: 0, criticite: null, resultatAttendu: '', dureeEstimeeMinutes: null })] }));
+    rendre(
+      planExemple({
+        etapes: [
+          etape({
+            id: 'e1',
+            code: 'E0001',
+            ligne: 0,
+            ordre: 0,
+            criticite: null,
+            resultatAttendu: '',
+            dureeEstimeeMinutes: null,
+          }),
+        ],
+      }),
+    );
     await userEvent.click(carte(/^E0001/));
     const espace = screen.getByRole('dialog');
     expect(within(espace).queryByRole('tab')).toBeNull();
     expect(within(espace).queryByLabelText('Responsable')).toBeNull();
-    for (const t of ['Systèmes', 'Instructions exactes', 'Résultat attendu', 'Attend (0)', 'Débloque (0)', 'Résolutions en cas d’échec (0)']) {
+    for (const t of [
+      'Systèmes',
+      'Instructions exactes',
+      'Résultat attendu',
+      'Attend (0)',
+      'Débloque (0)',
+      'Résolutions en cas d’échec (0)',
+    ]) {
       expect(within(espace).getByRole('heading', { name: t })).toBeInTheDocument();
     }
     expect(within(espace).getByText(/À compléter : la criticité, le résultat attendu\./)).toBeInTheDocument();
@@ -214,8 +286,13 @@ describe('EtapesEditeur : graphe en préparation', () => {
     await userEvent.click(carte(/^E0003/));
     const liste = await screen.findByRole('listbox', { name: 'Résolutions trouvées' });
     // Filtre présélectionné sur le système de l'étape (API) : WEB est masqué, la fiche « tous systèmes » reste.
-    expect(within(liste).getAllByRole('option').map((o) => o.textContent)).toEqual([
-      expect.stringContaining('API : le service ne démarre pas'), expect.stringContaining('Procédure générale'),
+    expect(
+      within(liste)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual([
+      expect.stringContaining('API : le service ne démarre pas'),
+      expect.stringContaining('Procédure générale'),
     ]);
     await userEvent.click(screen.getByRole('button', { name: 'Tous' }));
     const champ = screen.getByRole('combobox', { name: 'Ajouter une résolution' });
@@ -223,7 +300,9 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(within(liste).getAllByRole('option')).toHaveLength(1);
     expect(within(liste).getByText('refusée', { selector: 'mark' })).toBeInTheDocument();
     await userEvent.keyboard('{Enter}');
-    expect(screen.getByRole('button', { name: /Retirer la résolution WEB : purge du cache CDN refusée/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Retirer la résolution WEB : purge du cache CDN refusée/ }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Résolutions en cas d’échec (1)' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e3', expect.objectContaining({ resolutionIds: ['r2'] }));
@@ -234,7 +313,9 @@ describe('EtapesEditeur : graphe en préparation', () => {
     await userEvent.click(carte(/^E0003/));
     await userEvent.type(await screen.findByRole('combobox', { name: 'Ajouter une résolution' }), 'purge');
     await userEvent.click(screen.getByRole('button', { name: /1 autre dans d’autres systèmes/ }));
-    expect(within(screen.getByRole('listbox')).getByRole('option')).toHaveTextContent('WEB : purge du cache CDN refusée');
+    expect(within(screen.getByRole('listbox')).getByRole('option')).toHaveTextContent(
+      'WEB : purge du cache CDN refusée',
+    );
   });
 
   it('résolutions : créer une fiche avec le texte cherché comme titre', async () => {
@@ -242,7 +323,9 @@ describe('EtapesEditeur : graphe en préparation', () => {
     await userEvent.click(carte(/^E0003/));
     await userEvent.type(await screen.findByRole('combobox', { name: 'Ajouter une résolution' }), 'LDAP muet');
     await userEvent.click(screen.getByRole('button', { name: /Nouvelle fiche de résolution « LDAP muet »/ }));
-    expect(await screen.findByText('Destination : /parametres/resolutions/nouvelle?mep=m1&etape=e3&titre=LDAP+muet')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Destination : /parametres/resolutions/nouvelle?mep=m1&etape=e3&titre=LDAP+muet'),
+    ).toBeInTheDocument();
   });
 
   it('suppression : confirmation intégrée au panneau', async () => {

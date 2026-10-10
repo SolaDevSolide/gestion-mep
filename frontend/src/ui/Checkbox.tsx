@@ -23,7 +23,9 @@ export function Checkbox({ checked, onChange, label, description, disabled, clas
         onCheckedChange={(v) => onChange(v === true)}
         className="mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border border-line-strong bg-surface shadow-sm transition-colors duration-150 data-[state=checked]:border-accent data-[state=checked]:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <C.Indicator><Check className="size-3.5 text-accent-fg" strokeWidth={3} aria-hidden /></C.Indicator>
+        <C.Indicator>
+          <Check className="size-3.5 text-accent-fg" strokeWidth={3} aria-hidden />
+        </C.Indicator>
       </C.Root>
       <label htmlFor={id} className={cn('text-sm leading-5 text-fg', disabled && 'text-fg-muted')}>
         {label}

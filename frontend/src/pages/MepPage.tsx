@@ -25,11 +25,16 @@ const ONGLETS: Onglet[] = ['preparation', 'etapes', 'execution', 'retour', 'rece
 
 function ongletParDefaut(m: Mep): Onglet {
   switch (m.phase) {
-    case 'Preparation': return 'preparation';
-    case 'Execution': return 'execution';
-    case 'Recette': return 'recette';
-    case 'RetourArriere': return 'retour';
-    case 'Cloturee': return m.issue === 'Repliee' ? 'retour' : 'execution';
+    case 'Preparation':
+      return 'preparation';
+    case 'Execution':
+      return 'execution';
+    case 'Recette':
+      return 'recette';
+    case 'RetourArriere':
+      return 'retour';
+    case 'Cloturee':
+      return m.issue === 'Repliee' ? 'retour' : 'execution';
   }
 }
 
@@ -47,33 +52,47 @@ export default function MepPage() {
   const dirtyRef = useRef(new Map<string, boolean>());
   const phaseRef = useRef<Phase | null>(null);
 
-  const registre = useMemo<DirtyRegistry>(() => ({ set: (k, d) => { if (d) dirtyRef.current.set(k, true); else dirtyRef.current.delete(k); } }), []);
+  const registre = useMemo<DirtyRegistry>(
+    () => ({
+      set: (k, d) => {
+        if (d) dirtyRef.current.set(k, true);
+        else dirtyRef.current.delete(k);
+      },
+    }),
+    [],
+  );
   const saisieEnCours = () => dirtyRef.current.size > 0;
 
   const definirOnglet = useCallback((o: Onglet) => setParams({ onglet: o }, { replace: true }), [setParams]);
 
-  const appliquer = useCallback((m: Mep) => {
-    versionRef.current = m.version;
-    setMep(m);
-    setRechargementEnAttente(false);
-    setJournalTick((t) => t + 1);
-    if (phaseRef.current !== null && phaseRef.current !== m.phase) {
-      setParams({ onglet: ongletParDefaut(m) }, { replace: true });
-    }
-    phaseRef.current = m.phase;
-  }, [setParams]);
+  const appliquer = useCallback(
+    (m: Mep) => {
+      versionRef.current = m.version;
+      setMep(m);
+      setRechargementEnAttente(false);
+      setJournalTick((t) => t + 1);
+      if (phaseRef.current !== null && phaseRef.current !== m.phase) {
+        setParams({ onglet: ongletParDefaut(m) }, { replace: true });
+      }
+      phaseRef.current = m.phase;
+    },
+    [setParams],
+  );
 
-  const charger = useCallback(async (forcer: boolean) => {
-    try {
-      const m = await api.mep(id);
-      if (forcer) setEpoch((e) => e + 1);
-      appliquer(m);
-      setErreurChargement('');
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 401) return;
-      setErreurChargement(e instanceof Error ? e.message : 'Chargement impossible.');
-    }
-  }, [id, appliquer]);
+  const charger = useCallback(
+    async (forcer: boolean) => {
+      try {
+        const m = await api.mep(id);
+        if (forcer) setEpoch((e) => e + 1);
+        appliquer(m);
+        setErreurChargement('');
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) return;
+        setErreurChargement(e instanceof Error ? e.message : 'Chargement impossible.');
+      }
+    },
+    [id, appliquer],
+  );
 
   /** Rechargement déclenché à distance : on protège une saisie en cours. */
   const synchroniser = useCallback(async () => {
@@ -84,7 +103,9 @@ export default function MepPage() {
         return;
       }
       appliquer(m);
-    } catch { /* silencieux : prochain cycle */ }
+    } catch {
+      /* silencieux : prochain cycle */
+    }
   }, [id, appliquer]);
 
   useEffect(() => {
@@ -95,11 +116,17 @@ export default function MepPage() {
   }, [charger]);
 
   // Flux temps réel (SSE), recréé après une erreur HTTP.
-  useEffect(() => ouvrirFlux(
-    `/api/meps/${id}/flux`,
-    (version) => { if (version > versionRef.current) void synchroniser(); },
-    () => void synchroniser(),
-  ), [id, synchroniser]);
+  useEffect(
+    () =>
+      ouvrirFlux(
+        `/api/meps/${id}/flux`,
+        (version) => {
+          if (version > versionRef.current) void synchroniser();
+        },
+        () => void synchroniser(),
+      ),
+    [id, synchroniser],
+  );
 
   // Rafraîchissement périodique (disponibilités dépendantes de l'heure, échéance automatique).
   useEffect(() => {
@@ -107,30 +134,36 @@ export default function MepPage() {
     return () => window.clearInterval(t);
   }, [synchroniser]);
 
-  const run = useCallback<MepContextValue['run']>(async (action, succes, surErreur) => {
-    try {
-      const m = await action();
-      appliquer(m);
-      if (succes) toast.succes(succes);
-      return true;
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 409) {
-        toast.erreur('Quelqu’un a modifié cette MEP, les données ont été rechargées.');
-        await charger(true);
-      } else if (e instanceof ApiError && e.status === 401) {
-        /* redirection gérée par le client API */
-      } else {
-        const message = e instanceof Error ? e.message : 'Une erreur est survenue.';
-        if (surErreur) surErreur(message); else toast.erreur(message);
+  const run = useCallback<MepContextValue['run']>(
+    async (action, succes, surErreur) => {
+      try {
+        const m = await action();
+        appliquer(m);
+        if (succes) toast.succes(succes);
+        return true;
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 409) {
+          toast.erreur('Quelqu’un a modifié cette MEP, les données ont été rechargées.');
+          await charger(true);
+        } else if (e instanceof ApiError && e.status === 401) {
+          /* redirection gérée par le client API */
+        } else {
+          const message = e instanceof Error ? e.message : 'Une erreur est survenue.';
+          if (surErreur) surErreur(message);
+          else toast.erreur(message);
+        }
+        return false;
       }
-      return false;
-    }
-  }, [appliquer, charger, toast]);
+    },
+    [appliquer, charger, toast],
+  );
 
   if (erreurChargement && !mep) {
     return (
       <main className="p-6">
-        <Alerte ton="danger" icone={OctagonAlert} role="alert">{erreurChargement}</Alerte>
+        <Alerte ton="danger" icone={OctagonAlert} role="alert">
+          {erreurChargement}
+        </Alerte>
       </main>
     );
   }
@@ -150,7 +183,11 @@ export default function MepPage() {
   return (
     <MepContext.Provider value={ctx}>
       <DirtyContext.Provider value={registre}>
-        <Tabs value={courant} onValueChange={(v) => definirOnglet(v as Onglet)} className="flex min-w-0 flex-1 flex-col">
+        <Tabs
+          value={courant}
+          onValueChange={(v) => definirOnglet(v as Onglet)}
+          className="flex min-w-0 flex-1 flex-col"
+        >
           <EnTeteMep
             mep={mep}
             onglets={
@@ -160,11 +197,15 @@ export default function MepPage() {
                 <TabsTrigger value="execution">Exécution</TabsTrigger>
                 <TabsTrigger value="retour">
                   Retour arrière
-                  {repliActif && <span className="size-2 rounded-full bg-rollback-bg" role="img" aria-label="Retour arrière actif" />}
+                  {repliActif && (
+                    <span className="size-2 rounded-full bg-rollback-bg" role="img" aria-label="Retour arrière actif" />
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="recette">
                   Recette
-                  {mep.phase === 'Recette' && <span className="size-2 rounded-full bg-warn-solid" role="img" aria-label="Recette en cours" />}
+                  {mep.phase === 'Recette' && (
+                    <span className="size-2 rounded-full bg-warn-solid" role="img" aria-label="Recette en cours" />
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="journal">Journal</TabsTrigger>
               </TabsList>
@@ -172,7 +213,10 @@ export default function MepPage() {
           />
 
           {mep.phase === 'RetourArriere' && mep.retourArriere && (
-            <div role="alert" className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-rollback-bg px-6 py-3 text-white">
+            <div
+              role="alert"
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-rollback-bg px-6 py-3 text-white"
+            >
               <Siren className="size-6 shrink-0" aria-hidden />
               <p className="min-w-0 flex-1 text-[15px]">
                 <strong className="font-extrabold">Retour arrière déclenché</strong>
@@ -180,13 +224,17 @@ export default function MepPage() {
                 <span>{mep.retourArriere.motif}</span>
               </p>
               <p className="text-sm opacity-90">
-                {mep.retourArriere.par ? `Par ${mep.retourArriere.par}` : 'Déclenchement automatique'} · {formatDateHeure(mep.retourArriere.le)}
+                {mep.retourArriere.par ? `Par ${mep.retourArriere.par}` : 'Déclenchement automatique'} ·{' '}
+                {formatDateHeure(mep.retourArriere.le)}
               </p>
             </div>
           )}
 
           {mep.nonRetourFranchi && mep.phase !== 'RetourArriere' && (
-            <div role="status" className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-warn-bd bg-warn-bg px-6 py-2.5 text-warn-fg">
+            <div
+              role="status"
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-warn-bd bg-warn-bg px-6 py-2.5 text-warn-fg"
+            >
               <Flag className="size-5 shrink-0 text-warn-solid" aria-hidden />
               <p className="min-w-0 flex-1 text-sm">
                 <strong className="font-bold">Point de non-retour franchi</strong>
@@ -203,7 +251,11 @@ export default function MepPage() {
               <Alerte
                 ton="run"
                 icone={RefreshCw}
-                action={<Button taille="sm" variante="primaire" onClick={() => void charger(true)}>Recharger (perd la saisie en cours)</Button>}
+                action={
+                  <Button taille="sm" variante="primaire" onClick={() => void charger(true)}>
+                    Recharger (perd la saisie en cours)
+                  </Button>
+                }
               >
                 Des modifications ont été reçues — recharger
               </Alerte>
@@ -211,12 +263,24 @@ export default function MepPage() {
           )}
 
           <div key={epoch} className="flex-1">
-            <TabsContent value="preparation" className="outline-none"><PreparationTab /></TabsContent>
-            <TabsContent value="etapes" className="outline-none"><EtapesTab /></TabsContent>
-            <TabsContent value="execution" className="outline-none"><ExecutionTab /></TabsContent>
-            <TabsContent value="retour" className="outline-none"><RetourArriereTab /></TabsContent>
-            <TabsContent value="recette" className="outline-none"><RecetteTab /></TabsContent>
-            <TabsContent value="journal" className="outline-none"><JournalTab mepId={mep.id} tick={journalTick} /></TabsContent>
+            <TabsContent value="preparation" className="outline-none">
+              <PreparationTab />
+            </TabsContent>
+            <TabsContent value="etapes" className="outline-none">
+              <EtapesTab />
+            </TabsContent>
+            <TabsContent value="execution" className="outline-none">
+              <ExecutionTab />
+            </TabsContent>
+            <TabsContent value="retour" className="outline-none">
+              <RetourArriereTab />
+            </TabsContent>
+            <TabsContent value="recette" className="outline-none">
+              <RecetteTab />
+            </TabsContent>
+            <TabsContent value="journal" className="outline-none">
+              <JournalTab mepId={mep.id} tick={journalTick} />
+            </TabsContent>
           </div>
         </Tabs>
       </DirtyContext.Provider>
