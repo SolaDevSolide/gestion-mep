@@ -1,12 +1,13 @@
 name: Wiki
 
-# Recopie la documentation (docs/*.md et CONTRIBUTING.md) dans le wiki GitHub du dépôt.
+# Recopie la documentation (docs/*.md, docs/images/ et CONTRIBUTING.md) dans le wiki GitHub du dépôt.
 # Le wiki n'est qu'un miroir : toute modification se fait dans docs/, par pull request.
 on:
   push:
     branches: [main]
     paths:
       - "docs/*.md"
+      - "docs/images/**"
       - "CONTRIBUTING.md"
       - ".github/scripts/miroir_wiki.py"
       - ".github/workflows/wiki.yml"
@@ -33,6 +34,8 @@ jobs:
       - name: Générer les pages
         run: |
           find wiki -maxdepth 1 -name '*.md' -delete
+          rm -rf wiki/images
+          cp -r docs/images wiki/images
           python3 .github/scripts/miroir_wiki.py . wiki "${{ github.repository }}"
       - name: Publier
         working-directory: wiki

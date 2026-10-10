@@ -5,6 +5,7 @@ Usage : python miroir_wiki.py <racine du dépôt> <dossier de sortie> <propriét
 - docs/README.md devient la page d'accueil (Home.md), CONTRIBUTING.md devient Contribuer.md.
 - Les liens vers une autre page deviennent des liens de wiki (sans « .md ») ; les liens vers le reste du
   dépôt (code, fichiers) pointent vers GitHub, puisque le wiki ne contient que les pages.
+- Les images de docs/images/ sont recopiées dans le wiki par le workflow : leurs liens restent relatifs.
 """
 
 import posixpath
@@ -34,6 +35,9 @@ def reecrire(texte: str, source: str, depot: str) -> str:
             return m.group(0)
         chemin, _, ancre = cible.partition("#")
         complet = posixpath.normpath(posixpath.join(posixpath.dirname(source), chemin))
+        if complet.startswith("docs/images/"):
+            nouveau = complet[len("docs/"):]
+            return m.group(1) + nouveau + m.group(3)
         page = nom_de_page(complet)
         nouveau = page if page else f"https://github.com/{depot}/blob/main/{complet}"
         if ancre:

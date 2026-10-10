@@ -4,14 +4,17 @@ Cette page décrit comment l'application est construite, pour un développeur qu
 
 ## Vue d'ensemble
 
-```
-Navigateur ──HTTPS──▶ Proxy inverse (IIS, nginx, Traefik…) ──HTTP :8080──▶ Conteneur « app »
-                                                                          │  ASP.NET Core (.NET 10)
-                                                                          │  ├─ /api/…      API JSON + flux SSE
-                                                                          │  └─ /…          front React (wwwroot)
-                                                                          ├─▶ PostgreSQL 16 (conteneur « db »)
-                                                                          ├─▶ volume « pieces-jointes »
-                                                                          └─▶ volume « cles » (clés du cookie de session)
+```mermaid
+flowchart LR
+    nav([Navigateur]) -- HTTPS --> proxy[Proxy inverse<br/>IIS, nginx, Traefik…]
+    proxy -- "HTTP :8080" --> app
+    subgraph app ["Conteneur « app » (ASP.NET Core, .NET 10)"]
+        api["/api/… : API JSON + flux SSE"]
+        web["/… : front React (wwwroot)"]
+    end
+    app --> db[(PostgreSQL 16<br/>conteneur « db »)]
+    app --> pj[/volume « pieces-jointes »/]
+    app --> cles[/volume « cles »<br/>clés du cookie de session/]
 ```
 
 - **Une seule image Docker** contient l'API et le front déjà construit : l'API sert les fichiers statiques et renvoie `index.html` pour toute route qui n'est pas sous `/api`.
