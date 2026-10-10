@@ -66,6 +66,35 @@ public class ReglesJalon42Tests
         Regles.Demarrer(m, E(m, "E0005"), Claire, Maintenant);
         Assert.Equal(m.Participants.Single(p => p.UtilisateurId == Claire).Id, E(m, "E0005").ExecutantId);
     }
+
+    [Fact]
+    public void Commentaire_d_execution_facultatif_garde_apres_reprise_et_non_duplique()
+    {
+        var m = Demo();
+        var e4 = E(m, "E0004");
+        Assert.Equal("", e4.Commentaire);
+        Assert.Throws<RegleMetierException>(() => Regles.Commenter(m, e4, "Trop tôt", Alice, false)); // préparation
+        Regles.Decider(m, Claire, DecisionApprobation.Approuvee, "", Maintenant);
+        var criteres = DonneesDemo.CriteresGoNoGo();
+        Regles.PasserEnExecution(m, Alice, criteres.Select(c => c.Id).ToList(), criteres, 1, Maintenant);
+
+        Regles.Demarrer(m, e4, Claire, Maintenant);
+        Regles.Terminer(m, e4, EtatEtape.Echec, "Erreur", false, Claire, Maintenant, "  Verrou sur la table clients  ");
+        Assert.Equal("Verrou sur la table clients", e4.Commentaire);
+        var revision = e4.Revision;
+        // Exécutante, pilote / suppléant ou administrateur seulement.
+        Assert.Throws<RegleMetierException>(() => Regles.Commenter(m, e4, "x", Guid.NewGuid(), false));
+        Regles.Commenter(m, e4, " Verrou levé par le DBA ", Bob, false); // suppléant
+        Assert.Equal(("Verrou levé par le DBA", revision + 1), (e4.Commentaire, e4.Revision));
+        Regles.Commenter(m, e4, "Vu", Guid.NewGuid(), true); // administrateur
+        // Conservé après la reprise ; un résultat sans commentaire ne l'efface pas.
+        Regles.AutoriserReprise(m, e4, Alice, Maintenant);
+        Assert.Equal("Vu", e4.Commentaire);
+        Regles.Demarrer(m, e4, Claire, Maintenant);
+        Regles.Terminer(m, e4, EtatEtape.Reussie, "OK", true, Claire, Maintenant);
+        Assert.Equal("Vu", e4.Commentaire);
+        Assert.Equal("", E(Regles.Dupliquer(m, null, false, Alice, Maintenant), "E0004").Commentaire);
+    }
 }
 
 /// <summary>Tests d'intégration du jalon 4.2.</summary>
@@ -136,5 +165,34 @@ public class ApiJalon42Tests : IDisposable
         Assert.Equal(participant.GetProperty("id").GetGuid(), Etape(mep, "E0004").GetProperty("executantId").GetGuid());
         var journal = await Ok(await alice.GetAsync($"/api/meps/{id}/journal"));
         Assert.Equal("E0004 démarrée par Root", journal[0].GetProperty("detail").GetString());
+    }
+
+    [Fact]
+    public async Task Commentaire_d_execution_a_la_fin_puis_par_la_route_dediee()
+    {
+        var alice = await _api.ClientConnecte("alice");
+        var claire = await _api.ClientConnecte("claire");
+        var id = await AidesApi.IdDemo(alice);
+        var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        Assert.Equal("", Etape(mep, "E0006").GetProperty("commentaire").GetString());
+        string Url(string action) => $"/api/meps/{id}/etapes/{Etape(mep, "E0006").GetProperty("id").GetGuid()}/{action}";
+        int Rev() => Etape(mep, "E0006").GetProperty("revision").GetInt32();
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await claire.PutAsJsonAsync(Url("commentaire"), new { revision = Rev(), commentaire = "x" })).StatusCode);
+
+        mep = await AidesApi.Go(_api, alice, id);
+        mep = await Ok(await claire.PostAsJsonAsync(Url("demarrer"), new { revision = Rev() }));
+        mep = await Ok(await claire.PostAsJsonAsync(Url("terminer"),
+            new { revision = Rev(), resultat = "Reussie", preuve = "Publié", resultatVerifie = true, commentaire = " Purge CDN lente " }));
+        Assert.Equal("Purge CDN lente", Etape(mep, "E0006").GetProperty("commentaire").GetString());
+
+        Assert.Equal(HttpStatusCode.Conflict, (await claire.PutAsJsonAsync(Url("commentaire"), new { revision = Rev() - 1, commentaire = "x" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await claire.PutAsJsonAsync(Url("commentaire"), new { commentaire = "x" })).StatusCode);
+        var long_ = new string('a', 250);
+        var avant = Rev();
+        mep = await Ok(await claire.PutAsJsonAsync(Url("commentaire"), new { revision = Rev(), commentaire = long_ }));
+        Assert.Equal((long_, avant + 1), (Etape(mep, "E0006").GetProperty("commentaire").GetString(), Rev()));
+        var entree = (await Ok(await alice.GetAsync($"/api/meps/{id}/journal")))[0];
+        Assert.Equal("etape.commentaire", entree.GetProperty("type").GetString());
+        Assert.Equal($"Commentaire sur E0006 : {new string('a', 200)}…", entree.GetProperty("detail").GetString());
     }
 }

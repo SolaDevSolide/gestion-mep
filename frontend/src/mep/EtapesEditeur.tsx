@@ -10,6 +10,8 @@ import { useAstuce } from './graphe/astuce';
 import { BarreSystemes } from './graphe/BarreSystemes';
 import { GrapheEtapes, groupeDepuisCle } from './graphe/GrapheEtapes';
 import { PanneauEdition, saisieDepuis } from './graphe/PanneauEdition';
+import { useModeEspace } from './graphe/EspaceEtape';
+import { cn } from '../ui/cn';
 import { PanneauLiens } from './graphe/PanneauLiens';
 import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
 import { descriptionsSystemes } from './graphe/systemes';
@@ -27,6 +29,7 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   const [cleGroupe, setCleGroupe] = useState<string | null>(null);
   const [nouvelle, setNouvelle] = useState<string | null>(null);
   const astuce = useAstuce('');
+  const modeEspace = useModeEspace();
   const catalogue = useAsync(() => api.catalogueSystemes(), []);
   const resolutions = useAsync(() => api.resolutions(), []);
   const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue.donnees), [mep, catalogue.donnees]);
@@ -106,7 +109,7 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
         <p aria-live="polite" className="min-w-0 flex-1 text-[13px] font-semibold text-rollback-solid">{astuce.flash ? astuce.texte : ''}</p>
         <AideGraphe edition={modifiable} />
       </div>
-      <div className="relative">
+      <div className={cn('relative', etape && modeEspace === 'panneau' && 'min-[1100px]:pr-[608px]')}>
         <GrapheEtapes
           mep={mep}
           plan={plan}

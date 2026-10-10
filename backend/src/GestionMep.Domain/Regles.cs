@@ -738,7 +738,9 @@ public static class Regles
     }
 
     /// <param name="resultatVerifie">Confirmation « j'ai vérifié et obtenu le résultat attendu », exigée pour Réussie.</param>
-    public static void Terminer(Mep mep, Etape etape, EtatEtape resultat, string preuve, bool resultatVerifie, Guid utilisateurId, DateTimeOffset maintenant)
+    /// <param name="commentaire">Commentaire facultatif enregistré avec la preuve (null : commentaire existant inchangé).</param>
+    public static void Terminer(Mep mep, Etape etape, EtatEtape resultat, string preuve, bool resultatVerifie, Guid utilisateurId, DateTimeOffset maintenant,
+        string? commentaire = null)
     {
         if (resultat is not (EtatEtape.Reussie or EtatEtape.Echec))
             throw new RegleMetierException("Résultat attendu : Réussie ou Échec.");
@@ -750,8 +752,23 @@ public static class Regles
         if (resultat == EtatEtape.Reussie && !resultatVerifie)
             throw new RegleMetierException("Confirmer avoir vérifié et obtenu le résultat attendu.");
         etape.Preuve = preuve;
+        if (commentaire is not null) etape.Commentaire = commentaire.Trim();
         etape.FinReelle = maintenant;
         etape.Etat = resultat;
+        etape.Revision++;
+    }
+
+    /// <summary>
+    /// Commentaire facultatif sur l'exécution d'une étape, pendant l'exécution, la recette ou le retour arrière :
+    /// par l'exécutant, le pilote / un suppléant ou un administrateur. Texte rogné (vide accepté : efface le commentaire).
+    /// </summary>
+    public static void Commenter(Mep mep, Etape etape, string commentaire, Guid utilisateurId, bool estAdmin)
+    {
+        if (mep.Phase is not (Phase.Execution or Phase.Recette or Phase.RetourArriere))
+            throw new RegleMetierException("Le commentaire d'exécution se saisit pendant l'exécution, la recette ou le retour arrière.");
+        if (!estAdmin && !EstExecutant(mep, etape, utilisateurId) && !EstPilote(mep, utilisateurId))
+            throw new RegleMetierException("Seul l'exécutant de l'étape, le pilote, un suppléant ou un administrateur peut la commenter.");
+        etape.Commentaire = (commentaire ?? "").Trim();
         etape.Revision++;
     }
 

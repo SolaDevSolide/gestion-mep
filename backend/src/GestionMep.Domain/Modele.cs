@@ -324,6 +324,8 @@ public class Etape
     public string Instructions { get; set; } = "";
     public string ResultatAttendu { get; set; } = "";
     public string Preuve { get; set; } = "";
+    /// <summary>Commentaire facultatif de l'exécution (en plus de la preuve) ; conservé après une reprise, non copié à la duplication.</summary>
+    public string Commentaire { get; set; } = "";
     public DateTimeOffset? DebutReel { get; set; }
     public DateTimeOffset? FinReelle { get; set; }
     public int Revision { get; set; }

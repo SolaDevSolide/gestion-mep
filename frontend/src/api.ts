@@ -105,8 +105,11 @@ export const api = {
   modifierEtape: (id: string, eid: string, s: EtapeSaisie) => put<Mep>(`/meps/${id}/etapes/${eid}`, s),
   supprimerEtape: (id: string, eid: string) => del<Mep>(`/meps/${id}/etapes/${eid}`),
   demarrerEtape: (id: string, eid: string, revision: number) => post<Mep>(`/meps/${id}/etapes/${eid}/demarrer`, { revision }),
-  terminerEtape: (id: string, eid: string, revision: number, resultat: 'Reussie' | 'Echec', preuve: string, resultatVerifie: boolean) =>
-    post<Mep>(`/meps/${id}/etapes/${eid}/terminer`, { revision, resultat, preuve, resultatVerifie }),
+  terminerEtape: (id: string, eid: string, revision: number, resultat: 'Reussie' | 'Echec', preuve: string, resultatVerifie: boolean, commentaire?: string) =>
+    post<Mep>(`/meps/${id}/etapes/${eid}/terminer`, { revision, resultat, preuve, resultatVerifie, ...(commentaire === undefined ? {} : { commentaire }) }),
+  /** Commentaire facultatif d'une étape (exécutant, pilote / suppléant, admin ; pendant l'exécution, la recette ou le retour arrière). */
+  commenterEtape: (id: string, eid: string, revision: number, commentaire: string) =>
+    put<Mep>(`/meps/${id}/etapes/${eid}/commentaire`, { revision, commentaire }),
   autoriserReprise: (id: string, eid: string, revision: number) =>
     post<Mep>(`/meps/${id}/etapes/${eid}/autoriser-reprise`, { revision }),
 

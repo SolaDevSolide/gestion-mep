@@ -157,10 +157,23 @@ public static class EtapesEndpoints
             ServiceMep.ExigerRevision(e, c.Revision);
             if (c.Resultat is null) throw ErreurHttp.Saisie("Le résultat (Reussie ou Echec) est obligatoire.");
             var preuve = ServiceMep.Texte(c.Preuve);
-            Regles.Terminer(mep, e, c.Resultat.Value, preuve, c.ResultatVerifie, acteur.Id, svc.Maintenant);
+            Regles.Terminer(mep, e, c.Resultat.Value, preuve, c.ResultatVerifie, acteur.Id, svc.Maintenant, c.Commentaire);
             return Results.Ok(c.Resultat == EtatEtape.Reussie
                 ? await svc.Enregistrer(mep, acteur, "etape.reussie", $"{e.Code} réussie : {preuve}")
                 : await svc.Enregistrer(mep, acteur, "etape.echec", $"{e.Code} en échec : {preuve}"));
+        });
+
+        // Commentaire facultatif sur l'exécution (exécution, recette ou retour arrière).
+        api.MapPut("/meps/{id:guid}/etapes/{eid:guid}/commentaire", async (Guid id, Guid eid, CommentaireSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            var e = ServiceMep.TrouverEtape(mep, eid);
+            ServiceMep.ExigerRevision(e, c.Revision);
+            Regles.Commenter(mep, e, ServiceMep.Texte(c.Commentaire), acteur.Id, acteur.EstAdmin);
+            var texte = e.Commentaire.Length > 200 ? e.Commentaire[..200] + "…" : e.Commentaire;
+            return Results.Ok(await svc.Enregistrer(mep, acteur, "etape.commentaire",
+                texte.Length == 0 ? $"Commentaire sur {e.Code} effacé" : $"Commentaire sur {e.Code} : {texte}"));
         });
 
         api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/autoriser-non-retour", async (Guid id, Guid eid, RevisionSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
