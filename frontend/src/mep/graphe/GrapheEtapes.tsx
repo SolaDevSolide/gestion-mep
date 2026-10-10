@@ -1,3 +1,4 @@
+import { Maximize, ZoomIn, ZoomOut } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as PointerEventReact } from 'react';
 import {
@@ -5,6 +6,7 @@ import {
   type Ancrage, type GroupeLiens, type Lien, type Point,
 } from '../../graphe';
 import type { Etape, Mep, TypePlan } from '../../types';
+import { BoutonIcone } from '../../ui/Button';
 import { cn } from '../../ui/cn';
 import { CarteEtape, libelleCarte, type ModeGraphe } from './CarteEtape';
 
@@ -35,7 +37,13 @@ type Glisse =
   | { t: 'carte'; id: string; cible: { ligne: number; index: number } | null }
   | { t: 'lien'; de: string; cote: 'haut' | 'bas'; survol: string | null; possible: boolean };
 
-interface Geometrie { ancrages: Record<string, Ancrage>; largeur: number; hauteur: number }
+interface Geometrie { ancrages: Record<string, Ancrage>; largeur: number; hauteur: number; zone: number }
+
+const ZOOM_MIN = 0.3;
+const ZOOM_MAX = 1.5;
+const PAS_ZOOM = 1.2;
+/** Marge horizontale du graphe (place des blocs fantômes « + Étape »). */
+const MARGE_X = 150;
 
 const COULEUR = { neutre: 'var(--fg-subtle)', accent: 'var(--accent)', ok: 'var(--ok-solid)' } as const;
 
@@ -58,7 +66,7 @@ export function GrapheEtapes(props: Props) {
   const graphe = useRef<HTMLDivElement>(null);
   const clone = useRef<HTMLDivElement>(null);
   const trace = useRef<SVGPathElement>(null);
-  const [geo, setGeo] = useState<Geometrie>({ ancrages: {}, largeur: 0, hauteur: 0 });
+  const [geo, setGeo] = useState<Geometrie>({ ancrages: {}, largeur: 0, hauteur: 0, zone: 0 });
   const [glisse, setGlisse] = useState<Glisse | null>(null);
   // Copie synchrone de `glisse` : les événements du pointeur peuvent se suivre avant le rendu suivant.
   const glisseRef = useRef<Glisse | null>(null);
@@ -70,17 +78,38 @@ export function GrapheEtapes(props: Props) {
   const appui = useRef<{ id: string; x: number; y: number; dx: number; dy: number } | null>(null);
   const positionClone = useRef({ x: 0, y: 0 });
 
-  // ---------- Mesure des fiches (les liens sont dessinés d'après leur position réelle) ----------
+  // ---------- Zoom et déplacement de la vue ----------
+  const [zoom, setZoom] = useState(1);
+  const zoomRef = useRef(1);
+  zoomRef.current = zoom;
+  /** Point du graphe (repère non zoomé) à garder sous le pointeur après un changement de zoom. */
+  const ancre = useRef<{ px: number; py: number; cx: number; cy: number } | null>(null);
+  const deplacementVue = useRef<{ x: number; y: number; sl: number; st: number } | null>(null);
+  const [vueSaisie, setVueSaisie] = useState(false);
+
+  const zoomer = useCallback((cible: number, cx?: number, cy?: number) => {
+    const z = zone.current;
+    const z2 = Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, cible)) * 100) / 100;
+    if (!z || z2 === zoomRef.current) return;
+    const r = z.getBoundingClientRect();
+    const x = cx === undefined ? r.width / 2 : cx - r.left;
+    const y = cy === undefined ? Math.min(r.height, z.clientHeight) / 2 : cy - r.top;
+    ancre.current = { px: (z.scrollLeft + x) / zoomRef.current, py: (z.scrollTop + y) / zoomRef.current, cx: x, cy: y };
+    setZoom(z2);
+  }, []);
+
+  // ---------- Mesure des fiches (les liens sont dessinés d'après leur position réelle, dans le repère non zoomé) ----------
   const mesurer = useCallback(() => {
     const g = graphe.current;
     if (!g) return;
+    const z = zoomRef.current;
     const base = g.getBoundingClientRect();
     const ancrages: Record<string, Ancrage> = {};
     g.querySelectorAll<HTMLElement>('[data-carte]').forEach((el) => {
       const r = el.getBoundingClientRect();
-      ancrages[el.dataset.carte!] = { x: r.left + r.width / 2 - base.left, haut: r.top - base.top, bas: r.bottom - base.top };
+      ancrages[el.dataset.carte!] = { x: (r.left + r.width / 2 - base.left) / z, haut: (r.top - base.top) / z, bas: (r.bottom - base.top) / z };
     });
-    const suivante: Geometrie = { ancrages, largeur: g.scrollWidth, hauteur: g.scrollHeight };
+    const suivante: Geometrie = { ancrages, largeur: g.offsetWidth, hauteur: g.offsetHeight, zone: zone.current?.clientWidth ?? 0 };
     setGeo((p) => (JSON.stringify(p) === JSON.stringify(suivante) ? p : suivante));
   }, []);
   useLayoutEffect(() => { mesurer(); });
@@ -89,6 +118,7 @@ export function GrapheEtapes(props: Props) {
     window.addEventListener('resize', mesurer);
     const ro = typeof ResizeObserver !== 'undefined' && g ? new ResizeObserver(() => mesurer()) : null;
     if (ro && g) ro.observe(g);
+    if (ro && zone.current) ro.observe(zone.current);
     void document.fonts?.ready?.then(() => mesurer());
     return () => { window.removeEventListener('resize', mesurer); ro?.disconnect(); };
   }, [mesurer]);
@@ -97,15 +127,63 @@ export function GrapheEtapes(props: Props) {
     const z = zone.current;
     if (z) z.scrollLeft = Math.max(0, (z.scrollWidth - z.clientWidth) / 2);
   }, []);
+  // Après un zoom : le point visé reste sous le pointeur (ou au centre).
+  useLayoutEffect(() => {
+    const a = ancre.current;
+    const z = zone.current;
+    if (!a || !z) return;
+    z.scrollLeft = a.px * zoom - a.cx;
+    z.scrollTop = a.py * zoom - a.cy;
+    const t = window.setTimeout(() => { ancre.current = null; }, 0);
+    return () => window.clearTimeout(t);
+  }, [zoom, geo.largeur, geo.hauteur]);
+  // Ctrl + molette : zoom autour du pointeur (écouteur non passif pour empêcher le zoom de la page).
+  useEffect(() => {
+    const z = zone.current;
+    if (!z) return;
+    const molette = (ev: WheelEvent) => {
+      if (!ev.ctrlKey && !ev.metaKey) return;
+      ev.preventDefault();
+      zoomer(zoomRef.current * (ev.deltaY < 0 ? PAS_ZOOM : 1 / PAS_ZOOM), ev.clientX, ev.clientY);
+    };
+    z.addEventListener('wheel', molette, { passive: false });
+    return () => z.removeEventListener('wheel', molette);
+  }, [zoomer]);
+
+  /** « Ajuster » : tout le graphe visible (sans dépasser 100 %). */
+  function ajuster() {
+    const z = zone.current;
+    const g = graphe.current;
+    if (!z || !g) return;
+    const groupes = [...g.querySelectorAll<HTMLElement>('[data-ligne] > div')];
+    const largeurContenu = Math.max(212, ...groupes.map((x) => x.offsetWidth)) + 2 * MARGE_X;
+    const hauteurDispo = Math.max(320, Math.min(940, window.innerHeight - z.getBoundingClientRect().top - 16));
+    const z2 = Math.min(1, z.clientWidth / largeurContenu, hauteurDispo / Math.max(1, g.offsetHeight));
+    ancre.current = null;
+    setZoom(Math.round(Math.max(ZOOM_MIN, z2) * 100) / 100);
+    requestAnimationFrame(() => { z.scrollLeft = Math.max(0, (z.scrollWidth - z.clientWidth) / 2); z.scrollTop = 0; });
+  }
+
+  // Étape choisie depuis le panneau (ou le clavier) hors du champ : on la recentre.
+  useEffect(() => {
+    const z = zone.current;
+    const el = selection ? graphe.current?.querySelector<HTMLElement>(`[data-carte="${selection}"]`) : null;
+    if (!z || !el || typeof z.scrollTo !== 'function') return;
+    const zr = z.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    if (r.left >= zr.left && r.right <= zr.right && r.top >= zr.top && r.bottom <= zr.bottom) return;
+    z.scrollTo({ left: z.scrollLeft + (r.left + r.width / 2) - (zr.left + zr.width / 2), top: z.scrollTop + (r.top + r.height / 2) - (zr.top + Math.min(zr.height, z.clientHeight) / 2), behavior: 'smooth' });
+  }, [selection]);
 
   // ---------- Glisser-déposer (fiches et liens) ----------
   const point = (id: string, cote: 'haut' | 'bas'): Point | null => {
     const g = graphe.current;
     const el = g?.querySelector<HTMLElement>(`[data-carte="${id}"]`);
     if (!g || !el) return null;
+    const z = zoomRef.current;
     const b = g.getBoundingClientRect();
     const r = el.getBoundingClientRect();
-    return { x: r.left + r.width / 2 - b.left, y: (cote === 'bas' ? r.bottom : r.top) - b.top };
+    return { x: (r.left + r.width / 2 - b.left) / z, y: ((cote === 'bas' ? r.bottom : r.top) - b.top) / z };
   };
   const noeudSous = (x: number, y: number, cible: EventTarget | null): string | null => {
     const el = (typeof document.elementFromPoint === 'function' ? document.elementFromPoint(x, y) : null) ?? (cible instanceof Element ? cible : null);
@@ -138,6 +216,12 @@ export function GrapheEtapes(props: Props) {
 
   useEffect(() => {
     function deplacer(ev: PointerEvent) {
+      const v = deplacementVue.current;
+      if (v && zone.current) {
+        zone.current.scrollLeft = v.sl - (ev.clientX - v.x);
+        zone.current.scrollTop = v.st - (ev.clientY - v.y);
+        return;
+      }
       const { edition: ed, ligneDe: lignesDe, liens: ls } = etat.current;
       let g = glisseRef.current;
       const a = appui.current;
@@ -152,7 +236,7 @@ export function GrapheEtapes(props: Props) {
       if (g.t === 'lien') {
         const b = gr.getBoundingClientRect();
         const A = point(g.de, g.cote);
-        const B = { x: ev.clientX - b.left, y: ev.clientY - b.top };
+        const B = { x: (ev.clientX - b.left) / zoomRef.current, y: (ev.clientY - b.top) / zoomRef.current };
         if (A && trace.current) trace.current.setAttribute('d', g.cote === 'bas' ? courbeTemporaire(A, B) : courbeTemporaire(B, A));
         const n = noeudSous(ev.clientX, ev.clientY, null);
         const survol = n && n !== g.de ? n : null;
@@ -172,6 +256,7 @@ export function GrapheEtapes(props: Props) {
     }
 
     function lacher(ev: PointerEvent) {
+      if (deplacementVue.current) { deplacementVue.current = null; setVueSaisie(false); return; }
       const { props: p, lignes: ls, ligneDe: lignesDe, liens: liensCourants } = etat.current;
       const g = glisseRef.current;
       const a = appui.current;
@@ -207,7 +292,7 @@ export function GrapheEtapes(props: Props) {
         }
       }
     }
-    function annuler() { appui.current = null; majGlisse(null); }
+    function annuler() { appui.current = null; deplacementVue.current = null; setVueSaisie(false); majGlisse(null); }
 
     document.addEventListener('pointermove', deplacer);
     document.addEventListener('pointerup', lacher);
@@ -223,7 +308,14 @@ export function GrapheEtapes(props: Props) {
     if (ev.button !== 0) return;
     const cible = ev.target as Element;
     const n = cible.closest<HTMLElement>('[data-noeud]');
-    if (!n) return;
+    if (!n) {
+      // Fond du graphe (ni fiche, ni rond, ni lien, ni bouton) : on fait glisser la vue.
+      if (cible.closest('button, [role="button"], input, select, textarea, a, [data-controles]') || !zone.current) return;
+      ev.preventDefault();
+      deplacementVue.current = { x: ev.clientX, y: ev.clientY, sl: zone.current.scrollLeft, st: zone.current.scrollTop };
+      setVueSaisie(true);
+      return;
+    }
     const id = n.dataset.noeud!;
     const port = cible.closest<HTMLElement>('[data-port]');
     if (port && edition) {
@@ -288,11 +380,22 @@ export function GrapheEtapes(props: Props) {
   const sansFin = lignes.length;
 
   return (
+    <div className="relative min-w-0">
     <div
       ref={zone}
-      className={cn('max-h-[940px] overflow-auto rounded-xl bg-surface shadow-sm', plan === 'RetourArriere' ? 'border-2 border-rollback-solid' : 'border border-line')}
+      onPointerDown={appuyer}
+      className={cn(
+        'max-h-[940px] overflow-auto rounded-xl bg-surface shadow-sm',
+        plan === 'RetourArriere' ? 'border-2 border-rollback-solid' : 'border border-line',
+        vueSaisie ? 'cursor-grabbing select-none' : 'cursor-grab',
+      )}
     >
-      <div ref={graphe} onPointerDown={appuyer} className="relative flex min-w-max flex-col gap-[46px] px-[150px] pt-7 pb-6 select-none">
+      <div className="relative" style={{ width: geo.largeur ? geo.largeur * zoom : undefined, height: geo.hauteur ? geo.hauteur * zoom : undefined }}>
+      <div
+        ref={graphe}
+        className="absolute top-0 left-0 flex flex-col gap-[46px] px-[150px] pt-7 pb-14 select-none"
+        style={{ transform: zoom !== 1 ? `scale(${zoom})` : undefined, transformOrigin: '0 0', minWidth: geo.zone ? geo.zone / zoom : undefined }}
+      >
         <svg className="pointer-events-none absolute top-0 left-0 z-0 overflow-visible" width={geo.largeur} height={geo.hauteur}>
           <defs>
             {(Object.keys(COULEUR) as (keyof typeof COULEUR)[]).map((k) => (
@@ -386,13 +489,25 @@ export function GrapheEtapes(props: Props) {
         )}
         {lignes.length === 0 && !edition && <p className="py-10 text-center text-sm text-fg-subtle">Aucune étape dans ce plan.</p>}
       </div>
+      </div>
+    </div>
+
+      <div data-controles role="toolbar" aria-label="Vue du graphe" className="absolute right-3 bottom-3 z-20 flex items-center gap-0.5 rounded-lg border border-line bg-surface/95 p-0.5 shadow-md backdrop-blur">
+        <BoutonIcone label="Dézoomer" taille="sm" disabled={zoom <= ZOOM_MIN} onClick={() => zoomer(zoom / PAS_ZOOM)}><ZoomOut className="size-4" aria-hidden /></BoutonIcone>
+        <button type="button" onClick={() => zoomer(1)} title="Revenir à 100 %" aria-label={`Zoom ${Math.round(zoom * 100)} % : revenir à 100 %`} className="h-8 min-w-12 rounded-md px-1.5 text-xs font-semibold text-fg-muted tnum hover:bg-surface-2 hover:text-fg">
+          {Math.round(zoom * 100)} %
+        </button>
+        <BoutonIcone label="Zoomer" taille="sm" disabled={zoom >= ZOOM_MAX} onClick={() => zoomer(zoom * PAS_ZOOM)}><ZoomIn className="size-4" aria-hidden /></BoutonIcone>
+        <BoutonIcone label="Ajuster : tout voir" taille="sm" onClick={ajuster}><Maximize className="size-4" aria-hidden /></BoutonIcone>
+      </div>
+      <p className="sr-only">Glissez le fond du graphe pour vous déplacer ; Ctrl + molette pour zoomer.</p>
 
       {glisseCarte && parId.get(glisseCarte.id) && createPortal(
         <div
           ref={clone}
           aria-hidden
-          className="pointer-events-none fixed z-50 rotate-2 rounded-lg opacity-90 shadow-lg motion-reduce:rotate-0"
-          style={{ left: positionClone.current.x, top: positionClone.current.y }}
+          className="pointer-events-none fixed z-50 rounded-lg opacity-90 shadow-lg"
+          style={{ left: positionClone.current.x, top: positionClone.current.y, transform: `scale(${zoom}) rotate(2deg)`, transformOrigin: '0 0' }}
         >
           <CarteEtape mep={mep} etape={parId.get(glisseCarte.id)!} mode={mode} descriptions={descriptions} />
         </div>,

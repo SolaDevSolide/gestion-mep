@@ -9,7 +9,7 @@ import { cn } from '../ui/cn';
 import { MultiSelect } from '../ui/Combobox';
 import { EmptyState } from '../ui/EmptyState';
 import { EtapePanneau, type ActionsEtape } from './EtapePanneau';
-import { CLASSES_PANNEAU } from './EtapesEditeur';
+import { ConteneurPanneau, usePanneauLateral } from './graphe/PanneauLateral';
 import { GrapheEtapes } from './graphe/GrapheEtapes';
 import { PanneauResume } from './graphe/PanneauResume';
 import { descriptionsSystemes } from './graphe/systemes';
@@ -19,6 +19,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
   const { mep, run } = useMep();
   const etapes = etapesDuPlan(mep, plan);
   const moi = mep.droits.participantId;
+  const panneau = usePanneauLateral();
 
   const [mesSystemes, setMesSystemes] = useLocalStorageState<string[]>(`mep.${mep.id}.mesSystemes`, []);
   const [aMoi, setAMoi] = useLocalStorageState<boolean>(`mep.${mep.id}.aMoi`, false);
@@ -99,7 +100,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
         <p className="ml-auto text-[13px] text-fg-subtle">Une étape devient disponible quand tous ses préalables sont réussis.</p>
       </div>
 
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)]">
+      <div className={panneau.classesGrille} style={panneau.styleGrille}>
         <GrapheEtapes
           mep={mep}
           plan={plan}
@@ -110,11 +111,11 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
           onSelection={setChoix}
           estEstompee={filtreActif ? (e) => !garde(e) : undefined}
         />
-        <aside aria-label="Étape sélectionnée" className={CLASSES_PANNEAU}>
+        <ConteneurPanneau etiquette="Étape sélectionnée" {...panneau}>
           {etape
-            ? <EtapePanneau key={etape.id} mep={mep} etape={etape} resolutionsTypes={resolutionsTypes ?? []} actions={actions} onSelectionner={setChoix} />
+            ? <EtapePanneau key={etape.id} mep={mep} etape={etape} resolutionsTypes={resolutionsTypes ?? []} actions={actions} onSelectionner={setChoix} onFermer={() => setChoix(null)} />
             : <PanneauResume plan={plan} etapes={etapes} aide={false} />}
-        </aside>
+        </ConteneurPanneau>
       </div>
     </div>
   );
