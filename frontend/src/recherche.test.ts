@@ -1,4 +1,14 @@
-import { classer, concerne, correspond, memeSysteme, normaliser, score, surligner, termes, type DocumentRecherche } from './recherche';
+import {
+  classer,
+  concerne,
+  correspond,
+  memeSysteme,
+  normaliser,
+  score,
+  surligner,
+  termes,
+  type DocumentRecherche,
+} from './recherche';
 
 describe('normaliser et termes', () => {
   it('ignore la casse et les accents', () => {
@@ -9,7 +19,10 @@ describe('normaliser et termes', () => {
 });
 
 describe('correspond', () => {
-  const doc: DocumentRecherche = { titre: 'WEB : purge du cache CDN refusée', textes: ['La publication échoue avec 403', 'Portail public'] };
+  const doc: DocumentRecherche = {
+    titre: 'WEB : purge du cache CDN refusée',
+    textes: ['La publication échoue avec 403', 'Portail public'],
+  };
 
   it('tous les mots doivent être trouvés, dans n’importe quel champ', () => {
     expect(correspond(doc, termes('cdn 403'))).toBe(true);
@@ -42,15 +55,21 @@ describe('classer', () => {
   });
 
   it('score : bonus si tous les termes sont dans le titre', () => {
-    expect(score({ titre: 'Purge CDN', textes: [] }, ['purge', 'cdn'])).toBeGreaterThan(score({ titre: 'Purge', textes: ['cdn'] }, ['purge', 'cdn']));
+    expect(score({ titre: 'Purge CDN', textes: [] }, ['purge', 'cdn'])).toBeGreaterThan(
+      score({ titre: 'Purge', textes: ['cdn'] }, ['purge', 'cdn']),
+    );
   });
 });
 
 describe('surligner', () => {
   it('marque les occurrences sans tenir compte des accents ni de la casse', () => {
     expect(surligner('Purge refusée (purge)', ['purge', 'refusee'])).toEqual([
-      { texte: 'Purge', trouve: true }, { texte: ' ', trouve: false }, { texte: 'refusée', trouve: true },
-      { texte: ' (', trouve: false }, { texte: 'purge', trouve: true }, { texte: ')', trouve: false },
+      { texte: 'Purge', trouve: true },
+      { texte: ' ', trouve: false },
+      { texte: 'refusée', trouve: true },
+      { texte: ' (', trouve: false },
+      { texte: 'purge', trouve: true },
+      { texte: ')', trouve: false },
     ]);
   });
 

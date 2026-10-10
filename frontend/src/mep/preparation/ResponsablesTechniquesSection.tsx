@@ -14,16 +14,35 @@ import { Segmented } from '../../ui/Segmented';
 import { Badge } from '../../ui/StatusPill';
 import { Tooltip } from '../../ui/Tooltip';
 import { SectionCarte } from './Formulaires';
-import { participantDepuisCompte, responsableDepuisSuggestion, suggestionsResponsablesTechniques, type SuggestionResponsable } from './suggestions';
+import {
+  participantDepuisCompte,
+  responsableDepuisSuggestion,
+  suggestionsResponsablesTechniques,
+  type SuggestionResponsable,
+} from './suggestions';
 
 /** Badge de disponibilité le jour J (réutilisé par l'encart « À appeler en cas de problème »). */
 export function BadgeDisponibilite({ valeur }: { valeur: DisponibiliteJourJ }) {
-  return valeur === 'Joignable'
-    ? <Badge ton="ok"><UserCheck className="size-3" aria-hidden />Joignable</Badge>
-    : <Badge ton="danger"><UserX className="size-3" aria-hidden />Absent</Badge>;
+  return valeur === 'Joignable' ? (
+    <Badge ton="ok">
+      <UserCheck className="size-3" aria-hidden />
+      Joignable
+    </Badge>
+  ) : (
+    <Badge ton="danger">
+      <UserX className="size-3" aria-hidden />
+      Absent
+    </Badge>
+  );
 }
 
-const VIDE: ResponsableTechnique = { participantId: '', systemeIds: [], perimetre: '', disponibilite: 'Joignable', contactJourJ: '' };
+const VIDE: ResponsableTechnique = {
+  participantId: '',
+  systemeIds: [],
+  perimetre: '',
+  disponibilite: 'Joignable',
+  contactJourJ: '',
+};
 
 /** Section « Responsables techniques » : qui a développé quoi, et comment le joindre le jour J. */
 export function ResponsablesTechniquesSection() {
@@ -35,12 +54,19 @@ export function ResponsablesTechniquesSection() {
   const [envoi, setEnvoi] = useState(false);
   const [utilisateurs, setUtilisateurs] = useState<Utilisateur[]>([]);
   const [ajoutEnCours, setAjoutEnCours] = useState<string | null>(null);
-  useEffect(() => { api.utilisateurs().then(setUtilisateurs).catch(() => setUtilisateurs([])); }, []);
+  useEffect(() => {
+    api
+      .utilisateurs()
+      .then(setUtilisateurs)
+      .catch(() => setUtilisateurs([]));
+  }, []);
   const suggestions = suggestionsResponsablesTechniques(mep, utilisateurs);
 
   const nom = (id: string) => mep.participants.find((p) => p.id === id)?.nom ?? 'Participant inconnu';
   const dejaResponsables = new Set(mep.responsablesTechniques.map((r) => r.participantId));
-  const candidats = mep.participants.filter((p) => !dejaResponsables.has(p.id) || p.id === forme?.existant?.participantId);
+  const candidats = mep.participants.filter(
+    (p) => !dejaResponsables.has(p.id) || p.id === forme?.existant?.participantId,
+  );
 
   useEffect(() => {
     if (forme) setBrouillon(forme.existant ?? { ...VIDE, participantId: candidats[0]?.id ?? '' });
@@ -55,11 +81,16 @@ export function ResponsablesTechniquesSection() {
     setEnvoi(true);
     try {
       const ex = forme?.existant;
-      const nouveau = { ...brouillon, perimetre: brouillon.perimetre.trim(), contactJourJ: brouillon.contactJourJ.trim() };
+      const nouveau = {
+        ...brouillon,
+        perimetre: brouillon.perimetre.trim(),
+        contactJourJ: brouillon.contactJourJ.trim(),
+      };
       const liste = ex
         ? mep.responsablesTechniques.map((r) => (r.participantId === ex.participantId ? nouveau : r))
         : [...mep.responsablesTechniques, nouveau];
-      if (await enregistrer(liste, ex ? 'Responsable technique modifié.' : 'Responsable technique ajouté.')) setForme(null);
+      if (await enregistrer(liste, ex ? 'Responsable technique modifié.' : 'Responsable technique ajouté.'))
+        setForme(null);
     } finally {
       setEnvoi(false);
     }
@@ -80,7 +111,10 @@ export function ResponsablesTechniquesSection() {
           if (!participant) throw new Error('La personne n’a pas pu être ajoutée aux participants.');
         }
         const nouveau = responsableDepuisSuggestion(s, participant.id, participant.contact || s.utilisateur.contact);
-        return api.modifierResponsablesTechniques(courante.id, courante.version, [...courante.responsablesTechniques, nouveau]);
+        return api.modifierResponsablesTechniques(courante.id, courante.version, [
+          ...courante.responsablesTechniques,
+          nouveau,
+        ]);
       }, `${s.utilisateur.nomAffiche} ajouté comme responsable technique.`);
     } finally {
       setAjoutEnCours(null);
@@ -92,14 +126,31 @@ export function ResponsablesTechniquesSection() {
       numero={4}
       titre="Responsables techniques"
       description="Développeurs et sachants : périmètre, disponibilité et contact le jour J."
-      action={edition && <Button variante="primaire" taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajouter</Button>}
+      action={
+        edition && (
+          <Button
+            variante="primaire"
+            taille="sm"
+            icone={<Plus className="size-4" aria-hidden />}
+            onClick={() => setForme({})}
+          >
+            Ajouter
+          </Button>
+        )
+      }
     >
       {mep.responsablesTechniques.length === 0 ? (
-        <EmptyState icone={Code2} titre="Aucun responsable technique" description="Désignez au moins une personne à appeler si un problème survient pendant l’intervention." />
+        <EmptyState
+          icone={Code2}
+          titre="Aucun responsable technique"
+          description="Désignez au moins une personne à appeler si un problème survient pendant l’intervention."
+        />
       ) : (
         <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">
           {mep.responsablesTechniques.map((r) => {
-            const systemes = r.systemeIds.map((id) => mep.systemes.find((s) => s.id === id)?.nom).filter((n): n is string => !!n);
+            const systemes = r.systemeIds
+              .map((id) => mep.systemes.find((s) => s.id === id)?.nom)
+              .filter((n): n is string => !!n);
             const estPilote = r.participantId === mep.piloteId;
             return (
               <li key={r.participantId} className="flex flex-wrap items-start gap-x-4 gap-y-2 px-4 py-3">
@@ -111,19 +162,42 @@ export function ResponsablesTechniquesSection() {
                       <BadgeDisponibilite valeur={r.disponibilite} />
                       {estPilote && <Badge ton="run">Pilote</Badge>}
                     </p>
-                    <p className="flex items-center gap-1 text-xs text-fg-subtle"><Phone className="size-3" aria-hidden />{r.contactJourJ || 'Contact non renseigné'}</p>
+                    <p className="flex items-center gap-1 text-xs text-fg-subtle">
+                      <Phone className="size-3" aria-hidden />
+                      {r.contactJourJ || 'Contact non renseigné'}
+                    </p>
                   </div>
                 </div>
                 <div className="min-w-0 flex-1 basis-56 space-y-1.5 text-sm text-fg-muted">
-                  <p className="whitespace-pre-line">{r.perimetre || <span className="text-fg-subtle">Périmètre non précisé</span>}</p>
+                  <p className="whitespace-pre-line">
+                    {r.perimetre || <span className="text-fg-subtle">Périmètre non précisé</span>}
+                  </p>
                   {systemes.length > 0 && (
-                    <p className="flex flex-wrap gap-1" aria-label="Systèmes développés">{systemes.map((s) => <Badge key={s} ton="run">{s}</Badge>)}</p>
+                    <p className="flex flex-wrap gap-1" aria-label="Systèmes développés">
+                      {systemes.map((s) => (
+                        <Badge key={s} ton="run">
+                          {s}
+                        </Badge>
+                      ))}
+                    </p>
                   )}
                 </div>
                 {edition && (
                   <div className="flex shrink-0 items-center gap-1">
-                    <Tooltip content="Modifier"><BoutonIcone label={`Modifier ${nom(r.participantId)}`} taille="sm" onClick={() => setForme({ existant: r })}><Pencil className="size-4" aria-hidden /></BoutonIcone></Tooltip>
-                    <Tooltip content="Retirer"><BoutonIcone label={`Retirer ${nom(r.participantId)}`} taille="sm" onClick={() => setSuppr(r)}><Trash2 className="size-4" aria-hidden /></BoutonIcone></Tooltip>
+                    <Tooltip content="Modifier">
+                      <BoutonIcone
+                        label={`Modifier ${nom(r.participantId)}`}
+                        taille="sm"
+                        onClick={() => setForme({ existant: r })}
+                      >
+                        <Pencil className="size-4" aria-hidden />
+                      </BoutonIcone>
+                    </Tooltip>
+                    <Tooltip content="Retirer">
+                      <BoutonIcone label={`Retirer ${nom(r.participantId)}`} taille="sm" onClick={() => setSuppr(r)}>
+                        <Trash2 className="size-4" aria-hidden />
+                      </BoutonIcone>
+                    </Tooltip>
                   </div>
                 )}
               </li>
@@ -133,8 +207,14 @@ export function ResponsablesTechniquesSection() {
       )}
 
       {suggestions.length > 0 && (
-        <section aria-labelledby="suggestions-rt" className="mt-5 rounded-lg border border-dashed border-line-strong bg-surface-2/50 p-4">
-          <h3 id="suggestions-rt" className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="size-4 text-accent-text" aria-hidden />Suggestions d’après les systèmes de la MEP</h3>
+        <section
+          aria-labelledby="suggestions-rt"
+          className="mt-5 rounded-lg border border-dashed border-line-strong bg-surface-2/50 p-4"
+        >
+          <h3 id="suggestions-rt" className="flex items-center gap-2 text-sm font-semibold">
+            <Sparkles className="size-4 text-accent-text" aria-hidden />
+            Suggestions d’après les systèmes de la MEP
+          </h3>
           <p className="mt-0.5 text-xs text-fg-subtle">Comptes experts d’un système de cette MEP.</p>
           <ul className="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
             {suggestions.map((s) => (
@@ -143,10 +223,16 @@ export function ResponsablesTechniquesSection() {
                   <Avatar nom={s.utilisateur.nomAffiche} />
                   <div className="min-w-0">
                     <p className="font-medium">{s.utilisateur.nomAffiche}</p>
-                    <p className="truncate text-xs text-fg-subtle">{s.utilisateur.role || 'Rôle non précisé'}{!s.participant && ' · pas encore dans les personnes'}</p>
+                    <p className="truncate text-xs text-fg-subtle">
+                      {s.utilisateur.role || 'Rôle non précisé'}
+                      {!s.participant && ' · pas encore dans les personnes'}
+                    </p>
                   </div>
                 </div>
-                <ul className="min-w-0 flex-1 basis-56 space-y-1 text-sm text-fg-muted" aria-label={`Expertises de ${s.utilisateur.nomAffiche}`}>
+                <ul
+                  className="min-w-0 flex-1 basis-56 space-y-1 text-sm text-fg-muted"
+                  aria-label={`Expertises de ${s.utilisateur.nomAffiche}`}
+                >
                   {s.systemes.map(({ systeme, detail }) => (
                     <li key={systeme.id} className="flex flex-wrap items-center gap-x-2">
                       <Badge ton="run">{systeme.nom}</Badge>
@@ -155,7 +241,15 @@ export function ResponsablesTechniquesSection() {
                   ))}
                 </ul>
                 {edition && (
-                  <Button taille="sm" icone={<Plus className="size-4" aria-hidden />} chargement={ajoutEnCours === s.utilisateur.id} onClick={() => void ajouterSuggestion(s)} aria-label={`Ajouter ${s.utilisateur.nomAffiche} comme responsable technique`}>Ajouter</Button>
+                  <Button
+                    taille="sm"
+                    icone={<Plus className="size-4" aria-hidden />}
+                    chargement={ajoutEnCours === s.utilisateur.id}
+                    onClick={() => void ajouterSuggestion(s)}
+                    aria-label={`Ajouter ${s.utilisateur.nomAffiche} comme responsable technique`}
+                  >
+                    Ajouter
+                  </Button>
                 )}
               </li>
             ))}
@@ -165,27 +259,59 @@ export function ResponsablesTechniquesSection() {
 
       <Dialog
         open={forme !== null}
-        onOpenChange={(o) => { if (!o) setForme(null); }}
+        onOpenChange={(o) => {
+          if (!o) setForme(null);
+        }}
         titre={forme?.existant ? 'Modifier le responsable technique' : 'Ajouter un responsable technique'}
         description="Ajoutez d’abord la personne dans « Personnes » si besoin."
         pied={
           <>
-            <Button variante="fantome" onClick={() => setForme(null)}>Annuler</Button>
-            <Button type="submit" form="formulaire-rt" variante="primaire" chargement={envoi} disabled={!brouillon.participantId}>{forme?.existant ? 'Enregistrer' : 'Ajouter'}</Button>
+            <Button variante="fantome" onClick={() => setForme(null)}>
+              Annuler
+            </Button>
+            <Button
+              type="submit"
+              form="formulaire-rt"
+              variante="primaire"
+              chargement={envoi}
+              disabled={!brouillon.participantId}
+            >
+              {forme?.existant ? 'Enregistrer' : 'Ajouter'}
+            </Button>
           </>
         }
       >
         <form id="formulaire-rt" onSubmit={(e) => void valider(e)} className="grid gap-4 sm:grid-cols-2">
-          {aucunCandidat && <div className="sm:col-span-2"><Alerte ton="wait" icone={UserX}>Tous les participants sont déjà responsables techniques.</Alerte></div>}
+          {aucunCandidat && (
+            <div className="sm:col-span-2">
+              <Alerte ton="wait" icone={UserX}>
+                Tous les participants sont déjà responsables techniques.
+              </Alerte>
+            </div>
+          )}
           <Field label="Participant *" className="sm:col-span-2">
             {(id) => (
-              <Select id={id} value={brouillon.participantId} disabled={!!forme?.existant} onChange={(e) => setBrouillon({ ...brouillon, participantId: e.target.value })}>
+              <Select
+                id={id}
+                value={brouillon.participantId}
+                disabled={!!forme?.existant}
+                onChange={(e) => setBrouillon({ ...brouillon, participantId: e.target.value })}
+              >
                 {!brouillon.participantId && <option value="">— choisir une personne —</option>}
-                {candidats.map((p) => <option key={p.id} value={p.id}>{p.nom}{p.role ? ` (${p.role})` : ''}</option>)}
+                {candidats.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nom}
+                    {p.role ? ` (${p.role})` : ''}
+                  </option>
+                ))}
               </Select>
             )}
           </Field>
-          <Field label="Systèmes développés" hint="Facultatif : ce que cette personne a développé." className="sm:col-span-2">
+          <Field
+            label="Systèmes développés"
+            hint="Facultatif : ce que cette personne a développé."
+            className="sm:col-span-2"
+          >
             {(id) => (
               <MultiSelect
                 id={id}
@@ -199,7 +325,15 @@ export function ResponsablesTechniquesSection() {
             )}
           </Field>
           <Field label="Périmètre" className="sm:col-span-2">
-            {(id) => <Textarea id={id} rows={2} value={brouillon.perimetre} onChange={(e) => setBrouillon({ ...brouillon, perimetre: e.target.value })} placeholder="ex. API de facturation et ses migrations de base" />}
+            {(id) => (
+              <Textarea
+                id={id}
+                rows={2}
+                value={brouillon.perimetre}
+                onChange={(e) => setBrouillon({ ...brouillon, perimetre: e.target.value })}
+                placeholder="ex. API de facturation et ses migrations de base"
+              />
+            )}
           </Field>
           <Field label="Disponibilité le jour J">
             {() => (
@@ -207,24 +341,43 @@ export function ResponsablesTechniquesSection() {
                 label="Disponibilité le jour J"
                 valeur={brouillon.disponibilite}
                 onChange={(disponibilite) => setBrouillon({ ...brouillon, disponibilite })}
-                options={[{ valeur: 'Joignable', libelle: 'Joignable' }, { valeur: 'Absent', libelle: 'Absent' }]}
+                options={[
+                  { valeur: 'Joignable', libelle: 'Joignable' },
+                  { valeur: 'Absent', libelle: 'Absent' },
+                ]}
               />
             )}
           </Field>
           <Field label="Contact le jour J">
-            {(id) => <Input id={id} value={brouillon.contactJourJ} onChange={(e) => setBrouillon({ ...brouillon, contactJourJ: e.target.value })} placeholder="téléphone, astreinte, canal" />}
+            {(id) => (
+              <Input
+                id={id}
+                value={brouillon.contactJourJ}
+                onChange={(e) => setBrouillon({ ...brouillon, contactJourJ: e.target.value })}
+                placeholder="téléphone, astreinte, canal"
+              />
+            )}
           </Field>
         </form>
       </Dialog>
 
       <ConfirmDialog
         open={suppr !== null}
-        onOpenChange={(o) => { if (!o) setSuppr(null); }}
+        onOpenChange={(o) => {
+          if (!o) setSuppr(null);
+        }}
         titre={`Retirer ${suppr ? nom(suppr.participantId) : ''} des responsables techniques ?`}
         description="La personne reste dans « Personnes »."
         libelleConfirmer="Retirer"
         variante="danger"
-        onConfirmer={() => suppr ? enregistrer(mep.responsablesTechniques.filter((r) => r.participantId !== suppr.participantId), 'Responsable technique retiré.') : false}
+        onConfirmer={() =>
+          suppr
+            ? enregistrer(
+                mep.responsablesTechniques.filter((r) => r.participantId !== suppr.participantId),
+                'Responsable technique retiré.',
+              )
+            : false
+        }
       />
     </SectionCarte>
   );

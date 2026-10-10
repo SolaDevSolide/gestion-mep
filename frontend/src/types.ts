@@ -4,7 +4,6 @@ import type { components } from './api/schema';
 
 type S = components['schemas'];
 
-
 /**
  * Forme qu'accepte le serveur pour une saisie : le désérialiseur .NET met à null un champ absent, donc un champ
  * nullable du contrat (déclaré obligatoire par le générateur) peut aussi être omis.
@@ -12,7 +11,9 @@ type S = components['schemas'];
 type Souple<T> = T extends (infer U)[]
   ? Souple<U>[]
   : T extends object
-    ? { [K in keyof T as null extends T[K] ? K : never]?: Souple<T[K]> } & { [K in keyof T as null extends T[K] ? never : K]: Souple<T[K]> }
+    ? { [K in keyof T as null extends T[K] ? K : never]?: Souple<T[K]> } & {
+        [K in keyof T as null extends T[K] ? never : K]: Souple<T[K]>;
+      }
     : T;
 
 /**
@@ -98,53 +99,94 @@ export type Mep = S['MepDto'];
 // ---------- Entrées (saisies) ----------
 
 /** `nomAffiche` absent : inchangé. */
-export type ProfilSaisie = SaisieVerifiee<S['ProfilSaisie'], {
-  nomAffiche?: string;
-  role: string;
-  contact: string;
-  expertises: Expertise[];
-}>;
+export type ProfilSaisie = SaisieVerifiee<
+  S['ProfilSaisie'],
+  {
+    nomAffiche?: string;
+    role: string;
+    contact: string;
+    expertises: Expertise[];
+  }
+>;
 
-export type MepIdentiteSaisie = SaisieVerifiee<S['MepIdentiteSaisie'], Pick<
-  Mep,
-  | 'version' | 'outil' | 'versionActuelle' | 'versionCible' | 'objet' | 'impacts'
-  | 'fuseauHoraire' | 'indisponibiliteMinutes' | 'piloteId'
-  | 'suppleantIds' | 'echeanceRepli'
-> & { environnement?: string; bilanActive?: boolean }>;
+export type MepIdentiteSaisie = SaisieVerifiee<
+  S['MepIdentiteSaisie'],
+  Pick<
+    Mep,
+    | 'version'
+    | 'outil'
+    | 'versionActuelle'
+    | 'versionCible'
+    | 'objet'
+    | 'impacts'
+    | 'fuseauHoraire'
+    | 'indisponibiliteMinutes'
+    | 'piloteId'
+    | 'suppleantIds'
+    | 'echeanceRepli'
+  > & { environnement?: string; bilanActive?: boolean }
+>;
 
 export type SauvegardeSaisie = SaisieVerifiee<S['SauvegardeSaisie'], Sauvegarde & { version: number }>;
-export type SauvegardeSystemeSaisie = SaisieVerifiee<S['SauvegardeSystemeSaisie'], SauvegardeSysteme & { version: number }>;
+export type SauvegardeSystemeSaisie = SaisieVerifiee<
+  S['SauvegardeSystemeSaisie'],
+  SauvegardeSysteme & { version: number }
+>;
 export type PlanRepliSaisie = SaisieVerifiee<S['PlanRepliSaisie'], PlanRepli & { version: number }>;
 export type ResponsableTechniqueSaisie = SaisieVerifiee<S['ResponsableTechniqueSaisie'], ResponsableTechnique>;
 
-export type ParticipantSaisie = SaisieVerifiee<S['ParticipantSaisie'], { nom: string; role: string; contact: string; utilisateurId: string | null }>;
+export type ParticipantSaisie = SaisieVerifiee<
+  S['ParticipantSaisie'],
+  { nom: string; role: string; contact: string; utilisateurId: string | null }
+>;
 export type SystemeSaisie = SaisieVerifiee<S['SystemeSaisie'], { nom: string; cible: string; impact: string }>;
-export type LivrableSaisie = SaisieVerifiee<S['LivrableSaisie'], { objet: string; version: string; emplacement: string; systemeId: string | null }>;
+export type LivrableSaisie = SaisieVerifiee<
+  S['LivrableSaisie'],
+  { objet: string; version: string; emplacement: string; systemeId: string | null }
+>;
 
-export type EtapeSaisie = SaisieVerifiee<S['EtapeSaisie'], {
-  revision: number;
-  action: string;
-  systemeIds: string[];
-  /** Ignoré par le serveur depuis le jalon 4.2 (l'exécutant est celui qui démarre). */
-  responsableId?: string | null;
-  criticite: Criticite | null;
-  dureeEstimeeMinutes: number | null;
-  instructions: string;
-  resultatAttendu: string;
-  dependances: string[];
-  resolutionIds: string[];
-  type: TypeEtape;
-  pointDeNonRetour: boolean;
-}>;
+export type EtapeSaisie = SaisieVerifiee<
+  S['EtapeSaisie'],
+  {
+    revision: number;
+    action: string;
+    systemeIds: string[];
+    /** Ignoré par le serveur depuis le jalon 4.2 (l'exécutant est celui qui démarre). */
+    responsableId?: string | null;
+    criticite: Criticite | null;
+    dureeEstimeeMinutes: number | null;
+    instructions: string;
+    resultatAttendu: string;
+    dependances: string[];
+    resolutionIds: string[];
+    type: TypeEtape;
+    pointDeNonRetour: boolean;
+  }
+>;
 
 /** `id` absent : nouvelle étape de test. */
-export type EtapeTestSaisie = SaisieVerifiee<S['EtapeTestSaisie'], { id?: string; instructions: string; resultatAttendu: string }>;
-export type FicheRecetteSaisie = SaisieVerifiee<S['FicheRecetteSaisie'], { systemeId: string | null; titre: string; etapes: EtapeTestSaisie[] }>;
+export type EtapeTestSaisie = SaisieVerifiee<
+  S['EtapeTestSaisie'],
+  { id?: string; instructions: string; resultatAttendu: string }
+>;
+export type FicheRecetteSaisie = SaisieVerifiee<
+  S['FicheRecetteSaisie'],
+  { systemeId: string | null; titre: string; etapes: EtapeTestSaisie[] }
+>;
 /** Bilan saisi à la clôture (corps de `POST /meps/{id}/cloturer`). */
-export type BilanSaisie = SaisieVerifiee<S['ClotureSaisie'], { ceQuiAMarche: string; incidents: string; actions: string }>;
-export type DuplicationSaisie = SaisieVerifiee<S['DuplicationSaisie'], { environnement?: string | null; commeModele: boolean }>;
+export type BilanSaisie = SaisieVerifiee<
+  S['ClotureSaisie'],
+  { ceQuiAMarche: string; incidents: string; actions: string }
+>;
+export type DuplicationSaisie = SaisieVerifiee<
+  S['DuplicationSaisie'],
+  { environnement?: string | null; commeModele: boolean }
+>;
 
-export type CritereGoNoGoSaisie = SaisieVerifiee<S['CritereGoNoGoSaisie'], { libelle: string; ordre?: number; actif?: boolean }>;
+export type CritereGoNoGoSaisie = SaisieVerifiee<
+  S['CritereGoNoGoSaisie'],
+  { libelle: string; ordre?: number; actif?: boolean }
+>;
 export type SystemeCatalogueSaisie = SaisieVerifiee<S['SystemeCatalogueSaisie'], Omit<SystemeCatalogue, 'id'>>;
 export type ResolutionTypeSaisie = SaisieVerifiee<
   S['ResolutionTypeSaisie'],

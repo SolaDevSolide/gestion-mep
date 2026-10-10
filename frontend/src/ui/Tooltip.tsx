@@ -1,9 +1,19 @@
 import { Tooltip as T } from 'radix-ui';
 import type { ReactNode } from 'react';
 
-export const TooltipProvider = ({ children }: { children: ReactNode }) => <T.Provider delayDuration={250}>{children}</T.Provider>;
+export const TooltipProvider = ({ children }: { children: ReactNode }) => (
+  <T.Provider delayDuration={250}>{children}</T.Provider>
+);
 
-export function Tooltip({ content, children, cote = 'top' }: { content: ReactNode; children: ReactNode; cote?: 'top' | 'bottom' | 'left' | 'right' }) {
+export function Tooltip({
+  content,
+  children,
+  cote = 'top',
+}: {
+  content: ReactNode;
+  children: ReactNode;
+  cote?: 'top' | 'bottom' | 'left' | 'right';
+}) {
   if (!content) return <>{children}</>;
   return (
     <T.Root>

@@ -22,14 +22,23 @@ let modeCourant: ModeEspace | null = null;
 
 export function changerModeEspace(m: ModeEspace) {
   modeCourant = m;
-  try { window.localStorage.setItem(CLE, m); } catch { /* stockage indisponible */ }
+  try {
+    window.localStorage.setItem(CLE, m);
+  } catch {
+    /* stockage indisponible */
+  }
   abonnes.forEach((f) => f());
 }
 
 /** Mode courant, partagé entre l'espace et la vue du graphe (qui laisse la place au panneau). */
 export function useModeEspace(): ModeEspace {
   return useSyncExternalStore(
-    (f) => { abonnes.add(f); return () => { abonnes.delete(f); }; },
+    (f) => {
+      abonnes.add(f);
+      return () => {
+        abonnes.delete(f);
+      };
+    },
     () => (modeCourant ??= lireMode()),
     () => 'panneau',
   );
@@ -44,7 +53,14 @@ export const LARGEUR_PANNEAU = 'min(600px, 100vw - 1rem)';
  * - Panneau latéral : le graphe reste utilisable à gauche ; les colonnes s'enchaînent dans un défilement unique.
  * Sous 1100 px de large, le plein écran empile aussi les colonnes.
  */
-export function Surcouche({ etiquette, onDemandeFermeture, barre, gauche, centre, droite }: {
+export function Surcouche({
+  etiquette,
+  onDemandeFermeture,
+  barre,
+  gauche,
+  centre,
+  droite,
+}: {
   etiquette: string;
   /** Échap, ✕ ou clic hors de l'espace (plein écran) : le parent décide (garde si saisie en cours). */
   onDemandeFermeture: () => void;
@@ -56,7 +72,13 @@ export function Surcouche({ etiquette, onDemandeFermeture, barre, gauche, centre
   const mode = useModeEspace();
   const plein = mode === 'plein';
   return (
-    <D.Root open modal={plein} onOpenChange={(o) => { if (!o) onDemandeFermeture(); }}>
+    <D.Root
+      open
+      modal={plein}
+      onOpenChange={(o) => {
+        if (!o) onDemandeFermeture();
+      }}
+    >
       <D.Portal>
         {plein && <D.Overlay className="fixed inset-0 z-40 bg-black/20 data-[state=open]:animate-fade-in" />}
         <D.Content
@@ -80,13 +102,27 @@ export function Surcouche({ etiquette, onDemandeFermeture, barre, gauche, centre
               {plein ? <PanelRight className="size-4" aria-hidden /> : <Maximize2 className="size-4" aria-hidden />}
             </BoutonIcone>
             <D.Close asChild>
-              <BoutonIcone label="Fermer" taille="sm"><X className="size-4" aria-hidden /></BoutonIcone>
+              <BoutonIcone label="Fermer" taille="sm">
+                <X className="size-4" aria-hidden />
+              </BoutonIcone>
             </D.Close>
           </div>
-          <div className={cn('min-h-0 flex-1 overflow-y-auto', plein && 'min-[1100px]:grid min-[1100px]:grid-cols-[17rem_minmax(0,1fr)_23rem] min-[1100px]:overflow-hidden 2xl:grid-cols-[19rem_minmax(0,1fr)_27rem]')}>
-            <Colonne plein={plein} className={plein ? 'min-[1100px]:border-r' : 'border-b'}>{gauche}</Colonne>
-            <Colonne plein={plein} principale className={plein ? undefined : 'border-b'}>{centre}</Colonne>
-            <Colonne plein={plein} className={plein ? 'min-[1100px]:border-l' : undefined}>{droite}</Colonne>
+          <div
+            className={cn(
+              'min-h-0 flex-1 overflow-y-auto',
+              plein &&
+                'min-[1100px]:grid min-[1100px]:grid-cols-[17rem_minmax(0,1fr)_23rem] min-[1100px]:overflow-hidden 2xl:grid-cols-[19rem_minmax(0,1fr)_27rem]',
+            )}
+          >
+            <Colonne plein={plein} className={plein ? 'min-[1100px]:border-r' : 'border-b'}>
+              {gauche}
+            </Colonne>
+            <Colonne plein={plein} principale className={plein ? undefined : 'border-b'}>
+              {centre}
+            </Colonne>
+            <Colonne plein={plein} className={plein ? 'min-[1100px]:border-l' : undefined}>
+              {droite}
+            </Colonne>
           </div>
         </D.Content>
       </D.Portal>
@@ -94,7 +130,17 @@ export function Surcouche({ etiquette, onDemandeFermeture, barre, gauche, centre
   );
 }
 
-function Colonne({ children, principale, plein, className }: { children: ReactNode; principale?: boolean; plein: boolean; className?: string }) {
+function Colonne({
+  children,
+  principale,
+  plein,
+  className,
+}: {
+  children: ReactNode;
+  principale?: boolean;
+  plein: boolean;
+  className?: string;
+}) {
   return (
     <div
       className={cn(

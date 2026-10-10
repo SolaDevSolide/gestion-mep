@@ -1,7 +1,9 @@
 import type { Mep, Participant, ParticipantSaisie, ResponsableTechnique, Systeme, Utilisateur } from '../../types';
 
 /** Nom, rôle et contact d'une personne pré-remplis depuis le profil de son compte (modifiables ensuite). */
-export function participantDepuisCompte(u: Pick<Utilisateur, 'id' | 'nomAffiche' | 'role' | 'contact'>): ParticipantSaisie {
+export function participantDepuisCompte(
+  u: Pick<Utilisateur, 'id' | 'nomAffiche' | 'role' | 'contact'>,
+): ParticipantSaisie {
   return { nom: u.nomAffiche, role: u.role ?? '', contact: u.contact ?? '', utilisateurId: u.id };
 }
 
@@ -33,11 +35,18 @@ export function suggestionsResponsablesTechniques(
     });
     if (systemes.length > 0) suggestions.push({ utilisateur: u, participant, systemes });
   }
-  return suggestions.sort((a, b) => b.systemes.length - a.systemes.length || a.utilisateur.nomAffiche.localeCompare(b.utilisateur.nomAffiche, 'fr'));
+  return suggestions.sort(
+    (a, b) =>
+      b.systemes.length - a.systemes.length || a.utilisateur.nomAffiche.localeCompare(b.utilisateur.nomAffiche, 'fr'),
+  );
 }
 
 /** Responsable technique issu d'une suggestion : systèmes concernés, périmètre = détail(s) de l'expertise. */
-export function responsableDepuisSuggestion(s: SuggestionResponsable, participantId: string, contact: string): ResponsableTechnique {
+export function responsableDepuisSuggestion(
+  s: SuggestionResponsable,
+  participantId: string,
+  contact: string,
+): ResponsableTechnique {
   const details = [...new Set(s.systemes.map((x) => x.detail.trim()).filter(Boolean))];
   return {
     participantId,

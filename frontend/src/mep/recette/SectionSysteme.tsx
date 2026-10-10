@@ -26,32 +26,57 @@ export function SectionSysteme({ systeme, fiches, peutAgir, onAjouter }: Props) 
   const conformes = etapes.filter((e) => e.resultat === 'Conforme').length;
 
   return (
-    <section aria-labelledby={titreId} className="overflow-hidden rounded-xl border bg-surface" style={systeme ? { borderColor: couleurSysteme(systeme.nom) } : undefined}>
+    <section
+      aria-labelledby={titreId}
+      className="overflow-hidden rounded-xl border bg-surface"
+      style={systeme ? { borderColor: couleurSysteme(systeme.nom) } : undefined}
+    >
       <header
-        className={cn('flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3', !systeme && 'border-b border-line bg-surface-2')}
+        className={cn(
+          'flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3',
+          !systeme && 'border-b border-line bg-surface-2',
+        )}
         style={systeme ? styleSysteme(systeme.nom) : undefined}
       >
         <div className="min-w-0 flex-1 basis-56">
           <h2 id={titreId} className="flex items-center gap-2 text-base font-bold">
-            {systeme && <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: couleurSysteme(systeme.nom) }} aria-hidden />}
+            {systeme && (
+              <span
+                className="size-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: couleurSysteme(systeme.nom) }}
+                aria-hidden
+              />
+            )}
             {systeme ? systeme.nom : 'Sans système'}
           </h2>
           {systeme?.cible && <p className="truncate font-mono text-xs opacity-80">{systeme.cible}</p>}
         </div>
         {etapes.length > 0 && (mep.phase === 'Recette' || mep.phase === 'Cloturee') && (
-          <span className="text-xs font-medium tnum">{conformes}/{etapes.length} conforme{conformes > 1 ? 's' : ''}</span>
+          <span className="text-xs font-medium tnum">
+            {conformes}/{etapes.length} conforme{conformes > 1 ? 's' : ''}
+          </span>
         )}
-        {edition && <Button variante="secondaire" taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={onAjouter}>Ajouter une recette</Button>}
+        {edition && (
+          <Button variante="secondaire" taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={onAjouter}>
+            Ajouter une recette
+          </Button>
+        )}
       </header>
       <div className="space-y-3 px-4 py-4">
         {systeme && responsables.length > 0 && (
-          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-muted" aria-label={`Responsables techniques de ${systeme.nom}`}>
+          <p
+            className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-muted"
+            aria-label={`Responsables techniques de ${systeme.nom}`}
+          >
             <span className="font-semibold text-fg">À appeler :</span>
             {responsables.map((r) => (
               <span key={r.participant.id} className="inline-flex items-center gap-1.5">
                 {r.participant.nom}
                 <BadgeDisponibilite valeur={r.disponibilite} />
-                <span className="inline-flex items-center gap-1"><Phone className="size-3" aria-hidden />{r.contactJourJ || 'contact non renseigné'}</span>
+                <span className="inline-flex items-center gap-1">
+                  <Phone className="size-3" aria-hidden />
+                  {r.contactJourJ || 'contact non renseigné'}
+                </span>
               </span>
             ))}
           </p>
@@ -64,7 +89,11 @@ export function SectionSysteme({ systeme, fiches, peutAgir, onAjouter }: Props) 
             {systeme ? `Aucune recette pour le système ${systeme.nom}.` : 'Aucune recette sans système.'}
           </p>
         ) : (
-          <ul className="space-y-3">{fiches.map((f) => <FicheCarte key={f.id} fiche={f} peutAgir={peutAgir} />)}</ul>
+          <ul className="space-y-3">
+            {fiches.map((f) => (
+              <FicheCarte key={f.id} fiche={f} peutAgir={peutAgir} />
+            ))}
+          </ul>
         )}
       </div>
     </section>

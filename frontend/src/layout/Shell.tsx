@@ -1,4 +1,17 @@
-import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, Rocket, Search, ShieldCheck, Sun, SunMoon, UserRound, Wrench, Layers } from 'lucide-react';
+import {
+  LogOut,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Rocket,
+  Search,
+  ShieldCheck,
+  Sun,
+  SunMoon,
+  UserRound,
+  Wrench,
+  Layers,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
@@ -18,7 +31,19 @@ const THEMES: { id: PreferenceTheme; libelle: string; Icone: typeof Sun }[] = [
   { id: 'sombre', libelle: 'Sombre', Icone: Moon },
 ];
 
-function Lien({ to, end, icone: Icone, libelle, replie }: { to: string; end?: boolean; icone: typeof Rocket; libelle: string; replie: boolean }) {
+function Lien({
+  to,
+  end,
+  icone: Icone,
+  libelle,
+  replie,
+}: {
+  to: string;
+  end?: boolean;
+  icone: typeof Rocket;
+  libelle: string;
+  replie: boolean;
+}) {
   const lien = (
     <NavLink
       to={to}
@@ -36,13 +61,22 @@ function Lien({ to, end, icone: Icone, libelle, replie }: { to: string; end?: bo
       {!replie && <span className="truncate">{libelle}</span>}
     </NavLink>
   );
-  return replie ? <Tooltip content={libelle} cote="right">{lien}</Tooltip> : lien;
+  return replie ? (
+    <Tooltip content={libelle} cote="right">
+      {lien}
+    </Tooltip>
+  ) : (
+    lien
+  );
 }
 
 export function Shell() {
   const { utilisateur, deconnecter } = useAuth();
   const { preference, sombre, definir, basculer } = useTheme();
-  const [replie, setReplie] = useLocalStorageState('mep.menu.replie', typeof window !== 'undefined' && window.innerWidth < 1100);
+  const [replie, setReplie] = useLocalStorageState(
+    'mep.menu.replie',
+    typeof window !== 'undefined' && window.innerWidth < 1100,
+  );
   const [palette, setPalette] = useState(false);
   const navigate = useNavigate();
 
@@ -83,19 +117,34 @@ export function Shell() {
             )}
           >
             <Search className="size-4 shrink-0" aria-hidden />
-            {!replie && (<><span className="flex-1 text-left">Rechercher…</span><Kbd>Ctrl K</Kbd></>)}
+            {!replie && (
+              <>
+                <span className="flex-1 text-left">Rechercher…</span>
+                <Kbd>Ctrl K</Kbd>
+              </>
+            )}
           </button>
         </div>
 
         <nav aria-label="Navigation principale" className="mt-4 flex flex-1 flex-col gap-0.5 overflow-y-auto px-3">
           <Lien to="/" end icone={Rocket} libelle="Mises en production" replie={replie} />
-          <div className={cn('mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase', replie && 'text-center px-0')}>
+          <div
+            className={cn(
+              'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase',
+              replie && 'text-center px-0',
+            )}
+          >
             {replie ? '···' : 'Paramètres'}
           </div>
           <Lien to="/parametres/systemes" icone={Layers} libelle="Systèmes" replie={replie} />
           <Lien to="/parametres/resolutions" icone={Wrench} libelle="Résolutions types" replie={replie} />
           <Lien to="/parametres/go-no-go" icone={ShieldCheck} libelle="Go / no-go" replie={replie} />
-          <div className={cn('mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase', replie && 'text-center px-0')}>
+          <div
+            className={cn(
+              'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase',
+              replie && 'text-center px-0',
+            )}
+          >
             {replie ? '···' : 'Compte'}
           </div>
           <Lien to="/profil" icone={UserRound} libelle="Mon profil" replie={replie} />
@@ -107,14 +156,19 @@ export function Shell() {
               <MenuTrigger asChild>
                 <button
                   type="button"
-                  className={cn('flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors duration-150 hover:bg-surface-2', replie && 'flex-none')}
+                  className={cn(
+                    'flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors duration-150 hover:bg-surface-2',
+                    replie && 'flex-none',
+                  )}
                   aria-label="Menu utilisateur"
                 >
                   <Avatar nom={utilisateur?.nomAffiche} />
                   {!replie && (
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium">{utilisateur?.nomAffiche}</span>
-                      <span className="block truncate text-xs text-fg-subtle">{utilisateur?.role || (utilisateur?.estAdmin ? 'Administrateur' : 'Utilisateur')}</span>
+                      <span className="block truncate text-xs text-fg-subtle">
+                        {utilisateur?.role || (utilisateur?.estAdmin ? 'Administrateur' : 'Utilisateur')}
+                      </span>
                     </span>
                   )}
                 </button>
@@ -144,7 +198,9 @@ export function Shell() {
               </BoutonIcone>
             </Tooltip>
             <Tooltip content="Se déconnecter">
-              <BoutonIcone label="Se déconnecter" onClick={() => void deconnecter()}><LogOut className="size-4" aria-hidden /></BoutonIcone>
+              <BoutonIcone label="Se déconnecter" onClick={() => void deconnecter()}>
+                <LogOut className="size-4" aria-hidden />
+              </BoutonIcone>
             </Tooltip>
           </div>
           <button
@@ -153,7 +209,13 @@ export function Shell() {
             className="mt-2 flex h-8 w-full items-center justify-center gap-2 rounded-lg text-xs text-fg-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
             aria-label={replie ? 'Déplier le menu' : 'Replier le menu'}
           >
-            {replie ? <PanelLeftOpen className="size-4" aria-hidden /> : <><PanelLeftClose className="size-4" aria-hidden /> Replier</>}
+            {replie ? (
+              <PanelLeftOpen className="size-4" aria-hidden />
+            ) : (
+              <>
+                <PanelLeftClose className="size-4" aria-hidden /> Replier
+              </>
+            )}
           </button>
         </div>
       </aside>
@@ -165,4 +227,3 @@ export function Shell() {
     </div>
   );
 }
-

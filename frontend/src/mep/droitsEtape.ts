@@ -17,7 +17,9 @@ export interface ResolutionsEtape {
 
 /** Regroupe les résolutions d'une étape (en cours, dernière, historique). */
 export function resolutionsDeLEtape(mep: Mep, etape: Etape): ResolutionsEtape {
-  const toutes = mep.resolutions.filter((r) => r.etapeId === etape.id).sort((a, b) => a.demarreeLe.localeCompare(b.demarreeLe));
+  const toutes = mep.resolutions
+    .filter((r) => r.etapeId === etape.id)
+    .sort((a, b) => a.demarreeLe.localeCompare(b.demarreeLe));
   return {
     toutes,
     enCours: toutes.find((r) => r.statut === 'EnCours'),
@@ -60,17 +62,25 @@ export function droitsEtape(mep: Mep, etape: Etape, admin: boolean): DroitsEtape
   const enEchec = etape.etat === 'Echec';
   const { enCours, derniere } = resolutionsDeLEtape(mep, etape);
 
-  const planAgissant = (mep.phase === 'Execution' && etape.plan === 'Deploiement') || (mep.phase === 'RetourArriere' && etape.plan === 'RetourArriere');
+  const planAgissant =
+    (mep.phase === 'Execution' && etape.plan === 'Deploiement') ||
+    (mep.phase === 'RetourArriere' && etape.plan === 'RetourArriere');
   const nonRetourAttendu = etape.pointDeNonRetour && etape.etat === 'AFaire' && etape.nonRetourAutorise === null;
 
   return {
     estExecutant,
     planAgissant,
     nonRetourAttendu,
-    peutDemarrer: (moi !== null || pilote || admin) && statut === 'Disponible' && etape.etat === 'AFaire' && !nonRetourAttendu,
+    peutDemarrer:
+      (moi !== null || pilote || admin) && statut === 'Disponible' && etape.etat === 'AFaire' && !nonRetourAttendu,
     peutTerminer: etape.etat === 'EnCours' && (estExecutant || pilote),
     peutAgirResolution: estExecutant || pilote,
-    peutPrendreLaMain: planAgissant && (moi !== null || admin) && !estExecutant && etape.executantId !== null && (etape.etat === 'EnCours' || etape.etat === 'Echec'),
+    peutPrendreLaMain:
+      planAgissant &&
+      (moi !== null || admin) &&
+      !estExecutant &&
+      etape.executantId !== null &&
+      (etape.etat === 'EnCours' || etape.etat === 'Echec'),
     peutCommenter: (estExecutant || pilote || admin) && PHASES_COMMENTAIRE.includes(mep.phase),
     enEchec,
     resolutionReussie: !enCours && derniere?.statut === 'Reussie' && etape.etat === 'AFaire',

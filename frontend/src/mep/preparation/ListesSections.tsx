@@ -27,13 +27,23 @@ function Ligne({ gauche, centre, actions }: { gauche: ReactNode; centre?: ReactN
 function Actions({ onModifier, onSupprimer, nom }: { onModifier: () => void; onSupprimer: () => void; nom: string }) {
   return (
     <>
-      <Tooltip content="Modifier"><BoutonIcone label={`Modifier ${nom}`} taille="sm" onClick={onModifier}><Pencil className="size-4" aria-hidden /></BoutonIcone></Tooltip>
-      <Tooltip content="Supprimer"><BoutonIcone label={`Supprimer ${nom}`} taille="sm" onClick={onSupprimer}><Trash2 className="size-4" aria-hidden /></BoutonIcone></Tooltip>
+      <Tooltip content="Modifier">
+        <BoutonIcone label={`Modifier ${nom}`} taille="sm" onClick={onModifier}>
+          <Pencil className="size-4" aria-hidden />
+        </BoutonIcone>
+      </Tooltip>
+      <Tooltip content="Supprimer">
+        <BoutonIcone label={`Supprimer ${nom}`} taille="sm" onClick={onSupprimer}>
+          <Trash2 className="size-4" aria-hidden />
+        </BoutonIcone>
+      </Tooltip>
     </>
   );
 }
 
-const Liste = ({ children }: { children: ReactNode }) => <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">{children}</ul>;
+const Liste = ({ children }: { children: ReactNode }) => (
+  <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">{children}</ul>
+);
 
 /* ------------------------------------------------------------------ Personnes */
 
@@ -43,10 +53,24 @@ export function PersonnesSection() {
   const [utilisateurs, setUtilisateurs] = useState<Utilisateur[]>([]);
   const [forme, setForme] = useState<{ existant?: Participant } | null>(null);
   const [suppr, setSuppr] = useState<Participant | null>(null);
-  useEffect(() => { api.utilisateurs().then(setUtilisateurs).catch(() => setUtilisateurs([])); }, []);
+  useEffect(() => {
+    api
+      .utilisateurs()
+      .then(setUtilisateurs)
+      .catch(() => setUtilisateurs([]));
+  }, []);
 
   const champs: ChampForm[] = [
-    { cle: 'utilisateurId', label: 'Compte', type: 'select', large: true, options: [{ valeur: '', libelle: '— aucun compte —' }, ...utilisateurs.map((u) => ({ valeur: u.id, libelle: `${u.nomAffiche} (${u.login})` }))] },
+    {
+      cle: 'utilisateurId',
+      label: 'Compte',
+      type: 'select',
+      large: true,
+      options: [
+        { valeur: '', libelle: '— aucun compte —' },
+        ...utilisateurs.map((u) => ({ valeur: u.id, libelle: `${u.nomAffiche} (${u.login})` })),
+      ],
+    },
     { cle: 'nom', label: 'Nom', requis: true },
     { cle: 'role', label: 'Rôle', placeholder: 'ex. Opérateur base de données' },
     { cle: 'contact', label: 'Contact', placeholder: 'e-mail ou téléphone', large: true },
@@ -59,19 +83,40 @@ export function PersonnesSection() {
     const p = participantDepuisCompte(u);
     return { nom: p.nom, role: p.role, contact: p.contact };
   };
-  const initial = useMemo(() => ({
-    nom: forme?.existant?.nom ?? '', role: forme?.existant?.role ?? '', contact: forme?.existant?.contact ?? '', utilisateurId: forme?.existant?.utilisateurId ?? '',
-  }), [forme]);
+  const initial = useMemo(
+    () => ({
+      nom: forme?.existant?.nom ?? '',
+      role: forme?.existant?.role ?? '',
+      contact: forme?.existant?.contact ?? '',
+      utilisateurId: forme?.existant?.utilisateurId ?? '',
+    }),
+    [forme],
+  );
 
   return (
     <SectionCarte
       numero={2}
       titre="Personnes"
       description="Reliez chaque personne à son compte pour qu’elle puisse exécuter ses étapes."
-      action={edition && <Button variante="primaire" taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajouter</Button>}
+      action={
+        edition && (
+          <Button
+            variante="primaire"
+            taille="sm"
+            icone={<Plus className="size-4" aria-hidden />}
+            onClick={() => setForme({})}
+          >
+            Ajouter
+          </Button>
+        )
+      }
     >
       {mep.participants.length === 0 ? (
-        <EmptyState icone={Users} titre="Aucune personne" description="Ajoutez le pilote, son suppléant et les opérateurs." />
+        <EmptyState
+          icone={Users}
+          titre="Aucune personne"
+          description="Ajoutez le pilote, son suppléant et les opérateurs."
+        />
       ) : (
         <Liste>
           {mep.participants.map((p) => (
@@ -93,36 +138,57 @@ export function PersonnesSection() {
               centre={
                 <div className="space-y-0.5">
                   <p className="truncate">{p.contact || '—'}</p>
-                  <p className="flex items-center gap-1 text-xs text-fg-subtle"><UserRound className="size-3" aria-hidden />{p.utilisateurNom ? `Compte : ${p.utilisateurNom}` : 'Pas de compte relié'}</p>
+                  <p className="flex items-center gap-1 text-xs text-fg-subtle">
+                    <UserRound className="size-3" aria-hidden />
+                    {p.utilisateurNom ? `Compte : ${p.utilisateurNom}` : 'Pas de compte relié'}
+                  </p>
                 </div>
               }
-              actions={edition && <Actions nom={p.nom} onModifier={() => setForme({ existant: p })} onSupprimer={() => setSuppr(p)} />}
+              actions={
+                edition && (
+                  <Actions nom={p.nom} onModifier={() => setForme({ existant: p })} onSupprimer={() => setSuppr(p)} />
+                )
+              }
             />
           ))}
         </Liste>
       )}
       <FormulaireDialog
         open={forme !== null}
-        onOpenChange={(o) => { if (!o) setForme(null); }}
+        onOpenChange={(o) => {
+          if (!o) setForme(null);
+        }}
         titre={forme?.existant ? 'Modifier la personne' : 'Ajouter une personne'}
         champs={champs}
         initial={initial}
         surChangement={prefillerDepuisCompte}
         libelleValider={forme?.existant ? 'Enregistrer' : 'Ajouter'}
         onValider={(v) => {
-          const s = { nom: v.nom.trim(), role: v.role.trim(), contact: v.contact.trim(), utilisateurId: vide(v.utilisateurId) };
+          const s = {
+            nom: v.nom.trim(),
+            role: v.role.trim(),
+            contact: v.contact.trim(),
+            utilisateurId: vide(v.utilisateurId),
+          };
           const ex = forme?.existant;
-          return run(() => (ex ? api.modifierParticipant(mep.id, ex.id, s) : api.ajouterParticipant(mep.id, s)), ex ? 'Personne modifiée.' : 'Personne ajoutée.');
+          return run(
+            () => (ex ? api.modifierParticipant(mep.id, ex.id, s) : api.ajouterParticipant(mep.id, s)),
+            ex ? 'Personne modifiée.' : 'Personne ajoutée.',
+          );
         }}
       />
       <ConfirmDialog
         open={suppr !== null}
-        onOpenChange={(o) => { if (!o) setSuppr(null); }}
+        onOpenChange={(o) => {
+          if (!o) setSuppr(null);
+        }}
         titre={`Supprimer ${suppr?.nom ?? ''} ?`}
         description="Impossible si la personne est pilote, suppléante ou responsable d’une étape."
         libelleConfirmer="Supprimer"
         variante="danger"
-        onConfirmer={() => suppr ? run(() => api.supprimerParticipant(mep.id, suppr.id), 'Personne supprimée.') : false}
+        onConfirmer={() =>
+          suppr ? run(() => api.supprimerParticipant(mep.id, suppr.id), 'Personne supprimée.') : false
+        }
       />
     </SectionCarte>
   );
@@ -139,18 +205,38 @@ export function SystemesSection() {
   const [ajout, setAjout] = useState(false);
   const [forme, setForme] = useState<{ existant?: Systeme } | null>(null);
   const [suppr, setSuppr] = useState<Systeme | null>(null);
-  useEffect(() => { api.catalogueSystemes().then(setCatalogue).catch(() => setCatalogue([])); }, []);
+  useEffect(() => {
+    api
+      .catalogueSystemes()
+      .then(setCatalogue)
+      .catch(() => setCatalogue([]));
+  }, []);
 
   const dejaPresents = new Set(mep.systemes.map((s) => s.catalogueId).filter(Boolean));
-  const options = catalogue.filter((c) => c.actif && !dejaPresents.has(c.id)).map((c) => ({ valeur: c.id, libelle: c.nom, detail: c.cible || c.description }));
-  const initial = useMemo(() => ({ nom: forme?.existant?.nom ?? '', cible: forme?.existant?.cible ?? '', impact: forme?.existant?.impact ?? '' }), [forme]);
+  const options = catalogue
+    .filter((c) => c.actif && !dejaPresents.has(c.id))
+    .map((c) => ({ valeur: c.id, libelle: c.nom, detail: c.cible || c.description }));
+  const initial = useMemo(
+    () => ({
+      nom: forme?.existant?.nom ?? '',
+      cible: forme?.existant?.cible ?? '',
+      impact: forme?.existant?.impact ?? '',
+    }),
+    [forme],
+  );
 
   async function ajouterCatalogue() {
     if (!choix) return;
     setAjout(true);
-    const ok = await run(() => api.ajouterSystemeDepuisCatalogue(mep.id, choix, impact.trim()), 'Système ajouté depuis le catalogue.');
+    const ok = await run(
+      () => api.ajouterSystemeDepuisCatalogue(mep.id, choix, impact.trim()),
+      'Système ajouté depuis le catalogue.',
+    );
     setAjout(false);
-    if (ok) { setChoix(null); setImpact(''); }
+    if (ok) {
+      setChoix(null);
+      setImpact('');
+    }
   }
 
   return (
@@ -158,24 +244,61 @@ export function SystemesSection() {
       numero={3}
       titre="Systèmes"
       description="Systèmes touchés, cible et impact."
-      action={edition && <Button taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajout libre</Button>}
+      action={
+        edition && (
+          <Button taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>
+            Ajout libre
+          </Button>
+        )
+      }
     >
       {edition && (
         <div className="mb-5 rounded-lg border border-dashed border-line-strong bg-surface-2/50 p-4">
-          <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><Library className="size-4 text-accent-text" aria-hidden /> Ajouter depuis le catalogue</p>
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <Library className="size-4 text-accent-text" aria-hidden /> Ajouter depuis le catalogue
+          </p>
           <div className="grid gap-3 md:grid-cols-[1.2fr_1.2fr_auto] md:items-end">
             <Field label="Système du catalogue">
-              {(id) => <Combobox id={id} options={options} valeur={choix} onChange={setChoix} placeholder="Choisir un système…" placeholderRecherche="Rechercher un système…" vide="Aucun système disponible dans le catalogue." />}
+              {(id) => (
+                <Combobox
+                  id={id}
+                  options={options}
+                  valeur={choix}
+                  onChange={setChoix}
+                  placeholder="Choisir un système…"
+                  placeholderRecherche="Rechercher un système…"
+                  vide="Aucun système disponible dans le catalogue."
+                />
+              )}
             </Field>
             <Field label="Impact attendu">
-              {(id) => <Input id={id} value={impact} onChange={(e) => setImpact(e.target.value)} placeholder="ex. Indisponible 10 minutes" />}
+              {(id) => (
+                <Input
+                  id={id}
+                  value={impact}
+                  onChange={(e) => setImpact(e.target.value)}
+                  placeholder="ex. Indisponible 10 minutes"
+                />
+              )}
             </Field>
-            <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} disabled={!choix} chargement={ajout} onClick={() => void ajouterCatalogue()}>Ajouter</Button>
+            <Button
+              variante="primaire"
+              icone={<Plus className="size-4" aria-hidden />}
+              disabled={!choix}
+              chargement={ajout}
+              onClick={() => void ajouterCatalogue()}
+            >
+              Ajouter
+            </Button>
           </div>
         </div>
       )}
       {mep.systemes.length === 0 ? (
-        <EmptyState icone={Layers} titre="Aucun système" description="Choisissez un système du catalogue ou ajoutez-en un librement." />
+        <EmptyState
+          icone={Layers}
+          titre="Aucun système"
+          description="Choisissez un système du catalogue ou ajoutez-en un librement."
+        />
       ) : (
         <Liste>
           {mep.systemes.map((s) => (
@@ -183,19 +306,33 @@ export function SystemesSection() {
               key={s.id}
               gauche={
                 <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-2 font-medium">{s.nom}{s.catalogueId && <Badge ton="run"><Library className="size-3" aria-hidden />Catalogue</Badge>}</p>
+                  <p className="flex flex-wrap items-center gap-2 font-medium">
+                    {s.nom}
+                    {s.catalogueId && (
+                      <Badge ton="run">
+                        <Library className="size-3" aria-hidden />
+                        Catalogue
+                      </Badge>
+                    )}
+                  </p>
                   <p className="truncate font-mono text-xs text-fg-subtle">{s.cible || 'Cible non précisée'}</p>
                 </div>
               }
               centre={<p>{s.impact || <span className="text-fg-subtle">Impact non précisé</span>}</p>}
-              actions={edition && <Actions nom={s.nom} onModifier={() => setForme({ existant: s })} onSupprimer={() => setSuppr(s)} />}
+              actions={
+                edition && (
+                  <Actions nom={s.nom} onModifier={() => setForme({ existant: s })} onSupprimer={() => setSuppr(s)} />
+                )
+              }
             />
           ))}
         </Liste>
       )}
       <FormulaireDialog
         open={forme !== null}
-        onOpenChange={(o) => { if (!o) setForme(null); }}
+        onOpenChange={(o) => {
+          if (!o) setForme(null);
+        }}
         titre={forme?.existant ? 'Modifier le système' : 'Ajouter un système'}
         champs={[
           { cle: 'nom', label: 'Nom', requis: true },
@@ -207,17 +344,22 @@ export function SystemesSection() {
         onValider={(v) => {
           const s = { nom: v.nom.trim(), cible: v.cible.trim(), impact: v.impact.trim() };
           const ex = forme?.existant;
-          return run(() => (ex ? api.modifierSysteme(mep.id, ex.id, s) : api.ajouterSysteme(mep.id, s)), ex ? 'Système modifié.' : 'Système ajouté.');
+          return run(
+            () => (ex ? api.modifierSysteme(mep.id, ex.id, s) : api.ajouterSysteme(mep.id, s)),
+            ex ? 'Système modifié.' : 'Système ajouté.',
+          );
         }}
       />
       <ConfirmDialog
         open={suppr !== null}
-        onOpenChange={(o) => { if (!o) setSuppr(null); }}
+        onOpenChange={(o) => {
+          if (!o) setSuppr(null);
+        }}
         titre={`Retirer ${suppr?.nom ?? ''} ?`}
         description="Impossible si une étape utilise ce système. Les livrables rattachés seront détachés."
         libelleConfirmer="Retirer"
         variante="danger"
-        onConfirmer={() => suppr ? run(() => api.supprimerSysteme(mep.id, suppr.id), 'Système retiré.') : false}
+        onConfirmer={() => (suppr ? run(() => api.supprimerSysteme(mep.id, suppr.id), 'Système retiré.') : false)}
       />
     </SectionCarte>
   );
@@ -230,19 +372,40 @@ export function LivrablesSection() {
   const edition = mep.droits.peutEditerContenu;
   const [forme, setForme] = useState<{ existant?: Livrable } | null>(null);
   const [suppr, setSuppr] = useState<Livrable | null>(null);
-  const initial = useMemo(() => ({
-    objet: forme?.existant?.objet ?? '', version: forme?.existant?.version ?? '', emplacement: forme?.existant?.emplacement ?? '', systemeId: forme?.existant?.systemeId ?? '',
-  }), [forme]);
+  const initial = useMemo(
+    () => ({
+      objet: forme?.existant?.objet ?? '',
+      version: forme?.existant?.version ?? '',
+      emplacement: forme?.existant?.emplacement ?? '',
+      systemeId: forme?.existant?.systemeId ?? '',
+    }),
+    [forme],
+  );
 
   return (
     <SectionCarte
       numero={5}
       titre="Livrables"
       description="Ce qui est déployé, version et emplacement."
-      action={edition && <Button variante="primaire" taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajouter</Button>}
+      action={
+        edition && (
+          <Button
+            variante="primaire"
+            taille="sm"
+            icone={<Plus className="size-4" aria-hidden />}
+            onClick={() => setForme({})}
+          >
+            Ajouter
+          </Button>
+        )
+      }
     >
       {mep.livrables.length === 0 ? (
-        <EmptyState icone={Package} titre="Aucun livrable" description="Listez ce qui sera déployé pour que tout le monde parle du même paquet." />
+        <EmptyState
+          icone={Package}
+          titre="Aucun livrable"
+          description="Listez ce qui sera déployé pour que tout le monde parle du même paquet."
+        />
       ) : (
         <Liste>
           {mep.livrables.map((l) => (
@@ -250,41 +413,71 @@ export function LivrablesSection() {
               key={l.id}
               gauche={
                 <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-2 font-medium">{l.objet}{l.version && <Badge className="font-mono">{l.version}</Badge>}</p>
-                  <p className="truncate text-xs text-fg-subtle">{mep.systemes.find((s) => s.id === l.systemeId)?.nom ?? 'Aucun système rattaché'}</p>
+                  <p className="flex flex-wrap items-center gap-2 font-medium">
+                    {l.objet}
+                    {l.version && <Badge className="font-mono">{l.version}</Badge>}
+                  </p>
+                  <p className="truncate text-xs text-fg-subtle">
+                    {mep.systemes.find((s) => s.id === l.systemeId)?.nom ?? 'Aucun système rattaché'}
+                  </p>
                 </div>
               }
               centre={<p className="truncate font-mono text-[13px]">{l.emplacement || '—'}</p>}
-              actions={edition && <Actions nom={l.objet} onModifier={() => setForme({ existant: l })} onSupprimer={() => setSuppr(l)} />}
+              actions={
+                edition && (
+                  <Actions nom={l.objet} onModifier={() => setForme({ existant: l })} onSupprimer={() => setSuppr(l)} />
+                )
+              }
             />
           ))}
         </Liste>
       )}
       <FormulaireDialog
         open={forme !== null}
-        onOpenChange={(o) => { if (!o) setForme(null); }}
+        onOpenChange={(o) => {
+          if (!o) setForme(null);
+        }}
         titre={forme?.existant ? 'Modifier le livrable' : 'Ajouter un livrable'}
         champs={[
           { cle: 'objet', label: 'Objet', requis: true, placeholder: 'ex. Archive applicative' },
           { cle: 'version', label: 'Version' },
           { cle: 'emplacement', label: 'Emplacement', large: true, placeholder: 'chemin, dépôt ou URL interne' },
-          { cle: 'systemeId', label: 'Système concerné', type: 'select', large: true, options: [{ valeur: '', libelle: '— aucun —' }, ...mep.systemes.map((s) => ({ valeur: s.id, libelle: s.nom }))] },
+          {
+            cle: 'systemeId',
+            label: 'Système concerné',
+            type: 'select',
+            large: true,
+            options: [
+              { valeur: '', libelle: '— aucun —' },
+              ...mep.systemes.map((s) => ({ valeur: s.id, libelle: s.nom })),
+            ],
+          },
         ]}
         initial={initial}
         libelleValider={forme?.existant ? 'Enregistrer' : 'Ajouter'}
         onValider={(v) => {
-          const s = { objet: v.objet.trim(), version: v.version.trim(), emplacement: v.emplacement.trim(), systemeId: vide(v.systemeId) };
+          const s = {
+            objet: v.objet.trim(),
+            version: v.version.trim(),
+            emplacement: v.emplacement.trim(),
+            systemeId: vide(v.systemeId),
+          };
           const ex = forme?.existant;
-          return run(() => (ex ? api.modifierLivrable(mep.id, ex.id, s) : api.ajouterLivrable(mep.id, s)), ex ? 'Livrable modifié.' : 'Livrable ajouté.');
+          return run(
+            () => (ex ? api.modifierLivrable(mep.id, ex.id, s) : api.ajouterLivrable(mep.id, s)),
+            ex ? 'Livrable modifié.' : 'Livrable ajouté.',
+          );
         }}
       />
       <ConfirmDialog
         open={suppr !== null}
-        onOpenChange={(o) => { if (!o) setSuppr(null); }}
+        onOpenChange={(o) => {
+          if (!o) setSuppr(null);
+        }}
         titre={`Supprimer ${suppr?.objet ?? ''} ?`}
         libelleConfirmer="Supprimer"
         variante="danger"
-        onConfirmer={() => suppr ? run(() => api.supprimerLivrable(mep.id, suppr.id), 'Livrable supprimé.') : false}
+        onConfirmer={() => (suppr ? run(() => api.supprimerLivrable(mep.id, suppr.id), 'Livrable supprimé.') : false)}
       />
     </SectionCarte>
   );

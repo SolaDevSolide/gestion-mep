@@ -5,11 +5,20 @@ import { droitsEtape, resolutionsDeLEtape } from './droitsEtape';
 /** MEP de test : p1 participant relié par défaut, ni pilote ni administrateur. */
 function m(p: Partial<Mep> = {}, droits: { participantId?: string | null; estPilote?: boolean } = {}): Mep {
   const base = mep(p);
-  return { ...base, droits: { ...base.droits, participantId: droits.participantId === undefined ? 'p1' : droits.participantId, estPilote: droits.estPilote ?? false } };
+  return {
+    ...base,
+    droits: {
+      ...base.droits,
+      participantId: droits.participantId === undefined ? 'p1' : droits.participantId,
+      estPilote: droits.estPilote ?? false,
+    },
+  };
 }
 
-const droits = (e: Etape, opts: { p?: Partial<Mep>; participantId?: string | null; estPilote?: boolean; admin?: boolean } = {}) =>
-  droitsEtape(m({ etapes: [e], ...opts.p }, opts), e, opts.admin ?? false);
+const droits = (
+  e: Etape,
+  opts: { p?: Partial<Mep>; participantId?: string | null; estPilote?: boolean; admin?: boolean } = {},
+) => droitsEtape(m({ etapes: [e], ...opts.p }, opts), e, opts.admin ?? false);
 
 describe('droitsEtape : démarrer', () => {
   it('un participant relié peut démarrer une étape disponible et à faire', () => {
@@ -28,7 +37,9 @@ describe('droitsEtape : démarrer', () => {
     const nonRetour = droits(etape({ pointDeNonRetour: true }));
     expect(nonRetour.nonRetourAttendu).toBe(true);
     expect(nonRetour.peutDemarrer).toBe(false);
-    const autorise = droits(etape({ pointDeNonRetour: true, nonRetourAutorise: { par: 'Alice', le: '2026-10-09T21:00:00Z' } }));
+    const autorise = droits(
+      etape({ pointDeNonRetour: true, nonRetourAutorise: { par: 'Alice', le: '2026-10-09T21:00:00Z' } }),
+    );
     expect(autorise.nonRetourAttendu).toBe(false);
     expect(autorise.peutDemarrer).toBe(true);
   });
@@ -74,8 +85,12 @@ describe('droitsEtape : prise de main', () => {
   it('ni l’exécutant, ni un compte non relié, ni sur une étape non démarrée', () => {
     expect(droits(enCours).peutPrendreLaMain).toBe(false);
     expect(droits(enCours, { participantId: null }).peutPrendreLaMain).toBe(false);
-    expect(droits(etape({ executantId: null, etat: 'EnCours' }), { participantId: 'p2' }).peutPrendreLaMain).toBe(false);
-    expect(droits(etape({ etat: 'Reussie', executantId: 'p1' }), { participantId: 'p2' }).peutPrendreLaMain).toBe(false);
+    expect(droits(etape({ executantId: null, etat: 'EnCours' }), { participantId: 'p2' }).peutPrendreLaMain).toBe(
+      false,
+    );
+    expect(droits(etape({ etat: 'Reussie', executantId: 'p1' }), { participantId: 'p2' }).peutPrendreLaMain).toBe(
+      false,
+    );
   });
 
   it('seulement sur le plan qui agit dans la phase en cours', () => {
@@ -116,7 +131,10 @@ describe('droitsEtape : résolutions', () => {
 
   it('dernière résolution échouée : l’étape reste en échec', () => {
     const e = etape({ etat: 'Echec', executantId: 'p1' });
-    const resolutions = [resolution({ id: 'r1', statut: 'Reussie', demarreeLe: '2026-10-09T20:00:00Z' }), resolution({ id: 'r2', statut: 'Echouee', demarreeLe: '2026-10-09T21:00:00Z' })];
+    const resolutions = [
+      resolution({ id: 'r1', statut: 'Reussie', demarreeLe: '2026-10-09T20:00:00Z' }),
+      resolution({ id: 'r2', statut: 'Echouee', demarreeLe: '2026-10-09T21:00:00Z' }),
+    ];
     const d = droits(e, { p: { resolutions } });
     expect(d.resolutionEchouee).toBe(true);
     expect(d.resolutionReussie).toBe(false);
@@ -126,11 +144,16 @@ describe('droitsEtape : résolutions', () => {
 describe('resolutionsDeLEtape', () => {
   it('trie par démarrage et sépare la résolution en cours de l’historique', () => {
     const e = etape();
-    const r = resolutionsDeLEtape(m({ resolutions: [
-      resolution({ id: 'r3', statut: 'EnCours', demarreeLe: '2026-10-09T22:00:00Z' }),
-      resolution({ id: 'r1', statut: 'Echouee', demarreeLe: '2026-10-09T20:00:00Z' }),
-      resolution({ id: 'autre', etapeId: 'e9', statut: 'Reussie' }),
-    ] }), e);
+    const r = resolutionsDeLEtape(
+      m({
+        resolutions: [
+          resolution({ id: 'r3', statut: 'EnCours', demarreeLe: '2026-10-09T22:00:00Z' }),
+          resolution({ id: 'r1', statut: 'Echouee', demarreeLe: '2026-10-09T20:00:00Z' }),
+          resolution({ id: 'autre', etapeId: 'e9', statut: 'Reussie' }),
+        ],
+      }),
+      e,
+    );
     expect(r.toutes.map((x) => x.id)).toEqual(['r1', 'r3']);
     expect(r.enCours?.id).toBe('r3');
     expect(r.derniere?.id).toBe('r3');

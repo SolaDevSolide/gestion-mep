@@ -4,41 +4,41 @@ React 18, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 
 ## Commandes
 
-| Commande | Rôle |
-|---|---|
-| `npm run dev` | Serveur de développement sur http://localhost:5173 ; `/api` est relayé vers http://localhost:5080 |
-| `npm test` | Tests Vitest (jsdom) |
-| `npm run lint` | Oxlint avec analyse des types |
-| `npm run format` / `npm run format:check` | Prettier |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run build` | Typage puis construction dans `dist/` |
-| `npm run api:types` | Régénère `src/api/schema.d.ts` depuis `docs/openapi.json` |
+| Commande                                  | Rôle                                                                                              |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `npm run dev`                             | Serveur de développement sur http://localhost:5173 ; `/api` est relayé vers http://localhost:5080 |
+| `npm test`                                | Tests Vitest (jsdom)                                                                              |
+| `npm run lint`                            | Oxlint avec analyse des types                                                                     |
+| `npm run format` / `npm run format:check` | Prettier                                                                                          |
+| `npm run typecheck`                       | `tsc --noEmit`                                                                                    |
+| `npm run build`                           | Typage puis construction dans `dist/`                                                             |
+| `npm run api:types`                       | Régénère `src/api/schema.d.ts` depuis `docs/openapi.json`                                         |
 
 ## Organisation
 
-| Dossier | Contenu |
-|---|---|
-| `src/pages` | Pages : connexion, liste des MEP, une MEP, profil |
-| `src/mep` | Onglets et dialogues d'une MEP (préparation, étapes, exécution, recette, retour arrière, journal) |
-| `src/mep/graphe` | Éditeur et vue d'exécution du graphe des étapes |
-| `src/mep/preparation` | Sections de l'onglet Préparation |
-| `src/parametres` | Paramètres globaux : catalogue des systèmes, résolutions types, critères go / no-go |
-| `src/layout` | Cadre de l'application, palette de commandes, bandeau « nouvelle version » |
-| `src/ui` | Composants génériques (boutons, dialogues, menus, champs, toasts…) |
-| `src/test` | Configuration Vitest et fabrique de données de test |
+| Dossier               | Contenu                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| `src/pages`           | Pages : connexion, liste des MEP, une MEP, profil                                                 |
+| `src/mep`             | Onglets et dialogues d'une MEP (préparation, étapes, exécution, recette, retour arrière, journal) |
+| `src/mep/graphe`      | Éditeur et vue d'exécution du graphe des étapes                                                   |
+| `src/mep/preparation` | Sections de l'onglet Préparation                                                                  |
+| `src/parametres`      | Paramètres globaux : catalogue des systèmes, résolutions types, critères go / no-go               |
+| `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version »                        |
+| `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                |
+| `src/test`            | Configuration Vitest et fabrique de données de test                                               |
 
 Logique pure, testée sans DOM :
 
-| Module | Rôle |
-|---|---|
-| `api.ts` | Client HTTP : une fonction par route, erreurs converties en `ApiError` (statut + message français), en-tête anti-CSRF `X-Requested-With` sur chaque requête |
-| `types.ts` | Noms courts des types de l'API (`Mep`, `Etape`…), alias des types générés |
-| `api/schema.d.ts` | Types générés depuis `docs/openapi.json` par `npm run api:types` ; ne jamais modifier à la main |
-| `domaine.ts` | Règles d'affichage : plan actif, étapes à vous, bloqueurs, progression, bilan de recette |
-| `graphe.ts` | Lignes du graphe, liens, tracé des jonctions |
-| `recherche.ts` | Recherche insensible aux accents, score et surlignage |
-| `blocs.ts` | Découpage des instructions en blocs Texte / Code et raccourcis de mise en forme markdown |
-| `format.ts` | Libellés, dates, durées, comptes à rebours |
+| Module            | Rôle                                                                                                                                                        |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api.ts`          | Client HTTP : une fonction par route, erreurs converties en `ApiError` (statut + message français), en-tête anti-CSRF `X-Requested-With` sur chaque requête |
+| `types.ts`        | Noms courts des types de l'API (`Mep`, `Etape`…), alias des types générés                                                                                   |
+| `api/schema.d.ts` | Types générés depuis `docs/openapi.json` par `npm run api:types` ; ne jamais modifier à la main                                                             |
+| `domaine.ts`      | Règles d'affichage : plan actif, étapes à vous, bloqueurs, progression, bilan de recette                                                                    |
+| `graphe.ts`       | Lignes du graphe, liens, tracé des jonctions                                                                                                                |
+| `recherche.ts`    | Recherche insensible aux accents, score et surlignage                                                                                                       |
+| `blocs.ts`        | Découpage des instructions en blocs Texte / Code et raccourcis de mise en forme markdown                                                                    |
+| `format.ts`       | Libellés, dates, durées, comptes à rebours                                                                                                                  |
 
 ## Principes
 

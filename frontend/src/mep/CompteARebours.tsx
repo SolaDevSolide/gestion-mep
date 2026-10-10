@@ -18,7 +18,13 @@ export function CompteARebours({ echeance, className }: { echeance: string | nul
   }
   if (c.niveau === 'depasse') {
     return (
-      <div role="alert" className={cn('pulse-ring flex items-center gap-2.5 rounded-lg bg-rollback-bg px-3 py-1.5 text-white', className)}>
+      <div
+        role="alert"
+        className={cn(
+          'pulse-ring flex items-center gap-2.5 rounded-lg bg-rollback-bg px-3 py-1.5 text-white',
+          className,
+        )}
+      >
         <Siren className="size-6 shrink-0" aria-hidden />
         <div>
           <p className="text-sm leading-tight font-extrabold tracking-wide">RETOUR ARRIÈRE OBLIGATOIRE</p>
@@ -37,10 +43,17 @@ export function CompteARebours({ echeance, className }: { echeance: string | nul
       )}
       title={`Échéance de retour arrière : ${formatDateHeure(echeance)}`}
     >
-      <p className={cn('flex items-center gap-1.5 text-[10px] font-semibold tracking-wide uppercase', !attention && 'text-fg-subtle')}>
+      <p
+        className={cn(
+          'flex items-center gap-1.5 text-[10px] font-semibold tracking-wide uppercase',
+          !attention && 'text-fg-subtle',
+        )}
+      >
         <TimerReset className="size-3.5" aria-hidden /> Retour arrière dans
       </p>
-      <p className="font-mono text-lg leading-tight font-semibold tnum" aria-label={c.texte}>{c.texte}</p>
+      <p className="font-mono text-lg leading-tight font-semibold tnum" aria-label={c.texte}>
+        {c.texte}
+      </p>
     </div>
   );
 }

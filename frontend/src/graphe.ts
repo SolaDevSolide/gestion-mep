@@ -45,12 +45,18 @@ export function indexLignes(lignes: { id: string }[][]): Map<string, number> {
 export function liensDuPlan(etapes: Pick<NoeudGraphe, 'id' | 'dependances'>[]): Lien[] {
   const ids = new Set(etapes.map((e) => e.id));
   const liens: Lien[] = [];
-  for (const e of etapes) for (const d of new Set(e.dependances)) if (ids.has(d) && d !== e.id) liens.push({ de: d, vers: e.id });
+  for (const e of etapes)
+    for (const d of new Set(e.dependances)) if (ids.has(d) && d !== e.id) liens.push({ de: d, vers: e.id });
   return liens;
 }
 
 /** Un lien est possible s'il descend (préalable sur une ligne strictement au-dessus) et n'existe pas déjà. */
-export function lienPossible(de: string, vers: string, lignes: Map<string, number>, liens: Lien[]): 'ok' | 'remonte' | 'existe' {
+export function lienPossible(
+  de: string,
+  vers: string,
+  lignes: Map<string, number>,
+  liens: Lien[],
+): 'ok' | 'remonte' | 'existe' {
   const a = lignes.get(de);
   const b = lignes.get(vers);
   if (de === vers || a === undefined || b === undefined || a >= b) return 'remonte';
@@ -84,7 +90,8 @@ export function groupesDeLiens(liens: Lien[]): GroupeLiens[] {
 }
 
 /** Paires (source, cible) d'un groupe. */
-export const pairesDuGroupe = (g: GroupeLiens): Lien[] => g.sources.flatMap((de) => g.cibles.map((vers) => ({ de, vers })));
+export const pairesDuGroupe = (g: GroupeLiens): Lien[] =>
+  g.sources.flatMap((de) => g.cibles.map((vers) => ({ de, vers })));
 
 export interface Point {
   x: number;
@@ -124,12 +131,22 @@ export function cheminCoude(a: Point, b: Point, y: number): string {
  * Tracé des liens : une barre par groupe, à mi-hauteur entre la source la plus basse et la cible la plus haute ;
  * les barres reliant les mêmes niveaux sont décalées (0, +écart, −écart, +2·écart…) pour rester lisibles.
  */
-export function tracerJonctions(groupes: GroupeLiens[], ancrages: Record<string, Ancrage | undefined>, ecart = 8): TraceJonction[] {
+export function tracerJonctions(
+  groupes: GroupeLiens[],
+  ancrages: Record<string, Ancrage | undefined>,
+  ecart = 8,
+): TraceJonction[] {
   const decalages = new Map<string, number>();
   const traces: TraceJonction[] = [];
   for (const g of groupes) {
-    const S = g.sources.map((id) => ancrages[id]).filter((a): a is Ancrage => !!a).map((a) => ({ x: a.x, y: a.bas }));
-    const T = g.cibles.map((id) => ancrages[id]).filter((a): a is Ancrage => !!a).map((a) => ({ x: a.x, y: a.haut }));
+    const S = g.sources
+      .map((id) => ancrages[id])
+      .filter((a): a is Ancrage => !!a)
+      .map((a) => ({ x: a.x, y: a.bas }));
+    const T = g.cibles
+      .map((id) => ancrages[id])
+      .filter((a): a is Ancrage => !!a)
+      .map((a) => ({ x: a.x, y: a.haut }));
     if (S.length === 0 || T.length === 0) continue;
     const bas = Math.max(...S.map((s) => s.y));
     const haut = Math.min(...T.map((t) => t.y));
@@ -139,7 +156,13 @@ export function tracerJonctions(groupes: GroupeLiens[], ancrages: Record<string,
     const barre = (bas + haut) / 2 + (n % 2 ? 1 : -1) * Math.ceil(n / 2) * ecart;
 
     if (S.length === 1 && T.length === 1) {
-      traces.push({ cle: g.cle, traits: null, fleches: [cheminCoude({ x: S[0].x, y: S[0].y + 1 }, { x: T[0].x, y: T[0].y - 2 }, barre)], points: [], barre });
+      traces.push({
+        cle: g.cle,
+        traits: null,
+        fleches: [cheminCoude({ x: S[0].x, y: S[0].y + 1 }, { x: T[0].x, y: T[0].y - 2 }, barre)],
+        points: [],
+        barre,
+      });
       continue;
     }
     const xs = [...S, ...T].map((p) => p.x);

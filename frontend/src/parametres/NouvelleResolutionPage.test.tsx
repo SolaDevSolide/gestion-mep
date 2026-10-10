@@ -9,12 +9,35 @@ import NouvelleResolutionPage from './NouvelleResolutionPage';
 const base = mep().systemes[0];
 const laMep = mep({
   phase: 'Preparation',
-  systemes: [{ ...base, id: 's1', nom: 'API', catalogueId: 'c-api' }, { ...base, id: 's2', nom: 'WEB', catalogueId: 'c-web' }],
-  etapes: [etape({ id: 'e6', code: 'E0006', action: 'Publication du portail', systemeIds: ['s2', 's1'], resolutionIds: ['r-existante'], revision: 4 })],
+  systemes: [
+    { ...base, id: 's1', nom: 'API', catalogueId: 'c-api' },
+    { ...base, id: 's2', nom: 'WEB', catalogueId: 'c-web' },
+  ],
+  etapes: [
+    etape({
+      id: 'e6',
+      code: 'E0006',
+      action: 'Publication du portail',
+      systemeIds: ['s2', 's1'],
+      resolutionIds: ['r-existante'],
+      revision: 4,
+    }),
+  ],
 });
 const creee: ResolutionType = {
-  id: 'r-neuve', titre: 'WEB : purge du cache CDN refusée', symptomes: '', diagnostic: '', systemeCatalogueIds: ['c-web'], corrections: [],
-  verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-10T10:00:00Z', modifieeParId: null, modifieeParNom: null,
+  id: 'r-neuve',
+  titre: 'WEB : purge du cache CDN refusée',
+  symptomes: '',
+  diagnostic: '',
+  systemeCatalogueIds: ['c-web'],
+  corrections: [],
+  verificationInstruction: '',
+  verificationAttendu: '',
+  actif: true,
+  version: 1,
+  modifieeLe: '2026-10-10T10:00:00Z',
+  modifieeParId: null,
+  modifieeParNom: null,
 };
 
 vi.mock('../api', () => ({
@@ -31,7 +54,12 @@ vi.mock('../api', () => ({
 
 function Destination() {
   const l = useLocation();
-  return <p>Destination : {l.pathname}{l.search}</p>;
+  return (
+    <p>
+      Destination : {l.pathname}
+      {l.search}
+    </p>
+  );
 }
 
 function rendre(url: string) {
@@ -63,10 +91,18 @@ describe('NouvelleResolutionPage', () => {
 
     await userEvent.click(bouton);
     await waitFor(() => expect(api.modifierEtape).toHaveBeenCalled());
-    expect(api.creerResolution).toHaveBeenCalledWith(expect.objectContaining({
-      titre: 'WEB : purge du cache CDN refusée', systemeCatalogueIds: ['c-api', 'c-web'], diagnostic: '```\ncurl -I https://cdn\n```',
-    }));
-    expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e6', expect.objectContaining({ revision: 4, resolutionIds: ['r-existante', 'r-neuve'] }));
+    expect(api.creerResolution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        titre: 'WEB : purge du cache CDN refusée',
+        systemeCatalogueIds: ['c-api', 'c-web'],
+        diagnostic: '```\ncurl -I https://cdn\n```',
+      }),
+    );
+    expect(api.modifierEtape).toHaveBeenCalledWith(
+      'm1',
+      'e6',
+      expect.objectContaining({ revision: 4, resolutionIds: ['r-existante', 'r-neuve'] }),
+    );
     expect(await screen.findByText('Destination : /meps/m1?onglet=etapes&etape=e6')).toBeInTheDocument();
   });
 
@@ -95,6 +131,8 @@ describe('NouvelleResolutionPage : systèmes multiples et titre proposé', () =>
     await userEvent.click(await screen.findByRole('button', { name: 'API', pressed: false }));
     await userEvent.click(screen.getByRole('button', { name: 'WEB', pressed: false }));
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
-    expect(api.creerResolution).toHaveBeenCalledWith(expect.objectContaining({ titre: 'LDAP muet', systemeCatalogueIds: ['c-api', 'c-web'] }));
+    expect(api.creerResolution).toHaveBeenCalledWith(
+      expect.objectContaining({ titre: 'LDAP muet', systemeCatalogueIds: ['c-api', 'c-web'] }),
+    );
   });
 });

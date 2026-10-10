@@ -29,8 +29,13 @@ export default function PreparationTab() {
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-6 px-6 py-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
-      <nav aria-label="Sections de la préparation" className="lg:self-start lg:[@media(min-height:760px)]:sticky lg:[@media(min-height:760px)]:top-[calc(var(--entete-h,12rem)+1rem)]">
-        <p className="mb-2 hidden px-2 text-xs text-fg-subtle lg:block tnum">{nbOk}/{SECTIONS.length} sections complètes</p>
+      <nav
+        aria-label="Sections de la préparation"
+        className="lg:self-start lg:[@media(min-height:760px)]:sticky lg:[@media(min-height:760px)]:top-[calc(var(--entete-h,12rem)+1rem)]"
+      >
+        <p className="mb-2 hidden px-2 text-xs text-fg-subtle lg:block tnum">
+          {nbOk}/{SECTIONS.length} sections complètes
+        </p>
         <ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
           {SECTIONS.map((s) => {
             const actif = section === s.id;
@@ -45,11 +50,27 @@ export default function PreparationTab() {
                     actif ? 'bg-accent-soft text-accent-text' : 'text-fg-muted hover:bg-surface-2 hover:text-fg',
                   )}
                 >
-                  <span className={cn('flex size-6 shrink-0 items-center justify-center rounded-md font-mono text-xs font-bold', actif ? 'bg-accent text-accent-fg' : 'bg-surface-2 text-fg-muted')}>{s.numero}</span>
+                  <span
+                    className={cn(
+                      'flex size-6 shrink-0 items-center justify-center rounded-md font-mono text-xs font-bold',
+                      actif ? 'bg-accent text-accent-fg' : 'bg-surface-2 text-fg-muted',
+                    )}
+                  >
+                    {s.numero}
+                  </span>
                   <span className="min-w-0 flex-1 whitespace-nowrap leading-tight lg:whitespace-normal">{s.titre}</span>
-                  {ok[s.id]
-                    ? <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ok-solid text-white"><Check className="size-3" strokeWidth={3} aria-hidden /><span className="sr-only">Complète</span></span>
-                    : <span className="size-2.5 rounded-full border-2 border-warn-solid" role="img" aria-label="À compléter" />}
+                  {ok[s.id] ? (
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ok-solid text-white">
+                      <Check className="size-3" strokeWidth={3} aria-hidden />
+                      <span className="sr-only">Complète</span>
+                    </span>
+                  ) : (
+                    <span
+                      className="size-2.5 rounded-full border-2 border-warn-solid"
+                      role="img"
+                      aria-label="À compléter"
+                    />
+                  )}
                 </button>
               </li>
             );
@@ -60,7 +81,8 @@ export default function PreparationTab() {
       <div className="min-w-0 space-y-4">
         {mep.droits.peutModifierPlan && !mep.droits.peutEditerContenu && (
           <Alerte ton="wait" icone={Eye}>
-            Lecture seule : seuls les responsables techniques, le pilote, ses suppléants ou un administrateur peuvent modifier cette MEP.
+            Lecture seule : seuls les responsables techniques, le pilote, ses suppléants ou un administrateur peuvent
+            modifier cette MEP.
           </Alerte>
         )}
         {!mep.droits.peutModifierPlan && (
@@ -70,14 +92,30 @@ export default function PreparationTab() {
           </Alerte>
         )}
         {/* Toutes les sections restent montées : un brouillon non enregistré survit au changement de section. */}
-        <div hidden={section !== 'intervention'}><IdentiteSection /></div>
-        <div hidden={section !== 'personnes'}><PersonnesSection /></div>
-        <div hidden={section !== 'systemes'}><SystemesSection /></div>
-        <div hidden={section !== 'techniques'}><ResponsablesTechniquesSection /></div>
-        <div hidden={section !== 'livrables'}><LivrablesSection /></div>
-        <div hidden={section !== 'sauvegarde'}><SauvegardeSection /></div>
-        <div hidden={section !== 'validation'}><ValidationSection /></div>
-        <div hidden={section !== 'pieces'}><PiecesSection /></div>
+        <div hidden={section !== 'intervention'}>
+          <IdentiteSection />
+        </div>
+        <div hidden={section !== 'personnes'}>
+          <PersonnesSection />
+        </div>
+        <div hidden={section !== 'systemes'}>
+          <SystemesSection />
+        </div>
+        <div hidden={section !== 'techniques'}>
+          <ResponsablesTechniquesSection />
+        </div>
+        <div hidden={section !== 'livrables'}>
+          <LivrablesSection />
+        </div>
+        <div hidden={section !== 'sauvegarde'}>
+          <SauvegardeSection />
+        </div>
+        <div hidden={section !== 'validation'}>
+          <ValidationSection />
+        </div>
+        <div hidden={section !== 'pieces'}>
+          <PiecesSection />
+        </div>
       </div>
     </div>
   );

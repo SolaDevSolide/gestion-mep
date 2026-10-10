@@ -33,21 +33,44 @@ export function FicheCarte({ fiche, peutAgir }: { fiche: FicheRecette; peutAgir:
           onClick={() => setOuvert(!ouvert)}
           className="flex min-w-0 flex-1 basis-56 items-center gap-2 rounded-md text-left"
         >
-          {ouvert ? <ChevronDown className="size-4 shrink-0 text-fg-subtle" aria-hidden /> : <ChevronRight className="size-4 shrink-0 text-fg-subtle" aria-hidden />}
+          {ouvert ? (
+            <ChevronDown className="size-4 shrink-0 text-fg-subtle" aria-hidden />
+          ) : (
+            <ChevronRight className="size-4 shrink-0 text-fg-subtle" aria-hidden />
+          )}
           <span className="min-w-0">
-            <span className="block truncate text-[15px] font-semibold">{fiche.titre || <em className="font-normal text-fg-subtle not-italic">Fiche sans titre</em>}</span>
-            <span className="block text-xs text-fg-subtle">{fiche.etapes.length} étape{fiche.etapes.length > 1 ? 's' : ''} de test</span>
+            <span className="block truncate text-[15px] font-semibold">
+              {fiche.titre || <em className="font-normal text-fg-subtle not-italic">Fiche sans titre</em>}
+            </span>
+            <span className="block text-xs text-fg-subtle">
+              {fiche.etapes.length} étape{fiche.etapes.length > 1 ? 's' : ''} de test
+            </span>
           </span>
         </button>
-        {(enRecette || mep.phase === 'Cloturee') && fiche.etapes.length > 0 && (
-          echecs > 0
-            ? <StatusPill ton="danger" icone={XCircle} taille="sm">{echecs} en échec</StatusPill>
-            : terminee
-              ? <StatusPill ton="ok" icone={Check} taille="sm">Conforme</StatusPill>
-              : <StatusPill ton="wait" icone={FlaskConical} taille="sm">{conformes}/{fiche.etapes.length}</StatusPill>
-        )}
+        {(enRecette || mep.phase === 'Cloturee') &&
+          fiche.etapes.length > 0 &&
+          (echecs > 0 ? (
+            <StatusPill ton="danger" icone={XCircle} taille="sm">
+              {echecs} en échec
+            </StatusPill>
+          ) : terminee ? (
+            <StatusPill ton="ok" icone={Check} taille="sm">
+              Conforme
+            </StatusPill>
+          ) : (
+            <StatusPill ton="wait" icone={FlaskConical} taille="sm">
+              {conformes}/{fiche.etapes.length}
+            </StatusPill>
+          ))}
         {enRecette && mep.droits.estPilote && dejaFait && (
-          <Button taille="sm" icone={<RotateCcw className="size-4" aria-hidden />} aria-label={`Refaire toute la fiche ${fiche.titre}`} onClick={() => void run(() => api.refaireFicheRecette(mep.id, fiche.id), 'Fiche à refaire.')}>Refaire la fiche</Button>
+          <Button
+            taille="sm"
+            icone={<RotateCcw className="size-4" aria-hidden />}
+            aria-label={`Refaire toute la fiche ${fiche.titre}`}
+            onClick={() => void run(() => api.refaireFicheRecette(mep.id, fiche.id), 'Fiche à refaire.')}
+          >
+            Refaire la fiche
+          </Button>
         )}
       </div>
       {ouvert && (
