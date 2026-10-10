@@ -731,7 +731,7 @@ Spécification : `docs/specs/jalon4-2-spec.md` (sections D à G pour le back).
 ## Date et heures de la MEP (D)
 
 - Plus exigées nulle part (elles ne l'étaient déjà pas dans `erreursPlan`) ; `PUT /meps/{id}` les ignore ; la duplication ne copie plus `heureDebut` / `heureFin` ; la démo n'a plus de `dateMep`.
-- `MepResumeDto` : `{ id, outil, versionCible, objet, dateMep, phase, echeanceRepli, pilote, nbEtapes, nbReussies, nbEchecs, environnement, estModele, creeLe }`. La liste affiche « Démarrée le `dateMep` » ou « Créée le `creeLe` ».
+- `MepResumeDto` : `{ id, outil, versionCible, objet, dateMep, phase, echeanceRepli, pilote, nbEtapes, nbReussies, nbEchecs, environnement, estModele, creeLe, issue }` (`issue` : `Reussie`, `Repliee` ou `null`, ajouté avec le lot maintenabilité). La liste affiche « Démarrée le `dateMep` » ou « Créée le `creeLe` ».
 - Échéance de retour arrière, fuseau horaire, indisponibilité : inchangés.
 
 ## Exécution sans responsable (E)
