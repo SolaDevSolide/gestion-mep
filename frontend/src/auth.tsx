@@ -8,6 +8,8 @@ interface AuthValue {
   chargement: boolean;
   connecter: (login: string, mdp: string) => Promise<void>;
   deconnecter: () => Promise<void>;
+  /** Remplace l’utilisateur connecté (après la modification de son profil). */
+  majUtilisateur: (u: Utilisateur) => void;
 }
 
 export const AuthContext = createContext<AuthValue | null>(null);
@@ -42,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [navigate]);
 
-  const value = useMemo(() => ({ utilisateur, chargement, connecter, deconnecter }), [utilisateur, chargement, connecter, deconnecter]);
+  const value = useMemo(() => ({ utilisateur, chargement, connecter, deconnecter, majUtilisateur: setUtilisateur }), [utilisateur, chargement, connecter, deconnecter]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

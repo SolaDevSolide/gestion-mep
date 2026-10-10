@@ -58,8 +58,6 @@ public static class StructureEndpoints
             if (etape is not null) throw new RegleMetierException($"{p.Nom} est responsable de {etape.Code} : changer le responsable d'abord.");
             var executee = mep.Etapes.FirstOrDefault(e => e.ExecutantId == pid);
             if (executee is not null) throw new RegleMetierException($"{p.Nom} a pris la main sur {executee.Code} : il ne peut pas être supprimé.");
-            var test = mep.TestsRecette.FirstOrDefault(t => t.ResponsableId == pid);
-            if (test is not null) throw new RegleMetierException($"{p.Nom} est responsable du test de recette {test.Ordre} : changer le responsable d'abord.");
             if (mep.Sauvegarde.ResponsableId == pid) throw new RegleMetierException($"{p.Nom} est responsable de la sauvegarde : changer le responsable d'abord.");
             mep.Participants.Remove(p);
             return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "participant.supprime", $"Participant supprimé : {p.Nom}"));
@@ -111,15 +109,30 @@ public static class StructureEndpoints
             return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.modifie", $"Système modifié : {s.Nom}"));
         });
 
+        api.MapPut("/meps/{id:guid}/systemes/{sid:guid}/sauvegarde", async (Guid id, Guid sid, SauvegardeSystemeSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, acteur);
+            ServiceMep.ExigerVersion(mep, c.Version);
+            var s = mep.Systemes.FirstOrDefault(x => x.Id == sid) ?? throw ErreurHttp.NonTrouve("Système introuvable.");
+            if (c.Statut is null) throw ErreurHttp.Saisie("Le statut (ARenseigner, Requise ou NonRequise) est obligatoire.");
+            Regles.DefinirSauvegardeSysteme(mep, s, c.Statut.Value, c.Moment ?? ModeSauvegarde.AvantMep, c.Contenu ?? "", c.Justification ?? "");
+            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "sauvegarde.systeme", Regles.DetailSauvegarde(s)));
+        });
+
         api.MapDelete("/meps/{id:guid}/systemes/{sid:guid}", async (Guid id, Guid sid, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var s = mep.Systemes.FirstOrDefault(x => x.Id == sid) ?? throw ErreurHttp.NonTrouve("Système introuvable.");
-            var etape = mep.Etapes.FirstOrDefault(e => e.SystemeId == sid);
+            var etape = mep.EtapesTriees().FirstOrDefault(e => e.SystemeIds.Contains(sid));
             if (etape is not null) throw new RegleMetierException($"Le système {s.Nom} est utilisé par {etape.Code} : changer le système de l'étape d'abord.");
             foreach (var l in mep.Livrables.Where(l => l.SystemeId == sid)) l.SystemeId = null;
+            // Ses fiches de recette passent « Sans système ».
+            if (mep.FichesRecette.Any(f => f.SystemeId == sid))
+                mep.FichesRecette = mep.FichesRecette.Select(f => { if (f.SystemeId == sid) f.SystemeId = null; return f; }).ToList();
             if (mep.ResponsablesTechniques.Any(r => r.SystemeIds.Contains(sid)))
                 mep.ResponsablesTechniques = mep.ResponsablesTechniques.Select(r => { r.SystemeIds = r.SystemeIds.Where(x => x != sid).ToList(); return r; }).ToList();
             mep.Systemes.Remove(s);

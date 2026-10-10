@@ -14,7 +14,7 @@ Corps d'erreur : `{ "message": "texte en français pour l'utilisateur" }`.
 
 ## Énumérations
 
-Liste à jour (jalon 3) ; le détail de chaque ajout est dans la section du jalon concerné.
+Liste à jour (jalon 4) ; le détail de chaque ajout est dans la section du jalon concerné.
 
 - `Phase` : `Preparation`, `Execution`, `RetourArriere`, `Cloturee`, `Recette` (ordre de stockage ; cycle de vie : Preparation → Execution → Recette → Cloturee, ou → RetourArriere → Cloturee)
 - `EtatEtape` : `AFaire`, `EnCours`, `Reussie`, `Echec`
@@ -27,6 +27,8 @@ Liste à jour (jalon 3) ; le détail de chaque ajout est dans la section du jalo
 - `ModeSauvegarde` : `AvantMep`, `PendantMep` (jalon 3)
 - `TypeEtape` : `Standard`, `Sauvegarde` (jalon 3)
 - `DecisionApprobation` : `Approuvee`, `Refusee` (jalon 3)
+- `DisponibiliteJourJ` : `Joignable`, `Absent` (jalon 3.1)
+- `StatutSauvegarde` : `ARenseigner`, `Requise`, `NonRequise` (jalon 4)
 
 ## Authentification
 
@@ -530,3 +532,175 @@ La vérification du plan renvoie désormais **deux listes** : `erreursPlan` (ano
 - **Stockage** : `Meps.ResponsablesTechniques` en `jsonb` (`disponibilite` stockée en entier : 0 = Joignable, 1 = Absent). Migration `Jalon31` : colonne `NOT NULL DEFAULT '[]'` ; les MEP existantes n'ont aucun responsable technique (avertissement « Aucun responsable technique renseigné. »).
 - **Énumération** : `DisponibiliteJourJ` = `Joignable | Absent` (texte dans l'API, comme les autres énumérations).
 - **Front (indicateurs de complétude)** : alignés sur `erreursPlan` ; un champ facultatif (heures, indisponibilité, restauration testée) ne rend plus une section orange. La section « Responsables techniques » est orange tant qu'il n'y en a aucun ou qu'un avertissement subsiste. Les sections de la préparation sont renumérotées (Responsables techniques = 3, Pièces jointes = 9).
+
+---
+
+# Jalon 4 : ajouts et changements
+
+Spécification : `docs/jalon4-spec.md` ; maquette : `docs/maquettes/jalon4-etapes.html`. Principes inchangés : règle métier = **422** `{ message }`, 403 réservé aux droits propres à l'API, codes d'étape stables, toute écriture journalise et notifie le flux SSE, toute modification du contenu en préparation remet les approbations à zéro.
+
+## Changements incompatibles (à reprendre côté front)
+
+| Avant (jalon 3.1) | Jalon 4 |
+|---|---|
+| `EtapeDto.systemeId` (id ou null) | **`systemeIds: [id]`** (un ou plusieurs systèmes de la MEP, tableau éventuellement vide) |
+| `EtapeSaisie.systemeId` | **`systemeIds: [id]`** (systèmes de la MEP, 400 sinon ; doublons ignorés ; absent = aucun). `systemeId` est ignoré. |
+| `EtapeDto.ordre` = rang dans le plan (1, 2, 3…) | **`ligne`** (0 en haut) + **`ordre`** = position **dans la ligne** (0, 1, 2… de gauche à droite) |
+| `MepDto.etapes` trié par plan puis `ordre` | trié par **plan, `ligne`, `ordre`** |
+| `POST /meps/{id}/etapes/{eid}/deplacer { sens }` | **supprimée** (404) : utiliser **`POST /meps/{id}/etapes/{eid}/placer`** |
+| `POST /meps/{id}/etapes` ajoutait l'étape en fin de plan, sans lien | ajoute l'étape **sur une nouvelle ligne en bas** (ou `ligne` / `position` données) et, si `dependances` est absent, crée les **liens par défaut** |
+| Dépendances : tout lien sans cycle | **un lien descend toujours** : chaque préalable est sur une ligne strictement au-dessus (422 « Un lien descend toujours : E0004 doit être sur une ligne au-dessus de E0003. ») |
+| `DELETE /meps/{id}/etapes/{eid}` refusé (422) si une autre étape en dépend | **accepté** : l'étape est retirée des préalables des autres, ses suivants restés sans préalable attendent toute la ligne au-dessus d'eux, une ligne vide disparaît |
+| `MepDto.testsRecette` et routes `/meps/{id}/tests-recette/*` (y compris `deplacer`) | **supprimés** (404) : **`fichesRecette`** et routes **`/meps/{id}/fiches-recette/*`** |
+| `erreursPlan` : « Sauvegarde pendant la MEP : indiquer l'étape de déploiement de type Sauvegarde. » (mode global) | règles **par système** (voir « Sauvegarde par système ») ; `sauvegarde.mode` et les cases structure / données / configuration ne sont plus vérifiés |
+| `erreursPlan` des tests de recette (« Test de recette 2 : compléter… », responsable relié à un compte) | règles des **fiches de recette** (voir plus bas) ; plus de responsable de test |
+| Clôture depuis `Recette` : « Test de recette 2 « … » non conforme : clôture impossible. » | « Recette « Tables clients », étape 2 non conforme : clôture impossible. » |
+| `UtilisateurDto` `{ id, login, nomAffiche, estAdmin }` | + **`role`, `contact`, `expertises: [{ systemeCatalogueId, detail }]`** |
+| `SystemeDto` `{ id, nom, cible, impact, catalogueId }` | + **`sauvegarde: { statut, moment, contenu, justification }`** |
+| Supprimer un participant responsable d'un test de recette : 422 | plus de contrôle (les fiches n'ont pas de responsable) |
+| Supprimer un système : livrables détachés | livrables **et fiches de recette** détachés (`systemeId` → null, section « Sans système ») ; toujours 422 si une étape l'utilise (dans `systemeIds`) |
+| `avertissements` | peut contenir « Aucun système n'est sauvegardé. » et « Aucune recette pour le système WEB. » |
+
+## Énumérations ajoutées
+
+- `StatutSauvegarde` : `ARenseigner` (défaut), `Requise`, `NonRequise` (stockée en entier).
+- `ModeSauvegarde` (`AvantMep`, `PendantMep`) sert désormais de **moment** de la sauvegarde d'un système.
+
+## Comptes : rôle, contact, expertises
+
+`UtilisateurDto` (toutes les routes qui le renvoient : `POST /auth/connexion`, `GET /auth/moi`, `GET /utilisateurs`, `POST /utilisateurs`, profils) :
+
+```json
+{ "id": "…", "login": "bob", "nomAffiche": "Bob", "estAdmin": false,
+  "role": "Développeur API", "contact": "Fictif — poste B, 01 00 00 00 02",
+  "expertises": [ { "systemeCatalogueId": "…", "detail": "Service commandes" } ] }
+```
+
+| Méthode | Route | Corps | Règles |
+|---|---|---|---|
+| POST | `/utilisateurs` | `{ login, nomAffiche, motDePasse, estAdmin, role?, contact? }` | admin (403) ; `role` / `contact` rognés, vides si absents |
+| PUT | `/utilisateurs/moi/profil` | `{ nomAffiche?, role, contact, expertises: [{ systemeCatalogueId, detail }] }` | tout connecté, pour son propre compte → 200 `UtilisateurDto`. Le cookie est réémis : le nouveau nom affiché sert aussitôt d'auteur dans les journaux. |
+| PUT | `/utilisateurs/{id}/profil` | même corps | admin uniquement (403), 404 si compte inconnu → 200 `UtilisateurDto` |
+
+- `nomAffiche` absent ou `null` : inchangé ; présent mais vide → 400. `role`, `contact` : absents = vidés (le corps remplace le profil). `expertises` absent = liste vidée.
+- Expertise : `systemeCatalogueId` obligatoire et existant dans le catalogue (actif ou non) → 400 sinon ; un système n'apparaît qu'une fois (400) ; `detail` rogné, peut être vide.
+- Pas de journal (les comptes ne sont pas rattachés à une MEP).
+- Démo (nouvelle base) : Alice « Pilote / DBA » (BDD : « Expert de la base clients »), Bob « Développeur API » (API : « Service commandes », MDM : « Flux de synchronisation vers le MDM »), Claire « Développeuse front » (WEB : « Portail client »), contacts fictifs. Les comptes d'une base existante gardent un profil vide.
+
+## Sauvegarde par système
+
+`SystemeDto.sauvegarde` : `{ statut: StatutSauvegarde, moment: ModeSauvegarde, contenu: string (markdown), justification: string }`.
+
+`PUT /meps/{id}/systemes/{sid}/sauvegarde` `{ version, statut, moment?, contenu?, justification? }` → 200 `MepDto`.
+
+- Droits d'édition du contenu (403), `version` obligatoire (400) et à jour (409), système inconnu (404), `statut` obligatoire (400), préparation uniquement (422). `moment` absent = `AvantMep` ; textes rognés ; le corps remplace toute la sauvegarde du système. Remet les approbations à zéro.
+- Journal `sauvegarde.systeme` : « Sauvegarde BDD : requise (avant la MEP) », « Sauvegarde BDD : requise (pendant la MEP) », « Sauvegarde BDD : non requise (justification) » (« … : non requise » sans justification), « Sauvegarde BDD : à renseigner ».
+- `erreursPlan` (après les règles du retour arrière, avant celles des étapes), pour chaque système dans l'ordre de `systemes` :
+  - `ARenseigner` : « Sauvegarde : indiquer si BDD doit être sauvegardé. »
+  - `NonRequise` sans justification : « Sauvegarde de BDD non requise : justifier. »
+  - `Requise` + `PendantMep` sans étape de déploiement `type: "Sauvegarde"` ayant ce système dans `systemeIds` : « Sauvegarde de BDD pendant la MEP : ajouter une étape de déploiement de type Sauvegarde sur ce système. »
+- `avertissements` : « Aucun système n'est sauvegardé. » si la MEP a au moins un système et qu'ils sont tous `NonRequise`.
+- Un système ajouté (`POST /systemes`, `depuis-catalogue`) part en `ARenseigner` / `AvantMep`.
+- Fiche Sauvegarde globale (`PUT /meps/{id}/sauvegarde`) : contrat inchangé ; `mode`, `structure`, `donnees`, `configuration` restent stockés et renvoyés mais ne sont plus vérifiés (le front ne les affiche plus).
+- Migration : systèmes existants → `ARenseigner` ; si la MEP était en mode `PendantMep`, `moment = PendantMep`.
+- Duplication : la sauvegarde de chaque système est copiée.
+
+## Recette : fiches par système
+
+`MepDto.fichesRecette` (triées par `ordre`, 1..n) :
+
+```json
+[ { "id": "…", "ordre": 1, "systemeId": "système de la MEP | null", "titre": "Parcours de commande",
+    "etapes": [ { "id": "…", "ordre": 1, "instructions": "markdown", "resultatAttendu": "markdown",
+                  "resultat": "Conforme | Echec | null", "observation": "", "par": "Claire | null", "le": "… | null" } ] } ]
+```
+
+Préparation (préparation uniquement, sinon 422 ; droits d'édition, sinon 403 ; remettent les approbations à zéro) — toutes → 200 `MepDto` :
+
+| Méthode | Route | Corps | Notes |
+|---|---|---|---|
+| POST | `/meps/{id}/fiches-recette` | `{ systemeId, titre }` | fiche vide ajoutée en fin (`ordre` = max + 1). `systemeId` : système de la MEP (400) ou null. Journal `recette.fiche-ajoutee` « Recette « X » ajoutée » |
+| PUT | `/meps/{id}/fiches-recette/{fid}` | `{ systemeId, titre, etapes: [{ id?, instructions, resultatAttendu }] }` | remplace la fiche : les `id` connus de **cette fiche** gardent leur identité (et leur résultat éventuel), les autres (absents ou inconnus) sont créés ; `ordre` = ordre reçu (1..n) ; textes rognés. 404 si fiche inconnue. Journal `recette.fiche-modifiee` « Recette « X » modifiée » |
+| DELETE | `/meps/{id}/fiches-recette/{fid}` | — | les fiches restantes sont renumérotées 1..n. Journal `recette.fiche-supprimee` « Recette « X » supprimée » |
+
+Déroulé (phase `Recette`) — toutes → 200 `MepDto` :
+
+| Méthode | Route | Corps | Règles |
+|---|---|---|---|
+| POST | `/meps/{id}/fiches-recette/{fid}/etapes/{tid}/resultat` | `{ resultat: "Conforme"\|"Echec", observation }` | tout participant de la MEP relié au compte courant (pilote et suppléants compris) ou un administrateur (422 sinon) ; phase `Recette` ; étape déjà validée → 422 « Recette « X », étape 1 déjà validée : le pilote peut la faire refaire. » ; observation obligatoire (422) ; `resultat` absent → 400. Journal `recette.test` « Recette « Tables clients » étape 2 conforme : obs » / « … étape 2 en échec : obs » |
+| POST | `/meps/{id}/fiches-recette/{fid}/refaire` | — | pilote ou suppléant, phase `Recette` : efface les résultats de toutes les étapes validées de la fiche (422 si aucune). Journal `recette.refaire` « Recette « X » à refaire » |
+| POST | `/meps/{id}/fiches-recette/{fid}/etapes/{tid}/refaire` | — | pilote ou suppléant, phase `Recette`, étape déjà validée (422 sinon). Journal `recette.refaire` « Recette « X » étape 2 à refaire » |
+
+- Pas de responsable : en recette, le front affiche comme contact les responsables techniques du système de la fiche (`responsablesTechniques[].systemeIds`).
+- Dans les messages, une fiche sans titre est nommée « Recette 2 » (son `ordre`) au lieu de « Recette « X » ».
+- `erreursPlan` : « Ajouter au moins une fiche de recette. » ; par fiche (ordre) : « Recette 6 : indiquer un titre. », « Recette « X » : ajouter au moins une étape de test. », « Recette « X », étape 2 : compléter les instructions et le résultat attendu. ».
+- `avertissements` : « Aucune recette pour le système WEB. » pour chaque système de la MEP sans fiche (dans l'ordre de `systemes`).
+- Clôture depuis `Recette` : toutes les étapes de toutes les fiches `Conforme`, sinon 422 « Recette « X », étape 2 non conforme : clôture impossible. » (première fiche puis première étape fautive).
+- Duplication : fiches copiées (nouveaux ids, résultats vides, `systemeId` remappé).
+- Migration : les anciens tests deviennent **une** fiche « Recette » (`systemeId` null, `ordre` 1) avec une étape par test dans l'ordre (`libelle` → `instructions`, `resultatAttendu` conservé, `resultat` / `observation` / `par` / `le` conservés, ids des tests conservés). Une MEP sans test n'a aucune fiche.
+
+## Étapes : graphe par lignes
+
+`EtapeDto` :
+
+```json
+{ "id": "…", "plan": "Deploiement", "code": "E0005", "ligne": 1, "ordre": 1,
+  "action": "…", "systemeIds": ["…", "…"], "responsableId": "…", "executantId": null, "criticite": "Elevee",
+  "dureeEstimeeMinutes": 30, "etat": "AFaire", "instructions": "markdown", "resultatAttendu": "markdown", "preuve": "",
+  "debutReel": null, "finReelle": null, "revision": 0, "dependances": ["…"], "resolutionIds": ["…"],
+  "disponibilite": { "statut": "Attend", "libelle": "Attend E0002" }, "type": "Standard", "pointDeNonRetour": false, "nonRetourAutorise": null }
+```
+
+- `ligne` : 0 en haut, propre à chaque plan, **sans trou** (une ligne vidée disparaît et les suivantes remontent). `ordre` : position dans la ligne, 0..n-1.
+- `dureeEstimeeMinutes` : entier ≥ 0 ou null (400 si négatif).
+- « Fiche à compléter » (`disponibilite`) et `erreursPlan` « E0003 : compléter Système » quand `systemeIds` est vide.
+- Avertissement « responsable technique absent » : une étape est concernée si l'un de ses `systemeIds` fait partie des systèmes du responsable technique.
+
+**Règle des lignes** : chaque préalable (`dependances`) appartient au même plan (422 « … appartient à un autre plan. ») et se trouve sur une ligne strictement au-dessus de l'étape (422 « Un lien descend toujours : E0004 doit être sur une ligne au-dessus de E0003. »). Un lien peut sauter des lignes. Les cycles sont donc impossibles.
+
+**Liens par défaut** (`Regles.RelierParDefaut`) : l'étape attend **toutes** les étapes de la ligne au-dessus et est attendue par **toutes** celles de la ligne en dessous ; ses autres liens sont retirés. Les liens particuliers restent possibles (`PUT` avec `dependances`).
+
+**Révisions** : toute étape dont les `dependances` changent du fait d'une autre opération (liens par défaut d'une création, `placer`, suppression) voit sa `revision` augmenter d'une unité (un client qui l'éditait reçoit 409 et relit).
+
+| Méthode | Route | Corps | Notes |
+|---|---|---|---|
+| POST | `/meps/{id}/etapes` | `{}` ou `EtapeSaisie` + `ligne?`, `position?` | `ligne` absente = **nouvelle ligne en bas** ; `ligne` = nombre de lignes du plan = nouvelle ligne en bas aussi ; `ligne` hors [0, nombre de lignes] → 400. `position` absente = en fin de ligne ; négative → 400 ; trop grande = en fin de ligne. **`dependances` absent → liens par défaut** ; présent (même `[]`) → seulement ces liens, vérifiés par la règle des lignes. → 200 `MepDto` |
+| PUT | `/meps/{id}/etapes/{eid}` | `EtapeSaisie` | ne change **ni la ligne ni la position** (`ligne` / `position` ignorés) ; `dependances` reçues (absentes = aucune) vérifiées par la règle des lignes |
+| POST | `/meps/{id}/etapes/{eid}/placer` | `{ ligne, position, liensParDefaut = true }` | voir ci-dessous → 200 `MepDto` |
+| DELETE | `/meps/{id}/etapes/{eid}` | — | voir « Changements incompatibles » |
+
+`EtapeSaisie` : `{ revision, action, systemeIds, responsableId, criticite, dureeEstimeeMinutes, instructions, resultatAttendu, dependances, plan?, resolutionIds, type, pointDeNonRetour, ligne?, position? }`.
+
+`POST /meps/{id}/etapes/{eid}/placer` `{ ligne, position, liensParDefaut }` :
+
+- Droits d'édition (403), préparation (422). **Pas de `revision` exigée** (la place n'est pas dans la fiche).
+- `ligne` obligatoire, entre 0 et le nombre de lignes du plan (cette dernière valeur = nouvelle ligne en bas), 400 sinon. Les lignes sont celles **avant** le déplacement (l'étape compte encore dans sa ligne de départ). `position` obligatoire, ≥ 0 (400 sinon) : index dans la ligne cible **après** retrait de l'étape ; au-delà de la fin = en fin de ligne.
+- **Même ligne** : simple réordonnancement, liens inchangés.
+- **Autre ligne**, `liensParDefaut: true` (défaut) : liens par défaut de l'étape, puis ses anciens suivants qui n'ont plus aucun préalable attendent toute la ligne au-dessus d'eux. `liensParDefaut: false` : l'étape garde ses liens, seuls les liens devenus invalides (préalable qui ne serait plus au-dessus) sont retirés.
+- Lignes vides supprimées (renumérotation).
+- Journal `etape.deplacee` « E0005 placée ligne 2 » (numéro affiché = `ligne` + 1, après déplacement). Remet les approbations à zéro.
+
+**Migration** : `systemeIds` = `[ancien systemeId]` (ou vide). Au démarrage, `Amorcage` calcule pour les étapes existantes (marquées `ligne = -1` par la migration) : `ligne` = profondeur dans le graphe des dépendances (0 sans préalable, sinon 1 + la plus grande ligne des préalables), `ordre` = rang dans la ligne selon l'ancien ordre (puis le code). `dureeEstimeeMinutes` = null.
+
+**Duplication** : copie `systemeIds` (remappés), `ligne`, `ordre`, `dureeEstimeeMinutes`.
+
+## Instructions (markdown)
+
+Aucun changement de schéma : `instructions`, `resultatAttendu`, `symptomes`, `diagnostic`, corrections, vérification, étapes de test restent des chaînes markdown ; un bloc de code est un bloc délimité par trois accents graves. Le back n'impose aucun format.
+
+## Démo (nouvelle base)
+
+- Catalogue : BDD, API, WEB, **LDAP** « Annuaire LDAP », **MDM** « MDM Phoenix », **BATCH** « Traitements nocturnes » ; résolutions types « API : réponse de test absente », « BDD : utilisateur applicatif retiré des droits », **« WEB : purge du cache CDN refusée »** (instructions avec blocs de code).
+- MEP « Portail de démonstration » (préparation), systèmes BDD, API, WEB, LDAP, MDM. Déploiement en 5 lignes : E0001 sauvegarde base clients (Alice, BDD), E0002 sauvegarde service commandes (Bob, API), E0003 snapshot du portail (Claire, WEB) — toutes `type: Sauvegarde`, **réussies** ; E0004 migration du schéma (Alice, BDD, disponible), E0005 déploiement de l'API (Bob, API + LDAP, **en échec**, résolution API), E0006 publication du portail (Claire, WEB, disponible, résolution WEB) ; E0007 bascule des données (Bob, API + BDD + MDM, **point de non-retour**) ; E0008 bascule du portail (Claire, WEB + API) ; E0009 contrôle final (Alice, BDD + API + WEB). Liens par défaut ligne à ligne, durées estimées renseignées. Retour arrière : R0001 (Bob, API) et R0002 (Alice, BDD) sur la première ligne, R0003 (Claire, WEB) en dessous.
+- Sauvegardes : BDD, API, WEB requises pendant la MEP (E0001 à E0003) ; LDAP et MDM non requises (justifiées). Fiches de recette : une par système (« Parcours de commande » WEB, « Appels de l'API », « Tables clients », « Authentification annuaire », « Synchronisation MDM »).
+- Responsables techniques : Bob (API, MDM), Claire (WEB). Bob suppléant, Claire approbatrice : `erreursPlan` = `["Il faut 1 approbation(s)."]`, aucun avertissement.
+- Modèle « Modèle : déploiement API standard » : copie de cette MEP. Sur une base déjà amorcée, rien n'est ajouté (ni catalogue LDAP / MDM / BATCH, ni profils).
+
+## Journal : nouveaux types
+
+`sauvegarde.systeme`, `recette.fiche-ajoutee`, `recette.fiche-modifiee`, `recette.fiche-supprimee` ; `recette.test` et `recette.refaire` ont de nouveaux détails ; `etape.deplacee` vaut « E0005 placée ligne 2 ». Plus émis : `recette.test-ajoute`, `recette.test-modifie`, `recette.test-supprime`, `recette.test-deplace`.
+
+## Précisions d'implémentation (jalon 4)
+
+- **Stockage** : `Utilisateurs.Role`, `Contact` (texte), `Expertises` (`jsonb`) ; `Systemes.Sauvegarde_Statut`, `Sauvegarde_Moment` (entiers), `Sauvegarde_Contenu`, `Sauvegarde_Justification` (texte) ; `Etapes.SystemeIds` (`uuid[]`, remplace `SystemeId`), `Ligne` (entier), `DureeEstimeeMinutes` (entier nullable) ; `Meps.FichesRecette` (`jsonb`, remplace `TestsRecette`). Migration EF `Jalon4` (données reprises en SQL), lignes calculées par `Amorcage`.
+- **Choix faits là où la spécification était ouverte** : suppression d'une étape autorisée avec rattachement des suivants (comme la maquette) au lieu du refus ; `position` trop grande ramenée en fin de ligne ; numéro de ligne du journal compté à partir de 1 ; fiche sans titre nommée « Recette n » dans les messages ; `PUT …/fiches-recette/{fid}` : un `id` d'étape inconnu crée une nouvelle étape ; refaire une fiche sans étape validée → 422 ; supprimer un système détache ses fiches de recette (« Sans système ») ; profil : `role`, `contact`, `expertises` absents = vidés ; la révision des étapes voisines augmente quand leurs liens changent.

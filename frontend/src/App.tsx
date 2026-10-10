@@ -4,8 +4,10 @@ import { useAuth } from './auth';
 import { Shell } from './layout/Shell';
 import ConnexionPage from './pages/ConnexionPage';
 import ListeMepPage from './pages/ListeMepPage';
+import ProfilPage from './pages/ProfilPage';
 import MepPage from './pages/MepPage';
 import GoNoGoPage from './parametres/GoNoGoPage';
+import NouvelleResolutionPage from './parametres/NouvelleResolutionPage';
 import ResolutionsPage from './parametres/ResolutionsPage';
 import SystemesPage from './parametres/SystemesPage';
 
@@ -29,8 +31,10 @@ export default function App() {
       <Route element={<Protege />}>
         <Route path="/" element={<ListeMepPage />} />
         <Route path="/meps/:id" element={<MepPage />} />
+        <Route path="/profil" element={<ProfilPage />} />
         <Route path="/parametres/systemes" element={<SystemesPage />} />
         <Route path="/parametres/resolutions" element={<ResolutionsPage />} />
+        <Route path="/parametres/resolutions/nouvelle" element={<NouvelleResolutionPage />} />
         <Route path="/parametres/go-no-go" element={<GoNoGoPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -28,15 +28,24 @@ public class ReglesJalon3Tests
         Regles.Terminer(m, E(m, code), EtatEtape.Reussie, "OK", true, qui, Maintenant);
     }
 
-    /// <summary>Go, E0002 et E0003 réussies, passage de E0004 autorisé puis E0004 démarrée : point de non-retour franchi.</summary>
-    private static Mep NonRetourFranchi()
+    /// <summary>Go, puis E0004, E0005 (après reprise) et E0006 réussies : E0007, point de non-retour, est disponible.</summary>
+    private static Mep JusquAuNonRetour(DonneesDemo.Jeu? jeu = null)
     {
-        var m = Demo();
+        var m = (jeu ?? DonneesDemo.Creer(Alice, Bob, Claire, Maintenant)).Mep;
         Go(m);
-        Reussir(m, "E0002", Bob);
-        Reussir(m, "E0003", Claire);
-        Regles.AutoriserNonRetour(m, E(m, "E0004"), Alice, Maintenant);
-        Regles.Demarrer(m, E(m, "E0004"), Claire, Maintenant);
+        Reussir(m, "E0004", Alice);
+        Regles.AutoriserReprise(m, E(m, "E0005"), Alice, Maintenant);
+        Reussir(m, "E0005", Bob);
+        Reussir(m, "E0006", Claire);
+        return m;
+    }
+
+    /// <summary>Passage de E0007 autorisé puis E0007 démarrée par Bob : point de non-retour franchi.</summary>
+    private static Mep NonRetourFranchi(DonneesDemo.Jeu? jeu = null)
+    {
+        var m = JusquAuNonRetour(jeu);
+        Regles.AutoriserNonRetour(m, E(m, "E0007"), Alice, Maintenant);
+        Regles.Demarrer(m, E(m, "E0007"), Bob, Maintenant);
         return m;
     }
 
@@ -78,21 +87,7 @@ public class ReglesJalon3Tests
         Regles.VerifierSuppleants(m, alice, [bob, P(m, "Claire").Id]);
     }
 
-    // ---------- 2. Sauvegarde avant ou pendant la MEP ----------
-    [Fact]
-    public void Sauvegarde_pendant_la_mep_exige_une_etape_de_type_sauvegarde()
-    {
-        var m = Demo();
-        Assert.Equal(ModeSauvegarde.PendantMep, m.Sauvegarde.Mode);
-        Assert.Equal(TypeEtape.Sauvegarde, E(m, "E0001").Type);
-        Assert.Empty(Regles.ErreursContenu(m, Maintenant));
-
-        Regles.DefinirType(E(m, "E0001"), TypeEtape.Standard, false);
-        Assert.Contains("Sauvegarde pendant la MEP : indiquer l'étape de déploiement de type Sauvegarde.", Regles.ErreursContenu(m, Maintenant));
-        m.Sauvegarde.Mode = ModeSauvegarde.AvantMep;
-        Assert.Empty(Regles.ErreursContenu(m, Maintenant));
-    }
-
+    // ---------- 2. Type d'étape (la sauvegarde par système est testée dans ReglesJalon4Tests) ----------
     [Fact]
     public void Type_sauvegarde_et_point_de_non_retour_refuses_sur_le_plan_de_retour_arriere()
     {
@@ -134,10 +129,10 @@ public class ReglesJalon3Tests
     public void Decision_impossible_tant_que_le_contenu_est_incomplet_ou_hors_preparation()
     {
         var m = Demo();
-        E(m, "E0002").Instructions = "";
+        E(m, "E0004").Instructions = "";
         var ex = Assert.Throws<RegleMetierException>(() => Approuver(m));
-        Assert.Contains("E0002 : compléter Instructions exactes", ex.Message);
-        E(m, "E0002").Instructions = "Lire la fiche";
+        Assert.Contains("E0004 : compléter Instructions exactes", ex.Message);
+        E(m, "E0004").Instructions = "Lire la fiche";
         Go(m);
         Assert.Throws<RegleMetierException>(() => Approuver(m));
     }
@@ -231,24 +226,22 @@ public class ReglesJalon3Tests
     public void Point_de_non_retour_exige_l_accord_du_pilote()
     {
         var m = Demo();
-        Assert.True(E(m, "E0004").PointDeNonRetour);
-        Assert.Throws<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0004"), Alice, Maintenant)); // préparation
-        Go(m);
-        Reussir(m, "E0002", Bob);
-        Reussir(m, "E0003", Claire);
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0004"), Claire, Maintenant));
+        Assert.True(E(m, "E0007").PointDeNonRetour);
+        Assert.Throws<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0007"), Alice, Maintenant)); // préparation
+        m = JusquAuNonRetour();
+        var ex = Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0007"), Bob, Maintenant));
         Assert.Equal("Point de non-retour : l'accord du pilote est requis.", ex.Message);
-        Assert.Throws<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0004"), Claire, Maintenant));
-        Assert.Throws<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0002"), Alice, Maintenant)); // pas un point de non-retour
+        Assert.Throws<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0007"), Claire, Maintenant));
+        Assert.Throws<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0008"), Alice, Maintenant)); // pas un point de non-retour
         Assert.False(Regles.NonRetourFranchi(m));
 
-        Regles.AutoriserNonRetour(m, E(m, "E0004"), Bob, Maintenant); // suppléant
-        Assert.Equal(Bob, E(m, "E0004").NonRetourAutoriseParId);
-        Assert.Throws<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0004"), Alice, Maintenant));
+        Regles.AutoriserNonRetour(m, E(m, "E0007"), Bob, Maintenant); // suppléant
+        Assert.Equal(Bob, E(m, "E0007").NonRetourAutoriseParId);
+        Assert.Throws<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0007"), Alice, Maintenant));
         Assert.False(Regles.NonRetourFranchi(m));
-        Regles.Demarrer(m, E(m, "E0004"), Claire, Maintenant);
+        Regles.Demarrer(m, E(m, "E0007"), Bob, Maintenant);
         Assert.True(Regles.NonRetourFranchi(m));
-        Assert.Equal("E0004", Regles.EtapeNonRetourFranchie(m)!.Code);
+        Assert.Equal("E0007", Regles.EtapeNonRetourFranchie(m)!.Code);
     }
 
     [Fact]
@@ -258,12 +251,14 @@ public class ReglesJalon3Tests
         var apres = m.EcheanceRepli!.Value.AddHours(1);
         Assert.False(Regles.AppliquerEcheance(m, apres));
         Assert.Equal(Phase.Execution, m.Phase);
-        Assert.Equal(StatutDisponibilite.EnCours, Regles.Disponibilite(m, E(m, "E0004"), apres).Statut);
-        Regles.Terminer(m, E(m, "E0004"), EtatEtape.Reussie, "Parcours démo OK", true, Claire, apres);
-        // Reprise d'une étape en échec malgré l'échéance dépassée.
-        Assert.Equal(StatutDisponibilite.ArretResolution, Regles.Disponibilite(m, E(m, "E0005"), apres).Statut);
-        Regles.AutoriserReprise(m, E(m, "E0005"), Alice, apres);
-        Assert.Equal(StatutDisponibilite.Disponible, Regles.Disponibilite(m, E(m, "E0005"), apres).Statut);
+        Assert.Equal(StatutDisponibilite.EnCours, Regles.Disponibilite(m, E(m, "E0007"), apres).Statut);
+        // Échec puis reprise d'une étape malgré l'échéance dépassée.
+        Regles.Terminer(m, E(m, "E0007"), EtatEtape.Echec, "Erreur", false, Bob, apres);
+        Assert.Equal(StatutDisponibilite.ArretResolution, Regles.Disponibilite(m, E(m, "E0007"), apres).Statut);
+        Regles.AutoriserReprise(m, E(m, "E0007"), Alice, apres);
+        Assert.Equal(StatutDisponibilite.Disponible, Regles.Disponibilite(m, E(m, "E0007"), apres).Statut);
+        Regles.Demarrer(m, E(m, "E0007"), Bob, apres);
+        Regles.Terminer(m, E(m, "E0007"), EtatEtape.Reussie, "Données basculées", true, Bob, apres);
     }
 
     [Fact]
@@ -271,7 +266,7 @@ public class ReglesJalon3Tests
     {
         var m = NonRetourFranchi();
         var ex = Assert.Throws<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Alice, "Incident", Maintenant));
-        Assert.Equal("Point de non-retour franchi (E0004) : corriger en avant.", ex.Message);
+        Assert.Equal("Point de non-retour franchi (E0007) : corriger en avant.", ex.Message);
         Assert.Throws<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, null, "Automatique", Maintenant));
         Assert.Equal(Phase.Execution, m.Phase);
     }
@@ -280,53 +275,33 @@ public class ReglesJalon3Tests
     public void Apres_le_point_de_non_retour_une_resolution_en_echec_laisse_l_etape_en_echec()
     {
         var j = DonneesDemo.Creer(Alice, Bob, Claire, Maintenant);
-        var m = j.Mep;
-        Go(m);
-        Reussir(m, "E0002", Bob);
-        Reussir(m, "E0003", Claire);
-        Regles.AutoriserNonRetour(m, E(m, "E0004"), Alice, Maintenant);
-        Regles.Demarrer(m, E(m, "E0004"), Claire, Maintenant);
+        E(j.Mep, "E0007").ResolutionIds = [j.Resolutions[0].Id];
+        var m = NonRetourFranchi(j);
+        Regles.Terminer(m, E(m, "E0007"), EtatEtape.Echec, "Erreur", false, Bob, Maintenant);
 
         var apres = m.EcheanceRepli!.Value.AddHours(1); // l'échéance n'empêche plus de lancer une résolution
-        var exec = Regles.DemarrerResolution(m, E(m, "E0005"), j.Resolutions[0], Bob, apres);
+        var exec = Regles.DemarrerResolution(m, E(m, "E0007"), j.Resolutions[0], Bob, apres);
         Regles.ValiderCorrection(m, exec, 1, ResultatControle.Echec, "toujours aucune réponse", Bob, apres);
         Assert.Equal(StatutResolution.Echouee, exec.Statut);
         Assert.Equal(Phase.Execution, m.Phase);
-        Assert.Equal(EtatEtape.Echec, E(m, "E0005").Etat);
+        Assert.Equal(EtatEtape.Echec, E(m, "E0007").Etat);
         Assert.Null(m.RetourArriereDeclencheLe);
         // Le pilote peut autoriser une reprise.
-        Regles.AutoriserReprise(m, E(m, "E0005"), Alice, apres);
-        Assert.Equal(EtatEtape.AFaire, E(m, "E0005").Etat);
+        Regles.AutoriserReprise(m, E(m, "E0007"), Alice, apres);
+        Assert.Equal(EtatEtape.AFaire, E(m, "E0007").Etat);
     }
 
     [Fact]
     public void Point_de_non_retour_reste_franchi_apres_une_reprise_de_l_etape()
     {
         var m = NonRetourFranchi();
-        Regles.Terminer(m, E(m, "E0004"), EtatEtape.Echec, "Erreur", false, Claire, Maintenant);
-        Regles.AutoriserReprise(m, E(m, "E0004"), Alice, Maintenant);
-        Assert.Equal(EtatEtape.AFaire, E(m, "E0004").Etat);
+        Regles.Terminer(m, E(m, "E0007"), EtatEtape.Echec, "Erreur", false, Bob, Maintenant);
+        Regles.AutoriserReprise(m, E(m, "E0007"), Alice, Maintenant);
+        Assert.Equal(EtatEtape.AFaire, E(m, "E0007").Etat);
         Assert.True(Regles.NonRetourFranchi(m));
     }
 
-    // ---------- 6. Recette en production ----------
-    [Fact]
-    public void Plan_exige_des_tests_de_recette_complets()
-    {
-        var m = Demo();
-        m.TestsRecette[0].ResultatAttendu = "";
-        m.TestsRecette[1].ResponsableId = null;
-        var erreurs = Regles.ErreursContenu(m, Maintenant);
-        Assert.Contains("Test de recette 1 : compléter Résultat attendu.", erreurs);
-        Assert.Contains("Test de recette 2 : compléter Responsable.", erreurs);
-        var sansCompte = new Participant { MepId = m.Id, Nom = "Eve" };
-        m.Participants.Add(sansCompte);
-        m.TestsRecette[1].ResponsableId = sansCompte.Id;
-        Assert.Contains("Test de recette 2 : le responsable Eve n'est relié à aucun compte.", Regles.ErreursContenu(m, Maintenant));
-        m.TestsRecette.Clear();
-        Assert.Contains("Ajouter au moins un test de recette.", Regles.ErreursContenu(m, Maintenant));
-    }
-
+    // ---------- 6. Recette en production (fiches : voir ReglesJalon4Tests) ----------
     [Fact]
     public void Recette_seulement_quand_tout_le_deploiement_est_reussi()
     {
@@ -334,7 +309,7 @@ public class ReglesJalon3Tests
         Assert.Throws<RegleMetierException>(() => Regles.PasserEnRecette(m, Alice, Maintenant)); // préparation
         Go(m);
         var ex = Assert.Throws<RegleMetierException>(() => Regles.PasserEnRecette(m, Alice, Maintenant));
-        Assert.Equal("E0002 n'est pas réussie : recette impossible.", ex.Message);
+        Assert.Equal("E0004 n'est pas réussie : recette impossible.", ex.Message);
         foreach (var e in m.EtapesDu(TypePlan.Deploiement)) e.Etat = EtatEtape.Reussie;
         Regles.PasserEnRecette(m, Bob, Maintenant);
         Assert.Equal(Phase.Recette, m.Phase);
@@ -343,50 +318,18 @@ public class ReglesJalon3Tests
     }
 
     [Fact]
-    public void Tests_de_recette_valides_par_le_responsable_ou_le_pilote()
-    {
-        var m = Demo();
-        var t1 = m.TestsRecette[0]; // Claire
-        var t2 = m.TestsRecette[1]; // Bob
-        Assert.Throws<RegleMetierException>(() => Regles.ValiderTestRecette(m, t1, ResultatControle.Conforme, "OK", Claire, Maintenant)); // préparation
-        m = EnRecette();
-        t1 = m.TestsRecette[0];
-        t2 = m.TestsRecette[1];
-
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.ValiderTestRecette(m, t2, ResultatControle.Conforme, "OK", Claire, Maintenant));
-        Assert.Contains("responsable du test ou le pilote", ex.Message);
-        Assert.Throws<RegleMetierException>(() => Regles.ValiderTestRecette(m, t1, ResultatControle.Conforme, " ", Claire, Maintenant));
-        Regles.ValiderTestRecette(m, t1, ResultatControle.Conforme, "Page affichée", Claire, Maintenant);
-        Assert.Equal(Claire, t1.ParId);
-        Assert.Throws<RegleMetierException>(() => Regles.ValiderTestRecette(m, t1, ResultatControle.Echec, "Encore", Claire, Maintenant));
-
-        Regles.ValiderTestRecette(m, t2, ResultatControle.Echec, "Erreur 500", Alice, Maintenant); // pilote
-        var refus = Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
-        Assert.Contains("Test de recette 2", refus.Message);
-
-        Assert.Throws<RegleMetierException>(() => Regles.RefaireTestRecette(m, t2, Claire));
-        Regles.RefaireTestRecette(m, t2, Alice);
-        Assert.Null(t2.Resultat);
-        Assert.Equal("", t2.Observation);
-        Assert.Throws<RegleMetierException>(() => Regles.RefaireTestRecette(m, t2, Alice)); // pas encore validé
-        Regles.ValiderTestRecette(m, t2, ResultatControle.Conforme, "API OK", Bob, Maintenant);
-        Regles.Cloturer(m, Alice, Maintenant, BilanOk);
-        Assert.Equal(IssueMep.Reussie, m.Issue);
-    }
-
-    [Fact]
     public void En_recette_l_echeance_et_le_pilote_peuvent_declencher_le_retour_arriere()
     {
         // Sans point de non-retour dans le plan (celui de la démo est franchi une fois le déploiement terminé).
         var m = EnRecette();
-        E(m, "E0004").PointDeNonRetour = false;
+        E(m, "E0007").PointDeNonRetour = false;
         Assert.False(Regles.AppliquerEcheance(m, Maintenant));
         Assert.True(Regles.AppliquerEcheance(m, m.EcheanceRepli!.Value));
         Assert.Equal(Phase.RetourArriere, m.Phase);
         Assert.Equal(Regles.MotifEcheance, m.RetourArriereMotif);
 
         m = EnRecette();
-        E(m, "E0004").PointDeNonRetour = false;
+        E(m, "E0007").PointDeNonRetour = false;
         Assert.Throws<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Claire, "Recette KO", Maintenant));
         Regles.DeclencherRetourArriere(m, Alice, "Recette KO", Maintenant);
         Assert.Equal(Phase.RetourArriere, m.Phase);
@@ -397,9 +340,9 @@ public class ReglesJalon3Tests
     public void En_recette_pas_de_retour_arriere_automatique_si_le_point_de_non_retour_est_franchi()
     {
         var m = NonRetourFranchi();
-        Regles.Terminer(m, E(m, "E0004"), EtatEtape.Reussie, "OK", true, Claire, Maintenant);
-        Regles.AutoriserReprise(m, E(m, "E0005"), Alice, Maintenant);
-        Reussir(m, "E0005", Bob);
+        Regles.Terminer(m, E(m, "E0007"), EtatEtape.Reussie, "OK", true, Bob, Maintenant);
+        Reussir(m, "E0008", Claire);
+        Reussir(m, "E0009", Alice);
         Regles.PasserEnRecette(m, Alice, Maintenant);
         Assert.False(Regles.AppliquerEcheance(m, m.EcheanceRepli!.Value.AddDays(1)));
         Assert.Equal(Phase.Recette, m.Phase);
@@ -421,7 +364,8 @@ public class ReglesJalon3Tests
     public void Bilan_obligatoire_quand_il_est_active()
     {
         var m = EnRecette();
-        foreach (var t in m.TestsRecette) Regles.ValiderTestRecette(m, t, ResultatControle.Conforme, "OK", Alice, Maintenant);
+        foreach (var f in m.FichesRecette)
+            foreach (var t in f.Etapes) Regles.ValiderEtapeTest(m, f, t, ResultatControle.Conforme, "OK", Alice, false, Maintenant);
         var ex = Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant));
         Assert.Contains("Rien à signaler", ex.Message);
         Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, new Bilan { CeQuiAMarche = "Tout", Incidents = " " }));
@@ -452,7 +396,7 @@ public class ReglesJalon3Tests
     {
         var source = Demo();
         Go(source);
-        Reussir(source, "E0002", Bob);
+        Reussir(source, "E0004", Alice);
         var copie = Regles.Dupliquer(source, " Recette ", commeModele: false, Dave, Maintenant.AddDays(1));
 
         Assert.NotEqual(source.Id, copie.Id);
@@ -504,20 +448,25 @@ public class ReglesJalon3Tests
             Assert.Equal(s.Type, e.Type);
             Assert.Equal(s.PointDeNonRetour, e.PointDeNonRetour);
             Assert.Equal(s.ResolutionIds, e.ResolutionIds);
-            Assert.Contains(e.SystemeId!.Value, systemes);
+            Assert.Equal(s.SystemeIds.Count, e.SystemeIds.Count);
+            Assert.All(e.SystemeIds, id => Assert.Contains(id, systemes));
+            Assert.Equal((s.Ligne, s.Ordre, s.DureeEstimeeMinutes), (e.Ligne, e.Ordre, e.DureeEstimeeMinutes));
             Assert.Contains(e.ResponsableId!.Value, ids);
             Assert.Equal(s.Dependances.Select(d => source.Etapes.Single(x => x.Id == d).Code), e.Dependances.Select(d => copie.Etapes.Single(x => x.Id == d).Code));
         }
         Assert.Null(Regles.ErreurGraphe(copie, TypePlan.Deploiement));
 
-        Assert.Equal(ModeSauvegarde.PendantMep, copie.Sauvegarde.Mode);
+        Assert.Equal(source.Sauvegarde.Mode, copie.Sauvegarde.Mode);
         Assert.Null(copie.Sauvegarde.RealiseeLe);
         Assert.False(copie.Sauvegarde.RestaurationTestee);
         Assert.Equal("", copie.Sauvegarde.PreuveTestRestauration);
+        Assert.Equal(source.Systemes.Select(s => (s.Sauvegarde.Statut, s.Sauvegarde.Moment, s.Sauvegarde.Contenu, s.Sauvegarde.Justification)),
+            copie.Systemes.Select(s => (s.Sauvegarde.Statut, s.Sauvegarde.Moment, s.Sauvegarde.Contenu, s.Sauvegarde.Justification)));
+        Assert.NotSame(source.Systemes[0].Sauvegarde, copie.Systemes[0].Sauvegarde);
 
-        Assert.Equal(source.TestsRecette.Select(t => t.Libelle), copie.TestsRecette.Select(t => t.Libelle));
-        Assert.All(copie.TestsRecette, t => { Assert.Null(t.Resultat); Assert.Contains(t.ResponsableId!.Value, ids); });
-        Assert.DoesNotContain(copie.TestsRecette, t => source.TestsRecette.Any(s => s.Id == t.Id));
+        Assert.Equal(source.FichesRecette.Select(f => f.Titre), copie.FichesRecette.Select(f => f.Titre));
+        Assert.All(copie.FichesRecette, f => Assert.Contains(f.SystemeId!.Value, systemes));
+        Assert.DoesNotContain(copie.FichesRecette, f => source.FichesRecette.Any(s => s.Id == f.Id));
 
         Assert.Equal([Claire], copie.Approbations.Select(a => a.UtilisateurId).ToArray());
         Assert.Null(copie.Approbations[0].Decision);
@@ -531,7 +480,7 @@ public class ReglesJalon3Tests
         var modele = j.Modele;
         Assert.True(modele.EstModele);
         Assert.Equal("Modèle : déploiement API standard", modele.Outil);
-        Assert.Equal(7, modele.Etapes.Count);
+        Assert.Equal(12, modele.Etapes.Count);
 
         var m = Regles.Dupliquer(j.Mep, null, commeModele: true, Alice, Maintenant);
         m.EcheanceRepli = j.Mep.EcheanceRepli;
