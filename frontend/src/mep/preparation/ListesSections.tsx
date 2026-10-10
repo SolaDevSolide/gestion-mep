@@ -12,6 +12,7 @@ import { EmptyState } from '../../ui/EmptyState';
 import { Field, Input } from '../../ui/Input';
 import { Tooltip } from '../../ui/Tooltip';
 import { FormulaireDialog, SectionCarte, vide, type ChampForm } from './Formulaires';
+import { participantDepuisCompte } from './suggestions';
 
 function Ligne({ gauche, centre, actions }: { gauche: ReactNode; centre?: ReactNode; actions?: ReactNode }) {
   return (
@@ -45,11 +46,19 @@ export function PersonnesSection() {
   useEffect(() => { api.utilisateurs().then(setUtilisateurs).catch(() => setUtilisateurs([])); }, []);
 
   const champs: ChampForm[] = [
+    { cle: 'utilisateurId', label: 'Compte', type: 'select', large: true, options: [{ valeur: '', libelle: '— aucun compte —' }, ...utilisateurs.map((u) => ({ valeur: u.id, libelle: `${u.nomAffiche} (${u.login})` }))] },
     { cle: 'nom', label: 'Nom', requis: true },
     { cle: 'role', label: 'Rôle', placeholder: 'ex. Opérateur base de données' },
-    { cle: 'contact', label: 'Contact', placeholder: 'e-mail ou téléphone' },
-    { cle: 'utilisateurId', label: 'Compte relié', type: 'select', options: [{ valeur: '', libelle: '— aucun compte —' }, ...utilisateurs.map((u) => ({ valeur: u.id, libelle: `${u.nomAffiche} (${u.login})` }))] },
+    { cle: 'contact', label: 'Contact', placeholder: 'e-mail ou téléphone', large: true },
   ];
+  /** Choisir un compte pré-remplit nom, rôle et contact depuis son profil (modifiables ensuite). */
+  const prefillerDepuisCompte = (cle: string, valeur: string) => {
+    if (cle !== 'utilisateurId') return;
+    const u = utilisateurs.find((x) => x.id === valeur);
+    if (!u) return;
+    const p = participantDepuisCompte(u);
+    return { nom: p.nom, role: p.role, contact: p.contact };
+  };
   const initial = useMemo(() => ({
     nom: forme?.existant?.nom ?? '', role: forme?.existant?.role ?? '', contact: forme?.existant?.contact ?? '', utilisateurId: forme?.existant?.utilisateurId ?? '',
   }), [forme]);
@@ -98,6 +107,7 @@ export function PersonnesSection() {
         titre={forme?.existant ? 'Modifier la personne' : 'Ajouter une personne'}
         champs={champs}
         initial={initial}
+        surChangement={prefillerDepuisCompte}
         libelleValider={forme?.existant ? 'Enregistrer' : 'Ajouter'}
         onValider={(v) => {
           const s = { nom: v.nom.trim(), role: v.role.trim(), contact: v.contact.trim(), utilisateurId: vide(v.utilisateurId) };
@@ -145,7 +155,7 @@ export function SystemesSection() {
 
   return (
     <SectionCarte
-      numero={4}
+      numero={3}
       titre="Systèmes"
       description="Les systèmes touchés par l’intervention, avec la cible exacte et l’impact attendu."
       action={edition && <Button taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajout libre</Button>}

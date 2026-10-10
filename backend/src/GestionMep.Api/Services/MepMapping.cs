@@ -5,6 +5,9 @@ namespace GestionMep.Api.Services;
 /// <summary>Unique endroit où une entité <see cref="Mep"/> devient un <see cref="MepDto"/> (disponibilités, erreurs du plan, droits).</summary>
 public static class MepMapping
 {
+    public static UtilisateurDto VersDto(Utilisateur u) =>
+        new(u.Id, u.Login, u.NomAffiche, u.EstAdmin, u.Role, u.Contact, u.Expertises.Select(x => new ExpertiseDto(x.SystemeCatalogueId, x.Detail)).ToList());
+
     public static PieceJointeDto VersDto(PieceJointe p, IReadOnlyDictionary<Guid, string> nomsUtilisateurs) =>
         new(p.Id, p.MepId, p.EtapeId, p.ResolutionTypeId, p.ExecutionResolutionId, p.NomFichier, p.TypeContenu, p.Taille, p.Sha256,
             p.DeposeParId, p.DeposeParId is { } d && nomsUtilisateurs.TryGetValue(d, out var n) ? n : null, p.DeposeLe);
@@ -33,12 +36,14 @@ public static class MepMapping
             Validation(m.ProcedureRelueParId, m.ProcedureRelueLe),
             Validation(m.DemarrageAutoriseParId, m.DemarrageAutoriseLe),
             m.Participants.Select(p => new ParticipantDto(p.Id, p.Nom, p.Role, p.Contact, p.UtilisateurId, Nom(p.UtilisateurId))).ToList(),
-            m.Systemes.Select(x => new SystemeDto(x.Id, x.Nom, x.Cible, x.Impact, x.CatalogueId)).ToList(),
+            m.Systemes.Select(x => new SystemeDto(x.Id, x.Nom, x.Cible, x.Impact, x.CatalogueId,
+                new SauvegardeSystemeDto(x.Sauvegarde.Statut, x.Sauvegarde.Moment, x.Sauvegarde.Contenu, x.Sauvegarde.Justification))).ToList(),
             m.Livrables.Select(l => new LivrableDto(l.Id, l.Objet, l.Version, l.Emplacement, l.SystemeId)).ToList(),
-            m.Etapes.OrderBy(e => e.Plan).ThenBy(e => e.Ordre).Select(e =>
+            m.EtapesTriees().Select(e =>
             {
                 var d = Regles.Disponibilite(m, e, maintenant);
-                return new EtapeDto(e.Id, e.Plan, e.Code, e.Ordre, e.Action, e.SystemeId, e.ResponsableId, e.ExecutantId, e.Criticite, e.Etat,
+                return new EtapeDto(e.Id, e.Plan, e.Code, e.Ligne, e.Ordre, e.Action, [.. e.SystemeIds], e.ResponsableId, e.ExecutantId, e.Criticite,
+                    e.DureeEstimeeMinutes, e.Etat,
                     e.Instructions, e.ResultatAttendu, e.Preuve, e.DebutReel, e.FinReelle, e.Revision, [.. e.Dependances], [.. e.ResolutionIds],
                     new DisponibiliteDto(d.Statut, d.Libelle), e.Type, e.PointDeNonRetour, Validation(e.NonRetourAutoriseParId, e.NonRetourAutoriseLe));
             }).ToList(),
@@ -56,8 +61,9 @@ public static class MepMapping
             m.Environnement, m.EstModele, approbationsMinimum,
             m.Approbations.Select(a => new ApprobationDto(a.Id, a.UtilisateurId, Nom(a.UtilisateurId) ?? a.Nom, a.Decision, a.Commentaire, a.Le)).ToList(),
             m.GoNoGo.Select(c => new CritereValideDto(c.Libelle, Nom(c.ParId), c.Le)).ToList(),
-            m.TestsRecette.OrderBy(t => t.Ordre).Select(t => new TestRecetteDto(t.Id, t.Ordre, t.Libelle, t.ResultatAttendu, t.ResponsableId,
-                t.Resultat, t.Observation, Nom(t.ParId), t.Le)).ToList(),
+            m.FichesRecette.OrderBy(f => f.Ordre).Select(f => new FicheRecetteDto(f.Id, f.Ordre, f.SystemeId, f.Titre,
+                f.Etapes.OrderBy(t => t.Ordre).Select(t => new EtapeTestDto(t.Id, t.Ordre, t.Instructions, t.ResultatAttendu,
+                    t.Resultat, t.Observation, Nom(t.ParId), t.Le)).ToList())).ToList(),
             m.BilanActive,
             m.Bilan is { } b ? new BilanDto(b.CeQuiAMarche, b.Incidents, b.Actions, Nom(b.RedigeParId), b.Le) : null,
             Regles.EtapeNonRetourFranchie(m)?.Code,

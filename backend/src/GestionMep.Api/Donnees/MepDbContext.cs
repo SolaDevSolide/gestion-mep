@@ -63,6 +63,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         {
             e.Property(x => x.Id).ValueGeneratedNever();
             e.HasIndex(x => x.Login).IsUnique();
+            e.Property(x => x.Expertises).AsJson();
         });
 
         b.Entity<Mep>(e =>
@@ -76,7 +77,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Approbations).AsJson();
             e.Property(x => x.GoNoGo).AsJson();
             e.Property(x => x.ResponsablesTechniques).AsJson();
-            e.Property(x => x.TestsRecette).AsJson();
+            e.Property(x => x.FichesRecette).AsJson();
             e.Property(x => x.Bilan).AsJsonObjet();
             e.HasIndex(x => x.EstModele);
             e.HasMany(x => x.Participants).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
@@ -88,13 +89,19 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         });
 
         b.Entity<Participant>().Property(x => x.Id).ValueGeneratedNever();
-        b.Entity<Systeme>().Property(x => x.Id).ValueGeneratedNever();
+        b.Entity<Systeme>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            // Colonnes Sauvegarde_Statut, Sauvegarde_Moment, Sauvegarde_Contenu, Sauvegarde_Justification.
+            e.OwnsOne(x => x.Sauvegarde);
+        });
         b.Entity<Livrable>().Property(x => x.Id).ValueGeneratedNever();
 
         b.Entity<Etape>(e =>
         {
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.Dependances).HasColumnType("uuid[]");
+            e.Property(x => x.SystemeIds).HasColumnType("uuid[]");
             e.Property(x => x.ResolutionIds).HasColumnType("uuid[]");
             e.HasIndex(x => new { x.MepId, x.Code }).IsUnique();
         });

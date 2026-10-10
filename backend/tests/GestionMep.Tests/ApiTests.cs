@@ -85,18 +85,18 @@ public class ApiTests : IDisposable
         var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
 
         Assert.Equal("Preparation", mep.GetProperty("phase").GetString());
-        // 5 étapes de déploiement + 2 de retour arrière.
-        Assert.Equal(7, mep.GetProperty("etapes").GetArrayLength());
+        // 9 étapes de déploiement + 3 de retour arrière.
+        Assert.Equal(12, mep.GetProperty("etapes").GetArrayLength());
         Assert.Equal("RetourArriere", Etape(mep, "R0001").GetProperty("plan").GetString());
         Assert.Equal("Si retour arrière", Dispo(mep, "R0001"));
         Assert.Equal(1, Etape(mep, "E0005").GetProperty("resolutionIds").GetArrayLength());
         Assert.Equal(30, mep.GetProperty("planRepli").GetProperty("dureeTesteeMinutes").GetInt32());
         Assert.Equal(JsonValueKind.Null, mep.GetProperty("issue").ValueKind);
         Assert.Equal(JsonValueKind.Null, mep.GetProperty("retourArriere").ValueKind);
-        Assert.Equal(3, mep.GetProperty("systemes").EnumerateArray().Count(s => s.GetProperty("catalogueId").ValueKind == JsonValueKind.String));
+        Assert.Equal(5, mep.GetProperty("systemes").EnumerateArray().Count(s => s.GetProperty("catalogueId").ValueKind == JsonValueKind.String));
         Assert.Equal(0, mep.GetProperty("resolutions").GetArrayLength());
-        Assert.Equal("Disponible", Etape(mep, "E0002").GetProperty("disponibilite").GetProperty("statut").GetString());
-        Assert.Equal("Attend E0002", Dispo(mep, "E0004"));
+        Assert.Equal("Disponible", Etape(mep, "E0004").GetProperty("disponibilite").GetProperty("statut").GetString());
+        Assert.Equal("Attend E0004", Dispo(mep, "E0007"));
         Assert.Equal("Terminée", Dispo(mep, "E0001"));
         // Seule l'approbation de Claire manque.
         Assert.Equal(["Il faut 1 approbation(s)."], mep.GetProperty("erreursPlan").EnumerateArray().Select(e => e.GetString()!).ToArray());
@@ -107,8 +107,8 @@ public class ApiTests : IDisposable
         var resume = (await Ok(await alice.GetAsync("/api/meps?modele=false"))).EnumerateArray().Single();
         Assert.Equal("Production", resume.GetProperty("environnement").GetString());
         Assert.Equal("Alice", resume.GetProperty("pilote").GetString());
-        Assert.Equal(5, resume.GetProperty("nbEtapes").GetInt32());
-        Assert.Equal(1, resume.GetProperty("nbReussies").GetInt32());
+        Assert.Equal(9, resume.GetProperty("nbEtapes").GetInt32());
+        Assert.Equal(3, resume.GetProperty("nbReussies").GetInt32());
 
         var claire = await _api.ClientConnecte("claire");
         Assert.False((await Ok(await claire.GetAsync($"/api/meps/{id}"))).GetProperty("droits").GetProperty("estPilote").GetBoolean());
@@ -129,24 +129,25 @@ public class ApiTests : IDisposable
         Assert.Equal("Alice", mep.GetProperty("demarrageAutorise").GetProperty("par").GetString());
         Assert.False(mep.GetProperty("droits").GetProperty("peutModifierPlan").GetBoolean());
 
-        // Claire n'est pas responsable de E0002.
-        var refus = await Action(claire, id, mep, "E0002", "demarrer");
+        // Claire n'est pas responsable de E0004.
+        var refus = await Action(claire, id, mep, "E0004", "demarrer");
         Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
         Assert.Contains("Prendre la main", await Message(refus));
 
-        mep = await Ok(await Action(bob, id, mep, "E0002", "demarrer"));
-        Assert.Equal("En cours", Dispo(mep, "E0002"));
-        mep = await Ok(await Action(bob, id, mep, "E0002", "terminer",
-            new { revision = Revision(mep, "E0002"), resultat = "Reussie", preuve = "API démo OK", resultatVerifie = true }));
-        Assert.Equal("Terminée", Dispo(mep, "E0002"));
-        Assert.Equal("Attend E0003", Dispo(mep, "E0004"));
+        mep = await Ok(await Action(alice, id, mep, "E0004", "demarrer"));
+        Assert.Equal("En cours", Dispo(mep, "E0004"));
+        mep = await Ok(await Action(alice, id, mep, "E0004", "terminer",
+            new { revision = Revision(mep, "E0004"), resultat = "Reussie", preuve = "Schéma migré", resultatVerifie = true }));
+        Assert.Equal("Terminée", Dispo(mep, "E0004"));
+        Assert.Equal("Attend E0005", Dispo(mep, "E0007"));
 
-        mep = await Ok(await Action(claire, id, mep, "E0003", "demarrer"));
-        mep = await Ok(await Action(claire, id, mep, "E0003", "terminer",
-            new { revision = Revision(mep, "E0003"), resultat = "Reussie", preuve = "WEB démo OK", resultatVerifie = true }));
-        Assert.Equal("Disponible", Dispo(mep, "E0004"));
+        mep = await Ok(await Action(claire, id, mep, "E0006", "demarrer"));
+        mep = await Ok(await Action(claire, id, mep, "E0006", "terminer",
+            new { revision = Revision(mep, "E0006"), resultat = "Reussie", preuve = "Portail publié", resultatVerifie = true }));
+        Assert.Equal("Attend E0005", Dispo(mep, "E0007"));
 
-        // Reprise de l'étape en échec : pilote ou suppléant seulement.
+        // Étape en échec : pas de démarrage avant la reprise, autorisée par le pilote ou un suppléant seulement.
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(bob, id, mep, "E0005", "demarrer")).StatusCode);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(claire, id, mep, "E0005", "autoriser-reprise")).StatusCode);
         mep = await Ok(await Action(alice, id, mep, "E0005", "autoriser-reprise"));
         Assert.Equal("Disponible", Dispo(mep, "E0005"));
@@ -154,11 +155,11 @@ public class ApiTests : IDisposable
         var evenements = (await Ok(await alice.GetAsync($"/api/meps/{id}/journal"))).EnumerateArray().ToList();
         Assert.Equal("etape.reprise", evenements[0].GetProperty("type").GetString());
         var details = evenements.Select(e => e.GetProperty("detail").GetString()).ToList();
-        Assert.Contains("E0002 démarrée", details);
-        Assert.Contains("E0002 réussie : API démo OK", details);
-        Assert.Contains("E0003 réussie : WEB démo OK", details);
+        Assert.Contains("E0004 démarrée", details);
+        Assert.Contains("E0004 réussie : Schéma migré", details);
+        Assert.Contains("E0006 réussie : Portail publié", details);
         Assert.Contains("Plan passé en exécution", details);
-        Assert.Contains(evenements, e => e.GetProperty("type").GetString() == "etape.demarree" && e.GetProperty("auteur").GetString() == "Bob");
+        Assert.Contains(evenements, e => e.GetProperty("type").GetString() == "etape.demarree" && e.GetProperty("auteur").GetString() == "Alice");
         Assert.Contains(evenements, e => e.GetProperty("type").GetString() == "etape.reussie" && e.GetProperty("auteur").GetString() == "Claire");
         Assert.Contains(evenements, e => e.GetProperty("type").GetString() == "mep.creee");
     }
@@ -170,20 +171,20 @@ public class ApiTests : IDisposable
         var alice = await _api.ClientConnecte("alice");
         var id = await IdDemo(alice);
         var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
-        var e2 = Etape(mep, "E0002");
+        var e4 = Etape(mep, "E0004");
         object Saisie(int revision, string action) => new
         {
-            revision, action, systemeId = e2.GetProperty("systemeId").GetGuid(), responsableId = e2.GetProperty("responsableId").GetGuid(),
+            revision, action, systemeIds = e4.GetProperty("systemeIds"), responsableId = e4.GetProperty("responsableId").GetGuid(),
             criticite = "Moderee", instructions = "Instr.", resultatAttendu = "Attendu", dependances = new[] { EtapeId(mep, "E0001") },
         };
-        var url = $"/api/meps/{id}/etapes/{EtapeId(mep, "E0002")}";
+        var url = $"/api/meps/{id}/etapes/{EtapeId(mep, "E0004")}";
 
-        var modifiee = await Ok(await alice.PutAsJsonAsync(url, Saisie(Revision(mep, "E0002"), "Action modifiée")));
-        Assert.Equal("Action modifiée", Etape(modifiee, "E0002").GetProperty("action").GetString());
-        Assert.Equal(Revision(mep, "E0002") + 1, Revision(modifiee, "E0002"));
+        var modifiee = await Ok(await alice.PutAsJsonAsync(url, Saisie(Revision(mep, "E0004"), "Action modifiée")));
+        Assert.Equal("Action modifiée", Etape(modifiee, "E0004").GetProperty("action").GetString());
+        Assert.Equal(Revision(mep, "E0004") + 1, Revision(modifiee, "E0004"));
         Assert.Equal(mep.GetProperty("version").GetInt32() + 1, modifiee.GetProperty("version").GetInt32());
 
-        var perime = await alice.PutAsJsonAsync(url, Saisie(Revision(mep, "E0002"), "Autre"));
+        var perime = await alice.PutAsJsonAsync(url, Saisie(Revision(mep, "E0004"), "Autre"));
         Assert.Equal(HttpStatusCode.Conflict, perime.StatusCode);
         Assert.NotEmpty(await Message(perime));
 
@@ -205,12 +206,12 @@ public class ApiTests : IDisposable
         var alice = await _api.ClientConnecte("alice");
         var id = await IdDemo(alice);
         var mep = await AidesApi.Go(_api, alice, id);
-        var e2 = Etape(mep, "E0002");
+        var e4 = Etape(mep, "E0004");
 
-        var modif = await alice.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0002")}", new
+        var modif = await alice.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0004")}", new
         {
-            revision = Revision(mep, "E0002"), action = "x", systemeId = e2.GetProperty("systemeId").GetGuid(),
-            responsableId = e2.GetProperty("responsableId").GetGuid(), criticite = "Faible", instructions = "i", resultatAttendu = "r",
+            revision = Revision(mep, "E0004"), action = "x", systemeIds = e4.GetProperty("systemeIds"),
+            responsableId = e4.GetProperty("responsableId").GetGuid(), criticite = "Faible", instructions = "i", resultatAttendu = "r",
             dependances = Array.Empty<Guid>(),
         });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, modif.StatusCode);
@@ -221,19 +222,21 @@ public class ApiTests : IDisposable
     }
 
     [Fact]
-    public async Task Suppression_d_une_etape_dont_une_autre_depend_est_refusee()
+    public async Task Suppression_d_une_etape_rattache_ses_suivants_a_la_ligne_au_dessus()
     {
         var alice = await _api.ClientConnecte("alice");
         var id = await IdDemo(alice);
         var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        var revisionE8 = Revision(mep, "E0008");
 
-        var refus = await alice.DeleteAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0002")}");
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
-        Assert.Contains("E0004 dépend de E0002", await Message(refus));
-
-        // E0004 ne sert de préalable à personne : suppression possible.
-        var apres = await Ok(await alice.DeleteAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0004")}"));
-        Assert.Equal(6, apres.GetProperty("etapes").GetArrayLength());
+        // E0008 n'attendait que E0007 : elle attend désormais toute la ligne au-dessus, et la ligne vide disparaît.
+        var apres = await Ok(await alice.DeleteAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0007")}"));
+        Assert.Equal(11, apres.GetProperty("etapes").GetArrayLength());
+        Assert.Equal([EtapeId(apres, "E0004"), EtapeId(apres, "E0005"), EtapeId(apres, "E0006")],
+            Etape(apres, "E0008").GetProperty("dependances").EnumerateArray().Select(d => d.GetGuid()).ToArray());
+        Assert.Equal(2, Etape(apres, "E0008").GetProperty("ligne").GetInt32());
+        Assert.Equal(revisionE8 + 1, Revision(apres, "E0008"));
+        Assert.Equal(["Il faut 1 approbation(s)."], apres.GetProperty("erreursPlan").EnumerateArray().Select(e => e.GetString()!).ToArray());
     }
 
     [Fact]
@@ -257,16 +260,20 @@ public class ApiTests : IDisposable
         mep = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/etapes", new { }));
         Assert.Equal(["E0001", "E0002"], mep.GetProperty("etapes").EnumerateArray().Select(e => e.GetProperty("code").GetString()!).ToArray());
         Assert.Equal("Moderee", Etape(mep, "E0001").GetProperty("criticite").GetString());
+        // Chaque création sans ligne ouvre une ligne en bas, reliée par défaut à la ligne au-dessus.
+        Assert.Equal(1, Etape(mep, "E0002").GetProperty("ligne").GetInt32());
+        Assert.Equal(EtapeId(mep, "E0001"), Etape(mep, "E0002").GetProperty("dependances")[0].GetGuid());
 
-        // E0002 dépend de E0001, puis E0001 de E0002 : cycle refusé.
+        // E0001 ne peut pas attendre E0002 : un lien descend toujours.
         object Saisie(JsonElement m, string code, Guid dep) => new { revision = Revision(m, code), action = "a", dependances = new[] { dep } };
         mep = await Ok(await bob.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0002")}", Saisie(mep, "E0002", EtapeId(mep, "E0001"))));
-        var cycle = await bob.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0001")}", Saisie(mep, "E0001", EtapeId(mep, "E0002")));
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, cycle.StatusCode);
-        Assert.Contains("Cycle", await Message(cycle));
+        var montant = await bob.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0001")}", Saisie(mep, "E0001", EtapeId(mep, "E0002")));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, montant.StatusCode);
+        Assert.Equal("Un lien descend toujours : E0002 doit être sur une ligne au-dessus de E0001.", await Message(montant));
 
-        var deplacee = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0002")}/deplacer", new { sens = "haut" }));
-        Assert.Equal("E0002", deplacee.GetProperty("etapes")[0].GetProperty("code").GetString());
+        var placee = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0002")}/placer", new { ligne = 0, position = 0 }));
+        Assert.Equal("E0002", placee.GetProperty("etapes")[0].GetProperty("code").GetString());
+        Assert.All(placee.GetProperty("etapes").EnumerateArray(), e => Assert.Equal(0, e.GetProperty("dependances").GetArrayLength()));
 
         // Un autre utilisateur ne peut pas supprimer la MEP ; son créateur le peut.
         var claire = await _api.ClientConnecte("claire");

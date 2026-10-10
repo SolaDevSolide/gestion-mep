@@ -1,8 +1,8 @@
-import { Code2, Pencil, Phone, Plus, Trash2, UserCheck, UserX } from 'lucide-react';
+import { Code2, Pencil, Phone, Plus, Sparkles, Trash2, UserCheck, UserX } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { api } from '../../api';
 import { useMep } from '../../mepContext';
-import type { DisponibiliteJourJ, ResponsableTechnique } from '../../types';
+import type { DisponibiliteJourJ, ResponsableTechnique, Utilisateur } from '../../types';
 import { Alerte } from '../../ui/Alerte';
 import { Avatar } from '../../ui/Avatar';
 import { BoutonIcone, Button } from '../../ui/Button';
@@ -14,6 +14,7 @@ import { Segmented } from '../../ui/Segmented';
 import { Badge } from '../../ui/StatusPill';
 import { Tooltip } from '../../ui/Tooltip';
 import { SectionCarte } from './Formulaires';
+import { participantDepuisCompte, responsableDepuisSuggestion, suggestionsResponsablesTechniques, type SuggestionResponsable } from './suggestions';
 
 /** Badge de disponibilité le jour J (réutilisé par l'encart « À appeler en cas de problème »). */
 export function BadgeDisponibilite({ valeur }: { valeur: DisponibiliteJourJ }) {
@@ -32,6 +33,10 @@ export function ResponsablesTechniquesSection() {
   const [suppr, setSuppr] = useState<ResponsableTechnique | null>(null);
   const [brouillon, setBrouillon] = useState<ResponsableTechnique>(VIDE);
   const [envoi, setEnvoi] = useState(false);
+  const [utilisateurs, setUtilisateurs] = useState<Utilisateur[]>([]);
+  const [ajoutEnCours, setAjoutEnCours] = useState<string | null>(null);
+  useEffect(() => { api.utilisateurs().then(setUtilisateurs).catch(() => setUtilisateurs([])); }, []);
+  const suggestions = suggestionsResponsablesTechniques(mep, utilisateurs);
 
   const nom = (id: string) => mep.participants.find((p) => p.id === id)?.nom ?? 'Participant inconnu';
   const dejaResponsables = new Set(mep.responsablesTechniques.map((r) => r.participantId));
@@ -62,11 +67,31 @@ export function ResponsablesTechniquesSection() {
 
   const aucunCandidat = !forme?.existant && candidats.length === 0;
 
+  /** Crée le participant si besoin (pré-rempli depuis le profil), puis l'ajoute comme responsable technique de ses systèmes. */
+  async function ajouterSuggestion(s: SuggestionResponsable) {
+    setAjoutEnCours(s.utilisateur.id);
+    try {
+      await run(async () => {
+        let courante = mep;
+        let participant = s.participant;
+        if (!participant) {
+          courante = await api.ajouterParticipant(mep.id, participantDepuisCompte(s.utilisateur));
+          participant = courante.participants.find((p) => p.utilisateurId === s.utilisateur.id) ?? null;
+          if (!participant) throw new Error('La personne n’a pas pu être ajoutée aux participants.');
+        }
+        const nouveau = responsableDepuisSuggestion(s, participant.id, participant.contact || s.utilisateur.contact);
+        return api.modifierResponsablesTechniques(courante.id, courante.version, [...courante.responsablesTechniques, nouveau]);
+      }, `${s.utilisateur.nomAffiche} ajouté comme responsable technique.`);
+    } finally {
+      setAjoutEnCours(null);
+    }
+  }
+
   return (
     <SectionCarte
-      numero={3}
+      numero={4}
       titre="Responsables techniques"
-      description="Les développeurs et sachants de cette MEP, distincts du pilote : ce qu’ils ont développé, leur disponibilité et leur contact le jour J."
+      description="Les développeurs et sachants de cette MEP : ce qu’ils ont développé, leur disponibilité et leur contact le jour J."
       action={edition && <Button variante="primaire" taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajouter</Button>}
     >
       {mep.responsablesTechniques.length === 0 ? (
@@ -105,6 +130,37 @@ export function ResponsablesTechniquesSection() {
             );
           })}
         </ul>
+      )}
+
+      {suggestions.length > 0 && (
+        <section aria-labelledby="suggestions-rt" className="mt-5 rounded-lg border border-dashed border-line-strong bg-surface-2/50 p-4">
+          <h3 id="suggestions-rt" className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="size-4 text-accent-text" aria-hidden />Suggestions d’après les systèmes de la MEP</h3>
+          <p className="mt-0.5 text-xs text-fg-subtle">Comptes dont l’expertise porte sur un système de cette MEP. « Ajouter » crée la personne si besoin et la désigne responsable technique de ces systèmes.</p>
+          <ul className="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
+            {suggestions.map((s) => (
+              <li key={s.utilisateur.id} className="flex flex-wrap items-start gap-x-4 gap-y-2 px-4 py-3">
+                <div className="flex min-w-0 flex-1 basis-56 items-center gap-3">
+                  <Avatar nom={s.utilisateur.nomAffiche} />
+                  <div className="min-w-0">
+                    <p className="font-medium">{s.utilisateur.nomAffiche}</p>
+                    <p className="truncate text-xs text-fg-subtle">{s.utilisateur.role || 'Rôle non précisé'}{!s.participant && ' · pas encore dans les personnes'}</p>
+                  </div>
+                </div>
+                <ul className="min-w-0 flex-1 basis-56 space-y-1 text-sm text-fg-muted" aria-label={`Expertises de ${s.utilisateur.nomAffiche}`}>
+                  {s.systemes.map(({ systeme, detail }) => (
+                    <li key={systeme.id} className="flex flex-wrap items-center gap-x-2">
+                      <Badge ton="run">{systeme.nom}</Badge>
+                      <span>{detail || <span className="text-fg-subtle">Pas de détail</span>}</span>
+                    </li>
+                  ))}
+                </ul>
+                {edition && (
+                  <Button taille="sm" icone={<Plus className="size-4" aria-hidden />} chargement={ajoutEnCours === s.utilisateur.id} onClick={() => void ajouterSuggestion(s)} aria-label={`Ajouter ${s.utilisateur.nomAffiche} comme responsable technique`}>Ajouter</Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <Dialog

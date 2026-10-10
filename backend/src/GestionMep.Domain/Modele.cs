@@ -20,6 +20,9 @@ public enum Criticite { Faible, Moderee, Elevee, Bloquante }
 /// <summary>Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée.</summary>
 public enum ModeSauvegarde { AvantMep, PendantMep }
 
+/// <summary>Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu.</summary>
+public enum StatutSauvegarde { ARenseigner, Requise, NonRequise }
+
 /// <summary>Nature d'une étape de déploiement : standard, ou étape qui réalise la sauvegarde.</summary>
 public enum TypeEtape { Standard, Sauvegarde }
 
@@ -35,6 +38,18 @@ public class Utilisateur
     public string NomAffiche { get; set; } = "";
     public string MotDePasseHash { get; set; } = "";
     public bool EstAdmin { get; set; }
+    /// <summary>Profil : rôle habituel et contact, repris quand le compte est ajouté à une MEP.</summary>
+    public string Role { get; set; } = "";
+    public string Contact { get; set; } = "";
+    /// <summary>Systèmes du catalogue que la personne connaît : sert à suggérer les responsables techniques.</summary>
+    public List<Expertise> Expertises { get; set; } = [];
+}
+
+/// <summary>Expertise d'un compte sur un système du catalogue (ex. « Expert de la zone facturation »).</summary>
+public class Expertise
+{
+    public Guid SystemeCatalogueId { get; set; }
+    public string Detail { get; set; } = "";
 }
 
 public class Mep
@@ -72,7 +87,7 @@ public class Mep
     public Guid? ClotureeParId { get; set; }
 
     /// <summary>
-    /// Développeurs / sachants de la MEP, distincts du pilote : ils ont les droits d'édition du contenu et sont à appeler
+    /// Développeurs / sachants de la MEP (le pilote peut en faire partie) : ils ont les droits d'édition du contenu et sont à appeler
     /// en cas de problème. Un participant n'apparaît qu'une fois.
     /// </summary>
     public List<ResponsableTechnique> ResponsablesTechniques { get; set; } = [];
@@ -82,8 +97,8 @@ public class Mep
     /// <summary>Critères go / no-go cochés lors du passage en exécution (copie figée du catalogue).</summary>
     public List<CritereValide> GoNoGo { get; set; } = [];
 
-    // Recette en production et bilan de clôture
-    public List<TestRecette> TestsRecette { get; set; } = [];
+    // Recette en production (fiches par système) et bilan de clôture
+    public List<FicheRecette> FichesRecette { get; set; } = [];
     public bool BilanActive { get; set; } = true;
     public Bilan? Bilan { get; set; }
 
@@ -111,7 +126,11 @@ public class Mep
     public List<Etape> Etapes { get; set; } = [];
     public List<ExecutionResolution> Resolutions { get; set; } = [];
 
-    public IEnumerable<Etape> EtapesDu(TypePlan plan) => Etapes.Where(e => e.Plan == plan).OrderBy(e => e.Ordre);
+    /// <summary>Étapes d'un plan, de haut en bas puis de gauche à droite (ligne, puis ordre dans la ligne).</summary>
+    public IEnumerable<Etape> EtapesDu(TypePlan plan) => Etapes.Where(e => e.Plan == plan).OrderBy(e => e.Ligne).ThenBy(e => e.Ordre);
+
+    /// <summary>Toutes les étapes, triées par plan, ligne et ordre.</summary>
+    public IEnumerable<Etape> EtapesTriees() => Etapes.OrderBy(e => e.Plan).ThenBy(e => e.Ligne).ThenBy(e => e.Ordre);
 }
 
 public class PlanRepli
@@ -155,6 +174,20 @@ public class Systeme
     public string Impact { get; set; } = "";
     /// <summary>Système du catalogue global dont celui-ci est issu, le cas échéant.</summary>
     public Guid? CatalogueId { get; set; }
+    /// <summary>Faut-il sauvegarder ce système, quand et comment.</summary>
+    public SauvegardeSysteme Sauvegarde { get; set; } = new();
+}
+
+/// <summary>Sauvegarde d'un système de la MEP.</summary>
+public class SauvegardeSysteme
+{
+    public StatutSauvegarde Statut { get; set; } = StatutSauvegarde.ARenseigner;
+    /// <summary>Avant la MEP, ou pendant par une étape de déploiement de type Sauvegarde sur ce système.</summary>
+    public ModeSauvegarde Moment { get; set; } = ModeSauvegarde.AvantMep;
+    /// <summary>Quoi et comment (markdown), si la sauvegarde est requise.</summary>
+    public string Contenu { get; set; } = "";
+    /// <summary>Pourquoi aucune sauvegarde n'est nécessaire : obligatoire si non requise.</summary>
+    public string Justification { get; set; } = "";
 }
 
 /// <summary>Système du catalogue global, saisi une fois et sélectionné ensuite dans chaque MEP.</summary>
@@ -238,6 +271,10 @@ public class Livrable
     public Guid? SystemeId { get; set; }
 }
 
+/// <summary>
+/// Fiche Sauvegarde globale de la MEP. Depuis le jalon 4, ce qu'il faut sauvegarder se décide par système
+/// (<see cref="Systeme.Sauvegarde"/>) : <see cref="Mode"/> et les cases restent en base pour compatibilité mais ne sont plus vérifiés.
+/// </summary>
 public class Sauvegarde
 {
     public ModeSauvegarde Mode { get; set; } = ModeSauvegarde.AvantMep;
@@ -268,9 +305,14 @@ public class Etape
     public DateTimeOffset? NonRetourAutoriseLe { get; set; }
     /// <summary>Identifiant lisible et stable (E0001… pour le déploiement, R0001… pour le retour arrière), jamais renuméroté.</summary>
     public string Code { get; set; } = "";
+    /// <summary>Ligne du graphe (0 en haut), propre à chaque plan, sans trou. -1 : à calculer (données d'avant le jalon 4).</summary>
+    public int Ligne { get; set; }
+    /// <summary>Position dans la ligne (0, 1, 2… de gauche à droite).</summary>
     public int Ordre { get; set; }
     public string Action { get; set; } = "";
-    public Guid? SystemeId { get; set; }
+    /// <summary>Systèmes de la MEP concernés par l'étape (un ou plusieurs).</summary>
+    public List<Guid> SystemeIds { get; set; } = [];
+    public int? DureeEstimeeMinutes { get; set; }
     public Guid? ResponsableId { get; set; }
     /// <summary>Participant ayant pris la main sur l'étape à la place du responsable ; null sinon.</summary>
     public Guid? ExecutantId { get; set; }
@@ -318,15 +360,27 @@ public class CritereValide
     public DateTimeOffset Le { get; set; }
 }
 
-/// <summary>Test de recette en production, préparé avec la MEP et validé après le déploiement.</summary>
-public class TestRecette
+/// <summary>
+/// Fiche de recette en production, préparée avec la MEP et déroulée après le déploiement. Pas de responsable :
+/// en recette, on contacte les responsables techniques du système de la fiche.
+/// </summary>
+public class FicheRecette
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public int Ordre { get; set; }
-    public string Libelle { get; set; } = "";
+    /// <summary>Système de la MEP testé ; null : fiche « Sans système ».</summary>
+    public Guid? SystemeId { get; set; }
+    public string Titre { get; set; } = "";
+    public List<EtapeTest> Etapes { get; set; } = [];
+}
+
+/// <summary>Étape d'une fiche de recette : instructions et résultat attendu (markdown), puis résultat constaté.</summary>
+public class EtapeTest
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Ordre { get; set; }
+    public string Instructions { get; set; } = "";
     public string ResultatAttendu { get; set; } = "";
-    /// <summary>Participant chargé du test.</summary>
-    public Guid? ResponsableId { get; set; }
     public ResultatControle? Resultat { get; set; }
     public string Observation { get; set; } = "";
     public Guid? ParId { get; set; }

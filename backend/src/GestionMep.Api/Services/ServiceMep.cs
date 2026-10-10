@@ -135,6 +135,14 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         if (id is not null && mep.Systemes.All(s => s.Id != id)) throw ErreurHttp.Saisie("Système inconnu dans cette MEP.");
     }
 
+    /// <summary>Systèmes de la MEP (400 sinon), sans doublon, dans l'ordre reçu.</summary>
+    public static List<Guid> ValiderSystemeIds(Mep mep, IEnumerable<Guid>? ids)
+    {
+        var liste = (ids ?? []).Distinct().ToList();
+        foreach (var id in liste) ExigerSystemeExistant(mep, id);
+        return liste;
+    }
+
     /// <summary>Vérifie que les résolutions types existent et sont actives (400 sinon) ; celles déjà liées à l'étape restent admises.</summary>
     public async Task<List<Guid>> ValiderResolutionIds(IEnumerable<Guid>? ids, IEnumerable<Guid> dejaLiees)
     {
