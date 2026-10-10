@@ -21,8 +21,12 @@ public static class CatalogueEndpoints
     {
         var n = ServiceMep.Texte(nom);
         if (n.Length == 0) throw ErreurHttp.Saisie("Le nom est obligatoire.");
-        var minuscule = n.ToLower();
+        var minuscule = n.ToLowerInvariant();
+        // Requête traduite en SQL : seul ToLower() devient lower() ; ni ToLowerInvariant() ni string.Equals(…, StringComparison)
+        // ne sont traduisibles par EF Core.
+#pragma warning disable CA1304, CA1311, CA1862
         if (await db.SystemesCatalogue.AnyAsync(s => s.Nom.ToLower() == minuscule && s.Id != sauf))
+#pragma warning restore CA1304, CA1311, CA1862
             throw ErreurHttp.Saisie($"Un système nommé « {n} » existe déjà dans le catalogue.");
         return n;
     }
