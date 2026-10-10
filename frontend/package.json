@@ -25,7 +25,7 @@
     "marked": "^12.0.2",
     "radix-ui": "^1.7.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4",
     "tailwind-merge": "^3.7.0",
     "tailwindcss": "^4.3.3"
@@ -35,7 +35,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@types/react": "^18.3.31",
-    "@types/react-dom": "^18.3.7",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "jsdom": "^29.1.1",
     "oxlint": "^1.87.0",
