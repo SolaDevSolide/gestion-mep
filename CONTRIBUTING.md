@@ -82,6 +82,19 @@ dotnet ef migrations add AjoutCommentaireEtape --project src/GestionMep.Api --ou
 - Une migration qui transforme des données existantes a son test (exemple : `MigrationJalon4Tests.cs`).
 - La migration s'applique toute seule au prochain démarrage de l'API.
 
+## Contrat d'API (OpenAPI)
+
+L'API publie sa description OpenAPI sur `/api/openapi.json` (session requise). Une copie est versionnée dans `docs/openapi.json` et le front en génère ses types dans `frontend/src/api/schema.d.ts`.
+
+Après avoir modifié un DTO (`Services/Dtos.cs`) ou une route :
+
+```bash
+cd backend && MAJ_OPENAPI=1 dotnet test --filter OpenApi   # met à jour docs/openapi.json
+cd ../frontend && npm run api:types                        # régénère src/api/schema.d.ts
+```
+
+Le test `OpenApiTests` échoue tant que `docs/openapi.json` ne correspond pas à l'API. Ne jamais modifier `schema.d.ts` à la main.
+
 ## Documentation
 
 - Une route ajoutée ou modifiée est décrite dans [docs/api.md](docs/api.md).
