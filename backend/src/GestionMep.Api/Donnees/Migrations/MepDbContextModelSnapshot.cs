@@ -56,6 +56,10 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Commentaire")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int?>("Criticite")
                         .HasColumnType("integer");
 
@@ -528,8 +532,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("SystemeCatalogueId")
-                        .HasColumnType("uuid");
+                    b.PrimitiveCollection<List<Guid>>("SystemeCatalogueIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
 
                     b.Property<string>("Titre")
                         .IsRequired()

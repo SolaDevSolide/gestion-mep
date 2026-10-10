@@ -21,13 +21,12 @@ interface Props {
   className?: string;
 }
 
-/** Fiche d'une étape dans le graphe : systèmes, code, criticité ou état, action, responsable, durée, badges. */
+/** Fiche d'une étape dans le graphe : systèmes, code, criticité ou état, action, exécutant (une fois démarrée), durée, badges. */
 export function CarteEtape({ mep, etape: e, mode, descriptions, selectionnee, estompee, cible, className }: Props) {
   const exec = mode === 'execution';
   const etat = etatCarte(e);
   const executant = executantEffectif(e);
   const nom = nomParticipant(mep, executant);
-  const priseEnMain = e.executantId !== null && e.executantId !== e.responsableId;
   const systemes = systemesDe(mep, e.systemeIds);
 
   return (
@@ -60,10 +59,9 @@ export function CarteEtape({ mep, etape: e, mode, descriptions, selectionnee, es
         </div>
         <p className="text-[14px] leading-snug font-semibold">{e.action || <em className="font-normal text-fg-subtle">Action à décrire</em>}</p>
         <div className="flex flex-wrap items-center gap-1.5 text-xs text-fg-muted">
-          {nom ? <Avatar nom={nom} taille="xs" /> : <span className="size-5 rounded-full border border-dashed border-line-strong" aria-hidden />}
-          <span className="text-fg">{nom ?? 'Sans responsable'}</span>
-          {priseEnMain && <span title="A pris la main" aria-label="a pris la main">⤳</span>}
-          {e.dureeEstimeeMinutes !== null && <span>· {e.dureeEstimeeMinutes} min</span>}
+          {nom && <Avatar nom={nom} taille="xs" />}
+          {nom && <span className="text-fg" title="Exécutant">{nom}</span>}
+          {e.dureeEstimeeMinutes !== null && <span>{nom && '· '}{e.dureeEstimeeMinutes} min</span>}
           {e.type === 'Sauvegarde' && <span className="rounded border px-1 text-[10.5px] font-semibold" style={{ color: 'var(--sys-0)', borderColor: 'var(--sys-0)' }}>Sauvegarde</span>}
           {e.resolutionIds.length > 0 && <span className="rounded border border-accent px-1 text-[10.5px] font-semibold text-accent-text">{e.resolutionIds.length} résol.</span>}
           {exec && estAVous(mep, e) && <span className="rounded bg-accent px-1 text-[10px] font-bold tracking-wide text-accent-fg uppercase">À vous</span>}

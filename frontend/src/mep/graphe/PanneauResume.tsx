@@ -1,40 +1,48 @@
+import { CircleHelp } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { construireLignes } from '../../graphe';
-import type { Etape, TypePlan } from '../../types';
-import { Card } from '../../ui/Card';
+import type { Etape } from '../../types';
+import { Popover, PopoverContent, PopoverTrigger } from '../../ui/Popover';
 
-/** Intertitre de section d'un panneau (petites capitales, comme la maquette). */
+/** Intertitre de section (petites capitales). */
 export function TitrePanneau({ children, id }: { children: ReactNode; id?: string }) {
   return <h3 id={id} className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">{children}</h3>;
 }
 
-/** Panneau sans sélection : résumé du plan et, en préparation, mode d'emploi du graphe. */
-export function PanneauResume({ plan, etapes, aide }: { plan: TypePlan; etapes: Etape[]; aide: boolean }) {
-  const lignes = construireLignes(etapes).length;
+/** Durée cumulée : les étapes sans durée sont ignorées et comptées à part (la durée est facultative). */
+export function dureeCumulee(etapes: Pick<Etape, 'dureeEstimeeMinutes'>[]): string {
   const total = etapes.reduce((t, e) => t + (e.dureeEstimeeMinutes ?? 0), 0);
+  const sans = etapes.filter((e) => e.dureeEstimeeMinutes === null).length;
+  if (sans === etapes.length) return 'durée non estimée';
+  return `${total} min${sans ? ` (${sans} étape${sans > 1 ? 's' : ''} sans durée)` : ''}`;
+}
+
+/** Résumé d'une ligne du plan : étapes, lignes, durée cumulée. */
+export function ResumePlan({ etapes }: { etapes: Etape[] }) {
+  const lignes = construireLignes(etapes).length;
   return (
-    <Card className="grid gap-4 p-4">
-      <div className="grid gap-1">
-        <TitrePanneau>{plan === 'Deploiement' ? 'Plan de déploiement' : 'Plan de retour arrière'}</TitrePanneau>
-        <p className="text-sm text-fg-muted tnum">
-          {etapes.length} étape{etapes.length > 1 ? 's' : ''} · {lignes} ligne{lignes > 1 ? 's' : ''} · {total} min de travail cumulé
-        </p>
-      </div>
-      {aide ? (
-        <div className="grid gap-1.5">
-          <TitrePanneau>Comment faire</TitrePanneau>
-          <ol className="grid list-decimal gap-1.5 pl-4.5 text-[13px]">
-            <li><b>Systèmes</b> : ajoutez ceux de la MEP en haut ; une étape peut en toucher plusieurs.</li>
-            <li><b>Ajouter</b> : « + Étape » au bout d’une ligne, ou « + Nouvelle ligne » en bas.</li>
-            <li><b>Déplacer</b> : glisser une fiche ; ses liens sont recréés (elle attend la ligne au-dessus).</li>
-            <li><b>Lien particulier</b> : tirer le rond du bas d’une fiche vers celle qui doit attendre (ou depuis le panneau, « Préalables »).</li>
-            <li><b>Instructions</b> : des blocs Texte (markdown) ou Code (copiables en exécution).</li>
-            <li><b>Clavier</b> : Tab pour aller de fiche en fiche, Entrée pour ouvrir le panneau, Échap pour le fermer.</li>
-          </ol>
-        </div>
-      ) : (
-        <p className="text-[13px] text-fg-subtle">Cliquez sur une étape (ou Entrée sur une fiche) pour afficher son détail.</p>
-      )}
-    </Card>
+    <p className="text-[13px] text-fg-subtle tnum">
+      {etapes.length} étape{etapes.length > 1 ? 's' : ''} · {lignes} ligne{lignes > 1 ? 's' : ''}{etapes.length > 0 && <> · {dureeCumulee(etapes)}</>}
+    </p>
+  );
+}
+
+/** Aide du graphe, repliée derrière une icône « ? ». */
+export function AideGraphe({ edition }: { edition: boolean }) {
+  return (
+    <Popover>
+      <PopoverTrigger className="inline-flex size-7 items-center justify-center rounded-full text-fg-subtle hover:bg-surface-2 hover:text-fg" aria-label="Aide du graphe">
+        <CircleHelp className="size-4" aria-hidden />
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-3 text-[13px]">
+        <ul className="grid list-disc gap-1 pl-4">
+          {edition && <li>Glisser une fiche pour la déplacer (liens recréés avec les lignes voisines).</li>}
+          {edition && <li>Tirer le rond du bas d’une fiche vers celle qui doit l’attendre : lien particulier.</li>}
+          {edition && <li>Cliquer un lien pour le sélectionner, Suppr pour le retirer.</li>}
+          <li>Glisser le fond pour se déplacer, Ctrl + molette pour zoomer.</li>
+          <li>Tab pour aller de fiche en fiche, Entrée pour ouvrir, Échap pour fermer.</li>
+        </ul>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -61,28 +61,34 @@ public class ApiJalon2Tests : IDisposable
 
     // ---------- Prise de main ----------
     [Fact]
-    public async Task Claire_prend_la_main_sur_E0004_puis_l_execute()
+    public async Task Bob_prend_la_main_sur_E0004_demarree_par_Claire_puis_la_termine()
     {
         var (alice, id, mep) = await DemoEnExecution();
         var claire = await _api.ClientConnecte("claire");
-        var participantClaire = mep.GetProperty("participants").EnumerateArray().Single(p => p.GetProperty("nom").GetString() == "Claire").GetProperty("id").GetGuid();
+        var bob = await _api.ClientConnecte("bob");
+        var participantBob = mep.GetProperty("participants").EnumerateArray().Single(p => p.GetProperty("nom").GetString() == "Bob").GetProperty("id").GetGuid();
 
-        mep = await Ok(await Action(claire, id, mep, "E0004", "prendre-la-main", new { revision = Revision(mep, "E0004"), motif = "Alice est absente" }));
-        Assert.Equal(participantClaire, Etape(mep, "E0004").GetProperty("executantId").GetGuid());
-        Assert.NotEqual(participantClaire, Etape(mep, "E0004").GetProperty("responsableId").GetGuid());
+        // Claire démarre E0004 puis s'absente : Bob prend la main et termine.
+        Assert.Equal(HttpStatusCode.UnprocessableEntity,
+            (await Action(bob, id, mep, "E0004", "prendre-la-main", new { revision = Revision(mep, "E0004"), motif = "x" })).StatusCode); // pas démarrée
+        mep = await Ok(await Action(claire, id, mep, "E0004", "demarrer"));
+        mep = await Ok(await Action(bob, id, mep, "E0004", "prendre-la-main", new { revision = Revision(mep, "E0004"), motif = "Claire est absente" }));
+        Assert.Equal(participantBob, Etape(mep, "E0004").GetProperty("executantId").GetGuid());
 
-        // Alice, responsable prévue, n'est plus l'exécutante.
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(alice, id, mep, "E0004", "demarrer")).StatusCode);
+        // Claire n'est plus l'exécutante (et n'est ni pilote ni suppléante).
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(claire, id, mep, "E0004", "terminer",
+            new { revision = Revision(mep, "E0004"), resultat = "Reussie", preuve = "x", resultatVerifie = true })).StatusCode);
 
-        mep = await Reussir(claire, id, mep, "E0004", "Schéma migré");
+        mep = await Ok(await Action(bob, id, mep, "E0004", "terminer",
+            new { revision = Revision(mep, "E0004"), resultat = "Reussie", preuve = "Schéma migré", resultatVerifie = true }));
         Assert.Equal("Reussie", Etat(mep, "E0004"));
         // Une étape réussie ne peut plus être reprise en main.
-        var bob = await _api.ClientConnecte("bob");
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(bob, id, mep, "E0004", "prendre-la-main", new { revision = Revision(mep, "E0004"), motif = "x" })).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(claire, id, mep, "E0004", "prendre-la-main", new { revision = Revision(mep, "E0004"), motif = "x" })).StatusCode);
 
         var journal = await Journal(alice, id);
-        Assert.Contains(journal, e => e.Type == "etape.prise-en-main" && e.Auteur == "Claire" && e.Detail == "Claire a pris la main sur E0004 (prévu : Alice) : Alice est absente");
-        Assert.Contains(journal, e => e.Type == "etape.reussie" && e.Auteur == "Claire");
+        Assert.Contains(journal, e => e.Type == "etape.prise-en-main" && e.Auteur == "Bob" && e.Detail == "Bob a pris la main sur E0004 (à la place de Claire) : Claire est absente");
+        Assert.Contains(journal, e => e.Type == "etape.demarree" && e.Detail == "E0004 démarrée par Claire");
+        Assert.Contains(journal, e => e.Type == "etape.reussie" && e.Auteur == "Bob");
     }
 
     [Fact]
@@ -94,13 +100,15 @@ public class ApiJalon2Tests : IDisposable
         var dave = await _api.ClientConnecte("dave", "motdepasse");
         Assert.Equal(JsonValueKind.Null, (await Ok(await dave.GetAsync($"/api/meps/{id}"))).GetProperty("droits").GetProperty("participantId").ValueKind);
 
-        mep = await Ok(await Action(dave, id, mep, "E0004", "prendre-la-main", new { revision = Revision(mep, "E0004"), motif = "Renfort" }));
+        // Dave n'est pas participant : il ne démarre pas, mais peut prendre la main sur une étape en échec.
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(dave, id, mep, "E0004", "demarrer")).StatusCode);
+        mep = await Ok(await Action(dave, id, mep, "E0005", "prendre-la-main", new { revision = Revision(mep, "E0005"), motif = "Renfort" }));
         var participants = mep.GetProperty("participants").EnumerateArray().ToList();
         Assert.Equal(4, participants.Count);
         var nouveau = participants.Single(p => p.GetProperty("nom").GetString() == "Dave");
         Assert.Equal("Prise en main", nouveau.GetProperty("role").GetString());
         Assert.Equal("Dave", nouveau.GetProperty("utilisateurNom").GetString());
-        Assert.Equal(nouveau.GetProperty("id").GetGuid(), Etape(mep, "E0004").GetProperty("executantId").GetGuid());
+        Assert.Equal(nouveau.GetProperty("id").GetGuid(), Etape(mep, "E0005").GetProperty("executantId").GetGuid());
         Assert.Equal(nouveau.GetProperty("id").GetGuid(), mep.GetProperty("droits").GetProperty("participantId").GetGuid());
 
         // Un refus ne crée pas de participant : le déploiement d'une MEP en préparation n'accepte pas de prise de main.
@@ -426,13 +434,13 @@ public class ApiJalon2Tests : IDisposable
         Assert.Contains("Donner un titre", await Message(invalide));
         Assert.Equal(HttpStatusCode.BadRequest, (await bob.PostAsJsonAsync("/api/resolutions", new
         {
-            titre = "T", symptomes = "S", systemeCatalogueId = Guid.NewGuid(),
+            titre = "T", symptomes = "S", systemeCatalogueIds = new[] { api, Guid.NewGuid() },
             corrections = new[] { new { ordre = 1, instruction = "i", resultatAttendu = "a" } }, verificationInstruction = "v", verificationAttendu = "a",
         })).StatusCode);
 
         object Saisie(string titre, int? version, Guid? systeme) => new
         {
-            version, titre, symptomes = "Erreur 500", diagnostic = "Lire le journal", systemeCatalogueId = systeme,
+            version, titre, symptomes = "Erreur 500", diagnostic = "Lire le journal", systemeCatalogueIds = systeme is { } s ? new[] { s, s } : Array.Empty<Guid>(),
             corrections = new[] { new { ordre = 2, instruction = "Redémarrer", resultatAttendu = "OK" }, new { ordre = 1, instruction = "Vider le cache", resultatAttendu = "Vidé" } },
             verificationInstruction = "Appeler /sante", verificationAttendu = "200",
         };
@@ -454,10 +462,12 @@ public class ApiJalon2Tests : IDisposable
         Assert.Equal(HttpStatusCode.BadRequest, (await bob.PutAsJsonAsync($"/api/resolutions/{rid}", Saisie("Autre", null, api))).StatusCode);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await bob.PutAsJsonAsync($"/api/resolutions/{rid}", Saisie("", 2, api))).StatusCode);
 
-        // Filtre par système du catalogue : exactement les résolutions de ce système, triées par titre.
+        Assert.Equal([api], modifiee.GetProperty("systemeCatalogueIds").EnumerateArray().Select(x => x.GetGuid()).ToArray()); // doublons ignorés
+
+        // Filtre par système du catalogue : les résolutions dont l'un des systèmes est celui-ci (dont « API + BDD »).
         var pourApi = (await Ok(await bob.GetAsync($"/api/resolutions?systemeCatalogueId={api}"))).EnumerateArray().Select(x => x.GetProperty("titre").GetString()).ToList();
-        Assert.Equal(["API : réponse de test absente", "Cache corrompu v2"], pourApi);
-        Assert.Equal(4, (await Ok(await bob.GetAsync("/api/resolutions"))).GetArrayLength());
+        Assert.Equal(["API + BDD : connexion refusée après bascule", "API : réponse de test absente", "Cache corrompu v2"], pourApi.Select(t => t!).Order(StringComparer.Ordinal).ToArray());
+        Assert.Equal(5, (await Ok(await bob.GetAsync("/api/resolutions"))).GetArrayLength());
         Assert.Equal(HttpStatusCode.NotFound, (await bob.GetAsync($"/api/resolutions/{Guid.NewGuid()}")).StatusCode);
 
         // Suppression : admin seulement ; une résolution jamais utilisée disparaît.

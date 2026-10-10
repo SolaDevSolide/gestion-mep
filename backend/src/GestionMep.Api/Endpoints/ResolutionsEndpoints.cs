@@ -10,19 +10,20 @@ namespace GestionMep.Api.Endpoints;
 /// <summary>Résolutions types (Paramètres) et exécution d'une résolution sur une étape en échec.</summary>
 public static class ResolutionsEndpoints
 {
-    private static ResolutionTypeDto Dto(ResolutionType r) => new(r.Id, r.Titre, r.Symptomes, r.Diagnostic, r.SystemeCatalogueId,
+    private static ResolutionTypeDto Dto(ResolutionType r) => new(r.Id, r.Titre, r.Symptomes, r.Diagnostic, [.. r.SystemeCatalogueIds],
         r.Corrections.OrderBy(c => c.Ordre).Select(c => new CorrectionDto(c.Ordre, c.Instruction, c.ResultatAttendu)).ToList(),
         r.VerificationInstruction, r.VerificationAttendu, r.Actif, r.Version, r.ModifieeLe);
 
-    /// <summary>Applique la saisie à la résolution : 400 si le système est inconnu, 422 (liste des anomalies) si elle est incomplète.</summary>
+    /// <summary>Applique la saisie à la résolution : 400 si un système est inconnu, 422 (liste des anomalies) si elle est incomplète.</summary>
     private static async Task Appliquer(MepDbContext db, ResolutionType r, ResolutionTypeSaisie c)
     {
-        if (c.SystemeCatalogueId is not null && !await db.SystemesCatalogue.AnyAsync(s => s.Id == c.SystemeCatalogueId))
+        var systemes = (c.SystemeCatalogueIds ?? []).Distinct().ToList();
+        if (await db.SystemesCatalogue.CountAsync(s => systemes.Contains(s.Id)) != systemes.Count)
             throw ErreurHttp.Saisie("Système du catalogue inconnu.");
         r.Titre = ServiceMep.Texte(c.Titre);
         r.Symptomes = ServiceMep.Texte(c.Symptomes);
         r.Diagnostic = ServiceMep.Texte(c.Diagnostic);
-        r.SystemeCatalogueId = c.SystemeCatalogueId;
+        r.SystemeCatalogueIds = systemes;
         // Ordre donné par le client (à égalité, ordre de saisie), puis renuméroté 1..n.
         r.Corrections = (c.Corrections ?? []).Select((x, i) => (x, i)).OrderBy(t => t.x.Ordre ?? int.MaxValue).ThenBy(t => t.i)
             .Select((t, i) => new Correction
@@ -44,7 +45,8 @@ public static class ResolutionsEndpoints
         api.MapGet("/resolutions", async (Guid? systemeCatalogueId, MepDbContext db) =>
         {
             var q = db.ResolutionsTypes.AsNoTracking().Where(r => r.Actif);
-            if (systemeCatalogueId is not null) q = q.Where(r => r.SystemeCatalogueId == systemeCatalogueId);
+            // Filtre « contient » : les résolutions dont l'un des systèmes est celui demandé.
+            if (systemeCatalogueId is { } s) q = q.Where(r => r.SystemeCatalogueIds.Contains(s));
             return (await q.OrderBy(r => r.Titre).ToListAsync()).Select(Dto);
         });
 

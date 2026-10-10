@@ -3,7 +3,6 @@ import { pairesDuGroupe, type GroupeLiens, type Lien } from '../../graphe';
 import type { Etape } from '../../types';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
-import { Kbd } from '../../ui/Kbd';
 import { TitrePanneau } from './PanneauResume';
 
 /** Panneau d'un lien ou d'une jonction sélectionné : liste des liens (× pour un seul), suppression de tous. */
@@ -17,7 +16,7 @@ export function PanneauLiens({ groupe, etapes, onSupprimer, onFermer }: {
   const paires = pairesDuGroupe(groupe);
   const plusieurs = paires.length > 1;
   return (
-    <Card className="grid gap-3 p-4">
+    <Card className="grid w-80 gap-3 p-4 shadow-lg">
       <TitrePanneau>{plusieurs ? 'Jonction sélectionnée' : 'Lien sélectionné'}</TitrePanneau>
       <p className="text-sm">
         {groupe.cibles.map(code).join(', ')} {groupe.cibles.length > 1 ? 'attendent' : 'attend'} : {groupe.sources.map(code).join(', ')}.
@@ -38,7 +37,6 @@ export function PanneauLiens({ groupe, etapes, onSupprimer, onFermer }: {
         </Button>
         <Button variante="fantome" taille="sm" onClick={onFermer}>Fermer</Button>
       </div>
-      <p className="text-xs text-fg-subtle">Raccourci : <Kbd>Suppr</Kbd> supprime la sélection, <Kbd>Échap</Kbd> la ferme.</p>
     </Card>
   );
 }

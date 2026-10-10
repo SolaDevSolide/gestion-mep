@@ -56,7 +56,7 @@ export default function ProfilPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-8">
       <h1 className="text-2xl font-semibold tracking-tight">Mon profil</h1>
-      <p className="mt-1 text-sm text-fg-subtle">Ces informations pré-remplissent votre fiche quand on vous ajoute à une MEP, et permettent de vous suggérer comme responsable technique des systèmes que vous connaissez.</p>
+      <p className="mt-1 text-sm text-fg-subtle">Pré-remplit votre fiche dans les MEP et vous suggère comme responsable technique.</p>
 
       {(erreur || erreurSauvegarde) && <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">{erreurSauvegarde || erreur}</Alerte>}
 
@@ -78,12 +78,12 @@ export default function ProfilPage() {
       <Card className="mt-6">
         <CardHeader
           titre="Expertises"
-          description="Les systèmes du catalogue que vous connaissez, avec un mot sur votre rôle (« Expert de la zone facturation »)."
+          description="Systèmes que vous connaissez."
           action={<Button taille="sm" icone={<Plus className="size-4" aria-hidden />} disabled={libres.length === 0} onClick={() => d.update({ expertises: [...v.expertises, { systemeCatalogueId: libres[0].id, detail: '' }] })}>Ajouter une expertise</Button>}
         />
         <div className="px-5 py-5">
           {v.expertises.length === 0 ? (
-            <EmptyState icone={GraduationCap} titre="Aucune expertise" description="Ajoutez les systèmes que vous connaissez pour être suggéré comme responsable technique." />
+            <EmptyState icone={GraduationCap} titre="Aucune expertise" description="Ajoutez vos systèmes." />
           ) : (
             <ul className="space-y-3">
               {v.expertises.map((e, i) => (

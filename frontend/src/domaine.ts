@@ -14,10 +14,11 @@ export function planActif(phase: Phase): TypePlan | null {
   return null;
 }
 
-export const executantEffectif = (e: Pick<Etape, 'executantId' | 'responsableId'>): string | null => e.executantId ?? e.responsableId;
+/** Exécutant d’une étape : la personne qui l’a démarrée (ou a pris la main) ; aucun avant le démarrage. */
+export const executantEffectif = (e: Pick<Etape, 'executantId'>): string | null => e.executantId;
 
 /** Badge « À vous » : seulement sur une étape à faire ou en cours, jamais sur une étape terminée ni dans une MEP clôturée. */
-export const estAVous = (mep: Pick<Mep, 'droits' | 'phase'>, e: Pick<Etape, 'executantId' | 'responsableId' | 'etat'>): boolean => {
+export const estAVous = (mep: Pick<Mep, 'droits' | 'phase'>, e: Pick<Etape, 'executantId' | 'etat'>): boolean => {
   const moi = mep.droits.participantId;
   return moi !== null && executantEffectif(e) === moi && e.etat !== 'Reussie' && mep.phase !== 'Cloturee';
 };
@@ -35,13 +36,13 @@ export function bloqueurs(e: Etape, etapes: Etape[]): Etape[] {
     .filter((x): x is Etape => !!x && x.etat !== 'Reussie');
 }
 
-/** Étape à mettre en avant : la première « Disponible » dont je suis l'exécutant, sinon la première non terminée. */
+/** Étape à mettre en avant : celle que j’exécute, sinon la première « Disponible », sinon la première non terminée. */
 export function etapeParDefaut(etapes: Etape[], participantId: string | null): Etape | undefined {
   const triees = [...etapes].sort(parPosition);
   const miennes = (e: Etape) => participantId !== null && executantEffectif(e) === participantId;
   return (
     triees.find((e) => e.etat === 'EnCours' && miennes(e)) ??
-    triees.find((e) => e.disponibilite.statut === 'Disponible' && miennes(e)) ??
+    triees.find((e) => e.disponibilite.statut === 'Disponible') ??
     triees.find((e) => e.etat !== 'Reussie') ??
     triees[0]
   );

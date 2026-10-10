@@ -3,22 +3,19 @@ import { completude } from './mep/completude';
 import { etape, mep } from './test/fabrique';
 
 describe('étape par défaut', () => {
-  it('privilégie une étape en cours puis la première disponible à moi', () => {
-    const a = etape({ id: 'a', ordre: 1, etat: 'Reussie' }, 'Terminee');
-    const b = etape({ id: 'b', ordre: 2, responsableId: 'p2' }, 'Disponible');
-    const c = etape({ id: 'c', ordre: 3, responsableId: 'p1' }, 'Disponible');
+  it('privilégie l’étape en cours que j’exécute, puis la première disponible', () => {
+    const a = etape({ id: 'a', ligne: 0, ordre: 0, etat: 'Reussie' }, 'Terminee');
+    const b = etape({ id: 'b', ligne: 1, ordre: 0 }, 'Disponible');
+    const c = etape({ id: 'c', ligne: 1, ordre: 1, etat: 'EnCours', executantId: 'p1' }, 'EnCours');
     expect(etapeParDefaut([a, b, c], 'p1')?.id).toBe('c');
+    expect(etapeParDefaut([a, b, c], 'p2')?.id).toBe('b');
   });
   it('sinon la première non terminée, sinon la première', () => {
-    const a = etape({ id: 'a', ordre: 1, etat: 'Reussie' }, 'Terminee');
-    const b = etape({ id: 'b', ordre: 2, responsableId: 'p2' }, 'Disponible');
+    const a = etape({ id: 'a', ligne: 0, ordre: 0, etat: 'Reussie' }, 'Terminee');
+    const b = etape({ id: 'b', ligne: 1, ordre: 0 }, 'Attend');
     expect(etapeParDefaut([a, b], 'p1')?.id).toBe('b');
     expect(etapeParDefaut([a], 'p1')?.id).toBe('a');
     expect(etapeParDefaut([], 'p1')).toBeUndefined();
-  });
-  it('tient compte de la prise de main', () => {
-    const a = etape({ id: 'a', ordre: 1, responsableId: 'p2', executantId: 'p1' }, 'Disponible');
-    expect(etapeParDefaut([a], 'p1')?.id).toBe('a');
   });
 });
 

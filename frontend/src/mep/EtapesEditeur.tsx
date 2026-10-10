@@ -6,22 +6,20 @@ import { construireLignes, indexLignes, pairesDuGroupe, type Lien } from '../gra
 import { useAsync } from '../hooks';
 import { useMep } from '../mepContext';
 import type { Mep, TypePlan } from '../types';
-import { cn } from '../ui/cn';
 import { useAstuce } from './graphe/astuce';
 import { BarreSystemes } from './graphe/BarreSystemes';
 import { GrapheEtapes, groupeDepuisCle } from './graphe/GrapheEtapes';
 import { PanneauEdition, saisieDepuis } from './graphe/PanneauEdition';
+import { useModeEspace } from './graphe/EspaceEtape';
+import { cn } from '../ui/cn';
 import { PanneauLiens } from './graphe/PanneauLiens';
-import { PanneauResume } from './graphe/PanneauResume';
+import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
 import { descriptionsSystemes } from './graphe/systemes';
 
-const AIDE = 'Préparation : glissez une fiche pour la déplacer ; tirez le rond du bas d’une fiche vers une autre pour un lien particulier ; cliquez sur un lien pour le sélectionner.';
 const estSaisie = (el: EventTarget | null) => el instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
 
-/** Classes du panneau de droite (collant sous l'en-tête de la MEP sur grand écran). */
-export const CLASSES_PANNEAU = 'min-w-0 xl:sticky xl:top-[calc(var(--entete-h,12rem)+1rem)] xl:max-h-[calc(100vh-var(--entete-h,12rem)-2rem)] xl:overflow-y-auto xl:rounded-xl';
 
-/** Éditeur du plan en graphe (préparation) : systèmes impactés, graphe des étapes, panneau de droite. */
+/** Éditeur du plan en graphe (préparation) : systèmes impactés, graphe des étapes, espace d'édition de l'étape ouverte. */
 export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   const { mep, run } = useMep();
   const [params] = useSearchParams();
@@ -30,7 +28,8 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   const [choix, setChoix] = useState<string | null>(() => params.get('etape'));
   const [cleGroupe, setCleGroupe] = useState<string | null>(null);
   const [nouvelle, setNouvelle] = useState<string | null>(null);
-  const astuce = useAstuce(modifiable ? AIDE : 'Lecture seule : cliquez sur une étape pour afficher son détail.');
+  const astuce = useAstuce('');
+  const modeEspace = useModeEspace();
   const catalogue = useAsync(() => api.catalogueSystemes(), []);
   const resolutions = useAsync(() => api.resolutions(), []);
   const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue.donnees), [mep, catalogue.donnees]);
@@ -91,8 +90,9 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   }
 
   function clavier(ev: KeyboardEvent<HTMLDivElement>) {
-    if (estSaisie(ev.target) || ev.defaultPrevented) return;
-    if (ev.key === 'Escape' && (selection || cleGroupe)) {
+    // Les touches tapées dans l'espace d'une étape (surcouche, rendue en portail) remontent ici : on les ignore.
+    if (estSaisie(ev.target) || ev.defaultPrevented || (ev.target instanceof Element && ev.target.closest('[role="dialog"], [role="alertdialog"]'))) return;
+    if (ev.key === 'Escape' && cleGroupe) {
       setChoix(null);
       setCleGroupe(null);
     } else if ((ev.key === 'Delete' || ev.key === 'Backspace') && groupe && modifiable) {
@@ -104,8 +104,12 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   return (
     <div className="grid gap-3" onKeyDown={clavier}>
       <BarreSystemes modifiable={modifiable} catalogue={catalogue.donnees ?? []} descriptions={descriptions} onMessage={astuce.afficher} />
-      <p aria-live="polite" className={cn('min-h-[1.4em] text-[13px]', astuce.flash ? 'font-semibold text-rollback-solid' : 'text-fg-subtle')}>{astuce.texte}</p>
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="flex min-h-7 flex-wrap items-center gap-x-4 gap-y-1">
+        <ResumePlan etapes={etapes} />
+        <p aria-live="polite" className="min-w-0 flex-1 text-[13px] font-semibold text-rollback-solid">{astuce.flash ? astuce.texte : ''}</p>
+        <AideGraphe edition={modifiable} />
+      </div>
+      <div className={cn('relative', etape && modeEspace === 'panneau' && 'min-[1100px]:pr-[608px]')}>
         <GrapheEtapes
           mep={mep}
           plan={plan}
@@ -122,28 +126,28 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
           onAjouter={(l) => void ajouter(l)}
           onMessage={astuce.afficher}
         />
-        <aside aria-label="Détail de la sélection" className={CLASSES_PANNEAU}>
-          {groupe ? (
+        {groupe && (
+          <div className="absolute top-3 right-3 z-20">
             <PanneauLiens groupe={groupe} etapes={etapes} onSupprimer={(l) => void delier(l)} onFermer={() => setCleGroupe(null)} />
-          ) : etape ? (
-            <PanneauEdition
-              key={etape.id}
-              mep={mep}
-              etape={etape}
-              plan={plan}
-              etapes={etapes}
-              modifiable={modifiable}
-              resolutions={resolutions.donnees ?? []}
-              focusAction={nouvelle === etape.id}
-              onLier={(de, vers) => void lier(de, vers)}
-              onDelier={(l) => void delier(l)}
-              onSelection={selectionner}
-            />
-          ) : (
-            <PanneauResume plan={plan} etapes={etapes} aide={modifiable} />
-          )}
-        </aside>
+          </div>
+        )}
       </div>
+      {etape && (
+        <PanneauEdition
+          key={etape.id}
+          mep={mep}
+          etape={etape}
+          plan={plan}
+          etapes={etapes}
+          modifiable={modifiable}
+          resolutions={resolutions.donnees ?? []}
+          catalogue={catalogue.donnees ?? []}
+          focusAction={nouvelle === etape.id}
+          onLier={(de, vers) => void lier(de, vers)}
+          onDelier={(l) => void delier(l)}
+          onSelection={selectionner}
+        />
+      )}
     </div>
   );
 }

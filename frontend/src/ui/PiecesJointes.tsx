@@ -78,12 +78,12 @@ export function PiecesJointes({ pieces, onDeposer, onSupprimer, lectureSeule, pi
           data-testid="zone-depot"
           className={cn(
             'flex items-center gap-3 rounded-xl border-2 border-dashed px-4 text-sm transition-colors duration-150',
-            compact ? 'py-3' : 'py-5',
+            compact ? 'py-1.5 pr-1.5' : 'py-5',
             survol ? 'border-accent bg-accent-soft text-accent-text' : 'border-line-strong bg-surface-2/40 text-fg-muted',
           )}
         >
           {envoi > 0 ? <Loader2 className="size-5 shrink-0 animate-spin" aria-hidden /> : <CloudUpload className={cn('size-5 shrink-0', survol && 'text-accent')} aria-hidden />}
-          <p className="min-w-0 flex-1">{envoi > 0 ? 'Envoi en cours…' : survol ? 'Relâchez pour déposer' : 'Glissez un fichier ici ou'}</p>
+          <p className="min-w-0 flex-1">{envoi > 0 ? 'Envoi en cours…' : survol ? 'Relâchez pour déposer' : compact ? 'Glisser un fichier ou' : 'Glissez un fichier ici ou'}</p>
           <input ref={entree} type="file" multiple className="sr-only" aria-label={`Choisir un fichier : ${titre}`} tabIndex={-1}
             onChange={(e) => { if (e.target.files) void deposer(e.target.files); e.target.value = ''; }} />
           <Button taille="sm" icone={<Paperclip className="size-4" aria-hidden />} disabled={envoi > 0} onClick={() => entree.current?.click()}>Parcourir…</Button>

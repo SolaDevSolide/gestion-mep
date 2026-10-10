@@ -53,7 +53,10 @@ export interface MepResume {
   outil: string;
   versionCible: string;
   objet: string;
+  /** Date du Go (démarrage) si elle existe, sinon null. */
   dateMep: string | null;
+  /** Date de création (affichée tant que la MEP n’a pas démarré), si fournie par l’API. */
+  creeLe?: string | null;
   phase: Phase;
   echeanceRepli: string | null;
   issue?: IssueMep | null;
@@ -139,6 +142,8 @@ export interface Etape {
   instructions: string;
   resultatAttendu: string;
   preuve: string;
+  /** Commentaire facultatif de l’exécutant (modifiable pendant l’exécution). */
+  commentaire: string;
   debutReel: string | null;
   finReelle: string | null;
   revision: number;
@@ -321,7 +326,8 @@ export interface ResolutionType {
   titre: string;
   symptomes: string;
   diagnostic: string;
-  systemeCatalogueId: string | null;
+  /** Systèmes du catalogue concernés (vide = tous les systèmes). */
+  systemeCatalogueIds: string[];
   corrections: CorrectionType[];
   verificationInstruction: string;
   verificationAttendu: string;
@@ -341,8 +347,8 @@ export interface Evenement {
 
 export type MepIdentiteSaisie = Pick<
   Mep,
-  | 'version' | 'outil' | 'versionActuelle' | 'versionCible' | 'objet' | 'impacts' | 'dateMep'
-  | 'heureDebut' | 'heureFin' | 'fuseauHoraire' | 'indisponibiliteMinutes' | 'piloteId'
+  | 'version' | 'outil' | 'versionActuelle' | 'versionCible' | 'objet' | 'impacts'
+  | 'fuseauHoraire' | 'indisponibiliteMinutes' | 'piloteId'
   | 'suppleantIds' | 'echeanceRepli'
 > & { environnement?: string; bilanActive?: boolean };
 
@@ -356,7 +362,8 @@ export interface EtapeSaisie {
   revision: number;
   action: string;
   systemeIds: string[];
-  responsableId: string | null;
+  /** Ignoré par le serveur depuis le jalon 4.2 (l’exécutant est celui qui démarre). */
+  responsableId?: string | null;
   criticite: Criticite | null;
   dureeEstimeeMinutes: number | null;
   instructions: string;

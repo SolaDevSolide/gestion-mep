@@ -18,11 +18,10 @@ public static class EtapesEndpoints
     private static void Appliquer(Mep mep, Etape e, EtapeSaisie c, List<Guid> resolutionIds, List<Guid>? dependances)
     {
         var systemes = ServiceMep.ValiderSystemeIds(mep, c.SystemeIds);
-        if (c.ResponsableId is not null) ServiceMep.TrouverParticipant(mep, c.ResponsableId, "Responsable");
         if (c.DureeEstimeeMinutes is < 0) throw ErreurHttp.Saisie("La durée estimée ne peut pas être négative.");
         e.Action = ServiceMep.Texte(c.Action);
         e.SystemeIds = systemes;
-        e.ResponsableId = c.ResponsableId;
+        // responsableId est ignoré depuis le jalon 4.2 : l'exécutant est celui qui démarre l'étape.
         e.Criticite = c.Criticite;
         e.DureeEstimeeMinutes = c.DureeEstimeeMinutes;
         e.Instructions = ServiceMep.Texte(c.Instructions);
@@ -125,13 +124,11 @@ public static class EtapesEndpoints
             // Un utilisateur qui n'est pas encore participant le devient (créé seulement si la prise de main aboutit).
             var existant = mep.Participants.FirstOrDefault(p => p.UtilisateurId == acteur.Id);
             var preneur = existant ?? new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Prise en main", UtilisateurId = acteur.Id };
-            var prevu = mep.Participants.FirstOrDefault(p => p.Id == e.ResponsableId)?.Nom;
-            Regles.PrendreLaMain(mep, e, preneur, motif);
+            var precedent = Regles.PrendreLaMain(mep, e, preneur, motif);
             if (existant is null) mep.Participants.Add(preneur);
 
-            var detail = preneur.Id == e.ResponsableId
-                ? $"{acteur.Nom} a repris la main sur {e.Code} : {motif}"
-                : $"{acteur.Nom} a pris la main sur {e.Code}" + (prevu is null ? "" : $" (prévu : {prevu})") + $" : {motif}";
+            var avant = mep.Participants.FirstOrDefault(p => p.Id == precedent)?.Nom;
+            var detail = $"{acteur.Nom} a pris la main sur {e.Code}" + (avant is null ? "" : $" (à la place de {avant})") + $" : {motif}";
             return Results.Ok(await svc.Enregistrer(mep, acteur, "etape.prise-en-main", detail));
         });
 
@@ -142,8 +139,14 @@ public static class EtapesEndpoints
             var mep = await svc.Charger(id);
             var e = ServiceMep.TrouverEtape(mep, eid);
             ServiceMep.ExigerRevision(e, c.Revision);
-            Regles.Demarrer(mep, e, acteur.Id, svc.Maintenant);
-            return Results.Ok(await svc.Enregistrer(mep, acteur, "etape.demarree", $"{e.Code} démarrée"));
+            // Un administrateur non participant le devient (créé seulement si le démarrage aboutit).
+            var existant = mep.Participants.FirstOrDefault(p => p.UtilisateurId == acteur.Id);
+            var executant = existant ?? (acteur.EstAdmin
+                ? new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Exécutant", UtilisateurId = acteur.Id }
+                : null);
+            Regles.Demarrer(mep, e, executant, svc.Maintenant);
+            if (existant is null && executant is not null) mep.Participants.Add(executant);
+            return Results.Ok(await svc.Enregistrer(mep, acteur, "etape.demarree", $"{e.Code} démarrée par {executant!.Nom}"));
         });
 
         api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/terminer", async (Guid id, Guid eid, TerminerSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
@@ -154,10 +157,23 @@ public static class EtapesEndpoints
             ServiceMep.ExigerRevision(e, c.Revision);
             if (c.Resultat is null) throw ErreurHttp.Saisie("Le résultat (Reussie ou Echec) est obligatoire.");
             var preuve = ServiceMep.Texte(c.Preuve);
-            Regles.Terminer(mep, e, c.Resultat.Value, preuve, c.ResultatVerifie, acteur.Id, svc.Maintenant);
+            Regles.Terminer(mep, e, c.Resultat.Value, preuve, c.ResultatVerifie, acteur.Id, svc.Maintenant, c.Commentaire);
             return Results.Ok(c.Resultat == EtatEtape.Reussie
                 ? await svc.Enregistrer(mep, acteur, "etape.reussie", $"{e.Code} réussie : {preuve}")
                 : await svc.Enregistrer(mep, acteur, "etape.echec", $"{e.Code} en échec : {preuve}"));
+        });
+
+        // Commentaire facultatif sur l'exécution (exécution, recette ou retour arrière).
+        api.MapPut("/meps/{id:guid}/etapes/{eid:guid}/commentaire", async (Guid id, Guid eid, CommentaireSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            var e = ServiceMep.TrouverEtape(mep, eid);
+            ServiceMep.ExigerRevision(e, c.Revision);
+            Regles.Commenter(mep, e, ServiceMep.Texte(c.Commentaire), acteur.Id, acteur.EstAdmin);
+            var texte = e.Commentaire.Length > 200 ? e.Commentaire[..200] + "…" : e.Commentaire;
+            return Results.Ok(await svc.Enregistrer(mep, acteur, "etape.commentaire",
+                texte.Length == 0 ? $"Commentaire sur {e.Code} effacé" : $"Commentaire sur {e.Code} : {texte}"));
         });
 
         api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/autoriser-non-retour", async (Guid id, Guid eid, RevisionSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
