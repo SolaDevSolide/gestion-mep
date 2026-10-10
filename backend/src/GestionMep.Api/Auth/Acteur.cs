@@ -6,6 +6,10 @@ namespace GestionMep.Api.Auth;
 public record Acteur(Guid Id, string Nom, bool EstAdmin)
 {
     public const string RoleAdmin = "admin";
+    /// <summary>Copie de <see cref="GestionMep.Domain.Utilisateur.TamponSecurite"/> : une session plus ancienne est refusée.</summary>
+    public const string ClaimTampon = "mep:tampon";
+    /// <summary>Présent tant que le compte a un mot de passe provisoire à changer.</summary>
+    public const string ClaimMotDePasseProvisoire = "mep:mdp-provisoire";
 
     public static Acteur Depuis(ClaimsPrincipal user)
     {
@@ -22,6 +26,8 @@ public record Acteur(Guid Id, string Nom, bool EstAdmin)
             new(ClaimTypes.Name, u.NomAffiche),
         };
         if (u.EstAdmin) claims.Add(new Claim(ClaimTypes.Role, RoleAdmin));
+        claims.Add(new Claim(ClaimTampon, u.TamponSecurite.ToString()));
+        if (u.DoitChangerMotDePasse) claims.Add(new Claim(ClaimMotDePasseProvisoire, "1"));
         return new ClaimsPrincipal(new ClaimsIdentity(claims, schema, ClaimTypes.Name, ClaimTypes.Role));
     }
 }

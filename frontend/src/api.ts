@@ -28,6 +28,11 @@ import type {
   SystemeSaisie,
   TypePlan,
   Utilisateur,
+  ChangementMotDePasseSaisie,
+  CompteAvecMotDePasse,
+  CompteSaisie,
+  EvenementAdmin,
+  NouveauCompteSaisie,
 } from './types';
 
 export class ApiError extends Error {
@@ -109,6 +114,17 @@ export const api = {
   moi: () => get<Utilisateur>('/auth/moi'),
   utilisateurs: () => get<Utilisateur[]>('/utilisateurs'),
   modifierMonProfil: (s: ProfilSaisie) => put<Utilisateur>('/utilisateurs/moi/profil', s),
+  changerMotDePasse: (s: ChangementMotDePasseSaisie) => post<Utilisateur>('/auth/mot-de-passe', s),
+
+  // Console d'administration (réservée aux administrateurs).
+  adminUtilisateurs: () => get<Utilisateur[]>('/admin/utilisateurs'),
+  adminCreerUtilisateur: (s: NouveauCompteSaisie) => post<CompteAvecMotDePasse>('/admin/utilisateurs', s),
+  adminModifierUtilisateur: (id: string, s: CompteSaisie) => put<Utilisateur>(`/admin/utilisateurs/${id}`, s),
+  adminDesactiver: (id: string) => post<Utilisateur>(`/admin/utilisateurs/${id}/desactiver`),
+  adminReactiver: (id: string) => post<Utilisateur>(`/admin/utilisateurs/${id}/reactiver`),
+  adminReinitialiserMotDePasse: (id: string) =>
+    post<CompteAvecMotDePasse>(`/admin/utilisateurs/${id}/reinitialiser-mot-de-passe`),
+  adminJournal: (limite = 200) => get<EvenementAdmin[]>(`/admin/journal?limite=${limite}`),
 
   meps: (modele?: boolean) => get<MepResume[]>(`/meps${modele === undefined ? '' : `?modele=${modele}`}`),
   creerMep: (outil: string, objet: string) => post<Mep>('/meps', { outil, objet }),

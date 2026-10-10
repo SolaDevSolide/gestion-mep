@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using GestionMep.Api.Auth;
+using GestionMep.Api.Cli;
 using GestionMep.Api.Donnees;
 using GestionMep.Api.Endpoints;
 using GestionMep.Api.Securite;
@@ -15,6 +16,13 @@ using Microsoft.EntityFrameworkCore;
 if (args.Contains("--sante"))
 {
     Environment.ExitCode = await ProtectionsHttp.VerifierSante();
+    return;
+}
+
+// Commandes d'exploitation (« gestion-mep aide ») : comptes, migration, vérification de la configuration.
+if (LigneDeCommande.EstCommande(args))
+{
+    Environment.ExitCode = await LigneDeCommande.Executer(args);
     return;
 }
 
@@ -76,6 +84,7 @@ app.UseStaticFiles(fichiersStatiques);
 app.UtiliserProtectionCsrf();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UtiliserMotDePasseProvisoire();
 app.UseRateLimiter();
 
 var api = app.MapGroup("/api").RequireAuthorization();
@@ -93,6 +102,7 @@ api.MapCatalogue();
 api.MapResolutions();
 api.MapDeroule();
 api.MapParametres();
+api.MapAdmin();
 api.MapPiecesJointes();
 // Une route /api inconnue ne doit jamais retomber sur index.html.
 api.Map("{**reste}", () => Results.Json(new { message = "Route introuvable." }, statusCode: 404));

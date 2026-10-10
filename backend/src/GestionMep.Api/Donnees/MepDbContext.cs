@@ -55,6 +55,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<CritereGoNoGo> CriteresGoNoGo => Set<CritereGoNoGo>();
     public DbSet<ParametresGlobaux> Parametres => Set<ParametresGlobaux>();
     public DbSet<PieceJointe> PiecesJointes => Set<PieceJointe>();
+    public DbSet<EvenementAdmin> JournalAdmin => Set<EvenementAdmin>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -164,6 +165,12 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         {
             e.HasOne<Mep>().WithMany().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.MepId, x.Id });
+        });
+
+        b.Entity<EvenementAdmin>(e =>
+        {
+            e.Property(x => x.Type).HasMaxLength(64);
+            e.HasIndex(x => x.Quand);
         });
     }
 }

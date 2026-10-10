@@ -52,6 +52,28 @@
         }
       }
     },
+    "/api/auth/mot-de-passe": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangementMotDePasseSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/auth/deconnexion": {
       "post": {
         "tags": [
@@ -2540,6 +2562,182 @@
           }
         }
       }
+    },
+    "/api/admin/utilisateurs": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UtilisateurDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompteSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/utilisateurs/{id}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompteModification"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/utilisateurs/{id}/desactiver": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/utilisateurs/{id}/reactiver": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/utilisateurs/{id}/reinitialiser-mot-de-passe": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/journal": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvenementAdminDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2645,6 +2843,27 @@
           }
         }
       },
+      "ChangementMotDePasseSaisie": {
+        "required": [
+          "ancien",
+          "nouveau"
+        ],
+        "type": "object",
+        "properties": {
+          "ancien": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nouveau": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ClotureDto": {
         "required": [
           "le",
@@ -2707,6 +2926,149 @@
             "format": "int32"
           },
           "commentaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CompteEtMotDePasseDto": {
+        "required": [
+          "utilisateur",
+          "motDePasseProvisoire"
+        ],
+        "type": "object",
+        "properties": {
+          "utilisateur": {
+            "required": [
+              "id",
+              "login",
+              "nomAffiche",
+              "estAdmin",
+              "role",
+              "contact",
+              "expertises",
+              "actif",
+              "doitChangerMotDePasse"
+            ],
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "login": {
+                "type": "string"
+              },
+              "nomAffiche": {
+                "type": "string"
+              },
+              "estAdmin": {
+                "type": "boolean"
+              },
+              "role": {
+                "type": "string"
+              },
+              "contact": {
+                "type": "string"
+              },
+              "expertises": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "systemeCatalogueId",
+                    "detail"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "systemeCatalogueId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "detail": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "actif": {
+                "type": "boolean"
+              },
+              "doitChangerMotDePasse": {
+                "type": "boolean"
+              }
+            }
+          },
+          "motDePasseProvisoire": {
+            "type": "string"
+          }
+        }
+      },
+      "CompteModification": {
+        "required": [
+          "nomAffiche",
+          "estAdmin",
+          "role",
+          "contact"
+        ],
+        "type": "object",
+        "properties": {
+          "nomAffiche": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "estAdmin": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contact": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CompteSaisie": {
+        "required": [
+          "login",
+          "nomAffiche",
+          "estAdmin",
+          "role",
+          "contact"
+        ],
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nomAffiche": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "estAdmin": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contact": {
             "type": [
               "null",
               "string"
@@ -3541,6 +3903,35 @@
           "Echec",
           null
         ]
+      },
+      "EvenementAdminDto": {
+        "required": [
+          "id",
+          "quand",
+          "auteur",
+          "type",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "quand": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "auteur": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
       },
       "EvenementDto": {
         "required": [
@@ -6595,7 +6986,9 @@
           "estAdmin",
           "role",
           "contact",
-          "expertises"
+          "expertises",
+          "actif",
+          "doitChangerMotDePasse"
         ],
         "type": "object",
         "properties": {
@@ -6623,6 +7016,12 @@
             "items": {
               "$ref": "#/components/schemas/ExpertiseDto"
             }
+          },
+          "actif": {
+            "type": "boolean"
+          },
+          "doitChangerMotDePasse": {
+            "type": "boolean"
           }
         }
       },

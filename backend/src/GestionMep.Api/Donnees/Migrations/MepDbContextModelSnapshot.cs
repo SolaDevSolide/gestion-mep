@@ -140,6 +140,40 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("Etapes");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.EvenementAdmin", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Auteur")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Detail")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("Quand")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("UtilisateurId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Quand");
+
+                    b.ToTable("JournalAdmin");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.EvenementJournal", b =>
                 {
                     b.Property<long>("Id")
@@ -623,9 +657,15 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("Actif")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Contact")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("DoitChangerMotDePasse")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("EstAdmin")
                         .HasColumnType("boolean");
@@ -649,6 +689,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid>("TamponSecurite")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 

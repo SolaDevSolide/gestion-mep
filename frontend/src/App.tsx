@@ -3,8 +3,10 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
 import { NouvelleVersion } from './layout/NouvelleVersion';
 import { Shell } from './layout/Shell';
+import AdminPage from './admin/AdminPage';
 import ConnexionPage from './pages/ConnexionPage';
 import ListeMepPage from './pages/ListeMepPage';
+import MotDePasseObligatoirePage from './pages/MotDePasseObligatoirePage';
 import ProfilPage from './pages/ProfilPage';
 import MepPage from './pages/MepPage';
 import GoNoGoPage from './parametres/GoNoGoPage';
@@ -22,6 +24,7 @@ function Protege() {
     );
   }
   if (!utilisateur) return <Navigate to="/connexion" replace />;
+  if (utilisateur.doitChangerMotDePasse) return <MotDePasseObligatoirePage />;
   return <Shell />;
 }
 
@@ -35,6 +38,7 @@ export default function App() {
           <Route path="/" element={<ListeMepPage />} />
           <Route path="/meps/:id" element={<MepPage />} />
           <Route path="/profil" element={<ProfilPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="/parametres/systemes" element={<SystemesPage />} />
           <Route path="/parametres/resolutions" element={<ResolutionsPage />} />
           <Route path="/parametres/resolutions/nouvelle" element={<NouvelleResolutionPage />} />

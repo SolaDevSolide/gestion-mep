@@ -34,6 +34,8 @@ public static class ParametresEndpoints
             if (c.ApprobationsMinimum is null or < 0) throw ErreurHttp.Saisie("Le nombre minimum d'approbations doit être un entier positif ou nul.");
             var p = await db.Parametres.FirstOrDefaultAsync(x => x.Id == ParametresGlobaux.IdUnique);
             if (p is null) db.Parametres.Add(p = new ParametresGlobaux());
+            if (p.ApprobationsMinimum != c.ApprobationsMinimum.Value)
+                JournalAdmin.Ecrire(db, Acteur.Depuis(user), "parametres.modifies", $"Approbations minimum : {p.ApprobationsMinimum} → {c.ApprobationsMinimum.Value}");
             p.ApprobationsMinimum = c.ApprobationsMinimum.Value;
             await db.SaveChangesAsync();
             return Results.Ok(new ParametresDto(p.ApprobationsMinimum));
@@ -49,6 +51,7 @@ public static class ParametresEndpoints
             var ordre = c.Ordre ?? (await db.CriteresGoNoGo.MaxAsync(x => (int?)x.Ordre) ?? 0) + 1;
             var critere = new CritereGoNoGo { Libelle = Libelle(c.Libelle), Ordre = ordre, Actif = c.Actif ?? true };
             db.CriteresGoNoGo.Add(critere);
+            JournalAdmin.Ecrire(db, Acteur.Depuis(user), "critere.cree", $"Critère go / no-go « {critere.Libelle} » créé");
             await db.SaveChangesAsync();
             return Results.Created($"/api/criteres-go-no-go/{critere.Id}", Dto(critere));
         });
@@ -60,6 +63,7 @@ public static class ParametresEndpoints
             critere.Libelle = Libelle(c.Libelle);
             critere.Ordre = c.Ordre ?? critere.Ordre;
             critere.Actif = c.Actif ?? critere.Actif;
+            JournalAdmin.Ecrire(db, Acteur.Depuis(user), "critere.modifie", $"Critère go / no-go « {critere.Libelle} » modifié{(critere.Actif ? "" : " (inactif)")}");
             await db.SaveChangesAsync();
             return Results.Ok(Dto(critere));
         });
@@ -70,6 +74,7 @@ public static class ParametresEndpoints
             ExigerAdmin(user);
             var critere = await db.CriteresGoNoGo.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Critère introuvable.");
             db.CriteresGoNoGo.Remove(critere);
+            JournalAdmin.Ecrire(db, Acteur.Depuis(user), "critere.supprime", $"Critère go / no-go « {critere.Libelle} » supprimé");
             await db.SaveChangesAsync();
             return Results.NoContent();
         });
