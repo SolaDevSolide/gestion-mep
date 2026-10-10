@@ -10,7 +10,8 @@ Navigateur ──HTTPS──▶ Proxy inverse (IIS, nginx, Traefik…) ──HTT
                                                                           │  ├─ /api/…      API JSON + flux SSE
                                                                           │  └─ /…          front React (wwwroot)
                                                                           ├─▶ PostgreSQL 16 (conteneur « db »)
-                                                                          └─▶ volume « pieces-jointes »
+                                                                          ├─▶ volume « pieces-jointes »
+                                                                          └─▶ volume « cles » (clés du cookie de session)
 ```
 
 - **Une seule image Docker** contient l'API et le front déjà construit : l'API sert les fichiers statiques et renvoie `index.html` pour toute route qui n'est pas sous `/api`.
@@ -46,6 +47,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 | `Services/DiffuseurMep.cs` | Diffusion en mémoire de la dernière version de chaque MEP aux abonnés du flux SSE. |
 | `Services/SurveillanceEcheances.cs` | Tâche de fond : chaque minute, bascule en retour arrière les MEP dont l'échéance est atteinte. |
 | `Services/StockagePiecesJointes.cs` | Écriture, lecture et suppression des fichiers joints. |
+| `Securite/` | Protections HTTP : en-têtes du proxy inverse, limite des tentatives de connexion (par IP et par compte), en-tête anti-CSRF exigé, en-têtes de sécurité (CSP…), taille maximale des requêtes, sonde `--sante` de l'image Docker. |
 | `Auth/` | Comptes locaux, cookie de session, `Acteur` (utilisateur courant). C'est le seul dossier à modifier pour brancher un SSO OpenID Connect. |
 | `Donnees/` | `MepDbContext`, migrations EF Core, `Amorcage` (migration, démonstration ou compte administrateur initial). |
 
@@ -71,7 +73,8 @@ Aucune dépendance vers ASP.NET ni EF Core.
 | 403 | Droit insuffisant. |
 | 404 | Ressource introuvable. |
 | 409 | Conflit de version : la ressource a changé depuis sa lecture. |
-| 413 | Fichier trop volumineux. |
+| 413 | Fichier ou requête trop volumineux. |
+| 429 | Trop de tentatives de connexion. |
 | 422 | Refus par une règle métier. |
 
 ### Base de données
@@ -81,7 +84,10 @@ Aucune dépendance vers ASP.NET ni EF Core.
 
 ### Authentification
 
-- Comptes locaux, mots de passe hachés par `PasswordHasher` (PBKDF2), cookie `HttpOnly` `SameSite=Lax`.
+- Comptes locaux, mots de passe hachés par `PasswordHasher` (PBKDF2), cookie `HttpOnly` `SameSite=Lax`, `Secure` hors développement. Les clés qui chiffrent le cookie sont conservées dans un volume (`Cles:Dossier`) : un redéploiement ne déconnecte personne.
+- Connexion limitée par adresse IP (fenêtre d'une minute) et compte bloqué quelques minutes après 5 échecs consécutifs.
+- Toute requête `/api` qui modifie doit porter l'en-tête `X-Requested-With` (protection CSRF) ; le front l'ajoute toujours.
+- Toutes les réponses portent une politique de contenu (CSP) qui interdit l'affichage dans un cadre, ainsi que `nosniff` et `Referrer-Policy`. Les corps de requête sont limités à 1 Mo, sauf sur les routes de dépôt de pièces jointes.
 - Le reste de l'API ne lit que les claims `NameIdentifier`, `Name` et `Role` via `Acteur.Depuis(user)`. Un SSO Microsoft Entra ID s'ajoutera dans `Auth/AuthentificationLocale.cs` sans toucher aux endpoints.
 
 ## Front-end
