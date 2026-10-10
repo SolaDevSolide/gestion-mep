@@ -1,4 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { render as rendu, screen, within } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { EtapePanneau, type ActionsEtape } from './EtapePanneau';
 import { etape, mep, resolution } from '../test/fabrique';
@@ -9,9 +11,12 @@ const typeRes: ResolutionType = {
   verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-09T10:00:00Z',
 };
 
+// Le panneau contient des liens (onglet Retour arrière) : rendu dans un routeur.
+const render = (ui: ReactElement) => rendu(ui, { wrapper: MemoryRouter });
+
 function actionsFactices(): ActionsEtape {
   return {
-    demarrer: vi.fn(), terminer: vi.fn(), autoriserReprise: vi.fn(), prendreLaMain: vi.fn(), appliquerResolution: vi.fn(),
+    demarrer: vi.fn(), terminer: vi.fn(), commenter: vi.fn(), autoriserReprise: vi.fn(), prendreLaMain: vi.fn(), appliquerResolution: vi.fn(),
     controlerCorrection: vi.fn(), controlerVerification: vi.fn(),
     autoriserNonRetour: vi.fn(), deposerPiece: vi.fn(), supprimerPiece: vi.fn(),
   };
@@ -62,15 +67,15 @@ describe('EtapePanneau : démarrer et terminer', () => {
     expect(screen.getByRole('button', { name: 'Échec' })).toBeDisabled();
     await userEvent.click(screen.getByRole('button', { name: 'Réussie' }));
     await userEvent.click(screen.getByRole('button', { name: /J’ai vérifié et obtenu le résultat attendu/ }));
-    expect(actions.terminer).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Reussie', '');
+    expect(actions.terminer).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Reussie', '', undefined);
   });
 
   it('Échec avec preuve : confirmation puis appel', async () => {
     const { actions } = rendre(etape({ etat: 'EnCours', executantId: 'p1' }, 'EnCours'));
-    await userEvent.type(screen.getByLabelText('Preuve'), 'Erreur 502');
+    await userEvent.type(screen.getByLabelText(/Preuve/), 'Erreur 502');
     await userEvent.click(screen.getByRole('button', { name: 'Échec' }));
     await userEvent.click(screen.getByRole('button', { name: 'Déclarer l’échec' }));
-    expect(actions.terminer).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Echec', 'Erreur 502');
+    expect(actions.terminer).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Echec', 'Erreur 502', undefined);
   });
 
   it('le pilote peut terminer une étape exécutée par un autre', () => {
@@ -187,7 +192,7 @@ describe('EtapePanneau : « À appeler en cas de problème »', () => {
         responsablesTechniques: [rt('p2', ['s1'], { contactJourJ: '06 11 22 33 44' }), rt('p3', ['s2'], { disponibilite: 'Absent' })],
       },
     });
-    const carte = screen.getByRole('region', { name: 'À appeler en cas de problème' });
+    const carte = screen.getByRole('region', { name: 'Responsables techniques' });
     expect(carte).toHaveTextContent('Bob');
     expect(carte).toHaveTextContent('06 11 22 33 44');
     expect(carte).toHaveTextContent('Joignable');
@@ -202,9 +207,12 @@ describe('EtapePanneau : « À appeler en cas de problème »', () => {
     expect(carte).toHaveTextContent('Absent');
   });
 
-  it('absent quand aucun responsable technique n’est renseigné', () => {
-    rendre(etape());
-    expect(screen.queryByRole('region', { name: 'À appeler en cas de problème' })).toBeNull();
+  it('sans responsable technique : seulement le pilote et les suppléants', () => {
+    rendre(etape(), { m: { suppleantIds: ['p2'] } });
+    expect(screen.queryByRole('region', { name: 'Responsables techniques' })).toBeNull();
+    const pilotage = screen.getByRole('region', { name: 'Pilotage' });
+    expect(pilotage).toHaveTextContent('AlicePilote');
+    expect(pilotage).toHaveTextContent('BobSuppléant');
   });
 
   it('étape sur plusieurs systèmes : responsables de chacun de ses systèmes', () => {
@@ -215,7 +223,7 @@ describe('EtapePanneau : « À appeler en cas de problème »', () => {
         responsablesTechniques: [rt('p2', ['s1']), rt('p1', ['s2']), rt('p3', ['s3'])],
       },
     });
-    const carte = screen.getByRole('region', { name: 'À appeler en cas de problème' });
+    const carte = screen.getByRole('region', { name: 'Responsables techniques' });
     expect(carte).toHaveTextContent('Bob');
     expect(carte).toHaveTextContent('Claire');
     expect(carte).not.toHaveTextContent('Alice');
@@ -266,5 +274,60 @@ describe('EtapePanneau : instructions en blocs (markdown + Copier)', () => {
     const bouton = screen.getByRole('button', { name: /E0000.*Sauvegarde BDD.*Réussie/ });
     await userEvent.click(bouton);
     expect(onSelectionner).toHaveBeenCalledWith('e0');
+  });
+});
+
+describe('EtapePanneau : fin de résolution', () => {
+  it('résolution réussie : état explicite et bouton Redémarrer l’étape', async () => {
+    const r = resolution({ statut: 'Reussie', termineeLe: '2026-10-09T21:30:00Z', verificationResultat: 'Conforme' });
+    const { actions } = rendre(etape({ etat: 'AFaire', executantId: 'p1' }, 'Disponible'), { m: { resolutions: [r] } });
+    expect(screen.getByText('Résolution réussie : l’étape est de nouveau à faire.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Redémarrer l’étape' }));
+    expect(actions.demarrer).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: /^Démarrer$/ })).toBeNull();
+  });
+
+  it('résolution en échec : retour arrière déclenché, lien vers l’onglet Retour arrière', () => {
+    const r = resolution({ statut: 'Echouee', termineeLe: '2026-10-09T21:30:00Z' });
+    rendre(etape({ etat: 'Echec', executantId: 'p1' }, 'RetourArriere'), { m: { resolutions: [r], phase: 'RetourArriere' } });
+    expect(screen.getByText('Résolution en échec : retour arrière déclenché.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ouvrir l’onglet Retour arrière' })).toHaveAttribute('href', '/?onglet=retour');
+    expect(screen.queryByText('Problème connu ?')).toBeNull();
+  });
+
+  it('le pilote (non exécutant) peut dérouler la résolution', async () => {
+    const { actions } = rendre(etape({ etat: 'Echec', executantId: 'p1', resolutionIds: ['t1'] }, 'ResolutionEnCours'), {
+      participantId: 'p3', estPilote: true, types: [typeRes], m: { resolutions: [resolution()] },
+    });
+    await userEvent.click(within(screen.getByRole('group', { name: 'Correction 1 sur 2 : à faire maintenant' })).getByRole('button', { name: 'Conforme' }));
+    expect(actions.controlerCorrection).toHaveBeenCalledWith(expect.objectContaining({ id: 'r1' }), 1, 'Conforme', '');
+  });
+
+  it('étape en échec : instructions de l’étape repliées sous le déroulé', () => {
+    rendre(etape({ etat: 'Echec', executantId: 'p1' }, 'ArretResolution'), { m: { resolutions: [resolution()] } });
+    expect(screen.getByText('Instructions de l’étape').closest('details')).not.toHaveAttribute('open');
+  });
+});
+
+describe('EtapePanneau : commentaire', () => {
+  it('l’exécutant enregistre un commentaire facultatif', async () => {
+    const { actions } = rendre(etape({ etat: 'EnCours', executantId: 'p1' }, 'EnCours'));
+    await userEvent.type(screen.getByLabelText(/Commentaire/), 'Service redémarré deux fois');
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer le commentaire' }));
+    expect(actions.commenter).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Service redémarré deux fois');
+  });
+
+  it('un commentaire non enregistré part avec « Réussie »', async () => {
+    const { actions } = rendre(etape({ etat: 'EnCours', executantId: 'p1' }, 'EnCours'));
+    await userEvent.type(screen.getByLabelText(/Commentaire/), 'RAS');
+    await userEvent.click(screen.getByRole('button', { name: 'Réussie' }));
+    await userEvent.click(screen.getByRole('button', { name: /J’ai vérifié/ }));
+    expect(actions.terminer).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Reussie', '', 'RAS');
+  });
+
+  it('lecture seule pour les autres participants', () => {
+    rendre(etape({ etat: 'EnCours', executantId: 'p1', commentaire: 'Lenteur constatée' }, 'EnCours'), { participantId: 'p2' });
+    expect(screen.queryByLabelText(/Commentaire/)).toBeNull();
+    expect(screen.getByText('Lenteur constatée')).toBeInTheDocument();
   });
 });

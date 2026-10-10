@@ -754,6 +754,20 @@ Spécification : `docs/jalon4-2-spec.md` (sections D à G pour le back).
 - Migration EF `Jalon42` : `ResolutionsTypes.SystemeCatalogueIds` (`uuid[]`) = `[ancien SystemeCatalogueId]` ou vide ; l'ancienne colonne est supprimée.
 - Démo (nouvelle base) : nouvelle résolution « API + BDD : connexion refusée après bascule » (systèmes API et BDD), liée à E0007.
 
+## Commentaire d'exécution d'une étape
+
+Ajout (non incompatible) : un commentaire facultatif, en plus de la preuve.
+
+- `EtapeDto.commentaire` : texte (`""` par défaut).
+- `POST /meps/{id}/etapes/{eid}/terminer` `{ revision, resultat, preuve, resultatVerifie, commentaire? }` : `commentaire` (rogné) est enregistré avec la preuve ; absent ou `null` = commentaire existant inchangé.
+- `PUT /meps/{id}/etapes/{eid}/commentaire` `{ revision, commentaire }` → 200 `MepDto` :
+  - phase `Execution`, `Recette` ou `RetourArriere` (422 sinon) ; par l'exécutant de l'étape, le pilote / un suppléant ou un administrateur (422 sinon) ;
+  - `revision` obligatoire (400) et à jour (409) ; texte rogné (vide accepté : efface le commentaire) ; incrémente `revision` (et `version`) ;
+  - journal `etape.commentaire` « Commentaire sur E0005 : texte » (texte tronqué à 200 caractères suivi de « … »), ou « Commentaire sur E0005 effacé » ;
+  - ne remet pas les approbations à zéro (hors préparation).
+- Conservé après une reprise (historique) ; non copié à la duplication.
+- Migration EF `Jalon42b` : colonne `Etapes.Commentaire` (texte, `''` pour l'existant).
+
 ## Choix faits
 
 - `EtapeDto.responsableId` est conservé dans la réponse (valeur historique) plutôt que retiré, pour ne pas casser un client ; il ne sert plus à rien.

@@ -10,6 +10,7 @@ import { MultiSelect } from '../ui/Combobox';
 import { EmptyState } from '../ui/EmptyState';
 import { EtapePanneau, type ActionsEtape } from './EtapePanneau';
 import { GrapheEtapes } from './graphe/GrapheEtapes';
+import { useModeEspace } from './graphe/EspaceEtape';
 import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
 import { descriptionsSystemes } from './graphe/systemes';
 
@@ -18,6 +19,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
   const { mep, run } = useMep();
   const etapes = etapesDuPlan(mep, plan);
   const moi = mep.droits.participantId;
+  const modeEspace = useModeEspace();
 
   const [mesSystemes, setMesSystemes] = useLocalStorageState<string[]>(`mep.${mep.id}.mesSystemes`, []);
   const [aMoi, setAMoi] = useLocalStorageState<boolean>(`mep.${mep.id}.aMoi`, false);
@@ -44,8 +46,9 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
     const suivante = (ok: boolean, resultat: 'Reussie' | 'Echec') => { if (ok && resultat === 'Reussie') setChoix(undefined); return ok; };
     return {
       demarrer: (e) => run(() => api.demarrerEtape(mep.id, e.id, e.revision), `${e.code} démarrée.`),
-      terminer: async (e, resultat, preuve) =>
-        suivante(await run(() => api.terminerEtape(mep.id, e.id, e.revision, resultat, preuve, resultat === 'Reussie'), resultat === 'Reussie' ? `${e.code} réussie.` : `${e.code} en échec.`), resultat),
+      terminer: async (e, resultat, preuve, commentaire) =>
+        suivante(await run(() => api.terminerEtape(mep.id, e.id, e.revision, resultat, preuve, resultat === 'Reussie', commentaire), resultat === 'Reussie' ? `${e.code} réussie.` : `${e.code} en échec.`), resultat),
+      commenter: (e, commentaire) => run(() => api.commenterEtape(mep.id, e.id, e.revision, commentaire), 'Commentaire enregistré.'),
       autoriserReprise: (e) => run(() => api.autoriserReprise(mep.id, e.id, e.revision), 'Reprise autorisée.'),
       autoriserNonRetour: (e) => run(() => api.autoriserNonRetour(mep.id, e.id, e.revision), `Passage du point de non-retour ${e.code} autorisé.`),
       deposerPiece: (e, f, signaler) => run(() => api.deposerPieceEtape(mep.id, e.id, f), undefined, signaler),
@@ -94,6 +97,8 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
         <span className="ml-auto flex items-center gap-2"><ResumePlan etapes={etapes} /><AideGraphe edition={false} /></span>
       </div>
 
+      {/* Panneau latéral ouvert : le graphe lui laisse la place à droite. */}
+      <div className={ouverte && modeEspace === 'panneau' ? 'min-[1100px]:pr-[608px]' : undefined}>
       <GrapheEtapes
         mep={mep}
         plan={plan}
@@ -104,6 +109,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
         onSelection={setChoix}
         estEstompee={filtreActif ? (e) => !garde(e) : undefined}
       />
+      </div>
       {ouverte && (
         <EtapePanneau key={ouverte.id} mep={mep} etape={ouverte} resolutionsTypes={resolutionsTypes ?? []} actions={actions} onSelectionner={setChoix} onFermer={() => setChoix(null)} />
       )}

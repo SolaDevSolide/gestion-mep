@@ -56,6 +56,10 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Commentaire")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int?>("Criticite")
                         .HasColumnType("integer");
 

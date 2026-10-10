@@ -44,7 +44,7 @@ public static class MepMapping
                 var d = Regles.Disponibilite(m, e, maintenant);
                 return new EtapeDto(e.Id, e.Plan, e.Code, e.Ligne, e.Ordre, e.Action, [.. e.SystemeIds], e.ResponsableId, e.ExecutantId, e.Criticite,
                     e.DureeEstimeeMinutes, e.Etat,
-                    e.Instructions, e.ResultatAttendu, e.Preuve, e.DebutReel, e.FinReelle, e.Revision, [.. e.Dependances], [.. e.ResolutionIds],
+                    e.Instructions, e.ResultatAttendu, e.Preuve, e.Commentaire, e.DebutReel, e.FinReelle, e.Revision, [.. e.Dependances], [.. e.ResolutionIds],
                     new DisponibiliteDto(d.Statut, d.Libelle), e.Type, e.PointDeNonRetour, Validation(e.NonRetourAutoriseParId, e.NonRetourAutoriseLe));
             }).ToList(),
             m.Resolutions.OrderBy(r => r.DemarreeLe).Select(r => new ExecutionResolutionDto(
