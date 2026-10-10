@@ -52,7 +52,50 @@
     "typescript/consistent-return": "off",
     "import/no-unassigned-import": "off",
     "react/set-state-in-effect": "warn",
-    "react/refs": "warn"
+    "react/refs": "warn",
+    "jsx-a11y/control-has-associated-label": "off",
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": [
+      "error",
+      {
+        "ul": [
+          "listbox",
+          "menu",
+          "menubar",
+          "radiogroup",
+          "tablist",
+          "tree",
+          "treegrid"
+        ],
+        "ol": [
+          "listbox",
+          "menu",
+          "menubar",
+          "radiogroup",
+          "tablist",
+          "tree",
+          "treegrid"
+        ],
+        "li": [
+          "menuitem",
+          "menuitemradio",
+          "menuitemcheckbox",
+          "option",
+          "row",
+          "tab",
+          "treeitem"
+        ],
+        "table": [
+          "grid"
+        ],
+        "td": [
+          "gridcell"
+        ],
+        "fieldset": [
+          "radiogroup",
+          "presentation"
+        ]
+      }
+    ]
   },
   "overrides": [
     {
@@ -64,7 +107,8 @@
       "rules": {
         "typescript/no-floating-promises": "off",
         "typescript/no-unsafe-type-assertion": "off",
-        "typescript/no-unnecessary-type-assertion": "off"
+        "typescript/no-unnecessary-type-assertion": "off",
+        "typescript/unbound-method": "off"
       }
     }
   ],

@@ -42,7 +42,7 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
   }, [open]);
 
   const mepCourante = /^\/meps\/([^/]+)/.exec(pathname)?.[1];
-  const aller = (chemin: string) => { onOpenChange(false); navigate(chemin); };
+  const aller = (chemin: string) => { onOpenChange(false); void navigate(chemin); };
 
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>

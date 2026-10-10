@@ -58,7 +58,7 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
       const mep = await api.dupliquer(courant.id, { environnement: environnement.trim() || null, commeModele });
       toast.succes(commeModele ? 'Modèle créé.' : courant.estModele ? 'MEP créée depuis le modèle.' : 'MEP créée par duplication.');
       onOpenChange(false);
-      navigate(`/meps/${mep.id}`);
+      void navigate(`/meps/${mep.id}`);
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'Duplication impossible.');
     } finally {

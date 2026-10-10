@@ -70,7 +70,7 @@ export function surligner(texte: string, ts: string[]): Segment[] {
     const n = normaliser(texte[i]);
     for (const c of n) { norm += c; origine.push(i); }
   }
-  const marque = new Array<boolean>(texte.length).fill(false);
+  const marque = Array.from({ length: texte.length }, () => false);
   for (const t of ts) {
     if (!t) continue;
     let p = norm.indexOf(t);

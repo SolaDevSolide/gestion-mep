@@ -29,7 +29,7 @@ export default function ConnexionPage() {
     setEnvoi(true);
     try {
       await connecter(login.trim(), mdp);
-      navigate('/', { replace: true });
+      void navigate('/', { replace: true });
     } catch (err) {
       setErreur(err instanceof Error ? err.message : 'Connexion impossible.');
     } finally {
