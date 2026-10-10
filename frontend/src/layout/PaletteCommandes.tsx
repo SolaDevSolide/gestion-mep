@@ -1,4 +1,4 @@
-import { ClipboardCheck, ClipboardList, Layers, ShieldCheck, ListChecks, Moon, NotebookText, Play, Rocket, Sun, SunMoon, Undo2, Wrench } from 'lucide-react';
+import { ClipboardCheck, ClipboardList, Layers, ShieldCheck, ListChecks, UserRound, Moon, NotebookText, Play, Rocket, Sun, SunMoon, Undo2, Wrench } from 'lucide-react';
 import { Command } from 'cmdk';
 import { Dialog as D } from 'radix-ui';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -59,8 +59,8 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                   <Entree icone={<ClipboardList className="size-4" />} mots={['onglet', 'préparation']} onSelect={() => aller(`/meps/${mepCourante}?onglet=preparation`)}>Onglet Préparation</Entree>
                   <Entree icone={<ListChecks className="size-4" />} mots={['onglet', 'étapes', 'plan']} onSelect={() => aller(`/meps/${mepCourante}?onglet=etapes`)}>Onglet Étapes</Entree>
                   <Entree icone={<Play className="size-4" />} mots={['onglet', 'exécution', 'execution']} onSelect={() => aller(`/meps/${mepCourante}?onglet=execution`)}>Onglet Exécution</Entree>
-                  <Entree icone={<ClipboardCheck className="size-4" />} mots={['onglet', 'recette', 'tests']} onSelect={() => aller(`/meps/${mepCourante}?onglet=recette`)}>Onglet Recette</Entree>
                   <Entree icone={<Undo2 className="size-4" />} mots={['onglet', 'retour arrière', 'repli']} onSelect={() => aller(`/meps/${mepCourante}?onglet=retour`)}>Onglet Retour arrière</Entree>
+                  <Entree icone={<ClipboardCheck className="size-4" />} mots={['onglet', 'recette', 'tests']} onSelect={() => aller(`/meps/${mepCourante}?onglet=recette`)}>Onglet Recette</Entree>
                   <Entree icone={<NotebookText className="size-4" />} mots={['onglet', 'journal']} onSelect={() => aller(`/meps/${mepCourante}?onglet=journal`)}>Onglet Journal</Entree>
                 </Command.Group>
               )}
@@ -76,6 +76,9 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                 <Entree icone={<Layers className="size-4" />} mots={['paramètres', 'systèmes', 'catalogue']} onSelect={() => aller('/parametres/systemes')}>Paramètres : Systèmes</Entree>
                 <Entree icone={<Wrench className="size-4" />} mots={['paramètres', 'résolutions', 'types']} onSelect={() => aller('/parametres/resolutions')}>Paramètres : Résolutions types</Entree>
                 <Entree icone={<ShieldCheck className="size-4" />} mots={['paramètres', 'go', 'no-go', 'critères', 'approbations']} onSelect={() => aller('/parametres/go-no-go')}>Paramètres : Go / no-go et approbations</Entree>
+              </Command.Group>
+              <Command.Group heading="Compte" className={GROUPE}>
+                <Entree icone={<UserRound className="size-4" />} mots={['profil', 'compte', 'expertises', 'rôle', 'contact']} onSelect={() => aller('/profil')}>Mon profil</Entree>
               </Command.Group>
               <Command.Group heading="Apparence" className={GROUPE}>
                 <Entree icone={sombre ? <Sun className="size-4" /> : <Moon className="size-4" />} mots={['thème', 'theme', 'sombre', 'clair']} onSelect={() => { definir(sombre ? 'clair' : 'sombre'); onOpenChange(false); }}>

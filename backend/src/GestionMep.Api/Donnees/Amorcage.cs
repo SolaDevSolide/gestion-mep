@@ -18,6 +18,7 @@ public static class Amorcage
         var journal = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Amorcage");
 
         await db.Database.MigrateAsync();
+        await PlacerEtapesAnciennes(db, journal);
 
         if (await db.Utilisateurs.AnyAsync())
         {
@@ -54,6 +55,7 @@ public static class Amorcage
             var claire = Creer("claire", "Claire", false);
             var maintenant = temps.GetUtcNow();
             var jeu = DonneesDemo.Creer(alice.Id, bob.Id, claire.Id, maintenant);
+            DonneesDemo.CompleterProfils(alice, bob, claire, jeu.Systemes);
             var mep = jeu.Mep;
             mep.CreeLe = maintenant;
             mep.Version = 1;
@@ -100,5 +102,19 @@ public static class Amorcage
         {
             journal.LogWarning("Aucun utilisateur : définir Admin:Login et Admin:MotDePasse (ou Demo:Activer) pour pouvoir se connecter.");
         }
+    }
+
+    /// <summary>
+    /// Étapes d'avant le jalon 4 (marquées <c>Ligne = -1</c> par la migration Jalon4) : lignes calculées d'après le graphe
+    /// des dépendances (<see cref="Regles.CalculerLignes"/>), plan par plan. Sans effet une fois fait.
+    /// </summary>
+    private static async Task PlacerEtapesAnciennes(MepDbContext db, ILogger journal)
+    {
+        var plans = await db.Etapes.Where(e => e.Ligne < 0).Select(e => new { e.MepId, e.Plan }).Distinct().ToListAsync();
+        if (plans.Count == 0) return;
+        foreach (var p in plans)
+            Regles.CalculerLignes(await db.Etapes.Where(e => e.MepId == p.MepId && e.Plan == p.Plan).ToListAsync());
+        await db.SaveChangesAsync();
+        journal.LogInformation("Lignes du graphe calculées pour {Nombre} plan(s) existant(s).", plans.Count);
     }
 }

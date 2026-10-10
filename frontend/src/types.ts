@@ -25,11 +25,27 @@ export type StatutDisponibilite =
   | 'SiRetourArriere'
   | 'Disponible';
 
+/** Expertise d'un compte sur un système du catalogue (« Expert de la zone facturation »). */
+export interface Expertise {
+  systemeCatalogueId: string;
+  detail: string;
+}
+
 export interface Utilisateur {
   id: string;
   login: string;
   nomAffiche: string;
   estAdmin: boolean;
+  role: string;
+  contact: string;
+  expertises: Expertise[];
+}
+
+export interface ProfilSaisie {
+  nomAffiche?: string;
+  role: string;
+  contact: string;
+  expertises: Expertise[];
 }
 
 export interface MepResume {
@@ -72,12 +88,24 @@ export interface Participant {
   utilisateurNom: string | null;
 }
 
+export type StatutSauvegarde = 'ARenseigner' | 'Requise' | 'NonRequise';
+
+/** Sauvegarde d'un système de la MEP : requise (quoi, quand) ou non requise (justification). */
+export interface SauvegardeSysteme {
+  statut: StatutSauvegarde;
+  moment: ModeSauvegarde;
+  contenu: string;
+  justification: string;
+}
+export type SauvegardeSystemeSaisie = SauvegardeSysteme & { version: number };
+
 export interface Systeme {
   id: string;
   nom: string;
   cible: string;
   impact: string;
   catalogueId: string | null;
+  sauvegarde: SauvegardeSysteme;
 }
 
 export interface Livrable {
@@ -97,11 +125,16 @@ export interface Etape {
   id: string;
   plan: TypePlan;
   code: string;
+  /** Ligne du graphe (0 = en haut), par plan. */
+  ligne: number;
+  /** Position dans la ligne (0, 1, 2…). */
   ordre: number;
   action: string;
-  systemeId: string | null;
+  /** Systèmes de la MEP touchés par l'étape (plusieurs possibles). */
+  systemeIds: string[];
   responsableId: string | null;
   criticite: Criticite | null;
+  dureeEstimeeMinutes: number | null;
   etat: EtatEtape;
   instructions: string;
   resultatAttendu: string;
@@ -163,7 +196,7 @@ export interface Mep {
   approbationsMinimum: number;
   approbations: Approbation[];
   goNoGo: CritereCoche[];
-  testsRecette: TestRecette[];
+  fichesRecette: FicheRecette[];
   bilanActive: boolean;
   bilan: Bilan | null;
   nonRetourFranchi: string | null;
@@ -198,17 +231,27 @@ export interface Approbation {
   le: string | null;
 }
 export interface CritereCoche { libelle: string; par: string | null; le: string }
-export interface TestRecette {
+/** Étape de test d'une fiche de recette (instructions et résultat attendu en markdown). */
+export interface EtapeTest {
   id: string;
   ordre: number;
-  libelle: string;
+  instructions: string;
   resultatAttendu: string;
-  responsableId: string | null;
   resultat: ResultatControle | null;
   observation: string;
   par: string | null;
   le: string | null;
 }
+/** Fiche de recette d'un système de la MEP (systemeId null = « sans système »). */
+export interface FicheRecette {
+  id: string;
+  ordre: number;
+  systemeId: string | null;
+  titre: string;
+  etapes: EtapeTest[];
+}
+export interface EtapeTestSaisie { id?: string; instructions: string; resultatAttendu: string }
+export interface FicheRecetteSaisie { systemeId: string | null; titre: string; etapes: EtapeTestSaisie[] }
 export interface Bilan { ceQuiAMarche: string; incidents: string; actions: string; redigePar: string | null; le: string | null }
 export interface PieceJointe {
   id: string;
@@ -228,7 +271,6 @@ export interface CritereGoNoGo { id: string; libelle: string; ordre: number; act
 export interface CritereGoNoGoSaisie { libelle: string; ordre?: number; actif?: boolean }
 export interface ParametresGlobaux { approbationsMinimum: number }
 export interface BilanSaisie { ceQuiAMarche: string; incidents: string; actions: string }
-export interface TestRecetteSaisie { libelle: string; resultatAttendu: string; responsableId: string | null }
 export interface DuplicationSaisie { environnement?: string | null; commeModele: boolean }
 
 export interface RetourArriereInfo { le: string; par: string | null; motif: string }
@@ -313,9 +355,10 @@ export interface LivrableSaisie { objet: string; version: string; emplacement: s
 export interface EtapeSaisie {
   revision: number;
   action: string;
-  systemeId: string | null;
+  systemeIds: string[];
   responsableId: string | null;
   criticite: Criticite | null;
+  dureeEstimeeMinutes: number | null;
   instructions: string;
   resultatAttendu: string;
   dependances: string[];

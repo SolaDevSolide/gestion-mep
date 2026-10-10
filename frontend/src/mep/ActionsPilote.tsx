@@ -7,13 +7,13 @@ import { Button, type TailleBouton } from '../ui/Button';
 import { ConfirmDialog, Dialog } from '../ui/Dialog';
 import { Field, Textarea } from '../ui/Input';
 import { Tooltip } from '../ui/Tooltip';
-import { deploiementReussi, etapesDuPlan } from '../domaine';
+import { bilanRecette, deploiementReussi, etapesDuPlan } from '../domaine';
 import type { CritereGoNoGo } from '../types';
 import { ClotureDialog } from './ClotureDialog';
 import { GoNoGoDialog } from './GoNoGoDialog';
 
 /** Décision Go / no-go (remplace l'ancien « Passer en exécution »). */
-export function BoutonGoNoGo({ taille = 'sm' }: { taille?: TailleBouton }) {
+export function BoutonGoNoGo({ taille = 'sm', lien = false }: { taille?: TailleBouton; lien?: boolean }) {
   const { mep, run } = useMep();
   const [ouvert, setOuvert] = useState(false);
   const [criteres, setCriteres] = useState<CritereGoNoGo[] | null>(null);
@@ -31,7 +31,9 @@ export function BoutonGoNoGo({ taille = 'sm' }: { taille?: TailleBouton }) {
 
   const modele = mep.estModele;
   const bouton = (
-    <Button variante="primaire" taille={taille} icone={<Play className="size-4" aria-hidden />} disabled={modele} onClick={() => setOuvert(true)}>Go / no-go</Button>
+    lien
+      ? <button type="button" disabled={modele} onClick={() => setOuvert(true)} className="rounded text-sm font-medium text-accent-text underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60">Donner le Go →</button>
+      : <Button variante="primaire" taille={taille} icone={<Play className="size-4" aria-hidden />} disabled={modele} onClick={() => setOuvert(true)}>Go / no-go</Button>
   );
   return (
     <>
@@ -72,7 +74,7 @@ export function BoutonPasserRecette({ taille = 'sm' }: { taille?: TailleBouton }
         open={ouvert}
         onOpenChange={setOuvert}
         titre="Passer en recette ?"
-        description={`Le déploiement est terminé. Les ${mep.testsRecette.length} test(s) de recette peuvent maintenant être réalisés. Le retour arrière reste possible${mep.nonRetourFranchi ? ', sauf point de non-retour franchi' : ''}.`}
+        description={`Le déploiement est terminé. La recette (${bilanRecette(mep).total} étape(s) de test) peut maintenant être réalisée. Le retour arrière reste possible${mep.nonRetourFranchi ? ', sauf point de non-retour franchi' : ''}.`}
         libelleConfirmer="Passer en recette"
         onConfirmer={() => run(() => api.passerEnRecette(mep.id), 'MEP passée en recette.')}
       />
@@ -147,10 +149,11 @@ export function BoutonCloturer({ taille = 'sm', libelle }: { taille?: TailleBout
   const repli = mep.phase === 'RetourArriere';
   const etapes = etapesDuPlan(mep, repli ? 'RetourArriere' : 'Deploiement');
   const restantes = etapes.filter((e) => e.etat !== 'Reussie').length;
-  const nonConformes = repli ? 0 : mep.testsRecette.filter((t) => t.resultat !== 'Conforme').length;
+  const bilan = bilanRecette(mep);
+  const nonConformes = repli ? 0 : bilan.total - bilan.conformes;
   const raison = restantes > 0
     ? `${restantes} étape(s) ${repli ? 'de retour arrière' : 'du déploiement'} pas encore réussie(s)`
-    : nonConformes > 0 ? `${nonConformes} test(s) de recette pas encore conforme(s)` : null;
+    : nonConformes > 0 ? `${nonConformes} étape(s) de test de recette pas encore conforme(s)` : null;
   const texte = libelle ?? (repli ? 'Service rétabli : clôturer' : 'Clôturer : MEP réussie');
   const bouton = (
     <Button variante="succes" taille={taille} icone={<CheckCircle2 className="size-4" aria-hidden />} disabled={raison !== null} onClick={() => setOuvert(true)}>{texte}</Button>

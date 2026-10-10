@@ -24,10 +24,12 @@ interface Props {
   libelleValider: string;
   /** Retourne true si l'enregistrement a abouti. */
   onValider: (valeurs: Record<string, string>) => Promise<boolean>;
+  /** Appelé à chaque saisie : peut retourner des valeurs à appliquer en plus (ex. pré-remplissage). */
+  surChangement?: (cle: string, valeur: string, valeurs: Record<string, string>) => Record<string, string> | void;
 }
 
 /** Dialogue de saisie générique (participant, livrable, système libre). */
-export function FormulaireDialog({ open, onOpenChange, titre, description, champs, initial, libelleValider, onValider }: Props) {
+export function FormulaireDialog({ open, onOpenChange, titre, description, champs, initial, libelleValider, onValider, surChangement }: Props) {
   const [valeurs, setValeurs] = useState(initial);
   const [envoi, setEnvoi] = useState(false);
   useEffect(() => { if (open) setValeurs(initial); }, [open, initial]);
@@ -41,6 +43,10 @@ export function FormulaireDialog({ open, onOpenChange, titre, description, champ
       setEnvoi(false);
     }
   }
+  const modifier = (cle: string, valeur: string) => {
+    const suivant = { ...valeurs, [cle]: valeur };
+    setValeurs({ ...suivant, ...(surChangement?.(cle, valeur, suivant) ?? {}) });
+  };
   const manquant = champs.some((c) => c.requis && !(valeurs[c.cle] ?? '').trim());
 
   return (
@@ -61,13 +67,13 @@ export function FormulaireDialog({ open, onOpenChange, titre, description, champ
           <Field key={c.cle} label={c.label + (c.requis ? ' *' : '')} className={c.large || c.type === 'zone' ? 'sm:col-span-2' : undefined}>
             {(id) =>
               c.type === 'select' ? (
-                <Select id={id} value={valeurs[c.cle] ?? ''} onChange={(e) => setValeurs({ ...valeurs, [c.cle]: e.target.value })}>
+                <Select id={id} value={valeurs[c.cle] ?? ''} onChange={(e) => modifier(c.cle, e.target.value)}>
                   {(c.options ?? []).map((o) => <option key={o.valeur} value={o.valeur}>{o.libelle}</option>)}
                 </Select>
               ) : c.type === 'zone' ? (
-                <Textarea id={id} value={valeurs[c.cle] ?? ''} onChange={(e) => setValeurs({ ...valeurs, [c.cle]: e.target.value })} placeholder={c.placeholder} />
+                <Textarea id={id} value={valeurs[c.cle] ?? ''} onChange={(e) => modifier(c.cle, e.target.value)} placeholder={c.placeholder} />
               ) : (
-                <Input id={id} value={valeurs[c.cle] ?? ''} onChange={(e) => setValeurs({ ...valeurs, [c.cle]: e.target.value })} placeholder={c.placeholder} autoFocus={i === 0} />
+                <Input id={id} value={valeurs[c.cle] ?? ''} onChange={(e) => modifier(c.cle, e.target.value)} placeholder={c.placeholder} autoFocus={i === 0} />
               )
             }
           </Field>
