@@ -29,10 +29,22 @@ interface Props {
 }
 
 /** Dialogue de saisie générique (participant, livrable, système libre). */
-export function FormulaireDialog({ open, onOpenChange, titre, description, champs, initial, libelleValider, onValider, surChangement }: Props) {
+export function FormulaireDialog({
+  open,
+  onOpenChange,
+  titre,
+  description,
+  champs,
+  initial,
+  libelleValider,
+  onValider,
+  surChangement,
+}: Props) {
   const [valeurs, setValeurs] = useState(initial);
   const [envoi, setEnvoi] = useState(false);
-  useEffect(() => { if (open) setValeurs(initial); }, [open, initial]);
+  useEffect(() => {
+    if (open) setValeurs(initial);
+  }, [open, initial]);
 
   async function valider(e: FormEvent) {
     e.preventDefault();
@@ -45,7 +57,7 @@ export function FormulaireDialog({ open, onOpenChange, titre, description, champ
   }
   const modifier = (cle: string, valeur: string) => {
     const suivant = { ...valeurs, [cle]: valeur };
-    setValeurs({ ...suivant, ...(surChangement?.(cle, valeur, suivant) ?? {}) });
+    setValeurs({ ...suivant, ...surChangement?.(cle, valeur, suivant) });
   };
   const manquant = champs.some((c) => c.requis && !(valeurs[c.cle] ?? '').trim());
 
@@ -57,23 +69,46 @@ export function FormulaireDialog({ open, onOpenChange, titre, description, champ
       description={description}
       pied={
         <>
-          <Button variante="fantome" onClick={() => onOpenChange(false)}>Annuler</Button>
-          <Button type="submit" form="formulaire-dialog" variante="primaire" chargement={envoi} disabled={manquant}>{libelleValider}</Button>
+          <Button variante="fantome" onClick={() => onOpenChange(false)}>
+            Annuler
+          </Button>
+          <Button type="submit" form="formulaire-dialog" variante="primaire" chargement={envoi} disabled={manquant}>
+            {libelleValider}
+          </Button>
         </>
       }
     >
       <form id="formulaire-dialog" onSubmit={(e) => void valider(e)} className="grid gap-4 sm:grid-cols-2">
         {champs.map((c, i) => (
-          <Field key={c.cle} label={c.label + (c.requis ? ' *' : '')} className={c.large || c.type === 'zone' ? 'sm:col-span-2' : undefined}>
+          <Field
+            key={c.cle}
+            label={c.label + (c.requis ? ' *' : '')}
+            className={c.large || c.type === 'zone' ? 'sm:col-span-2' : undefined}
+          >
             {(id) =>
               c.type === 'select' ? (
                 <Select id={id} value={valeurs[c.cle] ?? ''} onChange={(e) => modifier(c.cle, e.target.value)}>
-                  {(c.options ?? []).map((o) => <option key={o.valeur} value={o.valeur}>{o.libelle}</option>)}
+                  {(c.options ?? []).map((o) => (
+                    <option key={o.valeur} value={o.valeur}>
+                      {o.libelle}
+                    </option>
+                  ))}
                 </Select>
               ) : c.type === 'zone' ? (
-                <Textarea id={id} value={valeurs[c.cle] ?? ''} onChange={(e) => modifier(c.cle, e.target.value)} placeholder={c.placeholder} />
+                <Textarea
+                  id={id}
+                  value={valeurs[c.cle] ?? ''}
+                  onChange={(e) => modifier(c.cle, e.target.value)}
+                  placeholder={c.placeholder}
+                />
               ) : (
-                <Input id={id} value={valeurs[c.cle] ?? ''} onChange={(e) => modifier(c.cle, e.target.value)} placeholder={c.placeholder} autoFocus={i === 0} />
+                <Input
+                  id={id}
+                  value={valeurs[c.cle] ?? ''}
+                  onChange={(e) => modifier(c.cle, e.target.value)}
+                  placeholder={c.placeholder}
+                  autoFocus={i === 0}
+                />
               )
             }
           </Field>
@@ -84,16 +119,39 @@ export function FormulaireDialog({ open, onOpenChange, titre, description, champ
 }
 
 /** Carte de section avec en-tête et pied d'actions. */
-export function SectionCarte({ numero, titre, description, action, children, pied }: { numero: number; titre: string; description?: string; action?: ReactNode; children: ReactNode; pied?: ReactNode }) {
+export function SectionCarte({
+  numero,
+  titre,
+  description,
+  action,
+  children,
+  pied,
+}: {
+  numero: number;
+  titre: string;
+  description?: string;
+  action?: ReactNode;
+  children: ReactNode;
+  pied?: ReactNode;
+}) {
   return (
     <Card>
       <CardHeader
-        titre={<span className="flex items-center gap-2.5"><span className="flex size-6 items-center justify-center rounded-md bg-accent-soft font-mono text-xs font-bold text-accent-text">{numero}</span>{titre}</span>}
+        titre={
+          <span className="flex items-center gap-2.5">
+            <span className="flex size-6 items-center justify-center rounded-md bg-accent-soft font-mono text-xs font-bold text-accent-text">
+              {numero}
+            </span>
+            {titre}
+          </span>
+        }
         description={description}
         action={action}
       />
       <div className="px-5 py-5">{children}</div>
-      {pied && <div className="flex flex-wrap items-center gap-3 border-t border-line bg-surface-2/50 px-5 py-3">{pied}</div>}
+      {pied && (
+        <div className="flex flex-wrap items-center gap-3 border-t border-line bg-surface-2/50 px-5 py-3">{pied}</div>
+      )}
     </Card>
   );
 }

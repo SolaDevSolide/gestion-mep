@@ -17,15 +17,24 @@ export interface EtatCarte {
 export function etatCarte(e: Pick<Etape, 'etat' | 'disponibilite'>): EtatCarte {
   const s = e.disponibilite.statut;
   switch (e.etat) {
-    case 'Reussie': return { libelle: 'Réussie', ton: 'ok', Icone: Check, teinte: true };
-    case 'EnCours': return { libelle: 'En cours', ton: 'run', Icone: Loader2, anime: true, teinte: true };
+    case 'Reussie':
+      return { libelle: 'Réussie', ton: 'ok', Icone: Check, teinte: true };
+    case 'EnCours':
+      return { libelle: 'En cours', ton: 'run', Icone: Loader2, anime: true, teinte: true };
     case 'Echec':
       return s === 'ResolutionEnCours'
         ? { libelle: 'Résolution en cours', ton: 'warn', Icone: Wrench, teinte: true }
         : { libelle: 'Échec', ton: 'danger', Icone: XCircle, teinte: true };
     default:
       if (s === 'Disponible') return { libelle: 'Disponible', ton: 'run', Icone: CircleDot, teinte: false };
-      if (s === 'RetourArriere') return { libelle: 'Arrêtée', ton: 'rollback', Icone: Siren, teinte: false, detail: 'Retour arrière : ne plus exécuter.' };
+      if (s === 'RetourArriere')
+        return {
+          libelle: 'Arrêtée',
+          ton: 'rollback',
+          Icone: Siren,
+          teinte: false,
+          detail: 'Retour arrière : ne plus exécuter.',
+        };
       if (s === 'SiRetourArriere') return { libelle: 'Si retour arrière', ton: 'later', Icone: Undo2, teinte: false };
       return { libelle: 'En attente', ton: 'wait', Icone: Clock, teinte: false, detail: e.disponibilite.libelle };
   }

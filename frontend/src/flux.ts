@@ -23,7 +23,9 @@ export function ouvrirFlux(url: string, surMaj: (version: number) => void, surRe
       try {
         const { version } = JSON.parse((ev as MessageEvent<string>).data) as { version: number };
         surMaj(version);
-      } catch { /* événement illisible */ }
+      } catch {
+        /* événement illisible */
+      }
     });
     courant.addEventListener('error', () => {
       if (arrete || courant.readyState !== EventSource.CLOSED) return;

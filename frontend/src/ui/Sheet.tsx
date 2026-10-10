@@ -36,11 +36,17 @@ export function Sheet({ open, onOpenChange, titre, description, pied, children, 
               )}
             </div>
             <D.Close asChild>
-              <BoutonIcone label="Fermer" taille="sm"><X className="size-4" aria-hidden /></BoutonIcone>
+              <BoutonIcone label="Fermer" taille="sm">
+                <X className="size-4" aria-hidden />
+              </BoutonIcone>
             </D.Close>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
-          {pied && <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-surface-2/60 px-6 py-3.5">{pied}</div>}
+          {pied && (
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-surface-2/60 px-6 py-3.5">
+              {pied}
+            </div>
+          )}
         </D.Content>
       </D.Portal>
     </D.Root>

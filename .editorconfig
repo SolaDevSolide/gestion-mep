@@ -1,0 +1,21 @@
+# Conventions d'édition communes (Visual Studio, Rider, VS Code, dotnet format, Prettier).
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{cs,csx}]
+indent_size = 4
+
+[*.{csproj,props,targets,slnx,xml}]
+indent_size = 2
+
+# Règles C# et analyseurs .NET : backend/.editorconfig (copié avec le code dans l'image Docker).

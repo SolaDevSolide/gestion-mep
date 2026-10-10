@@ -252,6 +252,9 @@ public class ApiJalon2Tests : IDisposable
         var journal = await Journal(alice, id);
         Assert.Contains(journal, e => e.Type == "repli.declenche" && e.Detail == "Retour arrière déclenché par Alice : Service dégradé");
         Assert.Contains(journal, e => e.Type == "mep.cloturee" && e.Detail == "MEP clôturée : repliée");
+        // La liste des MEP porte aussi l'issue (affichée « Clôturée : repliée »).
+        var liste = await Ok(await alice.GetAsync("/api/meps"));
+        Assert.Equal("Repliee", liste.EnumerateArray().Single(m => m.GetProperty("id").GetGuid() == id).GetProperty("issue").GetString());
     }
 
     [Fact]

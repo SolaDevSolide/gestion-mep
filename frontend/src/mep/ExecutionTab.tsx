@@ -14,9 +14,11 @@ export default function ExecutionTab() {
         <EmptyState
           icone={Play}
           titre="L’exécution n’a pas commencé"
-          description={mep.erreursPlan.length > 0
-            ? `Le plan comporte ${mep.erreursPlan.length} point(s) à corriger avant de pouvoir passer en exécution (voir « Vérifier le plan »).`
-            : 'Le plan est complet. Le pilote peut prendre la décision Go / no-go.'}
+          description={
+            mep.erreursPlan.length > 0
+              ? `Le plan comporte ${mep.erreursPlan.length} point(s) à corriger avant de pouvoir passer en exécution (voir « Vérifier le plan »).`
+              : 'Le plan est complet. Le pilote peut prendre la décision Go / no-go.'
+          }
           action={mep.droits.estPilote ? <BoutonGoNoGo /> : undefined}
         />
       </div>
@@ -26,7 +28,10 @@ export default function ExecutionTab() {
     <div className="mx-auto w-full max-w-[1700px] px-6 py-6">
       {mep.phase === 'RetourArriere' && (
         <Alerte ton="danger" icone={Siren} className="mb-4" titre="Le déploiement est arrêté">
-          Le retour arrière est en cours. <Link to="?onglet=retour" className="font-semibold underline">Ouvrir l’onglet Retour arrière</Link>
+          Le retour arrière est en cours.{' '}
+          <Link to="?onglet=retour" className="font-semibold underline">
+            Ouvrir l’onglet Retour arrière
+          </Link>
         </Alerte>
       )}
       <ExecutionVue plan="Deploiement" />

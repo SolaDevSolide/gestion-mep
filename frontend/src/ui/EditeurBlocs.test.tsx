@@ -3,9 +3,27 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { EditeurBlocs } from './EditeurBlocs';
 
-function Hote({ initial, onChange, disposition }: { initial: string; onChange: (v: string) => void; disposition?: 'onglets' | 'cote' }) {
+function Hote({
+  initial,
+  onChange,
+  disposition,
+}: {
+  initial: string;
+  onChange: (v: string) => void;
+  disposition?: 'onglets' | 'cote';
+}) {
   const [v, setV] = useState(initial);
-  return <EditeurBlocs label="Instructions" valeur={v} disposition={disposition} onChange={(x) => { setV(x); onChange(x); }} />;
+  return (
+    <EditeurBlocs
+      label="Instructions"
+      valeur={v}
+      disposition={disposition}
+      onChange={(x) => {
+        setV(x);
+        onChange(x);
+      }}
+    />
+  );
 }
 
 describe('EditeurBlocs', () => {
@@ -28,7 +46,10 @@ describe('EditeurBlocs', () => {
     const onChange = vi.fn();
     render(<Hote initial="" onChange={onChange} />);
     expect(screen.getByLabelText('Instructions, bloc 1 (texte)')).toHaveValue('');
-    expect(screen.getByLabelText('Instructions, bloc 1 (texte)')).toHaveAttribute('placeholder', expect.stringContaining('Décrivez l’action'));
+    expect(screen.getByLabelText('Instructions, bloc 1 (texte)')).toHaveAttribute(
+      'placeholder',
+      expect.stringContaining('Décrivez l’action'),
+    );
     expect(onChange).not.toHaveBeenCalled();
   });
 

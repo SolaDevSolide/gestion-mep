@@ -15,7 +15,11 @@ import { Instructions, Markdown } from '../ui/Instructions';
 import { useToast } from '../ui/Toast';
 import { PuceSysteme } from './graphe/systemes';
 
-export interface CorrectionBrouillon { cle: number; instruction: string; resultatAttendu: string }
+export interface CorrectionBrouillon {
+  cle: number;
+  instruction: string;
+  resultatAttendu: string;
+}
 
 /** Saisie d'une résolution type ; les instructions sont des chaînes markdown (blocs Texte / Code). */
 export interface BrouillonResolution {
@@ -37,7 +41,11 @@ export function brouillonDepuis(r: ResolutionType | undefined, systemesParDefaut
     systemeCatalogueIds: r?.systemeCatalogueIds ?? systemesParDefaut,
     symptomes: r?.symptomes ?? '',
     diagnostic: r?.diagnostic ?? '',
-    corrections: r ? [...r.corrections].sort((a, b) => a.ordre - b.ordre).map((c) => ({ cle: ++numero, instruction: c.instruction, resultatAttendu: c.resultatAttendu })) : [correctionVide()],
+    corrections: r
+      ? [...r.corrections]
+          .sort((a, b) => a.ordre - b.ordre)
+          .map((c) => ({ cle: ++numero, instruction: c.instruction, resultatAttendu: c.resultatAttendu }))
+      : [correctionVide()],
     verificationInstruction: r?.verificationInstruction ?? '',
     verificationAttendu: r?.verificationAttendu ?? '',
   };
@@ -49,7 +57,11 @@ export function saisieResolution(b: BrouillonResolution): Omit<ResolutionTypeSai
     systemeCatalogueIds: b.systemeCatalogueIds,
     symptomes: b.symptomes.trim(),
     diagnostic: b.diagnostic.trim(),
-    corrections: b.corrections.map((c, i) => ({ ordre: i + 1, instruction: c.instruction.trim(), resultatAttendu: c.resultatAttendu.trim() })),
+    corrections: b.corrections.map((c, i) => ({
+      ordre: i + 1,
+      instruction: c.instruction.trim(),
+      resultatAttendu: c.resultatAttendu.trim(),
+    })),
     verificationInstruction: b.verificationInstruction.trim(),
     verificationAttendu: b.verificationAttendu.trim(),
   };
@@ -60,14 +72,20 @@ const Intertitre = ({ children }: { children: React.ReactNode }) => (
 );
 
 /** Champs d'une résolution type : titre, système, symptômes, diagnostic, corrections ordonnées, vérification finale. */
-export function FormulaireResolution({ b, onChange, systemes, autoFocus }: {
+export function FormulaireResolution({
+  b,
+  onChange,
+  systemes,
+  autoFocus,
+}: {
   b: BrouillonResolution;
   onChange: (b: BrouillonResolution) => void;
   systemes: SystemeCatalogue[];
   autoFocus?: boolean;
 }) {
   const maj = (patch: Partial<BrouillonResolution>) => onChange({ ...b, ...patch });
-  const majCorrection = (i: number, patch: Partial<CorrectionBrouillon>) => maj({ corrections: b.corrections.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
+  const majCorrection = (i: number, patch: Partial<CorrectionBrouillon>) =>
+    maj({ corrections: b.corrections.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
   const deplacer = (i: number, delta: number) => {
     const j = i + delta;
     if (j < 0 || j >= b.corrections.length) return;
@@ -78,33 +96,63 @@ export function FormulaireResolution({ b, onChange, systemes, autoFocus }: {
 
   return (
     <div className="grid gap-5">
-      <Field label="Titre *">{(id) => <Input id={id} value={b.titre} onChange={(e) => maj({ titre: e.target.value })} placeholder="ex. API : le service ne démarre pas" autoFocus={autoFocus} />}</Field>
+      <Field label="Titre *">
+        {(id) => (
+          <Input
+            id={id}
+            value={b.titre}
+            onChange={(e) => maj({ titre: e.target.value })}
+            placeholder="ex. API : le service ne démarre pas"
+            autoFocus={autoFocus}
+          />
+        )}
+      </Field>
       <fieldset className="grid gap-1.5">
-        <legend className="mb-1.5 text-[13px] font-medium">Systèmes <span className="font-normal text-fg-subtle">(aucun = tous)</span></legend>
+        <legend className="mb-1.5 text-[13px] font-medium">
+          Systèmes <span className="font-normal text-fg-subtle">(aucun = tous)</span>
+        </legend>
         <div className="flex flex-wrap gap-1.5">
-          {systemes.filter((s) => s.actif || b.systemeCatalogueIds.includes(s.id)).map((s) => {
-            const actif = b.systemeCatalogueIds.includes(s.id);
-            return (
-              <button
-                key={s.id}
-                type="button"
-                aria-pressed={actif}
-                title={s.description || undefined}
-                onClick={() => maj({ systemeCatalogueIds: actif ? b.systemeCatalogueIds.filter((x) => x !== s.id) : [...b.systemeCatalogueIds, s.id] })}
-                className={cn('inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-[13px] font-semibold', !actif && 'border-line-strong text-fg-subtle hover:text-fg')}
-                style={actif ? styleSysteme(s.nom) : undefined}
-              >
-                <i className="size-2 rounded-full" style={{ background: couleurSysteme(s.nom) }} aria-hidden />{s.nom}
-              </button>
-            );
-          })}
+          {systemes
+            .filter((s) => s.actif || b.systemeCatalogueIds.includes(s.id))
+            .map((s) => {
+              const actif = b.systemeCatalogueIds.includes(s.id);
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  aria-pressed={actif}
+                  title={s.description || undefined}
+                  onClick={() =>
+                    maj({
+                      systemeCatalogueIds: actif
+                        ? b.systemeCatalogueIds.filter((x) => x !== s.id)
+                        : [...b.systemeCatalogueIds, s.id],
+                    })
+                  }
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-[13px] font-semibold',
+                    !actif && 'border-line-strong text-fg-subtle hover:text-fg',
+                  )}
+                  style={actif ? styleSysteme(s.nom) : undefined}
+                >
+                  <i className="size-2 rounded-full" style={{ background: couleurSysteme(s.nom) }} aria-hidden />
+                  {s.nom}
+                </button>
+              );
+            })}
         </div>
       </fieldset>
 
       <Field label="Symptômes (markdown)">
         {(id) => (
           <div className="grid gap-1.5">
-            <Textarea id={id} rows={3} value={b.symptomes} onChange={(e) => maj({ symptomes: e.target.value })} placeholder="ex. Après le déploiement, `GET /sante` renvoie **503**." />
+            <Textarea
+              id={id}
+              rows={3}
+              value={b.symptomes}
+              onChange={(e) => maj({ symptomes: e.target.value })}
+              placeholder="ex. Après le déploiement, `GET /sante` renvoie **503**."
+            />
             {b.symptomes.trim() && (
               <div className="rounded-md border border-dashed border-line px-2 py-1.5">
                 <p className="mb-0.5 text-[10px] font-semibold tracking-wide text-fg-subtle uppercase">Aperçu</p>
@@ -117,7 +165,12 @@ export function FormulaireResolution({ b, onChange, systemes, autoFocus }: {
 
       <section className="grid gap-1.5">
         <Intertitre>Diagnostic</Intertitre>
-        <EditeurBlocs label="Diagnostic" typeInitial="code" valeur={b.diagnostic} onChange={(md) => maj({ diagnostic: md })} />
+        <EditeurBlocs
+          label="Diagnostic"
+          typeInitial="code"
+          valeur={b.diagnostic}
+          onChange={(md) => maj({ diagnostic: md })}
+        />
       </section>
 
       <section className="grid gap-2.5">
@@ -127,22 +180,77 @@ export function FormulaireResolution({ b, onChange, systemes, autoFocus }: {
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-semibold">Correction {i + 1}</span>
               <div className="flex items-center gap-0.5">
-                <BoutonIcone label={`Monter la correction ${i + 1}`} taille="sm" disabled={i === 0} onClick={() => deplacer(i, -1)}><ArrowUp className="size-4" aria-hidden /></BoutonIcone>
-                <BoutonIcone label={`Descendre la correction ${i + 1}`} taille="sm" disabled={i === b.corrections.length - 1} onClick={() => deplacer(i, 1)}><ArrowDown className="size-4" aria-hidden /></BoutonIcone>
-                <BoutonIcone label={`Supprimer la correction ${i + 1}`} taille="sm" disabled={b.corrections.length === 1} onClick={() => maj({ corrections: b.corrections.filter((_, j) => j !== i) })}><Trash2 className="size-4" aria-hidden /></BoutonIcone>
+                <BoutonIcone
+                  label={`Monter la correction ${i + 1}`}
+                  taille="sm"
+                  disabled={i === 0}
+                  onClick={() => deplacer(i, -1)}
+                >
+                  <ArrowUp className="size-4" aria-hidden />
+                </BoutonIcone>
+                <BoutonIcone
+                  label={`Descendre la correction ${i + 1}`}
+                  taille="sm"
+                  disabled={i === b.corrections.length - 1}
+                  onClick={() => deplacer(i, 1)}
+                >
+                  <ArrowDown className="size-4" aria-hidden />
+                </BoutonIcone>
+                <BoutonIcone
+                  label={`Supprimer la correction ${i + 1}`}
+                  taille="sm"
+                  disabled={b.corrections.length === 1}
+                  onClick={() => maj({ corrections: b.corrections.filter((_, j) => j !== i) })}
+                >
+                  <Trash2 className="size-4" aria-hidden />
+                </BoutonIcone>
               </div>
             </div>
-            <EditeurBlocs label={`Correction ${i + 1}`} typeInitial="code" valeur={c.instruction} onChange={(md) => majCorrection(i, { instruction: md })} />
-            <Field label="Résultat attendu">{(id) => <Input id={id} value={c.resultatAttendu} onChange={(e) => majCorrection(i, { resultatAttendu: e.target.value })} />}</Field>
+            <EditeurBlocs
+              label={`Correction ${i + 1}`}
+              typeInitial="code"
+              valeur={c.instruction}
+              onChange={(md) => majCorrection(i, { instruction: md })}
+            />
+            <Field label="Résultat attendu">
+              {(id) => (
+                <Input
+                  id={id}
+                  value={c.resultatAttendu}
+                  onChange={(e) => majCorrection(i, { resultatAttendu: e.target.value })}
+                />
+              )}
+            </Field>
           </div>
         ))}
-        <div><Button taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => maj({ corrections: [...b.corrections, correctionVide()] })}>Ajouter une correction</Button></div>
+        <div>
+          <Button
+            taille="sm"
+            icone={<Plus className="size-4" aria-hidden />}
+            onClick={() => maj({ corrections: [...b.corrections, correctionVide()] })}
+          >
+            Ajouter une correction
+          </Button>
+        </div>
       </section>
 
       <section className="grid gap-2.5 rounded-lg border border-ok-bd bg-ok-bg/40 p-3">
         <Intertitre>Vérification finale</Intertitre>
-        <EditeurBlocs label="Vérification finale" typeInitial="code" valeur={b.verificationInstruction} onChange={(md) => maj({ verificationInstruction: md })} />
-        <Field label="Résultat attendu de la vérification">{(id) => <Input id={id} value={b.verificationAttendu} onChange={(e) => maj({ verificationAttendu: e.target.value })} />}</Field>
+        <EditeurBlocs
+          label="Vérification finale"
+          typeInitial="code"
+          valeur={b.verificationInstruction}
+          onChange={(md) => maj({ verificationInstruction: md })}
+        />
+        <Field label="Résultat attendu de la vérification">
+          {(id) => (
+            <Input
+              id={id}
+              value={b.verificationAttendu}
+              onChange={(e) => maj({ verificationAttendu: e.target.value })}
+            />
+          )}
+        </Field>
       </section>
     </div>
   );
@@ -155,10 +263,19 @@ export function ApercuResolution({ b, systemes }: { b: BrouillonResolution; syst
     <div className="grid gap-3.5">
       <Intertitre>Aperçu en exécution</Intertitre>
       <p className="text-base font-semibold">{b.titre.trim() || 'Sans titre'}</p>
-      <div className="flex flex-wrap gap-1.5">{choisis.length ? choisis.map((s) => <PuceSysteme key={s.id} nom={s.nom} />) : <span className="text-[13px] text-fg-subtle">Tous les systèmes</span>}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {choisis.length ? (
+          choisis.map((s) => <PuceSysteme key={s.id} nom={s.nom} />)
+        ) : (
+          <span className="text-[13px] text-fg-subtle">Tous les systèmes</span>
+        )}
+      </div>
       <Markdown source={`**Symptômes** : ${b.symptomes.trim() || '_à compléter_'}`} />
       <section className="grid gap-1.5">
-        <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-fg-subtle uppercase"><Stethoscope className="size-3.5" aria-hidden />Diagnostic</p>
+        <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-fg-subtle uppercase">
+          <Stethoscope className="size-3.5" aria-hidden />
+          Diagnostic
+        </p>
         <Instructions source={b.diagnostic} vide="À compléter." />
       </section>
       <ol className="grid gap-2">
@@ -202,25 +319,42 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesP
     if (open) {
       setB(brouillonDepuis(initial, systemesParDefaut));
       setErreur('');
-      api.catalogueSystemes().then(setSystemes).catch(() => setSystemes([]));
-      if (initial) api.piecesResolution(initial.id).then(setPieces).catch(() => setPieces([])); else setPieces([]);
+      api
+        .catalogueSystemes()
+        .then(setSystemes)
+        .catch(() => setSystemes([]));
+      if (initial)
+        api
+          .piecesResolution(initial.id)
+          .then(setPieces)
+          .catch(() => setPieces([]));
+      else setPieces([]);
     }
   }, [open, initial, systemesParDefaut]);
 
   async function enregistrer(e: FormEvent) {
     e.preventDefault();
     setErreur('');
-    if (!b.titre.trim()) { setErreur('Indiquez un titre.'); return; }
+    if (!b.titre.trim()) {
+      setErreur('Indiquez un titre.');
+      return;
+    }
     setEnvoi(true);
     const saisie = saisieResolution(b);
     try {
-      const r = initial ? await api.modifierResolution(initial.id, { ...saisie, version: initial.version }) : await api.creerResolution(saisie);
+      const r = initial
+        ? await api.modifierResolution(initial.id, { ...saisie, version: initial.version })
+        : await api.creerResolution(saisie);
       toast.succes(initial ? 'Résolution type enregistrée.' : 'Résolution type créée.');
       onEnregistree(r);
       onOpenChange(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Enregistrement impossible.';
-      setErreur(err instanceof ApiError && err.status === 409 ? `${msg}\nRouvrez la résolution pour obtenir la dernière version.` : msg);
+      setErreur(
+        err instanceof ApiError && err.status === 409
+          ? `${msg}\nRouvrez la résolution pour obtenir la dernière version.`
+          : msg,
+      );
     } finally {
       setEnvoi(false);
     }
@@ -234,13 +368,21 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesP
       titre={initial ? 'Modifier la résolution type' : 'Nouvelle résolution type'}
       pied={
         <>
-          <Button variante="fantome" onClick={() => onOpenChange(false)}>Annuler</Button>
-          <Button type="submit" form="form-resolution" variante="primaire" chargement={envoi}>Enregistrer la résolution</Button>
+          <Button variante="fantome" onClick={() => onOpenChange(false)}>
+            Annuler
+          </Button>
+          <Button type="submit" form="form-resolution" variante="primaire" chargement={envoi}>
+            Enregistrer la résolution
+          </Button>
         </>
       }
     >
       <form id="form-resolution" onSubmit={(e) => void enregistrer(e)} className="space-y-5">
-        {erreur && <Alerte ton="danger" icone={OctagonAlert} role="alert" titre="Enregistrement refusé">{erreur}</Alerte>}
+        {erreur && (
+          <Alerte ton="danger" icone={OctagonAlert} role="alert" titre="Enregistrement refusé">
+            {erreur}
+          </Alerte>
+        )}
         <FormulaireResolution b={b} onChange={setB} systemes={systemes} autoFocus />
       </form>
 
@@ -251,16 +393,30 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesP
             pieces={pieces}
             peutSupprimer={() => admin}
             onDeposer={async (f, signaler) => {
-              try { const p = await api.deposerPieceResolution(initial.id, f); setPieces((l) => [...l, p]); return true; }
-              catch (e) { signaler(e instanceof Error ? e.message : 'Envoi impossible.'); return false; }
+              try {
+                const p = await api.deposerPieceResolution(initial.id, f);
+                setPieces((l) => [...l, p]);
+                return true;
+              } catch (e) {
+                signaler(e instanceof Error ? e.message : 'Envoi impossible.');
+                return false;
+              }
             }}
             onSupprimer={async (p, signaler) => {
-              try { await api.supprimerPieceResolution(initial.id, p.id); setPieces((l) => l.filter((x) => x.id !== p.id)); return true; }
-              catch (e) { signaler(e instanceof Error ? e.message : 'Suppression impossible.'); return false; }
+              try {
+                await api.supprimerPieceResolution(initial.id, p.id);
+                setPieces((l) => l.filter((x) => x.id !== p.id));
+                return true;
+              } catch (e) {
+                signaler(e instanceof Error ? e.message : 'Suppression impossible.');
+                return false;
+              }
             }}
           />
         ) : (
-          <p className="text-sm text-fg-subtle">Enregistrez d’abord la résolution pour pouvoir y joindre des fichiers.</p>
+          <p className="text-sm text-fg-subtle">
+            Enregistrez d’abord la résolution pour pouvoir y joindre des fichiers.
+          </p>
         )}
       </div>
     </Dialog>

@@ -23,24 +23,63 @@ export function BoutonGoNoGo({ taille = 'sm', lien = false }: { taille?: TailleB
     if (!ouvert) return;
     let annule = false;
     setErreur('');
-    api.criteresGoNoGo()
-      .then((l) => { if (!annule) setCriteres(l.filter((c) => c.actif).sort((a, b) => a.ordre - b.ordre)); })
-      .catch((e: unknown) => { if (!annule) { setCriteres(null); setErreur(e instanceof Error ? e.message : 'Critères indisponibles.'); } });
-    return () => { annule = true; };
+    api
+      .criteresGoNoGo()
+      .then((l) => {
+        if (!annule) setCriteres(l.filter((c) => c.actif).sort((a, b) => a.ordre - b.ordre));
+      })
+      .catch((e: unknown) => {
+        if (!annule) {
+          setCriteres(null);
+          setErreur(e instanceof Error ? e.message : 'Critères indisponibles.');
+        }
+      });
+    return () => {
+      annule = true;
+    };
   }, [ouvert]);
 
   const modele = mep.estModele;
-  const bouton = (
-    lien
-      ? <button type="button" disabled={modele} onClick={() => setOuvert(true)} className="rounded text-sm font-medium text-accent-text underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60">Donner le Go →</button>
-      : <Button variante="primaire" taille={taille} icone={<Play className="size-4" aria-hidden />} disabled={modele} onClick={() => setOuvert(true)}>Go / no-go</Button>
+  const bouton = lien ? (
+    <button
+      type="button"
+      disabled={modele}
+      onClick={() => setOuvert(true)}
+      className="rounded text-sm font-medium text-accent-text underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      Donner le Go →
+    </button>
+  ) : (
+    <Button
+      variante="primaire"
+      taille={taille}
+      icone={<Play className="size-4" aria-hidden />}
+      disabled={modele}
+      onClick={() => setOuvert(true)}
+    >
+      Go / no-go
+    </Button>
   );
   return (
     <>
-      {modele ? <Tooltip content="Un modèle ne passe pas en exécution : dupliquez-le pour créer une MEP."><span tabIndex={0}>{bouton}</span></Tooltip> : bouton}
+      {modele ? (
+        <Tooltip content="Un modèle ne passe pas en exécution : dupliquez-le pour créer une MEP.">
+          <span tabIndex={0}>{bouton}</span>
+        </Tooltip>
+      ) : (
+        bouton
+      )}
       {ouvert && erreur && !criteres && (
-        <Dialog open onOpenChange={setOuvert} titre="Go / no-go" taille="sm" pied={<Button onClick={() => setOuvert(false)}>Fermer</Button>}>
-          <Alerte ton="danger" icone={OctagonAlert} role="alert">{erreur}</Alerte>
+        <Dialog
+          open
+          onOpenChange={setOuvert}
+          titre="Go / no-go"
+          taille="sm"
+          pied={<Button onClick={() => setOuvert(false)}>Fermer</Button>}
+        >
+          <Alerte ton="danger" icone={OctagonAlert} role="alert">
+            {erreur}
+          </Alerte>
         </Dialog>
       )}
       <GoNoGoDialog
@@ -63,12 +102,24 @@ export function BoutonPasserRecette({ taille = 'sm' }: { taille?: TailleBouton }
   const pret = deploiementReussi(mep);
   const restantes = etapesDuPlan(mep, 'Deploiement').filter((e) => e.etat !== 'Reussie').length;
   const bouton = (
-    <Button variante="primaire" taille={taille} icone={<ClipboardCheck className="size-4" aria-hidden />} disabled={!pret} onClick={() => setOuvert(true)}>Passer en recette</Button>
+    <Button
+      variante="primaire"
+      taille={taille}
+      icone={<ClipboardCheck className="size-4" aria-hidden />}
+      disabled={!pret}
+      onClick={() => setOuvert(true)}
+    >
+      Passer en recette
+    </Button>
   );
   return (
     <>
-      {pret ? bouton : (
-        <Tooltip content={`${restantes} étape(s) du déploiement pas encore réussie(s)`}><span tabIndex={0}>{bouton}</span></Tooltip>
+      {pret ? (
+        bouton
+      ) : (
+        <Tooltip content={`${restantes} étape(s) du déploiement pas encore réussie(s)`}>
+          <span tabIndex={0}>{bouton}</span>
+        </Tooltip>
       )}
       <ConfirmDialog
         open={ouvert}
@@ -87,13 +138,26 @@ export function BoutonRevenirPreparation({ taille = 'sm' }: { taille?: TailleBou
   const [ouvert, setOuvert] = useState(false);
   const bloque = mep.nonRetourFranchi !== null;
   const bouton = (
-    <Button taille={taille} icone={<ClipboardList className="size-4" aria-hidden />} disabled={bloque} onClick={() => setOuvert(true)}>Revenir en préparation</Button>
+    <Button
+      taille={taille}
+      icone={<ClipboardList className="size-4" aria-hidden />}
+      disabled={bloque}
+      onClick={() => setOuvert(true)}
+    >
+      Revenir en préparation
+    </Button>
   );
   return (
     <>
       {bloque ? (
-        <Tooltip content={`Point de non-retour franchi (${mep.nonRetourFranchi}) : on ne peut plus revenir en préparation, tout problème se corrige en avant.`}><span tabIndex={0}>{bouton}</span></Tooltip>
-      ) : bouton}
+        <Tooltip
+          content={`Point de non-retour franchi (${mep.nonRetourFranchi}) : on ne peut plus revenir en préparation, tout problème se corrige en avant.`}
+        >
+          <span tabIndex={0}>{bouton}</span>
+        </Tooltip>
+      ) : (
+        bouton
+      )}
       <ConfirmDialog
         open={ouvert}
         onOpenChange={setOuvert}
@@ -112,16 +176,31 @@ export function BoutonDeclencherRepli({ taille = 'sm' }: { taille?: TailleBouton
   const [motif, setMotif] = useState('');
   const bloque = mep.nonRetourFranchi !== null;
   const bouton = (
-    <Button variante="danger" taille={taille} icone={<Siren className="size-4" aria-hidden />} disabled={bloque} onClick={() => setOuvert(true)}>Déclencher le retour arrière</Button>
+    <Button
+      variante="danger"
+      taille={taille}
+      icone={<Siren className="size-4" aria-hidden />}
+      disabled={bloque}
+      onClick={() => setOuvert(true)}
+    >
+      Déclencher le retour arrière
+    </Button>
   );
   return (
     <>
       {bloque ? (
-        <Tooltip content={`Point de non-retour franchi (${mep.nonRetourFranchi}) : corriger en avant.`}><span tabIndex={0}>{bouton}</span></Tooltip>
-      ) : bouton}
+        <Tooltip content={`Point de non-retour franchi (${mep.nonRetourFranchi}) : corriger en avant.`}>
+          <span tabIndex={0}>{bouton}</span>
+        </Tooltip>
+      ) : (
+        bouton
+      )}
       <ConfirmDialog
         open={ouvert}
-        onOpenChange={(o) => { setOuvert(o); if (!o) setMotif(''); }}
+        onOpenChange={(o) => {
+          setOuvert(o);
+          if (!o) setMotif('');
+        }}
         titre="Déclencher le retour arrière"
         description="Le plan de déploiement s’arrête et les étapes de retour arrière deviennent disponibles. Cette décision est tracée au journal."
         libelleConfirmer="Déclencher le retour arrière"
@@ -135,7 +214,16 @@ export function BoutonDeclencherRepli({ taille = 'sm' }: { taille?: TailleBouton
         }}
       >
         <Field label="Motif (obligatoire)" hint="Expliquez pourquoi : cette information est visible de tous.">
-          {(id) => <Textarea id={id} value={motif} onChange={(e) => setMotif(e.target.value)} rows={3} placeholder="ex. L’API ne répond plus après la migration, résolution impossible dans le temps imparti." autoFocus />}
+          {(id) => (
+            <Textarea
+              id={id}
+              value={motif}
+              onChange={(e) => setMotif(e.target.value)}
+              rows={3}
+              placeholder="ex. L’API ne répond plus après la migration, résolution impossible dans le temps imparti."
+              autoFocus
+            />
+          )}
         </Field>
       </ConfirmDialog>
     </>
@@ -151,22 +239,48 @@ export function BoutonCloturer({ taille = 'sm', libelle }: { taille?: TailleBout
   const restantes = etapes.filter((e) => e.etat !== 'Reussie').length;
   const bilan = bilanRecette(mep);
   const nonConformes = repli ? 0 : bilan.total - bilan.conformes;
-  const raison = restantes > 0
-    ? `${restantes} étape(s) ${repli ? 'de retour arrière' : 'du déploiement'} pas encore réussie(s)`
-    : nonConformes > 0 ? `${nonConformes} étape(s) de test de recette pas encore conforme(s)` : null;
+  const raison =
+    restantes > 0
+      ? `${restantes} étape(s) ${repli ? 'de retour arrière' : 'du déploiement'} pas encore réussie(s)`
+      : nonConformes > 0
+        ? `${nonConformes} étape(s) de test de recette pas encore conforme(s)`
+        : null;
   const texte = libelle ?? (repli ? 'Service rétabli : clôturer' : 'Clôturer : MEP réussie');
   const bouton = (
-    <Button variante="succes" taille={taille} icone={<CheckCircle2 className="size-4" aria-hidden />} disabled={raison !== null} onClick={() => setOuvert(true)}>{texte}</Button>
+    <Button
+      variante="succes"
+      taille={taille}
+      icone={<CheckCircle2 className="size-4" aria-hidden />}
+      disabled={raison !== null}
+      onClick={() => setOuvert(true)}
+    >
+      {texte}
+    </Button>
   );
   return (
     <>
-      {raison ? <Tooltip content={raison}><span tabIndex={0}>{bouton}</span></Tooltip> : bouton}
+      {raison ? (
+        <Tooltip content={raison}>
+          <span tabIndex={0}>{bouton}</span>
+        </Tooltip>
+      ) : (
+        bouton
+      )}
       <ClotureDialog
         open={ouvert}
         onOpenChange={setOuvert}
         repli={repli}
         bilanActive={mep.bilanActive}
-        onConfirmer={(bilan) => run(() => api.cloturer(mep.id, mep.bilanActive || bilan.ceQuiAMarche || bilan.incidents || bilan.actions ? bilan : undefined), 'MEP clôturée.')}
+        onConfirmer={(bilan) =>
+          run(
+            () =>
+              api.cloturer(
+                mep.id,
+                mep.bilanActive || bilan.ceQuiAMarche || bilan.incidents || bilan.actions ? bilan : undefined,
+              ),
+            'MEP clôturée.',
+          )
+        }
       />
     </>
   );

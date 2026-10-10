@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using GestionMep.Api.Auth;
 using GestionMep.Api.Donnees;
+using GestionMep.Api.Securite;
 using GestionMep.Api.Services;
 using GestionMep.Domain;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace GestionMep.Api.Endpoints;
@@ -14,6 +16,13 @@ namespace GestionMep.Api.Endpoints;
 public static class PiecesJointesEndpoints
 {
     public const string ChampFichier = "fichier";
+
+    /// <summary>
+    /// Les routes de dépôt acceptent un corps de la taille d'une pièce jointe (plus 1 Mo de formulaire) ; toutes les autres
+    /// sont limitées à <see cref="LimitesRequetes.CorpsParDefaut"/>.
+    /// </summary>
+    private static RouteHandlerBuilder AccepterFichier(this RouteHandlerBuilder route, long limite) =>
+        route.WithMetadata(new RequestSizeLimitAttribute(limite));
 
     /// <summary>Lit le fichier du formulaire et l'écrit sur disque (taille et SHA-256 calculés au passage).</summary>
     private static async Task<PieceJointe> Recevoir(HttpRequest req, StockagePiecesJointes stockage, Acteur acteur, DateTimeOffset maintenant)
@@ -28,7 +37,7 @@ public static class PiecesJointesEndpoints
         {
             throw new ErreurHttp(413, stockage.MessageTropVolumineux);
         }
-        var fichier = form.Files.GetFile(ChampFichier) ?? form.Files.FirstOrDefault()
+        var fichier = form.Files.GetFile(ChampFichier) ?? (form.Files.Count > 0 ? form.Files[0] : null)
             ?? throw ErreurHttp.Saisie($"Aucun fichier reçu (champ « {ChampFichier} »).");
         if (fichier.Length == 0) throw ErreurHttp.Saisie("Le fichier est vide.");
         if (fichier.Length > stockage.TailleMaxOctets) throw new ErreurHttp(413, stockage.MessageTropVolumineux);
@@ -72,6 +81,7 @@ public static class PiecesJointesEndpoints
 
     public static void MapPiecesJointes(this RouteGroupBuilder api)
     {
+        var limiteDepot = ((IEndpointRouteBuilder)api).ServiceProvider.GetRequiredService<StockagePiecesJointes>().TailleMaxOctets + 1024 * 1024;
         // ---------- MEP, étape, exécution de résolution ----------
         api.MapGet("/meps/{id:guid}/pieces-jointes", async (Guid id, MepDbContext db) =>
         {
@@ -89,7 +99,7 @@ public static class PiecesJointesEndpoints
             ExigerNonCloturee(mep);
             var piece = await Recevoir(req, stockage, acteur, svc.Maintenant);
             return Results.Ok(await Ajouter(mep, piece, "", acteur, svc, db, stockage));
-        });
+        }).AccepterFichier(limiteDepot);
 
         api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/pieces-jointes", async (Guid id, Guid eid, HttpRequest req, ClaimsPrincipal user, ServiceMep svc,
             MepDbContext db, StockagePiecesJointes stockage) =>
@@ -101,7 +111,7 @@ public static class PiecesJointesEndpoints
             var piece = await Recevoir(req, stockage, acteur, svc.Maintenant);
             piece.EtapeId = etape.Id;
             return Results.Ok(await Ajouter(mep, piece, $" à {etape.Code}", acteur, svc, db, stockage));
-        });
+        }).AccepterFichier(limiteDepot);
 
         api.MapPost("/meps/{id:guid}/resolutions/{rid:guid}/pieces-jointes", async (Guid id, Guid rid, HttpRequest req, ClaimsPrincipal user,
             ServiceMep svc, MepDbContext db, StockagePiecesJointes stockage) =>
@@ -113,7 +123,7 @@ public static class PiecesJointesEndpoints
             var piece = await Recevoir(req, stockage, acteur, svc.Maintenant);
             piece.ExecutionResolutionId = execution.Id;
             return Results.Ok(await Ajouter(mep, piece, $" à la résolution « {execution.Titre} »", acteur, svc, db, stockage));
-        });
+        }).AccepterFichier(limiteDepot);
 
         api.MapDelete("/meps/{id:guid}/pieces-jointes/{pid:guid}", async (Guid id, Guid pid, ClaimsPrincipal user, ServiceMep svc, MepDbContext db,
             StockagePiecesJointes stockage) =>
@@ -169,7 +179,7 @@ public static class PiecesJointesEndpoints
             await db.SaveChangesAsync();
             stockage.Supprimer(piece.Id);
             return Results.NoContent();
-        });
+        }).AccepterFichier(limiteDepot);
 
         // ---------- Téléchargement ----------
         api.MapGet("/pieces-jointes/{pid:guid}/contenu", async (Guid pid, HttpContext ctx, MepDbContext db, StockagePiecesJointes stockage) =>

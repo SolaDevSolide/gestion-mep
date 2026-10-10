@@ -5,10 +5,14 @@ import { mep } from '../test/fabrique';
 
 describe('PlanCheck', () => {
   it('affiche les avertissements à part des anomalies, sans les compter comme anomalies', async () => {
-    render(<PlanCheck mep={mep({
-      erreursPlan: ['Renseigner le pilote.'],
-      avertissements: ['Aucun responsable technique renseigné.'],
-    })} />);
+    render(
+      <PlanCheck
+        mep={mep({
+          erreursPlan: ['Renseigner le pilote.'],
+          avertissements: ['Aucun responsable technique renseigné.'],
+        })}
+      />,
+    );
     const bouton = screen.getByRole('button', { name: 'Vérifier le plan : 1 anomalie(s), 1 avertissement(s)' });
     await userEvent.click(bouton);
     expect(screen.getByRole('region', { name: 'Anomalies' })).toHaveTextContent('Renseigner le pilote.');
@@ -18,7 +22,15 @@ describe('PlanCheck', () => {
   });
 
   it('plan sans anomalie mais avec avertissement : le plan reste complet', async () => {
-    render(<PlanCheck mep={mep({ avertissements: ['Alice est à la fois responsable technique et pilote : prévoir un suppléant qui connaît le plan.'] })} />);
+    render(
+      <PlanCheck
+        mep={mep({
+          avertissements: [
+            'Alice est à la fois responsable technique et pilote : prévoir un suppléant qui connaît le plan.',
+          ],
+        })}
+      />,
+    );
     await userEvent.click(screen.getByRole('button', { name: /Vérifier le plan/ }));
     expect(screen.getByText('Le plan est complet : aucune anomalie.')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Avertissements' })).toHaveTextContent('prévoir un suppléant');

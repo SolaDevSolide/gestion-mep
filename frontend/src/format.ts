@@ -1,4 +1,12 @@
-import type { Criticite, EtatEtape, IssueMep, Phase, ResultatControle, StatutDisponibilite, StatutResolution } from './types';
+import type {
+  Criticite,
+  EtatEtape,
+  IssueMep,
+  Phase,
+  ResultatControle,
+  StatutDisponibilite,
+  StatutResolution,
+} from './types';
 
 export type Ton = 'ok' | 'run' | 'wait' | 'done' | 'danger' | 'warn' | 'later' | 'rollback';
 
@@ -55,15 +63,24 @@ export const LIBELLE_DISPONIBILITE: Record<StatutDisponibilite, string> = {
 /** Ton (couleur sémantique) d'une disponibilité. */
 export function tonDisponibilite(s: StatutDisponibilite): Ton {
   switch (s) {
-    case 'Disponible': return 'ok';
-    case 'EnCours': return 'run';
-    case 'Terminee': return 'done';
-    case 'ArretResolution': return 'danger';
-    case 'ResolutionEnCours': return 'warn';
-    case 'RetourArriere': return 'rollback';
-    case 'SiRetourArriere': return 'later';
-    case 'Attend': return 'wait';
-    default: return 'warn';
+    case 'Disponible':
+      return 'ok';
+    case 'EnCours':
+      return 'run';
+    case 'Terminee':
+      return 'done';
+    case 'ArretResolution':
+      return 'danger';
+    case 'ResolutionEnCours':
+      return 'warn';
+    case 'RetourArriere':
+      return 'rollback';
+    case 'SiRetourArriere':
+      return 'later';
+    case 'Attend':
+      return 'wait';
+    default:
+      return 'warn';
   }
 }
 
@@ -186,8 +203,9 @@ export function formatDuree(ms: number): string {
 /** Détecte des instructions qui ressemblent à des commandes (police à chasse fixe). */
 export function ressembleCommande(texte: string): boolean {
   if (!texte.trim()) return false;
-  const debut = /^\s*(\$|#!|sudo\s|cd\s|git\s|docker\s|kubectl\s|curl\s|wget\s|npm\s|dotnet\s|systemctl\s|service\s|psql\s|sqlcmd\s|mysql\s|ssh\s|scp\s|cp\s|mv\s|rm\s|chmod\s|chown\s|ls\s|cat\s|echo\s|export\s|\.\/|\/[\w.-]+\/|[A-Za-z]:\\|SELECT\s|UPDATE\s|INSERT\s|DELETE\s|ALTER\s|EXEC\s)/im;
-  return debut.test(texte) || /\s--?[a-z][\w-]+/i.test(texte) && /\|\s*\w|&&|;\s*$/m.test(texte);
+  const debut =
+    /^\s*(\$|#!|sudo\s|cd\s|git\s|docker\s|kubectl\s|curl\s|wget\s|npm\s|dotnet\s|systemctl\s|service\s|psql\s|sqlcmd\s|mysql\s|ssh\s|scp\s|cp\s|mv\s|rm\s|chmod\s|chown\s|ls\s|cat\s|echo\s|export\s|\.\/|\/[\w.-]+\/|[A-Za-z]:\\|SELECT\s|UPDATE\s|INSERT\s|DELETE\s|ALTER\s|EXEC\s)/im;
+  return debut.test(texte) || (/\s--?[a-z][\w-]+/i.test(texte) && /\|\s*\w|&&|;\s*$/m.test(texte));
 }
 
 /** Libellés de rôles d'affichage pour un identifiant manquant. */

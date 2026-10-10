@@ -5,7 +5,17 @@ export function Card({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn('rounded-xl border border-line bg-surface shadow-sm', className)} {...rest} />;
 }
 
-export function CardHeader({ titre, description, action, className }: { titre: ReactNode; description?: ReactNode; action?: ReactNode; className?: string }) {
+export function CardHeader({
+  titre,
+  description,
+  action,
+  className,
+}: {
+  titre: ReactNode;
+  description?: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}) {
   return (
     <div className={cn('flex items-start justify-between gap-4 border-b border-line px-5 py-4', className)}>
       <div className="min-w-0">

@@ -24,7 +24,12 @@ export function StatusPill({ ton, icone: Icone, anime, children, taille = 'md', 
         className,
       )}
     >
-      {Icone && <Icone className={cn('shrink-0', taille === 'lg' ? 'size-4' : 'size-3.5', anime && 'animate-spin')} aria-hidden />}
+      {Icone && (
+        <Icone
+          className={cn('shrink-0', taille === 'lg' ? 'size-4' : 'size-3.5', anime && 'animate-spin')}
+          aria-hidden
+        />
+      )}
       <span className="truncate">{children}</span>
     </span>
   );

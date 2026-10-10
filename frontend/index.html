@@ -9,12 +9,14 @@
       (function () {
         try {
           var p = localStorage.getItem('mep.theme');
-          var sombre = p === 'sombre' || ((p === null || p === 'systeme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var sombre =
+            p === 'sombre' ||
+            ((p === null || p === 'systeme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
           if (sombre) document.documentElement.classList.add('dark');
         } catch (e) {}
       })();
     </script>
-      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
     <div id="root"></div>

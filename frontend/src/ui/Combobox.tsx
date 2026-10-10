@@ -4,10 +4,15 @@ import { useState, type ReactNode } from 'react';
 import { cn } from './cn';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from './Popover';
 
-export interface OptionCombo { valeur: string; libelle: string; detail?: string }
+export interface OptionCombo {
+  valeur: string;
+  libelle: string;
+  detail?: string;
+}
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const filtre = (_v: string, recherche: string, mots?: string[]) => (norm((mots ?? []).join(' ')).includes(norm(recherche)) ? 1 : 0);
+const filtre = (_v: string, recherche: string, mots?: string[]) =>
+  norm((mots ?? []).join(' ')).includes(norm(recherche)) ? 1 : 0;
 
 interface ListeProps {
   options: OptionCombo[];
@@ -68,7 +73,18 @@ interface MultiProps {
   libelleInconnu?: string;
 }
 
-export function MultiSelect({ id, options, valeurs, onChange, placeholder, placeholderRecherche = 'Rechercher…', vide = 'Aucun résultat.', disabled, pied, libelleInconnu = 'Inconnu' }: MultiProps) {
+export function MultiSelect({
+  id,
+  options,
+  valeurs,
+  onChange,
+  placeholder,
+  placeholderRecherche = 'Rechercher…',
+  vide = 'Aucun résultat.',
+  disabled,
+  pied,
+  libelleInconnu = 'Inconnu',
+}: MultiProps) {
   const [ouvert, setOuvert] = useState(false);
   const basculer = (v: string) => onChange(valeurs.includes(v) ? valeurs.filter((x) => x !== v) : [...valeurs, v]);
   // Les boutons « Retirer » sont frères du déclencheur, pas dedans : un bouton ne peut pas contenir d'éléments interactifs.
@@ -81,7 +97,10 @@ export function MultiSelect({ id, options, valeurs, onChange, placeholder, place
             {valeurs.map((v) => {
               const o = options.find((x) => x.valeur === v);
               return (
-                <span key={v} className="inline-flex max-w-full items-center gap-1 rounded-md border border-line bg-surface-2 py-0.5 pr-1 pl-2 text-xs font-medium text-fg">
+                <span
+                  key={v}
+                  className="inline-flex max-w-full items-center gap-1 rounded-md border border-line bg-surface-2 py-0.5 pr-1 pl-2 text-xs font-medium text-fg"
+                >
                   <span className="truncate">{o?.libelle ?? libelleInconnu}</span>
                   {!disabled && (
                     <button
@@ -98,15 +117,30 @@ export function MultiSelect({ id, options, valeurs, onChange, placeholder, place
             })}
           </span>
           <PopoverTrigger asChild>
-            <button id={id} type="button" disabled={disabled} aria-haspopup="listbox" className="absolute inset-0 flex items-center justify-end rounded-lg pr-3 disabled:cursor-not-allowed">
-              <span className="sr-only">{valeurs.length === 0 ? placeholder : `${valeurs.length} sélectionné${valeurs.length > 1 ? 's' : ''}`}</span>
+            <button
+              id={id}
+              type="button"
+              disabled={disabled}
+              aria-haspopup="listbox"
+              className="absolute inset-0 flex items-center justify-end rounded-lg pr-3 disabled:cursor-not-allowed"
+            >
+              <span className="sr-only">
+                {valeurs.length === 0 ? placeholder : `${valeurs.length} sélectionné${valeurs.length > 1 ? 's' : ''}`}
+              </span>
               <ChevronsUpDown className="size-4 shrink-0 text-fg-subtle" aria-hidden />
             </button>
           </PopoverTrigger>
         </div>
       </PopoverAnchor>
       <PopoverContent className="p-0">
-        <Liste options={options} selection={valeurs} onToggle={basculer} placeholderRecherche={placeholderRecherche} vide={vide} pied={pied} />
+        <Liste
+          options={options}
+          selection={valeurs}
+          onToggle={basculer}
+          placeholderRecherche={placeholderRecherche}
+          vide={vide}
+          pied={pied}
+        />
       </PopoverContent>
     </Popover>
   );
@@ -124,7 +158,16 @@ interface SimpleProps {
 }
 
 /** Sélection unique avec recherche. */
-export function Combobox({ id, options, valeur, onChange, placeholder, placeholderRecherche = 'Rechercher…', vide = 'Aucun résultat.', disabled }: SimpleProps) {
+export function Combobox({
+  id,
+  options,
+  valeur,
+  onChange,
+  placeholder,
+  placeholderRecherche = 'Rechercher…',
+  vide = 'Aucun résultat.',
+  disabled,
+}: SimpleProps) {
   const [ouvert, setOuvert] = useState(false);
   const courant = options.find((o) => o.valeur === valeur);
   return (
@@ -139,7 +182,10 @@ export function Combobox({ id, options, valeur, onChange, placeholder, placehold
         <Liste
           options={options}
           selection={valeur ? [valeur] : []}
-          onToggle={(v) => { onChange(v === valeur ? null : v); setOuvert(false); }}
+          onToggle={(v) => {
+            onChange(v === valeur ? null : v);
+            setOuvert(false);
+          }}
           placeholderRecherche={placeholderRecherche}
           vide={vide}
         />

@@ -1,4 +1,4 @@
-# Contrat de l'API (jalon 1)
+# Contrat de l'API
 
 Toutes les routes sont sous `/api`, en JSON (camelCase), énumérations sérialisées en chaînes (`"Preparation"`, `"AFaire"`…). Dates : ISO 8601 (`DateTimeOffset` → `"2026-10-09T12:00:00+00:00"`, `DateOnly` → `"2026-10-09"`, `TimeOnly` → `"08:30:00"`). Identifiants : GUID.
 
@@ -538,7 +538,7 @@ La vérification du plan renvoie désormais **deux listes** : `erreursPlan` (ano
 
 # Jalon 4 : ajouts et changements
 
-Spécification : `docs/jalon4-spec.md` ; maquette : `docs/maquettes/jalon4-etapes.html`. Principes inchangés : règle métier = **422** `{ message }`, 403 réservé aux droits propres à l'API, codes d'étape stables, toute écriture journalise et notifie le flux SSE, toute modification du contenu en préparation remet les approbations à zéro.
+Spécification : `docs/specs/jalon4-spec.md` ; maquette : `docs/maquettes/jalon4-etapes.html`. Principes inchangés : règle métier = **422** `{ message }`, 403 réservé aux droits propres à l'API, codes d'étape stables, toute écriture journalise et notifie le flux SSE, toute modification du contenu en préparation remet les approbations à zéro.
 
 ## Changements incompatibles (à reprendre côté front)
 
@@ -710,7 +710,7 @@ Aucun changement de schéma : `instructions`, `resultatAttendu`, `symptomes`, `d
 
 # Jalon 4.2 : ajouts et changements
 
-Spécification : `docs/jalon4-2-spec.md` (sections D à G pour le back).
+Spécification : `docs/specs/jalon4-2-spec.md` (sections D à G pour le back).
 
 ## Changements incompatibles (à reprendre côté front)
 
@@ -731,7 +731,7 @@ Spécification : `docs/jalon4-2-spec.md` (sections D à G pour le back).
 ## Date et heures de la MEP (D)
 
 - Plus exigées nulle part (elles ne l'étaient déjà pas dans `erreursPlan`) ; `PUT /meps/{id}` les ignore ; la duplication ne copie plus `heureDebut` / `heureFin` ; la démo n'a plus de `dateMep`.
-- `MepResumeDto` : `{ id, outil, versionCible, objet, dateMep, phase, echeanceRepli, pilote, nbEtapes, nbReussies, nbEchecs, environnement, estModele, creeLe }`. La liste affiche « Démarrée le `dateMep` » ou « Créée le `creeLe` ».
+- `MepResumeDto` : `{ id, outil, versionCible, objet, dateMep, phase, echeanceRepli, pilote, nbEtapes, nbReussies, nbEchecs, environnement, estModele, creeLe, issue }` (`issue` : `Reussie`, `Repliee` ou `null`, ajouté avec le lot maintenabilité). La liste affiche « Démarrée le `dateMep` » ou « Créée le `creeLe` ».
 - Échéance de retour arrière, fuseau horaire, indisponibilité : inchangés.
 
 ## Exécution sans responsable (E)

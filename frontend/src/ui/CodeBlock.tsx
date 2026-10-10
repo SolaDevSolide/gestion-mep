@@ -55,16 +55,26 @@ export function CodeBlock({ code, titre, className, hauteurMax = 'max-h-72' }: P
           variante="fantome"
           className="h-7 px-2 text-xs"
           onClick={() => void copier()}
-          icone={copie ? <Check className="size-3.5 text-ok-solid" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+          icone={
+            copie ? <Check className="size-3.5 text-ok-solid" aria-hidden /> : <Copy className="size-3.5" aria-hidden />
+          }
           aria-label={copie ? 'Copié' : `Copier${titre ? ` : ${titre}` : ''}`}
         >
           {copie ? 'Copié' : 'Copier'}
         </Button>
       </div>
-      <pre className={cn('overflow-auto px-3 py-2.5 font-mono text-[13px] leading-relaxed whitespace-pre text-code-fg', hauteurMax)} tabIndex={0}>
+      <pre
+        className={cn(
+          'overflow-auto px-3 py-2.5 font-mono text-[13px] leading-relaxed whitespace-pre text-code-fg',
+          hauteurMax,
+        )}
+        tabIndex={0}
+      >
         <code>{code}</code>
       </pre>
-      <span className="sr-only" role="status">{copie ? 'Copié dans le presse-papiers' : ''}</span>
+      <span className="sr-only" role="status">
+        {copie ? 'Copié dans le presse-papiers' : ''}
+      </span>
     </div>
   );
 }

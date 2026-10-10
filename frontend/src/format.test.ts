@@ -1,4 +1,18 @@
-import { calculerCompteARebours, familleEvenement, formatDate, formatDuree, formatMinutes, initiales, LIBELLE_CRITICITE, LIBELLE_DISPONIBILITE, LIBELLE_ETAT, LIBELLE_ISSUE, LIBELLE_PHASE, ressembleCommande, tonDisponibilite } from './format';
+import {
+  calculerCompteARebours,
+  familleEvenement,
+  formatDate,
+  formatDuree,
+  formatMinutes,
+  initiales,
+  LIBELLE_CRITICITE,
+  LIBELLE_DISPONIBILITE,
+  LIBELLE_ETAT,
+  LIBELLE_ISSUE,
+  LIBELLE_PHASE,
+  ressembleCommande,
+  tonDisponibilite,
+} from './format';
 
 describe('énumérations', () => {
   it('affiche les libellés français', () => {

@@ -11,7 +11,12 @@ import { EmptyState } from '../ui/EmptyState';
 import { Field, Input, Select } from '../ui/Input';
 import { useToast } from '../ui/Toast';
 
-interface Brouillon { nomAffiche: string; role: string; contact: string; expertises: Expertise[] }
+interface Brouillon {
+  nomAffiche: string;
+  role: string;
+  contact: string;
+  expertises: Expertise[];
+}
 
 /** « Mon profil » : nom affiché, rôle, contact et expertises (systèmes du catalogue) du compte connecté. */
 export default function ProfilPage() {
@@ -19,7 +24,10 @@ export default function ProfilPage() {
   const toast = useToast();
   const { donnees: catalogue, erreur } = useAsync<SystemeCatalogue[]>(() => api.catalogueSystemes(), []);
   const source: Brouillon = {
-    nomAffiche: utilisateur?.nomAffiche ?? '', role: utilisateur?.role ?? '', contact: utilisateur?.contact ?? '', expertises: utilisateur?.expertises ?? [],
+    nomAffiche: utilisateur?.nomAffiche ?? '',
+    role: utilisateur?.role ?? '',
+    contact: utilisateur?.contact ?? '',
+    expertises: utilisateur?.expertises ?? [],
   };
   const d = useDraft(source);
   useReportDirty(d.dirty);
@@ -40,7 +48,9 @@ export default function ProfilPage() {
     setErreurSauvegarde('');
     try {
       const u = await api.modifierMonProfil({
-        nomAffiche: v.nomAffiche.trim(), role: v.role.trim(), contact: v.contact.trim(),
+        nomAffiche: v.nomAffiche.trim(),
+        role: v.role.trim(),
+        contact: v.contact.trim(),
         expertises: v.expertises.map((e) => ({ systemeCatalogueId: e.systemeCatalogueId, detail: e.detail.trim() })),
       });
       majUtilisateur(u);
@@ -56,9 +66,15 @@ export default function ProfilPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-8">
       <h1 className="text-2xl font-semibold tracking-tight">Mon profil</h1>
-      <p className="mt-1 text-sm text-fg-subtle">Pré-remplit votre fiche dans les MEP et vous suggère comme responsable technique.</p>
+      <p className="mt-1 text-sm text-fg-subtle">
+        Pré-remplit votre fiche dans les MEP et vous suggère comme responsable technique.
+      </p>
 
-      {(erreur || erreurSauvegarde) && <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">{erreurSauvegarde || erreur}</Alerte>}
+      {(erreur || erreurSauvegarde) && (
+        <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">
+          {erreurSauvegarde || erreur}
+        </Alerte>
+      )}
 
       <Card className="mt-6">
         <CardHeader titre="Identité" description={`Compte : ${utilisateur?.login ?? ''}`} />
@@ -79,7 +95,18 @@ export default function ProfilPage() {
         <CardHeader
           titre="Expertises"
           description="Systèmes que vous connaissez."
-          action={<Button taille="sm" icone={<Plus className="size-4" aria-hidden />} disabled={libres.length === 0} onClick={() => d.update({ expertises: [...v.expertises, { systemeCatalogueId: libres[0].id, detail: '' }] })}>Ajouter une expertise</Button>}
+          action={
+            <Button
+              taille="sm"
+              icone={<Plus className="size-4" aria-hidden />}
+              disabled={libres.length === 0}
+              onClick={() =>
+                d.update({ expertises: [...v.expertises, { systemeCatalogueId: libres[0].id, detail: '' }] })
+              }
+            >
+              Ajouter une expertise
+            </Button>
+          }
         />
         <div className="px-5 py-5">
           {v.expertises.length === 0 ? (
@@ -87,27 +114,62 @@ export default function ProfilPage() {
           ) : (
             <ul className="space-y-3">
               {v.expertises.map((e, i) => (
-                <li key={i} className="grid gap-3 rounded-lg border border-line p-3 md:grid-cols-[14rem_minmax(0,1fr)_auto] md:items-end">
+                <li
+                  key={i}
+                  className="grid gap-3 rounded-lg border border-line p-3 md:grid-cols-[14rem_minmax(0,1fr)_auto] md:items-end"
+                >
                   <Field label="Système">
                     {(id) => (
-                      <Select id={id} value={e.systemeCatalogueId} onChange={(ev) => changerExpertise(i, { systemeCatalogueId: ev.target.value })}>
+                      <Select
+                        id={id}
+                        value={e.systemeCatalogueId}
+                        onChange={(ev) => changerExpertise(i, { systemeCatalogueId: ev.target.value })}
+                      >
                         <option value={e.systemeCatalogueId}>{nomSysteme(e.systemeCatalogueId)}</option>
-                        {libres.map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}
+                        {libres.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.nom}
+                          </option>
+                        ))}
                       </Select>
                     )}
                   </Field>
                   <Field label="Détail">
-                    {(id) => <Input id={id} value={e.detail} placeholder="ex. Expert de la zone facturation" onChange={(ev) => changerExpertise(i, { detail: ev.target.value })} />}
+                    {(id) => (
+                      <Input
+                        id={id}
+                        value={e.detail}
+                        placeholder="ex. Expert de la zone facturation"
+                        onChange={(ev) => changerExpertise(i, { detail: ev.target.value })}
+                      />
+                    )}
                   </Field>
-                  <BoutonIcone label={`Supprimer l’expertise ${nomSysteme(e.systemeCatalogueId)}`} onClick={() => d.update({ expertises: v.expertises.filter((_, k) => k !== i) })}><Trash2 className="size-4" aria-hidden /></BoutonIcone>
+                  <BoutonIcone
+                    label={`Supprimer l’expertise ${nomSysteme(e.systemeCatalogueId)}`}
+                    onClick={() => d.update({ expertises: v.expertises.filter((_, k) => k !== i) })}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                  </BoutonIcone>
                 </li>
               ))}
             </ul>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-3 border-t border-line bg-surface-2/50 px-5 py-3">
-          <Button variante="primaire" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty || incomplet} chargement={envoi} onClick={() => void enregistrer()}>Enregistrer</Button>
-          {d.dirty && <Button variante="fantome" onClick={d.reset}>Annuler les modifications</Button>}
+          <Button
+            variante="primaire"
+            icone={<Save className="size-4" aria-hidden />}
+            disabled={!d.dirty || incomplet}
+            chargement={envoi}
+            onClick={() => void enregistrer()}
+          >
+            Enregistrer
+          </Button>
+          {d.dirty && (
+            <Button variante="fantome" onClick={d.reset}>
+              Annuler les modifications
+            </Button>
+          )}
         </div>
       </Card>
     </main>
