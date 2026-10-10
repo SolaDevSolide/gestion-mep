@@ -73,3 +73,52 @@ export function premiereLigne(source: string): string {
   }
   return '';
 }
+
+export type ActionFormat = 'gras' | 'italique' | 'code' | 'lien' | 'liste' | 'cases';
+
+export interface ResultatFormat {
+  valeur: string;
+  /** Nouvelle sélection dans la zone de saisie. */
+  debut: number;
+  fin: number;
+}
+
+const ENTOURAGE: Record<'gras' | 'italique' | 'code', [string, string, string]> = {
+  gras: ['**', '**', 'texte en gras'],
+  italique: ['_', '_', 'texte en italique'],
+  code: ['`', '`', 'code'],
+};
+
+/**
+ * Barre d'outils markdown : applique une mise en forme à la sélection [debut, fin[ d'un texte.
+ * Sans sélection, insère un exemple sélectionné (à remplacer en tapant).
+ */
+export function formaterMarkdown(valeur: string, debut: number, fin: number, action: ActionFormat): ResultatFormat {
+  const avant = valeur.slice(0, debut);
+  const choix = valeur.slice(debut, fin);
+  const apres = valeur.slice(fin);
+  if (action === 'gras' || action === 'italique' || action === 'code') {
+    const [g, d, exemple] = ENTOURAGE[action];
+    const texte = choix || exemple;
+    return { valeur: `${avant}${g}${texte}${d}${apres}`, debut: debut + g.length, fin: debut + g.length + texte.length };
+  }
+  if (action === 'lien') {
+    const texte = choix || 'texte du lien';
+    const url = 'https://';
+    const v = `${avant}[${texte}](${url})${apres}`;
+    const p = debut + texte.length + 3;
+    return { valeur: v, debut: p, fin: p + url.length };
+  }
+  // Listes : préfixe chaque ligne touchée par la sélection.
+  const prefixe = action === 'liste' ? '- ' : '- [ ] ';
+  const debutLigne = valeur.lastIndexOf('\n', debut - 1) + 1;
+  // Une sélection qui se termine juste après un retour à la ligne ne touche pas la ligne suivante.
+  const finSelection = fin > debut && valeur[fin - 1] === '\n' ? fin - 1 : fin;
+  const finTrouvee = valeur.indexOf('\n', finSelection);
+  const finLigne = finTrouvee < 0 ? valeur.length : finTrouvee;
+  const lignes = valeur.slice(debutLigne, finLigne).split('\n');
+  const deja = lignes.every((l) => l.startsWith(prefixe));
+  const nouvelles = lignes.map((l) => (deja ? l.slice(prefixe.length) : `${prefixe}${l}`));
+  const bloc = nouvelles.join('\n');
+  return { valeur: valeur.slice(0, debutLigne) + bloc + valeur.slice(finLigne), debut: debutLigne, fin: debutLigne + bloc.length };
+}

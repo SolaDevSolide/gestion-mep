@@ -24,7 +24,8 @@ export default function NouvelleResolutionPage() {
   const mep = useAsync(() => (mepId ? api.mep(mepId) : Promise.resolve(null)), [mepId]);
   const etape = (etapeId && mep.donnees?.etapes.find((e) => e.id === etapeId)) || null;
 
-  const [b, setB] = useState<BrouillonResolution>(() => brouillonDepuis(undefined, null));
+  // `titre` : texte cherché dans le sélecteur de résolutions de l'étape.
+  const [b, setB] = useState<BrouillonResolution>(() => ({ ...brouillonDepuis(undefined, null), titre: params.get('titre') ?? '' }));
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState(false);
   const systemeInitialise = useRef(false);

@@ -154,8 +154,9 @@ describe('EtapePanneau : échec et résolutions', () => {
     expect(screen.queryByText('Problème connu ?')).toBeNull();
   });
 
-  it('affiche l’historique des résolutions terminées', () => {
+  it('affiche l’historique des résolutions terminées (onglet Résolutions)', async () => {
     rendre(etape({ etat: 'AFaire' }, 'Disponible'), { m: { resolutions: [resolution({ statut: 'Reussie', termineeLe: '2026-10-09T21:30:00Z' })] } });
+    await userEvent.click(screen.getByRole('tab', { name: /Résolutions/ }));
     expect(screen.getByText('Résolutions déjà appliquées')).toBeInTheDocument();
     expect(screen.getByText('Réussie')).toBeInTheDocument();
   });
@@ -249,8 +250,25 @@ describe('EtapePanneau : instructions en blocs (markdown + Copier)', () => {
     const e = etape({ dependances: ['e0'] });
     const onSelectionner = vi.fn();
     render(<EtapePanneau mep={mep({ etapes: [prealable, e] })} etape={e} resolutionsTypes={[]} actions={actionsFactices()} onSelectionner={onSelectionner} />);
+    await userEvent.click(screen.getByRole('tab', { name: /Liens/ }));
     const bouton = screen.getByRole('button', { name: /E0000.*Sauvegarde BDD.*Réussie/ });
     await userEvent.click(bouton);
     expect(onSelectionner).toHaveBeenCalledWith('e0');
+  });
+});
+
+describe('EtapePanneau : onglets', () => {
+  it('étape en échec : l’onglet Résolutions est ouvert d’emblée et signalé', () => {
+    rendre(etape({ etat: 'Echec' }, 'ArretResolution'));
+    expect(screen.getByRole('tab', { name: /Résolutions/, selected: true })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Étape en échec' })).toBeInTheDocument();
+  });
+
+  it('compteurs : liens et pièces jointes', () => {
+    const prealable = etape({ id: 'e0', code: 'E0000' });
+    const e = etape({ dependances: ['e0'] });
+    render(<EtapePanneau mep={mep({ etapes: [prealable, e] })} etape={e} resolutionsTypes={[]} actions={actionsFactices()} onSelectionner={vi.fn()} />);
+    expect(screen.getByRole('tab', { name: /Liens\s*1/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Pièces jointes\s*0/ })).toBeInTheDocument();
   });
 });
