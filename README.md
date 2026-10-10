@@ -1,89 +1,46 @@
 # Gestion MEP
 
-Application web pour préparer et exécuter les mises en production (MEP) : le développeur décrit l'intervention, les personnes et systèmes, les livrables, la sauvegarde et le plan d'étapes ; n'importe quel opérateur peut ensuite réaliser la MEP pas à pas, avec dépendances, preuves, échéance de retour arrière et journal d'audit.
+Application web pour préparer et exécuter les mises en production (MEP). L'équipe de développement décrit l'intervention une fois : systèmes concernés, sauvegardes, procédure pas à pas, contrôles et retour arrière. N'importe quel opérateur peut ensuite dérouler la MEP sans avoir participé au développement, avec un journal complet de ce qui a été fait.
 
-Elle reprend le modèle Excel `Modele_MEP_test_navigation.xlsm` et ses règles.
+- **Préparation** : plan d'étapes en graphe avec dépendances et étapes parallèles, responsables techniques, approbations, go / no-go.
+- **Exécution** : étapes à suivre en temps réel, preuves, prise de main tracée, résolutions guidées en cas d'échec.
+- **Sécurité de l'intervention** : sauvegardes, point de non-retour, procédure de retour arrière obligatoire, recette et bilan.
+- **Administration** : comptes, paramètres globaux et journal, depuis l'interface ou en ligne de commande.
 
-| Document | Pour qui |
-|---|---|
-| [docs/exploitation.md](docs/exploitation.md) | Équipe informatique : installation, proxy HTTPS, mises à jour, sauvegardes |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Développeurs : conventions, tests, migrations |
-| [docs/architecture.md](docs/architecture.md) | Développeurs : organisation du code et principes |
-| [docs/api.md](docs/api.md) | Contrat de l'API |
-| [frontend/README.md](frontend/README.md) | Développeurs front |
-| [docs/specs/](docs/specs/) | Spécifications par jalon |
+React, .NET 10 et PostgreSQL, livrés dans une image Docker.
 
-## Démarrer en local (Docker Desktop)
+## Essayer en local
+
+Prérequis : Docker et Docker Compose.
 
 ```bash
 git clone https://github.com/SolaDevSolide/gestion-mep.git
 cd gestion-mep
+echo "DEMO=true" > .env
 docker compose up --build
 ```
 
-Pour avoir les données de démonstration, créer d'abord à la racine un fichier `.env` contenant la ligne `DEMO=true`.
+Ouvrir http://localhost:8080 et se connecter avec `alice` (administratrice), `bob` ou `claire`, mot de passe `demo`. `docker compose down -v` remet la base à zéro.
 
-Ouvrir http://localhost:8080. Au premier démarrage, la base est créée avec une MEP de démonstration et trois comptes : `alice` (pilote, admin), `bob`, `claire`, mot de passe `demo`. Sans `DEMO=true`, la démonstration est désactivée (c'est le défaut) et il faut définir `ADMIN_LOGIN` / `ADMIN_MOT_DE_PASSE` dans `.env`.
+## Installer sur un serveur
 
-Remettre la base à zéro : `docker compose down -v`.
+L'image est publiée sur `ghcr.io/soladevsolide/gestion-mep`. Il suffit de `docker-compose.yml` et d'un fichier `.env` tiré de `.env.example`, derrière un proxy inverse HTTPS. La base est migrée automatiquement au démarrage.
 
-## Déployer sur un autre environnement
+La procédure complète (configuration, HTTPS, sauvegardes, mises à jour, commandes d'administration) est dans le [guide d'exploitation](docs/exploitation.md).
 
-Seuls Docker et Docker Compose sont nécessaires.
+## Documentation
 
-1. Copier `docker-compose.yml` et `.env.example` (renommé `.env`) sur le serveur.
-2. Dans `.env` : `DEMO=false`, un mot de passe PostgreSQL, un compte `ADMIN_LOGIN` / `ADMIN_MOT_DE_PASSE`, et `MEP_IMAGE=ghcr.io/soladevsolide/gestion-mep:latest` pour utiliser l'image publiée par la CI.
-3. `docker compose pull && docker compose up -d`.
-
-La base est migrée automatiquement au démarrage. Placer un reverse proxy HTTPS (IIS, nginx, Traefik…) devant le port 8080 : hors développement, le cookie de session est marqué `Secure` et n'est envoyé qu'en HTTPS (seul `http://localhost` fait exception dans les navigateurs). Le proxy doit transmettre `X-Forwarded-For` et `X-Forwarded-Proto` ; s'il n'est pas sur la même machine que Docker, indiquer son adresse dans `PROXY_RESEAUX`.
-
-Sécurité intégrée : les clés de session sont conservées dans le volume `cles` (un redéploiement ne déconnecte personne), les tentatives de connexion sont limitées par adresse IP (`CONNEXIONS_PAR_MINUTE`) et un compte est bloqué quelques minutes après 5 échecs consécutifs.
-
-Détails, sauvegardes et mises à jour : [docs/exploitation.md](docs/exploitation.md).
-
-## Administration
-
-Les administrateurs ont une **console d'administration** (menu « Administration », page `/admin`) : comptes (création, modification, rôle administrateur, désactivation, réinitialisation du mot de passe), paramètres globaux et journal d'administration. Un compte créé ou réinitialisé reçoit un mot de passe provisoire, affiché une seule fois, à changer avant toute autre action ; chacun change son mot de passe depuis « Mon profil ». Le rôle administrateur et l'état du compte sont relus à chaque requête.
-
-Sans navigateur, l'équipe informatique dispose des commandes `docker compose exec app gestion-mep …` (comptes, vérification de la configuration, migrations) : voir [docs/exploitation.md](docs/exploitation.md#administrer-les-comptes).
-
-## Développer sans Docker
-
-Prérequis : SDK .NET 10, Node.js 22, PostgreSQL 16 (`postgres` / `postgres` sur localhost:5432).
-
-```bash
-# API (http://localhost:5080), crée la base et la démo au premier lancement
-cd backend && dotnet run --project src/GestionMep.Api
-
-# Front (http://localhost:5173, appelle l'API via un proxy)
-cd frontend && npm install && npm run dev
-```
-
-Tests : `cd backend && dotnet test` et `cd frontend && npm test`. Lint et formatage : voir [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Organisation
-
-| Dossier | Contenu |
+| Document | Pour qui |
 |---|---|
-| `backend/src/GestionMep.Domain` | Modèle et règles métier (disponibilité, graphe de dépendances, phases, droits, recette, résolutions) |
-| `backend/src/GestionMep.Api` | API ASP.NET Core, EF Core + PostgreSQL, authentification, flux temps réel |
-| `backend/tests` | Tests des règles et de l'API |
-| `frontend` | Application React + Vite |
-| `docs` | Architecture, contrat d'API, exploitation, spécifications (`specs/`) et maquettes (`maquettes/`) |
-| `.github/workflows/ci.yml` | Tests, puis image Docker publiée sur GitHub Container Registry à chaque fusion sur `main` |
+| [Guide d'exploitation](docs/exploitation.md) | Équipe informatique qui installe et maintient l'application |
+| [Contribuer](CONTRIBUTING.md) | Développeurs : lancer sans Docker, tests, conventions, migrations |
+| [Architecture](docs/architecture.md) | Organisation du code et principes |
+| [API](docs/api.md) | Contrat de l'API ([OpenAPI](docs/openapi.json)) |
 
-## Feuille de route
+## Sécurité
 
-Livré :
+Une faille de sécurité se signale en privé, sans ticket public : voir [SECURITY.md](SECURITY.md).
 
-- **Jalon 1** : préparation complète, plan d'étapes avec dépendances, exécution avec preuves, temps réel, journal.
-- **Jalon 2** : résolutions et reprise après échec, contrôles et réouverture, retour arrière, pièces jointes, graphe visuel.
-- **Jalon 3** : suppléants, circuit d'approbation, go / no-go, point de non-retour, recette, bilan, modèles de MEP et duplication.
-- **Jalon 3.1** : responsables techniques distincts du pilote, droits d'édition, avertissements du plan.
-- **Jalon 4** : éditeur d'étapes en graphe, recette et sauvegarde par système, profils et expertises.
-- **Jalon 4.2** : édition et exécution en trois colonnes, résolutions guidées.
+## Licence
 
-À venir :
-
-- Connexion Microsoft (Entra ID).
-- Tableau de bord d'administration et intégrations (Teams, Outlook), kit d'installation pour l'équipe informatique.
+Distribué sous licence [MIT](LICENSE) : utilisation, modification et redistribution libres, y compris commerciales.

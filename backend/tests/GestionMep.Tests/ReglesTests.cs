@@ -2,7 +2,7 @@ using GestionMep.Domain;
 
 namespace GestionMep.Tests;
 
-/// <summary>Règles du plan, dont le « parcours de test » de l'onglet Préparation de l'Excel (lignes 54 à 57).</summary>
+/// <summary>Règles du plan, dont le parcours de test de référence.</summary>
 public class ReglesTests
 {
     private static readonly Guid Alice = Guid.NewGuid(), Bob = Guid.NewGuid(), Claire = Guid.NewGuid();

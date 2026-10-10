@@ -16,8 +16,8 @@ public static partial class Regles
     }
 
     /// <summary>
-    /// Anomalies du contenu de la MEP. Ajouts par rapport à l'Excel : procédure relue, comptes reliés,
-    /// plan de retour arrière obligatoire, sauvegarde de chaque système et fiches de recette.
+    /// Anomalies du contenu de la MEP : graphe, échéance, pilote, étapes, plan de retour arrière, sauvegarde de chaque
+    /// système, fiches de recette, procédure relue et approbations.
     /// </summary>
     public static List<string> ErreursContenu(Mep mep, DateTimeOffset maintenant)
     {
