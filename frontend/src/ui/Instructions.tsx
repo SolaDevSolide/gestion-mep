@@ -8,11 +8,41 @@ import { cn } from './cn';
 
 const echapper = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-/** Rendu markdown sûr (marked + DOMPurify). Repli : texte échappé avec retours à la ligne. */
+/**
+ * Liste blanche du markdown : uniquement ce que produit marked (GFM). Ni `style`, ni `class`, ni formulaire, ni image externe :
+ * un auteur d'étape ne peut pas recouvrir l'écran, imiter une page de connexion ni pister les lecteurs.
+ */
+const CONFIG_ASSAINISSEMENT = {
+  ALLOWED_TAGS: [
+    'p', 'br', 'hr', 'strong', 'em', 'del', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'input',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  ],
+  ALLOWED_ATTR: ['href', 'title', 'src', 'alt', 'type', 'checked', 'disabled', 'start', 'align'],
+  ALLOW_DATA_ATTR: false,
+  ALLOW_ARIA_ATTR: false,
+  // http(s), mailto, chemin de l'application (« / » mais pas « // ») ou ancre.
+  ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|\/(?!\/)|#)/i,
+  // Attributs à valeur fixe : non soumis au filtre d'URL ci-dessus.
+  ADD_URI_SAFE_ATTR: ['type', 'align', 'start'],
+};
+
+const purificateur = DOMPurify();
+purificateur.addHook('afterSanitizeAttributes', (noeud) => {
+  if (noeud.tagName === 'A') noeud.setAttribute('rel', 'noopener noreferrer');
+  // Seules les cases à cocher des listes de tâches sont gardées, en lecture seule.
+  if (noeud.tagName === 'INPUT') {
+    if (noeud.getAttribute('type') !== 'checkbox') noeud.remove();
+    else noeud.setAttribute('disabled', '');
+  }
+  // Images : seulement celles servies par l'application (pas de requête vers un tiers à la lecture).
+  if (noeud.tagName === 'IMG' && !/^\/(?!\/)/.test(noeud.getAttribute('src') ?? '')) noeud.remove();
+});
+
+/** Rendu markdown sûr (marked + DOMPurify en liste blanche). Repli : texte échappé avec retours à la ligne. */
 export function rendreMarkdown(source: string): string {
   try {
     const html = marked.parse(source ?? '', { breaks: true, gfm: true, async: false }) as string;
-    return DOMPurify.sanitize(html);
+    return purificateur.sanitize(html, CONFIG_ASSAINISSEMENT);
   } catch {
     return echapper(source ?? '').replace(/\n/g, '<br>');
   }

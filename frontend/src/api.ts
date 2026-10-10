@@ -28,7 +28,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     res = await fetch(`/api${path}`, {
       method,
       credentials: 'include',
-      headers: body !== undefined && !formulaire ? { 'Content-Type': 'application/json' } : undefined,
+      // X-Requested-With : exigé par l'API sur toute requête qui modifie (protection CSRF, un formulaire d'un autre site ne peut pas l'ajouter).
+      headers: body !== undefined && !formulaire ? { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' } : { 'X-Requested-With': 'fetch' },
       body: body === undefined ? undefined : formulaire ? (body as FormData) : JSON.stringify(body),
     });
   } catch {

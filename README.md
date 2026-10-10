@@ -12,7 +12,9 @@ cd gestion-mep
 docker compose up --build
 ```
 
-Ouvrir http://localhost:8080. Au premier démarrage, la base est créée avec une MEP de démonstration et trois comptes : `alice` (pilote, admin), `bob`, `claire`, mot de passe `demo`.
+Pour avoir les données de démonstration, créer d'abord à la racine un fichier `.env` contenant la ligne `DEMO=true`.
+
+Ouvrir http://localhost:8080. Au premier démarrage, la base est créée avec une MEP de démonstration et trois comptes : `alice` (pilote, admin), `bob`, `claire`, mot de passe `demo`. Sans `DEMO=true`, la démonstration est désactivée (c'est le défaut) et il faut définir `ADMIN_LOGIN` / `ADMIN_MOT_DE_PASSE` dans `.env`.
 
 Remettre la base à zéro : `docker compose down -v`.
 
@@ -24,7 +26,9 @@ Seuls Docker et Docker Compose sont nécessaires.
 2. Dans `.env` : `DEMO=false`, un mot de passe PostgreSQL, un compte `ADMIN_LOGIN` / `ADMIN_MOT_DE_PASSE`, et `MEP_IMAGE=ghcr.io/soladevsolide/gestion-mep:latest` pour utiliser l'image publiée par la CI.
 3. `docker compose pull && docker compose up -d`.
 
-La base est migrée automatiquement au démarrage. Placer un reverse proxy HTTPS (IIS, nginx, Traefik…) devant le port 8080.
+La base est migrée automatiquement au démarrage. Placer un reverse proxy HTTPS (IIS, nginx, Traefik…) devant le port 8080 : hors développement, le cookie de session est marqué `Secure` et n'est envoyé qu'en HTTPS (seul `http://localhost` fait exception dans les navigateurs). Le proxy doit transmettre `X-Forwarded-For` et `X-Forwarded-Proto` ; s'il n'est pas sur la même machine que Docker, indiquer son adresse dans `PROXY_RESEAUX`.
+
+Sécurité intégrée : les clés de session sont conservées dans le volume `cles` (un redéploiement ne déconnecte personne), les tentatives de connexion sont limitées par adresse IP (`CONNEXIONS_PAR_MINUTE`) et un compte est bloqué quelques minutes après 5 échecs consécutifs.
 
 ## Développer sans Docker
 

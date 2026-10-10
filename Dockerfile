@@ -20,9 +20,11 @@ COPY --from=front /src/frontend/dist ./wwwroot
 ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
-# Dossier des pièces jointes (volume « pieces-jointes ») : il doit appartenir à l'utilisateur non root de l'image.
-RUN mkdir -p /data/pieces-jointes && chown $APP_UID /data/pieces-jointes
+# Dossiers des pièces jointes et des clés de session (volumes « pieces-jointes » et « cles ») : ils doivent appartenir à
+# l'utilisateur non root de l'image.
+RUN mkdir -p /data/pieces-jointes /data/cles && chown $APP_UID /data/pieces-jointes /data/cles
 USER $APP_UID
+# L'image aspnet n'a ni curl ni wget : l'application interroge elle-même /api/sante.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
-  CMD wget -qO- http://localhost:8080/api/sante || exit 1
+  CMD ["dotnet", "GestionMep.Api.dll", "--sante"]
 ENTRYPOINT ["dotnet", "GestionMep.Api.dll"]

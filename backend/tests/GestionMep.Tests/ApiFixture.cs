@@ -40,11 +40,24 @@ public class ApiFixture : IDisposable
         Environment.SetEnvironmentVariable("Surveillance__Activer", "false"); // la surveillance d'arrière-plan ne doit pas interférer avec les tests
         Environment.SetEnvironmentVariable("Stockage__Dossier", DossierPieces);
         Environment.SetEnvironmentVariable("Stockage__TailleMaxMo", "1");
+        Environment.SetEnvironmentVariable("Connexion__TentativesParMinute", "1000"); // les tests se connectent sans cesse depuis la même « adresse »
         _usine = new WebApplicationFactory<Program>();
         _ = _usine.Server; // démarre l'hôte : migration + données de démo
     }
 
-    public HttpClient Client() => _usine.CreateClient();
+    /// <summary>Services de l'application (accès direct à la base, aux services d'arrière-plan).</summary>
+    public IServiceProvider Services => _usine.Services;
+
+    /// <summary>Client HTTP avec l'en-tête anti-CSRF, comme le front.</summary>
+    public HttpClient Client()
+    {
+        var client = _usine.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Requested-With", "fetch");
+        return client;
+    }
+
+    /// <summary>Client HTTP sans l'en-tête anti-CSRF (requête forgée depuis un autre site).</summary>
+    public HttpClient ClientSansEnTete() => _usine.CreateClient();
 
     public async Task<HttpClient> ClientConnecte(string login, string motDePasse = "demo")
     {
