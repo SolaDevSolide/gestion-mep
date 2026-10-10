@@ -7,26 +7,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GestionMep.Api.Endpoints;
 
-/// <summary>Déroulé d'une MEP : circuit d'approbation et tests de recette (préparation, puis validation en phase de recette).</summary>
+/// <summary>Déroulé d'une MEP : circuit d'approbation et fiches de recette (préparation, puis déroulé en phase de recette).</summary>
 public static class DerouleEndpoints
 {
-    private static TestRecette TrouverTest(Mep mep, Guid tid) =>
-        mep.TestsRecette.FirstOrDefault(t => t.Id == tid) ?? throw ErreurHttp.NonTrouve("Test de recette introuvable.");
+    private static FicheRecette TrouverFiche(Mep mep, Guid fid) =>
+        mep.FichesRecette.FirstOrDefault(f => f.Id == fid) ?? throw ErreurHttp.NonTrouve("Fiche de recette introuvable.");
 
-    private static void Appliquer(Mep mep, TestRecette t, TestRecetteSaisie c)
-    {
-        if (c.ResponsableId is not null) ServiceMep.TrouverParticipant(mep, c.ResponsableId, "Responsable du test");
-        t.Libelle = ServiceMep.Texte(c.Libelle);
-        t.ResultatAttendu = ServiceMep.Texte(c.ResultatAttendu);
-        t.ResponsableId = c.ResponsableId;
-    }
-
-    private static void Renumeroter(Mep mep)
-    {
-        var i = 1;
-        foreach (var t in mep.TestsRecette.OrderBy(t => t.Ordre).ToList()) t.Ordre = i++;
-        mep.TestsRecette = [.. mep.TestsRecette.OrderBy(t => t.Ordre)];
-    }
+    private static EtapeTest TrouverEtapeTest(FicheRecette f, Guid tid) =>
+        f.Etapes.FirstOrDefault(t => t.Id == tid) ?? throw ErreurHttp.NonTrouve("Étape de test introuvable.");
 
     public static void MapDeroule(this RouteGroupBuilder api)
     {
@@ -58,81 +46,74 @@ public static class DerouleEndpoints
                 : await svc.Enregistrer(mep, acteur, "approbation.refusee", $"MEP refusée par {acteur.Nom}{suite}"));
         });
 
-        // ---------- Tests de recette : préparation ----------
-        api.MapPost("/meps/{id:guid}/tests-recette", async (Guid id, TestRecetteSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
-        {
-            var mep = await svc.Charger(id);
-            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
-            Regles.ExigerPreparation(mep);
-            var t = new TestRecette { Ordre = mep.TestsRecette.Count == 0 ? 1 : mep.TestsRecette.Max(x => x.Ordre) + 1 };
-            Appliquer(mep, t, c);
-            mep.TestsRecette = [.. mep.TestsRecette, t];
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "recette.test-ajoute", $"Test de recette ajouté : {t.Ordre}. {t.Libelle}"));
-        });
-
-        api.MapPut("/meps/{id:guid}/tests-recette/{tid:guid}", async (Guid id, Guid tid, TestRecetteSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
-        {
-            var mep = await svc.Charger(id);
-            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
-            Regles.ExigerPreparation(mep);
-            var t = TrouverTest(mep, tid);
-            Appliquer(mep, t, c);
-            mep.TestsRecette = [.. mep.TestsRecette]; // nouvelle liste : la colonne jsonb est réécrite
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "recette.test-modifie", $"Test de recette modifié : {t.Ordre}. {t.Libelle}"));
-        });
-
-        api.MapDelete("/meps/{id:guid}/tests-recette/{tid:guid}", async (Guid id, Guid tid, ClaimsPrincipal user, ServiceMep svc) =>
-        {
-            var mep = await svc.Charger(id);
-            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
-            Regles.ExigerPreparation(mep);
-            var t = TrouverTest(mep, tid);
-            mep.TestsRecette.Remove(t);
-            Renumeroter(mep);
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "recette.test-supprime", $"Test de recette supprimé : {t.Libelle}"));
-        });
-
-        api.MapPost("/meps/{id:guid}/tests-recette/{tid:guid}/deplacer", async (Guid id, Guid tid, DeplacerSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        // ---------- Fiches de recette : préparation ----------
+        api.MapPost("/meps/{id:guid}/fiches-recette", async (Guid id, FicheRecetteCreationSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
-            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
+            ServiceMep.ExigerEditeur(mep, acteur);
             Regles.ExigerPreparation(mep);
-            var t = TrouverTest(mep, tid);
-            var sens = (c.Sens ?? "").ToLowerInvariant();
-            if (sens is not ("haut" or "bas")) throw ErreurHttp.Saisie("Sens attendu : haut ou bas.");
-            var ordonnes = mep.TestsRecette.OrderBy(x => x.Ordre).ToList();
-            var i = ordonnes.IndexOf(t);
-            var j = sens == "haut" ? i - 1 : i + 1;
-            if (j < 0 || j >= ordonnes.Count) return Results.Ok(await svc.VersDto(mep, acteur.Id));
-            ordonnes.RemoveAt(i);
-            ordonnes.Insert(j, t);
-            for (var k = 0; k < ordonnes.Count; k++) ordonnes[k].Ordre = k + 1;
-            mep.TestsRecette = ordonnes;
-            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "recette.test-deplace", $"Test de recette déplacé : {t.Libelle}"));
+            ServiceMep.ExigerSystemeExistant(mep, c.SystemeId);
+            var f = Regles.AjouterFicheRecette(mep, c.SystemeId, ServiceMep.Texte(c.Titre));
+            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "recette.fiche-ajoutee", $"{Regles.NomRecette(f)} ajoutée"));
         });
 
-        // ---------- Tests de recette : validation (phase Recette) ----------
-        api.MapPost("/meps/{id:guid}/tests-recette/{tid:guid}/resultat", async (Guid id, Guid tid, ControleSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPut("/meps/{id:guid}/fiches-recette/{fid:guid}", async (Guid id, Guid fid, FicheRecetteSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
-            var t = TrouverTest(mep, tid);
+            ServiceMep.ExigerEditeur(mep, acteur);
+            Regles.ExigerPreparation(mep);
+            var f = TrouverFiche(mep, fid);
+            ServiceMep.ExigerSystemeExistant(mep, c.SystemeId);
+            Regles.ModifierFicheRecette(mep, f, c.SystemeId, ServiceMep.Texte(c.Titre),
+                (c.Etapes ?? []).Select(t => (t.Id, ServiceMep.Texte(t.Instructions), ServiceMep.Texte(t.ResultatAttendu))));
+            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "recette.fiche-modifiee", $"{Regles.NomRecette(f)} modifiée"));
+        });
+
+        api.MapDelete("/meps/{id:guid}/fiches-recette/{fid:guid}", async (Guid id, Guid fid, ClaimsPrincipal user, ServiceMep svc) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            ServiceMep.ExigerEditeur(mep, acteur);
+            Regles.ExigerPreparation(mep);
+            var f = TrouverFiche(mep, fid);
+            var nom = Regles.NomRecette(f);
+            Regles.SupprimerFicheRecette(mep, f);
+            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "recette.fiche-supprimee", $"{nom} supprimée"));
+        });
+
+        // ---------- Fiches de recette : déroulé (phase Recette) ----------
+        api.MapPost("/meps/{id:guid}/fiches-recette/{fid:guid}/etapes/{tid:guid}/resultat", async (Guid id, Guid fid, Guid tid, ControleSaisie c,
+            ClaimsPrincipal user, ServiceMep svc) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            var f = TrouverFiche(mep, fid);
+            var t = TrouverEtapeTest(f, tid);
             if (c.Resultat is null) throw ErreurHttp.Saisie("Le résultat (Conforme ou Echec) est obligatoire.");
-            Regles.ValiderTestRecette(mep, t, c.Resultat.Value, ServiceMep.Texte(c.Observation), acteur.Id, svc.Maintenant);
-            mep.TestsRecette = [.. mep.TestsRecette];
+            Regles.ValiderEtapeTest(mep, f, t, c.Resultat.Value, ServiceMep.Texte(c.Observation), acteur.Id, acteur.EstAdmin, svc.Maintenant);
             var resultat = t.Resultat == ResultatControle.Conforme ? "conforme" : "en échec";
-            return Results.Ok(await svc.Enregistrer(mep, acteur, "recette.test", $"Test de recette {t.Ordre} {resultat} : {t.Observation}"));
+            return Results.Ok(await svc.Enregistrer(mep, acteur, "recette.test", $"{Regles.NomRecette(f)} étape {t.Ordre} {resultat} : {t.Observation}"));
         });
 
-        api.MapPost("/meps/{id:guid}/tests-recette/{tid:guid}/refaire", async (Guid id, Guid tid, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPost("/meps/{id:guid}/fiches-recette/{fid:guid}/refaire", async (Guid id, Guid fid, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
-            var t = TrouverTest(mep, tid);
-            Regles.RefaireTestRecette(mep, t, acteur.Id);
-            mep.TestsRecette = [.. mep.TestsRecette];
-            return Results.Ok(await svc.Enregistrer(mep, acteur, "recette.refaire", $"Test de recette {t.Ordre} à refaire"));
+            var f = TrouverFiche(mep, fid);
+            Regles.RefaireRecette(mep, f, null, acteur.Id);
+            return Results.Ok(await svc.Enregistrer(mep, acteur, "recette.refaire", $"{Regles.NomRecette(f)} à refaire"));
+        });
+
+        api.MapPost("/meps/{id:guid}/fiches-recette/{fid:guid}/etapes/{tid:guid}/refaire", async (Guid id, Guid fid, Guid tid, ClaimsPrincipal user, ServiceMep svc) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var mep = await svc.Charger(id);
+            var f = TrouverFiche(mep, fid);
+            var t = TrouverEtapeTest(f, tid);
+            Regles.RefaireRecette(mep, f, t, acteur.Id);
+            return Results.Ok(await svc.Enregistrer(mep, acteur, "recette.refaire", $"{Regles.NomRecette(f)} étape {t.Ordre} à refaire"));
         });
     }
 }

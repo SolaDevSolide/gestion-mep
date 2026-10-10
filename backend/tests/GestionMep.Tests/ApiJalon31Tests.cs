@@ -35,7 +35,7 @@ public class ApiJalon31Tests : IDisposable
         Assert.Equal(2, rts.Count);
         var bob = rts.Single(r => r.GetProperty("participantId").GetGuid() == Participant(mep, "Bob"));
         Assert.Equal("Joignable", bob.GetProperty("disponibilite").GetString());
-        Assert.Equal(1, bob.GetProperty("systemeIds").GetArrayLength());
+        Assert.Equal(2, bob.GetProperty("systemeIds").GetArrayLength());
         Assert.Empty(Liste(mep, "avertissements"));
         Assert.False(mep.GetProperty("droits").GetProperty("estResponsableTechnique").GetBoolean()); // Alice, pilote
         Assert.True(mep.GetProperty("droits").GetProperty("peutEditerContenu").GetBoolean());
@@ -130,7 +130,10 @@ public class ApiJalon31Tests : IDisposable
             dave.PostAsJsonAsync($"/api/meps/{id}/participants", new { nom = "X" }),
             dave.PostAsJsonAsync($"/api/meps/{id}/systemes", new { nom = "X" }),
             dave.PostAsJsonAsync($"/api/meps/{id}/livrables", new { objet = "X" }),
-            dave.PostAsJsonAsync($"/api/meps/{id}/tests-recette", new { libelle = "X" }),
+            dave.PostAsJsonAsync($"/api/meps/{id}/fiches-recette", new { titre = "X" }),
+            dave.PostAsJsonAsync($"/api/meps/{id}/etapes/{Etape(mep, "E0004").GetProperty("id").GetGuid()}/placer", new { ligne = 0, position = 0 }),
+            dave.PutAsJsonAsync($"/api/meps/{id}/systemes/{mep.GetProperty("systemes")[0].GetProperty("id").GetGuid()}/sauvegarde",
+                new { version = Version(mep), statut = "Requise" }),
             dave.PutAsJsonAsync($"/api/meps/{id}/plan-repli", new { version = Version(mep) }),
             dave.PutAsJsonAsync($"/api/meps/{id}/sauvegarde", new { version = Version(mep) }),
             dave.PutAsJsonAsync($"/api/meps/{id}/responsables-techniques", new { version = Version(mep), responsables = Array.Empty<object>() }),
@@ -172,16 +175,16 @@ public class ApiJalon31Tests : IDisposable
         // Passage en exécution.
         mep = await AidesApi.Go(_api, alice, id);
 
-        var sansMotif = await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{Etape(mep, "E0002").GetProperty("id").GetGuid()}/prendre-la-main",
-            new { revision = Etape(mep, "E0002").GetProperty("revision").GetInt32() });
+        var sansMotif = await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{Etape(mep, "E0006").GetProperty("id").GetGuid()}/prendre-la-main",
+            new { revision = Etape(mep, "E0006").GetProperty("revision").GetInt32() });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, sansMotif.StatusCode);
         Assert.Equal("Indiquer pourquoi vous prenez la main.", await Message(sansMotif));
 
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{Etape(mep, "E0002").GetProperty("id").GetGuid()}/prendre-la-main",
-            new { revision = Etape(mep, "E0002").GetProperty("revision").GetInt32(), motif = "  Bob est en congé  " }));
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{Etape(mep, "E0006").GetProperty("id").GetGuid()}/prendre-la-main",
+            new { revision = Etape(mep, "E0006").GetProperty("revision").GetInt32(), motif = "  Claire est en congé  " }));
         var journal = await Ok(await alice.GetAsync($"/api/meps/{id}/journal"));
         Assert.Contains(journal.EnumerateArray(), e => e.GetProperty("type").GetString() == "etape.prise-en-main"
-            && e.GetProperty("detail").GetString() == "Alice a pris la main sur E0002 (prévu : Bob) : Bob est en congé");
+            && e.GetProperty("detail").GetString() == "Alice a pris la main sur E0006 (prévu : Claire) : Claire est en congé");
     }
 
     [Fact]
@@ -201,11 +204,14 @@ public class ApiJalon31Tests : IDisposable
             return mep = await Ok(await c.PostAsJsonAsync($"/api/meps/{id}/etapes/{eid}/terminer",
                 new { revision = e.GetProperty("revision").GetInt32(), resultat = "Reussie", preuve = "OK", resultatVerifie = true }));
         }
-        await Reussir(bob, "E0002");
-        await Reussir(claire, "E0003");
-        var e4 = Etape(mep, "E0004");
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{e4.GetProperty("id").GetGuid()}/autoriser-non-retour", new { revision = e4.GetProperty("revision").GetInt32() }));
-        await Reussir(claire, "E0004");
+        await Reussir(alice, "E0004");
+        var e5 = Etape(mep, "E0005");
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{e5.GetProperty("id").GetGuid()}/autoriser-reprise", new { revision = e5.GetProperty("revision").GetInt32() }));
+        await Reussir(bob, "E0005");
+        await Reussir(claire, "E0006");
+        var e7 = Etape(mep, "E0007");
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{e7.GetProperty("id").GetGuid()}/autoriser-non-retour", new { revision = e7.GetProperty("revision").GetInt32() }));
+        await Reussir(bob, "E0007");
 
         var rep = await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Preparation" });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, rep.StatusCode);

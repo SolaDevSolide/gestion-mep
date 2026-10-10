@@ -1,8 +1,11 @@
-import type { Etape, Mep, Participant, Phase, TestRecette, TypePlan } from './types';
+import type { Etape, EtapeTest, FicheRecette, Mep, Participant, Phase, ResponsableTechnique, TypePlan } from './types';
 import type { Segment } from './ui/ProgressBar';
 
+/** Ordre du graphe : par ligne, puis par position dans la ligne. */
+export const parPosition = (a: Pick<Etape, 'ligne' | 'ordre'>, b: Pick<Etape, 'ligne' | 'ordre'>): number => a.ligne - b.ligne || a.ordre - b.ordre;
+
 export const etapesDuPlan = (mep: Mep, plan: TypePlan): Etape[] =>
-  mep.etapes.filter((e) => e.plan === plan).sort((a, b) => a.ordre - b.ordre);
+  mep.etapes.filter((e) => e.plan === plan).sort(parPosition);
 
 /** Plan sur lequel on agit selon la phase (null si aucune exécution possible). */
 export function planActif(phase: Phase): TypePlan | null {
@@ -34,7 +37,7 @@ export function bloqueurs(e: Etape, etapes: Etape[]): Etape[] {
 
 /** Étape à mettre en avant : la première « Disponible » dont je suis l'exécutant, sinon la première non terminée. */
 export function etapeParDefaut(etapes: Etape[], participantId: string | null): Etape | undefined {
-  const triees = [...etapes].sort((a, b) => a.ordre - b.ordre);
+  const triees = [...etapes].sort(parPosition);
   const miennes = (e: Etape) => participantId !== null && executantEffectif(e) === participantId;
   return (
     triees.find((e) => e.etat === 'EnCours' && miennes(e)) ??
@@ -66,9 +69,32 @@ export function segmentsResume(nbEtapes: number, nbReussies: number, nbEchecs: n
 
 /** Étape de déploiement qui réalise la sauvegarde (mode « pendant la MEP »). */
 export const etapeSauvegarde = (mep: Pick<Mep, 'etapes'>): Etape | undefined =>
-  mep.etapes.filter((e) => e.plan === 'Deploiement' && e.type === 'Sauvegarde').sort((a, b) => a.ordre - b.ordre)[0];
+  mep.etapes.filter((e) => e.plan === 'Deploiement' && e.type === 'Sauvegarde').sort(parPosition)[0];
 
-export const testsRecetteTries = (mep: Pick<Mep, 'testsRecette'>): TestRecette[] => [...mep.testsRecette].sort((a, b) => a.ordre - b.ordre);
+export const fichesRecetteTriees = (mep: Pick<Mep, 'fichesRecette'>): FicheRecette[] =>
+  [...mep.fichesRecette].sort((a, b) => a.ordre - b.ordre).map((f) => ({ ...f, etapes: [...f.etapes].sort((a, b) => a.ordre - b.ordre) }));
+
+/** Étapes de test de toutes les fiches. */
+export const etapesTestRecette = (mep: Pick<Mep, 'fichesRecette'>): EtapeTest[] => mep.fichesRecette.flatMap((f) => f.etapes);
+
+export interface BilanRecette { total: number; conformes: number; echecs: number; restantes: number }
+export function bilanRecette(mep: Pick<Mep, 'fichesRecette'>): BilanRecette {
+  const e = etapesTestRecette(mep);
+  const conformes = e.filter((t) => t.resultat === 'Conforme').length;
+  const echecs = e.filter((t) => t.resultat === 'Echec').length;
+  return { total: e.length, conformes, echecs, restantes: e.length - conformes - echecs };
+}
+
+/** Responsables techniques d'un système : participants désignés pour ce système (contact du jour J en recette). */
+export function responsablesDuSysteme(mep: Pick<Mep, 'responsablesTechniques' | 'participants'>, systemeId: string | null): { participant: Participant; contactJourJ: string; disponibilite: ResponsableTechnique['disponibilite'] }[] {
+  if (!systemeId) return [];
+  return mep.responsablesTechniques
+    .filter((r) => r.systemeIds.includes(systemeId))
+    .flatMap((r) => {
+      const participant = mep.participants.find((p) => p.id === r.participantId);
+      return participant ? [{ participant, contactJourJ: r.contactJourJ || participant.contact, disponibilite: r.disponibilite }] : [];
+    });
+}
 
 /** Anomalies du plan qui ne relèvent pas du circuit d'approbation (elles bloquent la décision d'un approbateur). */
 const ESTAPPROBATION = /^Il faut \d+ approbation|a refusé :|ne peut pas approuver/;

@@ -21,7 +21,7 @@ public class ReglesJalon31Tests
         var m = Demo();
         Assert.Equal(2, m.ResponsablesTechniques.Count);
         Assert.All(m.ResponsablesTechniques, r => Assert.Equal(DisponibiliteJourJ.Joignable, r.Disponibilite));
-        Assert.Equal([m.Systemes.Single(s => s.Nom == "API").Id], Rt(m, "Bob").SystemeIds);
+        Assert.Equal([m.Systemes.Single(s => s.Nom == "API").Id, m.Systemes.Single(s => s.Nom == "MDM").Id], Rt(m, "Bob").SystemeIds);
         Assert.Equal([m.Systemes.Single(s => s.Nom == "WEB").Id], Rt(m, "Claire").SystemeIds);
         Assert.DoesNotContain(m.ResponsablesTechniques, r => r.ParticipantId == m.PiloteId);
         Assert.Empty(Regles.Avertissements(m));
@@ -92,10 +92,12 @@ public class ReglesJalon31Tests
     {
         var m = Demo();
         Rt(m, "Bob").Disponibilite = DisponibiliteJourJ.Absent;
-        // Bob est responsable de E0002 et E0005 (sans résolution pour E0002), et responsable technique du système API (E0002, E0005, R0001).
+        // Bob est responsable de E0002, E0005, E0007 et R0001 (seule E0005 a une résolution), et responsable technique des systèmes
+        // API et MDM : E0008 (WEB + API, Claire) est aussi concernée.
         var avertissements = Regles.Avertissements(m);
         Assert.Contains("E0002 : Bob sera absent, ajouter une résolution type pour que quelqu'un d'autre puisse la reprendre.", avertissements);
         Assert.Contains("R0001 : Bob sera absent, ajouter une résolution type pour que quelqu'un d'autre puisse la reprendre.", avertissements);
+        Assert.Contains("E0008 : Bob sera absent, ajouter une résolution type pour que quelqu'un d'autre puisse la reprendre.", avertissements);
         Assert.DoesNotContain(avertissements, a => a.StartsWith("E0005")); // a une résolution type, des instructions et un résultat attendu
         Assert.DoesNotContain(avertissements, a => a.StartsWith("E0003")); // Claire, système WEB
 
@@ -123,18 +125,18 @@ public class ReglesJalon31Tests
         var m = Demo();
         Regles.Decider(m, Claire, DecisionApprobation.Approuvee, "", Maintenant);
         Regles.PasserEnExecution(m, Alice, Criteres.Select(c => c.Id).ToList(), Criteres, 1, Maintenant);
-        foreach (var code in new[] { "E0002", "E0003" })
+        Regles.AutoriserReprise(m, E(m, "E0005"), Alice, Maintenant);
+        foreach (var (code, qui) in new[] { ("E0004", Alice), ("E0005", Bob), ("E0006", Claire) })
         {
-            var qui = code == "E0002" ? Bob : Claire;
             Regles.Demarrer(m, E(m, code), qui, Maintenant);
             Regles.Terminer(m, E(m, code), EtatEtape.Reussie, "OK", true, qui, Maintenant);
         }
-        Regles.AutoriserNonRetour(m, E(m, "E0004"), Alice, Maintenant);
-        Regles.Demarrer(m, E(m, "E0004"), Claire, Maintenant);
-        Regles.Terminer(m, E(m, "E0004"), EtatEtape.Reussie, "OK", true, Claire, Maintenant);
+        Regles.AutoriserNonRetour(m, E(m, "E0007"), Alice, Maintenant);
+        Regles.Demarrer(m, E(m, "E0007"), Bob, Maintenant);
+        Regles.Terminer(m, E(m, "E0007"), EtatEtape.Reussie, "OK", true, Bob, Maintenant);
 
         var ex = Assert.Throws<RegleMetierException>(() => Regles.RevenirEnPreparation(m, Alice));
-        Assert.Contains("E0004", ex.Message);
+        Assert.Contains("E0007", ex.Message);
         Assert.Contains("point de non-retour", ex.Message);
         Assert.Equal(Phase.Execution, m.Phase);
     }
@@ -148,12 +150,12 @@ public class ReglesJalon31Tests
         var alice = P(m, "Alice");
         foreach (var motif in new[] { "", "   " })
         {
-            var ex = Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, E(m, "E0002"), alice, motif));
+            var ex = Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, E(m, "E0006"), alice, motif));
             Assert.Contains("pourquoi", ex.Message);
         }
-        Assert.Null(E(m, "E0002").ExecutantId);
-        Regles.PrendreLaMain(m, E(m, "E0002"), alice, "Bob est en congé");
-        Assert.Equal(alice.Id, E(m, "E0002").ExecutantId);
+        Assert.Null(E(m, "E0006").ExecutantId);
+        Regles.PrendreLaMain(m, E(m, "E0006"), alice, "Claire est en congé");
+        Assert.Equal(alice.Id, E(m, "E0006").ExecutantId);
     }
 
     // ---------- Duplication ----------
@@ -166,8 +168,8 @@ public class ReglesJalon31Tests
         Assert.Equal(2, copie.ResponsablesTechniques.Count);
         var bob = copie.ResponsablesTechniques.Single(r => r.ParticipantId == P(copie, "Bob").Id);
         Assert.Equal(DisponibiliteJourJ.Absent, bob.Disponibilite);
-        Assert.Equal("Service API de test", bob.Perimetre);
-        Assert.Equal([copie.Systemes.Single(s => s.Nom == "API").Id], bob.SystemeIds);
+        Assert.Equal("Service commandes et flux MDM", bob.Perimetre);
+        Assert.Equal([copie.Systemes.Single(s => s.Nom == "API").Id, copie.Systemes.Single(s => s.Nom == "MDM").Id], bob.SystemeIds);
         Assert.DoesNotContain(source.Participants, p => p.Id == bob.ParticipantId);
         Assert.NotSame(source.ResponsablesTechniques[0], copie.ResponsablesTechniques[0]);
     }

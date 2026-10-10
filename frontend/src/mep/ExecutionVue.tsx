@@ -1,44 +1,47 @@
-import { ListFilter, Network, Rows3, User } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { ListFilter, Network, User } from 'lucide-react';
+import { useCallback, useMemo, useState, type KeyboardEvent } from 'react';
 import { api } from '../api';
 import { etapeParDefaut, etapesDuPlan, executantEffectif } from '../domaine';
 import { useAsync, useLocalStorageState } from '../hooks';
 import { useMep } from '../mepContext';
-import type { Etape, Mep, TypePlan } from '../types';
+import type { Etape, TypePlan } from '../types';
 import { cn } from '../ui/cn';
 import { MultiSelect } from '../ui/Combobox';
 import { EmptyState } from '../ui/EmptyState';
-import { Segmented } from '../ui/Segmented';
 import { EtapePanneau, type ActionsEtape } from './EtapePanneau';
-import { GrapheExecution } from './GrapheExecution';
-import { ListeExecution } from './ListeExecution';
+import { CLASSES_PANNEAU } from './EtapesEditeur';
+import { GrapheEtapes } from './graphe/GrapheEtapes';
+import { PanneauResume } from './graphe/PanneauResume';
+import { descriptionsSystemes } from './graphe/systemes';
 
-/** Vue d'exécution d'un plan : arbre (ou liste) à gauche, panneau de l'étape sélectionnée à droite. */
+/** Vue d'exécution d'un plan : graphe des étapes (états, liens verts une fois les préalables réussis), panneau de l'étape. */
 export function ExecutionVue({ plan }: { plan: TypePlan }) {
   const { mep, run } = useMep();
   const etapes = etapesDuPlan(mep, plan);
   const moi = mep.droits.participantId;
 
-  const [vue, setVue] = useLocalStorageState<'graphe' | 'liste'>('mep.vue-execution', 'graphe');
   const [mesSystemes, setMesSystemes] = useLocalStorageState<string[]>(`mep.${mep.id}.mesSystemes`, []);
   const [aMoi, setAMoi] = useLocalStorageState<boolean>(`mep.${mep.id}.aMoi`, false);
-  const [choix, setChoix] = useState<string | null>(null);
+  const [choix, setChoix] = useState<string | null | undefined>(undefined);
   const { donnees: resolutionsTypes } = useAsync(() => api.resolutions(), []);
+  const catalogue = useAsync(() => api.catalogueSystemes(), []);
+  const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue.donnees), [mep, catalogue.donnees]);
 
   const defaut = useMemo(() => etapeParDefaut(etapes, moi), [etapes, moi]);
-  const selection = (choix && etapes.some((e) => e.id === choix) ? choix : null) ?? defaut?.id ?? null;
+  // undefined = pas encore de choix (étape mise en avant par défaut) ; null = panneau fermé.
+  const selection = choix === null ? null : (choix && etapes.some((e) => e.id === choix) ? choix : null) ?? defaut?.id ?? null;
   const etape = etapes.find((e) => e.id === selection) ?? null;
 
   const filtreActif = mesSystemes.length > 0 || aMoi;
   const garde = useCallback(
-    (e: Etape) => (mesSystemes.length === 0 || (e.systemeId !== null && mesSystemes.includes(e.systemeId))) && (!aMoi || (moi !== null && executantEffectif(e) === moi)),
+    (e: Etape) => (mesSystemes.length === 0 || e.systemeIds.some((s) => mesSystemes.includes(s))) && (!aMoi || (moi !== null && executantEffectif(e) === moi)),
     [mesSystemes, aMoi, moi],
   );
   const nbMiennes = etapes.filter((e) => moi !== null && executantEffectif(e) === moi && e.etat !== 'Reussie').length;
   const visibles = etapes.filter(garde);
 
   const actions = useMemo<ActionsEtape>(() => {
-    const suivante = (ok: boolean) => { if (ok) setChoix(null); return ok; };
+    const suivante = (ok: boolean) => { if (ok) setChoix(undefined); return ok; };
     return {
       demarrer: (e) => run(() => api.demarrerEtape(mep.id, e.id, e.revision), `${e.code} démarrée.`),
       terminer: async (e, resultat, preuve) =>
@@ -55,15 +58,20 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
   }, [mep.id, run]);
 
   if (etapes.length === 0) {
-    return <EmptyState icone={Network} titre="Aucune étape" description="Ajoutez des étapes dans l’onglet correspondant pour pouvoir les exécuter." />;
+    return <EmptyState icone={Network} titre="Aucune étape" description="Ce plan ne comporte aucune étape." />;
+  }
+
+  function clavier(ev: KeyboardEvent<HTMLDivElement>) {
+    const t = ev.target;
+    if (ev.key === 'Escape' && !ev.defaultPrevented && !(t instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) setChoix(null);
   }
 
   return (
-    <div>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+    <div onKeyDown={clavier}>
+      <div className="mb-3 flex flex-wrap items-center gap-3">
         <div className="w-full min-w-56 sm:w-80">
           <MultiSelect
-            options={mep.systemes.map((s) => ({ valeur: s.id, libelle: s.nom, detail: s.cible }))}
+            options={mep.systemes.map((s) => ({ valeur: s.id, libelle: s.nom, detail: descriptions.get(s.id) || s.cible }))}
             valeurs={mesSystemes}
             onChange={setMesSystemes}
             placeholder="Mes systèmes : tous"
@@ -88,31 +96,25 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
             <ListFilter className="size-4" aria-hidden />Effacer les filtres ({visibles.length}/{etapes.length})
           </button>
         )}
-        <Segmented
-          className="ml-auto"
-          label="Mode d’affichage"
-          valeur={vue}
-          onChange={setVue}
-          options={[
-            { valeur: 'graphe', libelle: <><Network className="size-4" aria-hidden />Graphe</> },
-            { valeur: 'liste', libelle: <><Rows3 className="size-4" aria-hidden />Liste</> },
-          ]}
-        />
+        <p className="ml-auto text-[13px] text-fg-subtle">Une étape devient disponible quand tous ses préalables sont réussis.</p>
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)]">
-        <div className="min-w-0">
-          {vue === 'graphe' ? (
-            <GrapheExecution mep={mep} etapes={etapes} selectionId={selection} onSelect={setChoix} estEstompee={filtreActif ? (e) => !garde(e) : undefined} />
-          ) : (
-            visibles.length > 0
-              ? <ListeExecution mep={mep} etapes={visibles} selectionId={selection} onSelect={setChoix} />
-              : <EmptyState icone={ListFilter} titre="Aucune étape ne correspond" description="Modifiez ou effacez les filtres." />
-          )}
-        </div>
-        <div className="min-w-0 xl:[@media(min-height:760px)]:sticky xl:[@media(min-height:760px)]:top-[calc(var(--entete-h,12rem)+1rem)] xl:[@media(min-height:760px)]:max-h-[calc(100vh-var(--entete-h,12rem)-2rem)] xl:[@media(min-height:760px)]:overflow-y-auto xl:rounded-xl">
-          {etape && <EtapePanneau key={etape.id} mep={mep as Mep} etape={etape} resolutionsTypes={resolutionsTypes ?? []} actions={actions} onSelectionner={setChoix} />}
-        </div>
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)]">
+        <GrapheEtapes
+          mep={mep}
+          plan={plan}
+          etapes={etapes}
+          mode="execution"
+          descriptions={descriptions}
+          selection={selection}
+          onSelection={setChoix}
+          estEstompee={filtreActif ? (e) => !garde(e) : undefined}
+        />
+        <aside aria-label="Étape sélectionnée" className={CLASSES_PANNEAU}>
+          {etape
+            ? <EtapePanneau key={etape.id} mep={mep} etape={etape} resolutionsTypes={resolutionsTypes ?? []} actions={actions} onSelectionner={setChoix} />
+            : <PanneauResume plan={plan} etapes={etapes} aide={false} />}
+        </aside>
       </div>
     </div>
   );

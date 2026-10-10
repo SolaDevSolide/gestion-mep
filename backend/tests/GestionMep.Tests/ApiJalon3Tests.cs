@@ -88,14 +88,13 @@ public class ApiJalon3Tests : IDisposable
         Assert.True(mep.GetProperty("droits").GetProperty("estApprobateur").GetBoolean());
         Assert.False(mep.GetProperty("droits").GetProperty("estPilote").GetBoolean());
         Assert.Equal(1, mep.GetProperty("approbationsMinimum").GetInt32());
-        Assert.Equal("PendantMep", mep.GetProperty("sauvegarde").GetProperty("mode").GetString());
         Assert.Equal("Sauvegarde", Etape(mep, "E0001").GetProperty("type").GetString());
-        Assert.True(Etape(mep, "E0004").GetProperty("pointDeNonRetour").GetBoolean());
-        Assert.Equal(JsonValueKind.Null, Etape(mep, "E0004").GetProperty("nonRetourAutorise").ValueKind);
+        Assert.True(Etape(mep, "E0007").GetProperty("pointDeNonRetour").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, Etape(mep, "E0007").GetProperty("nonRetourAutorise").ValueKind);
         Assert.Equal(JsonValueKind.Null, mep.GetProperty("nonRetourFranchi").ValueKind);
-        var tests = mep.GetProperty("testsRecette").EnumerateArray().ToList();
-        Assert.Equal(["Ouvrir la page d'accueil fictive", "Appeler l'API de test"], tests.Select(t => t.GetProperty("libelle").GetString()!).ToArray());
-        Assert.Equal(Participant(mep, "Claire"), tests[0].GetProperty("responsableId").GetGuid());
+        var fiches = mep.GetProperty("fichesRecette").EnumerateArray().ToList();
+        Assert.Equal(["Parcours de commande", "Appels de l'API", "Tables clients", "Authentification annuaire", "Synchronisation MDM"],
+            fiches.Select(t => t.GetProperty("titre").GetString()!).ToArray());
         Assert.True(mep.GetProperty("bilanActive").GetBoolean());
         Assert.Equal(JsonValueKind.Null, mep.GetProperty("bilan").ValueKind);
         Assert.Equal(0, mep.GetProperty("goNoGo").GetArrayLength());
@@ -266,98 +265,27 @@ public class ApiJalon3Tests : IDisposable
         var claire = await _api.ClientConnecte("claire");
         var id = await AidesApi.IdDemo(alice);
         var mep = await AidesApi.Go(_api, alice, id);
-        mep = await Reussir(bob, id, mep, "E0002", "API démo OK");
-        mep = await Reussir(claire, id, mep, "E0003", "WEB démo OK");
+        mep = await Reussir(alice, id, mep, "E0004", "Schéma migré");
+        mep = await Ok(await Action(alice, id, mep, "E0005", "autoriser-reprise"));
+        mep = await Reussir(bob, id, mep, "E0005", "API déployée");
+        mep = await Reussir(claire, id, mep, "E0006", "Portail publié");
 
-        var sansAccord = await Action(claire, id, mep, "E0004", "demarrer");
+        var sansAccord = await Action(bob, id, mep, "E0007", "demarrer");
         Assert.Equal(HttpStatusCode.UnprocessableEntity, sansAccord.StatusCode);
         Assert.Equal("Point de non-retour : l'accord du pilote est requis.", await Message(sansAccord));
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(claire, id, mep, "E0004", "autoriser-non-retour")).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, (await Action(alice, id, mep, "E0004", "autoriser-non-retour", new { revision = Revision(mep, "E0004") + 1 })).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(claire, id, mep, "E0007", "autoriser-non-retour")).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await Action(alice, id, mep, "E0007", "autoriser-non-retour", new { revision = Revision(mep, "E0007") + 1 })).StatusCode);
 
-        mep = await Ok(await Action(alice, id, mep, "E0004", "autoriser-non-retour"));
-        Assert.Equal("Alice", Etape(mep, "E0004").GetProperty("nonRetourAutorise").GetProperty("par").GetString());
+        mep = await Ok(await Action(alice, id, mep, "E0007", "autoriser-non-retour"));
+        Assert.Equal("Alice", Etape(mep, "E0007").GetProperty("nonRetourAutorise").GetProperty("par").GetString());
         Assert.Equal(JsonValueKind.Null, mep.GetProperty("nonRetourFranchi").ValueKind);
-        mep = await Ok(await Action(claire, id, mep, "E0004", "demarrer"));
-        Assert.Equal("E0004", mep.GetProperty("nonRetourFranchi").GetString());
+        mep = await Ok(await Action(bob, id, mep, "E0007", "demarrer"));
+        Assert.Equal("E0007", mep.GetProperty("nonRetourFranchi").GetString());
 
         var repli = await alice.PostAsJsonAsync($"/api/meps/{id}/retour-arriere", new { motif = "Incident" });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, repli.StatusCode);
-        Assert.Equal("Point de non-retour franchi (E0004) : corriger en avant.", await Message(repli));
-        Assert.Contains(await Journal(alice, id), e => e.Type == "etape.non-retour-autorise" && e.Detail == "Passage du point de non-retour E0004 autorisé");
-    }
-
-    // ---------- Recette et bilan ----------
-    [Fact]
-    public async Task Recette_tests_valides_puis_cloture_avec_bilan()
-    {
-        var alice = await _api.ClientConnecte("alice");
-        var bob = await _api.ClientConnecte("bob");
-        var claire = await _api.ClientConnecte("claire");
-        var id = await AidesApi.IdDemo(alice);
-
-        // Édition des tests en préparation (remet l'approbation à zéro, comme tout contenu).
-        var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/tests-recette", new { libelle = "Vérifier les journaux", resultatAttendu = "Aucune erreur", responsableId = Participant(mep, "Alice") }));
-        var t3 = mep.GetProperty("testsRecette")[2];
-        Assert.Equal(3, t3.GetProperty("ordre").GetInt32());
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/tests-recette/{t3.GetProperty("id").GetGuid()}/deplacer", new { sens = "haut" }));
-        Assert.Equal("Vérifier les journaux", mep.GetProperty("testsRecette")[1].GetProperty("libelle").GetString());
-        mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/tests-recette/{t3.GetProperty("id").GetGuid()}", new { libelle = "Vérifier les journaux", resultatAttendu = "", responsableId = Participant(mep, "Alice") }));
-        Assert.Contains("Test de recette 2 : compléter Résultat attendu.", Erreurs(mep));
-        mep = await Ok(await alice.DeleteAsync($"/api/meps/{id}/tests-recette/{t3.GetProperty("id").GetGuid()}"));
-        Assert.Equal([1, 2], mep.GetProperty("testsRecette").EnumerateArray().Select(t => t.GetProperty("ordre").GetInt32()).ToArray());
-        var tests = mep.GetProperty("testsRecette").EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).ToList();
-
-        mep = await AidesApi.Go(_api, alice, id);
-        mep = await Reussir(bob, id, mep, "E0002", "API démo OK");
-        mep = await Reussir(claire, id, mep, "E0003", "WEB démo OK");
-        mep = await Ok(await Action(alice, id, mep, "E0004", "autoriser-non-retour"));
-        mep = await Reussir(claire, id, mep, "E0004", "Parcours démo OK");
-        // Recette impossible tant que E0005 n'est pas réussie.
-        var tot = await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Recette" });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, tot.StatusCode);
-        Assert.Equal("E0005 n'est pas réussie : recette impossible.", await Message(tot));
-        mep = await Ok(await Action(alice, id, mep, "E0005", "autoriser-reprise"));
-        mep = await Reussir(bob, id, mep, "E0005", "Incident corrigé");
-
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await claire.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Recette" })).StatusCode);
-        mep = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Recette" }));
-        Assert.Equal("Recette", mep.GetProperty("phase").GetString());
-        Assert.Equal("Terminée", Etape(mep, "E0002").GetProperty("disponibilite").GetProperty("libelle").GetString());
-
-        // Claire ne valide pas le test de Bob ; observation obligatoire.
-        var autre = await claire.PostAsJsonAsync($"/api/meps/{id}/tests-recette/{tests[1]}/resultat", new { resultat = "Conforme", observation = "OK" });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, autre.StatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity,
-            (await claire.PostAsJsonAsync($"/api/meps/{id}/tests-recette/{tests[0]}/resultat", new { resultat = "Conforme", observation = "" })).StatusCode);
-        mep = await Ok(await claire.PostAsJsonAsync($"/api/meps/{id}/tests-recette/{tests[0]}/resultat", new { resultat = "Conforme", observation = "Page affichée" }));
-        mep = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/tests-recette/{tests[1]}/resultat", new { resultat = "Echec", observation = "Erreur 500" }));
-        Assert.Equal("Echec", mep.GetProperty("testsRecette")[1].GetProperty("resultat").GetString());
-        Assert.Equal("Bob", mep.GetProperty("testsRecette")[1].GetProperty("par").GetString());
-
-        var refus = await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { ceQuiAMarche = "Déploiement", incidents = "API" });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
-        Assert.Contains("Test de recette 2", await Message(refus));
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await claire.PostAsync($"/api/meps/{id}/tests-recette/{tests[1]}/refaire", null)).StatusCode);
-        mep = await Ok(await alice.PostAsync($"/api/meps/{id}/tests-recette/{tests[1]}/refaire", null));
-        Assert.Equal(JsonValueKind.Null, mep.GetProperty("testsRecette")[1].GetProperty("resultat").ValueKind);
-        mep = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/tests-recette/{tests[1]}/resultat", new { resultat = "Conforme", observation = "API OK" }));
-
-        var sansBilan = await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { ceQuiAMarche = "Tout", incidents = "" });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, sansBilan.StatusCode);
-        Assert.Equal("Bilan : décrire ce qui a marché et les incidents (« Rien à signaler » accepté).", await Message(sansBilan));
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { ceQuiAMarche = "Tout", incidents = "Erreur 500 sur l'API, corrigée", actions = "Ajouter une sonde" }));
-        Assert.Equal("Cloturee", mep.GetProperty("phase").GetString());
-        Assert.Equal("Reussie", mep.GetProperty("issue").GetString());
-        Assert.Equal("Ajouter une sonde", mep.GetProperty("bilan").GetProperty("actions").GetString());
-
-        var journal = await Journal(alice, id);
-        Assert.Contains(journal, e => e.Type == "phase.recette" && e.Auteur == "Bob" && e.Detail == "MEP passée en recette");
-        Assert.Contains(journal, e => e.Type == "recette.test" && e.Detail == "Test de recette 1 conforme : Page affichée");
-        Assert.Contains(journal, e => e.Type == "recette.test" && e.Detail == "Test de recette 2 en échec : Erreur 500");
-        Assert.Contains(journal, e => e.Type == "recette.refaire" && e.Detail == "Test de recette 2 à refaire");
-        Assert.Contains(journal, e => e.Type == "recette.test-ajoute");
+        Assert.Equal("Point de non-retour franchi (E0007) : corriger en avant.", await Message(repli));
+        Assert.Contains(await Journal(alice, id), e => e.Type == "etape.non-retour-autorise" && e.Detail == "Passage du point de non-retour E0007 autorisé");
     }
 
     // ---------- Duplication ----------
@@ -389,7 +317,7 @@ public class ApiJalon3Tests : IDisposable
         Assert.Equal(modele.GetProperty("etapes").EnumerateArray().Select(e => e.GetProperty("code").GetString()),
             copie.GetProperty("etapes").EnumerateArray().Select(e => e.GetProperty("code").GetString()));
         Assert.All(copie.GetProperty("etapes").EnumerateArray(), e => Assert.Equal("AFaire", e.GetProperty("etat").GetString()));
-        Assert.Equal([EtapeId(copie, "E0002"), EtapeId(copie, "E0003")], Etape(copie, "E0004").GetProperty("dependances").EnumerateArray().Select(d => d.GetGuid()).ToArray());
+        Assert.Equal([EtapeId(copie, "E0004"), EtapeId(copie, "E0005"), EtapeId(copie, "E0006")], Etape(copie, "E0007").GetProperty("dependances").EnumerateArray().Select(d => d.GetGuid()).ToArray());
         Assert.DoesNotContain(copie.GetProperty("participants").EnumerateArray(), p => modele.GetProperty("participants").EnumerateArray().Any(m => m.GetProperty("id").GetGuid() == p.GetProperty("id").GetGuid()));
         Assert.Equal(Participant(copie, "Alice"), copie.GetProperty("piloteId").GetGuid());
         Assert.Contains("Renseigner une échéance de retour arrière future.", Erreurs(copie));
@@ -406,7 +334,7 @@ public class ApiJalon3Tests : IDisposable
 
     // ---------- Sauvegarde et type d'étape ----------
     [Fact]
-    public async Task Mode_de_sauvegarde_et_type_d_etape()
+    public async Task Sauvegarde_par_systeme_et_type_d_etape()
     {
         var alice = await _api.ClientConnecte("alice");
         var id = await AidesApi.IdDemo(alice);
@@ -414,20 +342,17 @@ public class ApiJalon3Tests : IDisposable
         var e1 = Etape(mep, "E0001");
         object Saisie(JsonElement m, string code, string type, bool pnr, Guid[] deps) => new
         {
-            revision = Revision(m, code), action = Etape(m, code).GetProperty("action").GetString(), systemeId = Etape(m, code).GetProperty("systemeId"),
+            revision = Revision(m, code), action = Etape(m, code).GetProperty("action").GetString(), systemeIds = Etape(m, code).GetProperty("systemeIds"),
             responsableId = Etape(m, code).GetProperty("responsableId"), criticite = "Elevee", instructions = "i", resultatAttendu = "r",
             dependances = deps, type, pointDeNonRetour = pnr,
         };
 
         mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/etapes/{e1.GetProperty("id").GetGuid()}", Saisie(mep, "E0001", "Standard", false, [])));
-        Assert.Contains("Sauvegarde pendant la MEP : indiquer l'étape de déploiement de type Sauvegarde.", Erreurs(mep));
-        mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/sauvegarde", new
-        {
-            version = Version(mep), mode = "AvantMep", structure = true, donnees = true, configuration = false, responsableId = (Guid?)null,
-            realiseeLe = (string?)null, procedure = "", copies = "", restaurationTestee = false, dateTestRestauration = (string?)null, preuveTestRestauration = "",
-        }));
-        Assert.Equal("AvantMep", mep.GetProperty("sauvegarde").GetProperty("mode").GetString());
-        Assert.DoesNotContain(Erreurs(mep), e => e.StartsWith("Sauvegarde pendant"));
+        Assert.Contains("Sauvegarde de BDD pendant la MEP : ajouter une étape de déploiement de type Sauvegarde sur ce système.", Erreurs(mep));
+        var bdd = mep.GetProperty("systemes").EnumerateArray().Single(s => s.GetProperty("nom").GetString() == "BDD").GetProperty("id").GetGuid();
+        mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/systemes/{bdd}/sauvegarde",
+            new { version = Version(mep), statut = "Requise", moment = "AvantMep", contenu = "pg_dump", justification = "" }));
+        Assert.DoesNotContain(Erreurs(mep), e => e.StartsWith("Sauvegarde"));
 
         var repli = await alice.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "R0001")}", Saisie(mep, "R0001", "Sauvegarde", false, []));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, repli.StatusCode);
@@ -435,8 +360,8 @@ public class ApiJalon3Tests : IDisposable
         Assert.Equal(HttpStatusCode.UnprocessableEntity,
             (await alice.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "R0001")}", Saisie(mep, "R0001", "Standard", true, []))).StatusCode);
         mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { action = "Sauvegarde finale", type = "Sauvegarde", pointDeNonRetour = true }));
-        Assert.Equal("Sauvegarde", Etape(mep, "E0006").GetProperty("type").GetString());
-        Assert.True(Etape(mep, "E0006").GetProperty("pointDeNonRetour").GetBoolean());
+        Assert.Equal("Sauvegarde", Etape(mep, "E0010").GetProperty("type").GetString());
+        Assert.True(Etape(mep, "E0010").GetProperty("pointDeNonRetour").GetBoolean());
     }
 
     // ---------- Pièces jointes ----------
@@ -504,7 +429,8 @@ public class ApiJalon3Tests : IDisposable
         mep = await AidesApi.Go(_api, alice, id);
         mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/retour-arriere", new { motif = "Exercice" }));
         mep = await Reussir(bob, id, mep, "R0001", "rétablie");
-        mep = await Reussir(claire, id, mep, "R0002", "Service 1.0 OK");
+        mep = await Reussir(alice, id, mep, "R0002", "Base restaurée");
+        mep = await Reussir(claire, id, mep, "R0003", "Service 1.0 OK");
         mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { ceQuiAMarche = "Le repli", incidents = "Rien à signaler" }));
         var apres = await alice.PostAsync($"/api/meps/{id}/pieces-jointes", Fichier("tard.txt", [1]));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, apres.StatusCode);
