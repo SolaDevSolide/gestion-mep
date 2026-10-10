@@ -7,6 +7,7 @@ import { etape, mep } from '../test/fabrique';
 import type { Mep, ResolutionType } from '../types';
 import { TooltipProvider } from '../ui/Tooltip';
 import { EtapesEditeur } from './EtapesEditeur';
+import { changerModeEspace } from './graphe/EspaceEtape';
 
 const res = (id: string, titre: string, systemeCatalogueIds: string[], symptomes = ''): ResolutionType => ({
   id, titre, symptomes, diagnostic: '', systemeCatalogueIds, corrections: [], verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-10T10:00:00Z',
@@ -74,7 +75,7 @@ function rendre(m: Mep) {
 const carte = (nom: RegExp) => screen.getByRole('button', { name: nom });
 
 describe('EtapesEditeur : graphe en préparation', () => {
-  beforeEach(() => { vi.clearAllMocks(); window.localStorage.clear(); });
+  beforeEach(() => { vi.clearAllMocks(); window.localStorage.clear(); changerModeEspace('plein'); });
 
   it('affiche les lignes, la barrière du point de non-retour, les blocs fantômes et les contrôles de vue', async () => {
     rendre(planExemple());
@@ -137,6 +138,19 @@ describe('EtapesEditeur : graphe en préparation', () => {
       expect(within(espace).getByRole('heading', { name: t })).toBeInTheDocument();
     }
     expect(within(espace).getByText(/À compléter : la criticité, le résultat attendu\./)).toBeInTheDocument();
+  });
+
+  it('bascule plein écran / panneau latéral, mémorisée', async () => {
+    rendre(planExemple());
+    await userEvent.click(carte(/^E0003/));
+    await userEvent.click(screen.getByRole('button', { name: 'Afficher en panneau latéral' }));
+    expect(window.localStorage.getItem('mep.espace.mode')).toBe('panneau');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    // Panneau : le graphe reste utilisable (pas de surcouche modale), une autre fiche s'ouvre d'un clic.
+    await userEvent.click(screen.getAllByRole('button', { name: /^E0001/ })[0]);
+    expect(screen.getByLabelText('Action')).toHaveValue('Sauvegarde BDD');
+    await userEvent.click(screen.getByRole('button', { name: 'Afficher en plein écran' }));
+    expect(window.localStorage.getItem('mep.espace.mode')).toBe('plein');
   });
 
   it('fermer avec des modifications non enregistrées : garde', async () => {

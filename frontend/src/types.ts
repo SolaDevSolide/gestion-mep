@@ -142,6 +142,8 @@ export interface Etape {
   instructions: string;
   resultatAttendu: string;
   preuve: string;
+  /** Commentaire facultatif de l’exécutant (modifiable pendant l’exécution). */
+  commentaire: string;
   debutReel: string | null;
   finReelle: string | null;
   revision: number;

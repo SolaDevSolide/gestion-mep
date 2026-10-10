@@ -28,7 +28,7 @@ public record DisponibiliteDto(StatutDisponibilite Statut, string Libelle);
 /// <summary><c>Ligne</c> : ligne du graphe (0 en haut) ; <c>Ordre</c> : position dans la ligne (0 à gauche).</summary>
 public record EtapeDto(Guid Id, TypePlan Plan, string Code, int Ligne, int Ordre, string Action, List<Guid> SystemeIds, Guid? ResponsableId, Guid? ExecutantId,
     Criticite? Criticite, int? DureeEstimeeMinutes,
-    EtatEtape Etat, string Instructions, string ResultatAttendu, string Preuve, DateTimeOffset? DebutReel, DateTimeOffset? FinReelle,
+    EtatEtape Etat, string Instructions, string ResultatAttendu, string Preuve, string Commentaire, DateTimeOffset? DebutReel, DateTimeOffset? FinReelle,
     int Revision, List<Guid> Dependances, List<Guid> ResolutionIds, DisponibiliteDto Disponibilite,
     TypeEtape Type, bool PointDeNonRetour, ValidationDto? NonRetourAutorise);
 
@@ -103,7 +103,8 @@ public record RevisionSaisie(int? Revision);
 public record PriseDeMainSaisie(int? Revision, string? Motif);
 public record ResponsableTechniqueSaisie(Guid? ParticipantId, List<Guid>? SystemeIds, string? Perimetre, DisponibiliteJourJ? Disponibilite, string? ContactJourJ);
 public record ResponsablesTechniquesSaisie(int? Version, List<ResponsableTechniqueSaisie>? Responsables);
-public record TerminerSaisie(int? Revision, EtatEtape? Resultat, string? Preuve, bool ResultatVerifie);
+public record TerminerSaisie(int? Revision, EtatEtape? Resultat, string? Preuve, bool ResultatVerifie, string? Commentaire = null);
+public record CommentaireSaisie(int? Revision, string? Commentaire);
 public record ProcedureRelueSaisie(bool Relue);
 public record PhaseSaisie(Phase? Phase, List<Guid>? CriteresCoches = null);
 public record NoGoSaisie(string? Motif);
