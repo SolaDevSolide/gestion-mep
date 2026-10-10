@@ -27,7 +27,7 @@ Deux projets dans `backend/src`, testés par `backend/tests/GestionMep.Tests`.
 Aucune dépendance vers ASP.NET ni EF Core.
 
 - `Modele.cs` : entités (`Mep`, `Etape`, `Participant`, `Systeme`, `ResolutionType`, `FicheRecette`, `Approbation`…) et énumérations.
-- `Regles.cs` : toutes les règles, en fonctions statiques pures. Elles reprennent les macros VBA du modèle Excel d'origine (disponibilité d'une étape, validité du graphe, vérification du plan, transitions), complétées par les jalons suivants (approbations, go / no-go, point de non-retour, recette, retour arrière, résolutions types, duplication, graphe par lignes).
+- `Regles.cs` et `Regles.*.cs` : toutes les règles, en fonctions statiques pures d'une même classe partielle, un fichier par domaine (`Regles.Graphe.cs`, `Regles.Disponibilite.cs`, `Regles.Droits.cs`, `Regles.Phases.cs`, `Regles.Recette.cs`, `Regles.Resolutions.cs`…). Elles reprennent les macros VBA du modèle Excel d'origine (disponibilité d'une étape, validité du graphe, vérification du plan, transitions), complétées par les jalons suivants (approbations, go / no-go, point de non-retour, recette, retour arrière, résolutions types, duplication, graphe par lignes).
 - Un refus lève `RegleMetierException` avec un message en français destiné à l'utilisateur. L'API le traduit en **422**.
 - L'heure courante est toujours passée en paramètre (`maintenant`) : les règles se testent sans horloge.
 - `DonneesDemo.cs` : jeu de démonstration (comptes `alice`, `bob`, `claire`, MEP d'exemple).

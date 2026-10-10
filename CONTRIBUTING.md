@@ -48,7 +48,7 @@ La CI lance les mêmes vérifications sur chaque pull request.
 
 ### Back-end
 
-- **Une règle métier va dans `Regles.cs`** (`GestionMep.Domain`), en fonction statique pure qui lève `RegleMetierException` (traduite en 422). Un handler ne contient pas de règle métier : il charge, vérifie les droits et la version, appelle `Regles`, puis enregistre.
+- **Une règle métier va dans `Regles`** (`GestionMep.Domain`, un fichier `Regles.<Domaine>.cs` par domaine), en fonction statique pure qui lève `RegleMetierException` (traduite en 422). Un handler ne contient pas de règle métier : il charge, vérifie les droits et la version, appelle `Regles`, puis enregistre.
 - L'heure courante passe par `TimeProvider` côté API et par un paramètre `maintenant` côté domaine.
 - Toute écriture passe par `ServiceMep.Enregistrer` (version, journal, notification temps réel). Une modification du contenu en préparation passe par `EnregistrerContenu`, qui remet les approbations à zéro.
 - Les codes d'étape (`E0001`, `R0001`) ne sont jamais renumérotés.
