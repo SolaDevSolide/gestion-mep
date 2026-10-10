@@ -15,6 +15,7 @@ flowchart LR
     app --> db[(PostgreSQL 16<br/>conteneur « db »)]
     app --> pj[/volume « pieces-jointes »/]
     app --> cles[/volume « cles »<br/>clés du cookie de session/]
+    app --> sauv[/volume « sauvegardes »<br/>copies avant mise à jour ou import/]
 ```
 
 - **Une seule image Docker** contient l'API et le front déjà construit : l'API sert les fichiers statiques et renvoie `index.html` pour toute route qui n'est pas sous `/api`.
