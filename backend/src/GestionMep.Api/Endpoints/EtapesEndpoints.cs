@@ -11,20 +11,25 @@ namespace GestionMep.Api.Endpoints;
 
 public static class EtapesEndpoints
 {
-    /// <summary>Applique les champs de la fiche (sans la révision) ; les dépendances passent par <see cref="Regles.DefinirDependances"/>.</summary>
-    private static void Appliquer(Mep mep, Etape e, EtapeSaisie c, List<Guid> resolutionIds)
+    /// <summary>
+    /// Applique les champs de la fiche (sans la révision ni la place dans le graphe) ; les dépendances passent par
+    /// <see cref="Regles.DefinirDependances"/>, sauf si <paramref name="dependances"/> vaut null (inchangées).
+    /// </summary>
+    private static void Appliquer(Mep mep, Etape e, EtapeSaisie c, List<Guid> resolutionIds, List<Guid>? dependances)
     {
-        ServiceMep.ExigerSystemeExistant(mep, c.SystemeId);
+        var systemes = ServiceMep.ValiderSystemeIds(mep, c.SystemeIds);
         if (c.ResponsableId is not null) ServiceMep.TrouverParticipant(mep, c.ResponsableId, "Responsable");
+        if (c.DureeEstimeeMinutes is < 0) throw ErreurHttp.Saisie("La durée estimée ne peut pas être négative.");
         e.Action = ServiceMep.Texte(c.Action);
-        e.SystemeId = c.SystemeId;
+        e.SystemeIds = systemes;
         e.ResponsableId = c.ResponsableId;
         e.Criticite = c.Criticite;
+        e.DureeEstimeeMinutes = c.DureeEstimeeMinutes;
         e.Instructions = ServiceMep.Texte(c.Instructions);
         e.ResultatAttendu = ServiceMep.Texte(c.ResultatAttendu);
         e.ResolutionIds = resolutionIds;
         Regles.DefinirType(e, c.Type ?? TypeEtape.Standard, c.PointDeNonRetour);
-        Regles.DefinirDependances(mep, e, c.Dependances ?? []);
+        if (dependances is not null) Regles.DefinirDependances(mep, e, dependances);
     }
 
     public static void MapEtapes(this RouteGroupBuilder api)
@@ -36,19 +41,23 @@ public static class EtapesEndpoints
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var plan = c?.Plan ?? TypePlan.Deploiement;
-            var memePlan = mep.EtapesDu(plan).ToList();
+            var nbLignes = Regles.Lignes(mep, plan).Count;
+            if (c?.Ligne is { } l && (l < 0 || l > nbLignes)) throw ErreurHttp.Saisie($"Ligne invalide : entre 0 et {nbLignes} (nouvelle ligne en bas).");
+            if (c?.Position is < 0) throw ErreurHttp.Saisie("La position ne peut pas être négative.");
             var etape = new Etape
             {
                 MepId = mep.Id,
                 Plan = plan,
                 Code = Regles.ProchainCode(mep.Etapes, plan),
-                // L'ordre est propre à chaque plan.
-                Ordre = memePlan.Count == 0 ? 1 : memePlan.Max(e => e.Ordre) + 1,
                 Criticite = Criticite.Moderee,
             };
+            // Ligne absente : nouvelle ligne en bas ; position absente : en fin de ligne.
+            Regles.PlacerNouvelle(mep, etape, c?.Ligne, c?.Position);
             mep.Etapes.Add(etape);
             if (c is not null)
-                Appliquer(mep, etape, c with { Criticite = c.Criticite ?? Criticite.Moderee }, await svc.ValiderResolutionIds(c.ResolutionIds, []));
+                Appliquer(mep, etape, c with { Criticite = c.Criticite ?? Criticite.Moderee }, await svc.ValiderResolutionIds(c.ResolutionIds, []), c.Dependances);
+            // Sans dépendances explicites : liens par défaut avec la ligne au-dessus et la ligne en dessous.
+            if (c?.Dependances is null) Regles.RelierParDefaut(mep, etape);
             var dto = await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "etape.creee", $"{etape.Code} créée");
             return Results.Ok(dto);
         });
@@ -60,7 +69,8 @@ public static class EtapesEndpoints
             Regles.ExigerPreparation(mep);
             var e = ServiceMep.TrouverEtape(mep, eid);
             ServiceMep.ExigerRevision(e, c.Revision);
-            Appliquer(mep, e, c, await svc.ValiderResolutionIds(c.ResolutionIds, e.ResolutionIds));
+            // Ni la ligne ni la position ne changent ici (voir « placer ») ; dependances absentes = aucun préalable.
+            Appliquer(mep, e, c, await svc.ValiderResolutionIds(c.ResolutionIds, e.ResolutionIds), c.Dependances ?? []);
             e.Revision++;
             return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "etape.modifiee", $"{e.Code} modifiée"));
         });
@@ -71,10 +81,10 @@ public static class EtapesEndpoints
             var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             var e = ServiceMep.TrouverEtape(mep, eid);
-            Regles.VerifierSuppression(mep, e);
+            // Ses suivants restés sans préalable attendent la ligne au-dessus d'eux ; une ligne vide disparaît.
+            Regles.RetirerEtape(mep, e);
             var executions = mep.Resolutions.Where(r => r.EtapeId == e.Id).Select(r => (Guid?)r.Id).ToList();
             var pieces = await db.PiecesJointes.Where(p => p.EtapeId == e.Id || executions.Contains(p.ExecutionResolutionId)).Select(p => p.Id).ToListAsync();
-            mep.Etapes.Remove(e);
             db.Etapes.Remove(e);
             // Les exécutions de résolution de cette étape (restes d'une exécution annulée) partent avec elle.
             foreach (var r in mep.Resolutions.Where(r => r.EtapeId == e.Id).ToList())
@@ -87,24 +97,20 @@ public static class EtapesEndpoints
             return Results.Ok(dto);
         });
 
-        api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/deplacer", async (Guid id, Guid eid, DeplacerSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        // Déplacement dans le graphe (glisser-déposer) : pas de révision exigée, la place n'est pas dans la fiche.
+        api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/placer", async (Guid id, Guid eid, PlacerSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
-            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
+            ServiceMep.ExigerEditeur(mep, acteur);
             Regles.ExigerPreparation(mep);
             var e = ServiceMep.TrouverEtape(mep, eid);
-            var sens = (c.Sens ?? "").ToLowerInvariant();
-            if (sens is not ("haut" or "bas")) throw ErreurHttp.Saisie("Sens attendu : haut ou bas.");
-
-            var ordonnees = mep.EtapesDu(e.Plan).ToList(); // le déplacement reste à l'intérieur du plan de l'étape
-            var i = ordonnees.IndexOf(e);
-            var j = sens == "haut" ? i - 1 : i + 1;
-            if (j < 0 || j >= ordonnees.Count) return Results.Ok(await svc.VersDto(mep, acteur.Id)); // déjà en bout de liste
-            ordonnees.RemoveAt(i);
-            ordonnees.Insert(j, e);
-            for (var k = 0; k < ordonnees.Count; k++) ordonnees[k].Ordre = k + 1;
-            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "etape.deplacee", $"{e.Code} déplacée vers le {(sens == "haut" ? "haut" : "bas")}"));
+            var nbLignes = Regles.Lignes(mep, e.Plan).Count;
+            if (c.Ligne is not { } ligne || ligne < 0 || ligne > nbLignes)
+                throw ErreurHttp.Saisie($"Ligne obligatoire : entre 0 et {nbLignes} (nouvelle ligne en bas).");
+            if (c.Position is not { } position || position < 0) throw ErreurHttp.Saisie("Position obligatoire, positive ou nulle.");
+            Regles.Placer(mep, e, ligne, position, c.LiensParDefaut);
+            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "etape.deplacee", $"{e.Code} placée ligne {e.Ligne + 1}"));
         });
 
         // ---------- Prise de main ----------

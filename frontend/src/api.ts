@@ -1,5 +1,5 @@
 import type {
-  BilanSaisie, CritereGoNoGo, CritereGoNoGoSaisie, DecisionApprobation, DuplicationSaisie, ParametresGlobaux, PieceJointe, TestRecetteSaisie,
+  BilanSaisie, CritereGoNoGo, CritereGoNoGoSaisie, DecisionApprobation, DuplicationSaisie, ParametresGlobaux, PieceJointe, FicheRecetteSaisie, ProfilSaisie, SauvegardeSystemeSaisie,
   Evenement, EtapeSaisie, LivrableSaisie, Mep, MepIdentiteSaisie, MepResume, ParticipantSaisie,
   PlanRepliSaisie, ResolutionType, ResolutionTypeSaisie, ResultatControle, SauvegardeSaisie,
   ResponsableTechniqueSaisie, SystemeCatalogue, SystemeCatalogueSaisie, SystemeSaisie, TypePlan, Utilisateur,
@@ -74,6 +74,7 @@ export const api = {
   deconnexion: () => post<void>('/auth/deconnexion'),
   moi: () => get<Utilisateur>('/auth/moi'),
   utilisateurs: () => get<Utilisateur[]>('/utilisateurs'),
+  modifierMonProfil: (s: ProfilSaisie) => put<Utilisateur>('/utilisateurs/moi/profil', s),
 
   meps: (modele?: boolean) => get<MepResume[]>(`/meps${modele === undefined ? '' : `?modele=${modele}`}`),
   creerMep: (outil: string, objet: string) => post<Mep>('/meps', { outil, objet }),
@@ -88,16 +89,21 @@ export const api = {
   ajouterSysteme: (id: string, s: SystemeSaisie) => post<Mep>(`/meps/${id}/systemes`, s),
   modifierSysteme: (id: string, sid: string, s: SystemeSaisie) => put<Mep>(`/meps/${id}/systemes/${sid}`, s),
   supprimerSysteme: (id: string, sid: string) => del<Mep>(`/meps/${id}/systemes/${sid}`),
+  modifierSauvegardeSysteme: (id: string, sid: string, s: SauvegardeSystemeSaisie) => put<Mep>(`/meps/${id}/systemes/${sid}/sauvegarde`, s),
   ajouterLivrable: (id: string, s: LivrableSaisie) => post<Mep>(`/meps/${id}/livrables`, s),
   modifierLivrable: (id: string, lid: string, s: LivrableSaisie) => put<Mep>(`/meps/${id}/livrables/${lid}`, s),
   supprimerLivrable: (id: string, lid: string) => del<Mep>(`/meps/${id}/livrables/${lid}`),
 
-  ajouterEtape: (id: string, plan: TypePlan = 'Deploiement') => post<Mep>(`/meps/${id}/etapes`, { plan }),
+  /** Création : `ligne` absente = nouvelle ligne en bas, `position` absente = en fin de ligne ; liens par défaut calculés par le serveur. */
+  ajouterEtape: (id: string, plan: TypePlan = 'Deploiement', ligne?: number, position?: number) =>
+    post<Mep>(`/meps/${id}/etapes`, { plan, ...(ligne === undefined ? {} : { ligne }), ...(position === undefined ? {} : { position }) }),
+  /** Place une étape (ligne, position dans la ligne) ; `ligne` = nombre de lignes pour une nouvelle ligne en bas. */
+  placerEtape: (id: string, eid: string, ligne: number, position: number, liensParDefaut = true) =>
+    post<Mep>(`/meps/${id}/etapes/${eid}/placer`, { ligne, position, liensParDefaut }),
   autoriserNonRetour: (id: string, eid: string, revision: number) =>
     post<Mep>(`/meps/${id}/etapes/${eid}/autoriser-non-retour`, { revision }),
   modifierEtape: (id: string, eid: string, s: EtapeSaisie) => put<Mep>(`/meps/${id}/etapes/${eid}`, s),
   supprimerEtape: (id: string, eid: string) => del<Mep>(`/meps/${id}/etapes/${eid}`),
-  deplacerEtape: (id: string, eid: string, sens: 'haut' | 'bas') => post<Mep>(`/meps/${id}/etapes/${eid}/deplacer`, { sens }),
   demarrerEtape: (id: string, eid: string, revision: number) => post<Mep>(`/meps/${id}/etapes/${eid}/demarrer`, { revision }),
   terminerEtape: (id: string, eid: string, revision: number, resultat: 'Reussie' | 'Echec', preuve: string, resultatVerifie: boolean) =>
     post<Mep>(`/meps/${id}/etapes/${eid}/terminer`, { revision, resultat, preuve, resultatVerifie }),
@@ -127,13 +133,13 @@ export const api = {
   decider: (id: string, version: number, decision: DecisionApprobation, commentaire: string) =>
     post<Mep>(`/meps/${id}/approbation`, { version, decision, commentaire }),
 
-  ajouterTestRecette: (id: string, s: TestRecetteSaisie) => post<Mep>(`/meps/${id}/tests-recette`, s),
-  modifierTestRecette: (id: string, tid: string, s: TestRecetteSaisie) => put<Mep>(`/meps/${id}/tests-recette/${tid}`, s),
-  supprimerTestRecette: (id: string, tid: string) => del<Mep>(`/meps/${id}/tests-recette/${tid}`),
-  deplacerTestRecette: (id: string, tid: string, sens: 'haut' | 'bas') => post<Mep>(`/meps/${id}/tests-recette/${tid}/deplacer`, { sens }),
-  resultatTestRecette: (id: string, tid: string, resultat: ResultatControle, observation: string) =>
-    post<Mep>(`/meps/${id}/tests-recette/${tid}/resultat`, { resultat, observation }),
-  refaireTestRecette: (id: string, tid: string) => post<Mep>(`/meps/${id}/tests-recette/${tid}/refaire`, {}),
+  ajouterFicheRecette: (id: string, systemeId: string | null, titre: string) => post<Mep>(`/meps/${id}/fiches-recette`, { systemeId, titre }),
+  modifierFicheRecette: (id: string, fid: string, s: FicheRecetteSaisie) => put<Mep>(`/meps/${id}/fiches-recette/${fid}`, s),
+  supprimerFicheRecette: (id: string, fid: string) => del<Mep>(`/meps/${id}/fiches-recette/${fid}`),
+  resultatEtapeTest: (id: string, fid: string, tid: string, resultat: ResultatControle, observation: string) =>
+    post<Mep>(`/meps/${id}/fiches-recette/${fid}/etapes/${tid}/resultat`, { resultat, observation }),
+  refaireFicheRecette: (id: string, fid: string) => post<Mep>(`/meps/${id}/fiches-recette/${fid}/refaire`, {}),
+  refaireEtapeTest: (id: string, fid: string, tid: string) => post<Mep>(`/meps/${id}/fiches-recette/${fid}/etapes/${tid}/refaire`, {}),
 
   // Pièces jointes : MEP, étape, résolution exécutée, résolution type.
   deposerPieceMep: (id: string, f: File) => post<Mep>(`/meps/${id}/pieces-jointes`, formulaireFichier(f)),

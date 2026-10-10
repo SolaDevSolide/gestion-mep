@@ -98,7 +98,7 @@ public static class Regles
             }
         }
 
-        if (string.IsNullOrWhiteSpace(etape.Action) || etape.SystemeId is null || etape.ResponsableId is null || etape.Criticite is null)
+        if (string.IsNullOrWhiteSpace(etape.Action) || etape.SystemeIds.Count == 0 || etape.ResponsableId is null || etape.Criticite is null)
             return new(StatutDisponibilite.FicheACompleter, "Fiche à compléter");
         if (string.IsNullOrWhiteSpace(etape.Instructions) || string.IsNullOrWhiteSpace(etape.ResultatAttendu))
             return new(StatutDisponibilite.InstructionsACompleter, "Instructions à compléter");
@@ -142,7 +142,7 @@ public static class Regles
 
     /// <summary>
     /// Anomalies du contenu de la MEP. Ajouts par rapport à l'Excel : procédure relue, comptes reliés,
-    /// plan de retour arrière obligatoire, étape de sauvegarde et tests de recette.
+    /// plan de retour arrière obligatoire, sauvegarde de chaque système et fiches de recette.
     /// </summary>
     public static List<string> ErreursContenu(Mep mep, DateTimeOffset maintenant)
     {
@@ -162,14 +162,13 @@ public static class Regles
         if (!mep.EtapesDu(TypePlan.Deploiement).Any()) erreurs.Add("Ajouter au moins une étape de déploiement.");
         if (!mep.EtapesDu(TypePlan.RetourArriere).Any()) erreurs.Add("Ajouter au moins une étape de retour arrière.");
         if (string.IsNullOrWhiteSpace(mep.PlanRepli.QuandDeclencher)) erreurs.Add("Retour arrière : préciser quand le déclencher.");
-        if (mep.Sauvegarde.Mode == ModeSauvegarde.PendantMep && !mep.EtapesDu(TypePlan.Deploiement).Any(e => e.Type == TypeEtape.Sauvegarde))
-            erreurs.Add("Sauvegarde pendant la MEP : indiquer l'étape de déploiement de type Sauvegarde.");
+        erreurs.AddRange(ErreursSauvegarde(mep));
 
-        foreach (var e in mep.Etapes.OrderBy(e => e.Plan).ThenBy(e => e.Ordre))
+        foreach (var e in mep.EtapesTriees())
         {
             var manquants = new List<string>();
             if (string.IsNullOrWhiteSpace(e.Action)) manquants.Add("Action");
-            if (e.SystemeId is null) manquants.Add("Système");
+            if (e.SystemeIds.Count == 0) manquants.Add("Système");
             if (e.ResponsableId is null) manquants.Add("Responsable");
             if (e.Criticite is null) manquants.Add("Criticité");
             if (string.IsNullOrWhiteSpace(e.Instructions)) manquants.Add("Instructions exactes");
@@ -182,26 +181,60 @@ public static class Regles
                 erreurs.Add($"{e.Code} : le responsable {responsable.Nom} n'est relié à aucun compte.");
         }
 
-        if (mep.TestsRecette.Count == 0) erreurs.Add("Ajouter au moins un test de recette.");
-        foreach (var t in mep.TestsRecette.OrderBy(t => t.Ordre))
-        {
-            var manquants = new List<string>();
-            if (string.IsNullOrWhiteSpace(t.Libelle)) manquants.Add("Libellé");
-            if (string.IsNullOrWhiteSpace(t.ResultatAttendu)) manquants.Add("Résultat attendu");
-            var responsable = mep.Participants.FirstOrDefault(p => p.Id == t.ResponsableId);
-            if (responsable is null) manquants.Add("Responsable");
-            if (manquants.Count > 0) erreurs.Add($"Test de recette {t.Ordre} : compléter {string.Join(", ", manquants)}.");
-            if (responsable is { UtilisateurId: null })
-                erreurs.Add($"Test de recette {t.Ordre} : le responsable {responsable.Nom} n'est relié à aucun compte.");
-        }
+        erreurs.AddRange(ErreursRecette(mep));
 
         if (mep.ProcedureRelueParId is null) erreurs.Add("La procédure doit être relue par un opérateur.");
         return erreurs;
     }
 
+    /// <summary>Sauvegarde de chaque système : statut renseigné, justification si non requise, étape de type Sauvegarde si faite pendant la MEP.</summary>
+    public static List<string> ErreursSauvegarde(Mep mep)
+    {
+        var erreurs = new List<string>();
+        foreach (var s in mep.Systemes)
+        {
+            var sv = s.Sauvegarde;
+            switch (sv.Statut)
+            {
+                case StatutSauvegarde.ARenseigner:
+                    erreurs.Add($"Sauvegarde : indiquer si {s.Nom} doit être sauvegardé.");
+                    break;
+                case StatutSauvegarde.NonRequise when string.IsNullOrWhiteSpace(sv.Justification):
+                    erreurs.Add($"Sauvegarde de {s.Nom} non requise : justifier.");
+                    break;
+                case StatutSauvegarde.Requise when sv.Moment == ModeSauvegarde.PendantMep
+                    && !mep.EtapesDu(TypePlan.Deploiement).Any(e => e.Type == TypeEtape.Sauvegarde && e.SystemeIds.Contains(s.Id)):
+                    erreurs.Add($"Sauvegarde de {s.Nom} pendant la MEP : ajouter une étape de déploiement de type Sauvegarde sur ce système.");
+                    break;
+            }
+        }
+        return erreurs;
+    }
+
+    /// <summary>Nom d'une fiche de recette dans les messages : « Recette « Titre » » ou « Recette 2 » sans titre.</summary>
+    public static string NomRecette(FicheRecette f) =>
+        string.IsNullOrWhiteSpace(f.Titre) ? $"Recette {f.Ordre}" : $"Recette « {f.Titre} »";
+
+    /// <summary>Fiches de recette : au moins une, chacune titrée avec au moins une étape complète.</summary>
+    public static List<string> ErreursRecette(Mep mep)
+    {
+        var erreurs = new List<string>();
+        if (mep.FichesRecette.Count == 0) erreurs.Add("Ajouter au moins une fiche de recette.");
+        foreach (var f in mep.FichesRecette.OrderBy(f => f.Ordre))
+        {
+            if (string.IsNullOrWhiteSpace(f.Titre)) erreurs.Add($"{NomRecette(f)} : indiquer un titre.");
+            if (f.Etapes.Count == 0) erreurs.Add($"{NomRecette(f)} : ajouter au moins une étape de test.");
+            foreach (var t in f.Etapes.OrderBy(t => t.Ordre))
+                if (string.IsNullOrWhiteSpace(t.Instructions) || string.IsNullOrWhiteSpace(t.ResultatAttendu))
+                    erreurs.Add($"{NomRecette(f)}, étape {t.Ordre} : compléter les instructions et le résultat attendu.");
+        }
+        return erreurs;
+    }
+
     /// <summary>
-    /// Avertissements non bloquants du plan (ils ne figurent pas dans <see cref="ErreursPlan"/>) : pilote également responsable
-    /// technique, responsable technique absent dont les étapes ne sont pas reprenables par un autre, aucun responsable technique.
+    /// Avertissements non bloquants du plan (ils ne figurent pas dans <see cref="ErreursPlan"/>) : aucun responsable technique,
+    /// pilote également responsable technique, responsable technique absent dont les étapes ne sont pas reprenables par un autre,
+    /// aucun système sauvegardé, système sans fiche de recette.
     /// </summary>
     public static List<string> Avertissements(Mep mep)
     {
@@ -209,23 +242,27 @@ public static class Regles
         string Nom(Guid id) => mep.Participants.FirstOrDefault(p => p.Id == id)?.Nom ?? "Un responsable technique";
 
         if (mep.ResponsablesTechniques.Count == 0)
-        {
             avertissements.Add("Aucun responsable technique renseigné.");
-            return avertissements;
+        else
+        {
+            if (mep.PiloteId is { } pilote && mep.ResponsablesTechniques.Any(r => r.ParticipantId == pilote))
+                avertissements.Add($"{Nom(pilote)} est à la fois responsable technique et pilote : prévoir un suppléant qui connaît le plan.");
+
+            foreach (var r in mep.ResponsablesTechniques.Where(r => r.Disponibilite == DisponibiliteJourJ.Absent))
+                foreach (var e in mep.EtapesTriees())
+                {
+                    var concernee = e.ResponsableId == r.ParticipantId || e.SystemeIds.Any(r.SystemeIds.Contains);
+                    if (!concernee) continue;
+                    var reprenable = !string.IsNullOrWhiteSpace(e.Instructions) && !string.IsNullOrWhiteSpace(e.ResultatAttendu) && e.ResolutionIds.Count > 0;
+                    if (!reprenable)
+                        avertissements.Add($"{e.Code} : {Nom(r.ParticipantId)} sera absent, ajouter une résolution type pour que quelqu'un d'autre puisse la reprendre.");
+                }
         }
 
-        if (mep.PiloteId is { } pilote && mep.ResponsablesTechniques.Any(r => r.ParticipantId == pilote))
-            avertissements.Add($"{Nom(pilote)} est à la fois responsable technique et pilote : prévoir un suppléant qui connaît le plan.");
-
-        foreach (var r in mep.ResponsablesTechniques.Where(r => r.Disponibilite == DisponibiliteJourJ.Absent))
-            foreach (var e in mep.Etapes.OrderBy(e => e.Plan).ThenBy(e => e.Ordre))
-            {
-                var concernee = e.ResponsableId == r.ParticipantId || (e.SystemeId is { } s && r.SystemeIds.Contains(s));
-                if (!concernee) continue;
-                var reprenable = !string.IsNullOrWhiteSpace(e.Instructions) && !string.IsNullOrWhiteSpace(e.ResultatAttendu) && e.ResolutionIds.Count > 0;
-                if (!reprenable)
-                    avertissements.Add($"{e.Code} : {Nom(r.ParticipantId)} sera absent, ajouter une résolution type pour que quelqu'un d'autre puisse la reprendre.");
-            }
+        if (mep.Systemes.Count > 0 && mep.Systemes.All(s => s.Sauvegarde.Statut == StatutSauvegarde.NonRequise))
+            avertissements.Add("Aucun système n'est sauvegardé.");
+        foreach (var s in mep.Systemes.Where(s => mep.FichesRecette.All(f => f.SystemeId != s.Id)))
+            avertissements.Add($"Aucune recette pour le système {s.Nom}.");
         return avertissements;
     }
 
@@ -417,7 +454,7 @@ public static class Regles
     }
 
     /// <summary>
-    /// Clôture par le pilote : MEP réussie depuis la recette quand tous les tests sont conformes,
+    /// Clôture par le pilote : MEP réussie depuis la recette quand toutes les étapes de test sont conformes,
     /// ou service rétabli quand tout le retour arrière est réussi. Si le bilan est activé, il est obligatoire.
     /// </summary>
     public static void Cloturer(Mep mep, Guid utilisateurId, DateTimeOffset maintenant, Bilan? bilan = null)
@@ -429,9 +466,12 @@ public static class Regles
             case Phase.Execution:
                 throw new RegleMetierException("Passer d'abord en recette : la clôture réussie se fait après les tests de recette.");
             case Phase.Recette:
-                var test = mep.TestsRecette.OrderBy(t => t.Ordre).FirstOrDefault(t => t.Resultat != ResultatControle.Conforme);
-                if (test is not null)
-                    throw new RegleMetierException($"Test de recette {test.Ordre} « {test.Libelle} » non conforme : clôture impossible.");
+                foreach (var f in mep.FichesRecette.OrderBy(f => f.Ordre))
+                {
+                    var test = f.Etapes.OrderBy(t => t.Ordre).FirstOrDefault(t => t.Resultat != ResultatControle.Conforme);
+                    if (test is not null)
+                        throw new RegleMetierException($"{NomRecette(f)}, étape {test.Ordre} non conforme : clôture impossible.");
+                }
                 issue = IssueMep.Reussie;
                 break;
             case Phase.RetourArriere:
@@ -552,32 +592,124 @@ public static class Regles
 
     // ---------- Recette ----------
 
-    /// <summary>Résultat d'un test de recette : par son responsable ou le pilote ; observation obligatoire.</summary>
-    public static void ValiderTestRecette(Mep mep, TestRecette test, ResultatControle resultat, string observation, Guid utilisateurId, DateTimeOffset maintenant)
+    /// <summary>Nouvelle fiche de recette vide, ajoutée en fin (préparation uniquement). Le système doit appartenir à la MEP.</summary>
+    public static FicheRecette AjouterFicheRecette(Mep mep, Guid? systemeId, string titre)
     {
-        var responsable = mep.Participants.Any(p => p.Id == test.ResponsableId && p.UtilisateurId == utilisateurId);
-        if (!responsable && !EstPilote(mep, utilisateurId))
-            throw new RegleMetierException("Seul le responsable du test ou le pilote peut en donner le résultat.");
-        if (mep.Phase != Phase.Recette) throw new RegleMetierException("Les tests de recette se valident en phase de recette.");
-        if (test.Resultat is not null) throw new RegleMetierException($"Test {test.Ordre} déjà validé : le pilote peut le faire refaire.");
+        ExigerPreparation(mep);
+        ExigerSystemeDeLaMep(mep, systemeId);
+        var fiche = new FicheRecette
+        {
+            Ordre = mep.FichesRecette.Count == 0 ? 1 : mep.FichesRecette.Max(f => f.Ordre) + 1,
+            SystemeId = systemeId, Titre = (titre ?? "").Trim(),
+        };
+        // Nouvelle liste : la colonne jsonb est réécrite.
+        mep.FichesRecette = [.. mep.FichesRecette, fiche];
+        return fiche;
+    }
+
+    /// <summary>
+    /// Remplace le contenu d'une fiche de recette : les étapes reçues avec un identifiant connu gardent leur identité
+    /// (et leur résultat éventuel), les autres sont créées ; l'ordre est celui reçu.
+    /// </summary>
+    public static void ModifierFicheRecette(Mep mep, FicheRecette fiche, Guid? systemeId, string titre,
+        IEnumerable<(Guid? Id, string Instructions, string ResultatAttendu)> etapes)
+    {
+        ExigerPreparation(mep);
+        ExigerSystemeDeLaMep(mep, systemeId);
+        var anciennes = fiche.Etapes.ToDictionary(t => t.Id);
+        var vues = new HashSet<Guid>();
+        var nouvelles = new List<EtapeTest>();
+        foreach (var (id, instructions, attendu) in etapes)
+        {
+            var t = id is { } i && anciennes.TryGetValue(i, out var existante) && vues.Add(i) ? existante : new EtapeTest();
+            t.Ordre = nouvelles.Count + 1;
+            t.Instructions = (instructions ?? "").Trim();
+            t.ResultatAttendu = (attendu ?? "").Trim();
+            nouvelles.Add(t);
+        }
+        fiche.SystemeId = systemeId;
+        fiche.Titre = (titre ?? "").Trim();
+        fiche.Etapes = nouvelles;
+        mep.FichesRecette = [.. mep.FichesRecette];
+    }
+
+    /// <summary>Supprime une fiche de recette (préparation uniquement) ; les fiches restantes sont renumérotées 1..n.</summary>
+    public static void SupprimerFicheRecette(Mep mep, FicheRecette fiche)
+    {
+        ExigerPreparation(mep);
+        var restantes = mep.FichesRecette.Where(f => f.Id != fiche.Id).OrderBy(f => f.Ordre).ToList();
+        for (var i = 0; i < restantes.Count; i++) restantes[i].Ordre = i + 1;
+        mep.FichesRecette = restantes;
+    }
+
+    private static void ExigerSystemeDeLaMep(Mep mep, Guid? systemeId)
+    {
+        if (systemeId is { } s && mep.Systemes.All(x => x.Id != s)) throw new RegleMetierException("Système inconnu dans cette MEP.");
+    }
+
+    /// <summary>
+    /// Résultat d'une étape de test, en phase de recette : par tout participant relié à un compte (pilote et suppléants compris)
+    /// ou un administrateur ; observation obligatoire ; une étape déjà validée doit d'abord être refaite.
+    /// </summary>
+    public static void ValiderEtapeTest(Mep mep, FicheRecette fiche, EtapeTest test, ResultatControle resultat, string observation,
+        Guid utilisateurId, bool estAdmin, DateTimeOffset maintenant)
+    {
+        if (!estAdmin && !mep.Participants.Any(p => p.UtilisateurId == utilisateurId))
+            throw new RegleMetierException("Seuls les participants de la MEP reliés à un compte, le pilote ou un administrateur peuvent donner le résultat d'une recette.");
+        if (mep.Phase != Phase.Recette) throw new RegleMetierException("Les recettes se déroulent en phase de recette.");
+        if (test.Resultat is not null)
+            throw new RegleMetierException($"{NomRecette(fiche)}, étape {test.Ordre} déjà validée : le pilote peut la faire refaire.");
         if (string.IsNullOrWhiteSpace(observation)) throw new RegleMetierException("Décrire ce qui a été observé.");
         test.Resultat = resultat;
         test.Observation = observation.Trim();
         test.ParId = utilisateurId;
         test.Le = maintenant;
+        mep.FichesRecette = [.. mep.FichesRecette];
     }
 
-    /// <summary>Le pilote fait refaire un test de recette : son résultat est effacé.</summary>
-    public static void RefaireTestRecette(Mep mep, TestRecette test, Guid utilisateurId)
+    /// <summary>Le pilote fait refaire une étape de test (<paramref name="test"/> renseigné) ou toute la fiche : les résultats sont effacés.</summary>
+    public static void RefaireRecette(Mep mep, FicheRecette fiche, EtapeTest? test, Guid utilisateurId)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut faire refaire un test.");
-        if (mep.Phase != Phase.Recette) throw new RegleMetierException("Les tests de recette se refont en phase de recette.");
-        if (test.Resultat is null) throw new RegleMetierException($"Test {test.Ordre} pas encore validé.");
-        test.Resultat = null;
-        test.Observation = "";
-        test.ParId = null;
-        test.Le = null;
+        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut faire refaire une recette.");
+        if (mep.Phase != Phase.Recette) throw new RegleMetierException("Les recettes se refont en phase de recette.");
+        var cibles = test is null ? fiche.Etapes.Where(t => t.Resultat is not null).ToList() : [test];
+        if (test is { Resultat: null }) throw new RegleMetierException($"{NomRecette(fiche)}, étape {test.Ordre} pas encore validée.");
+        if (cibles.Count == 0) throw new RegleMetierException($"{NomRecette(fiche)} : aucune étape validée.");
+        foreach (var t in cibles)
+        {
+            t.Resultat = null;
+            t.Observation = "";
+            t.ParId = null;
+            t.Le = null;
+        }
+        mep.FichesRecette = [.. mep.FichesRecette];
     }
+
+    // ---------- Sauvegarde par système ----------
+
+    /// <summary>
+    /// Sauvegarde d'un système de la MEP (préparation uniquement). Les textes sont rognés ; la justification d'une sauvegarde
+    /// non requise et l'étape de sauvegarde sont vérifiées par <see cref="ErreursSauvegarde"/>, pas ici.
+    /// </summary>
+    public static void DefinirSauvegardeSysteme(Mep mep, Systeme systeme, StatutSauvegarde statut, ModeSauvegarde moment, string contenu, string justification)
+    {
+        ExigerPreparation(mep);
+        if (!Enum.IsDefined(statut) || !Enum.IsDefined(moment)) throw new RegleMetierException("Sauvegarde : valeur inconnue.");
+        var s = systeme.Sauvegarde;
+        s.Statut = statut;
+        s.Moment = moment;
+        s.Contenu = (contenu ?? "").Trim();
+        s.Justification = (justification ?? "").Trim();
+    }
+
+    /// <summary>Détail du journal : « Sauvegarde BDD : requise (avant la MEP) », « … : non requise (justification) »…</summary>
+    public static string DetailSauvegarde(Systeme s) => s.Sauvegarde.Statut switch
+    {
+        StatutSauvegarde.Requise => $"Sauvegarde {s.Nom} : requise ({(s.Sauvegarde.Moment == ModeSauvegarde.PendantMep ? "pendant" : "avant")} la MEP)",
+        StatutSauvegarde.NonRequise => string.IsNullOrWhiteSpace(s.Sauvegarde.Justification)
+            ? $"Sauvegarde {s.Nom} : non requise" : $"Sauvegarde {s.Nom} : non requise ({s.Sauvegarde.Justification})",
+        _ => $"Sauvegarde {s.Nom} : à renseigner",
+    };
 
     // ---------- Exécution d'une étape (ChangerEtat) ----------
 
@@ -771,8 +903,8 @@ public static class Regles
 
     /// <summary>
     /// Copie profonde d'une MEP, en préparation, avec de nouveaux identifiants et toutes les références remappées
-    /// (codes d'étapes conservés). Ne sont pas copiés : échéance, date de MEP, relecture, go / no-go, bilan,
-    /// résolutions exécutées, résultats (étapes, tests de recette, sauvegarde réalisée) et décisions d'approbation.
+    /// (codes d'étapes, lignes et positions conservés). Ne sont pas copiés : échéance, date de MEP, relecture, go / no-go, bilan,
+    /// résolutions exécutées, résultats (étapes, recettes, sauvegarde réalisée) et décisions d'approbation.
     /// </summary>
     public const string PrefixeModele = "Modèle : ";
 
@@ -819,7 +951,14 @@ public static class Regles
         var systemes = new Dictionary<Guid, Guid>();
         foreach (var s in source.Systemes)
         {
-            var copie = new Systeme { MepId = mep.Id, Nom = s.Nom, Cible = s.Cible, Impact = s.Impact, CatalogueId = s.CatalogueId };
+            var copie = new Systeme
+            {
+                MepId = mep.Id, Nom = s.Nom, Cible = s.Cible, Impact = s.Impact, CatalogueId = s.CatalogueId,
+                Sauvegarde = new SauvegardeSysteme
+                {
+                    Statut = s.Sauvegarde.Statut, Moment = s.Sauvegarde.Moment, Contenu = s.Sauvegarde.Contenu, Justification = s.Sauvegarde.Justification,
+                },
+            };
             systemes[s.Id] = copie.Id;
             mep.Systemes.Add(copie);
         }
@@ -843,33 +982,185 @@ public static class Regles
         };
 
         var etapes = source.Etapes.ToDictionary(e => e.Id, _ => Guid.NewGuid());
-        foreach (var e in source.Etapes.OrderBy(e => e.Plan).ThenBy(e => e.Ordre))
+        foreach (var e in source.EtapesTriees())
             mep.Etapes.Add(new Etape
             {
                 Id = etapes[e.Id], MepId = mep.Id, Plan = e.Plan, Type = e.Type, PointDeNonRetour = e.PointDeNonRetour,
-                Code = e.Code, Ordre = e.Ordre, Action = e.Action, SystemeId = S(e.SystemeId), ResponsableId = P(e.ResponsableId),
+                Code = e.Code, Ligne = e.Ligne, Ordre = e.Ordre, Action = e.Action, SystemeIds = e.SystemeIds.Select(id => S(id)).OfType<Guid>().ToList(),
+                DureeEstimeeMinutes = e.DureeEstimeeMinutes, ResponsableId = P(e.ResponsableId),
                 Criticite = e.Criticite, Instructions = e.Instructions, ResultatAttendu = e.ResultatAttendu,
                 Dependances = e.Dependances.Where(etapes.ContainsKey).Select(d => etapes[d]).ToList(),
                 ResolutionIds = [.. e.ResolutionIds],
             });
 
-        mep.TestsRecette = source.TestsRecette.OrderBy(t => t.Ordre).Select(t => new TestRecette
+        mep.FichesRecette = source.FichesRecette.OrderBy(f => f.Ordre).Select(f => new FicheRecette
         {
-            Ordre = t.Ordre, Libelle = t.Libelle, ResultatAttendu = t.ResultatAttendu, ResponsableId = P(t.ResponsableId),
+            Ordre = f.Ordre, SystemeId = S(f.SystemeId), Titre = f.Titre,
+            Etapes = f.Etapes.OrderBy(t => t.Ordre).Select(t => new EtapeTest { Ordre = t.Ordre, Instructions = t.Instructions, ResultatAttendu = t.ResultatAttendu }).ToList(),
         }).ToList();
         mep.Approbations = source.Approbations.Select(a => new Approbation { UtilisateurId = a.UtilisateurId, Nom = a.Nom }).ToList();
         return mep;
     }
 
-    // ---------- Structure du plan ----------
+    // ---------- Structure du plan : graphe par lignes ----------
 
-    /// <summary>Équivalent de SuppressionActionPermise.</summary>
-    public static void VerifierSuppression(Mep mep, Etape etape)
+    /// <summary>Lignes d'un plan, de haut en bas : étapes regroupées par <see cref="Etape.Ligne"/>, chacune triée par <see cref="Etape.Ordre"/>.</summary>
+    public static List<List<Etape>> Lignes(Mep mep, TypePlan plan) =>
+        mep.EtapesDu(plan).GroupBy(e => e.Ligne).OrderBy(g => g.Key).Select(g => g.ToList()).ToList();
+
+    /// <summary>Recalcule Ligne (0..n-1, lignes vides supprimées) et Ordre (0..k-1) depuis l'ordre des listes.</summary>
+    private static void Renumeroter(IEnumerable<List<Etape>> lignes)
+    {
+        var n = 0;
+        foreach (var ligne in lignes.Where(l => l.Count > 0))
+        {
+            for (var i = 0; i < ligne.Count; i++)
+            {
+                ligne[i].Ligne = n;
+                ligne[i].Ordre = i;
+            }
+            n++;
+        }
+    }
+
+    /// <summary>Change les préalables d'une étape (nouvelle liste : la colonne est réécrite).</summary>
+    private static void PoserDependances(Etape etape, List<Guid> dependances)
+    {
+        if (!etape.Dependances.SequenceEqual(dependances)) etape.Dependances = dependances;
+    }
+
+    /// <summary>Préalables de chaque étape d'un plan avant une opération sur le graphe.</summary>
+    private static Dictionary<Etape, List<Guid>> Instantane(Mep mep, TypePlan plan) =>
+        mep.EtapesDu(plan).ToDictionary(e => e, e => e.Dependances.ToList());
+
+    /// <summary>
+    /// Une seule fois par opération, la révision des étapes dont les préalables ont changé augmente
+    /// (un client qui édite l'une d'elles devra la relire).
+    /// </summary>
+    private static void IncrementerRevisions(Dictionary<Etape, List<Guid>> avant, Etape? sauf = null)
+    {
+        foreach (var (e, prealables) in avant)
+            if (e != sauf && !e.Dependances.SequenceEqual(prealables)) e.Revision++;
+    }
+
+    /// <summary>
+    /// Liens par défaut : l'étape attend toutes les étapes de la ligne au-dessus et est attendue par toutes celles de la ligne
+    /// en dessous ; ses autres liens sont retirés. Les étapes voisines modifiées voient leur révision augmenter.
+    /// </summary>
+    public static void RelierParDefaut(Mep mep, Etape etape)
+    {
+        var avant = Instantane(mep, etape.Plan);
+        Relier(mep, etape);
+        IncrementerRevisions(avant, sauf: etape);
+    }
+
+    private static void Relier(Mep mep, Etape etape)
+    {
+        var plan = mep.EtapesDu(etape.Plan).Where(e => e != etape).ToList();
+        foreach (var e in plan.Where(e => e.Dependances.Contains(etape.Id)))
+            PoserDependances(e, e.Dependances.Where(d => d != etape.Id).ToList());
+        etape.Dependances = plan.Where(e => e.Ligne == etape.Ligne - 1).Select(e => e.Id).ToList();
+        foreach (var e in plan.Where(e => e.Ligne == etape.Ligne + 1))
+            PoserDependances(e, [.. e.Dependances, etape.Id]);
+    }
+
+    /// <summary>Les étapes données qui n'ont plus aucun préalable (hors première ligne) attendent toute la ligne au-dessus d'elles.</summary>
+    private static void RattacherOrphelins(Mep mep, IEnumerable<Etape> etapes)
+    {
+        foreach (var e in etapes.Where(e => e.Ligne > 0 && e.Dependances.Count == 0 && mep.Etapes.Contains(e)))
+            PoserDependances(e, mep.EtapesDu(e.Plan).Where(x => x.Ligne == e.Ligne - 1).Select(x => x.Id).ToList());
+    }
+
+    /// <summary>Retire les liens devenus invalides (préalable disparu ou qui ne serait plus sur une ligne au-dessus).</summary>
+    private static void NettoyerLiens(Mep mep, TypePlan plan)
+    {
+        var etapes = mep.EtapesDu(plan).ToList();
+        var parId = etapes.ToDictionary(e => e.Id);
+        foreach (var e in etapes)
+            PoserDependances(e, e.Dependances.Where(d => parId.TryGetValue(d, out var p) && p.Ligne < e.Ligne).ToList());
+    }
+
+    /// <summary>
+    /// Place une nouvelle étape (pas encore dans <see cref="Mep.Etapes"/> ou ignorée si elle y est) : <paramref name="ligne"/> absente
+    /// ou égale au nombre de lignes = nouvelle ligne en bas ; <paramref name="position"/> absente = en fin de ligne (bornée sinon).
+    /// </summary>
+    public static void PlacerNouvelle(Mep mep, Etape etape, int? ligne, int? position)
     {
         ExigerPreparation(mep);
-        var dependante = mep.Etapes.FirstOrDefault(e => e.Dependances.Contains(etape.Id));
-        if (dependante is not null)
-            throw new RegleMetierException($"Suppression impossible : {dependante.Code} dépend de {etape.Code}. Retirer ce préalable d'abord.");
+        var lignes = Lignes(mep, etape.Plan).Select(l => l.Where(e => e != etape).ToList()).Where(l => l.Count > 0).ToList();
+        var l = ligne ?? lignes.Count;
+        if (l < 0 || l > lignes.Count) throw new RegleMetierException($"Ligne inexistante : choisir une ligne entre 0 et {lignes.Count}.");
+        if (l == lignes.Count) lignes.Add([]);
+        lignes[l].Insert(Math.Clamp(position ?? lignes[l].Count, 0, lignes[l].Count), etape);
+        Renumeroter(lignes);
+    }
+
+    /// <summary>
+    /// Déplace une étape (préparation). Même ligne : simple réordonnancement, liens inchangés. Autre ligne (<paramref name="ligne"/> égale
+    /// au nombre de lignes = nouvelle ligne en bas) : liens par défaut si demandé, et ses anciens suivants restés sans préalable attendent
+    /// la ligne au-dessus d'eux ; sinon seuls les liens devenus invalides sont retirés. Les lignes vides disparaissent.
+    /// </summary>
+    public static void Placer(Mep mep, Etape etape, int ligne, int position, bool liensParDefaut)
+    {
+        ExigerPreparation(mep);
+        var lignes = Lignes(mep, etape.Plan);
+        if (ligne < 0 || ligne > lignes.Count) throw new RegleMetierException($"Ligne inexistante : choisir une ligne entre 0 et {lignes.Count}.");
+        var depart = lignes.FindIndex(l => l.Contains(etape));
+        var memeLigne = ligne == depart;
+        var anciensSuivants = mep.EtapesDu(etape.Plan).Where(e => e.Dependances.Contains(etape.Id)).ToList();
+        var avant = Instantane(mep, etape.Plan);
+
+        lignes[depart].Remove(etape);
+        if (ligne == lignes.Count) lignes.Add([]);
+        lignes[ligne].Insert(Math.Clamp(position, 0, lignes[ligne].Count), etape);
+        Renumeroter(lignes);
+        if (memeLigne) return;
+
+        if (liensParDefaut)
+        {
+            Relier(mep, etape);
+            RattacherOrphelins(mep, anciensSuivants);
+        }
+        NettoyerLiens(mep, etape.Plan);
+        IncrementerRevisions(avant);
+    }
+
+    /// <summary>
+    /// Supprime une étape (préparation) : elle est retirée des préalables des autres, ses anciens suivants restés sans préalable
+    /// attendent la ligne au-dessus d'eux, et une ligne devenue vide disparaît.
+    /// </summary>
+    public static void RetirerEtape(Mep mep, Etape etape)
+    {
+        ExigerPreparation(mep);
+        var avant = Instantane(mep, etape.Plan);
+        var suivants = mep.Etapes.Where(e => e.Dependances.Contains(etape.Id)).ToList();
+        foreach (var s in suivants) PoserDependances(s, s.Dependances.Where(d => d != etape.Id).ToList());
+        mep.Etapes.Remove(etape);
+        Renumeroter(Lignes(mep, etape.Plan));
+        RattacherOrphelins(mep, suivants);
+        IncrementerRevisions(avant, sauf: etape);
+    }
+
+    /// <summary>
+    /// Lignes des étapes d'un plan créées avant le jalon 4 : profondeur dans le graphe des dépendances (0 sans préalable,
+    /// sinon 1 + la plus grande ligne des préalables) ; dans une ligne, l'ancien ordre (puis le code) donne la position.
+    /// </summary>
+    public static void CalculerLignes(IReadOnlyList<Etape> etapesDuPlan)
+    {
+        var parId = etapesDuPlan.ToDictionary(e => e.Id);
+        var profondeur = new Dictionary<Guid, int>();
+        var enCours = new HashSet<Guid>();
+        int Profondeur(Etape e)
+        {
+            if (profondeur.TryGetValue(e.Id, out var p)) return p;
+            if (!enCours.Add(e.Id)) return 0; // cycle (données invalides) : on coupe
+            var prealables = e.Dependances.Where(d => d != e.Id && parId.ContainsKey(d)).Select(d => Profondeur(parId[d])).ToList();
+            enCours.Remove(e.Id);
+            return profondeur[e.Id] = prealables.Count == 0 ? 0 : prealables.Max() + 1;
+        }
+        foreach (var e in etapesDuPlan) Profondeur(e);
+        Renumeroter(etapesDuPlan.GroupBy(e => profondeur[e.Id]).OrderBy(g => g.Key)
+            .Select(g => g.OrderBy(e => e.Ordre).ThenBy(e => e.Code, StringComparer.Ordinal).ToList()));
     }
 
     /// <summary>Équivalent de InitialiserAction : prochain code E0001… (ou R0001… pour le retour arrière) sans jamais réutiliser un numéro.</summary>
@@ -882,13 +1173,19 @@ public static class Regles
         return $"{prefixe}{max + 1:0000}";
     }
 
-    /// <summary>Applique de nouvelles dépendances (même plan uniquement) après avoir vérifié qu'elles gardent un graphe valide.</summary>
+    /// <summary>
+    /// Applique de nouvelles dépendances après avoir vérifié qu'elles gardent un graphe valide : même plan,
+    /// et chaque préalable sur une ligne strictement au-dessus (un lien descend toujours).
+    /// </summary>
     public static void DefinirDependances(Mep mep, Etape etape, IEnumerable<Guid> dependances)
     {
         ExigerPreparation(mep);
         var nouvelles = dependances.Distinct().ToList();
         var autrePlan = mep.Etapes.FirstOrDefault(e => nouvelles.Contains(e.Id) && e.Plan != etape.Plan);
         if (autrePlan is not null) throw new RegleMetierException($"{autrePlan.Code} appartient à un autre plan.");
+        var montant = mep.Etapes.FirstOrDefault(e => e != etape && nouvelles.Contains(e.Id) && e.Ligne >= etape.Ligne);
+        if (montant is not null)
+            throw new RegleMetierException($"Un lien descend toujours : {montant.Code} doit être sur une ligne au-dessus de {etape.Code}.");
         var anciennes = etape.Dependances;
         etape.Dependances = nouvelles;
         var erreur = ErreurGraphe(mep, etape.Plan);

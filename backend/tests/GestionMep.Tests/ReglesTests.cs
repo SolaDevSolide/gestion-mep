@@ -27,15 +27,23 @@ public class ReglesTests
 
     private static Bilan BilanOk => new() { CeQuiAMarche = "Tout", Incidents = "Rien à signaler" };
 
+    private static void Reussir(Mep m, string code, Guid qui)
+    {
+        Regles.Demarrer(m, E(m, code), qui, Maintenant);
+        Regles.Terminer(m, E(m, code), EtatEtape.Reussie, "OK", true, qui, Maintenant);
+    }
+
     [Fact]
-    public void Demo_disponibilites_initiales_identiques_a_l_excel()
+    public void Demo_disponibilites_initiales()
     {
         var m = Demo();
         Assert.Equal(StatutDisponibilite.Terminee, Dispo(m, "E0001").Statut);
-        Assert.Equal(StatutDisponibilite.Disponible, Dispo(m, "E0002").Statut);
-        Assert.Equal(StatutDisponibilite.Disponible, Dispo(m, "E0003").Statut);
-        Assert.Equal("Attend E0002", Dispo(m, "E0004").Libelle);
+        Assert.Equal(StatutDisponibilite.Terminee, Dispo(m, "E0003").Statut);
+        Assert.Equal(StatutDisponibilite.Disponible, Dispo(m, "E0004").Statut);
         Assert.Equal(StatutDisponibilite.ArretResolution, Dispo(m, "E0005").Statut);
+        Assert.Equal(StatutDisponibilite.Disponible, Dispo(m, "E0006").Statut);
+        Assert.Equal("Attend E0004", Dispo(m, "E0007").Libelle);
+        Assert.Equal("Attend E0008", Dispo(m, "E0009").Libelle);
     }
 
     [Fact]
@@ -48,18 +56,18 @@ public class ReglesTests
     }
 
     [Fact]
-    public void Parcours_E0004_disponible_seulement_apres_E0002_et_E0003()
+    public void Parcours_E0007_disponible_seulement_apres_toute_la_ligne_au_dessus()
     {
         var m = Demo();
         Go(m);
 
-        Regles.Demarrer(m, E(m, "E0002"), Bob, Maintenant);
-        Regles.Terminer(m, E(m, "E0002"), EtatEtape.Reussie, "API démo OK", true, Bob, Maintenant);
-        Assert.Equal("Attend E0003", Dispo(m, "E0004").Libelle);
-
-        Regles.Demarrer(m, E(m, "E0003"), Claire, Maintenant);
-        Regles.Terminer(m, E(m, "E0003"), EtatEtape.Reussie, "WEB démo OK", true, Claire, Maintenant);
-        Assert.Equal(StatutDisponibilite.Disponible, Dispo(m, "E0004").Statut);
+        Reussir(m, "E0004", Alice);
+        Assert.Equal("Attend E0005", Dispo(m, "E0007").Libelle);
+        Regles.AutoriserReprise(m, E(m, "E0005"), Alice, Maintenant);
+        Reussir(m, "E0005", Bob);
+        Assert.Equal("Attend E0006", Dispo(m, "E0007").Libelle);
+        Reussir(m, "E0006", Claire);
+        Assert.Equal(StatutDisponibilite.Disponible, Dispo(m, "E0007").Statut);
     }
 
     [Fact]
@@ -67,7 +75,7 @@ public class ReglesTests
     {
         var m = Demo();
         Go(m);
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0002"), Claire, Maintenant));
+        var ex = Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0004"), Claire, Maintenant));
         Assert.Contains("Prendre la main", ex.Message);
     }
 
@@ -75,7 +83,7 @@ public class ReglesTests
     public void Aucune_execution_en_preparation()
     {
         var m = Demo();
-        Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0002"), Bob, Maintenant));
+        Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0004"), Alice, Maintenant));
     }
 
     [Fact]
@@ -83,14 +91,14 @@ public class ReglesTests
     {
         var m = Demo();
         Go(m);
-        var e2 = E(m, "E0002");
-        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e2, EtatEtape.Reussie, "ok", true, Bob, Maintenant));
-        Regles.Demarrer(m, e2, Bob, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e2, EtatEtape.Reussie, "  ", true, Bob, Maintenant));
-        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e2, EtatEtape.Reussie, "ok", false, Bob, Maintenant));
-        Regles.Terminer(m, e2, EtatEtape.Echec, "erreur 500", false, Bob, Maintenant);
-        Assert.Equal(EtatEtape.Echec, e2.Etat);
-        Assert.Equal(Maintenant, e2.FinReelle);
+        var e4 = E(m, "E0004");
+        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "ok", true, Alice, Maintenant));
+        Regles.Demarrer(m, e4, Alice, Maintenant);
+        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "  ", true, Alice, Maintenant));
+        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "ok", false, Alice, Maintenant));
+        Regles.Terminer(m, e4, EtatEtape.Echec, "erreur 500", false, Alice, Maintenant);
+        Assert.Equal(EtatEtape.Echec, e4.Etat);
+        Assert.Equal(Maintenant, e4.FinReelle);
     }
 
     [Fact]
@@ -111,12 +119,12 @@ public class ReglesTests
     {
         var m = Demo();
         Go(m);
-        Regles.Demarrer(m, E(m, "E0002"), Bob, Maintenant);
+        Regles.Demarrer(m, E(m, "E0004"), Alice, Maintenant);
         var apres = m.EcheanceRepli!.Value.AddMinutes(1);
-        Assert.Equal(StatutDisponibilite.RetourArriere, Regles.Disponibilite(m, E(m, "E0003"), apres).Statut);
-        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, E(m, "E0002"), EtatEtape.Reussie, "ok", true, Bob, apres));
+        Assert.Equal(StatutDisponibilite.RetourArriere, Regles.Disponibilite(m, E(m, "E0006"), apres).Statut);
+        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, E(m, "E0004"), EtatEtape.Reussie, "ok", true, Alice, apres));
         // Un échec reste déclarable après l'échéance.
-        Regles.Terminer(m, E(m, "E0002"), EtatEtape.Echec, "trop tard", false, Bob, apres);
+        Regles.Terminer(m, E(m, "E0004"), EtatEtape.Echec, "trop tard", false, Alice, apres);
     }
 
     [Fact]
@@ -125,9 +133,9 @@ public class ReglesTests
         var m = Demo();
         Regles.Decider(m, Claire, DecisionApprobation.Approuvee, "", Maintenant);
         Assert.Throws<RegleMetierException>(() => PasserEnExecution(m, Claire));
-        E(m, "E0003").Instructions = "";
+        E(m, "E0006").Instructions = "";
         var ex = Assert.Throws<RegleMetierException>(() => PasserEnExecution(m, Alice));
-        Assert.Contains("E0003 : compléter Instructions exactes", ex.Message);
+        Assert.Contains("E0006 : compléter Instructions exactes", ex.Message);
         Assert.Equal(Phase.Preparation, m.Phase);
     }
 
@@ -136,40 +144,43 @@ public class ReglesTests
     {
         var m = Demo();
         Go(m);
-        Regles.Demarrer(m, E(m, "E0002"), Bob, Maintenant);
+        Regles.Demarrer(m, E(m, "E0004"), Alice, Maintenant);
         Assert.Throws<RegleMetierException>(() => Regles.RevenirEnPreparation(m, Alice));
-        Regles.Terminer(m, E(m, "E0002"), EtatEtape.Reussie, "ok", true, Bob, Maintenant);
+        Regles.Terminer(m, E(m, "E0004"), EtatEtape.Reussie, "ok", true, Alice, Maintenant);
         Regles.RevenirEnPreparation(m, Alice);
-        Assert.Equal(EtatEtape.Reussie, E(m, "E0002").Etat);
+        Assert.Equal(EtatEtape.Reussie, E(m, "E0004").Etat);
     }
 
     [Fact]
-    public void Cycle_refuse_et_dependances_inchangees()
+    public void Lien_montant_refuse_et_dependances_inchangees()
     {
         var m = Demo();
         var e1 = E(m, "E0001");
         var ex = Assert.Throws<RegleMetierException>(() => Regles.DefinirDependances(m, e1, [E(m, "E0004").Id]));
-        Assert.Equal("Cycle de dépendances", ex.Message);
+        Assert.Equal("Un lien descend toujours : E0004 doit être sur une ligne au-dessus de E0001.", ex.Message);
         Assert.Empty(e1.Dependances);
         Assert.Throws<RegleMetierException>(() => Regles.DefinirDependances(m, e1, [e1.Id]));
     }
 
     [Fact]
-    public void Suppression_refusee_si_une_etape_en_depend()
+    public void Suppression_rattache_les_suivants_a_la_ligne_au_dessus()
     {
         var m = Demo();
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.VerifierSuppression(m, E(m, "E0002")));
-        Assert.Contains("E0004 dépend de E0002", ex.Message);
-        Regles.VerifierSuppression(m, E(m, "E0004"));
+        Regles.RetirerEtape(m, E(m, "E0007"));
+        Assert.Equal(["E0004", "E0005", "E0006"], E(m, "E0008").Dependances.Select(d => m.Etapes.Single(x => x.Id == d).Code).ToArray());
+        Assert.Equal(2, E(m, "E0008").Ligne);
+        Assert.Equal(3, E(m, "E0009").Ligne);
+        m.Phase = Phase.Execution;
+        Assert.Throws<RegleMetierException>(() => Regles.RetirerEtape(m, E(m, "E0008")));
     }
 
     [Fact]
     public void Codes_jamais_reutilises()
     {
         var m = Demo();
-        m.Etapes.Remove(E(m, "E0005"));
-        Assert.Equal("E0005", Regles.ProchainCode(m.Etapes));
-        Assert.Equal("R0003", Regles.ProchainCode(m.Etapes, TypePlan.RetourArriere));
+        m.Etapes.Remove(E(m, "E0009"));
+        Assert.Equal("E0009", Regles.ProchainCode(m.Etapes));
+        Assert.Equal("R0004", Regles.ProchainCode(m.Etapes, TypePlan.RetourArriere));
         m.Etapes.Add(new Etape { Code = "E0042" });
         Assert.Equal("E0043", Regles.ProchainCode(m.Etapes));
     }
@@ -178,13 +189,13 @@ public class ReglesTests
     public void Disponibilite_signale_champs_manquants_dans_l_ordre_de_l_excel()
     {
         var m = Demo();
-        var e2 = E(m, "E0002");
-        e2.Instructions = "";
-        Assert.Equal(StatutDisponibilite.InstructionsACompleter, Dispo(m, "E0002").Statut);
-        e2.ResponsableId = null;
-        Assert.Equal(StatutDisponibilite.FicheACompleter, Dispo(m, "E0002").Statut);
+        var e4 = E(m, "E0004");
+        e4.Instructions = "";
+        Assert.Equal(StatutDisponibilite.InstructionsACompleter, Dispo(m, "E0004").Statut);
+        e4.SystemeIds = [];
+        Assert.Equal(StatutDisponibilite.FicheACompleter, Dispo(m, "E0004").Statut);
         m.EcheanceRepli = null;
-        Assert.Equal(StatutDisponibilite.EcheanceARenseigner, Dispo(m, "E0002").Statut);
+        Assert.Equal(StatutDisponibilite.EcheanceARenseigner, Dispo(m, "E0004").Statut);
     }
 
     // ---------- Jalon 2 ----------
@@ -219,17 +230,17 @@ public class ReglesTests
         Assert.Throws<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Claire, "test", Maintenant));
         Regles.DeclencherRetourArriere(m, Alice, "Incident bloquant", Maintenant);
         Assert.Equal(Phase.RetourArriere, m.Phase);
-        Assert.Equal(StatutDisponibilite.RetourArriere, Dispo(m, "E0002").Statut);
+        Assert.Equal(StatutDisponibilite.RetourArriere, Dispo(m, "E0004").Statut);
         Assert.Equal(StatutDisponibilite.Terminee, Dispo(m, "E0001").Statut);
-        Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0002"), Bob, Maintenant));
+        Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0004"), Alice, Maintenant));
 
         Assert.Equal(StatutDisponibilite.Disponible, Dispo(m, "R0001").Statut);
-        Assert.Equal("Attend R0001", Dispo(m, "R0002").Libelle);
-        Regles.Demarrer(m, E(m, "R0001"), Bob, Maintenant);
-        Regles.Terminer(m, E(m, "R0001"), EtatEtape.Reussie, "rétablie", true, Bob, Maintenant);
+        Assert.Equal(StatutDisponibilite.Disponible, Dispo(m, "R0002").Statut);
+        Assert.Equal("Attend R0001", Dispo(m, "R0003").Libelle);
+        Reussir(m, "R0001", Bob);
+        Reussir(m, "R0002", Alice);
         Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
-        Regles.Demarrer(m, E(m, "R0002"), Claire, Maintenant);
-        Regles.Terminer(m, E(m, "R0002"), EtatEtape.Reussie, "Service 1.0 OK", true, Claire, Maintenant);
+        Reussir(m, "R0003", Claire);
         Regles.Cloturer(m, Alice, Maintenant, BilanOk);
         Assert.Equal(Phase.Cloturee, m.Phase);
         Assert.Equal(IssueMep.Repliee, m.Issue);
@@ -255,16 +266,16 @@ public class ReglesTests
     {
         var m = Demo();
         Go(m);
-        var e3 = E(m, "E0003");
+        var e6 = E(m, "E0006");
         var bob = m.Participants.Single(p => p.UtilisateurId == Bob);
-        var precedent = Regles.PrendreLaMain(m, e3, bob, "Absent");
-        Assert.Equal(e3.ResponsableId, precedent);
-        Assert.Equal(bob.Id, e3.ExecutantId);
-        Assert.NotEqual(bob.Id, e3.ResponsableId);
-        Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, e3, Claire, Maintenant));
-        Regles.Demarrer(m, e3, Bob, Maintenant);
-        Regles.Terminer(m, e3, EtatEtape.Reussie, "WEB démo OK", true, Bob, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, e3, bob, "Absent"));
+        var precedent = Regles.PrendreLaMain(m, e6, bob, "Absent");
+        Assert.Equal(e6.ResponsableId, precedent);
+        Assert.Equal(bob.Id, e6.ExecutantId);
+        Assert.NotEqual(bob.Id, e6.ResponsableId);
+        Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, e6, Claire, Maintenant));
+        Regles.Demarrer(m, e6, Bob, Maintenant);
+        Regles.Terminer(m, e6, EtatEtape.Reussie, "WEB démo OK", true, Bob, Maintenant);
+        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, e6, bob, "Absent"));
     }
 
     [Fact]
@@ -272,7 +283,7 @@ public class ReglesTests
     {
         var m = Demo();
         var bob = m.Participants.Single(p => p.UtilisateurId == Bob);
-        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, E(m, "E0003"), bob, "Absent"));
+        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, E(m, "E0006"), bob, "Absent"));
     }
 
     [Fact]
@@ -331,7 +342,8 @@ public class ReglesTests
         Assert.Equal(StatutDisponibilite.Terminee, Dispo(m, "E0004").Statut);
 
         Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
-        foreach (var t in m.TestsRecette) Regles.ValiderTestRecette(m, t, ResultatControle.Conforme, "OK", Alice, Maintenant);
+        foreach (var f in m.FichesRecette)
+            foreach (var t in f.Etapes) Regles.ValiderEtapeTest(m, f, t, ResultatControle.Conforme, "OK", Alice, false, Maintenant);
         Regles.Cloturer(m, Alice, Maintenant, BilanOk);
         Assert.Equal(IssueMep.Reussie, m.Issue);
         Assert.Equal(Phase.Cloturee, m.Phase);

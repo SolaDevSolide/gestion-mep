@@ -19,8 +19,8 @@ import { Button } from '../ui/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
 import { useToast } from '../ui/Toast';
 
-type Onglet = 'preparation' | 'etapes' | 'execution' | 'recette' | 'retour' | 'journal';
-const ONGLETS: Onglet[] = ['preparation', 'etapes', 'execution', 'recette', 'retour', 'journal'];
+type Onglet = 'preparation' | 'etapes' | 'execution' | 'retour' | 'recette' | 'journal';
+const ONGLETS: Onglet[] = ['preparation', 'etapes', 'execution', 'retour', 'recette', 'journal'];
 
 function ongletParDefaut(m: Mep): Onglet {
   switch (m.phase) {
@@ -162,15 +162,13 @@ export default function MepPage() {
                 <TabsTrigger value="preparation">Préparation</TabsTrigger>
                 <TabsTrigger value="etapes">Étapes</TabsTrigger>
                 <TabsTrigger value="execution">Exécution</TabsTrigger>
-                {(mep.phase === 'Recette' || mep.phase === 'Cloturee') && (
-                  <TabsTrigger value="recette">
-                    Recette
-                    {mep.phase === 'Recette' && <span className="size-2 rounded-full bg-warn-solid" role="img" aria-label="Recette en cours" />}
-                  </TabsTrigger>
-                )}
                 <TabsTrigger value="retour">
                   Retour arrière
                   {repliActif && <span className="size-2 rounded-full bg-rollback-bg" role="img" aria-label="Retour arrière actif" />}
+                </TabsTrigger>
+                <TabsTrigger value="recette">
+                  Recette
+                  {mep.phase === 'Recette' && <span className="size-2 rounded-full bg-warn-solid" role="img" aria-label="Recette en cours" />}
                 </TabsTrigger>
                 <TabsTrigger value="journal">Journal</TabsTrigger>
               </TabsList>
@@ -220,8 +218,8 @@ export default function MepPage() {
             <TabsContent value="preparation" className="outline-none"><PreparationTab /></TabsContent>
             <TabsContent value="etapes" className="outline-none"><EtapesTab /></TabsContent>
             <TabsContent value="execution" className="outline-none"><ExecutionTab /></TabsContent>
-            <TabsContent value="recette" className="outline-none"><RecetteTab /></TabsContent>
             <TabsContent value="retour" className="outline-none"><RetourArriereTab /></TabsContent>
+            <TabsContent value="recette" className="outline-none"><RecetteTab /></TabsContent>
             <TabsContent value="journal" className="outline-none"><JournalTab mepId={mep.id} tick={journalTick} /></TabsContent>
           </div>
         </Tabs>

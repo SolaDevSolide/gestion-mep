@@ -4,8 +4,9 @@ import { formatDateHeure, LIBELLE_RESULTAT } from '../format';
 import type { ExecutionResolution, ResultatControle } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
-import { CodeBlock } from '../ui/CodeBlock';
+import { premiereLigne } from '../blocs';
 import { ConfirmDialog } from '../ui/Dialog';
+import { Instructions, Markdown } from '../ui/Instructions';
 import { Field, Textarea } from '../ui/Input';
 import { cn } from '../ui/cn';
 
@@ -46,7 +47,7 @@ function Controle({ libelle, instruction, attendu, observationObligatoire, peutA
         <span className="rounded bg-run-solid px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">À faire maintenant</span>
         {libelle}
       </p>
-      {instruction.trim() && <CodeBlock code={instruction} titre={verification ? 'Vérification' : 'Instruction'} hauteurMax="max-h-48" />}
+      {instruction.trim() && <Instructions source={instruction} vide={null} className={verification ? 'border-l-2 border-ok-bd pl-2' : undefined} />}
       {attendu.trim() && (
         <div className="rounded-lg border border-ok-bd bg-ok-bg px-3 py-2 text-sm text-ok-fg">
           <p className="text-[11px] font-semibold tracking-wide uppercase">Résultat attendu</p>
@@ -84,7 +85,7 @@ function Fait({ numero, libelle, resultat, observation, par, le }: { numero: str
       {ok ? <Check className="mt-0.5 size-4 shrink-0 text-ok-solid" aria-hidden /> : <XCircle className="mt-0.5 size-4 shrink-0 text-danger-solid" aria-hidden />}
       <div className="min-w-0 flex-1 text-sm">
         <p className="font-medium"><span className="font-mono text-xs">{numero}</span> · {LIBELLE_RESULTAT[resultat]}</p>
-        <p className="truncate font-mono text-xs text-fg-muted" title={libelle}>{libelle.split('\n')[0]}</p>
+        <p className="truncate font-mono text-xs text-fg-muted" title={libelle}>{premiereLigne(libelle)}</p>
         {observation && <p className="mt-0.5 text-xs text-fg-muted">« {observation} »</p>}
         {(par || le) && <p className="mt-0.5 text-[11px] text-fg-subtle">{par}{par && le && ' · '}{le && formatDateHeure(le)}</p>}
       </div>
@@ -107,10 +108,12 @@ export function ResolutionDeroule({ resolution: r, peutAgir, actions }: { resolu
         <p className="text-xs text-fg-subtle">Démarrée par {r.demarreePar} · {formatDateHeure(r.demarreeLe)}</p>
       </header>
 
+      {r.symptomes.trim() && <Markdown source={`**Symptômes** : ${r.symptomes}`} />}
+
       {r.diagnostic.trim() && (
         <div>
           <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-fg-subtle uppercase"><Stethoscope className="size-3.5" aria-hidden />Diagnostic</p>
-          <CodeBlock code={r.diagnostic} titre="Diagnostic" hauteurMax="max-h-40" />
+          <Instructions source={r.diagnostic} vide={null} />
         </div>
       )}
 

@@ -1,6 +1,6 @@
-import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, Rocket, Search, ShieldCheck, Sun, SunMoon, Wrench, Layers } from 'lucide-react';
+import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, Rocket, Search, ShieldCheck, Sun, SunMoon, UserRound, Wrench, Layers } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { useLocalStorageState } from '../hooks';
 import { useTheme, type PreferenceTheme } from '../theme';
@@ -44,6 +44,7 @@ export function Shell() {
   const { preference, sombre, definir, basculer } = useTheme();
   const [replie, setReplie] = useLocalStorageState('mep.menu.replie', typeof window !== 'undefined' && window.innerWidth < 1100);
   const [palette, setPalette] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
@@ -94,6 +95,10 @@ export function Shell() {
           <Lien to="/parametres/systemes" icone={Layers} libelle="Systèmes" replie={replie} />
           <Lien to="/parametres/resolutions" icone={Wrench} libelle="Résolutions types" replie={replie} />
           <Lien to="/parametres/go-no-go" icone={ShieldCheck} libelle="Go / no-go" replie={replie} />
+          <div className={cn('mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase', replie && 'text-center px-0')}>
+            {replie ? '···' : 'Compte'}
+          </div>
+          <Lien to="/profil" icone={UserRound} libelle="Mon profil" replie={replie} />
         </nav>
 
         <div className="border-t border-line p-3">
@@ -109,12 +114,16 @@ export function Shell() {
                   {!replie && (
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium">{utilisateur?.nomAffiche}</span>
-                      <span className="block truncate text-xs text-fg-subtle">{utilisateur?.estAdmin ? 'Administrateur' : 'Utilisateur'}</span>
+                      <span className="block truncate text-xs text-fg-subtle">{utilisateur?.role || (utilisateur?.estAdmin ? 'Administrateur' : 'Utilisateur')}</span>
                     </span>
                   )}
                 </button>
               </MenuTrigger>
               <MenuContent align="start" side="top">
+                <MenuItem onSelect={() => navigate('/profil')}>
+                  <UserRound className="size-4" aria-hidden /> Mon profil
+                </MenuItem>
+                <MenuSeparator />
                 <MenuLabel>Thème</MenuLabel>
                 {THEMES.map(({ id, libelle, Icone }) => (
                   <MenuItem key={id} onSelect={() => definir(id)}>

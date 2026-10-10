@@ -1,0 +1,804 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Éditeur d'étapes MEP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<style>
+/* Mise en page : barre d'outils, puis graphe (gauche) + fiche de l'étape (droite) ; page « résolution type » en plein écran */
+:root {
+  --bg: #f5f7f8; --surface: #ffffff; --fg: #17222b; --muted: #5b6873; --line: #d5dde3;
+  --accent: #1f5f8b; --accent-soft: #e3eef6;
+  --ok: #1d7a4c; --ok-bg: #e2f3ea; --run: #1f5f8b; --run-bg: #e3eef6;
+  --todo: #6b7782; --todo-bg: #eef1f3; --fail: #b4232c; --fail-bg: #fbe7e8;
+  --rb: #9d1c3a; --rb-bg: #fbeaee;
+  --s-bdd: #6b3fa0; --s-bdd-bg: #efe7f8; --s-api: #0f7d78; --s-api-bg: #e0f3f1; --s-web: #a85d00; --s-web-bg: #fbeedd;
+  --s-ldap: #2b59c3; --s-ldap-bg: #e6edfb; --s-mdm: #b0306b; --s-mdm-bg: #fbe6ef; --s-batch: #5b7a12; --s-batch-bg: #eef4dd;
+  --code-bg: #f0f3f5;
+  --sans: "IBM Plex Sans", system-ui, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f161c; --surface: #17212a; --fg: #e4ebf0; --muted: #98a6b2; --line: #2c3a46;
+  --accent: #6fb3e6; --accent-soft: #1b3346;
+  --ok: #5fcf95; --ok-bg: #163327; --run: #6fb3e6; --run-bg: #1b3346;
+  --todo: #9aa7b2; --todo-bg: #222e38; --fail: #f07a80; --fail-bg: #3a1c20;
+  --rb: #f08aa2; --rb-bg: #3a1a24;
+  --s-bdd: #b79ae6; --s-bdd-bg: #2c2140; --s-api: #5cc9c1; --s-api-bg: #15322f; --s-web: #f0b060; --s-web-bg: #3a2a14;
+  --s-ldap: #8fb0f5; --s-ldap-bg: #1c2a4a; --s-mdm: #f08cbb; --s-mdm-bg: #3a1a2a; --s-batch: #b5d36a; --s-batch-bg: #26301a;
+  --code-bg: #0c1217; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f161c; --surface: #17212a; --fg: #e4ebf0; --muted: #98a6b2; --line: #2c3a46;
+  --accent: #6fb3e6; --accent-soft: #1b3346;
+  --ok: #5fcf95; --ok-bg: #163327; --run: #6fb3e6; --run-bg: #1b3346;
+  --todo: #9aa7b2; --todo-bg: #222e38; --fail: #f07a80; --fail-bg: #3a1c20;
+  --rb: #f08aa2; --rb-bg: #3a1a24;
+  --s-bdd: #b79ae6; --s-bdd-bg: #2c2140; --s-api: #5cc9c1; --s-api-bg: #15322f; --s-web: #f0b060; --s-web-bg: #3a2a14;
+  --s-ldap: #8fb0f5; --s-ldap-bg: #1c2a4a; --s-mdm: #f08cbb; --s-mdm-bg: #3a1a2a; --s-batch: #b5d36a; --s-batch-bg: #26301a;
+  --code-bg: #0c1217; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.page { max-width: 1400px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 56px; display: grid; gap: 16px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: 1.6rem; font-weight: 700; }
+h2 { font-size: 1.15rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 90ch; }
+.barre { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 7px 14px; font: inherit; font-size: 0.9rem; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface); font-weight: 600; }
+.seg.mini button { padding: 2px 10px; font-size: 0.78rem; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 0.86rem; cursor: pointer; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.prim { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 600; }
+.btn.danger { color: var(--fail); }
+.btn.ok { background: var(--ok); border-color: var(--ok); color: var(--surface); font-weight: 600; }
+.btn.ko { background: var(--fail); border-color: var(--fail); color: var(--surface); font-weight: 600; }
+.btn.rb { background: var(--rb); border-color: var(--rb); color: var(--surface); font-weight: 600; }
+.btn.lien { border: 0; background: transparent; color: var(--accent); padding: 4px 0; font-weight: 600; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.petit { padding: 2px 8px; font-size: 0.78rem; }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, .carte:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.astuce { font-size: 0.86rem; color: var(--muted); min-height: 1.4em; }
+.astuce.flash { color: var(--rb); font-weight: 600; }
+/* Systèmes impactés */
+.systemes { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.systemes > span.lib { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-right: 4px; }
+.puce { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--line); border-radius: 99px; padding: 3px 10px; font-size: 0.82rem; font-weight: 600; color: var(--muted); background: transparent; font-family: inherit; cursor: pointer; }
+.puce i { width: 8px; height: 8px; border-radius: 50%; }
+.puce small { font-weight: 400; }
+.puce .x { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0 0 0 2px; font-size: 0.95rem; line-height: 1; }
+.systemes select { font: inherit; font-size: 0.85rem; padding: 4px 8px; border: 1.5px dashed var(--line); border-radius: 99px; background: transparent; color: var(--accent); }
+.bandeau-repli { background: var(--rb); color: var(--surface); border-radius: 8px; padding: 10px 14px; font-weight: 600; }
+/* Zone principale */
+.zone { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+.arbre { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: auto; max-height: 940px; }
+.arbre.repli { border: 2px solid var(--rb); }
+.graphe { position: relative; min-width: max-content; padding: 28px 150px 24px; display: grid; gap: 46px; user-select: none; -webkit-user-select: none; }
+.graphe svg.liens { position: absolute; left: 0; top: 0; z-index: 0; pointer-events: none; overflow: visible; }
+.lien-zone { pointer-events: stroke; cursor: pointer; }
+.ligne { position: relative; z-index: 1; display: flex; justify-content: center; pointer-events: none; }
+.ligne.survol .groupe { outline: 2px dashed var(--accent); outline-offset: 8px; border-radius: 10px; }
+.groupe { position: relative; display: flex; gap: 22px; align-items: stretch; min-height: 60px; }
+.noeud { position: relative; pointer-events: auto; touch-action: none; }
+.noeud.source { opacity: 0.3; }
+.noeud.cible .carte { box-shadow: 0 0 0 3px var(--ok); }
+.noeud.interdit .carte { box-shadow: 0 0 0 3px var(--fail); }
+.emplacement { width: 8px; border-radius: 4px; background: var(--accent); align-self: stretch; }
+.fantome { pointer-events: auto; position: absolute; left: calc(100% + 22px); top: 0; bottom: 0; width: 112px; border: 1.5px dashed var(--line); border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: 0.85rem; cursor: pointer; display: grid; place-content: center; gap: 2px; }
+.fantome span { font-size: 1.3rem; line-height: 1; color: var(--accent); }
+.fantome:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.fantome.bas { position: static; width: 212px; height: 58px; }
+.carte { width: 212px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 8px; overflow: hidden; cursor: grab; color: var(--fg); display: block; }
+.mode-exec .carte { cursor: pointer; }
+.carte:hover { border-color: var(--accent); }
+.carte.sel { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.port { position: absolute; left: 50%; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); z-index: 2; cursor: crosshair; opacity: 0.55; transition: opacity 0.15s, transform 0.15s; }
+.port.haut { top: -7px; } .port.bas { bottom: -7px; }
+.noeud:hover .port, .port.actif { opacity: 1; transform: scale(1.15); }
+.port:hover { background: var(--accent); }
+.bandeau { display: flex; flex-wrap: wrap; }
+.bandeau span { flex: 1 1 auto; display: flex; align-items: center; gap: 5px; padding: 4px 8px; font-size: 0.74rem; font-weight: 700; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bandeau i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.bandeau small { font-weight: 400; overflow: hidden; text-overflow: ellipsis; }
+.corps { padding: 7px 9px 9px; display: grid; gap: 4px; }
+.l1 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.code { font-family: var(--mono); font-size: 0.76rem; color: var(--muted); }
+.etat { font-size: 0.7rem; font-weight: 600; border: 1px solid; border-radius: 99px; padding: 0 8px; white-space: nowrap; }
+.titre { font-weight: 600; font-size: 0.93rem; line-height: 1.3; }
+.l3 { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
+.av { width: 20px; height: 20px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 0.7rem; font-weight: 700; display: inline-grid; place-items: center; }
+.qui { color: var(--fg); }
+.tag { font-size: 0.68rem; font-weight: 600; border: 1px solid var(--accent); color: var(--accent); border-radius: 4px; padding: 0 5px; }
+.tag.sauv { border-color: var(--s-bdd); color: var(--s-bdd); }
+.carte.pnr { border: 2.5px solid var(--rb); }
+.pnr-tete { background: var(--rb); color: var(--surface); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; padding: 4px 9px; }
+.barriere { position: relative; z-index: 1; pointer-events: none; display: grid; align-items: center; margin-block: -24px; }
+.barriere .trait { grid-area: 1 / 1; border-top: 3px dashed var(--rb); }
+.barriere .etiq { grid-area: 1 / 1; justify-self: center; background: var(--surface); color: var(--rb); font-size: 0.74rem; font-weight: 700; padding: 3px 12px; border: 1.5px solid var(--rb); border-radius: 99px; white-space: nowrap; }
+/* Panneau */
+.panneau { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 14px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow-y: auto; }
+h4 { margin: 0; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.bloc { display: grid; gap: 7px; }
+label.ch { display: grid; gap: 3px; font-size: 0.8rem; color: var(--muted); }
+input[type=text], select.ch, textarea { font: inherit; font-size: 0.88rem; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); width: 100%; box-sizing: border-box; }
+textarea { resize: vertical; min-height: 54px; }
+textarea.mono { font-family: var(--mono); font-size: 0.8rem; background: var(--code-bg); }
+.p-tete { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.p-tete .code { font-size: 0.95rem; color: var(--fg); font-weight: 500; }
+.grille2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.boutons { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.puces { display: flex; flex-wrap: wrap; gap: 6px; }
+.liste { display: grid; gap: 4px; font-size: 0.86rem; }
+.item { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg); border-radius: 6px; padding: 4px 8px; }
+.item b { font-family: var(--mono); font-weight: 500; font-size: 0.78rem; margin-right: 6px; }
+.item button.x { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 0 4px; }
+.item button.x:hover { color: var(--fail); }
+.coches { display: grid; gap: 4px; }
+.coches label { display: flex; align-items: center; gap: 7px; color: var(--fg); font-size: 0.86rem; }
+.vide { color: var(--muted); font-size: 0.86rem; }
+.alerte { border-radius: 8px; padding: 8px 10px; font-size: 0.84rem; }
+.alerte.pnr { border: 1.5px solid var(--rb); background: var(--rb-bg); color: var(--rb); }
+.alerte.pnr label { color: var(--rb); display: flex; gap: 8px; align-items: center; font-weight: 600; font-size: 0.88rem; }
+.alerte.info { background: var(--accent-soft); color: var(--accent); }
+.alerte.ko { background: var(--fail-bg); color: var(--fail); border: 1.5px solid var(--fail); }
+/* Blocs d'instructions */
+.blocs { display: grid; gap: 8px; }
+.bi { border: 1px solid var(--line); border-radius: 8px; padding: 8px; display: grid; gap: 6px; background: var(--surface); }
+.bi-tete { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.bi-tete .num { font-size: 0.75rem; color: var(--muted); }
+.bi-tete .actions { display: flex; gap: 2px; }
+.bi-tete .actions button { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 0 4px; font-size: 0.9rem; }
+.bi-tete .actions button:hover { color: var(--accent); }
+.apercu { border-top: 1px dashed var(--line); padding-top: 6px; }
+.apercu::before { content: "Aperçu"; display: block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px; }
+.md { font-size: 0.88rem; overflow-wrap: anywhere; }
+.md > :first-child { margin-top: 0; } .md > :last-child { margin-bottom: 0; }
+.md p, .md ul, .md ol { margin: 0 0 6px; }
+.md ul, .md ol { padding-left: 20px; }
+.md code { font-family: var(--mono); font-size: 0.82em; background: var(--code-bg); padding: 1px 4px; border-radius: 3px; }
+.md pre { background: var(--code-bg); padding: 8px; border-radius: 6px; overflow-x: auto; }
+.md h1, .md h2, .md h3 { font-size: 0.95rem; margin: 6px 0 4px; }
+.md blockquote { margin: 0 0 6px; padding-left: 10px; border-left: 3px solid var(--line); color: var(--muted); }
+.codebloc { position: relative; }
+.codebloc pre { margin: 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 10px 10px 12px; font-family: var(--mono); font-size: 0.8rem; white-space: pre-wrap; word-break: break-word; padding-right: 74px; }
+.codebloc .copier { position: absolute; top: 6px; right: 6px; }
+.instr-exec { display: grid; gap: 8px; }
+.aide { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 0.86rem; }
+.journal-proto { font-size: 0.8rem; color: var(--muted); display: grid; gap: 2px; max-height: 140px; overflow-y: auto; }
+.clone { position: fixed; z-index: 50; pointer-events: none; opacity: 0.9; transform: rotate(2deg); box-shadow: 0 10px 30px rgb(0 0 0 / 0.25); }
+/* Déroulé d'une résolution */
+.etapes-res { display: grid; gap: 8px; }
+.er { border: 1px solid var(--line); border-radius: 8px; padding: 8px; display: grid; gap: 6px; }
+.er.actuelle { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.er.faite { opacity: 0.7; }
+.er-tete { display: flex; justify-content: space-between; gap: 8px; font-size: 0.82rem; font-weight: 600; }
+/* Page résolution type */
+.res-page { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 16px; align-items: start; }
+.res-form, .res-apercu { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.res-apercu { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+.fil { font-size: 0.86rem; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.corr { border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 8px; }
+.corr-tete { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 600; font-size: 0.88rem; }
+@media (max-width: 980px) {
+  .zone, .res-page { grid-template-columns: minmax(0, 1fr); }
+  .panneau, .res-apercu { position: static; max-height: none; }
+}
+@media (prefers-reduced-motion: reduce) { .port { transition: none; } .clone { transform: none; } }
+</style>
+
+<div class="page">
+  <header class="barre">
+    <div style="display:grid;gap:4px">
+      <h1>Portail commandes 2.4.0 · Étapes</h1>
+      <p class="lead">Maquette : préparation et exécution des étapes. Les données sont fictives et rien n'est enregistré.</p>
+    </div>
+    <div class="boutons">
+      <div class="seg" role="group" aria-label="Plan affiché">
+        <button type="button" id="p-dep" aria-pressed="true">Déploiement</button>
+        <button type="button" id="p-rep" aria-pressed="false">Retour arrière</button>
+      </div>
+      <div class="seg" role="group" aria-label="Phase">
+        <button type="button" id="m-edit" aria-pressed="true">Préparation</button>
+        <button type="button" id="m-exec" aria-pressed="false">Exécution</button>
+      </div>
+      <button type="button" class="btn" id="reinit">Réinitialiser</button>
+    </div>
+  </header>
+  <div id="vue"></div>
+</div>
+
+<script>
+(function () {
+  // ---------- Référentiels ----------
+  const CATALOGUE = {
+    BDD: 'Base de données clients', API: 'Service commandes', WEB: 'Portail public',
+    LDAP: 'Annuaire LDAP', MDM: 'MDM Phoenix', BATCH: 'Traitements nocturnes',
+  };
+  const couleur = (k) => [`var(--s-${k.toLowerCase()})`, `var(--s-${k.toLowerCase()}-bg)`];
+  const ETATS = {
+    todo: ['À faire', 'var(--todo)', 'var(--todo-bg)'],
+    run: ['En cours', 'var(--run)', 'var(--run-bg)'],
+    ok: ['Réussie', 'var(--ok)', 'var(--ok-bg)'],
+    fail: ['Échec', 'var(--fail)', 'var(--fail-bg)'],
+  };
+  const PERSONNES = ['Alice', 'Bob', 'Claire'];
+  const MOI = 'Alice';
+  const CRIT = ['Faible', 'Modérée', 'Élevée', 'Bloquante'];
+  const T = (contenu) => ({ type: 'texte', contenu });
+  const C = (contenu) => ({ type: 'code', contenu });
+
+  function resolutionsInitiales() {
+    return [
+      { id: 'r1', titre: 'API : le service ne démarre pas', sys: 'API',
+        symptomes: 'Après le déploiement, `GET /sante` ne répond pas ou renvoie **503**.',
+        diagnostic: C('journalctl -u commandes --since "10 min ago" | tail -50'),
+        corrections: [
+          { ...C('sudo systemctl restart commandes'), attendu: 'Le service passe à « active (running) ».' },
+          { ...T('Si le journal indique **port déjà utilisé** :\n- arrêter l\'ancienne instance\n- relancer le service'), attendu: 'Une seule instance tourne.' },
+        ],
+        verif: { ...C('curl -fsS https://commandes.interne/sante'), attendu: 'Réponse 200 avec la version 2.4.0.' } },
+      { id: 'r2', titre: 'BDD : utilisateur applicatif retiré des droits', sys: 'BDD',
+        symptomes: 'Connexion refusée : `permission denied for table …` ou `role does not exist`.',
+        diagnostic: C('psql -h bdd-prod -U admin -d clients -c "\\du app_user"'),
+        corrections: [
+          { ...C('psql -h bdd-prod -U admin -d clients -c "GRANT CONNECT ON DATABASE clients TO app_user;"'), attendu: 'GRANT' },
+          { ...C('psql -h bdd-prod -U admin -d clients -c "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;"'), attendu: 'GRANT' },
+        ],
+        verif: { ...C('psql -h bdd-prod -U app_user -d clients -c "SELECT 1;"'), attendu: '1 ligne, aucune erreur de droits.' } },
+      { id: 'r3', titre: 'WEB : purge du cache CDN refusée', sys: 'WEB',
+        symptomes: 'La publication échoue avec **403** au moment de la purge du cache.',
+        diagnostic: T('Vérifier dans la console CDN que le **jeton de purge** n\'a pas expiré.'),
+        corrections: [{ ...T('Générer un nouveau jeton dans la console CDN, puis le mettre dans `CDN_TOKEN` sur le serveur de build.'), attendu: 'Nouveau jeton enregistré.' },
+          { ...C('./publier.sh --purge-seule'), attendu: 'Purge terminée.' }],
+        verif: { ...T('Ouvrir le portail en navigation privée.'), attendu: 'La nouvelle version s\'affiche.' } },
+    ];
+  }
+  function exemple() {
+    const mk = (code, titre, sys, qui, duree, crit, etat, o = {}) => Object.assign({
+      id: code, code, titre, sys, qui, executant: null, duree, crit, type: 'Standard', pnr: false, pnrOk: false,
+      etat, instr: [], attendu: '', preuve: '', res: [], pj: [], run: null,
+    }, o);
+    const dep = [
+      mk('E0001', 'Sauvegarde de la base clients', ['BDD'], 'Alice', 20, 'Élevée', 'ok', { type: 'Sauvegarde', res: ['r2'],
+        instr: [T('Faire la sauvegarde **complète** de la base `clients` avant toute modification.'), C('pg_dump -h bdd-prod -U admin clients > /sauvegardes/clients_$(date +%F).sql')],
+        attendu: 'Fichier de sauvegarde présent, taille supérieure à 0, aucune erreur.', preuve: 'clients_2026-10-10.sql (2,3 Go)', pj: ['sauvegarde-bdd.png'] }),
+      mk('E0002', 'Sauvegarde du service commandes', ['API'], 'Bob', 15, 'Modérée', 'ok', { type: 'Sauvegarde',
+        instr: [C('tar czf /sauvegardes/commandes.tgz /opt/commandes')], attendu: 'Archive créée.', preuve: 'commandes.tgz OK' }),
+      mk('E0003', 'Snapshot du portail', ['WEB'], 'Claire', 15, 'Modérée', 'ok', { type: 'Sauvegarde',
+        instr: [T('Dans la console de virtualisation :\n1. sélectionner le volume `web-prod`\n2. **Créer un snapshot** nommé `avant-2.4.0`')], attendu: 'Snapshot visible dans la liste.', preuve: 'snap-0f3a' }),
+      mk('E0004', 'Migration du schéma', ['BDD'], 'Alice', 20, 'Élevée', 'ok', { instr: [C('psql -h bdd-prod -U admin -d clients -f migrations/2.4.0.sql')], attendu: 'Toutes les migrations appliquées, aucune erreur.', preuve: '12 migrations appliquées' }),
+      mk('E0005', 'Déploiement de l\'API 2.4.0', ['API', 'LDAP'], 'Bob', 30, 'Élevée', 'run', { res: ['r1'],
+        instr: [T('Le déploiement redémarre le service : prévenir le support **avant** de lancer.'), C('cd /opt/commandes && ./deploy.sh 2.4.0'), T('Puis vérifier que l\'API s\'authentifie bien sur l\'annuaire (groupe `app-commandes`).')],
+        attendu: '`GET /sante` renvoie 200 avec la version 2.4.0.' }),
+      mk('E0006', 'Publication du portail', ['WEB'], 'Claire', 25, 'Modérée', 'fail', { res: ['r3'], instr: [C('npm ci && npm run build && ./publier.sh')], attendu: 'Build terminé, fichiers publiés.', preuve: 'Erreur : purge du cache CDN refusée (403)' }),
+      mk('E0007', 'Bascule des données', ['API', 'BDD', 'MDM'], 'Bob', 15, 'Bloquante', 'todo', { pnr: true,
+        instr: [T('**Irréversible** : les anciennes commandes sont converties au nouveau format et poussées vers le MDM.'), C('./migrer-donnees.sh --appliquer')], attendu: 'Les commandes existantes sont visibles dans la nouvelle API et dans le MDM.' }),
+      mk('E0008', 'Bascule du portail vers l\'API 2.4.0', ['WEB', 'API'], 'Claire', 15, 'Élevée', 'todo', { instr: [T('Mettre `API_URL=https://commandes.interne/v2` dans la configuration du portail, puis redémarrer.')], attendu: 'Le portail affiche les commandes.' }),
+      mk('E0009', 'Contrôle final', ['BDD', 'API', 'WEB'], 'Alice', 15, 'Élevée', 'todo', { instr: [T('- [ ] Passer une commande test\n- [ ] Vérifier qu\'elle apparaît dans le MDM\n- [ ] Vérifier les tableaux de bord')], attendu: 'Tous les contrôles sont verts.' }),
+    ];
+    const rep = [
+      mk('R0001', 'Réinstaller l\'API 2.3.2', ['API'], 'Bob', 20, 'Bloquante', 'todo', { instr: [C('cd /opt/commandes && ./deploy.sh 2.3.2')], attendu: '`GET /sante` renvoie la version 2.3.2.' }),
+      mk('R0002', 'Restaurer la base clients', ['BDD'], 'Alice', 30, 'Bloquante', 'todo', { instr: [C('psql -h bdd-prod -U admin clients < /sauvegardes/clients_$(date +%F).sql')], attendu: 'Restauration sans erreur.' }),
+      mk('R0003', 'Vérifier le service', ['WEB'], 'Claire', 10, 'Bloquante', 'todo', { instr: [T('Ouvrir le portail et passer une **commande test**.')], attendu: 'Commande test enregistrée.' }),
+    ];
+    const idx = (l) => Object.fromEntries(l.map((s) => [s.id, s]));
+    return {
+      dep: { steps: idx(dep), rows: [['E0001', 'E0002', 'E0003'], ['E0004', 'E0005', 'E0006'], ['E0007'], ['E0008'], ['E0009']], links: [] },
+      rep: { steps: idx(rep), rows: [['R0001', 'R0002'], ['R0003']], links: [] },
+    };
+  }
+
+  const st = { plans: null, plan: 'dep', mode: 'edit', vue: 'graphe', sel: null, lienSel: null, journal: [], drag: null, press: null,
+    sysMep: [], resol: [], brouillon: null, resPour: null, repli: false };
+  function init() {
+    st.plans = exemple(); st.resol = resolutionsInitiales(); st.sysMep = ['BDD', 'API', 'WEB', 'LDAP', 'MDM'];
+    st.journal = []; st.sel = null; st.lienSel = null; st.repli = false; st.vue = 'graphe';
+    // Liens par défaut ligne par ligne, puis un lien particulier
+    ['dep', 'rep'].forEach((k) => { const p = st.plans[k]; p.rows.forEach((r, i) => { if (i) p.rows[i - 1].forEach((a) => r.forEach((b) => p.links.push([a, b]))); }); });
+  }
+  init();
+  const vue = document.getElementById('vue');
+  const P = () => st.plans[st.plan];
+  const exec = () => st.mode === 'exec';
+  const rowOf = (id) => P().rows.findIndex((r) => r.includes(id));
+  const prealables = (id) => P().links.filter((l) => l[1] === id).map((l) => l[0]);
+  const suivants = (id) => P().links.filter((l) => l[0] === id).map((l) => l[1]);
+  const pret = (id) => prealables(id).every((d) => P().steps[d].etat === 'ok');
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const resolution = (id) => st.resol.find((r) => r.id === id);
+  function md(src) {
+    try { if (window.marked && window.DOMPurify) return DOMPurify.sanitize(marked.parse(String(src || ''), { breaks: true })); } catch (e) { /* repli */ }
+    return esc(src).replace(/\n/g, '<br>');
+  }
+  const log = (t) => { st.journal.unshift(t); st.journal = st.journal.slice(0, 10); };
+  let minuteur = null;
+  const aideDefaut = () => exec()
+    ? 'Exécution : clique sur une étape. Une étape devient disponible quand tous ses préalables sont réussis.'
+    : 'Préparation : glisse une fiche pour la déplacer ; tire le rond du bas d’une fiche vers une autre pour un lien particulier ; clique sur un lien pour le sélectionner.';
+  function flash(msg) {
+    const a = document.getElementById('astuce'); if (!a) return;
+    a.textContent = msg; a.classList.add('flash');
+    clearTimeout(minuteur);
+    minuteur = setTimeout(() => { const b = document.getElementById('astuce'); if (b) { b.textContent = aideDefaut(); b.classList.remove('flash'); } }, 5000);
+  }
+  function codeSuivant() {
+    const pre = st.plan === 'dep' ? 'E' : 'R';
+    return pre + String(Math.max(0, ...Object.keys(P().steps).map((c) => parseInt(c.slice(1), 10))) + 1).padStart(4, '0');
+  }
+  function nouvelle() {
+    const code = codeSuivant();
+    P().steps[code] = { id: code, code, titre: 'Nouvelle étape', sys: [], qui: MOI, executant: null, duree: 10, crit: 'Modérée', type: 'Standard', pnr: false, pnrOk: false, etat: 'todo', instr: [T('')], attendu: '', preuve: '', res: [], pj: [], run: null };
+    return code;
+  }
+  const ajouterLien = (a, b) => { if (a !== b && !P().links.some((l) => l[0] === a && l[1] === b)) P().links.push([a, b]); };
+  function relierParDefaut(id) {
+    const p = P(); const r = rowOf(id);
+    p.links = p.links.filter((l) => l[0] !== id && l[1] !== id);
+    if (r > 0) p.rows[r - 1].forEach((a) => ajouterLien(a, id));
+    if (r < p.rows.length - 1) p.rows[r + 1].forEach((b) => ajouterLien(id, b));
+  }
+  function rattacherOrphelins(ids) { const p = P(); ids.forEach((id) => { const r = rowOf(id); if (r > 0 && !prealables(id).length) p.rows[r - 1].forEach((a) => ajouterLien(a, id)); }); }
+  function nettoyerLiens() {
+    const p = P(); const retires = [];
+    p.links = p.links.filter((l) => { const ok = rowOf(l[0]) >= 0 && rowOf(l[1]) >= 0 && rowOf(l[0]) < rowOf(l[1]); if (!ok && p.steps[l[0]] && p.steps[l[1]]) retires.push(`${l[0]} → ${l[1]}`); return ok; });
+    if (retires.length) flash(`Lien retiré car il remonterait : ${retires.join(', ')}.`);
+  }
+  const retirerLignesVides = () => { P().rows = P().rows.filter((r) => r.length); };
+  function groupesDeLiens() {
+    const cibles = {}; P().links.forEach(([a, b]) => { (cibles[a] = cibles[a] || []).push(b); });
+    const m = new Map();
+    Object.keys(cibles).forEach((a) => { const Tt = [...cibles[a]].sort(); const k = Tt.join('|'); if (!m.has(k)) m.set(k, { S: [], T: Tt }); m.get(k).S.push(a); });
+    return [...m.values()];
+  }
+  function supprimerGroupe(i) { const gr = groupesDeLiens()[i]; if (!gr) return; P().links = P().links.filter((l) => !(gr.S.includes(l[0]) && gr.T.includes(l[1]))); log(`Liens supprimés : ${gr.S.join(', ')} → ${gr.T.join(', ')}`); }
+
+  // ---------- Rendu : instructions ----------
+  function rendreInstructions(blocs) {
+    if (!blocs.some((b) => b.contenu.trim())) return '<span class="vide">Aucune instruction.</span>';
+    return '<div class="instr-exec">' + blocs.filter((b) => b.contenu.trim()).map((b, i) => b.type === 'code'
+      ? `<div class="codebloc"><pre>${esc(b.contenu)}</pre><button type="button" class="btn petit copier" data-copier="${encodeURIComponent(b.contenu)}">Copier</button></div>`
+      : `<div class="md">${md(b.contenu)}</div>`).join('') + '</div>';
+  }
+  function editeurBlocs(blocs, prefixe) {
+    return `<div class="blocs">${blocs.map((b, i) => `<div class="bi">
+        <div class="bi-tete"><div class="seg mini" role="group" aria-label="Type du bloc ${i + 1}">
+          <button type="button" data-bt="${prefixe}:${i}:texte" aria-pressed="${b.type === 'texte'}">Texte</button>
+          <button type="button" data-bt="${prefixe}:${i}:code" aria-pressed="${b.type === 'code'}">Code</button></div>
+          <span class="num">${b.type === 'texte' ? 'Markdown' : 'Copiable en exécution'}</span>
+          <span class="actions"><button type="button" data-bm="${prefixe}:${i}:-1" aria-label="Monter le bloc" title="Monter">↑</button><button type="button" data-bm="${prefixe}:${i}:1" aria-label="Descendre le bloc" title="Descendre">↓</button><button type="button" data-bx="${prefixe}:${i}" aria-label="Supprimer le bloc" title="Supprimer">×</button></span></div>
+        <textarea data-bi="${prefixe}:${i}" class="${b.type === 'code' ? 'mono' : ''}" rows="${b.type === 'code' ? 2 : 3}" placeholder="${b.type === 'code' ? 'Commande exacte, copiée telle quelle' : 'Texte libre : **gras**, listes -, `code`…'}">${esc(b.contenu)}</textarea>
+        ${b.type === 'texte' ? `<div class="md apercu" data-apercu="${prefixe}:${i}">${md(b.contenu)}</div>` : ''}
+      </div>`).join('')}
+      <div class="boutons"><button type="button" class="btn petit" data-ba="${prefixe}:texte">+ Bloc texte</button><button type="button" class="btn petit" data-ba="${prefixe}:code">+ Bloc code</button></div></div>`;
+  }
+
+  // ---------- Rendu : graphe ----------
+  function bandeauSys(sys) {
+    if (!sys.length) return '<span style="background:var(--todo-bg);color:var(--muted)">Aucun système</span>';
+    return sys.map((k) => { const [c, bg] = couleur(k); return `<span style="background:${bg};color:${c}"><i style="background:${c}"></i>${k}${sys.length === 1 ? ` <small>· ${CATALOGUE[k]}</small>` : ''}</span>`; }).join('');
+  }
+  function htmlCarte(s) {
+    const ex = exec();
+    const [lib, c, bg] = ETATS[s.etat];
+    let etiquette = lib, coul = c;
+    if (ex && s.etat === 'todo') { if (pret(s.id)) { etiquette = 'Disponible'; coul = 'var(--run)'; } else etiquette = 'En attente'; }
+    const style = ex && !s.pnr ? `border-color:${c};${s.etat !== 'todo' ? `background:${bg}` : ''}` : (ex && s.etat !== 'todo' ? `background:${bg}` : '');
+    const qui = s.executant ? `${s.executant} <span title="a pris la main">⤳</span>` : s.qui;
+    return `<div class="noeud${st.drag && st.drag.t === 'carte' && st.drag.id === s.id ? ' source' : ''}" data-id="${s.id}">
+      ${ex ? '' : '<span class="port haut" data-port="haut" title="Tirer vers une étape au-dessus"></span>'}
+      <div class="carte${s.pnr ? ' pnr' : ''}${st.sel === s.id ? ' sel' : ''}" tabindex="0" role="button" aria-label="${s.code} ${esc(s.titre)}" style="${style}">
+        ${s.pnr ? '<div class="pnr-tete">⛔ POINT DE NON-RETOUR</div>' : ''}
+        <div class="bandeau">${bandeauSys(s.sys)}</div>
+        <div class="corps">
+          <div class="l1"><span class="code">${s.code}</span>${ex ? `<span class="etat" style="color:${coul};border-color:${coul}">${etiquette}</span>` : `<span class="code">${s.crit}</span>`}</div>
+          <div class="titre">${esc(s.titre)}</div>
+          <div class="l3"><span class="av">${esc((s.executant || s.qui)[0])}</span><span class="qui">${qui}</span><span>· ${s.duree} min</span>${s.type === 'Sauvegarde' ? '<span class="tag sauv">Sauvegarde</span>' : ''}${s.res.length ? `<span class="tag">${s.res.length} résol.</span>` : ''}</div>
+        </div>
+      </div>
+      ${ex ? '' : '<span class="port bas" data-port="bas" title="Tirer vers une étape en dessous"></span>'}
+    </div>`;
+  }
+  function htmlSystemes() {
+    const ex = exec();
+    const reste = Object.keys(CATALOGUE).filter((k) => !st.sysMep.includes(k));
+    return `<div class="systemes"><span class="lib">Systèmes impactés</span>${st.sysMep.map((k) => { const [c, bg] = couleur(k); return `<span class="puce" style="border-color:${c};background:${bg};color:${c};cursor:default"><i style="background:${c}"></i>${k} <small>· ${CATALOGUE[k]}</small>${ex ? '' : `<button type="button" class="x" data-sys-retirer="${k}" aria-label="Retirer ${k} de la MEP" title="Retirer de la MEP">×</button>`}</span>`; }).join('')}
+      ${ex || !reste.length ? '' : `<select id="sys-ajout" aria-label="Ajouter un système du catalogue"><option value="">+ Ajouter un système du catalogue…</option>${reste.map((k) => `<option value="${k}">${k} · ${CATALOGUE[k]}</option>`).join('')}</select>`}</div>`;
+  }
+  function rendreVue() {
+    if (st.vue === 'res') { rendrePageResolution(); return; }
+    vue.innerHTML = `<div style="display:grid;gap:12px">${htmlSystemes()}
+      ${st.repli && st.plan === 'dep' ? '<div class="bandeau-repli">Retour arrière déclenché automatiquement : une résolution a échoué. Le plan de retour arrière est à exécuter.</div>' : ''}
+      <p class="astuce" id="astuce" aria-live="polite">${aideDefaut()}</p>
+      <div class="zone"><div class="arbre${exec() ? ' mode-exec' : ''}${st.plan === 'rep' ? ' repli' : ''}" id="arbre"><div class="graphe" id="graphe"></div></div><aside class="panneau" id="panneau"></aside></div></div>`;
+    brancherGraphe();
+    rendreGraphe(); rendrePanneau();
+    const a = document.getElementById('arbre'); a.scrollLeft = (a.scrollWidth - a.clientWidth) / 2;
+  }
+  function rendreGraphe() {
+    const graphe = document.getElementById('graphe'); if (!graphe) return;
+    const p = P(); const ex = exec();
+    let h = '<svg class="liens" aria-hidden="true"></svg>';
+    p.rows.forEach((ids, r) => {
+      h += `<div class="ligne" data-row="${r}"><div class="groupe">${ids.map((id) => htmlCarte(p.steps[id])).join('')}${ex ? '' : `<button type="button" class="fantome" data-ajout-ligne="${r}" aria-label="Ajouter une étape sur cette ligne"><span>+</span>Étape</button>`}</div></div>`;
+      const pnr = ids.filter((id) => p.steps[id].pnr);
+      if (pnr.length && r < p.rows.length - 1) h += `<div class="barriere"><div class="trait"></div><div class="etiq">⛔ ${pnr.join(', ')} : après ce point, plus de retour arrière</div></div>`;
+    });
+    if (!ex) h += `<div class="ligne" data-row="${p.rows.length}"><div class="groupe"><button type="button" class="fantome bas" data-nouvelle-ligne="1"><span>+</span>Nouvelle ligne</button></div></div>`;
+    graphe.innerHTML = h;
+    dessinerLiens();
+  }
+  function point(id, cote) {
+    const graphe = document.getElementById('graphe');
+    const el = graphe && graphe.querySelector(`.noeud[data-id="${id}"] .carte`); if (!el) return null;
+    const g = graphe.getBoundingClientRect(), r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2 - g.left, y: (cote === 'bas' ? r.bottom : r.top) - g.top };
+  }
+  const courbe = (a, b) => { const dy = Math.max(30, (b.y - a.y) / 2); return `M${a.x},${a.y} C${a.x},${a.y + dy} ${b.x},${b.y - dy} ${b.x},${b.y}`; };
+  function dessinerLiens(temp) {
+    const graphe = document.getElementById('graphe'); if (!graphe) return;
+    const svg = graphe.querySelector('svg.liens'); if (!svg) return;
+    svg.setAttribute('width', graphe.scrollWidth); svg.setAttribute('height', graphe.scrollHeight);
+    const p = P(); const ex = exec();
+    let h = `<defs>${[['n', 'var(--muted)'], ['a', 'var(--accent)'], ['o', 'var(--ok)']].map(([k, c]) => `<marker id="pt-${k}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:${c}"/></marker>`).join('')}</defs>`;
+    const decalages = {};
+    groupesDeLiens().forEach((gr, i) => {
+      const S = gr.S.map((a) => point(a, 'bas')).filter(Boolean), Tt = gr.T.map((b) => point(b, 'haut')).filter(Boolean);
+      if (!S.length || !Tt.length) return;
+      const sel = st.lienSel === i; const fait = ex && gr.S.every((a) => p.steps[a].etat === 'ok');
+      const coul = sel ? 'var(--accent)' : fait ? 'var(--ok)' : 'var(--muted)'; const mk = sel ? 'pt-a' : fait ? 'pt-o' : 'pt-n';
+      const bas = Math.max(...S.map((s) => s.y)), haut = Math.min(...Tt.map((t) => t.y));
+      const cle = Math.round(bas) + ':' + Math.round(haut); const n = decalages[cle] = (decalages[cle] ?? -1) + 1;
+      const yb = (bas + haut) / 2 + (n % 2 ? 1 : -1) * Math.ceil(n / 2) * 8;
+      const xs = [...S, ...Tt].map((q) => q.x); const x1 = Math.min(...xs), x2 = Math.max(...xs);
+      const coude = (a, b, y) => { if (Math.abs(a.x - b.x) < 1) return `M${a.x},${a.y} V${b.y}`; const sg = b.x > a.x ? 1 : -1, r = Math.min(8, Math.abs(b.x - a.x) / 2); return `M${a.x},${a.y} V${y - r} Q${a.x},${y} ${a.x + sg * r},${y} H${b.x - sg * r} Q${b.x},${y} ${b.x},${y + r} V${b.y}`; };
+      let traits = '', fleches = [];
+      if (S.length === 1 && Tt.length === 1) fleches = [coude({ x: S[0].x, y: S[0].y + 1 }, { x: Tt[0].x, y: Tt[0].y - 2 }, yb)];
+      else { traits = S.map((s) => `M${s.x},${s.y + 1} V${yb}`).join(' ') + ` M${x1},${yb} H${x2}`; fleches = Tt.map((t) => `M${t.x},${yb} V${t.y - 2}`); }
+      const style = `style="stroke:${coul}" stroke-width="${sel ? 3 : 1.8}" fill="none" opacity="${sel || fait ? 1 : 0.75}"`;
+      if (traits) h += `<path d="${traits}" ${style} stroke-linecap="round"/>`;
+      fleches.forEach((d) => { h += `<path d="${d}" ${style} marker-end="url(#${mk})"/>`; });
+      if (S.length + Tt.length > 2) S.forEach((s) => { h += `<circle cx="${s.x}" cy="${yb}" r="3" style="fill:${coul}"/>`; });
+      if (!ex) h += `<path d="${traits} ${fleches.join(' ')}" class="lien-zone" data-lien="${i}" stroke="transparent" stroke-width="16" fill="none"><title>${gr.S.join(', ')} → ${gr.T.join(', ')}</title></path>`;
+    });
+    if (temp) h += `<path d="${courbe(temp.a, temp.b)}" style="stroke:var(--accent)" stroke-width="2.4" stroke-dasharray="6 5" fill="none" marker-end="url(#pt-a)"/>`;
+    svg.innerHTML = h;
+  }
+
+  // ---------- Rendu : panneau ----------
+  function liste(ids, retirer) {
+    if (!ids.length) return '<span class="vide">aucune</span>';
+    return '<div class="liste">' + ids.map((i) => { const s = P().steps[i]; return `<div class="item"><span><b>${i}</b>${esc(s.titre)}${exec() ? `<span class="vide"> · ${ETATS[s.etat][0]}</span>` : ''}</span>${retirer && !exec() ? `<button type="button" class="x" data-${retirer}="${i}" aria-label="Retirer le lien avec ${i}">×</button>` : ''}</div>`; }).join('') + '</div>';
+  }
+  function rendrePanneau() {
+    const panneau = document.getElementById('panneau'); if (!panneau) return;
+    const p = P(); const ex = exec();
+    const gr = st.lienSel !== null && groupesDeLiens()[st.lienSel];
+    if (gr) {
+      const paires = gr.S.flatMap((a) => gr.T.map((b) => [a, b]));
+      panneau.innerHTML = `<div class="bloc"><h4>${paires.length > 1 ? 'Jonction sélectionnée' : 'Lien sélectionné'}</h4><p>${gr.T.join(', ')} ${gr.T.length > 1 ? 'attendent' : 'attend'} : ${gr.S.join(', ')}.</p>
+        <div class="liste">${paires.map(([a, b]) => `<div class="item"><span><b>${a}</b>→ <b>${b}</b></span><button type="button" class="x" data-lien-suppr="${a}|${b}" aria-label="Supprimer ${a} vers ${b}">×</button></div>`).join('')}</div></div>
+        <div class="boutons"><button type="button" class="btn danger" data-act="suppr-lien">${paires.length > 1 ? `Supprimer ces ${paires.length} liens` : 'Supprimer le lien'}</button><button type="button" class="btn" data-act="fermer">Fermer</button></div>`;
+      return;
+    }
+    const s = st.sel && p.steps[st.sel];
+    if (!s) {
+      const total = Object.values(p.steps).reduce((t, x) => t + x.duree, 0);
+      panneau.innerHTML = `<div class="bloc"><h4>${st.plan === 'dep' ? 'Plan de déploiement' : 'Plan de retour arrière'}</h4><p class="vide">${Object.keys(p.steps).length} étapes · ${p.rows.length} lignes · ${total} min de travail cumulé</p></div>
+        ${ex ? '' : `<div class="bloc"><h4>Comment faire</h4><ol class="aide">
+          <li><b>Systèmes</b> : ajoute ceux de la MEP en haut ; une étape peut en toucher plusieurs.</li>
+          <li><b>Ajouter</b> : « + Étape » au bout d'une ligne, ou « + Nouvelle ligne » en bas.</li>
+          <li><b>Déplacer</b> : glisser une fiche ; ses liens sont recréés (elle attend la ligne au-dessus).</li>
+          <li><b>Lien particulier</b> : tirer le rond du bas d'une fiche vers celle qui doit attendre.</li>
+          <li><b>Instructions</b> : des blocs Texte (markdown) ou Code (copiables en exécution).</li></ol></div>`}
+        ${st.journal.length ? `<div class="bloc"><h4>Dernières actions</h4><div class="journal-proto">${st.journal.map((j) => `<span>${esc(j)}</span>`).join('')}</div></div>` : ''}`;
+      return;
+    }
+    panneau.innerHTML = ex ? panneauExec(s) : panneauEdition(s);
+  }
+  function panneauEdition(s) {
+    const p = P(); const deps = prealables(s.id), suiv = suivants(s.id), r = rowOf(s.id);
+    const avant = p.rows.slice(0, r).flat().filter((i) => !deps.includes(i));
+    const apres = p.rows.slice(r + 1).flat().filter((i) => !suiv.includes(i));
+    const resDispo = [...st.resol].sort((a, b) => (s.sys.includes(b.sys) ? 1 : 0) - (s.sys.includes(a.sys) ? 1 : 0));
+    return `<div class="p-tete"><span class="code">${s.code}</span>${st.plan === 'dep' ? `<select class="ch" id="f-type" aria-label="Type d'étape" style="width:auto"><option ${s.type === 'Standard' ? 'selected' : ''}>Standard</option><option ${s.type === 'Sauvegarde' ? 'selected' : ''}>Sauvegarde</option></select>` : ''}</div>
+      <label class="ch">Action<input type="text" id="f-titre" value="${esc(s.titre)}"></label>
+      <div class="bloc"><h4>Systèmes touchés (plusieurs possibles)</h4><div class="puces">${st.sysMep.map((k) => { const [c, bg] = couleur(k); const on = s.sys.includes(k); return `<button type="button" class="puce" data-sys="${k}" aria-pressed="${on}" style="${on ? `border-color:${c};background:${bg};color:${c}` : ''}"><i style="background:${c}"></i>${k}</button>`; }).join('')}</div>
+        <span class="vide" style="font-size:.78rem">Un système manquant ? Ajoute-le à la MEP dans la barre « Systèmes impactés ».</span></div>
+      <div class="grille2"><label class="ch">Responsable<select class="ch" id="f-qui">${PERSONNES.map((x) => `<option ${x === s.qui ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+      <label class="ch">Criticité<select class="ch" id="f-crit">${CRIT.map((x) => `<option ${x === s.crit ? 'selected' : ''}>${x}</option>`).join('')}</select></label></div>
+      <label class="ch">Durée estimée (min)<input type="text" inputmode="numeric" id="f-duree" value="${s.duree}"></label>
+      <div class="bloc"><h4>Instructions exactes</h4>${editeurBlocs(s.instr, 'instr')}</div>
+      <label class="ch">Résultat attendu (markdown)<textarea id="f-att" rows="2">${esc(s.attendu)}</textarea></label>
+      <div class="bloc"><h4>Préalables (attend)</h4>${liste(deps, 'retirer-avant')}
+        ${avant.length ? `<select class="ch" id="f-ajout-avant" aria-label="Ajouter un préalable"><option value="">+ Ajouter un préalable…</option>${avant.map((i) => `<option value="${i}">${i} · ${esc(p.steps[i].titre)}</option>`).join('')}</select>` : ''}
+        ${r > 0 && !deps.length ? '<div class="alerte info">Aucun préalable : cette étape pourra démarrer dès le Go.</div>' : ''}</div>
+      <div class="bloc"><h4>Débloque</h4>${liste(suiv, 'retirer-apres')}
+        ${apres.length ? `<select class="ch" id="f-ajout-apres" aria-label="Ajouter une étape qui attend celle-ci"><option value="">+ Ajouter une étape qui l'attend…</option>${apres.map((i) => `<option value="${i}">${i} · ${esc(p.steps[i].titre)}</option>`).join('')}</select>` : ''}</div>
+      <div class="bloc"><h4>Résolutions types en cas d'échec</h4><div class="coches">${resDispo.map((x) => `<label><input type="checkbox" data-res="${x.id}" ${s.res.includes(x.id) ? 'checked' : ''}><span>${esc(x.titre)}${s.sys.includes(x.sys) ? ' <span class="tag">même système</span>' : ''}</span></label>`).join('')}</div>
+        <div class="boutons"><button type="button" class="btn" data-act="nouv-res">+ Créer une nouvelle fiche de résolution</button></div></div>
+      <div class="bloc"><h4>Pièces jointes</h4>${s.pj.length ? `<div class="liste">${s.pj.map((f) => `<div class="item"><span>${esc(f)}</span></div>`).join('')}</div>` : '<span class="vide">aucune</span>'}
+        <div class="boutons"><button type="button" class="btn petit" data-act="pj">+ Ajouter un fichier</button></div></div>
+      ${st.plan === 'dep' ? `<div class="alerte pnr"><label><input type="checkbox" id="f-pnr" ${s.pnr ? 'checked' : ''}>Point de non-retour</label><div style="margin-top:4px">Démarrer cette étape exigera l'accord du pilote. Ensuite, plus de retour arrière : on corrige en avant.</div></div>` : ''}
+      <div class="boutons"><button type="button" class="btn danger" data-act="suppr">Supprimer l'étape</button><button type="button" class="btn" data-act="fermer">Fermer</button></div>`;
+  }
+  function panneauExec(s) {
+    const ok = pret(s.id); const [lib, c] = ETATS[s.etat];
+    const sys = s.sys.map((k) => { const [cc, bg] = couleur(k); return `<span class="puce" style="border-color:${cc};background:${bg};color:${cc};cursor:default"><i style="background:${cc}"></i>${k} <small>· ${CATALOGUE[k]}</small></span>`; }).join('');
+    let h = `<div class="p-tete"><span class="code">${s.code}</span><span class="etat" style="color:${c};border-color:${c}">${lib}</span></div>
+      <div class="titre" style="font-size:1.05rem">${esc(s.titre)}</div><div class="puces">${sys}</div>
+      <div class="vide">Prévu : <b>${s.qui}</b>${s.executant ? ` · a pris la main : <b>${s.executant}</b>` : ''} · ${s.duree} min · ${s.crit}</div>
+      ${s.executant || s.qui === MOI || s.etat === 'ok' ? '' : `<div class="boutons"><button type="button" class="btn" data-act="main">Prendre la main (${MOI})</button></div>`}
+      <div class="bloc"><h4>Préalables</h4>${liste(prealables(s.id))}${s.etat === 'todo' && !ok ? '<div class="alerte info">En attente : tous les préalables ne sont pas réussis.</div>' : ''}</div>
+      <div class="bloc"><h4>Instructions exactes</h4>${rendreInstructions(s.instr)}</div>
+      <div class="bloc"><h4>Résultat attendu</h4><div class="md">${s.attendu ? md(s.attendu) : '<span class="vide">Non renseigné.</span>'}</div></div>`;
+    if (s.pnr && s.etat === 'todo') h += `<div class="alerte pnr"><b>⛔ Point de non-retour.</b> ${s.pnrOk ? 'Passage autorisé par le pilote.' : 'L’accord du pilote est requis avant de démarrer.'}${s.pnrOk ? '' : '<div class="boutons" style="margin-top:6px"><button type="button" class="btn rb" data-act="pnr-ok">Autoriser le passage (pilote)</button></div>'}</div>`;
+    if (s.etat === 'todo') h += `<div class="boutons"><button type="button" class="btn prim" data-act="demarrer" ${ok && (!s.pnr || s.pnrOk) ? '' : 'disabled'}>Démarrer</button></div>`;
+    if (s.etat === 'run') h += `<label class="ch">Preuve (obligatoire en cas d'échec)<textarea id="f-preuve" rows="2" placeholder="Ce que tu as constaté">${esc(s.preuve)}</textarea></label>
+      <div class="boutons"><button type="button" class="btn ok" data-act="reussie">Réussie</button><button type="button" class="btn ko" data-act="echec">Échec</button></div>`;
+    if ((s.etat === 'ok' || s.etat === 'fail') && s.preuve) h += `<div class="bloc"><h4>Preuve</h4><span>${esc(s.preuve)}</span></div>`;
+    if (s.etat === 'fail') h += s.run ? deroulementResolution(s) : `<div class="bloc"><h4>Problème connu ?</h4>${s.res.length ? s.res.map((id) => { const x = resolution(id); return `<div class="item"><span>${esc(x.titre)}</span><button type="button" class="btn petit" data-appliquer="${id}">Appliquer</button></div>`; }).join('') : '<span class="vide">Aucune résolution type liée : déclencher le retour arrière si besoin.</span>'}</div>`;
+    if (s.etat !== 'todo') h += '<div class="boutons"><button type="button" class="btn" data-act="raz">Remettre à faire (démo)</button></div>';
+    return h + '<div class="boutons"><button type="button" class="btn" data-act="fermer">Fermer</button></div>';
+  }
+  function deroulementResolution(s) {
+    const x = resolution(s.run.id); const etapes = [...x.corrections.map((k, i) => ({ ...k, titre: `Correction ${i + 1}` })), { ...x.verif, titre: 'Vérification finale' }];
+    const enCours = s.run.statut === 'cours';
+    return `<div class="bloc"><h4>Résolution : ${esc(x.titre)}</h4>
+      <div class="md">${md('**Symptômes** : ' + x.symptomes)}</div>
+      <div class="bloc"><h4>Diagnostic</h4>${rendreInstructions([].concat(x.diagnostic))}</div>
+      <div class="etapes-res">${etapes.map((e, i) => {
+        const etat = i < s.run.i ? (s.run.res[i] === 'ok' ? '✓ Conforme' : '✗ Échec') : i === s.run.i && enCours ? 'À faire maintenant' : '';
+        return `<div class="er${i === s.run.i && enCours ? ' actuelle' : ''}${i < s.run.i ? ' faite' : ''}"><div class="er-tete"><span>${e.titre}</span><span class="vide">${etat}</span></div>
+          ${rendreInstructions(e.blocs || [e])}<div class="vide">Attendu : ${esc(e.attendu)}</div>
+          ${i === s.run.i && enCours ? '<div class="boutons"><button type="button" class="btn ok petit" data-act="res-ok">Conforme</button><button type="button" class="btn ko petit" data-act="res-ko">Échec</button></div>' : ''}</div>`;
+      }).join('')}</div>
+      ${s.run.statut === 'echec' ? '<div class="alerte ko">Résolution en échec : le retour arrière a été déclenché automatiquement.</div>' : ''}</div>`;
+  }
+
+  // ---------- Page « Nouvelle fiche de résolution » ----------
+  function nouveauBrouillon(s) {
+    return { titre: '', sys: s.sys[0] || st.sysMep[0], symptomes: '', diagnostic: [C('')], corrections: [{ blocs: [C('')], attendu: '' }], verif: { blocs: [C('')], attendu: '' } };
+  }
+  function rendrePageResolution() {
+    const b = st.brouillon; const s = P().steps[st.resPour];
+    vue.innerHTML = `<div class="res-page">
+      <div class="res-form">
+        <div class="fil"><button type="button" class="btn lien" data-act="res-annuler">← Retour à ${s.code} · ${esc(s.titre)}</button></div>
+        <h2>Nouvelle fiche de résolution</h2>
+        <p class="vide">Elle sera enregistrée dans le catalogue des résolutions types, et liée à ${s.code}.</p>
+        <label class="ch">Titre<input type="text" id="r-titre" value="${esc(b.titre)}" placeholder="Ex. API : le service ne démarre pas"></label>
+        <label class="ch">Système<select class="ch" id="r-sys">${st.sysMep.map((k) => `<option value="${k}" ${k === b.sys ? 'selected' : ''}>${k} · ${CATALOGUE[k]}</option>`).join('')}</select></label>
+        <label class="ch">Symptômes (markdown) : comment reconnaître le problème<textarea id="r-sympt" rows="3">${esc(b.symptomes)}</textarea></label>
+        <div class="bloc"><h4>Diagnostic : comment le confirmer</h4>${editeurBlocs(b.diagnostic, 'diag')}</div>
+        <div class="bloc"><h4>Corrections, dans l'ordre</h4>
+          ${b.corrections.map((k, i) => `<div class="corr"><div class="corr-tete"><span>Correction ${i + 1}</span><span class="boutons"><button type="button" class="btn petit" data-cm="${i}:-1" ${i === 0 ? 'disabled' : ''} aria-label="Monter">↑</button><button type="button" class="btn petit" data-cm="${i}:1" ${i === b.corrections.length - 1 ? 'disabled' : ''} aria-label="Descendre">↓</button><button type="button" class="btn petit danger" data-cx="${i}" ${b.corrections.length === 1 ? 'disabled' : ''}>Supprimer</button></span></div>
+            ${editeurBlocs(k.blocs, 'corr' + i)}
+            <label class="ch">Résultat attendu<input type="text" data-catt="${i}" value="${esc(k.attendu)}"></label></div>`).join('')}
+          <div class="boutons"><button type="button" class="btn" data-act="corr-ajout">+ Ajouter une correction</button></div></div>
+        <div class="bloc"><h4>Vérification finale</h4><div class="corr">${editeurBlocs(b.verif.blocs, 'verif')}<label class="ch">Résultat attendu<input type="text" id="r-vatt" value="${esc(b.verif.attendu)}"></label></div></div>
+        <div class="boutons"><button type="button" class="btn prim" data-act="res-enreg">Enregistrer et lier à ${s.code}</button><button type="button" class="btn" data-act="res-annuler">Annuler</button></div>
+        <p class="astuce" id="astuce" aria-live="polite"></p>
+      </div>
+      <aside class="res-apercu" id="res-apercu"></aside></div>`;
+    rendreApercuRes();
+  }
+  function rendreApercuRes() {
+    const el = document.getElementById('res-apercu'); if (!el) return;
+    const b = st.brouillon;
+    el.innerHTML = `<h4>Aperçu en exécution</h4><div class="titre">${esc(b.titre || 'Sans titre')}</div>
+      <div class="puces">${(() => { const [c, bg] = couleur(b.sys); return `<span class="puce" style="border-color:${c};background:${bg};color:${c};cursor:default"><i style="background:${c}"></i>${b.sys}</span>`; })()}</div>
+      <div class="md">${md('**Symptômes** : ' + (b.symptomes || '_à compléter_'))}</div>
+      <div class="bloc"><h4>Diagnostic</h4>${rendreInstructions(b.diagnostic)}</div>
+      <div class="etapes-res">${b.corrections.map((k, i) => `<div class="er"><div class="er-tete"><span>Correction ${i + 1}</span></div>${rendreInstructions(k.blocs)}<div class="vide">Attendu : ${esc(k.attendu || '…')}</div></div>`).join('')}
+      <div class="er"><div class="er-tete"><span>Vérification finale</span></div>${rendreInstructions(b.verif.blocs)}<div class="vide">Attendu : ${esc(b.verif.attendu || '…')}</div></div></div>`;
+  }
+  // Accès aux listes de blocs par préfixe
+  function blocsPar(prefixe) {
+    if (prefixe === 'instr') return P().steps[st.sel].instr;
+    const b = st.brouillon;
+    if (prefixe === 'diag') return b.diagnostic;
+    if (prefixe === 'verif') return b.verif.blocs;
+    if (prefixe.startsWith('corr')) return b.corrections[+prefixe.slice(4)].blocs;
+    return null;
+  }
+  const apresBlocs = () => { if (st.vue === 'res') { rendrePageResolution(); } else { rendreGraphe(); rendrePanneau(); } };
+
+  // ---------- Interactions du graphe ----------
+  function brancherGraphe() {
+    const graphe = document.getElementById('graphe');
+    graphe.addEventListener('pointerdown', (ev) => {
+      if (ev.button !== 0) return;
+      const port = ev.target.closest('.port'), noeud = ev.target.closest('.noeud');
+      if (port && noeud && !exec()) { ev.preventDefault(); st.drag = { t: 'lien', from: noeud.dataset.id, cote: port.dataset.port }; port.classList.add('actif'); return; }
+      if (noeud) st.press = { id: noeud.dataset.id, x: ev.clientX, y: ev.clientY };
+    });
+    graphe.addEventListener('click', (ev) => {
+      const zone = ev.target.closest('[data-lien]');
+      if (zone) { st.lienSel = +zone.dataset.lien; st.sel = null; rendreGraphe(); rendrePanneau(); return; }
+      const f = ev.target.closest('.fantome');
+      if (f) {
+        const code = nouvelle();
+        if (f.dataset.nouvelleLigne) P().rows.push([code]); else P().rows[+f.dataset.ajoutLigne].push(code);
+        relierParDefaut(code); st.sel = code; st.lienSel = null; log(`${code} ajoutée`);
+        rendreGraphe(); rendrePanneau(); document.getElementById('f-titre')?.select();
+      }
+    });
+    graphe.addEventListener('keydown', (ev) => {
+      const n = ev.target.closest('.noeud');
+      if (n && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); st.sel = n.dataset.id; st.lienSel = null; rendreGraphe(); rendrePanneau(); }
+    });
+  }
+  const sous = (x, y) => document.elementFromPoint(x, y);
+  document.addEventListener('pointermove', (ev) => {
+    const graphe = document.getElementById('graphe'); if (!graphe) return;
+    if (st.drag && st.drag.t === 'lien') {
+      const g = graphe.getBoundingClientRect(); const A = point(st.drag.from, st.drag.cote); const B = { x: ev.clientX - g.left, y: ev.clientY - g.top };
+      dessinerLiens(st.drag.cote === 'bas' ? { a: A, b: B } : { a: B, b: A });
+      graphe.querySelectorAll('.noeud.cible, .noeud.interdit').forEach((n) => n.classList.remove('cible', 'interdit'));
+      const n = sous(ev.clientX, ev.clientY)?.closest('.noeud');
+      if (n && n.dataset.id !== st.drag.from) { const [src, dst] = st.drag.cote === 'bas' ? [st.drag.from, n.dataset.id] : [n.dataset.id, st.drag.from]; n.classList.add(rowOf(src) < rowOf(dst) ? 'cible' : 'interdit'); }
+      return;
+    }
+    if (st.press && !st.drag && !exec() && Math.hypot(ev.clientX - st.press.x, ev.clientY - st.press.y) > 6) {
+      const n = graphe.querySelector(`.noeud[data-id="${st.press.id}"]`); const carte = n.querySelector('.carte'); const r = carte.getBoundingClientRect();
+      const clone = carte.cloneNode(true); clone.classList.add('clone'); clone.style.width = r.width + 'px'; document.body.appendChild(clone);
+      st.drag = { t: 'carte', id: st.press.id, clone, dx: st.press.x - r.left, dy: st.press.y - r.top, cible: null }; n.classList.add('source');
+    }
+    if (st.drag && st.drag.t === 'carte') {
+      const d = st.drag; d.clone.style.left = ev.clientX - d.dx + 'px'; d.clone.style.top = ev.clientY - d.dy + 'px';
+      graphe.querySelectorAll('.emplacement').forEach((e) => e.remove()); graphe.querySelectorAll('.ligne.survol').forEach((e) => e.classList.remove('survol'));
+      let ligne = sous(ev.clientX, ev.clientY)?.closest('.ligne');
+      if (!ligne || !graphe.contains(ligne)) { let best = null, dist = Infinity; graphe.querySelectorAll('.ligne').forEach((l) => { const r = l.getBoundingClientRect(); const dd = Math.abs((r.top + r.bottom) / 2 - ev.clientY); if (dd < dist) { dist = dd; best = l; } }); ligne = dist < 60 ? best : null; }
+      if (!ligne) { d.cible = null; return; }
+      ligne.classList.add('survol');
+      const groupe = ligne.querySelector('.groupe'); const autres = [...groupe.querySelectorAll('.noeud')].filter((n) => n.dataset.id !== d.id);
+      let idx = autres.findIndex((n) => { const r = n.getBoundingClientRect(); return ev.clientX < r.left + r.width / 2; }); if (idx < 0) idx = autres.length;
+      const marque = document.createElement('div'); marque.className = 'emplacement'; groupe.insertBefore(marque, autres[idx] || groupe.querySelector('.fantome'));
+      d.cible = { row: +ligne.dataset.row, idx };
+    }
+  });
+  document.addEventListener('pointerup', (ev) => {
+    const d = st.drag, press = st.press; st.drag = null; st.press = null;
+    if (!document.getElementById('graphe')) return;
+    if (d && d.t === 'lien') {
+      const n = sous(ev.clientX, ev.clientY)?.closest('.noeud');
+      if (n && n.dataset.id !== d.from) {
+        const [src, dst] = d.cote === 'bas' ? [d.from, n.dataset.id] : [n.dataset.id, d.from];
+        if (rowOf(src) >= rowOf(dst)) flash('Un lien descend toujours : place d’abord l’étape qui attend sur une ligne plus basse.');
+        else if (P().links.some((l) => l[0] === src && l[1] === dst)) flash(`Le lien ${src} → ${dst} existe déjà.`);
+        else { P().links.push([src, dst]); log(`Lien créé : ${src} → ${dst}`); flash(`Lien créé : ${dst} attendra ${src}.`); }
+      }
+      rendreGraphe(); rendrePanneau(); return;
+    }
+    if (d && d.t === 'carte') {
+      d.clone.remove();
+      if (d.cible) {
+        const p = P(); const from = rowOf(d.id); const meme = d.cible.row === from; const orph = meme ? [] : suivants(d.id);
+        p.rows[from].splice(p.rows[from].indexOf(d.id), 1);
+        if (d.cible.row >= p.rows.length) p.rows.push([d.id]); else p.rows[d.cible.row].splice(d.cible.idx, 0, d.id);
+        retirerLignesVides();
+        if (!meme) { relierParDefaut(d.id); rattacherOrphelins(orph); flash(`${d.id} déplacée : liens recréés avec la ligne au-dessus et la ligne en dessous.`); }
+        nettoyerLiens(); log(`${d.id} déplacée`); st.sel = d.id; st.lienSel = null;
+      }
+      rendreGraphe(); rendrePanneau(); return;
+    }
+    if (press) { const n = sous(ev.clientX, ev.clientY)?.closest('.noeud'); if (n && n.dataset.id === press.id) { st.sel = st.sel === press.id ? null : press.id; st.lienSel = null; rendreGraphe(); rendrePanneau(); } }
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (st.vue !== 'graphe') return;
+    if ((ev.key === 'Delete' || ev.key === 'Backspace') && st.lienSel !== null && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) { supprimerGroupe(st.lienSel); st.lienSel = null; rendreGraphe(); rendrePanneau(); }
+    if (ev.key === 'Escape') { st.sel = null; st.lienSel = null; rendreGraphe(); rendrePanneau(); }
+  });
+
+  // ---------- Saisie (délégation sur toute la vue) ----------
+  vue.addEventListener('input', (ev) => {
+    const t = ev.target;
+    if (t.dataset.bi) {
+      const [pre, i] = t.dataset.bi.split(':'); const l = blocsPar(pre); l[+i].contenu = t.value;
+      const ap = vue.querySelector(`[data-apercu="${t.dataset.bi}"]`); if (ap) ap.innerHTML = md(t.value);
+      if (st.vue === 'res') rendreApercuRes();
+      return;
+    }
+    if (st.vue === 'res') {
+      const b = st.brouillon;
+      if (t.id === 'r-titre') b.titre = t.value; else if (t.id === 'r-sympt') b.symptomes = t.value; else if (t.id === 'r-vatt') b.verif.attendu = t.value;
+      else if (t.dataset.catt) b.corrections[+t.dataset.catt].attendu = t.value;
+      rendreApercuRes(); return;
+    }
+    const s = st.sel && P().steps[st.sel]; if (!s) return;
+    const champs = { 'f-titre': 'titre', 'f-att': 'attendu', 'f-preuve': 'preuve' };
+    if (champs[t.id]) s[champs[t.id]] = t.id === 'f-titre' ? (t.value || 'Sans titre') : t.value;
+    else if (t.id === 'f-duree') s.duree = Math.max(0, parseInt(t.value, 10) || 0);
+    else return;
+    if (t.id === 'f-titre' || t.id === 'f-duree') rendreGraphe();
+  });
+  vue.addEventListener('change', (ev) => {
+    const t = ev.target;
+    if (t.id === 'sys-ajout' && t.value) { st.sysMep.push(t.value); log(`Système ajouté à la MEP : ${t.value}`); rendreVue(); return; }
+    if (t.id === 'r-sys') { st.brouillon.sys = t.value; rendreApercuRes(); return; }
+    const s = st.sel && P().steps[st.sel]; if (!s) return;
+    if (t.id === 'f-qui') s.qui = t.value;
+    else if (t.id === 'f-crit') s.crit = t.value;
+    else if (t.id === 'f-type') s.type = t.value;
+    else if (t.id === 'f-pnr') { s.pnr = t.checked; s.pnrOk = false; log(`${s.code} : point de non-retour ${t.checked ? 'défini' : 'retiré'}`); }
+    else if (t.dataset.res) s.res = t.checked ? [...s.res, t.dataset.res] : s.res.filter((x) => x !== t.dataset.res);
+    else if (t.id === 'f-ajout-avant' && t.value) { ajouterLien(t.value, s.id); log(`Lien créé : ${t.value} → ${s.id}`); }
+    else if (t.id === 'f-ajout-apres' && t.value) { ajouterLien(s.id, t.value); log(`Lien créé : ${s.id} → ${t.value}`); }
+    else return;
+    rendreGraphe(); rendrePanneau();
+  });
+  vue.addEventListener('click', (ev) => {
+    const b = ev.target.closest('button'); if (!b) return;
+    const p = P(); const s = st.sel && p.steps[st.sel]; const ds = b.dataset;
+    if (ds.copier !== undefined) {
+      const txt = decodeURIComponent(ds.copier);
+      try { navigator.clipboard.writeText(txt).then(() => { b.textContent = 'Copié ✓'; setTimeout(() => { b.textContent = 'Copier'; }, 1500); }, () => flash('Copie refusée ici : sélectionne le texte.')); } catch (e) { flash('Copie refusée ici : sélectionne le texte.'); }
+      return;
+    }
+    if (ds.sysRetirer) {
+      const k = ds.sysRetirer; const util = Object.values(st.plans.dep.steps).concat(Object.values(st.plans.rep.steps)).filter((x) => x.sys.includes(k)).map((x) => x.code);
+      if (util.length) { flash(`${k} est utilisé par ${util.join(', ')} : retire-le d'abord de ces étapes.`); return; }
+      st.sysMep = st.sysMep.filter((x) => x !== k); log(`Système retiré de la MEP : ${k}`); rendreVue(); return;
+    }
+    if (ds.bt) { const [pre, i, type] = ds.bt.split(':'); blocsPar(pre)[+i].type = type; apresBlocs(); return; }
+    if (ds.ba) { const [pre, type] = ds.ba.split(':'); blocsPar(pre).push({ type, contenu: '' }); apresBlocs(); return; }
+    if (ds.bx) { const [pre, i] = ds.bx.split(':'); const l = blocsPar(pre); l.splice(+i, 1); if (!l.length) l.push(T('')); apresBlocs(); return; }
+    if (ds.bm) { const [pre, i, sens] = ds.bm.split(':'); const l = blocsPar(pre); const a = +i, z = a + +sens; if (z >= 0 && z < l.length) [l[a], l[z]] = [l[z], l[a]]; apresBlocs(); return; }
+    if (ds.cm) { const [i, sens] = ds.cm.split(':').map(Number); const l = st.brouillon.corrections; [l[i], l[i + sens]] = [l[i + sens], l[i]]; rendrePageResolution(); return; }
+    if (ds.cx !== undefined) { st.brouillon.corrections.splice(+ds.cx, 1); rendrePageResolution(); return; }
+    if (ds.lienSuppr) { const [a, c] = ds.lienSuppr.split('|'); p.links = p.links.filter((l) => !(l[0] === a && l[1] === c)); log(`Lien supprimé : ${a} → ${c}`); st.lienSel = null; rendreGraphe(); rendrePanneau(); return; }
+    if (ds.retirerAvant) { p.links = p.links.filter((l) => !(l[0] === ds.retirerAvant && l[1] === s.id)); rendreGraphe(); rendrePanneau(); return; }
+    if (ds.retirerApres) { p.links = p.links.filter((l) => !(l[0] === s.id && l[1] === ds.retirerApres)); rendreGraphe(); rendrePanneau(); return; }
+    if (ds.sys && s) { const k = ds.sys; s.sys = s.sys.includes(k) ? s.sys.filter((x) => x !== k) : [...s.sys, k].sort((x, y) => st.sysMep.indexOf(x) - st.sysMep.indexOf(y)); rendreGraphe(); rendrePanneau(); return; }
+    if (ds.appliquer && s) { s.run = { id: ds.appliquer, i: 0, res: [], statut: 'cours' }; log(`${s.code} : résolution « ${resolution(ds.appliquer).titre} » démarrée`); rendrePanneau(); return; }
+    switch (ds.act) {
+      case 'fermer': st.sel = null; st.lienSel = null; break;
+      case 'suppr-lien': supprimerGroupe(st.lienSel); st.lienSel = null; break;
+      case 'suppr': { const orph = suivants(s.id); p.rows = p.rows.map((r) => r.filter((x) => x !== s.id)); p.links = p.links.filter((l) => l[0] !== s.id && l[1] !== s.id); delete p.steps[s.id]; retirerLignesVides(); rattacherOrphelins(orph); log(`${s.code} supprimée`); st.sel = null; break; }
+      case 'pj': s.pj.push(`capture-${String(s.pj.length + 1).padStart(2, '0')}.png`); break;
+      case 'nouv-res': st.resPour = s.id; st.brouillon = nouveauBrouillon(s); st.vue = 'res'; rendreVue(); window.scrollTo({ top: 0 }); return;
+      case 'res-annuler': st.vue = 'graphe'; rendreVue(); return;
+      case 'corr-ajout': st.brouillon.corrections.push({ blocs: [C('')], attendu: '' }); rendrePageResolution(); return;
+      case 'res-enreg': {
+        const br = st.brouillon;
+        if (!br.titre.trim()) { flash('Donne un titre à la fiche de résolution.'); document.getElementById('r-titre')?.focus(); return; }
+        const id = 'r' + (st.resol.length + 1) + '-' + Date.now().toString(36);
+        st.resol.push({ id, titre: br.titre.trim(), sys: br.sys, symptomes: br.symptomes, diagnostic: br.diagnostic,
+          corrections: br.corrections.map((k) => ({ blocs: k.blocs, attendu: k.attendu })), verif: { blocs: br.verif.blocs, attendu: br.verif.attendu } });
+        const etape = P().steps[st.resPour]; etape.res.push(id); st.sel = etape.id; st.vue = 'graphe';
+        log(`Résolution « ${br.titre.trim()} » créée et liée à ${etape.code}`);
+        rendreVue(); flash(`Fiche « ${br.titre.trim()} » enregistrée et liée à ${etape.code}.`); return;
+      }
+      case 'main': s.executant = MOI; log(`${MOI} a pris la main sur ${s.code} (prévu : ${s.qui})`); flash(`${MOI} a pris la main sur ${s.code} : c'est enregistré dans le journal.`); break;
+      case 'pnr-ok': s.pnrOk = true; log(`Passage du point de non-retour ${s.code} autorisé`); break;
+      case 'demarrer': s.etat = 'run'; log(`${s.code} démarrée`); break;
+      case 'reussie': s.etat = 'ok'; log(`${s.code} réussie`); break;
+      case 'echec': if (!s.preuve.trim()) { flash('Décris ce qui s’est passé dans la preuve avant de déclarer l’échec.'); return; } s.etat = 'fail'; s.run = null; log(`${s.code} en échec`); break;
+      case 'res-ok': case 'res-ko': {
+        const x = resolution(s.run.id); const total = x.corrections.length + 1;
+        s.run.res.push(ds.act === 'res-ok' ? 'ok' : 'ko'); s.run.i++;
+        if (ds.act === 'res-ko') { s.run.statut = 'echec'; st.repli = true; log(`${s.code} : résolution en échec, retour arrière déclenché`); flash('Résolution en échec : retour arrière déclenché automatiquement.'); rendreVue(); return; }
+        if (s.run.i >= total) { s.etat = 'todo'; s.preuve = ''; s.run = null; log(`${s.code} : résolution conforme, étape à refaire`); flash(`Résolution conforme : ${s.code} est de nouveau à faire.`); }
+        break;
+      }
+      case 'raz': s.etat = 'todo'; s.pnrOk = false; s.run = null; break;
+      default: return;
+    }
+    rendreGraphe(); rendrePanneau();
+  });
+
+  const bascule = (ids, actif) => ids.forEach((i) => document.getElementById(i).setAttribute('aria-pressed', String(i === actif)));
+  const changer = (fn) => { fn(); st.sel = null; st.lienSel = null; st.vue = 'graphe'; rendreVue(); };
+  document.getElementById('p-dep').onclick = () => changer(() => { st.plan = 'dep'; bascule(['p-dep', 'p-rep'], 'p-dep'); });
+  document.getElementById('p-rep').onclick = () => changer(() => { st.plan = 'rep'; bascule(['p-dep', 'p-rep'], 'p-rep'); });
+  document.getElementById('m-edit').onclick = () => changer(() => { st.mode = 'edit'; bascule(['m-edit', 'm-exec'], 'm-edit'); });
+  document.getElementById('m-exec').onclick = () => changer(() => { st.mode = 'exec'; bascule(['m-edit', 'm-exec'], 'm-exec'); });
+  document.getElementById('reinit').onclick = () => changer(() => init());
+  window.addEventListener('resize', () => dessinerLiens());
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => dessinerLiens());
+  rendreVue();
+})();
+</script>
