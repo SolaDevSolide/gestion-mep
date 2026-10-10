@@ -31,8 +31,8 @@ export interface DeplacementVue {
  * déplacement de la vue en faisant glisser le fond. `zoomRef` est tenu à jour à chaque rendu pour les écouteurs.
  */
 export function useZoomVue(
-  zone: RefObject<HTMLDivElement>,
-  graphe: RefObject<HTMLDivElement>,
+  zone: RefObject<HTMLDivElement | null>,
+  graphe: RefObject<HTMLDivElement | null>,
   zoomRef: MutableRefObject<number>,
   taille: { largeur: number; hauteur: number },
 ) {
@@ -141,8 +141,8 @@ export function useZoomVue(
 
 /** Étape choisie depuis le panneau (ou le clavier) hors du champ : on la recentre dans la zone. */
 export function useRecentrerSelection(
-  zone: RefObject<HTMLDivElement>,
-  graphe: RefObject<HTMLDivElement>,
+  zone: RefObject<HTMLDivElement | null>,
+  graphe: RefObject<HTMLDivElement | null>,
   selection: string | null,
 ) {
   useEffect(() => {

@@ -24,7 +24,7 @@ jobs:
   miroir:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Récupérer le wiki
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -19,7 +19,7 @@ interface Props {
   onGroupeSelection?: (cle: string | null) => void;
   /** Lien en cours de tirage : tracé temporaire, mis à jour directement par le glisser-déposer. */
   tirage: boolean;
-  trace: RefObject<SVGPathElement>;
+  trace: RefObject<SVGPathElement | null>;
 }
 
 /** Couche SVG des liens et jonctions, derrière les fiches (repère du graphe non zoomé). */

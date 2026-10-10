@@ -14,8 +14,8 @@ export interface Geometrie {
  * d'après leur position réelle, dans le repère non zoomé.
  */
 export function useMesureCartes(
-  zone: RefObject<HTMLDivElement>,
-  graphe: RefObject<HTMLDivElement>,
+  zone: RefObject<HTMLDivElement | null>,
+  graphe: RefObject<HTMLDivElement | null>,
   zoomRef: MutableRefObject<number>,
 ): Geometrie {
   const [geo, setGeo] = useState<Geometrie>({ ancrages: {}, largeur: 0, hauteur: 0, zone: 0 });
