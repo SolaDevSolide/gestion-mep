@@ -8,7 +8,7 @@ L'application tient dans deux conteneurs, décrits par le fichier `docker-compos
 
 | Conteneur | Contenu | Données |
 |---|---|---|
-| `app` | API et interface web, image `ghcr.io/soladevsolide/gestion-mep` | volumes `pieces-jointes` (fichiers joints) et `cles` (clés de session) |
+| `app` | API et interface web, image `ghcr.io/soladevsolide/gestion-mep` | volumes `pieces-jointes` (fichiers joints), `cles` (clés de session) et `sauvegardes` (archives de la base et des pièces jointes) |
 | `db` | PostgreSQL 16 | volume `db-data` |
 
 L'application écoute en HTTP sur le port 8080. Le chiffrement HTTPS est confié à un proxy inverse placé devant elle. Il n'y a ni autre service, ni tâche planifiée à installer : le schéma de la base est créé et mis à jour automatiquement au démarrage.
@@ -70,6 +70,7 @@ Pour un déploiement sans Docker Compose (Kubernetes, ECS…), l'image se règle
 | `Admin__Login`, `Admin__MotDePasse` | Voir `ADMIN_LOGIN`, `ADMIN_MOT_DE_PASSE`. |
 | `Stockage__Dossier` | Dossier des pièces jointes dans le conteneur (`/data/pieces-jointes`), à monter sur un volume persistant. |
 | `Stockage__TailleMaxMo` | Voir `PIECES_TAILLE_MAX_MO`. |
+| `Sauvegardes__Dossier` | Dossier des sauvegardes (`/data/sauvegardes`), à monter sur un volume persistant avec assez de place pour une copie de la base et des pièces jointes : sauvegardes automatiques avant une mise à jour du schéma ou une importation, et défaut de `gestion-mep sauvegarder`. |
 | `Cles__Dossier` | Dossier des clés qui chiffrent le cookie de session (`/data/cles`), à monter sur un volume persistant. Sans lui, chaque recréation du conteneur déconnecte tout le monde. |
 | `ProxyInverse__Reseaux` | Voir `PROXY_RESEAUX`. |
 | `Connexion__TentativesParMinute` | Voir `CONNEXIONS_PAR_MINUTE`. |
