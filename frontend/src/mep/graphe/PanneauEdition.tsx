@@ -9,6 +9,7 @@ import { construireLignes, indexLignes, type Lien } from '../../graphe';
 import { useDraft, useReportDirty } from '../../hooks';
 import { useMep } from '../../mepContext';
 import type { Criticite, Etape, EtapeSaisie, Mep, ResolutionType, SystemeCatalogue, TypeEtape, TypePlan } from '../../types';
+import { AvisConflit } from '../../ui/AvisConflit';
 import { Button } from '../../ui/Button';
 import { Checkbox } from '../../ui/Checkbox';
 import { cn } from '../../ui/cn';
@@ -147,6 +148,7 @@ export function PanneauEdition(props: Props) {
   const anomalies = anomaliesFiche(v);
 
   async function enregistrer(): Promise<boolean> {
+    if (d.conflit) return false;
     const duree = v.duree.trim() === '' ? null : Math.max(0, Math.round(Number(v.duree)));
     const saisie: EtapeSaisie = {
       ...saisieDepuis(etape),
@@ -194,10 +196,11 @@ export function PanneauEdition(props: Props) {
         <span className="flex shrink-0 items-center gap-2">
           {d.dirty && <span role="status" className="inline-flex items-center gap-1 text-xs font-medium text-warn-fg"><span className="size-2 rounded-full bg-warn-solid" aria-hidden />Non enregistré</span>}
           {d.dirty && <Button variante="fantome" taille="sm" onClick={() => { d.reset(); setGarde(false); }}>Annuler</Button>}
-          <Button variante="primaire" taille="sm" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty} chargement={envoi} onClick={() => void enregistrer()}>Enregistrer</Button>
+          <Button variante="primaire" taille="sm" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty || d.conflit} chargement={envoi} onClick={() => void enregistrer()}>Enregistrer</Button>
         </span>
       </div>
       {anomalies.length > 0 && <p className="flex items-center gap-1.5 text-xs text-warn-fg"><TriangleAlert className="size-3.5" aria-hidden />À compléter : {anomalies.join(', ')}.</p>}
+      <AvisConflit brouillon={d} />
       {garde && (
         <div role="alertdialog" aria-label="Modifications non enregistrées" className="flex flex-wrap items-center gap-2 rounded-lg border border-warn-bd bg-warn-bg px-3 py-2 text-sm text-warn-fg">
           <span className="font-medium">Modifications non enregistrées.</span>
