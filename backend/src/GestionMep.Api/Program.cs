@@ -52,6 +52,7 @@ builder.Services.AjouterProtectionsHttp(builder.Configuration);
 var protection = builder.Services.AddDataProtection().SetApplicationName("gestion-mep");
 if (builder.Configuration["Cles:Dossier"] is { Length: > 0 } dossierCles)
     protection.PersistKeysToFileSystem(new DirectoryInfo(dossierCles));
+builder.Services.AjouterOpenApi();
 
 var app = builder.Build();
 
@@ -76,6 +77,7 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 var api = app.MapGroup("/api").RequireAuthorization();
+api.MapOpenApi(DocumentationOpenApi.Chemin);
 api.MapGet("/sante", () => Results.Ok(new { statut = "ok" })).AllowAnonymous();
 // Version du front servi (empreinte de index.html) : un onglet ouvert la compare pour proposer de recharger après un déploiement.
 var versionFront = VersionFront(app.Environment);

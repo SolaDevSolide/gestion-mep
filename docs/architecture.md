@@ -41,6 +41,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 | `Services/ServiceMep.cs` | Chargement d'une MEP (avec application de l'échéance de retour arrière), contrôle de version, journal d'audit, enregistrement et notification. |
 | `Services/MepMapping.cs` | Seul endroit où une entité devient un DTO : calcul des disponibilités, des erreurs du plan et des droits de l'utilisateur courant. |
 | `Services/Dtos.cs` | Contrats d'entrée (`…Saisie`) et de sortie (`…Dto`). |
+| `Services/DocumentationOpenApi.cs` | Description OpenAPI servie sur `/api/openapi.json`, copiée dans `docs/openapi.json` pour générer les types du front. |
 | `Services/ErreurHttp.cs` | Erreurs HTTP explicites et middleware qui traduit les exceptions en `{ "message": "…" }`. |
 | `Services/DiffuseurMep.cs` | Diffusion en mémoire de la dernière version de chaque MEP aux abonnés du flux SSE. |
 | `Services/SurveillanceEcheances.cs` | Tâche de fond : chaque minute, bascule en retour arrière les MEP dont l'échéance est atteinte. |
