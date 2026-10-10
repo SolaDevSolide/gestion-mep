@@ -5,7 +5,7 @@ import { etape, mep, resolution } from '../test/fabrique';
 import type { Etape, Mep, ResolutionType } from '../types';
 
 const typeRes: ResolutionType = {
-  id: 't1', titre: 'API ne répond plus', symptomes: 'Erreur 502 sur /sante', diagnostic: '', systemeCatalogueId: null, corrections: [],
+  id: 't1', titre: 'API ne répond plus', symptomes: 'Erreur 502 sur /sante', diagnostic: '', systemeCatalogueIds: [], corrections: [],
   verificationInstruction: '', verificationAttendu: '', actif: true, version: 1, modifieeLe: '2026-10-09T10:00:00Z',
 };
 
@@ -28,72 +28,79 @@ function rendre(e: Etape, opts: { m?: Partial<Mep>; participantId?: string | nul
   return { actions, onSelectionner };
 }
 
-describe('EtapePanneau : boutons selon la disponibilité', () => {
-  it('propose Démarrer si disponible et exécutant', async () => {
-    const { actions } = rendre(etape());
+describe('EtapePanneau : démarrer et terminer', () => {
+  it('Démarrer est proposé à tout participant relié à un compte, sans responsable désigné', async () => {
+    const { actions } = rendre(etape({ executantId: null }), { participantId: 'p2' });
     await userEvent.click(screen.getByRole('button', { name: /Démarrer/ }));
     expect(actions.demarrer).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Pas encore démarrée')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Réussie' })).toBeNull();
   });
 
-  it('masque Démarrer si je ne suis pas l’exécutant, et propose Prendre la main', () => {
-    rendre(etape(), { participantId: 'p2' });
+  it('pas de Démarrer sans participant relié, sauf pour le pilote', () => {
+    rendre(etape(), { participantId: null });
     expect(screen.queryByRole('button', { name: /Démarrer/ })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Prendre la main' })).toBeInTheDocument();
+  });
+
+  it('le pilote peut démarrer même sans être participant relié', () => {
+    rendre(etape(), { participantId: null, estPilote: true });
+    expect(screen.getByRole('button', { name: /Démarrer/ })).toBeInTheDocument();
   });
 
   it('masque Démarrer et indique le préalable bloquant avec un lien', async () => {
     const prealable = etape({ id: 'e0', code: 'E0000', action: 'Sauvegarde', etat: 'AFaire' }, 'Disponible');
     const e = etape({ dependances: ['e0'] }, 'Attend');
-    const actions = actionsFactices();
     const onSelectionner = vi.fn();
-    render(<EtapePanneau mep={mep({ etapes: [prealable, e] })} etape={e} resolutionsTypes={[]} actions={actions} onSelectionner={onSelectionner} />);
+    render(<EtapePanneau mep={mep({ etapes: [prealable, e] })} etape={e} resolutionsTypes={[]} actions={actionsFactices()} onSelectionner={onSelectionner} />);
     expect(screen.queryByRole('button', { name: /Démarrer/ })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'E0000' }));
     expect(onSelectionner).toHaveBeenCalledWith('e0');
   });
 
-  it('étape en cours : Réussie demande une confirmation, Échec exige une preuve', async () => {
-    const { actions } = rendre(etape({ etat: 'EnCours' }, 'EnCours'));
-    const echec = screen.getByRole('button', { name: 'Échec' });
-    expect(echec).toBeDisabled();
+  it('étape en cours (exécutant) : Réussie demande une confirmation, Échec exige une preuve', async () => {
+    const { actions } = rendre(etape({ etat: 'EnCours', executantId: 'p1' }, 'EnCours'));
+    expect(screen.getByRole('button', { name: 'Échec' })).toBeDisabled();
     await userEvent.click(screen.getByRole('button', { name: 'Réussie' }));
     await userEvent.click(screen.getByRole('button', { name: /J’ai vérifié et obtenu le résultat attendu/ }));
     expect(actions.terminer).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Reussie', '');
   });
 
   it('Échec avec preuve : confirmation puis appel', async () => {
-    const { actions } = rendre(etape({ etat: 'EnCours' }, 'EnCours'));
+    const { actions } = rendre(etape({ etat: 'EnCours', executantId: 'p1' }, 'EnCours'));
     await userEvent.type(screen.getByLabelText('Preuve'), 'Erreur 502');
     await userEvent.click(screen.getByRole('button', { name: 'Échec' }));
     await userEvent.click(screen.getByRole('button', { name: 'Déclarer l’échec' }));
     expect(actions.terminer).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Echec', 'Erreur 502');
   });
 
+  it('le pilote peut terminer une étape exécutée par un autre', () => {
+    rendre(etape({ etat: 'EnCours', executantId: 'p2' }, 'EnCours'), { participantId: 'p3', estPilote: true });
+    expect(screen.getByRole('button', { name: 'Réussie' })).toBeInTheDocument();
+  });
+
   it('étape réussie : aucune action, pas de prise de main', () => {
-    rendre(etape({ etat: 'Reussie' }, 'Terminee'), { participantId: 'p2' });
+    rendre(etape({ etat: 'Reussie', executantId: 'p1' }, 'Terminee'), { participantId: 'p2' });
     expect(screen.queryByRole('button', { name: 'Prendre la main' })).toBeNull();
     expect(screen.queryByRole('button', { name: /Démarrer/ })).toBeNull();
+  });
+
+  it('durée estimée omise quand elle n’est pas renseignée', () => {
+    rendre(etape({ dureeEstimeeMinutes: null }));
+    expect(screen.queryByText(/\d+ min/)).toBeNull();
   });
 });
 
 describe('EtapePanneau : exécutant et prise de main', () => {
-  it('affiche l’exécutant effectif à la place du responsable prévu', () => {
-    rendre(etape({ executantId: 'p2' }, 'Disponible'), { participantId: 'p2' });
-    expect(screen.getByText('Exécutée par Bob à la place de Claire')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Démarrer/ })).toBeInTheDocument();
+  it('affiche l’exécutant une fois l’étape démarrée', () => {
+    rendre(etape({ etat: 'EnCours', executantId: 'p2' }, 'EnCours'), { participantId: 'p2' });
+    expect(screen.getByText('Bob')).toBeInTheDocument();
   });
 
-  it('le responsable prévu ne peut plus démarrer après une prise de main', () => {
-    rendre(etape({ executantId: 'p2' }), { participantId: 'p1' });
-    expect(screen.queryByRole('button', { name: /Démarrer/ })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Prendre la main' })).toBeInTheDocument();
-  });
-
-  it('prise de main : le motif est obligatoire et transmis', async () => {
-    const { actions } = rendre(etape(), { participantId: 'p2' });
+  it('étape en cours démarrée par un autre : pas de Réussie, prise de main avec motif obligatoire', async () => {
+    const { actions } = rendre(etape({ etat: 'EnCours', executantId: 'p1' }, 'EnCours'), { participantId: 'p2' });
+    expect(screen.queryByRole('button', { name: 'Réussie' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Prendre la main' }));
-    expect(screen.getByText(/tracée au journal/)).toBeInTheDocument();
+    expect(screen.getByText(/Tracé au journal/)).toBeInTheDocument();
     const confirmer = () => { const b = screen.getAllByRole('button', { name: 'Prendre la main' }); return b[b.length - 1]; };
     expect(confirmer()).toBeDisabled();
     await userEvent.type(screen.getByLabelText(/Pourquoi prenez-vous la main/), 'Claire est injoignable');
@@ -101,45 +108,52 @@ describe('EtapePanneau : exécutant et prise de main', () => {
     expect(actions.prendreLaMain).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Claire est injoignable');
   });
 
-  it('badge « À vous » : visible sur mon étape à faire, masqué une fois terminée', () => {
-    const { unmount } = render(<EtapePanneau mep={mep({ etapes: [etape()], droits: { ...mep().droits, participantId: 'p1' } })} etape={etape()} resolutionsTypes={[]} actions={actionsFactices()} onSelectionner={vi.fn()} />);
+  it('prise de main possible sur une étape en échec, pas sur une étape à faire', () => {
+    const { unmount } = render(<EtapePanneau mep={mep({ droits: { ...mep().droits, participantId: 'p2' } })} etape={etape({ etat: 'Echec', executantId: 'p1' }, 'ArretResolution')} resolutionsTypes={[]} actions={actionsFactices()} onSelectionner={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Prendre la main' })).toBeInTheDocument();
+    unmount();
+    rendre(etape(), { participantId: 'p2' });
+    expect(screen.queryByRole('button', { name: 'Prendre la main' })).toBeNull();
+  });
+
+  it('badge « À vous » : sur l’étape que j’exécute, masqué une fois terminée', () => {
+    const { unmount } = render(<EtapePanneau mep={mep({ droits: { ...mep().droits, participantId: 'p1' } })} etape={etape({ etat: 'EnCours', executantId: 'p1' }, 'EnCours')} resolutionsTypes={[]} actions={actionsFactices()} onSelectionner={vi.fn()} />);
     expect(screen.getByText('À vous')).toBeInTheDocument();
     unmount();
-    rendre(etape({ etat: 'Reussie' }, 'Terminee'));
+    rendre(etape({ etat: 'Reussie', executantId: 'p1' }, 'Terminee'));
     expect(screen.queryByText('À vous')).toBeNull();
   });
 
   it('badge « À vous » masqué dans une MEP clôturée', () => {
-    rendre(etape({ etat: 'AFaire' }), { m: { phase: 'Cloturee' } });
+    rendre(etape({ etat: 'EnCours', executantId: 'p1' }), { m: { phase: 'Cloturee' } });
     expect(screen.queryByText('À vous')).toBeNull();
   });
 
   it('pas de prise de main hors de la phase d’exécution du plan', () => {
-    rendre(etape(), { participantId: 'p2', m: { phase: 'Preparation' } });
+    rendre(etape({ etat: 'EnCours', executantId: 'p1' }), { participantId: 'p2', m: { phase: 'Preparation' } });
     expect(screen.queryByRole('button', { name: 'Prendre la main' })).toBeNull();
   });
 });
 
 describe('EtapePanneau : échec et résolutions', () => {
-  const echec = () => etape({ etat: 'Echec', preuve: 'Erreur 502', resolutionIds: ['t1'] }, 'ArretResolution');
+  const echec = () => etape({ etat: 'Echec', preuve: 'Erreur 502', resolutionIds: ['t1'], executantId: 'p1' }, 'ArretResolution');
 
   it('affiche le message d’arrêt et les résolutions liées, applicables par l’exécutant', async () => {
     const { actions } = rendre(echec(), { types: [typeRes] });
     expect(screen.getByText('Arrêter, prévenir le pilote, ne rien improviser.')).toBeInTheDocument();
     expect(screen.getByText('Problème connu ?')).toBeInTheDocument();
-    expect(screen.getByText('API ne répond plus')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Appliquer cette résolution' }));
     expect(actions.appliquerResolution).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 't1');
   });
 
   it('sans résolution liée : arrêter et prévenir le pilote, reprise réservée au pilote', () => {
-    rendre(etape({ etat: 'Echec' }, 'ArretResolution'), { estPilote: true });
+    rendre(etape({ etat: 'Echec', executantId: 'p1' }, 'ArretResolution'), { estPilote: true });
     expect(screen.getByText('Aucune résolution prévue : arrêter et prévenir le pilote.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Autoriser la reprise' })).toBeInTheDocument();
   });
 
   it('pas de reprise pour un non-pilote', () => {
-    rendre(etape({ etat: 'Echec' }, 'ArretResolution'));
+    rendre(etape({ etat: 'Echec', executantId: 'p1' }, 'ArretResolution'));
     expect(screen.queryByRole('button', { name: 'Autoriser la reprise' })).toBeNull();
   });
 
@@ -154,9 +168,8 @@ describe('EtapePanneau : échec et résolutions', () => {
     expect(screen.queryByText('Problème connu ?')).toBeNull();
   });
 
-  it('affiche l’historique des résolutions terminées (onglet Résolutions)', async () => {
+  it('affiche l’historique des résolutions terminées', () => {
     rendre(etape({ etat: 'AFaire' }, 'Disponible'), { m: { resolutions: [resolution({ statut: 'Reussie', termineeLe: '2026-10-09T21:30:00Z' })] } });
-    await userEvent.click(screen.getByRole('tab', { name: /Résolutions/ }));
     expect(screen.getByText('Résolutions déjà appliquées')).toBeInTheDocument();
     expect(screen.getByText('Réussie')).toBeInTheDocument();
   });
@@ -250,25 +263,8 @@ describe('EtapePanneau : instructions en blocs (markdown + Copier)', () => {
     const e = etape({ dependances: ['e0'] });
     const onSelectionner = vi.fn();
     render(<EtapePanneau mep={mep({ etapes: [prealable, e] })} etape={e} resolutionsTypes={[]} actions={actionsFactices()} onSelectionner={onSelectionner} />);
-    await userEvent.click(screen.getByRole('tab', { name: /Liens/ }));
     const bouton = screen.getByRole('button', { name: /E0000.*Sauvegarde BDD.*Réussie/ });
     await userEvent.click(bouton);
     expect(onSelectionner).toHaveBeenCalledWith('e0');
-  });
-});
-
-describe('EtapePanneau : onglets', () => {
-  it('étape en échec : l’onglet Résolutions est ouvert d’emblée et signalé', () => {
-    rendre(etape({ etat: 'Echec' }, 'ArretResolution'));
-    expect(screen.getByRole('tab', { name: /Résolutions/, selected: true })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Étape en échec' })).toBeInTheDocument();
-  });
-
-  it('compteurs : liens et pièces jointes', () => {
-    const prealable = etape({ id: 'e0', code: 'E0000' });
-    const e = etape({ dependances: ['e0'] });
-    render(<EtapePanneau mep={mep({ etapes: [prealable, e] })} etape={e} resolutionsTypes={[]} actions={actionsFactices()} onSelectionner={vi.fn()} />);
-    expect(screen.getByRole('tab', { name: /Liens\s*1/ })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Pièces jointes\s*0/ })).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { classer, correspond, normaliser, score, surligner, termes, type DocumentRecherche } from './recherche';
+import { classer, concerne, correspond, memeSysteme, normaliser, score, surligner, termes, type DocumentRecherche } from './recherche';
 
 describe('normaliser et termes', () => {
   it('ignore la casse et les accents', () => {
@@ -57,5 +57,17 @@ describe('surligner', () => {
   it('sans terme : un seul segment', () => {
     expect(surligner('abc', [])).toEqual([{ texte: 'abc', trouve: false }]);
     expect(surligner('', ['a'])).toEqual([]);
+  });
+});
+
+describe('résolutions multi-systèmes', () => {
+  it('concerne : aucun système = tous ; sinon au moins un en commun', () => {
+    expect(concerne([], ['api'])).toBe(true);
+    expect(concerne(['api', 'bdd'], ['bdd'])).toBe(true);
+    expect(concerne(['web'], ['api', 'bdd'])).toBe(false);
+  });
+  it('même système : intersection non vide', () => {
+    expect(memeSysteme(['api', 'bdd'], ['bdd', 'web'])).toBe(true);
+    expect(memeSysteme([], ['bdd'])).toBe(false);
   });
 });

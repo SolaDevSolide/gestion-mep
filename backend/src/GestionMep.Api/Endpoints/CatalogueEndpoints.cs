@@ -62,7 +62,7 @@ public static class CatalogueEndpoints
             ExigerAdmin(user);
             var s = await db.SystemesCatalogue.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Système du catalogue introuvable.");
             // Utilisé par une MEP ou par une résolution type : on le désactive au lieu de le supprimer.
-            var utilise = await db.Systemes.AnyAsync(x => x.CatalogueId == id) || await db.ResolutionsTypes.AnyAsync(r => r.SystemeCatalogueId == id);
+            var utilise = await db.Systemes.AnyAsync(x => x.CatalogueId == id) || await db.ResolutionsTypes.AnyAsync(r => r.SystemeCatalogueIds.Contains(id));
             if (utilise) s.Actif = false;
             else db.SystemesCatalogue.Remove(s);
             await db.SaveChangesAsync();

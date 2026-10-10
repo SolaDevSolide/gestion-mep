@@ -211,7 +211,7 @@ export default function ListeMepPage() {
                     {m.objet && <p className="mt-1 line-clamp-1 text-sm text-fg-muted">{m.objet}</p>}
                   </div>
                   <div className="flex items-center gap-5 text-sm text-fg-muted">
-                    <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4 text-fg-subtle" aria-hidden />{formatDate(m.dateMep)}</span>
+                    <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4 text-fg-subtle" aria-hidden />{m.dateMep ? `Démarrée le ${formatDate(m.dateMep)}` : m.creeLe ? `Créée le ${formatDate(m.creeLe)}` : "Pas encore démarrée"}</span>
                     <span className="inline-flex items-center gap-2">
                       {m.pilote ? <Avatar nom={m.pilote} taille="sm" /> : null}
                       <span>{m.pilote ?? 'Pas de pilote'}</span>

@@ -91,7 +91,7 @@ export function ResponsablesTechniquesSection() {
     <SectionCarte
       numero={4}
       titre="Responsables techniques"
-      description="Les développeurs et sachants de cette MEP : ce qu’ils ont développé, leur disponibilité et leur contact le jour J."
+      description="Développeurs et sachants : périmètre, disponibilité et contact le jour J."
       action={edition && <Button variante="primaire" taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>Ajouter</Button>}
     >
       {mep.responsablesTechniques.length === 0 ? (
@@ -135,7 +135,7 @@ export function ResponsablesTechniquesSection() {
       {suggestions.length > 0 && (
         <section aria-labelledby="suggestions-rt" className="mt-5 rounded-lg border border-dashed border-line-strong bg-surface-2/50 p-4">
           <h3 id="suggestions-rt" className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="size-4 text-accent-text" aria-hidden />Suggestions d’après les systèmes de la MEP</h3>
-          <p className="mt-0.5 text-xs text-fg-subtle">Comptes dont l’expertise porte sur un système de cette MEP. « Ajouter » crée la personne si besoin et la désigne responsable technique de ces systèmes.</p>
+          <p className="mt-0.5 text-xs text-fg-subtle">Comptes experts d’un système de cette MEP.</p>
           <ul className="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
             {suggestions.map((s) => (
               <li key={s.utilisateur.id} className="flex flex-wrap items-start gap-x-4 gap-y-2 px-4 py-3">
@@ -167,7 +167,7 @@ export function ResponsablesTechniquesSection() {
         open={forme !== null}
         onOpenChange={(o) => { if (!o) setForme(null); }}
         titre={forme?.existant ? 'Modifier le responsable technique' : 'Ajouter un responsable technique'}
-        description="Un participant n’apparaît qu’une fois. Ajoutez d’abord la personne dans « Personnes » si elle n’y figure pas."
+        description="Ajoutez d’abord la personne dans « Personnes » si besoin."
         pied={
           <>
             <Button variante="fantome" onClick={() => setForme(null)}>Annuler</Button>

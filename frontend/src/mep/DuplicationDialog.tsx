@@ -73,8 +73,8 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
       titre={depuisModele ? 'Nouvelle MEP depuis un modèle' : `Dupliquer ${courant?.estModele ? 'le modèle' : 'la MEP'}`}
       description={
         depuisModele
-          ? 'Le plan, les personnes, les étapes et les tests de recette du modèle sont copiés dans une nouvelle MEP en préparation.'
-          : 'Copie le plan, les personnes, les étapes et les tests de recette dans une nouvelle MEP en préparation. Les dates, l’échéance, les résultats et le bilan ne sont pas copiés.'
+          ? 'Le plan, les personnes, les étapes et les recettes du modèle sont copiés.'
+          : 'Copie le plan, les personnes, les étapes et les recettes. Dates, résultats et bilan ne sont pas copiés.'
       }
       pied={
         <>

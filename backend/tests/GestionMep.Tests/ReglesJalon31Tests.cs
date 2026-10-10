@@ -148,12 +148,14 @@ public class ReglesJalon31Tests
         var m = Demo();
         m.Phase = Phase.Execution;
         var alice = P(m, "Alice");
+        E(m, "E0006").Etat = EtatEtape.EnCours; // la prise de main vise une étape en cours
+        E(m, "E0006").ExecutantId = P(m, "Claire").Id;
         foreach (var motif in new[] { "", "   " })
         {
             var ex = Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, E(m, "E0006"), alice, motif));
             Assert.Contains("pourquoi", ex.Message);
         }
-        Assert.Null(E(m, "E0006").ExecutantId);
+        Assert.Equal(P(m, "Claire").Id, E(m, "E0006").ExecutantId);
         Regles.PrendreLaMain(m, E(m, "E0006"), alice, "Claire est en congé");
         Assert.Equal(alice.Id, E(m, "E0006").ExecutantId);
     }

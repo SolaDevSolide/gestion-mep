@@ -174,6 +174,10 @@ public class ApiJalon31Tests : IDisposable
         var (alice, id, mep) = await Demo();
         // Passage en exécution.
         mep = await AidesApi.Go(_api, alice, id);
+        // La prise de main vise une étape en cours démarrée par quelqu'un d'autre.
+        var claire = await _api.ClientConnecte("claire");
+        mep = await Ok(await claire.PostAsJsonAsync($"/api/meps/{id}/etapes/{Etape(mep, "E0006").GetProperty("id").GetGuid()}/demarrer",
+            new { revision = Etape(mep, "E0006").GetProperty("revision").GetInt32() }));
 
         var sansMotif = await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{Etape(mep, "E0006").GetProperty("id").GetGuid()}/prendre-la-main",
             new { revision = Etape(mep, "E0006").GetProperty("revision").GetInt32() });
@@ -184,7 +188,7 @@ public class ApiJalon31Tests : IDisposable
             new { revision = Etape(mep, "E0006").GetProperty("revision").GetInt32(), motif = "  Claire est en congé  " }));
         var journal = await Ok(await alice.GetAsync($"/api/meps/{id}/journal"));
         Assert.Contains(journal.EnumerateArray(), e => e.GetProperty("type").GetString() == "etape.prise-en-main"
-            && e.GetProperty("detail").GetString() == "Alice a pris la main sur E0006 (prévu : Claire) : Claire est en congé");
+            && e.GetProperty("detail").GetString() == "Alice a pris la main sur E0006 (à la place de Claire) : Claire est en congé");
     }
 
     [Fact]

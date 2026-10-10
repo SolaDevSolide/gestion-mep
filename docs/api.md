@@ -704,3 +704,59 @@ Aucun changement de schéma : `instructions`, `resultatAttendu`, `symptomes`, `d
 
 - **Stockage** : `Utilisateurs.Role`, `Contact` (texte), `Expertises` (`jsonb`) ; `Systemes.Sauvegarde_Statut`, `Sauvegarde_Moment` (entiers), `Sauvegarde_Contenu`, `Sauvegarde_Justification` (texte) ; `Etapes.SystemeIds` (`uuid[]`, remplace `SystemeId`), `Ligne` (entier), `DureeEstimeeMinutes` (entier nullable) ; `Meps.FichesRecette` (`jsonb`, remplace `TestsRecette`). Migration EF `Jalon4` (données reprises en SQL), lignes calculées par `Amorcage`.
 - **Choix faits là où la spécification était ouverte** : suppression d'une étape autorisée avec rattachement des suivants (comme la maquette) au lieu du refus ; `position` trop grande ramenée en fin de ligne ; numéro de ligne du journal compté à partir de 1 ; fiche sans titre nommée « Recette n » dans les messages ; `PUT …/fiches-recette/{fid}` : un `id` d'étape inconnu crée une nouvelle étape ; refaire une fiche sans étape validée → 422 ; supprimer un système détache ses fiches de recette (« Sans système ») ; profil : `role`, `contact`, `expertises` absents = vidés ; la révision des étapes voisines augmente quand leurs liens changent.
+
+---
+
+# Jalon 4.2 : ajouts et changements
+
+Spécification : `docs/jalon4-2-spec.md` (sections D à G pour le back).
+
+## Changements incompatibles (à reprendre côté front)
+
+| Avant (jalon 4) | Jalon 4.2 |
+|---|---|
+| `PUT /meps/{id}` modifiait `dateMep`, `heureDebut`, `heureFin` | ces trois clés sont **ignorées** (ni modifiées ni journalisées) ; elles restent dans `MepDto` (valeurs historiques, `null` pour une nouvelle MEP). Début = Go (`demarrageAutorise.le`), fin = clôture (`cloture.le`). |
+| `MepResumeDto.dateMep` = date saisie | **date du Go** (dans le fuseau de la MEP, UTC si fuseau inconnu) ou `null` ; nouveau champ **`creeLe`** (DateTimeOffset, création de la MEP) |
+| Étape : `responsableId` prévu, exigé (`erreursPlan` « compléter Responsable », « le responsable X n'est relié à aucun compte ») | **plus de responsable** : `EtapeSaisie.responsableId` est ignoré (ni contrôlé ni enregistré), plus aucune règle ; `EtapeDto.responsableId` reste renvoyé (ancienne valeur, `null` pour les nouvelles étapes et la démo), sans effet |
+| `demarrer` : seul l'exécutant prévu (responsable ou preneur de main) | **tout participant relié à un compte** (pilote et suppléants compris) ou **un administrateur** démarre une étape disponible et en devient l'**exécutant** (`executantId`) |
+| `terminer`, résolutions (démarrer, corrections, vérification) : l'exécutant seul | l'**exécutant, ou le pilote / un suppléant** |
+| `prendre-la-main` sur toute étape non réussie | seulement sur une étape **en cours ou en échec** déjà démarrée par quelqu'un d'autre (422 « E0004 n'est pas démarrée : il suffit de la démarrer. ») |
+| Journal `etape.demarree` « E0005 démarrée » | « **E0005 démarrée par Bob** » |
+| Journal `etape.prise-en-main` « Alice a pris la main sur E0002 (prévu : Bob) : motif » / « … a repris la main … » | « Alice a pris la main sur E0002 **(à la place de Bob)** : motif » (Bob = exécutant précédent) |
+| `ResolutionTypeDto.systemeCatalogueId` / `ResolutionTypeSaisie.systemeCatalogueId` | **`systemeCatalogueIds: [id]`** (zéro, un ou plusieurs systèmes du catalogue) |
+| `GET /resolutions?systemeCatalogueId=` : égalité | « **contient** » : les résolutions dont l'un des systèmes est celui demandé |
+| Suppression d'un participant responsable d'une étape : 422 | plus de contrôle sur le responsable ; toujours 422 s'il est l'exécutant d'une étape (« … a exécuté E0004 : il ne peut pas être supprimé. ») |
+
+## Date et heures de la MEP (D)
+
+- Plus exigées nulle part (elles ne l'étaient déjà pas dans `erreursPlan`) ; `PUT /meps/{id}` les ignore ; la duplication ne copie plus `heureDebut` / `heureFin` ; la démo n'a plus de `dateMep`.
+- `MepResumeDto` : `{ id, outil, versionCible, objet, dateMep, phase, echeanceRepli, pilote, nbEtapes, nbReussies, nbEchecs, environnement, estModele, creeLe }`. La liste affiche « Démarrée le `dateMep` » ou « Créée le `creeLe` ».
+- Échéance de retour arrière, fuseau horaire, indisponibilité : inchangés.
+
+## Exécution sans responsable (E)
+
+- `POST /meps/{id}/etapes/{eid}/demarrer` `{ revision }` : étape disponible (sinon 422 « Démarrage impossible : … »). Un administrateur qui n'est pas participant le devient (rôle « Exécutant », relié à son compte), seulement si le démarrage aboutit. Un compte ni participant ni administrateur : 422 « Seul un participant relié à un compte, le pilote ou un administrateur peut démarrer une étape. ».
+- Après un échec puis une reprise (pilote ou vérification de résolution conforme), l'étape repasse « À faire » : celui qui la redémarre en devient l'exécutant.
+- `terminer` et les routes de résolution par quelqu'un d'autre que l'exécutant, le pilote ou un suppléant : 422 « Cette étape est exécutée par quelqu'un d'autre. Utiliser « Prendre la main » pour la poursuivre à sa place. ».
+- `prendre-la-main` `{ revision, motif }` : motif obligatoire, preneur relié à un compte (un non-participant devient participant « Prise en main », comme avant), étape en cours ou en échec, preneur différent de l'exécutant (422 « Vous exécutez déjà cette étape. »).
+- Avertissement « X sera absent » : une étape est concernée par ses **systèmes** seulement (plus par le responsable).
+- Démo : plus de responsable ; `executantId` renseigné pour les étapes déjà passées (E0001 Alice, E0002 Bob, E0003 Claire, E0005 Bob en échec), `null` pour les autres.
+
+## Durée estimée (F)
+
+`dureeEstimeeMinutes` reste facultative (`null` accepté, jamais dans `erreursPlan` ni dans la disponibilité) ; seule une valeur négative est refusée (400).
+
+## Résolutions types sur plusieurs systèmes (G)
+
+- `ResolutionTypeDto` : `{ id, titre, symptomes, diagnostic, systemeCatalogueIds: [id], corrections, verificationInstruction, verificationAttendu, actif, version, modifieeLe }` ; `ResolutionTypeSaisie` : `systemeCatalogueIds` (absent = aucun ; doublons ignorés ; un id inconnu du catalogue → 400 « Système du catalogue inconnu. »).
+- `GET /resolutions?systemeCatalogueId={id}` : résolutions actives dont `systemeCatalogueIds` contient `id`, triées par titre ; sans filtre : toutes les actives.
+- Suppression d'un système du catalogue : désactivé (au lieu de supprimé) s'il figure dans les `systemeCatalogueIds` d'une résolution.
+- Migration EF `Jalon42` : `ResolutionsTypes.SystemeCatalogueIds` (`uuid[]`) = `[ancien SystemeCatalogueId]` ou vide ; l'ancienne colonne est supprimée.
+- Démo (nouvelle base) : nouvelle résolution « API + BDD : connexion refusée après bascule » (systèmes API et BDD), liée à E0007.
+
+## Choix faits
+
+- `EtapeDto.responsableId` est conservé dans la réponse (valeur historique) plutôt que retiré, pour ne pas casser un client ; il ne sert plus à rien.
+- La prise de main exige une étape déjà démarrée (en cours ou en échec) ; sur une étape à faire, il suffit de la démarrer.
+- Le pilote et les suppléants peuvent terminer une étape ou dérouler une résolution sans prendre la main (comme le prévoit la spécification) ; l'exécutant n'est alors pas changé.
+- `dateMep` du résumé est calculée dans le fuseau de la MEP.

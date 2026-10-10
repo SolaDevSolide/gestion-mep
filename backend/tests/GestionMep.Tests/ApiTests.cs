@@ -129,13 +129,15 @@ public class ApiTests : IDisposable
         Assert.Equal("Alice", mep.GetProperty("demarrageAutorise").GetProperty("par").GetString());
         Assert.False(mep.GetProperty("droits").GetProperty("peutModifierPlan").GetBoolean());
 
-        // Claire n'est pas responsable de E0004.
-        var refus = await Action(claire, id, mep, "E0004", "demarrer");
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
-        Assert.Contains("Prendre la main", await Message(refus));
-
+        // Alice démarre E0004 et en devient l'exécutante ; Claire ne peut plus ni la démarrer ni la terminer.
         mep = await Ok(await Action(alice, id, mep, "E0004", "demarrer"));
         Assert.Equal("En cours", Dispo(mep, "E0004"));
+        Assert.Equal(mep.GetProperty("piloteId").GetGuid(), Etape(mep, "E0004").GetProperty("executantId").GetGuid());
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(claire, id, mep, "E0004", "demarrer")).StatusCode);
+        var refus = await Action(claire, id, mep, "E0004", "terminer",
+            new { revision = Revision(mep, "E0004"), resultat = "Reussie", preuve = "x", resultatVerifie = true });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
+        Assert.Contains("Prendre la main", await Message(refus));
         mep = await Ok(await Action(alice, id, mep, "E0004", "terminer",
             new { revision = Revision(mep, "E0004"), resultat = "Reussie", preuve = "Schéma migré", resultatVerifie = true }));
         Assert.Equal("Terminée", Dispo(mep, "E0004"));
@@ -155,7 +157,7 @@ public class ApiTests : IDisposable
         var evenements = (await Ok(await alice.GetAsync($"/api/meps/{id}/journal"))).EnumerateArray().ToList();
         Assert.Equal("etape.reprise", evenements[0].GetProperty("type").GetString());
         var details = evenements.Select(e => e.GetProperty("detail").GetString()).ToList();
-        Assert.Contains("E0004 démarrée", details);
+        Assert.Contains("E0004 démarrée par Alice", details);
         Assert.Contains("E0004 réussie : Schéma migré", details);
         Assert.Contains("E0006 réussie : Portail publié", details);
         Assert.Contains("Plan passé en exécution", details);
@@ -174,7 +176,7 @@ public class ApiTests : IDisposable
         var e4 = Etape(mep, "E0004");
         object Saisie(int revision, string action) => new
         {
-            revision, action, systemeIds = e4.GetProperty("systemeIds"), responsableId = e4.GetProperty("responsableId").GetGuid(),
+            revision, action, systemeIds = e4.GetProperty("systemeIds"),
             criticite = "Moderee", instructions = "Instr.", resultatAttendu = "Attendu", dependances = new[] { EtapeId(mep, "E0001") },
         };
         var url = $"/api/meps/{id}/etapes/{EtapeId(mep, "E0004")}";
@@ -211,7 +213,7 @@ public class ApiTests : IDisposable
         var modif = await alice.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0004")}", new
         {
             revision = Revision(mep, "E0004"), action = "x", systemeIds = e4.GetProperty("systemeIds"),
-            responsableId = e4.GetProperty("responsableId").GetGuid(), criticite = "Faible", instructions = "i", resultatAttendu = "r",
+            criticite = "Faible", instructions = "i", resultatAttendu = "r",
             dependances = Array.Empty<Guid>(),
         });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, modif.StatusCode);
