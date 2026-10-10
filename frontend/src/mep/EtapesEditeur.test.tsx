@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { api } from '../api';
@@ -57,19 +57,20 @@ function Destination() {
 
 function rendre(m: Mep) {
   const run = vi.fn(async (action: () => Promise<unknown>) => { await action(); return true; });
-  render(
+  const arbre = (mm: Mep) => (
     <MemoryRouter initialEntries={['/meps/m1']}>
       <TooltipProvider>
-        <MepContext.Provider value={{ mep: m, run }}>
+        <MepContext.Provider value={{ mep: mm, run }}>
           <Routes>
             <Route path="/meps/:id" element={<EtapesEditeur plan="Deploiement" />} />
             <Route path="*" element={<Destination />} />
           </Routes>
         </MepContext.Provider>
       </TooltipProvider>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
-  return { run };
+  const { rerender } = render(arbre(m));
+  return { run, rerendre: (mm: Mep) => rerender(arbre(mm)) };
 }
 
 const carte = (nom: RegExp) => screen.getByRole('button', { name: nom });
@@ -101,6 +102,47 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(within(panneau).getByRole('button', { name: 'Retirer le préalable E0001' })).toBeInTheDocument();
     await userEvent.selectOptions(within(panneau).getByLabelText('Ajouter un préalable'), 'e2');
     expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e3', expect.objectContaining({ dependances: ['e1', 'e2'], action: 'Contrôle final', systemeIds: ['s1'] }));
+  });
+
+  it('un lecteur d’écran ouvre une fiche (clic sans pointeur)', () => {
+    rendre(planExemple());
+    fireEvent.click(carte(/^E0003/));
+    expect(screen.getByLabelText('Action')).toHaveValue('Contrôle final');
+  });
+
+  it('Alt + flèches déplacent une fiche au clavier', async () => {
+    rendre(planExemple());
+    carte(/^E0001/).focus();
+    await userEvent.keyboard('{Alt>}{ArrowRight}{/Alt}');
+    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e1', 0, 1);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await userEvent.keyboard('{Alt>}{ArrowDown}{/Alt}');
+    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e1', 1, 0);
+    carte(/^E0003/).focus();
+    await userEvent.keyboard('{Alt>}{ArrowUp}{/Alt}');
+    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e3', 0, 0);
+    // Impossible (déjà en tête de ligne, ou seule sur la dernière ligne) : rien n'est envoyé.
+    vi.mocked(api.placerEtape).mockClear();
+    carte(/^E0001/).focus();
+    await userEvent.keyboard('{Alt>}{ArrowLeft}{/Alt}');
+    carte(/^E0003/).focus();
+    await userEvent.keyboard('{Alt>}{ArrowDown}{/Alt}');
+    expect(api.placerEtape).not.toHaveBeenCalled();
+  });
+
+  it('fiche modifiée par ailleurs pendant la saisie : avertissement avant d’écraser', async () => {
+    const m = planExemple();
+    const { rerendre } = rendre(m);
+    await userEvent.click(carte(/^E0003/));
+    await userEvent.type(screen.getByLabelText('Action'), ' bis');
+    // Un collègue modifie le résultat attendu ; la MEP est rechargée par une autre action.
+    rerendre({ ...m, version: m.version + 1, etapes: m.etapes.map((e) => (e.id === 'e3' ? { ...e, revision: e.revision + 1, resultatAttendu: 'Revu par Bob' } : e)) });
+    expect(screen.getByRole('alert')).toHaveTextContent('Modifié pendant votre saisie');
+    expect(screen.getByLabelText('Action')).toHaveValue('Contrôle final bis');
+    expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Garder ma saisie' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e3', expect.objectContaining({ action: 'Contrôle final bis', revision: m.etapes[2].revision + 1 }));
   });
 
   it('retire un préalable', async () => {
