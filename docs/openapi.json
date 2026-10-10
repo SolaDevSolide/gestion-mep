@@ -3302,7 +3302,10 @@
               "par",
               "le"
             ],
-            "type": "object",
+            "type": [
+              "null",
+              "object"
+            ],
             "properties": {
               "par": {
                 "type": "string"
@@ -3875,6 +3878,13 @@
           }
         }
       },
+      "IssueMep": {
+        "enum": [
+          "Reussie",
+          "Repliee",
+          null
+        ]
+      },
       "LivrableDto": {
         "required": [
           "id",
@@ -4109,7 +4119,10 @@
               "par",
               "motif"
             ],
-            "type": "object",
+            "type": [
+              "null",
+              "object"
+            ],
             "properties": {
               "le": {
                 "type": "string",
@@ -4132,7 +4145,10 @@
               "le",
               "par"
             ],
-            "type": "object",
+            "type": [
+              "null",
+              "object"
+            ],
             "properties": {
               "le": {
                 "type": "string",
@@ -4249,7 +4265,10 @@
               "par",
               "le"
             ],
-            "type": "object",
+            "type": [
+              "null",
+              "object"
+            ],
             "properties": {
               "par": {
                 "type": "string"
@@ -4265,7 +4284,10 @@
               "par",
               "le"
             ],
-            "type": "object",
+            "type": [
+              "null",
+              "object"
+            ],
             "properties": {
               "par": {
                 "type": "string"
@@ -4610,7 +4632,10 @@
                     "par",
                     "le"
                   ],
-                  "type": "object",
+                  "type": [
+                    "null",
+                    "object"
+                  ],
                   "properties": {
                     "par": {
                       "type": "string"
@@ -4978,7 +5003,10 @@
               "redigePar",
               "le"
             ],
-            "type": "object",
+            "type": [
+              "null",
+              "object"
+            ],
             "properties": {
               "ceQuiAMarche": {
                 "type": "string"
@@ -5284,7 +5312,8 @@
           "nbEchecs",
           "environnement",
           "estModele",
-          "creeLe"
+          "creeLe",
+          "issue"
         ],
         "type": "object",
         "properties": {
@@ -5345,6 +5374,16 @@
           "creeLe": {
             "type": "string",
             "format": "date-time"
+          },
+          "issue": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/IssueMep"
+              }
+            ]
           }
         },
         "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP."

@@ -25,7 +25,7 @@ public static class MepsEndpoints
             (await db.Meps.AsNoTracking().Where(m => modele == null || m.EstModele == modele).OrderByDescending(m => m.CreeLe)
                 .Select(m => new
                 {
-                    m.Id, m.Outil, m.VersionCible, m.Objet, m.DemarrageAutoriseLe, m.FuseauHoraire, m.Phase, m.EcheanceRepli,
+                    m.Id, m.Outil, m.VersionCible, m.Objet, m.DemarrageAutoriseLe, m.FuseauHoraire, m.Phase, m.Issue, m.EcheanceRepli,
                     Pilote = m.Participants.Where(p => p.Id == m.PiloteId).Select(p => p.Nom).FirstOrDefault(),
                     // Avancement du déploiement uniquement (le retour arrière a son propre plan).
                     NbEtapes = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement),
@@ -36,7 +36,7 @@ public static class MepsEndpoints
                 .ToListAsync())
             // dateMep : date du Go (la date saisie n'existe plus depuis le jalon 4.2).
             .Select(m => new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, DateLocale(m.DemarrageAutoriseLe, m.FuseauHoraire), m.Phase,
-                m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs, m.Environnement, m.EstModele, m.CreeLe)));
+                m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs, m.Environnement, m.EstModele, m.CreeLe, m.Issue)));
 
         api.MapPost("/meps", async (MepCreationSaisie corps, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) =>
         {

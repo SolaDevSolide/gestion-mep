@@ -29,6 +29,7 @@ public static class DocumentationOpenApi
             });
             o.AddDocumentTransformer(AjouterContrats);
             o.AddSchemaTransformer(NombresStricts);
+            o.AddSchemaTransformer(ObjetsNullables);
         });
 
     /// <summary>
@@ -41,6 +42,32 @@ public static class DocumentationOpenApi
         {
             schema.Type = type & ~JsonSchemaType.String;
             schema.Pattern = null;
+        }
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Le générateur décrit une propriété objet nullable (<c>RetourArriereDto? RetourArriere</c>) par une simple référence,
+    /// sans le <c>null</c> que le serveur envoie pourtant. On la remplace par « null ou la référence ».
+    /// </summary>
+    private static Task ObjetsNullables(OpenApiSchema schema, OpenApiSchemaTransformerContext contexte, CancellationToken _)
+    {
+        if (schema.Properties is null) return Task.CompletedTask;
+        foreach (var propriete in contexte.JsonTypeInfo.Properties)
+        {
+            if (!propriete.IsGetNullable || !schema.Properties.TryGetValue(propriete.Name, out var actuel)) continue;
+            switch (actuel)
+            {
+                case OpenApiSchemaReference reference:
+                    schema.Properties[propriete.Name] = new OpenApiSchema { OneOf = [new OpenApiSchema { Type = JsonSchemaType.Null }, reference] };
+                    break;
+                case OpenApiSchema { Type: { } type } enLigne when type.HasFlag(JsonSchemaType.Object) && !type.HasFlag(JsonSchemaType.Null):
+                    // Copie : le même schéma peut décrire ailleurs une propriété non nullable.
+                    var copie = (OpenApiSchema)enLigne.CreateShallowCopy();
+                    copie.Type = type | JsonSchemaType.Null;
+                    schema.Properties[propriete.Name] = copie;
+                    break;
+            }
         }
         return Task.CompletedTask;
     }

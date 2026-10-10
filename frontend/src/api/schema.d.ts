@@ -2965,7 +2965,7 @@ export interface components {
              */
             type: "Standard" | "Sauvegarde";
             pointDeNonRetour: boolean;
-            nonRetourAutorise: {
+            nonRetourAutorise: null | {
                 par: string;
                 /** Format: date-time */
                 le: string;
@@ -3105,6 +3105,8 @@ export interface components {
             titre: null | string;
             etapes: null | components["schemas"]["EtapeTestSaisie"][];
         };
+        /** @enum {unknown} */
+        IssueMep: "Reussie" | "Repliee" | null;
         LivrableDto: {
             /** Format: uuid */
             id: string;
@@ -3157,13 +3159,13 @@ export interface components {
             /** @enum {unknown} */
             issue: "Reussie" | "Repliee" | null;
             /** @description `Par` vaut null quand le retour arrière s'est déclenché automatiquement. */
-            retourArriere: {
+            retourArriere: null | {
                 /** Format: date-time */
                 le: string;
                 par: null | string;
                 motif: string;
             };
-            cloture: {
+            cloture: null | {
                 /** Format: date-time */
                 le: string;
                 par: null | string;
@@ -3196,12 +3198,12 @@ export interface components {
                 dateTestRestauration: null | string;
                 preuveTestRestauration: string;
             };
-            procedureRelue: {
+            procedureRelue: null | {
                 par: string;
                 /** Format: date-time */
                 le: string;
             };
-            demarrageAutorise: {
+            demarrageAutorise: null | {
                 par: string;
                 /** Format: date-time */
                 le: string;
@@ -3296,7 +3298,7 @@ export interface components {
                  */
                 type: "Standard" | "Sauvegarde";
                 pointDeNonRetour: boolean;
-                nonRetourAutorise: {
+                nonRetourAutorise: null | {
                     par: string;
                     /** Format: date-time */
                     le: string;
@@ -3393,7 +3395,7 @@ export interface components {
                 }[];
             }[];
             bilanActive: boolean;
-            bilan: {
+            bilan: null | {
                 ceQuiAMarche: string;
                 incidents: string;
                 actions: string;
@@ -3486,6 +3488,7 @@ export interface components {
             estModele: boolean;
             /** Format: date-time */
             creeLe: string;
+            issue: null | components["schemas"]["IssueMep"];
         };
         /** @enum {unknown} */
         ModeSauvegarde: "AvantMep" | "PendantMep" | null;

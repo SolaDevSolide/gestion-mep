@@ -4,12 +4,6 @@ import type { components } from './api/schema';
 
 type S = components['schemas'];
 
-/**
- * Le générateur OpenAPI d'ASP.NET perd le `null` d'une propriété dont le type est un objet nullable
- * (`RetourArriereDto? RetourArriere`…) : le contrat la déclare non nullable alors que le serveur envoie `null`.
- * `Nullables` rétablit ces propriétés d'après Services/Dtos.cs ; une propriété disparue du contrat casse la compilation.
- */
-type Nullables<T, K extends keyof T> = Omit<T, K> & { [P in K]: T[P] | null };
 
 /**
  * Forme qu'accepte le serveur pour une saisie : le désérialiseur .NET met à null un champ absent, donc un champ
@@ -65,7 +59,7 @@ export type Validation = S['ValidationDto'];
  * Étape du plan : `ligne` (0 = en haut) et `ordre` (position dans la ligne) placent l'étape dans le graphe ;
  * `commentaire` : commentaire facultatif de l'exécutant (modifiable pendant l'exécution).
  */
-export type Etape = Nullables<S['EtapeDto'], 'nonRetourAutorise'>;
+export type Etape = S['EtapeDto'];
 
 export type ResponsableTechnique = S['ResponsableTechniqueDto'];
 
@@ -99,10 +93,7 @@ export type VersionResolutionType = S['VersionResolutionTypeDto'];
 export type Evenement = S['EvenementDto'];
 
 /** `avertissements` : avertissements non bloquants de la vérification du plan (responsables techniques). */
-export type Mep = Omit<
-  Nullables<S['MepDto'], 'retourArriere' | 'cloture' | 'procedureRelue' | 'demarrageAutorise' | 'bilan'>,
-  'etapes'
-> & { etapes: Etape[] };
+export type Mep = S['MepDto'];
 
 // ---------- Entrées (saisies) ----------
 
