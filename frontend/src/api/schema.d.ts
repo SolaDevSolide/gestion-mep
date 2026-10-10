@@ -107,6 +107,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/mot-de-passe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChangementMotDePasseSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/deconnexion": {
         parameters: {
             query?: never;
@@ -2779,6 +2816,243 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/utilisateurs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UtilisateurDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CompteSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/utilisateurs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CompteModification"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/utilisateurs/{id}/desactiver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/utilisateurs/{id}/reactiver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/utilisateurs/{id}/reinitialiser-mot-de-passe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/journal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    limite?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EvenementAdminDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2808,6 +3082,10 @@ export interface components {
             /** Format: date-time */
             le: null | string;
         };
+        ChangementMotDePasseSaisie: {
+            ancien: null | string;
+            nouveau: null | string;
+        };
         ClotureDto: {
             /** Format: date-time */
             le: string;
@@ -2822,6 +3100,38 @@ export interface components {
             /** Format: int32 */
             revision: null | number;
             commentaire: null | string;
+        };
+        CompteEtMotDePasseDto: {
+            utilisateur: {
+                /** Format: uuid */
+                id: string;
+                login: string;
+                nomAffiche: string;
+                estAdmin: boolean;
+                role: string;
+                contact: string;
+                expertises: {
+                    /** Format: uuid */
+                    systemeCatalogueId: string;
+                    detail: string;
+                }[];
+                actif: boolean;
+                doitChangerMotDePasse: boolean;
+            };
+            motDePasseProvisoire: string;
+        };
+        CompteModification: {
+            nomAffiche: null | string;
+            estAdmin: boolean;
+            role: null | string;
+            contact: null | string;
+        };
+        CompteSaisie: {
+            login: null | string;
+            nomAffiche: null | string;
+            estAdmin: boolean;
+            role: null | string;
+            contact: null | string;
         };
         ConnexionSaisie: {
             login: null | string;
@@ -3017,6 +3327,15 @@ export interface components {
         };
         /** @enum {unknown} */
         EtatEtape: "AFaire" | "EnCours" | "Reussie" | "Echec" | null;
+        EvenementAdminDto: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            quand: string;
+            auteur: string;
+            type: string;
+            detail: string;
+        };
         EvenementDto: {
             /** Format: int64 */
             id: number;
@@ -3788,6 +4107,8 @@ export interface components {
             role: string;
             contact: string;
             expertises: components["schemas"]["ExpertiseDto"][];
+            actif: boolean;
+            doitChangerMotDePasse: boolean;
         };
         UtilisateurSaisie: {
             login: null | string;

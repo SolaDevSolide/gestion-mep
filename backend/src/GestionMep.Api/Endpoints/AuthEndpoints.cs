@@ -53,9 +53,27 @@ public static class AuthEndpoints
                 return Results.Json(new { message = "Identifiant ou mot de passe incorrect." }, statusCode: 401);
             }
             limiteur.Reussite(login);
+            if (!u.Actif) return Results.Json(new { message = "Ce compte est désactivé. Contactez un administrateur." }, statusCode: 403);
             await AuthentificationLocale.Ouvrir(ctx, u);
             return Results.Ok(Dto(u));
         }).AllowAnonymous().RequireRateLimiting(ProtectionsHttp.PolitiqueConnexion);
+
+        // Changement de son propre mot de passe (y compris le provisoire) ; les autres sessions du compte sont fermées.
+        api.MapPost("/auth/mot-de-passe", async (ChangementMotDePasseSaisie corps, ClaimsPrincipal user, HttpContext ctx, MepDbContext db, IPasswordHasher<Utilisateur> hasher) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var u = await db.Utilisateurs.FirstOrDefaultAsync(x => x.Id == acteur.Id) ?? throw new ErreurHttp(401, "Session expirée.");
+            if (hasher.VerifyHashedPassword(u, u.MotDePasseHash, corps.Ancien ?? "") == PasswordVerificationResult.Failed)
+                throw ErreurHttp.Regle(["Le mot de passe actuel est incorrect."]);
+            AuthentificationLocale.ValiderNouveauMotDePasse(corps.Nouveau, corps.Ancien);
+            u.MotDePasseHash = hasher.HashPassword(u, corps.Nouveau!);
+            u.DoitChangerMotDePasse = false;
+            u.TamponSecurite = Guid.NewGuid();
+            JournalAdmin.Ecrire(db, acteur, "compte.mdp-change", $"{JournalAdmin.Compte(u)} a changé son mot de passe");
+            await db.SaveChangesAsync();
+            await AuthentificationLocale.Ouvrir(ctx, u);
+            return Results.Ok(Dto(u));
+        }).RequireRateLimiting(ProtectionsHttp.PolitiqueConnexion);
 
         api.MapPost("/auth/deconnexion", async (HttpContext ctx) =>
         {
@@ -76,7 +94,8 @@ public static class AuthEndpoints
 
         api.MapPost("/utilisateurs", async (UtilisateurSaisie corps, ClaimsPrincipal user, MepDbContext db, IPasswordHasher<Utilisateur> hasher) =>
         {
-            if (!Acteur.Depuis(user).EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
+            var acteur = Acteur.Depuis(user);
+            if (!acteur.EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
             var login = AuthentificationLocale.NormaliserLogin(corps.Login);
             var nom = ServiceMep.Texte(corps.NomAffiche);
             if (login.Length == 0) throw ErreurHttp.Saisie("Le login est obligatoire.");
@@ -89,6 +108,7 @@ public static class AuthEndpoints
             };
             nouveau.MotDePasseHash = hasher.HashPassword(nouveau, corps.MotDePasse!);
             db.Utilisateurs.Add(nouveau);
+            JournalAdmin.Ecrire(db, acteur, "compte.cree", $"Compte {JournalAdmin.Compte(nouveau)} créé{(nouveau.EstAdmin ? ", administrateur" : "")}");
             await db.SaveChangesAsync();
             return Results.Created($"/api/utilisateurs/{nouveau.Id}", Dto(nouveau));
         });
@@ -106,9 +126,11 @@ public static class AuthEndpoints
 
         api.MapPut("/utilisateurs/{uid:guid}/profil", async (Guid uid, ProfilSaisie corps, ClaimsPrincipal user, MepDbContext db) =>
         {
-            if (!Acteur.Depuis(user).EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
+            var acteur = Acteur.Depuis(user);
+            if (!acteur.EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
             var u = await db.Utilisateurs.FirstOrDefaultAsync(x => x.Id == uid) ?? throw ErreurHttp.NonTrouve("Utilisateur introuvable.");
             await AppliquerProfil(u, corps, db);
+            JournalAdmin.Ecrire(db, acteur, "compte.modifie", $"Profil de {JournalAdmin.Compte(u)} modifié");
             await db.SaveChangesAsync();
             return Results.Ok(Dto(u));
         });

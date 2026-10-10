@@ -820,3 +820,26 @@ L'écriture reste ouverte à tout compte connecté, mais chaque changement est t
 - Les pièces jointes d'une résolution type ne sont pas versionnées. Une fiche supprimée (non liée) emporte son historique.
 - Écran Paramètres > Résolutions types : « Modifiée par … le … · version n » sur chaque fiche et bouton « Historique ».
 - Migration EF `SuiviResolutions` : colonne `ResolutionsTypes.ModifieeParId` (nullable) et table `VersionsResolutionType` ; chaque fiche existante y est recopiée avec l'action `existante` et sans auteur.
+
+## Console d'administration
+
+`UtilisateurDto` gagne `actif` (compte désactivé : connexion refusée en **403** « Ce compte est désactivé. Contactez un administrateur. ») et `doitChangerMotDePasse`.
+
+Sessions : le cookie porte un tampon de sécurité. À chaque requête, le compte doit exister, être actif et avoir le même tampon, sinon **401** et cookie supprimé. Le tampon change au changement ou à la réinitialisation du mot de passe et à la désactivation. Nom et rôle admin sont relus en base à chaque requête. Les sessions ouvertes avant cette version sont fermées une fois (reconnexion).
+
+Mot de passe provisoire : tant que `doitChangerMotDePasse` est vrai, toute route `/api` hors `/api/auth/*`, `/api/sante` et `/api/version` répond **403** « Changez votre mot de passe provisoire avant de continuer. ».
+
+| Méthode | Route | Corps | Réponse |
+|---|---|---|---|
+| POST | `/auth/mot-de-passe` | `{ ancien, nouveau }` | 200 `UtilisateurDto` ; 400 si `nouveau` < 10 caractères ou identique ; 422 si `ancien` est faux. Les autres sessions du compte sont fermées, la session courante est réémise. |
+| GET | `/admin/utilisateurs` | — | 200 `UtilisateurDto[]` (y compris désactivés) |
+| POST | `/admin/utilisateurs` | `{ login, nomAffiche, estAdmin, role, contact }` | 201 `{ utilisateur, motDePasseProvisoire }` ; 400 login vide ou déjà pris |
+| PUT | `/admin/utilisateurs/{id}` | `{ nomAffiche, estAdmin, role, contact }` | 200 `UtilisateurDto` ; 422 si l'on retire le rôle au dernier administrateur actif |
+| POST | `/admin/utilisateurs/{id}/desactiver` | — | 200 ; 422 pour soi-même ou le dernier administrateur actif |
+| POST | `/admin/utilisateurs/{id}/reactiver` | — | 200 |
+| POST | `/admin/utilisateurs/{id}/reinitialiser-mot-de-passe` | — | 200 `{ utilisateur, motDePasseProvisoire }` |
+| GET | `/admin/journal?limite=200` | — | 200 `[{ id, quand, auteur, type, detail }]`, du plus récent (limite 1 à 1000) |
+
+Toutes les routes `/admin/*` : **403** `{ message: "Réservé aux administrateurs." }` pour un non-admin.
+
+Types du journal d'administration : `compte.cree`, `compte.modifie`, `compte.desactive`, `compte.reactive`, `compte.mdp-reinitialise`, `compte.mdp-change`, `parametres.modifies`, `critere.cree`, `critere.modifie`, `critere.supprime`. Auteur « Ligne de commande » pour les commandes d'exploitation. Les routes historiques `POST /utilisateurs` et `PUT /utilisateurs/{id}/profil` (admin) restent disponibles et sont journalisées.

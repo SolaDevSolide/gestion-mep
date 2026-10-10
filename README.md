@@ -41,6 +41,12 @@ Sécurité intégrée : les clés de session sont conservées dans le volume `cl
 
 Détails, sauvegardes et mises à jour : [docs/exploitation.md](docs/exploitation.md).
 
+## Administration
+
+Les administrateurs ont une **console d'administration** (menu « Administration », page `/admin`) : comptes (création, modification, rôle administrateur, désactivation, réinitialisation du mot de passe), paramètres globaux et journal d'administration. Un compte créé ou réinitialisé reçoit un mot de passe provisoire, affiché une seule fois, à changer avant toute autre action ; chacun change son mot de passe depuis « Mon profil ». Le rôle administrateur et l'état du compte sont relus à chaque requête.
+
+Sans navigateur, l'équipe informatique dispose des commandes `docker compose exec app gestion-mep …` (comptes, vérification de la configuration, migrations) : voir [docs/exploitation.md](docs/exploitation.md#administrer-les-comptes).
+
 ## Développer sans Docker
 
 Prérequis : SDK .NET 10, Node.js 22, PostgreSQL 16 (`postgres` / `postgres` sur localhost:5432).
