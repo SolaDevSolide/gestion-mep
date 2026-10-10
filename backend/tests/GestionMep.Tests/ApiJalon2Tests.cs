@@ -92,24 +92,34 @@ public class ApiJalon2Tests : IDisposable
     }
 
     [Fact]
-    public async Task Un_utilisateur_non_participant_devient_participant_en_prenant_la_main()
+    public async Task Un_non_participant_ne_prend_pas_la_main_mais_un_administrateur_le_peut()
     {
         var (alice, id, mep) = await DemoEnExecution();
         Assert.Equal(HttpStatusCode.Created, (await alice.PostAsJsonAsync("/api/utilisateurs",
             new { login = "dave", nomAffiche = "Dave", motDePasse = "motdepasse", estAdmin = false })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await alice.PostAsJsonAsync("/api/utilisateurs",
+            new { login = "eve", nomAffiche = "Eve", motDePasse = "motdepasse", estAdmin = true })).StatusCode);
         var dave = await _api.ClientConnecte("dave", "motdepasse");
+        var eve = await _api.ClientConnecte("eve", "motdepasse");
         Assert.Equal(JsonValueKind.Null, (await Ok(await dave.GetAsync($"/api/meps/{id}"))).GetProperty("droits").GetProperty("participantId").ValueKind);
 
-        // Dave n'est pas participant : il ne démarre pas, mais peut prendre la main sur une étape en échec.
+        // Dave n'est pas participant : ni démarrage, ni prise de main (403, aucun participant créé).
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(dave, id, mep, "E0004", "demarrer")).StatusCode);
-        mep = await Ok(await Action(dave, id, mep, "E0005", "prendre-la-main", new { revision = Revision(mep, "E0005"), motif = "Renfort" }));
+        var refus = await Action(dave, id, mep, "E0005", "prendre-la-main", new { revision = Revision(mep, "E0005"), motif = "Renfort" });
+        Assert.Equal(HttpStatusCode.Forbidden, refus.StatusCode);
+        Assert.Equal("Seuls les participants de la MEP, le pilote, ses suppléants ou un administrateur peuvent prendre la main.", await Message(refus));
+        Assert.Equal(3, (await Ok(await alice.GetAsync($"/api/meps/{id}"))).GetProperty("participants").GetArrayLength());
+
+        // Eve, administratrice non participante, prend la main : elle devient participante « Prise en main ».
+        mep = await Ok(await Action(eve, id, mep, "E0005", "prendre-la-main", new { revision = Revision(mep, "E0005"), motif = "Renfort" }));
         var participants = mep.GetProperty("participants").EnumerateArray().ToList();
         Assert.Equal(4, participants.Count);
-        var nouveau = participants.Single(p => p.GetProperty("nom").GetString() == "Dave");
+        var nouveau = participants.Single(p => p.GetProperty("nom").GetString() == "Eve");
         Assert.Equal("Prise en main", nouveau.GetProperty("role").GetString());
-        Assert.Equal("Dave", nouveau.GetProperty("utilisateurNom").GetString());
+        Assert.Equal("Eve", nouveau.GetProperty("utilisateurNom").GetString());
         Assert.Equal(nouveau.GetProperty("id").GetGuid(), Etape(mep, "E0005").GetProperty("executantId").GetGuid());
         Assert.Equal(nouveau.GetProperty("id").GetGuid(), mep.GetProperty("droits").GetProperty("participantId").GetGuid());
+        Assert.Contains(await Journal(alice, id), e => e.Type == "etape.prise-en-main" && e.Auteur == "Eve" && e.Detail.EndsWith(" : Renfort"));
 
         // Un refus ne crée pas de participant : le déploiement d'une MEP en préparation n'accepte pas de prise de main.
         var claire = await _api.ClientConnecte("claire");

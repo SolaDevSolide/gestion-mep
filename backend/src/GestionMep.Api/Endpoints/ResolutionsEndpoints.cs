@@ -10,9 +10,28 @@ namespace GestionMep.Api.Endpoints;
 /// <summary>Résolutions types (Paramètres) et exécution d'une résolution sur une étape en échec.</summary>
 public static class ResolutionsEndpoints
 {
-    private static ResolutionTypeDto Dto(ResolutionType r) => new(r.Id, r.Titre, r.Symptomes, r.Diagnostic, [.. r.SystemeCatalogueIds],
-        r.Corrections.OrderBy(c => c.Ordre).Select(c => new CorrectionDto(c.Ordre, c.Instruction, c.ResultatAttendu)).ToList(),
-        r.VerificationInstruction, r.VerificationAttendu, r.Actif, r.Version, r.ModifieeLe);
+    private static List<CorrectionDto> Corrections(List<Correction> corrections) =>
+        corrections.OrderBy(c => c.Ordre).Select(c => new CorrectionDto(c.Ordre, c.Instruction, c.ResultatAttendu)).ToList();
+
+    private static ResolutionTypeDto Dto(ResolutionType r, IReadOnlyDictionary<Guid, string> noms) => new(r.Id, r.Titre, r.Symptomes, r.Diagnostic,
+        [.. r.SystemeCatalogueIds], Corrections(r.Corrections), r.VerificationInstruction, r.VerificationAttendu, r.Actif, r.Version, r.ModifieeLe,
+        r.ModifieeParId, Nom(r.ModifieeParId, noms));
+
+    private static VersionResolutionTypeDto Dto(VersionResolutionType v, IReadOnlyDictionary<Guid, string> noms) => new(v.Version, v.Action,
+        v.ModifieeLe, v.ModifieeParId, Nom(v.ModifieeParId, noms), v.Titre, v.Symptomes, v.Diagnostic, [.. v.SystemeCatalogueIds],
+        Corrections(v.Corrections), v.VerificationInstruction, v.VerificationAttendu, v.Actif);
+
+    private static string? Nom(Guid? id, IReadOnlyDictionary<Guid, string> noms) => id is { } u && noms.TryGetValue(u, out var n) ? n : null;
+
+    private static Task<Dictionary<Guid, string>> Noms(MepDbContext db) => db.Utilisateurs.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
+
+    /// <summary>Date et auteur de la modification, puis archivage de la fiche dans son historique.</summary>
+    private static void Tracer(MepDbContext db, ResolutionType r, string action, Acteur acteur, TimeProvider temps)
+    {
+        r.ModifieeLe = temps.GetUtcNow();
+        r.ModifieeParId = acteur.Id;
+        db.VersionsResolutionType.Add(VersionResolutionType.De(r, action));
+    }
 
     /// <summary>Applique la saisie à la résolution : 400 si un système est inconnu, 422 (liste des anomalies) si elle est incomplète.</summary>
     private static async Task Appliquer(MepDbContext db, ResolutionType r, ResolutionTypeSaisie c)
@@ -47,44 +66,59 @@ public static class ResolutionsEndpoints
             var q = db.ResolutionsTypes.AsNoTracking().Where(r => r.Actif);
             // Filtre « contient » : les résolutions dont l'un des systèmes est celui demandé.
             if (systemeCatalogueId is { } s) q = q.Where(r => r.SystemeCatalogueIds.Contains(s));
-            return (await q.OrderBy(r => r.Titre).ToListAsync()).Select(Dto);
+            var noms = await Noms(db);
+            return (await q.OrderBy(r => r.Titre).ToListAsync()).Select(r => Dto(r, noms));
         });
 
         api.MapGet("/resolutions/{id:guid}", async (Guid id, MepDbContext db) =>
-            Dto(await db.ResolutionsTypes.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id) ?? throw ErreurHttp.NonTrouve("Résolution type introuvable.")));
+            Dto(await db.ResolutionsTypes.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id) ?? throw ErreurHttp.NonTrouve("Résolution type introuvable."),
+                await Noms(db)));
 
-        api.MapPost("/resolutions", async (ResolutionTypeSaisie c, MepDbContext db, TimeProvider temps) =>
+        // Historique : chaque version enregistrée, la plus récente d'abord.
+        api.MapGet("/resolutions/{id:guid}/versions", async (Guid id, MepDbContext db) =>
         {
-            var r = new ResolutionType { ModifieeLe = temps.GetUtcNow(), Version = 1 };
-            await Appliquer(db, r, c);
-            db.ResolutionsTypes.Add(r);
-            await db.SaveChangesAsync();
-            return Results.Created($"/api/resolutions/{r.Id}", Dto(r));
+            if (!await db.ResolutionsTypes.AnyAsync(r => r.Id == id)) throw ErreurHttp.NonTrouve("Résolution type introuvable.");
+            var noms = await Noms(db);
+            return (await db.VersionsResolutionType.AsNoTracking().Where(v => v.ResolutionTypeId == id)
+                .OrderByDescending(v => v.Version).ThenByDescending(v => v.ModifieeLe).ToListAsync()).Select(v => Dto(v, noms));
         });
 
-        api.MapPut("/resolutions/{id:guid}", async (Guid id, ResolutionTypeSaisie c, MepDbContext db, TimeProvider temps) =>
+        api.MapPost("/resolutions", async (ResolutionTypeSaisie c, ClaimsPrincipal user, MepDbContext db, TimeProvider temps) =>
         {
+            var acteur = Acteur.Depuis(user);
+            var r = new ResolutionType { Version = 1 };
+            await Appliquer(db, r, c);
+            Tracer(db, r, "creee", acteur, temps);
+            db.ResolutionsTypes.Add(r);
+            await db.SaveChangesAsync();
+            return Results.Created($"/api/resolutions/{r.Id}", Dto(r, new Dictionary<Guid, string> { [acteur.Id] = acteur.Nom }));
+        });
+
+        api.MapPut("/resolutions/{id:guid}", async (Guid id, ResolutionTypeSaisie c, ClaimsPrincipal user, MepDbContext db, TimeProvider temps) =>
+        {
+            var acteur = Acteur.Depuis(user);
             var r = await db.ResolutionsTypes.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Résolution type introuvable.");
             if (c.Version is null) throw ErreurHttp.Saisie("La version de la résolution est obligatoire.");
             if (c.Version != r.Version)
                 throw ErreurHttp.Conflit("Cette résolution a été modifiée par quelqu'un d'autre depuis votre dernière lecture. Rechargez-la puis recommencez.");
             await Appliquer(db, r, c);
             r.Version++;
-            r.ModifieeLe = temps.GetUtcNow();
+            Tracer(db, r, "modifiee", acteur, temps);
             await db.SaveChangesAsync();
-            return Results.Ok(Dto(r));
+            return Results.Ok(Dto(r, await Noms(db)));
         });
 
         api.MapDelete("/resolutions/{id:guid}", async (Guid id, ClaimsPrincipal user, MepDbContext db, TimeProvider temps, StockagePiecesJointes stockage) =>
         {
-            if (!Acteur.Depuis(user).EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
+            var acteur = Acteur.Depuis(user);
+            if (!acteur.EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
             var r = await db.ResolutionsTypes.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Résolution type introuvable.");
             // Liée à une étape (ou déjà exécutée) : désactivation, pour garder la traçabilité.
             if (await db.Etapes.AnyAsync(e => e.ResolutionIds.Contains(id)) || await db.ExecutionsResolution.AnyAsync(x => x.ResolutionTypeId == id))
             {
                 r.Actif = false;
                 r.Version++;
-                r.ModifieeLe = temps.GetUtcNow();
+                Tracer(db, r, "desactivee", acteur, temps);
             }
             else
             {

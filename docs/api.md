@@ -193,7 +193,7 @@ Le domaine (`backend/src/GestionMep.Domain`) porte toutes les règles ; l'API ne
 
 ## Prendre la main
 
-- `POST /meps/{id}/etapes/{eid}/prendre-la-main` `{ revision }` → tout utilisateur connecté. S'il n'est pas encore participant de la MEP, un participant est créé pour lui (nom = nom affiché, rôle « Prise en main », relié à son compte). Journal `etape.prise-en-main` : « Bob a pris la main sur E0003 (prévu : Claire) ».
+- `POST /meps/{id}/etapes/{eid}/prendre-la-main` `{ revision }` → participants reliés à un compte (dont le pilote et les suppléants) et administrateurs ; 403 sinon (voir « Droits d'accès » en fin de document). Un administrateur qui n'est pas encore participant de la MEP le devient (nom = nom affiché, rôle « Prise en main », relié à son compte). Journal `etape.prise-en-main` : « Bob a pris la main sur E0003 (prévu : Claire) ».
 - `demarrer`, `terminer` et les résolutions exigent d'être l'exécutant effectif (422 sinon, avec un message qui invite à prendre la main).
 
 ## Catalogue global (Paramètres)
@@ -218,6 +218,7 @@ Lecture : tout utilisateur connecté. Création et modification : tout utilisate
 | POST | `/resolutions` | `ResolutionTypeSaisie` → 201 `ResolutionTypeDto` ; 422 avec la liste de `Regles.ErreursResolutionType` |
 | PUT | `/resolutions/{id}` | `ResolutionTypeSaisie` + `version` → 200 ; 409 si version périmée. Les résolutions déjà démarrées gardent leur copie. |
 | DELETE | `/resolutions/{id}` | 204 ; désactivation si liée à une étape |
+| GET | `/resolutions/{id}/versions` | → `VersionResolutionTypeDto[]`, la plus récente d'abord ; 404 si résolution inconnue |
 
 `ResolutionTypeDto` : `{ id, titre, symptomes, diagnostic, systemeCatalogueId, corrections: [ { ordre, instruction, resultatAttendu } ], verificationInstruction, verificationAttendu, actif, version, modifieeLe }`.
 `ResolutionTypeSaisie` : mêmes champs sans `id`, `actif`, `modifieeLe`.
@@ -404,7 +405,7 @@ Dépôt en `multipart/form-data`, champ **`fichier`** (à défaut, le premier fi
 | POST | `/meps/{id}/pieces-jointes` | 200 `MepDto` | tout connecté ; MEP non clôturée (422 « MEP clôturée : ses pièces jointes ne sont plus modifiables. ») |
 | POST | `/meps/{id}/etapes/{eid}/pieces-jointes` | 200 `MepDto` | idem ; `etapeId` renseigné |
 | POST | `/meps/{id}/resolutions/{rid}/pieces-jointes` | 200 `MepDto` | idem ; `executionResolutionId` renseigné |
-| DELETE | `/meps/{id}/pieces-jointes/{pid}` | 200 `MepDto` | déposant, pilote ou suppléant (403 sinon) ; MEP non clôturée (422) |
+| DELETE | `/meps/{id}/pieces-jointes/{pid}` | 200 `MepDto` | déposant, pilote, suppléant ou administrateur (403 sinon) ; MEP non clôturée (422) |
 | GET | `/resolutions/{id}/pieces-jointes` | 200 `PieceJointeDto[]` | |
 | POST | `/resolutions/{id}/pieces-jointes` | 201 `PieceJointeDto` | tout connecté (comme l'édition des résolutions types) ; 404 si résolution inconnue |
 | DELETE | `/resolutions/{id}/pieces-jointes/{pid}` | 204 | admin (403) |
@@ -738,7 +739,7 @@ Spécification : `docs/jalon4-2-spec.md` (sections D à G pour le back).
 - `POST /meps/{id}/etapes/{eid}/demarrer` `{ revision }` : étape disponible (sinon 422 « Démarrage impossible : … »). Un administrateur qui n'est pas participant le devient (rôle « Exécutant », relié à son compte), seulement si le démarrage aboutit. Un compte ni participant ni administrateur : 422 « Seul un participant relié à un compte, le pilote ou un administrateur peut démarrer une étape. ».
 - Après un échec puis une reprise (pilote ou vérification de résolution conforme), l'étape repasse « À faire » : celui qui la redémarre en devient l'exécutant.
 - `terminer` et les routes de résolution par quelqu'un d'autre que l'exécutant, le pilote ou un suppléant : 422 « Cette étape est exécutée par quelqu'un d'autre. Utiliser « Prendre la main » pour la poursuivre à sa place. ».
-- `prendre-la-main` `{ revision, motif }` : motif obligatoire, preneur relié à un compte (un non-participant devient participant « Prise en main », comme avant), étape en cours ou en échec, preneur différent de l'exécutant (422 « Vous exécutez déjà cette étape. »).
+- `prendre-la-main` `{ revision, motif }` : motif obligatoire, preneur participant relié à un compte ou administrateur (403 sinon ; un administrateur non participant devient participant « Prise en main »), étape en cours ou en échec, preneur différent de l'exécutant (422 « Vous exécutez déjà cette étape. »).
 - Avertissement « X sera absent » : une étape est concernée par ses **systèmes** seulement (plus par le responsable).
 - Démo : plus de responsable ; `executantId` renseigné pour les étapes déjà passées (E0001 Alice, E0002 Bob, E0003 Claire, E0005 Bob en échec), `null` pour les autres.
 
@@ -774,3 +775,48 @@ Ajout (non incompatible) : un commentaire facultatif, en plus de la preuve.
 - La prise de main exige une étape déjà démarrée (en cours ou en échec) ; sur une étape à faire, il suffit de la démarrer.
 - Le pilote et les suppléants peuvent terminer une étape ou dérouler une résolution sans prendre la main (comme le prévoit la spécification) ; l'exécutant n'est alors pas changé.
 - `dateMep` du résumé est calculée dans le fuseau de la MEP.
+
+# Droits d'accès (revue de code du 10/10/2026)
+
+Décisions appliquées : constats E4, M1, M2 et M8 de la revue.
+
+## Prise de main réservée (E4)
+
+`POST /meps/{id}/etapes/{eid}/prendre-la-main` est réservé aux **participants reliés à un compte** (le pilote et les suppléants en font partie) et aux **administrateurs**. Tout autre compte reçoit, avant tout autre contrôle (révision, motif, phase) et sans qu'aucun participant soit créé :
+
+```
+403 { "message": "Seuls les participants de la MEP, le pilote, ses suppléants ou un administrateur peuvent prendre la main." }
+```
+
+Un administrateur non participant devient participant « Prise en main » si la prise de main aboutit (auparavant, tout compte connecté le devenait : cas « Renfort » des tests du jalon 2, désormais réservé à un administrateur).
+
+## Pilote et suppléants (M2)
+
+Dans `PUT /meps/{id}`, changer `piloteId` ou `suppleantIds` est réservé au **pilote actuel, à un suppléant ou à un administrateur** ; un responsable technique reçoit :
+
+```
+403 { "message": "Seul le pilote, un suppléant ou un administrateur peut changer le pilote ou les suppléants." }
+```
+
+Tant qu'aucun pilote n'est désigné (MEP qui vient d'être créée), tout éditeur peut le choisir. Les autres champs d'identité restent modifiables par les éditeurs. Côté écran, les champs Pilote et Suppléants sont grisés pour les autres éditeurs.
+
+## Pièces jointes d'une MEP (M8)
+
+`DELETE /meps/{id}/pieces-jointes/{pid}` : le **déposant, le pilote, un suppléant ou un administrateur**. Message 403 : « Seul le déposant, le pilote, un suppléant ou un administrateur peut supprimer cette pièce jointe. ». Le dépôt reste ouvert à tout compte connecté.
+
+## Suivi des résolutions types (M1)
+
+L'écriture reste ouverte à tout compte connecté, mais chaque changement est tracé :
+
+- `ResolutionTypeDto` gagne `modifieeParId` et `modifieeParNom` (auteur de la dernière création, modification ou désactivation ; `null` pour les fiches de démonstration et celles antérieures au suivi).
+- Chaque `POST`, `PUT` et désactivation par `DELETE` archive une copie de la fiche. `GET /resolutions/{id}/versions` → `VersionResolutionTypeDto[]` (version décroissante) :
+
+```
+{ version, action: "creee" | "modifiee" | "desactivee" | "existante", modifieeLe, modifieeParId, modifieeParNom,
+  titre, symptomes, diagnostic, systemeCatalogueIds, corrections: [ { ordre, instruction, resultatAttendu } ],
+  verificationInstruction, verificationAttendu, actif }
+```
+
+- Les pièces jointes d'une résolution type ne sont pas versionnées. Une fiche supprimée (non liée) emporte son historique.
+- Écran Paramètres > Résolutions types : « Modifiée par … le … · version n » sur chaque fiche et bouton « Historique ».
+- Migration EF `SuiviResolutions` : colonne `ResolutionsTypes.ModifieeParId` (nullable) et table `VersionsResolutionType` ; chaque fiche existante y est recopiée avec l'action `existante` et sans auteur.
