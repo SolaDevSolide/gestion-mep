@@ -1,7 +1,5 @@
 # Jalon 4.2 : retours de Hugo du 10/10/2026 (après test du jalon 4.1)
 
-Branche locale `jalon-4-2-retours` (créée depuis `jalon-4-1-ergonomie`). **Ne pas pousser** : Hugo valide d'abord, puis on fusionne.
-
 ## A. Édition d'une étape : tout visible, sans défilement
 
 Constat : le panneau à onglets (Fiche, Instructions, Liens, Résolutions, Pièces jointes) oblige à défiler ; « pas propre ». Les instructions elles-mêmes conviennent.
