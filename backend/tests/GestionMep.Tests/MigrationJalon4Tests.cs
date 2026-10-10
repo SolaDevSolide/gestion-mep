@@ -141,6 +141,14 @@ public class MigrationJalon4Tests
         Assert.Equal([catalogue], resolutions["Avec système"].SystemeCatalogueIds);
         Assert.Empty(resolutions["Sans système"].SystemeCatalogueIds);
 
+        // Suivi des résolutions types : chaque fiche existante devient la première version de son historique, sans auteur.
+        var versions = await lecture.VersionsResolutionType.AsNoTracking().ToListAsync();
+        Assert.Equal(2, versions.Count);
+        var v = versions.Single(x => x.ResolutionTypeId == resolution);
+        Assert.Equal(("existante", "Avec système", (Guid?)null), (v.Action, v.Titre, v.ModifieeParId));
+        Assert.Equal([catalogue], v.SystemeCatalogueIds);
+        Assert.Null(resolutions["Avec système"].ModifieeParId);
+
         var u = await lecture.Utilisateurs.AsNoTracking().SingleAsync(x => x.Id == compte);
         Assert.Equal(("", ""), (u.Role, u.Contact));
         Assert.Empty(u.Expertises);

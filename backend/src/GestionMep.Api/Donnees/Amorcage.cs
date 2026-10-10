@@ -29,6 +29,7 @@ public static class Amorcage
                 foreach (var r in resolutions) { r.Version = 1; r.ModifieeLe = temps.GetUtcNow(); }
                 db.SystemesCatalogue.AddRange(systemes);
                 db.ResolutionsTypes.AddRange(resolutions);
+                db.VersionsResolutionType.AddRange(resolutions.Select(r => VersionResolutionType.De(r, "creee")));
                 await db.SaveChangesAsync();
                 journal.LogInformation("Catalogue et résolutions types de démonstration ajoutés.");
             }
@@ -67,6 +68,7 @@ public static class Amorcage
             foreach (var r in jeu.Resolutions) r.Version = 1;
             db.SystemesCatalogue.AddRange(jeu.Systemes);
             db.ResolutionsTypes.AddRange(jeu.Resolutions);
+            db.VersionsResolutionType.AddRange(jeu.Resolutions.Select(r => VersionResolutionType.De(r, "creee")));
             db.CriteresGoNoGo.AddRange(jeu.Criteres);
             var parametres = await db.Parametres.FirstOrDefaultAsync(p => p.Id == ParametresGlobaux.IdUnique);
             if (parametres is null) db.Parametres.Add(parametres = new ParametresGlobaux());

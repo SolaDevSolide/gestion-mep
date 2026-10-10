@@ -118,11 +118,14 @@ public static class EtapesEndpoints
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
             var e = ServiceMep.TrouverEtape(mep, eid);
+            // Réservée aux participants reliés à un compte (dont le pilote et les suppléants) et aux administrateurs.
+            var existant = mep.Participants.FirstOrDefault(p => p.UtilisateurId == acteur.Id);
+            if (existant is null && !acteur.EstAdmin)
+                throw ErreurHttp.Interdit("Seuls les participants de la MEP, le pilote, ses suppléants ou un administrateur peuvent prendre la main.");
             ServiceMep.ExigerRevision(e, c.Revision);
             var motif = ServiceMep.Texte(c.Motif);
 
-            // Un utilisateur qui n'est pas encore participant le devient (créé seulement si la prise de main aboutit).
-            var existant = mep.Participants.FirstOrDefault(p => p.UtilisateurId == acteur.Id);
+            // Un administrateur qui n'est pas encore participant le devient (créé seulement si la prise de main aboutit).
             var preneur = existant ?? new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Prise en main", UtilisateurId = acteur.Id };
             var precedent = Regles.PrendreLaMain(mep, e, preneur, motif);
             if (existant is null) mep.Participants.Add(preneur);

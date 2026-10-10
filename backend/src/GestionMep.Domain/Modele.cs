@@ -221,6 +221,40 @@ public class ResolutionType
     public bool Actif { get; set; } = true;
     public int Version { get; set; }
     public DateTimeOffset ModifieeLe { get; set; } = DateTimeOffset.UtcNow;
+    /// <summary>Compte auteur de la dernière modification (null : données de démo ou fiche antérieure au suivi).</summary>
+    public Guid? ModifieeParId { get; set; }
+}
+
+/// <summary>
+/// Version archivée d'une résolution type : copie de la fiche telle qu'enregistrée à chaque création,
+/// modification ou désactivation, avec son auteur. Permet de savoir qui a changé quoi avant un incident.
+/// </summary>
+public class VersionResolutionType
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ResolutionTypeId { get; set; }
+    public int Version { get; set; }
+    /// <summary>« creee », « modifiee » ou « desactivee » (« existante » : fiche reprise lors de la mise en place du suivi).</summary>
+    public string Action { get; set; } = "";
+    public DateTimeOffset ModifieeLe { get; set; }
+    public Guid? ModifieeParId { get; set; }
+    public string Titre { get; set; } = "";
+    public string Symptomes { get; set; } = "";
+    public string Diagnostic { get; set; } = "";
+    public List<Guid> SystemeCatalogueIds { get; set; } = [];
+    public List<Correction> Corrections { get; set; } = [];
+    public string VerificationInstruction { get; set; } = "";
+    public string VerificationAttendu { get; set; } = "";
+    public bool Actif { get; set; }
+
+    /// <summary>Copie de l'état actuel de la fiche.</summary>
+    public static VersionResolutionType De(ResolutionType r, string action) => new()
+    {
+        ResolutionTypeId = r.Id, Version = r.Version, Action = action, ModifieeLe = r.ModifieeLe, ModifieeParId = r.ModifieeParId,
+        Titre = r.Titre, Symptomes = r.Symptomes, Diagnostic = r.Diagnostic, SystemeCatalogueIds = [.. r.SystemeCatalogueIds],
+        Corrections = r.Corrections.Select(c => new Correction { Ordre = c.Ordre, Instruction = c.Instruction, ResultatAttendu = c.ResultatAttendu }).ToList(),
+        VerificationInstruction = r.VerificationInstruction, VerificationAttendu = r.VerificationAttendu, Actif = r.Actif,
+    };
 }
 
 public class Correction

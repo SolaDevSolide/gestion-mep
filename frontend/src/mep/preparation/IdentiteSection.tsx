@@ -1,5 +1,7 @@
 import { Save } from 'lucide-react';
+import { useContext } from 'react';
 import { api } from '../../api';
+import { AuthContext } from '../../auth';
 import { depuisInputDateTime, formatDateHeure, versInputDateTime } from '../../format';
 import { useDraft, useReportDirty } from '../../hooks';
 import { useMep } from '../../mepContext';
@@ -27,9 +29,12 @@ export function IdentiteSection() {
   const edition = mep.droits.peutEditerContenu;
   const peutEcheance = edition || mep.droits.estPilote;
   const lecture = !edition;
+  // Pilote et suppléants : le pilote actuel, un suppléant ou un administrateur (tout éditeur tant qu'aucun pilote n'est désigné).
+  const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
+  const pilotage = edition && (mep.piloteId === null || mep.droits.estPilote || admin);
 
   const personnes = (valeur: string | null, set: (x: string | null) => void) => (id: string) => (
-    <Select id={id} value={valeur ?? ''} disabled={lecture} onChange={(e) => set(vide(e.target.value))}>
+    <Select id={id} value={valeur ?? ''} disabled={!pilotage} onChange={(e) => set(vide(e.target.value))}>
       <option value="">— choisir —</option>
       {mep.participants.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
     </Select>
@@ -69,7 +74,7 @@ export function IdentiteSection() {
           )}
         </Field>
         <Field label="Pilote">{personnes(v.piloteId, (x) => d.update({ piloteId: x, suppleantIds: v.suppleantIds.filter((s) => s !== x) }))}</Field>
-        <Field label="Suppléants" hint="Ils ont les mêmes droits que le pilote.">
+        <Field label="Suppléants" hint={pilotage || lecture ? 'Ils ont les mêmes droits que le pilote.' : 'Seul le pilote, un suppléant ou un administrateur peut changer le pilote et les suppléants.'}>
           {(id) => (
             <MultiSelect
               id={id}
@@ -79,7 +84,7 @@ export function IdentiteSection() {
               placeholder="Aucun suppléant"
               placeholderRecherche="Rechercher une personne…"
               vide="Aucune autre personne : ajoutez-en dans « Personnes »."
-              disabled={lecture}
+              disabled={!pilotage}
               libelleInconnu="Personne supprimée"
             />
           )}
