@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using GestionMep.Api.Auth;
 using GestionMep.Api.Donnees;
+using GestionMep.Api.Securite;
 using GestionMep.Api.Services;
 using GestionMep.Domain;
 using Microsoft.AspNetCore.Identity;
@@ -39,13 +40,22 @@ public static class AuthEndpoints
 
     public static void MapAuth(this RouteGroupBuilder api)
     {
-        api.MapPost("/auth/connexion", async (ConnexionSaisie corps, HttpContext ctx, MepDbContext db, IPasswordHasher<Utilisateur> hasher) =>
+        // Deux limites : par adresse IP (politique « connexion ») et par login (blocage progressif après 5 échecs).
+        api.MapPost("/auth/connexion", async (ConnexionSaisie corps, HttpContext ctx, MepDbContext db, IPasswordHasher<Utilisateur> hasher, LimiteurConnexion limiteur) =>
         {
+            var login = AuthentificationLocale.NormaliserLogin(corps.Login);
+            if (limiteur.BloqueJusqua(login) is not null)
+                return Results.Json(new { message = "Trop d'échecs de connexion pour ce compte. Réessayez dans quelques minutes." }, statusCode: 429);
             var u = await AuthentificationLocale.Verifier(db, hasher, corps.Login, corps.MotDePasse);
-            if (u is null) return Results.Json(new { message = "Identifiant ou mot de passe incorrect." }, statusCode: 401);
+            if (u is null)
+            {
+                limiteur.Echec(login);
+                return Results.Json(new { message = "Identifiant ou mot de passe incorrect." }, statusCode: 401);
+            }
+            limiteur.Reussite(login);
             await AuthentificationLocale.Ouvrir(ctx, u);
             return Results.Ok(Dto(u));
-        }).AllowAnonymous();
+        }).AllowAnonymous().RequireRateLimiting(ProtectionsHttp.PolitiqueConnexion);
 
         api.MapPost("/auth/deconnexion", async (HttpContext ctx) =>
         {

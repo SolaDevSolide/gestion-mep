@@ -1,5 +1,5 @@
 # Lancement complet (dev ou recette) : docker compose up --build
-# Puis ouvrir http://localhost:8080
+# Puis ouvrir http://localhost:8080 (comptes de démonstration : DEMO=true dans un fichier .env, voir README)
 services:
   db:
     image: postgres:16-alpine
@@ -24,13 +24,18 @@ services:
         condition: service_healthy
     environment:
       ConnectionStrings__Mep: Host=db;Port=5432;Database=gestion_mep;Username=${POSTGRES_USER:-mep};Password=${POSTGRES_PASSWORD:-mep}
-      Demo__Activer: ${DEMO:-true}
+      Demo__Activer: ${DEMO:-false}
       Admin__Login: ${ADMIN_LOGIN:-}
       Admin__MotDePasse: ${ADMIN_MOT_DE_PASSE:-}
       Stockage__Dossier: /data/pieces-jointes
       Stockage__TailleMaxMo: ${PIECES_TAILLE_MAX_MO:-20}
+      Cles__Dossier: /data/cles
+      # Réseaux du reverse proxy HTTPS, seuls autorisés à transmettre l'adresse du client (X-Forwarded-For)
+      ProxyInverse__Reseaux: ${PROXY_RESEAUX:-172.16.0.0/12}
+      Connexion__TentativesParMinute: ${CONNEXIONS_PAR_MINUTE:-20}
     volumes:
       - pieces-jointes:/data/pieces-jointes
+      - cles:/data/cles
     ports:
       - "${PORT:-8080}:8080"
     restart: unless-stopped
@@ -38,3 +43,4 @@ services:
 volumes:
   db-data:
   pieces-jointes:
+  cles:

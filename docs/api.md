@@ -2,7 +2,7 @@
 
 Toutes les routes sont sous `/api`, en JSON (camelCase), énumérations sérialisées en chaînes (`"Preparation"`, `"AFaire"`…). Dates : ISO 8601 (`DateTimeOffset` → `"2026-10-09T12:00:00+00:00"`, `DateOnly` → `"2026-10-09"`, `TimeOnly` → `"08:30:00"`). Identifiants : GUID.
 
-Authentification par cookie (`gestion-mep.auth`, HttpOnly, SameSite=Lax). Toute route sauf `POST /api/auth/connexion` et `GET /api/sante` exige d'être connecté, sinon **401**.
+Authentification par cookie (`gestion-mep.auth`, HttpOnly, SameSite=Lax, Secure hors développement). Toute requête `/api` autre que GET / HEAD / OPTIONS doit porter l'en-tête `X-Requested-With` (n'importe quelle valeur), sinon **403** (protection CSRF). `POST /api/auth/connexion` : **429** au-delà de `Connexion:TentativesParMinute` essais par minute et par adresse IP, ou pendant le blocage d'un login après 5 échecs consécutifs (1 min, puis 2, 4… jusqu'à 15 min). Les énumérations se passent en texte (`"Approuvee"`), un entier est refusé (**400**). Toute route sauf `POST /api/auth/connexion` et `GET /api/sante` exige d'être connecté, sinon **401**.
 
 ## Erreurs
 

@@ -47,6 +47,10 @@ public class SurveillanceEcheances(IServiceScopeFactory scopes, TimeProvider tem
                     if (mep.Phase == Phase.RetourArriere && mep.RetourArriereDeclenchePar is null) bascules++;
                 }
                 catch (ErreurHttp) { /* MEP supprimée entre-temps */ }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    journal.LogError(ex, "Échec de la surveillance de l'échéance de la MEP {MepId}.", id);
+                }
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

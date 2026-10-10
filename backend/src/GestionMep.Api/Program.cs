@@ -3,11 +3,20 @@ using System.Text.Json.Serialization;
 using GestionMep.Api.Auth;
 using GestionMep.Api.Donnees;
 using GestionMep.Api.Endpoints;
+using GestionMep.Api.Securite;
 using GestionMep.Api.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+
+// HEALTHCHECK de l'image Docker : « dotnet GestionMep.Api.dll --sante ».
+if (args.Contains("--sante"))
+{
+    Environment.ExitCode = await ProtectionsHttp.VerifierSante();
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +27,8 @@ builder.Services.AddDbContext<MepDbContext>((sp, options) =>
 builder.Services.ConfigureHttpJsonOptions(o =>
 {
     o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-    o.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    // Énumérations en texte uniquement : un entier hors bornes (« decision: 7 ») est refusé au lieu d'être enregistré.
+    o.SerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false));
 });
 // Un corps JSON invalide lève BadHttpRequestException, traduite en 400 JSON par le middleware d'erreurs.
 builder.Services.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = true);
@@ -35,10 +45,18 @@ builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = limiteCorps)
 // Surveillance des échéances de retour arrière (désactivable : Surveillance:Activer=false, utile en test).
 if (builder.Configuration.GetValue("Surveillance:Activer", true))
     builder.Services.AddHostedService<SurveillanceEcheances>();
-builder.Services.AjouterAuthentification();
+builder.Services.AjouterAuthentification(builder.Environment);
+builder.Services.AjouterProtectionsHttp(builder.Configuration);
+// Clés de chiffrement du cookie de session : conservées dans Cles:Dossier (volume Docker « cles »), sinon chaque
+// recréation du conteneur déconnecterait tout le monde. Vide : emplacement par défaut d'ASP.NET Core (poste de dev).
+var protection = builder.Services.AddDataProtection().SetApplicationName("gestion-mep");
+if (builder.Configuration["Cles:Dossier"] is { Length: > 0 } dossierCles)
+    protection.PersistKeysToFileSystem(new DirectoryInfo(dossierCles));
 
 var app = builder.Build();
 
+// En premier : adresse et schéma du client derrière le reverse proxy (limite par IP, journaux).
+app.UseForwardedHeaders();
 app.UtiliserGestionErreurs();
 app.UseDefaultFiles();
 // index.html n'est jamais mis en cache : après un déploiement, le navigateur charge la nouvelle version (les fichiers
@@ -52,8 +70,10 @@ var fichiersStatiques = new StaticFileOptions
     },
 };
 app.UseStaticFiles(fichiersStatiques);
+app.UtiliserProtectionCsrf();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 var api = app.MapGroup("/api").RequireAuthorization();
 api.MapGet("/sante", () => Results.Ok(new { statut = "ok" })).AllowAnonymous();
