@@ -135,6 +135,8 @@ export function SelecteurResolutions({ resolutions, catalogue, liees, onChange, 
             {visibles.map((r, i) => {
               const meme = memeSysteme(r.systemeCatalogueIds, systemesEtape);
               return (
+                // Le clavier est géré par le champ de recherche (aria-activedescendant), comme pour toute liste ARIA « listbox ».
+                // eslint-disable-next-line jsx-a11y/click-events-have-key-events
                 <li
                   key={r.id}
                   id={`${id}-${r.id}`}

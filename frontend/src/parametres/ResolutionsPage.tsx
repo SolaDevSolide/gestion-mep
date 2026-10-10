@@ -47,7 +47,7 @@ export default function ResolutionsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Résolutions types</h1>
         </div>
-        <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => navigate('/parametres/resolutions/nouvelle')}>Nouvelle résolution</Button>
+        <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => void navigate('/parametres/resolutions/nouvelle')}>Nouvelle résolution</Button>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -72,7 +72,7 @@ export default function ResolutionsPage() {
             icone={Wrench}
             titre={res.donnees.length === 0 ? 'Aucune résolution type' : 'Aucun résultat'}
             description={res.donnees.length === 0 ? 'Écrivez une première procédure : symptômes, corrections ordonnées et vérification finale.' : 'Aucune résolution ne correspond à ces critères.'}
-            action={res.donnees.length === 0 ? <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => navigate('/parametres/resolutions/nouvelle')}>Nouvelle résolution</Button> : undefined}
+            action={res.donnees.length === 0 ? <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => void navigate('/parametres/resolutions/nouvelle')}>Nouvelle résolution</Button> : undefined}
           />
         </Card>
       )}

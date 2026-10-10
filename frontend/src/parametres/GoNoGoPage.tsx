@@ -119,7 +119,7 @@ export default function GoNoGoPage() {
     [liste[i], liste[j]] = [liste[j], liste[i]];
     try {
       // On renumérote de 1 à n : les deux critères échangés (et tout doublon d'ordre) sont mis à jour.
-      await Promise.all(liste.map((c, k) => (c.ordre !== k + 1 ? api.modifierCritere(c.id, { libelle: c.libelle, ordre: k + 1, actif: c.actif }) : null)));
+      await Promise.all(liste.flatMap((c, k) => (c.ordre !== k + 1 ? [api.modifierCritere(c.id, { libelle: c.libelle, ordre: k + 1, actif: c.actif })] : [])));
     } catch (e) {
       toast.erreur(e instanceof Error ? e.message : 'Réorganisation impossible.');
     }

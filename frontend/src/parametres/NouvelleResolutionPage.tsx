@@ -63,7 +63,7 @@ export default function NouvelleResolutionPage() {
       } else {
         toast.succes(`Fiche « ${r.titre} » enregistrée.`);
       }
-      navigate(retour);
+      void navigate(retour);
     } catch (err) {
       setErreur(err instanceof Error ? err.message : 'Enregistrement impossible.');
     } finally {
@@ -94,7 +94,7 @@ export default function NouvelleResolutionPage() {
             <Button variante="primaire" icone={<Save className="size-4" aria-hidden />} chargement={envoi} onClick={() => void enregistrer()}>
               {etape ? `Enregistrer et lier à ${etape.code}` : 'Enregistrer'}
             </Button>
-            <Button variante="fantome" onClick={() => navigate(retour)}>Annuler</Button>
+            <Button variante="fantome" onClick={() => void navigate(retour)}>Annuler</Button>
           </div>
         </Card>
         <Card role="region" aria-label="Aperçu en exécution" className="p-5 lg:sticky lg:top-6">

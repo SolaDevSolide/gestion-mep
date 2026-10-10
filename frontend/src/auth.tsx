@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(() => {
       setUtilisateur(null);
-      navigate('/connexion', { replace: true });
+      void navigate('/connexion', { replace: true });
     });
   }, [navigate]);
 
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const deconnecter = useCallback(async () => {
     try { await api.deconnexion(); } finally {
       setUtilisateur(null);
-      navigate('/connexion', { replace: true });
+      void navigate('/connexion', { replace: true });
     }
   }, [navigate]);
 

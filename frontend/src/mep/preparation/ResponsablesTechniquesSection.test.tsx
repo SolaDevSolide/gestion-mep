@@ -5,9 +5,9 @@ import { api } from '../../api';
 import { mep, utilisateur } from '../../test/fabrique';
 import { TooltipProvider } from '../../ui/Tooltip';
 import { ResponsablesTechniquesSection } from './ResponsablesTechniquesSection';
-import type { Mep } from '../../types';
+import type { Mep, Utilisateur } from '../../types';
 
-const { utilisateurs } = vi.hoisted(() => ({ utilisateurs: { liste: [] as import('../../types').Utilisateur[] } }));
+const { utilisateurs } = vi.hoisted(() => ({ utilisateurs: { liste: [] as Utilisateur[] } }));
 vi.mock('../../api', () => ({ api: { modifierResponsablesTechniques: vi.fn(), ajouterParticipant: vi.fn(), utilisateurs: vi.fn(async () => utilisateurs.liste) } }));
 
 function rendre(m: Mep) {

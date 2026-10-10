@@ -55,7 +55,7 @@ function NouvelleMepDialog({ open, onOpenChange }: { open: boolean; onOpenChange
       const mep = await api.creerMep(outil.trim(), objet.trim());
       toast.succes('MEP créée.');
       onOpenChange(false);
-      navigate(`/meps/${mep.id}`);
+      void navigate(`/meps/${mep.id}`);
     } catch (err) {
       setErreur(err instanceof Error ? err.message : 'Création impossible.');
     } finally {

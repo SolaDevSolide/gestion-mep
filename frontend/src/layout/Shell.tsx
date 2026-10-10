@@ -120,7 +120,7 @@ export function Shell() {
                 </button>
               </MenuTrigger>
               <MenuContent align="start" side="top">
-                <MenuItem onSelect={() => navigate('/profil')}>
+                <MenuItem onSelect={() => void navigate('/profil')}>
                   <UserRound className="size-4" aria-hidden /> Mon profil
                 </MenuItem>
                 <MenuSeparator />

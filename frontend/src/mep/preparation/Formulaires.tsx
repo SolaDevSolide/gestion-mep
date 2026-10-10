@@ -45,7 +45,7 @@ export function FormulaireDialog({ open, onOpenChange, titre, description, champ
   }
   const modifier = (cle: string, valeur: string) => {
     const suivant = { ...valeurs, [cle]: valeur };
-    setValeurs({ ...suivant, ...(surChangement?.(cle, valeur, suivant) ?? {}) });
+    setValeurs({ ...suivant, ...surChangement?.(cle, valeur, suivant) });
   };
   const manquant = champs.some((c) => c.requis && !(valeurs[c.cle] ?? '').trim());
 

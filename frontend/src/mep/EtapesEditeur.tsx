@@ -103,6 +103,8 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   }
 
   return (
+    // Raccourcis délégués (Échap, Suppr) : les touches viennent des fiches et liens focusables du graphe.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div className="grid gap-3" onKeyDown={clavier}>
       <BarreSystemes modifiable={modifiable} catalogue={catalogue.donnees ?? []} descriptions={descriptions} onMessage={astuce.afficher} />
       <div className="flex min-h-7 flex-wrap items-center gap-x-4 gap-y-1">
