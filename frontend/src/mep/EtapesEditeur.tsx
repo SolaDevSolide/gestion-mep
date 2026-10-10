@@ -57,11 +57,12 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
     }
   }
 
-  async function placer(id: string, ligne: number, position: number) {
+  async function placer(id: string, ligne: number, position: number, auClavier = false) {
     const avant = indexLignes(construireLignes(etapes)).get(id);
     const ok = await run(() => api.placerEtape(mep.id, id, ligne, position), `${code(id)} déplacée.`);
     if (ok) {
-      selectionner(id);
+      // Au clavier, la fiche garde le focus dans le graphe pour enchaîner les déplacements.
+      if (!auClavier) selectionner(id);
       if (avant !== ligne) astuce.afficher(`${code(id)} déplacée : liens recréés avec la ligne au-dessus et la ligne en dessous.`);
     }
   }
@@ -121,7 +122,7 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
           onSelection={selectionner}
           groupeSelection={groupe?.cle ?? null}
           onGroupeSelection={(c) => { setCleGroupe(c); if (c) setChoix(null); }}
-          onPlacer={(id, l, p) => void placer(id, l, p)}
+          onPlacer={(id, l, p, auClavier) => void placer(id, l, p, auClavier)}
           onLier={(de, vers) => void lier(de, vers)}
           onAjouter={(l) => void ajouter(l)}
           onMessage={astuce.afficher}

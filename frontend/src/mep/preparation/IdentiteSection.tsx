@@ -6,6 +6,7 @@ import { depuisInputDateTime, formatDateHeure, versInputDateTime } from '../../f
 import { useDraft, useReportDirty } from '../../hooks';
 import { useMep } from '../../mepContext';
 import type { MepIdentiteSaisie } from '../../types';
+import { AvisConflit } from '../../ui/AvisConflit';
 import { Button } from '../../ui/Button';
 import { ChampEnvironnement } from '../../ui/ChampEnvironnement';
 import { Checkbox } from '../../ui/Checkbox';
@@ -15,8 +16,8 @@ import { SectionCarte, vide } from './Formulaires';
 
 export function IdentiteSection() {
   const { mep, run } = useMep();
-  const source: MepIdentiteSaisie = {
-    version: mep.version, outil: mep.outil, versionActuelle: mep.versionActuelle, versionCible: mep.versionCible,
+  const source: Omit<MepIdentiteSaisie, 'version'> = {
+    outil: mep.outil, versionActuelle: mep.versionActuelle, versionCible: mep.versionCible,
     objet: mep.objet, impacts: mep.impacts,
     fuseauHoraire: mep.fuseauHoraire, indisponibiliteMinutes: mep.indisponibiliteMinutes, piloteId: mep.piloteId,
     suppleantIds: mep.suppleantIds, echeanceRepli: mep.echeanceRepli,
@@ -41,6 +42,7 @@ export function IdentiteSection() {
   );
 
   async function enregistrer() {
+    if (d.conflit) return;
     const ok = await run(() => api.modifierIdentite(mep.id, { ...v, version: mep.version }), 'Intervention enregistrée.');
     if (ok) d.reset();
   }
@@ -51,12 +53,13 @@ export function IdentiteSection() {
       titre="Intervention"
       pied={peutEcheance && (
         <>
-          <Button variante="primaire" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty} onClick={() => void enregistrer()}>Enregistrer</Button>
+          <Button variante="primaire" icone={<Save className="size-4" aria-hidden />} disabled={!d.dirty || d.conflit} onClick={() => void enregistrer()}>Enregistrer</Button>
           {d.dirty && <Button variante="fantome" onClick={d.reset}>Annuler les modifications</Button>}
           {!edition && <span className="text-xs text-fg-subtle">Seule l’échéance de retour arrière est modifiable après le passage en exécution.</span>}
         </>
       )}
     >
+      <AvisConflit brouillon={d} className="mb-4" />
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Outil">{(id) => <Input id={id} value={v.outil} disabled={lecture} onChange={(e) => d.update({ outil: e.target.value })} />}</Field>
         <Field label="Objet">{(id) => <Input id={id} value={v.objet} disabled={lecture} onChange={(e) => d.update({ objet: e.target.value })} />}</Field>

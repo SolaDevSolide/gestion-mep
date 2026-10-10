@@ -9,6 +9,7 @@ import { useMep } from '../../mepContext';
 import type { DecisionApprobation } from '../../types';
 import { Alerte } from '../../ui/Alerte';
 import { Avatar } from '../../ui/Avatar';
+import { AvisConflit } from '../../ui/AvisConflit';
 import { Button } from '../../ui/Button';
 import { MultiSelect } from '../../ui/Combobox';
 import { Dialog } from '../../ui/Dialog';
@@ -84,6 +85,7 @@ export function ApprobationsBloc() {
   }, [journal, mep.approbations]);
 
   async function enregistrer() {
+    if (d.conflit) return;
     const ok = await run(() => api.modifierApprobateurs(mep.id, mep.version, d.value), 'Approbateurs enregistrés.');
     if (ok) d.reset();
   }
@@ -119,9 +121,10 @@ export function ApprobationsBloc() {
               />
             )}
           </Field>
+          <AvisConflit brouillon={d} />
           {d.dirty && (
             <div className="flex flex-wrap items-center gap-3">
-              <Button variante="primaire" taille="sm" icone={<Save className="size-4" aria-hidden />} onClick={() => void enregistrer()}>Enregistrer les approbateurs</Button>
+              <Button variante="primaire" taille="sm" icone={<Save className="size-4" aria-hidden />} disabled={d.conflit} onClick={() => void enregistrer()}>Enregistrer les approbateurs</Button>
               <Button variante="fantome" taille="sm" onClick={d.reset}>Annuler</Button>
               {mep.approbations.some((a) => a.decision !== null) && <span className="text-xs text-warn-fg">Les décisions déjà prises seront effacées.</span>}
             </div>

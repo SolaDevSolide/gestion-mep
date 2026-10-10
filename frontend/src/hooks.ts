@@ -3,18 +3,28 @@ import { createContext, useContext, useEffect, useId, useState } from 'react';
 /**
  * Brouillon local d'un formulaire : tant que l'utilisateur n'a rien modifié, on affiche la source
  * (qui suit donc les rechargements) ; dès qu'il saisit, son brouillon prime.
+ *
+ * Le brouillon mémorise aussi la source au moment où la saisie a commencé (`base`). Si la source
+ * change ensuite (MEP rechargée par une autre action, avec la modification d'un collègue),
+ * `conflit` passe à vrai : enregistrer écraserait ce changement sans que l'utilisateur l'ait vu.
+ * La source ne doit donc contenir que les champs du formulaire (pas la version de la MEP).
  */
 export function useDraft<T>(source: T) {
-  const [draft, setDraft] = useState<T | null>(null);
-  const dirty = draft !== null && JSON.stringify(draft) !== JSON.stringify(source);
-  const value = dirty ? (draft as T) : source;
+  const [etat, setEtat] = useState<{ draft: T; base: T } | null>(null);
+  const dirty = etat !== null && JSON.stringify(etat.draft) !== JSON.stringify(source);
+  const value = dirty ? etat.draft : source;
+  const base = dirty ? etat.base : source;
+  const conflit = dirty && JSON.stringify(etat.base) !== JSON.stringify(source);
   return {
     value,
     dirty,
-    update: (patch: Partial<T>) => setDraft({ ...value, ...patch }),
+    conflit,
+    update: (patch: Partial<T>) => setEtat({ draft: { ...value, ...patch }, base }),
     /** Remplace tout le brouillon (valeur non objet, ex. une liste). */
-    setValeur: (v: T) => setDraft(v),
-    reset: () => setDraft(null),
+    setValeur: (v: T) => setEtat({ draft: v, base }),
+    reset: () => setEtat(null),
+    /** Garde la saisie en connaissance de cause : la version à jour devient la nouvelle base. */
+    garderSaisie: () => setEtat((e) => (e ? { draft: e.draft, base: source } : e)),
   };
 }
 
