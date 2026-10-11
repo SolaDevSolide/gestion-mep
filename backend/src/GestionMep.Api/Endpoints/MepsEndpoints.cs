@@ -22,25 +22,40 @@ public static class MepsEndpoints
         catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException or ArgumentException) { return DateOnly.FromDateTime(i.UtcDateTime); }
     }
 
+    /// <summary>
+    /// Liste des MEP, les plus récentes d'abord (partagée avec <c>gestion-mep meps lister</c>). <paramref name="modele"/> :
+    /// true, modèles seulement ; false, MEP seulement ; null, tout.
+    /// </summary>
+    public static async Task<List<MepResumeDto>> Lister(MepDbContext db, bool? modele) =>
+        (await db.Meps.AsNoTracking().Where(m => modele == null || m.EstModele == modele).OrderByDescending(m => m.CreeLe)
+            .Select(m => new
+            {
+                m.Id, m.Outil, m.VersionCible, m.Objet, m.DemarrageAutoriseLe, m.FuseauHoraire, m.Phase, m.Issue, m.EcheanceRepli,
+                Pilote = m.Participants.Where(p => p.Id == m.PiloteId).Select(p => p.Nom).FirstOrDefault(),
+                // Avancement du déploiement uniquement (le retour arrière a son propre plan).
+                NbEtapes = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement),
+                NbReussies = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
+                NbEchecs = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
+                m.Environnement, m.EstModele, m.CreeLe,
+            })
+            .ToListAsync())
+        // dateMep : date du Go (la date saisie n'existe plus depuis le jalon 4.2).
+        .Select(m => new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, DateLocale(m.DemarrageAutoriseLe, m.FuseauHoraire), m.Phase,
+            m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs, m.Environnement, m.EstModele, m.CreeLe, m.Issue)).ToList();
+
+    /// <summary>Journal d'une MEP, du plus récent au plus ancien (partagé avec <c>gestion-mep meps exporter</c>).</summary>
+    public static async Task<List<EvenementDto>> Journal(MepDbContext db, Guid id)
+    {
+        if (!await db.Meps.AnyAsync(m => m.Id == id)) throw ErreurHttp.NonTrouve("MEP introuvable.");
+        return await db.Journal.AsNoTracking().Where(e => e.MepId == id).OrderByDescending(e => e.Id)
+            .Select(e => new EvenementDto(e.Id, e.Quand, e.Auteur, e.Type, e.Detail,
+                db.Utilisateurs.Where(u => u.Id == e.UtilisateurId).Select(u => u.Login).FirstOrDefault())).ToListAsync();
+    }
+
     public static void MapMeps(this RouteGroupBuilder api)
     {
         // ?modele=true : modèles seulement ; ?modele=false : MEP seulement ; absent : tout.
-        api.MapGet("/meps", async (bool? modele, MepDbContext db) =>
-            (await db.Meps.AsNoTracking().Where(m => modele == null || m.EstModele == modele).OrderByDescending(m => m.CreeLe)
-                .Select(m => new
-                {
-                    m.Id, m.Outil, m.VersionCible, m.Objet, m.DemarrageAutoriseLe, m.FuseauHoraire, m.Phase, m.Issue, m.EcheanceRepli,
-                    Pilote = m.Participants.Where(p => p.Id == m.PiloteId).Select(p => p.Nom).FirstOrDefault(),
-                    // Avancement du déploiement uniquement (le retour arrière a son propre plan).
-                    NbEtapes = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement),
-                    NbReussies = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
-                    NbEchecs = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
-                    m.Environnement, m.EstModele, m.CreeLe,
-                })
-                .ToListAsync())
-            // dateMep : date du Go (la date saisie n'existe plus depuis le jalon 4.2).
-            .Select(m => new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, DateLocale(m.DemarrageAutoriseLe, m.FuseauHoraire), m.Phase,
-                m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs, m.Environnement, m.EstModele, m.CreeLe, m.Issue)));
+        api.MapGet("/meps", async (bool? modele, MepDbContext db) => (await Lister(db, modele)).AsEnumerable());
 
         api.MapPost("/meps", async (MepCreationSaisie corps, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) =>
         {
@@ -211,13 +226,7 @@ public static class MepsEndpoints
             return Results.NoContent();
         });
 
-        api.MapGet("/meps/{id:guid}/journal", async (Guid id, MepDbContext db) =>
-        {
-            if (!await db.Meps.AnyAsync(m => m.Id == id)) throw ErreurHttp.NonTrouve("MEP introuvable.");
-            return await db.Journal.AsNoTracking().Where(e => e.MepId == id).OrderByDescending(e => e.Id)
-                .Select(e => new EvenementDto(e.Id, e.Quand, e.Auteur, e.Type, e.Detail,
-                    db.Utilisateurs.Where(u => u.Id == e.UtilisateurId).Select(u => u.Login).FirstOrDefault())).ToListAsync();
-        });
+        api.MapGet("/meps/{id:guid}/journal", (Guid id, MepDbContext db) => Journal(db, id));
 
         // Flux limités (par compte et pour le serveur) et renouvelés toutes les heures : le navigateur se reconnecte seul.
         api.MapGet("/meps/{id:guid}/flux", async (Guid id, HttpContext ctx, ClaimsPrincipal user, MepDbContext db, DiffuseurMep diffuseur) =>

@@ -43,6 +43,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 |---|---|
 | `Program.cs` | Composition : services, middlewares, montage des groupes de routes, amorçage. |
 | `Endpoints/` | Une classe statique par domaine (`MapMeps`, `MapEtapes`, `MapPhase`…), en Minimal API. Toutes les routes sont sous `/api` et exigent une session, sauf la connexion, `/api/sante` et `/api/version`. |
+| `Cli/` | Commande `gestion-mep` (`LigneDeCommande*.cs`) : administration et exploitation sans navigateur. Elle appelle les opérations publiques des classes `Endpoints/` (`AdminEndpoints.Modifier`, `CatalogueEndpoints.Supprimer`, `ResolutionsEndpoints.Appliquer`…), partagées avec les routes de la console : mêmes règles, même journal d'administration (acteur absent : auteur « Ligne de commande »). |
 | `Services/ServiceMep.cs` | Chargement d'une MEP (avec application de l'échéance de retour arrière), contrôle de version, journal d'audit, enregistrement et notification. |
 | `Services/MepMapping.cs` | Seul endroit où une entité devient un DTO : calcul des disponibilités, des erreurs du plan et des droits de l'utilisateur courant. |
 | `Services/Dtos.cs` | Contrats d'entrée (`…Saisie`) et de sortie (`…Dto`). |
@@ -53,6 +54,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 | `Services/StockagePiecesJointes.cs` | Écriture, lecture et suppression des fichiers joints ; fichiers sans enregistrement en base mis de côté au démarrage. |
 | `Services/MisesAJour.cs` | Version en cours, vérification des versions publiées sur GitHub et dialogue avec le service facultatif de mise à jour (fichiers dans un volume partagé). |
 | `Services/Sauvegardes.cs` | Archive de la base (COPY binaire par table) et des pièces jointes ; sauvegarde avant migration ou importation, contrôle qu'aucune donnée n'est perdue, puis suppression de la sauvegarde. |
+| `Services/EchangeResolutions.cs` | Format JSON d'export des résolutions types et importation contrôlée fiche par fiche (`gestion-mep resolutions exporter / importer`). |
 | `Securite/` | Protections HTTP : en-têtes du proxy inverse, limite des tentatives de connexion (par IP et par compte), en-tête anti-CSRF exigé, en-têtes de sécurité (CSP…), taille maximale des requêtes, sonde `--sante` de l'image Docker. |
 | `Auth/` | Comptes locaux, cookie de session, `Acteur` (utilisateur courant), connexion unique OpenID Connect (`ConnexionUnique.cs`). |
 | `Donnees/` | `MepDbContext`, migrations EF Core, `Amorcage` (migration précédée d'une sauvegarde, démonstration ou compte administrateur initial). |

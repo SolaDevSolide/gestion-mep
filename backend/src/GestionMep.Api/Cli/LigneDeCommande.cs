@@ -1,4 +1,8 @@
+using System.Globalization;
 using System.Reflection;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using GestionMep.Api.Auth;
 using GestionMep.Api.Donnees;
 using GestionMep.Api.Endpoints;
@@ -11,29 +15,70 @@ using Microsoft.EntityFrameworkCore;
 namespace GestionMep.Api.Cli;
 
 /// <summary>
-/// Commandes d'exploitation, sans navigateur, pour l'équipe informatique. Dans le conteneur :
+/// Commandes d'exploitation et d'administration, sans navigateur, pour l'équipe informatique. Dans le conteneur :
 /// <c>docker compose exec app gestion-mep &lt;commande&gt;</c>. Elles lisent la même configuration que l'application
-/// (variables d'environnement, appsettings) et inscrivent leurs actions dans le journal d'administration.
+/// (variables d'environnement, appsettings, réglages en base), appliquent les mêmes règles que la console (méthodes
+/// partagées des Endpoints) et inscrivent leurs modifications dans le journal d'administration (auteur « Ligne de commande »).
 /// </summary>
-public static class LigneDeCommande
+public static partial class LigneDeCommande
 {
-    private static readonly string[] Commandes = ["aide", "--help", "-h", "version", "--version", "migrer", "config", "comptes", "sauvegarder", "importer", "sso", "reglages"];
+    private static readonly string[] Commandes =
+    [
+        "aide", "--help", "-h", "version", "--version", "migrer", "config", "comptes", "sauvegarder", "importer", "sso", "reglages", "reglage",
+        "systemes", "criteres", "resolutions", "journal", "sauvegardes", "mettre-a-jour", "meps",
+    ];
 
     private const string Aide = """
-        gestion-mep : commandes d'exploitation
+        gestion-mep : commandes d'exploitation et d'administration
 
+        Comptes
           gestion-mep comptes lister                          Liste les comptes (login, nom, admin, état)
-          gestion-mep comptes creer <login> [--nom "Nom"] [--admin]
+          gestion-mep comptes afficher <login>                Détail d'un compte : rôle, contact, expertises
+          gestion-mep comptes creer <login> [--nom "Nom"] [--admin] [--role "Rôle"] [--contact "Contact"]
                                                               Crée un compte avec un mot de passe provisoire
+          gestion-mep comptes modifier <login> [options]      Modifie un compte (seules les options données changent) :
+              --nom "Nom"                  Nom affiché (ne peut pas imiter le nom ou le login d'un autre compte)
+              --admin oui|non              Rôle administrateur (le dernier administrateur actif le garde)
+              --role "Rôle"  --contact "Contact"
+              --ajouter-expertise <SYSTÈME> [--detail "texte"]   Ajoute (ou met à jour) une expertise sur un système du catalogue
+              --retirer-expertise <SYSTÈME>                      Retire une expertise
+          gestion-mep comptes expertises <login>              Expertises du compte
           gestion-mep comptes reinitialiser-mdp <login>       Nouveau mot de passe provisoire (à changer à la connexion)
           gestion-mep comptes desactiver <login>              Désactive le compte et ferme ses sessions
           gestion-mep comptes reactiver <login>               Réactive le compte
-          gestion-mep config verifier                         Vérifie base, migrations, dossiers, comptes admin
-          gestion-mep migrer                                  Applique les migrations de la base sans démarrer l'application
-                                                              (sauvegarde préalable, supprimée si les contrôles passent)
-          gestion-mep sauvegarder [fichier.tar.gz]            Archive la base et les pièces jointes (défaut : dossier des sauvegardes)
-          gestion-mep importer <fichier.tar.gz>               Remplace base et pièces jointes par une archive (application arrêtée) ;
-                                                              sauvegarde préalable, supprimée si les contrôles passent
+
+        Catalogue des systèmes, go / no-go et réglages
+          gestion-mep systemes lister
+          gestion-mep systemes ajouter <nom> [--description "…"] [--cible "…"] [--actif oui|non]
+          gestion-mep systemes modifier <nom> [--nom "…"] [--description "…"] [--cible "…"] [--actif oui|non]
+          gestion-mep systemes supprimer <nom>                Supprime, ou désactive s'il est utilisé (MEP, résolution type)
+          gestion-mep criteres lister                         Critères go / no-go, numérotés (n°)
+          gestion-mep criteres ajouter "<libellé>" [--ordre n] [--actif oui|non]
+          gestion-mep criteres modifier <n°|id> [--libelle "…"] [--ordre n] [--actif oui|non]
+          gestion-mep criteres supprimer <n°|id>
+          gestion-mep reglages lister                         Réglages d'exploitation : valeur, origine (console, .env, défaut)
+          gestion-mep reglages definir <nom> <valeur>         Modifie un réglage, appliqué sans redémarrage (sous 10 secondes) ;
+                                                              la valeur remplace celle du fichier .env
+                                                              (dont approbations-minimum : approbations exigées avant le Go)
+          gestion-mep reglages retablir <nom>                 Revient à la valeur du fichier .env (ou à la valeur par défaut)
+
+        Résolutions types
+          gestion-mep resolutions lister [--systeme <SYSTÈME>] [--inactives]
+          gestion-mep resolutions afficher <id|titre>
+          gestion-mep resolutions supprimer <id|titre>        Supprime, ou désactive si elle a déjà servi
+          gestion-mep resolutions exporter [fichier.json|-]   Résolutions actives en JSON (défaut : sortie standard)
+          gestion-mep resolutions importer <fichier.json|-> [--remplacer|--ignorer-existantes] [--essai]
+                                                              Crée les résolutions d'un export ; une résolution du même titre
+                                                              est refusée, remplacée ou ignorée ; --essai : contrôle sans écrire
+
+        MEP et journal
+          gestion-mep meps lister [--phase <phase>] [--modeles]
+                                                              Phases : preparation, execution, recette, retour-arriere, cloturee
+          gestion-mep meps exporter <id> [fichier.json|-]     MEP complète et son journal, en JSON (archive, audit)
+          gestion-mep journal [--depuis AAAA-MM-JJ] [--limite n]
+                                                              Journal d'administration (200 derniers événements par défaut)
+
+        Connexion unique
           gestion-mep sso afficher                            Réglages de la connexion unique (Microsoft Entra ID ou OpenID Connect)
           gestion-mep sso configurer [options]                Modifie les réglages (seules les options données changent) :
               --annuaire <id>          Microsoft : ID de l'annuaire (locataire), GUID ou domaine
@@ -48,23 +93,54 @@ public static class LigneDeCommande
           gestion-mep sso activer | desactiver                Affiche ou retire le bouton de connexion unique (sans redémarrage)
           gestion-mep sso comptes                             Comptes reliés à un compte du fournisseur
           gestion-mep sso delier <login>                      Supprime la liaison d'un compte
-          gestion-mep reglages lister                         Réglages d'exploitation : valeur, origine (console, .env, défaut)
-          gestion-mep reglages definir <nom> <valeur>         Modifie un réglage, appliqué sans redémarrage (sous 10 secondes) ;
-                                                              la valeur remplace celle du fichier .env
-          gestion-mep reglages retablir <nom>                 Revient à la valeur du fichier .env (ou à la valeur par défaut)
+
+        Exploitation
+          gestion-mep config afficher                         Configuration lue au démarrage (secrets masqués)
+          gestion-mep config verifier                         Vérifie base, migrations, dossiers, comptes admin
+          gestion-mep migrer                                  Applique les migrations de la base sans démarrer l'application
+                                                              (sauvegarde préalable, supprimée si les contrôles passent)
+          gestion-mep sauvegarder [fichier.tar.gz]            Archive la base et les pièces jointes (défaut : dossier des sauvegardes)
+          gestion-mep sauvegardes lister                      Archives du dossier des sauvegardes
+          gestion-mep sauvegardes restaurer <archive> --oui   Remplace base et pièces jointes par l'archive (nom dans le dossier
+                                                              des sauvegardes ou chemin) ; application arrêtée, voir ci-dessous
+          gestion-mep importer <fichier.tar.gz>               Comme « sauvegardes restaurer », sans confirmation (déménagement)
+          gestion-mep mettre-a-jour [--oui] [--version x.y.z] Dernière version publiée ; avec --oui, demande son installation au
+                                                              service de mise à jour (refusée pendant une MEP en cours)
           gestion-mep version                                 Version de l'application
 
+        Option --json : sortie JSON pour les scripts (commandes lister, afficher, expertises, journal, mettre-a-jour).
         Dans Docker : docker compose exec app gestion-mep <commande>
+        Restaurer (application arrêtée) : docker compose stop app
+                                          docker compose run --rm app sauvegardes restaurer <archive> --oui
+                                          docker compose up -d app
         Exemples : gestion-mep reglages definir url-publique https://mep.entreprise.fr
                    gestion-mep reglages definir lien-signalement ""      (valeur vide : lien masqué)
+                   gestion-mep comptes modifier jdupont --ajouter-expertise BDD --detail "Base clients"
         Secret depuis un fichier : docker compose exec -T app gestion-mep sso configurer --secret-stdin < secret.txt
+        Fichier depuis l'hôte : docker compose exec -T app gestion-mep resolutions importer - < resolutions.json
         Codes de retour : 0 succès, 1 échec, 2 commande mal formée.
         """;
 
-    public static bool EstCommande(string[] args) => args.Length > 0 && Commandes.Contains(args[0]);
+    /// <summary>Sortie JSON demandée (option --json), pour la commande en cours.</summary>
+    private static readonly AsyncLocal<bool> SortieJson = new();
 
-    public static async Task<int> Executer(string[] args)
+    private static bool EnJson => SortieJson.Value;
+
+    /// <summary>Même forme que les réponses de l'API (camelCase, énumérations en texte), lisible et sans échappement des accents.</summary>
+    private static readonly JsonSerializerOptions OptionsJson = new()
     {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        Converters = { new JsonStringEnumConverter(allowIntegerValues: false) },
+    };
+
+    public static bool EstCommande(string[] args) => args.FirstOrDefault(a => a != "--json") is { } c && Commandes.Contains(c);
+
+    public static async Task<int> Executer(string[] arguments)
+    {
+        SortieJson.Value = arguments.Contains("--json");
+        var args = arguments.Where(a => a != "--json").ToArray();
         try
         {
             return args switch
@@ -74,12 +150,37 @@ public static class LigneDeCommande
                 ["sauvegarder"] => await Sauvegarder(null),
                 ["sauvegarder", var fichier] when !fichier.StartsWith('-') => await Sauvegarder(fichier),
                 ["importer", var archive] when !archive.StartsWith('-') => await Importer(archive),
+                ["sauvegardes", "lister"] => await SauvegardesLister(),
+                ["sauvegardes", "restaurer", .. var options] => await SauvegardesRestaurer(options),
                 ["config", "verifier"] => await VerifierConfig(),
+                ["config", "afficher"] => await ConfigAfficher(),
+                ["mettre-a-jour", .. var options] => await MettreAJour(options),
                 ["comptes", "lister"] => await Lister(),
+                ["comptes", "afficher", var login] => await AfficherCompte(login),
                 ["comptes", "creer", var login, .. var options] => await Creer(login, options),
+                ["comptes", "modifier", var login, .. var options] when options.Length > 0 => await ModifierCompte(login, options),
+                ["comptes", "expertises", var login] => await Expertises(login),
                 ["comptes", "reinitialiser-mdp", var login] => await Reinitialiser(login),
                 ["comptes", "desactiver", var login] => await ChangerEtat(login, actif: false),
                 ["comptes", "reactiver", var login] => await ChangerEtat(login, actif: true),
+                ["systemes", "lister"] => await SystemesLister(),
+                ["systemes", "ajouter", var nom, .. var options] => await SystemesAjouter(nom, options),
+                ["systemes", "modifier", var nom, .. var options] when options.Length > 0 => await SystemesModifier(nom, options),
+                ["systemes", "supprimer", var nom] => await SystemesSupprimer(nom),
+                ["criteres", "lister"] => await CriteresLister(),
+                ["criteres", "ajouter", var libelle, .. var options] => await CriteresAjouter(libelle, options),
+                ["criteres", "modifier", var critere, .. var options] when options.Length > 0 => await CriteresModifier(critere, options),
+                ["criteres", "supprimer", var critere] => await CriteresSupprimer(critere),
+                ["resolutions", "lister", .. var options] => await ResolutionsLister(options),
+                ["resolutions", "afficher", var resolution] => await ResolutionsAfficher(resolution),
+                ["resolutions", "supprimer", var resolution] => await ResolutionsSupprimer(resolution),
+                ["resolutions", "exporter"] => await ResolutionsExporter(null),
+                ["resolutions", "exporter", var fichier] => await ResolutionsExporter(fichier),
+                ["resolutions", "importer", var fichier, .. var options] => await ResolutionsImporter(fichier, options),
+                ["meps", "lister", .. var options] => await MepsLister(options),
+                ["meps", "exporter", var mep] => await MepsExporter(mep, null),
+                ["meps", "exporter", var mep, var fichier] => await MepsExporter(mep, fichier),
+                ["journal", .. var options] => await Journal(options),
                 ["sso", "afficher"] => await SsoAfficher(),
                 ["sso", "configurer", .. var options] when options.Length > 0 => await SsoConfigurer(options),
                 ["sso", "tester"] => await SsoTester(),
@@ -94,6 +195,11 @@ public static class LigneDeCommande
                 _ => AfficherAide(2),
             };
         }
+        catch (ErreurUsage e)
+        {
+            Console.Error.WriteLine($"Commande mal formée : {e.Message} (« gestion-mep aide » pour la liste des commandes).");
+            return 2;
+        }
         catch (ErreurHttp e)
         {
             if (e.Erreurs is { Count: > 1 } erreurs)
@@ -102,6 +208,11 @@ public static class LigneDeCommande
                 foreach (var m in erreurs) Console.Error.WriteLine($"  - {m}");
             }
             else Console.Error.WriteLine($"Erreur : {e.Message}");
+            return 1;
+        }
+        catch (RegleMetierException e)
+        {
+            Console.Error.WriteLine($"Erreur : {e.Message}");
             return 1;
         }
     }
@@ -136,6 +247,96 @@ public static class LigneDeCommande
         Console.WriteLine(a.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? a.GetName().Version?.ToString());
         return 0;
     }
+
+    // ---------- Outils communs ----------
+
+    /// <summary>Commande mal formée (option inconnue, valeur manquante) : code de retour 2.</summary>
+    private sealed class ErreurUsage(string message) : Exception(message);
+
+    /// <summary>Options d'une commande, dans l'ordre donné (« --nom valeur » ou drapeau seul).</summary>
+    private sealed class Options
+    {
+        private readonly List<(string Nom, string? Valeur)> _liste = [];
+
+        public IReadOnlyList<(string Nom, string? Valeur)> Liste => _liste;
+
+        /// <summary>Lit les options ; toute option inconnue ou sans sa valeur est une erreur d'usage.</summary>
+        public static Options Lire(string[] args, string[] avecValeur, params string[] drapeaux)
+        {
+            var o = new Options();
+            for (var i = 0; i < args.Length; i++)
+            {
+                if (avecValeur.Contains(args[i]))
+                {
+                    if (i + 1 >= args.Length) throw new ErreurUsage($"valeur manquante après {args[i]}");
+                    o._liste.Add((args[i], args[++i]));
+                }
+                else if (drapeaux.Contains(args[i])) o._liste.Add((args[i], null));
+                else throw new ErreurUsage($"option inattendue « {args[i]} »");
+            }
+            return o;
+        }
+
+        public bool A(string nom) => _liste.Any(x => x.Nom == nom);
+
+        /// <summary>Dernière valeur donnée pour l'option (null si absente).</summary>
+        public string? Valeur(string nom) => _liste.LastOrDefault(x => x.Nom == nom).Valeur;
+
+        public bool? OuiNon(string nom) => Valeur(nom) switch
+        {
+            null => null,
+            "oui" => true,
+            "non" => false,
+            _ => throw ErreurHttp.Saisie($"{nom} attend oui ou non."),
+        };
+
+        public int? Entier(string nom) => Valeur(nom) is not { } v ? null
+            : int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n
+            : throw ErreurHttp.Saisie($"{nom} attend un nombre entier.");
+    }
+
+    private static void EcrireJson(object valeur) => Console.WriteLine(JsonSerializer.Serialize(valeur, OptionsJson));
+
+    private static string Date(DateTimeOffset d) => d.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+
+    /// <summary>Contenu d'un fichier, ou de l'entrée standard pour « - ».</summary>
+    private static async Task<string> LireFichierOuEntree(string fichier)
+    {
+        if (fichier == "-") return await Console.In.ReadToEndAsync();
+        if (!File.Exists(fichier)) throw new ErreurHttp(1, $"Fichier introuvable : {fichier}");
+        return await File.ReadAllTextAsync(fichier);
+    }
+
+    /// <summary>Écrit le JSON dans le fichier, ou sur la sortie standard (absent ou « - ») ; renvoie vrai pour un fichier.</summary>
+    private static async Task<bool> EcrireFichierOuSortie(string? fichier, object valeur)
+    {
+        var json = JsonSerializer.Serialize(valeur, OptionsJson);
+        if (fichier is null or "-")
+        {
+            Console.WriteLine(json);
+            return false;
+        }
+        if (Path.GetDirectoryName(Path.GetFullPath(fichier)) is { } dossier) Directory.CreateDirectory(dossier);
+        await File.WriteAllTextAsync(fichier, json + "\n");
+        return true;
+    }
+
+    /// <summary>« 8 premiers caractères » ou plus d'un identifiant : un seul élément doit correspondre.</summary>
+    private static Guid? IdentifiantOuPrefixe(string texte, IEnumerable<Guid> ids, string quoi)
+    {
+        if (Guid.TryParse(texte, out var id)) return id;
+        var t = texte.Trim().ToLowerInvariant();
+        if (t.Length < 4 || !t.All(Uri.IsHexDigit)) return null;
+        var trouves = ids.Where(i => i.ToString().StartsWith(t, StringComparison.Ordinal)).ToList();
+        return trouves.Count switch
+        {
+            0 => null,
+            1 => trouves[0],
+            _ => throw ErreurHttp.Saisie($"Plusieurs {quoi} commencent par « {texte} » : donner l'identifiant complet."),
+        };
+    }
+
+    // ---------- Exploitation ----------
 
     private static async Task<int> Migrer()
     {
@@ -172,6 +373,9 @@ public static class LigneDeCommande
         return await ServiceSauvegardes(config).Importer(db, archive, JournalAdmin.AuteurLigneDeCommande) ? 0 : 1;
     }
 
+
+    // ---------- Comptes ----------
+
     private static async Task<Utilisateur> Compte(MepDbContext db, string login)
     {
         var l = AuthentificationLocale.NormaliserLogin(login);
@@ -182,6 +386,11 @@ public static class LigneDeCommande
     {
         await using var db = Base(Configuration());
         var comptes = await db.Utilisateurs.AsNoTracking().OrderBy(u => u.Login).ToListAsync();
+        if (EnJson)
+        {
+            EcrireJson(comptes.Select(MepMapping.VersDto));
+            return 0;
+        }
         var largeur = Math.Max(5, comptes.Count == 0 ? 0 : comptes.Max(u => u.Login.Length));
         Console.WriteLine($"{"LOGIN".PadRight(largeur)}  ADMIN  ÉTAT        NOM");
         foreach (var u in comptes)
@@ -192,31 +401,124 @@ public static class LigneDeCommande
         return 0;
     }
 
-    private static async Task<int> Creer(string login, string[] options)
+    private static async Task<int> AfficherCompte(string login)
+    {
+        await using var db = Base(Configuration());
+        var u = await Compte(db, login);
+        if (EnJson)
+        {
+            EcrireJson(MepMapping.VersDto(u));
+            return 0;
+        }
+        Console.WriteLine($"Login          : {u.Login}");
+        Console.WriteLine($"Nom affiché    : {u.NomAffiche}");
+        Console.WriteLine($"Administrateur : {(u.EstAdmin ? "oui" : "non")}");
+        Console.WriteLine($"État           : {(!u.Actif ? "désactivé" : u.DoitChangerMotDePasse ? "actif, mot de passe provisoire à changer" : "actif")}");
+        Console.WriteLine($"Rôle           : {Texte(u.Role)}");
+        Console.WriteLine($"Contact        : {Texte(u.Contact)}");
+        await EcrireExpertises(db, u);
+        return 0;
+    }
+
+    private static async Task EcrireExpertises(MepDbContext db, Utilisateur u)
+    {
+        if (u.Expertises.Count == 0)
+        {
+            Console.WriteLine("Expertises     : aucune");
+            return;
+        }
+        var noms = await db.SystemesCatalogue.AsNoTracking().ToDictionaryAsync(s => s.Id, s => s.Nom);
+        Console.WriteLine("Expertises     :");
+        foreach (var e in u.Expertises)
+            Console.WriteLine($"  {noms.GetValueOrDefault(e.SystemeCatalogueId, "(système supprimé)")}{(e.Detail.Length > 0 ? $" : {e.Detail}" : "")}");
+    }
+
+    private static async Task<int> Expertises(string login)
+    {
+        await using var db = Base(Configuration());
+        var u = await Compte(db, login);
+        if (EnJson)
+        {
+            var noms = await db.SystemesCatalogue.AsNoTracking().ToDictionaryAsync(s => s.Id, s => s.Nom);
+            EcrireJson(u.Expertises.Select(e => new { e.SystemeCatalogueId, Systeme = noms.GetValueOrDefault(e.SystemeCatalogueId), e.Detail }));
+            return 0;
+        }
+        await EcrireExpertises(db, u);
+        return 0;
+    }
+
+    private static async Task<int> Creer(string login, string[] arguments)
     {
         var l = AuthentificationLocale.NormaliserLogin(login);
         if (l.Length == 0 || l.StartsWith('-')) return AfficherAide(2);
-        string? nom = null;
-        var admin = false;
-        for (var i = 0; i < options.Length; i++)
-        {
-            switch (options[i])
-            {
-                case "--admin": admin = true; break;
-                case "--nom" when i + 1 < options.Length: nom = options[++i].Trim(); break;
-                default: return AfficherAide(2);
-            }
-        }
+        var o = Options.Lire(arguments, ["--nom", "--role", "--contact"], "--admin");
+        var nom = o.Valeur("--nom")?.Trim();
+        var admin = o.A("--admin");
         await using var db = Base(Configuration());
         if (await db.Utilisateurs.AnyAsync(u => u.Login == l)) throw new ErreurHttp(1, $"Le compte « {l} » existe déjà.");
-        var u = new Utilisateur { Login = l, NomAffiche = string.IsNullOrEmpty(nom) ? l : nom, EstAdmin = admin };
-        var mdp = AuthentificationLocale.PoserMotDePasseProvisoire(u, new PasswordHasher<Utilisateur>());
-        db.Utilisateurs.Add(u);
-        JournalAdmin.Ecrire(db, null, "compte.cree", $"Compte {JournalAdmin.Compte(u)} créé{(admin ? ", administrateur" : "")}");
-        await db.SaveChangesAsync();
+        var (_, mdp) = await AdminEndpoints.Creer(db, null,
+            new CompteSaisie(l, string.IsNullOrEmpty(nom) ? l : nom, admin, o.Valeur("--role"), o.Valeur("--contact")), new PasswordHasher<Utilisateur>());
         Console.WriteLine($"Compte « {l} » créé{(admin ? " (administrateur)" : "")}.");
         Console.WriteLine($"Mot de passe provisoire : {mdp}");
         Console.WriteLine("À transmettre par un canal sûr ; il devra être changé à la première connexion.");
+        return 0;
+    }
+
+    /// <summary>
+    /// Nom, rôle administrateur, rôle et contact (mêmes règles que la console), puis expertises (mêmes règles que le profil) :
+    /// « --detail » s'applique au « --ajouter-expertise » qui le précède.
+    /// </summary>
+    private static async Task<int> ModifierCompte(string login, string[] arguments)
+    {
+        var o = Options.Lire(arguments, ["--nom", "--admin", "--role", "--contact", "--ajouter-expertise", "--detail", "--retirer-expertise"]);
+        await using var db = Base(Configuration());
+        var u = await Compte(db, login);
+        var resultats = new List<string>();
+
+        if (o.A("--nom") || o.A("--admin") || o.A("--role") || o.A("--contact"))
+        {
+            var changements = await AdminEndpoints.Modifier(db, null, u, new CompteModification(
+                o.Valeur("--nom") ?? u.NomAffiche, o.OuiNon("--admin") ?? u.EstAdmin, o.Valeur("--role") ?? u.Role, o.Valeur("--contact") ?? u.Contact));
+            resultats.AddRange(changements);
+        }
+
+        if (o.A("--ajouter-expertise") || o.A("--retirer-expertise") || o.A("--detail"))
+        {
+            var catalogue = await db.SystemesCatalogue.AsNoTracking().ToListAsync();
+            var expertises = u.Expertises.Select(e => new ExpertiseSaisie(e.SystemeCatalogueId, e.Detail)).ToList();
+            var details = new List<string>();
+            ExpertiseSaisie? derniere = null;
+            foreach (var (nom, valeur) in o.Liste)
+            {
+                switch (nom)
+                {
+                    case "--ajouter-expertise":
+                        var ajout = TrouverSysteme(catalogue, valeur!);
+                        var existante = expertises.FindIndex(e => e.SystemeCatalogueId == ajout.Id);
+                        derniere = new ExpertiseSaisie(ajout.Id, existante >= 0 ? expertises[existante].Detail : "");
+                        if (existante >= 0) expertises[existante] = derniere;
+                        else expertises.Add(derniere);
+                        details.Add($"expertise {ajout.Nom} {(existante >= 0 ? "mise à jour" : "ajoutée")}");
+                        break;
+                    case "--detail":
+                        if (derniere is null) throw new ErreurUsage("--detail suit un --ajouter-expertise");
+                        var i = expertises.IndexOf(derniere);
+                        expertises[i] = derniere = derniere with { Detail = valeur };
+                        break;
+                    case "--retirer-expertise":
+                        var retrait = TrouverSysteme(catalogue, valeur!);
+                        if (expertises.RemoveAll(e => e.SystemeCatalogueId == retrait.Id) == 0)
+                            throw ErreurHttp.Saisie($"« {u.Login} » n'a pas d'expertise sur {retrait.Nom}.");
+                        details.Add($"expertise {retrait.Nom} retirée");
+                        derniere = null;
+                        break;
+                }
+            }
+            await AuthEndpoints.ModifierProfil(db, null, u, new ProfilSaisie(null, u.Role, u.Contact, expertises), string.Join(", ", details));
+            resultats.AddRange(details);
+        }
+
+        Console.WriteLine(resultats.Count == 0 ? $"Compte « {u.Login} » : aucun changement." : $"Compte « {u.Login} » modifié : {string.Join(", ", resultats)}.");
         return 0;
     }
 
@@ -224,9 +526,7 @@ public static class LigneDeCommande
     {
         await using var db = Base(Configuration());
         var u = await Compte(db, login);
-        var mdp = AuthentificationLocale.PoserMotDePasseProvisoire(u, new PasswordHasher<Utilisateur>());
-        JournalAdmin.Ecrire(db, null, "compte.mdp-reinitialise", $"Mot de passe de {JournalAdmin.Compte(u)} réinitialisé");
-        await db.SaveChangesAsync();
+        var mdp = await AdminEndpoints.ReinitialiserMotDePasse(db, null, u, new PasswordHasher<Utilisateur>());
         Console.WriteLine($"Mot de passe provisoire de « {u.Login} » : {mdp}");
         Console.WriteLine("Ses sessions ouvertes sont fermées ; il devra être changé à la prochaine connexion.");
         if (!u.Actif) Console.WriteLine($"Attention : le compte est désactivé (gestion-mep comptes reactiver {u.Login}).");
@@ -237,17 +537,10 @@ public static class LigneDeCommande
     {
         await using var db = Base(Configuration());
         var u = await Compte(db, login);
-        if (u.Actif == actif)
-        {
-            Console.WriteLine($"Le compte « {u.Login} » est déjà {(actif ? "actif" : "désactivé")}.");
-            return 0;
-        }
-        if (!actif) await AdminEndpoints.ExigerAutreAdmin(db, u, AdminEndpoints.MessageDernierAdmin);
-        u.Actif = actif;
-        if (!actif) u.TamponSecurite = Guid.NewGuid();
-        JournalAdmin.Ecrire(db, null, actif ? "compte.reactive" : "compte.desactive", $"Compte {JournalAdmin.Compte(u)} {(actif ? "réactivé" : "désactivé")}");
-        await db.SaveChangesAsync();
-        Console.WriteLine($"Compte « {u.Login} » {(actif ? "réactivé" : "désactivé")}.");
+        var change = actif ? await AdminEndpoints.Reactiver(db, null, u) : await AdminEndpoints.Desactiver(db, null, u);
+        Console.WriteLine(change
+            ? $"Compte « {u.Login} » {(actif ? "réactivé" : "désactivé")}."
+            : $"Le compte « {u.Login} » est déjà {(actif ? "actif" : "désactivé")}.");
         return 0;
     }
 
@@ -272,6 +565,11 @@ public static class LigneDeCommande
         await using var db = Base(config);
         var c = await SsoEndpoints.Charger(db);
         var cles = Cles(config);
+        if (EnJson)
+        {
+            EcrireJson(SsoEndpoints.Dto(c, cles, ConnexionUnique.UrlRetour(config, null)));
+            return 0;
+        }
         var secret = c.SecretChiffre.Length == 0 ? "absent"
             : ConnexionUnique.Secret(c, cles) is null ? "illisible avec les clés actuelles : à saisir de nouveau"
             : "enregistré (chiffré)";
@@ -385,6 +683,11 @@ public static class LigneDeCommande
     {
         await using var db = Base(Configuration());
         var liens = await SsoEndpoints.Identites(db).ToListAsync();
+        if (EnJson)
+        {
+            EcrireJson(liens);
+            return 0;
+        }
         if (liens.Count == 0) { Console.WriteLine("Aucun compte relié."); return 0; }
         var largeur = Math.Max(5, liens.Max(l => l.Login.Length));
         Console.WriteLine($"{"LOGIN".PadRight(largeur)}  {"DERNIÈRE CONNEXION",-18}  IDENTIFIANT CHEZ LE FOURNISSEUR");
@@ -413,6 +716,15 @@ public static class LigneDeCommande
     {
         var config = Configuration();
         await using var db = Base(config);
+        if (EnJson)
+        {
+            EcrireJson(new
+            {
+                Reglages = await Reglages.Lister(db, config),
+                ApprobationsMinimum = await new ServiceMep(db, TimeProvider.System, new DiffuseurMep(config)).ApprobationsMinimum(),
+            });
+            return 0;
+        }
         var largeur = Reglages.Catalogue.Max(d => d.Nom.Length) + 2;
         foreach (var groupe in (await Reglages.Lister(db, config)).GroupBy(r => r.Groupe))
         {

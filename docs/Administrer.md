@@ -1,6 +1,6 @@
 # Administrer
 
-Cette page s'adresse aux **administrateurs** de l'application. Les mêmes opérations sur les comptes existent en ligne de commande pour l'équipe informatique : voir [Exploiter](Exploiter.md#commandes-dadministration).
+Cette page s'adresse aux **administrateurs** de l'application. Tout ce qui se règle dans la console d'administration se règle aussi en ligne de commande (`gestion-mep`), pour l'équipe informatique : la commande équivalente est indiquée pour chaque onglet ci-dessous, le détail est dans [Exploiter](Exploiter.md#commandes-dadministration).
 
 Être administrateur donne accès à la console et aux paramètres globaux, mais ne donne pas les droits du pilote dans une MEP (go / no-go, retour arrière, clôture…). Voir [Droits par rôle](Droits.md).
 
@@ -29,9 +29,13 @@ Règles de sécurité :
 - le dernier administrateur actif ne peut être ni désactivé ni rétrogradé ;
 - un nom affiché ne peut pas reprendre le nom affiché ou l'identifiant d'un autre compte, pour que personne ne signe les journaux à la place d'un autre.
 
+En ligne de commande : `gestion-mep comptes lister | afficher | creer | modifier | expertises | reinitialiser-mdp | desactiver | reactiver`, avec les mêmes règles. `comptes modifier` règle aussi les expertises d'un compte (`--ajouter-expertise BDD --detail "…"`, `--retirer-expertise BDD`).
+
 ### Connexion unique
 
 Connexion Microsoft (SSO) facultative : adresse de retour à déclarer dans Microsoft Entra, ID de l'annuaire, ID d'application, secret client (chiffré, jamais réaffiché, effacé si l'annuaire ou l'application change) et sa date d'expiration, création automatique des comptes, rôle d'application qui donne le rôle administrateur. **Tester** vérifie les réglages auprès de Microsoft sans connecter personne ; **Activer** affiche le bouton sur la page de connexion, sans redémarrage. La liste « Comptes liés » permet de supprimer une liaison. Le pas-à-pas pour l'équipe informatique est dans [Connexion Microsoft](Connexion-Microsoft.md).
+
+En ligne de commande : `gestion-mep sso afficher | configurer | tester | activer | desactiver | comptes | delier`.
 
 ### Paramètres
 
@@ -40,11 +44,15 @@ Connexion Microsoft (SSO) facultative : adresse de retour à déclarer dans Micr
 - Rappel des réglages lus seulement au démarrage (port, adresse d'écoute, base de données, démonstration…), à changer dans le fichier `.env`.
 - Lien vers les critères go / no-go.
 
+En ligne de commande : `gestion-mep reglages lister | definir <nom> <valeur> | retablir <nom>` (dont `reglages definir approbations-minimum 2`), `gestion-mep criteres lister | ajouter | modifier | supprimer` pour les critères go / no-go, et `gestion-mep config afficher` pour les réglages lus au démarrage (secrets masqués).
+
 ### Journal
 
-Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, mots de passe réinitialisés ou changés, paramètres, réglages du serveur et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, contrôles des données après une mise à jour ou une importation. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
+Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, mots de passe réinitialisés ou changés, paramètres, réglages du serveur et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, résolutions types supprimées, désactivées ou importées, MEP exportées en ligne de commande, mises à jour demandées, contrôles des données après une mise à jour ou une importation. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
 
 L'application y signale aussi, avec l'auteur « Application », **20 échecs de connexion en moins d'une heure sur un même compte**, toutes adresses confondues : signe probable qu'on essaie de deviner son mot de passe.
+
+En ligne de commande : `gestion-mep journal [--depuis AAAA-MM-JJ] [--limite n]` (`--json` pour un script).
 
 ### Version
 
@@ -53,6 +61,8 @@ Version en cours, dernière version publiée sur GitHub et date de la dernière 
 Si l'équipe informatique a activé le service de mise à jour, le bouton **« Mettre à jour vers … »** installe la nouvelle version après confirmation : l'application redémarre (les personnes connectées sont déconnectées environ une minute), une sauvegarde est faite avant toute migration, et la version actuelle est remise si la nouvelle ne démarre pas. Le bouton est refusé tant qu'une MEP est en cours. Sans ce service, l'onglet renvoie à la marche à suivre manuelle ([Mettre à jour](Exploiter.md#mettre-à-jour)).
 
 L'onglet rappelle aussi le lien « Signaler un problème ou une idée », proposé à tout le monde dans le menu utilisateur.
+
+En ligne de commande : `gestion-mep version`, `gestion-mep mettre-a-jour` (vérifie la dernière version publiée) et `gestion-mep mettre-a-jour --oui` (même demande que le bouton, mêmes refus).
 
 ## Paramètres partagés
 
@@ -63,6 +73,8 @@ Le menu « Paramètres » est visible de tous, en lecture seule pour les non-adm
 | Systèmes | Catalogue des systèmes de l'entreprise (nom, description, cible). Un système déjà utilisé par une MEP est désactivé au lieu d'être supprimé. | Administrateurs |
 | Résolutions types | Fiches de dépannage réutilisables, avec l'historique de leurs versions. Une fiche déjà utilisée est désactivée au lieu d'être supprimée. | Tout le monde crée et modifie ; les administrateurs suppriment |
 | Go / no-go | Critères à cocher avant chaque Go, et nombre minimum d'approbations. | Administrateurs |
+
+En ligne de commande : `gestion-mep systemes lister | ajouter | modifier | supprimer`, `gestion-mep resolutions lister | afficher | supprimer | exporter | importer` (import contrôlé fiche par fiche, avec un essai à blanc possible) et `gestion-mep criteres …`. Les MEP se listent et s'exportent en JSON, avec leur journal, pour l'archive ou un audit : `gestion-mep meps lister | exporter`.
 
 ## Profils
 

@@ -31,45 +31,79 @@ public static class CatalogueEndpoints
         return n;
     }
 
+    // ---------- Opérations partagées avec « gestion-mep systemes » (acteur null : ligne de commande) ----------
+
+    public static async Task<List<SystemeCatalogueDto>> Lister(MepDbContext db) =>
+        (await db.SystemesCatalogue.AsNoTracking().OrderBy(s => s.Nom).ToListAsync()).Select(Dto).ToList();
+
+    public static async Task<SystemeCatalogueDto> Creer(MepDbContext db, Acteur? acteur, SystemeCatalogueSaisie c)
+    {
+        var s = new SystemeCatalogue
+        {
+            Nom = await NomUnique(db, c.Nom, null), Description = ServiceMep.Texte(c.Description),
+            Cible = ServiceMep.Texte(c.Cible), Actif = c.Actif ?? true,
+        };
+        db.SystemesCatalogue.Add(s);
+        JournalAdmin.Ecrire(db, acteur, "systeme.cree", $"Système « {s.Nom} » ajouté au catalogue{(s.Actif ? "" : " (désactivé)")}");
+        await db.SaveChangesAsync();
+        return Dto(s);
+    }
+
+    public static async Task<SystemeCatalogueDto> Modifier(MepDbContext db, Acteur? acteur, Guid id, SystemeCatalogueSaisie c)
+    {
+        var s = await db.SystemesCatalogue.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Système du catalogue introuvable.");
+        var ancien = s.Nom;
+        s.Nom = await NomUnique(db, c.Nom, id);
+        s.Description = ServiceMep.Texte(c.Description);
+        s.Cible = ServiceMep.Texte(c.Cible);
+        s.Actif = c.Actif ?? s.Actif;
+        JournalAdmin.Ecrire(db, acteur, "systeme.modifie",
+            $"Système « {ancien} » du catalogue modifié{(ancien != s.Nom ? $", renommé « {s.Nom} »" : "")}{(s.Actif ? "" : " (désactivé)")}");
+        await db.SaveChangesAsync();
+        return Dto(s);
+    }
+
+    /// <summary>Supprime le système ; s'il est utilisé par une MEP ou une résolution type, le désactive (renvoie false).</summary>
+    public static async Task<bool> Supprimer(MepDbContext db, Acteur? acteur, Guid id)
+    {
+        var s = await db.SystemesCatalogue.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Système du catalogue introuvable.");
+        // Utilisé par une MEP ou par une résolution type : on le désactive au lieu de le supprimer.
+        var utilise = await db.Systemes.AnyAsync(x => x.CatalogueId == id) || await db.ResolutionsTypes.AnyAsync(r => r.SystemeCatalogueIds.Contains(id));
+        if (utilise)
+        {
+            s.Actif = false;
+            JournalAdmin.Ecrire(db, acteur, "systeme.desactive", $"Système « {s.Nom} » du catalogue désactivé (utilisé, donc conservé)");
+        }
+        else
+        {
+            db.SystemesCatalogue.Remove(s);
+            JournalAdmin.Ecrire(db, acteur, "systeme.supprime", $"Système « {s.Nom} » supprimé du catalogue");
+        }
+        await db.SaveChangesAsync();
+        return !utilise;
+    }
+
     public static void MapCatalogue(this RouteGroupBuilder api)
     {
-        api.MapGet("/catalogue/systemes", async (MepDbContext db) =>
-            (await db.SystemesCatalogue.AsNoTracking().OrderBy(s => s.Nom).ToListAsync()).Select(Dto));
+        api.MapGet("/catalogue/systemes", async (MepDbContext db) => (await Lister(db)).AsEnumerable());
 
         api.MapPost("/catalogue/systemes", async (SystemeCatalogueSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
             ExigerAdmin(user);
-            var s = new SystemeCatalogue
-            {
-                Nom = await NomUnique(db, c.Nom, null), Description = ServiceMep.Texte(c.Description),
-                Cible = ServiceMep.Texte(c.Cible), Actif = c.Actif ?? true,
-            };
-            db.SystemesCatalogue.Add(s);
-            await db.SaveChangesAsync();
-            return Results.Created($"/api/catalogue/systemes/{s.Id}", Dto(s));
+            var s = await Creer(db, Acteur.Depuis(user), c);
+            return Results.Created($"/api/catalogue/systemes/{s.Id}", s);
         });
 
         api.MapPut("/catalogue/systemes/{id:guid}", async (Guid id, SystemeCatalogueSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
             ExigerAdmin(user);
-            var s = await db.SystemesCatalogue.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Système du catalogue introuvable.");
-            s.Nom = await NomUnique(db, c.Nom, id);
-            s.Description = ServiceMep.Texte(c.Description);
-            s.Cible = ServiceMep.Texte(c.Cible);
-            s.Actif = c.Actif ?? s.Actif;
-            await db.SaveChangesAsync();
-            return Results.Ok(Dto(s));
+            return Results.Ok(await Modifier(db, Acteur.Depuis(user), id, c));
         });
 
         api.MapDelete("/catalogue/systemes/{id:guid}", async (Guid id, ClaimsPrincipal user, MepDbContext db) =>
         {
             ExigerAdmin(user);
-            var s = await db.SystemesCatalogue.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Système du catalogue introuvable.");
-            // Utilisé par une MEP ou par une résolution type : on le désactive au lieu de le supprimer.
-            var utilise = await db.Systemes.AnyAsync(x => x.CatalogueId == id) || await db.ResolutionsTypes.AnyAsync(r => r.SystemeCatalogueIds.Contains(id));
-            if (utilise) s.Actif = false;
-            else db.SystemesCatalogue.Remove(s);
-            await db.SaveChangesAsync();
+            await Supprimer(db, Acteur.Depuis(user), id);
             return Results.NoContent();
         });
 

@@ -36,6 +36,43 @@ public static class ParametresEndpoints
         return p.ApprobationsMinimum;
     }
 
+    // ---------- Critères go / no-go : opérations partagées avec « gestion-mep criteres » (acteur null : ligne de commande) ----------
+
+    /// <summary>Critères dans l'ordre d'affichage (ordre, puis libellé) : la position dans cette liste est le « n° » de la ligne de commande.</summary>
+    public static async Task<List<CritereGoNoGoDto>> ListerCriteres(MepDbContext db) =>
+        (await db.CriteresGoNoGo.AsNoTracking().OrderBy(c => c.Ordre).ThenBy(c => c.Libelle).ToListAsync()).Select(Dto).ToList();
+
+    public static async Task<CritereGoNoGoDto> CreerCritere(MepDbContext db, Acteur? acteur, CritereGoNoGoSaisie c)
+    {
+        var ordre = c.Ordre ?? (await db.CriteresGoNoGo.MaxAsync(x => (int?)x.Ordre) ?? 0) + 1;
+        var critere = new CritereGoNoGo { Libelle = Libelle(c.Libelle), Ordre = ordre, Actif = c.Actif ?? true };
+        db.CriteresGoNoGo.Add(critere);
+        JournalAdmin.Ecrire(db, acteur, "critere.cree", $"Critère go / no-go « {critere.Libelle} » créé");
+        await db.SaveChangesAsync();
+        return Dto(critere);
+    }
+
+    public static async Task<CritereGoNoGoDto> ModifierCritere(MepDbContext db, Acteur? acteur, Guid id, CritereGoNoGoSaisie c)
+    {
+        var critere = await db.CriteresGoNoGo.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Critère introuvable.");
+        critere.Libelle = Libelle(c.Libelle);
+        critere.Ordre = c.Ordre ?? critere.Ordre;
+        critere.Actif = c.Actif ?? critere.Actif;
+        JournalAdmin.Ecrire(db, acteur, "critere.modifie", $"Critère go / no-go « {critere.Libelle} » modifié{(critere.Actif ? "" : " (inactif)")}");
+        await db.SaveChangesAsync();
+        return Dto(critere);
+    }
+
+    /// <summary>Les MEP gardent une copie figée des critères cochés : la suppression est toujours possible.</summary>
+    public static async Task<CritereGoNoGoDto> SupprimerCritere(MepDbContext db, Acteur? acteur, Guid id)
+    {
+        var critere = await db.CriteresGoNoGo.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Critère introuvable.");
+        db.CriteresGoNoGo.Remove(critere);
+        JournalAdmin.Ecrire(db, acteur, "critere.supprime", $"Critère go / no-go « {critere.Libelle} » supprimé");
+        await db.SaveChangesAsync();
+        return Dto(critere);
+    }
+
     public static void MapParametres(this RouteGroupBuilder api)
     {
         // ---------- Paramètres globaux ----------
@@ -48,40 +85,25 @@ public static class ParametresEndpoints
         });
 
         // ---------- Critères go / no-go ----------
-        api.MapGet("/criteres-go-no-go", async (MepDbContext db) =>
-            (await db.CriteresGoNoGo.AsNoTracking().OrderBy(c => c.Ordre).ThenBy(c => c.Libelle).ToListAsync()).Select(Dto));
+        api.MapGet("/criteres-go-no-go", async (MepDbContext db) => (await ListerCriteres(db)).AsEnumerable());
 
         api.MapPost("/criteres-go-no-go", async (CritereGoNoGoSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
             ExigerAdmin(user);
-            var ordre = c.Ordre ?? (await db.CriteresGoNoGo.MaxAsync(x => (int?)x.Ordre) ?? 0) + 1;
-            var critere = new CritereGoNoGo { Libelle = Libelle(c.Libelle), Ordre = ordre, Actif = c.Actif ?? true };
-            db.CriteresGoNoGo.Add(critere);
-            JournalAdmin.Ecrire(db, Acteur.Depuis(user), "critere.cree", $"Critère go / no-go « {critere.Libelle} » créé");
-            await db.SaveChangesAsync();
-            return Results.Created($"/api/criteres-go-no-go/{critere.Id}", Dto(critere));
+            var critere = await CreerCritere(db, Acteur.Depuis(user), c);
+            return Results.Created($"/api/criteres-go-no-go/{critere.Id}", critere);
         });
 
         api.MapPut("/criteres-go-no-go/{id:guid}", async (Guid id, CritereGoNoGoSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
             ExigerAdmin(user);
-            var critere = await db.CriteresGoNoGo.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Critère introuvable.");
-            critere.Libelle = Libelle(c.Libelle);
-            critere.Ordre = c.Ordre ?? critere.Ordre;
-            critere.Actif = c.Actif ?? critere.Actif;
-            JournalAdmin.Ecrire(db, Acteur.Depuis(user), "critere.modifie", $"Critère go / no-go « {critere.Libelle} » modifié{(critere.Actif ? "" : " (inactif)")}");
-            await db.SaveChangesAsync();
-            return Results.Ok(Dto(critere));
+            return Results.Ok(await ModifierCritere(db, Acteur.Depuis(user), id, c));
         });
 
-        // Les MEP gardent une copie figée des critères cochés : la suppression est toujours possible.
         api.MapDelete("/criteres-go-no-go/{id:guid}", async (Guid id, ClaimsPrincipal user, MepDbContext db) =>
         {
             ExigerAdmin(user);
-            var critere = await db.CriteresGoNoGo.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Critère introuvable.");
-            db.CriteresGoNoGo.Remove(critere);
-            JournalAdmin.Ecrire(db, Acteur.Depuis(user), "critere.supprime", $"Critère go / no-go « {critere.Libelle} » supprimé");
-            await db.SaveChangesAsync();
+            await SupprimerCritere(db, Acteur.Depuis(user), id);
             return Results.NoContent();
         });
     }

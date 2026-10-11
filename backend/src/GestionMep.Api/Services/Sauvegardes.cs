@@ -59,6 +59,53 @@ public sealed partial class Sauvegardes(string dossier, string dossierPieces, Ac
 
     public static string Horodatage() => DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
 
+    // ---- Inventaire ----
+
+    /// <summary>Archive du dossier des sauvegardes ; <c>Manifeste</c> null si l'archive est illisible.</summary>
+    public record Archive(string Nom, string Chemin, long Taille, DateTimeOffset ModifieeLe, Manifeste? Manifeste);
+
+    /// <summary>Archives (.tar.gz) du dossier des sauvegardes, les plus récentes d'abord (les fichiers « .partiel » sont ignorés).</summary>
+    public async Task<List<Archive>> Lister()
+    {
+        if (!Directory.Exists(Dossier)) return [];
+        var archives = new List<Archive>();
+        foreach (var f in new DirectoryInfo(Dossier).EnumerateFiles("*.tar.gz").OrderByDescending(f => f.LastWriteTimeUtc))
+            archives.Add(new Archive(f.Name, f.FullName, f.Length, new DateTimeOffset(f.LastWriteTimeUtc, TimeSpan.Zero), await LireManifeste(f.FullName)));
+        return archives;
+    }
+
+    /// <summary>
+    /// Manifeste d'une archive, lu sans l'extraire (première entrée de l'archive) ; null si l'archive est illisible.
+    /// Seule l'importation vérifie entièrement l'archive.
+    /// </summary>
+    public static async Task<Manifeste?> LireManifeste(string archive)
+    {
+        try
+        {
+            await using var flux = File.OpenRead(archive);
+            await using var gzip = new GZipStream(flux, CompressionMode.Decompress);
+            await using var tar = new TarReader(gzip);
+            if (await tar.GetNextEntryAsync() is not { Name: "manifest.json", DataStream: { } donnees } entree || entree.Length > ManifesteMaxOctets)
+                return null;
+            return await JsonSerializer.DeserializeAsync<Manifeste>(donnees);
+        }
+        catch (Exception e) when (e is IOException or InvalidDataException or JsonException or UnauthorizedAccessException or FormatException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Nombre de sessions ouvertes sur la base par d'autres processus (l'application en marche, notamment) : une importation
+    /// doit se faire application arrêtée.
+    /// </summary>
+    public static async Task<int> AutresConnexions(MepDbContext db)
+    {
+        var conn = await Connexion(db);
+        await using var cmd = new NpgsqlCommand("select count(*) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid()", conn);
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(), System.Globalization.CultureInfo.InvariantCulture);
+    }
+
     // ---- Mise à jour ----
 
     /// <summary>

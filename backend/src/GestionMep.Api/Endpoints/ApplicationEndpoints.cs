@@ -16,10 +16,35 @@ public static class ApplicationEndpoints
     /// <summary>Phases pendant lesquelles une MEP est en cours : une mise à jour couperait les personnes qui la déroulent.</summary>
     private static readonly Phase[] PhasesEnCours = [Phase.Execution, Phase.Recette, Phase.RetourArriere];
 
-    private static MiseAJourDto Dto(EtatMiseAJour e, EtatInstallateur i) => new(e.Active, e.Depot, VersionApplication.Courante,
+    public static MiseAJourDto Dto(EtatMiseAJour e, EtatInstallateur i) => new(e.Active, e.Depot, VersionApplication.Courante,
         e.DerniereVersion, e.PublieeLe, e.NotesUrl, e.VerifieeLe, e.Erreur,
         VersionApplication.EstPlusRecente(e.DerniereVersion, VersionApplication.Courante),
         new InstallateurDto(i.Present, i.Statut, i.Version, i.Message, i.Le));
+
+    /// <summary>
+    /// Demande au service « mise-a-jour » d'installer <paramref name="version"/> (console et <c>gestion-mep mettre-a-jour</c> ;
+    /// acteur null : ligne de commande). Refusée (422) si le service est absent ou occupé, si la version n'est pas la dernière
+    /// publiée plus récente que la version en cours, ou pendant une MEP en cours.
+    /// </summary>
+    public static async Task<MiseAJourDto> DemanderInstallation(MepDbContext db, Acteur? acteur, string? version, EtatMiseAJour etat,
+        InstallationMiseAJour installation)
+    {
+        var installateur = installation.Lire();
+        if (!installateur.Present)
+            throw ErreurHttp.Regle(["Le service de mise à jour n'est pas actif : l'équipe informatique doit l'activer (documentation Exploiter)."]);
+        if (installateur.Statut == "en-cours")
+            throw ErreurHttp.Regle(["Une mise à jour est déjà en cours."]);
+        if (version is null || version != etat.DerniereVersion || !VersionApplication.EstPlusRecente(version, VersionApplication.Courante))
+            throw ErreurHttp.Regle(["Seule la dernière version publiée, plus récente que la version en cours, peut être installée."]);
+        var enCours = await db.Meps.CountAsync(m => !m.EstModele && PhasesEnCours.Contains(m.Phase));
+        if (enCours > 0)
+            throw ErreurHttp.Regle([$"{enCours} MEP en cours (exécution, recette ou retour arrière) : mettre à jour une fois terminée(s)."]);
+
+        installation.Demander(version, acteur?.Nom ?? JournalAdmin.AuteurLigneDeCommande);
+        JournalAdmin.Ecrire(db, acteur, "mise-a-jour.demandee", $"Mise à jour demandée : {VersionApplication.Courante} → {version}");
+        await db.SaveChangesAsync();
+        return Dto(etat, installation.Lire() with { Statut = "demandee", Version = version, Message = "Demande transmise au service de mise à jour." });
+    }
 
     public static void MapApplication(this RouteGroupBuilder api)
     {
@@ -39,26 +64,8 @@ public static class ApplicationEndpoints
             Dto(await verification.Verifier(ct), installation.Lire()));
 
         // Installe la dernière version publiée par le service « mise-a-jour ». Refusé pendant une MEP en cours.
-        admin.MapPost("/installer", async (InstallationSaisie s, ClaimsPrincipal user, MepDbContext db,
+        admin.MapPost("/installer", (InstallationSaisie s, ClaimsPrincipal user, MepDbContext db,
             VerificationMisesAJour verification, InstallationMiseAJour installation) =>
-        {
-            var etat = verification.Etat;
-            var installateur = installation.Lire();
-            if (!installateur.Present)
-                throw ErreurHttp.Regle(["Le service de mise à jour n'est pas actif : l'équipe informatique doit l'activer (documentation Exploiter)."]);
-            if (installateur.Statut == "en-cours")
-                throw ErreurHttp.Regle(["Une mise à jour est déjà en cours."]);
-            if (s.Version is null || s.Version != etat.DerniereVersion || !VersionApplication.EstPlusRecente(s.Version, VersionApplication.Courante))
-                throw ErreurHttp.Regle(["Seule la dernière version publiée, plus récente que la version en cours, peut être installée."]);
-            var enCours = await db.Meps.CountAsync(m => !m.EstModele && PhasesEnCours.Contains(m.Phase));
-            if (enCours > 0)
-                throw ErreurHttp.Regle([$"{enCours} MEP en cours (exécution, recette ou retour arrière) : mettre à jour une fois terminée(s)."]);
-
-            var acteur = Acteur.Depuis(user);
-            installation.Demander(s.Version, acteur.Nom);
-            JournalAdmin.Ecrire(db, acteur, "mise-a-jour.demandee", $"Mise à jour demandée : {VersionApplication.Courante} → {s.Version}");
-            await db.SaveChangesAsync();
-            return Dto(etat, installation.Lire() with { Statut = "demandee", Version = s.Version, Message = "Demande transmise au service de mise à jour." });
-        });
+            DemanderInstallation(db, Acteur.Depuis(user), s.Version, verification.Etat, installation));
     }
 }
