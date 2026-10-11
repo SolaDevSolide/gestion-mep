@@ -16,9 +16,10 @@ namespace GestionMep.Api.Services;
 public sealed class QuotasPiecesJointes(IConfiguration config, StockagePiecesJointes stockage) : IDisposable
 {
     private const long Mo = 1024L * 1024L;
-    public long QuotaMep { get; } = Math.Max(0, config.GetValue("Stockage:QuotaMepMo", 1024L)) * Mo;
-    public long QuotaCompteJour { get; } = Math.Max(0, config.GetValue("Stockage:QuotaCompteJourMo", 1024L)) * Mo;
-    public long EspaceLibreMin { get; } = Math.Max(0, config.GetValue("Stockage:EspaceLibreMinMo", 2048L)) * Mo;
+    // Réglages modifiables sans redémarrage : relus à chaque dépôt.
+    public long QuotaMep => Math.Max(0, config.GetValue("Stockage:QuotaMepMo", 1024L)) * Mo;
+    public long QuotaCompteJour => Math.Max(0, config.GetValue("Stockage:QuotaCompteJourMo", 1024L)) * Mo;
+    public long EspaceLibreMin => Math.Max(0, config.GetValue("Stockage:EspaceLibreMinMo", 2048L)) * Mo;
 
     private sealed record Reservation(Guid? MepId, Guid CompteId, long Taille);
 
@@ -34,22 +35,23 @@ public sealed class QuotasPiecesJointes(IConfiguration config, StockagePiecesJoi
         await _verrou.WaitAsync(ct);
         try
         {
-            if (EspaceLibreMin > 0 && EspaceLibre() is { } libre && libre - _reservations.Sum(r => r.Taille) - taille < EspaceLibreMin)
+            long quotaMep = QuotaMep, quotaCompteJour = QuotaCompteJour, espaceLibreMin = EspaceLibreMin;
+            if (espaceLibreMin > 0 && EspaceLibre() is { } libre && libre - _reservations.Sum(r => r.Taille) - taille < espaceLibreMin)
                 throw new ErreurHttp(507, "Espace disque presque plein sur le serveur : dépôt refusé. Prévenez l'administrateur.");
-            if (QuotaMep > 0 && mepId is { } mep)
+            if (quotaMep > 0 && mepId is { } mep)
             {
                 var occupe = await db.PiecesJointes.Where(p => p.MepId == mep).SumAsync(p => p.Taille, ct)
                     + _reservations.Where(r => r.MepId == mep).Sum(r => r.Taille);
-                if (occupe + taille > QuotaMep)
-                    throw ErreurHttp.Regle([$"Cette MEP a atteint sa limite de pièces jointes ({QuotaMep / Mo} Mo) : supprimez des pièces inutiles ou demandez à l'administrateur de relever la limite."]);
+                if (occupe + taille > quotaMep)
+                    throw ErreurHttp.Regle([$"Cette MEP a atteint sa limite de pièces jointes ({quotaMep / Mo} Mo) : supprimez des pièces inutiles ou demandez à l'administrateur de relever la limite."]);
             }
-            if (QuotaCompteJour > 0)
+            if (quotaCompteJour > 0)
             {
                 var depuis = maintenant.AddDays(-1);
                 var depose = await db.PiecesJointes.Where(p => p.DeposeParId == compteId && p.DeposeLe > depuis).SumAsync(p => p.Taille, ct)
                     + _reservations.Where(r => r.CompteId == compteId).Sum(r => r.Taille);
-                if (depose + taille > QuotaCompteJour)
-                    throw new ErreurHttp(429, $"Vous avez déposé {QuotaCompteJour / Mo} Mo de pièces jointes en 24 heures, la limite : réessayez plus tard.");
+                if (depose + taille > quotaCompteJour)
+                    throw new ErreurHttp(429, $"Vous avez déposé {quotaCompteJour / Mo} Mo de pièces jointes en 24 heures, la limite : réessayez plus tard.");
             }
             var reservation = new Reservation(mepId, compteId, taille);
             _reservations.Add(reservation);

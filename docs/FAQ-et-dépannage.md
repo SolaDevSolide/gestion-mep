@@ -38,10 +38,10 @@ Demander à un administrateur de le réinitialiser : il vous transmet un mot de 
 Après 5 échecs consécutifs depuis votre poste, le compte y est bloqué quelques minutes, et le nombre de tentatives par minute est limité par adresse IP. Attendre puis réessayer. Les échecs d'une autre personne, depuis un autre poste, ne vous bloquent pas.
 
 **Le dépôt d'une pièce jointe est refusé (« limite de pièces jointes », « 24 heures », « espace disque »).**
-Des plafonds protègent le serveur : total par MEP, dépôts d'un compte sur 24 heures, espace disque minimal. Supprimer des pièces inutiles, réessayer plus tard, ou demander à l'équipe informatique de relever le plafond (voir [Installer](Installer.md#configuration)).
+Des plafonds protègent le serveur : total par MEP, dépôts d'un compte sur 24 heures, espace disque minimal. Supprimer des pièces inutiles, réessayer plus tard, ou demander à un administrateur de relever le plafond (console, onglet Paramètres ; voir aussi [Installer](Installer.md#configuration)).
 
 **La connexion semble réussir mais je reste sur la page de connexion.**
-L'application doit être servie en HTTPS (sauf sur `http://localhost`) : le cookie de session n'est pas envoyé en HTTP. Voir [Installer](Installer.md#proxy-inverse-https).
+L'application doit être servie en HTTPS (sauf sur `http://localhost`) : le cookie de session n'est pas envoyé en HTTP. Voir [Installer](Installer.md#proxy-inverse-https). Pour un simple essai depuis un autre poste, sans proxy : voir [Essayer depuis un autre poste](Installer.md#essayer-depuis-un-autre-poste-sans-https).
 
 **« Un compte local porte déjà cet identifiant » en me connectant avec Microsoft.**
 Vous avez déjà un compte avec mot de passe. Connectez-vous avec, puis « Mon profil › Connexion unique › Lier mon compte ». Ensuite, le bouton Microsoft ouvre ce compte.
@@ -61,7 +61,7 @@ L'équipe informatique le débloque en ligne de commande : voir [Exploiter](Expl
 Le proxy met en tampon le flux `/api/meps/*/flux` ou le coupe trop tôt. Désactiver la mise en tampon et allonger le délai de lecture : voir [Installer](Installer.md#proxy-inverse-https).
 
 **L'envoi d'une pièce jointe échoue (fichier trop volumineux).**
-La taille maximale est réglée par `PIECES_TAILLE_MAX_MO` (20 Mo par défaut). Le proxy doit accepter des requêtes un peu plus grandes.
+La taille maximale (20 Mo par défaut) se règle dans la console (onglet Paramètres), par `gestion-mep reglages definir pieces-taille-max-mo <Mo>` ou par `PIECES_TAILLE_MAX_MO` dans `.env`. Le proxy doit accepter des requêtes un peu plus grandes.
 
 **Tout le monde est déconnecté après chaque redéploiement.**
 Le dossier des clés de session n'est pas conservé : vérifier le volume `cles` (ou `Cles__Dossier`).

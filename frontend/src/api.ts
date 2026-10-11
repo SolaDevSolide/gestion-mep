@@ -7,6 +7,7 @@ import type {
   InfosApplication,
   MiseAJour,
   ParametresGlobaux,
+  Reglage,
   PieceJointe,
   FicheRecetteSaisie,
   ProfilSaisie,
@@ -255,6 +256,10 @@ export const api = {
 
   parametres: () => get<ParametresGlobaux>('/parametres'),
   modifierParametres: (s: ParametresGlobaux) => put<ParametresGlobaux>('/parametres', s),
+  reglages: () => get<Reglage[]>('/admin/reglages'),
+  definirReglage: (nom: string, valeur: string) =>
+    put<Reglage>(`/admin/reglages/${encodeURIComponent(nom)}`, { valeur }),
+  retablirReglage: (nom: string) => del<Reglage>(`/admin/reglages/${encodeURIComponent(nom)}`),
   criteresGoNoGo: () => get<CritereGoNoGo[]>('/criteres-go-no-go'),
   creerCritere: (s: CritereGoNoGoSaisie) => post<CritereGoNoGo>('/criteres-go-no-go', s),
   modifierCritere: (id: string, s: CritereGoNoGoSaisie) => put<CritereGoNoGo>(`/criteres-go-no-go/${id}`, s),

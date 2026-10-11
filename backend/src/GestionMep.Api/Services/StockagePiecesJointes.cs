@@ -12,10 +12,16 @@ public class StockagePiecesJointes(IConfiguration config)
 
     public string Dossier { get; } = string.IsNullOrWhiteSpace(config["Stockage:Dossier"]) ? DossierParDefaut : config["Stockage:Dossier"]!;
 
-    /// <summary>Taille maximale d'un fichier, en Mo (<c>Stockage:TailleMaxMo</c>, défaut 20).</summary>
-    public int TailleMaxMo { get; } = config.GetValue("Stockage:TailleMaxMo", 20);
+    /// <summary>Taille maximale d'un fichier, en Mo (réglage <c>Stockage:TailleMaxMo</c>, défaut 20, relu à chaque dépôt).</summary>
+    public int TailleMaxMo => Math.Clamp(config.GetValue("Stockage:TailleMaxMo", 20), 1, Reglages.PlafondPieceMo);
 
     public long TailleMaxOctets => TailleMaxMo * 1024L * 1024L;
+
+    /// <summary>Corps de requête d'un dépôt : le fichier plus 1 Mo pour l'enveloppe du formulaire.</summary>
+    public long LimiteDepot => TailleMaxOctets + 1024 * 1024;
+
+    /// <summary>Limite de corps la plus haute possible (plafond du réglage) ; la limite en cours est appliquée à chaque dépôt.</summary>
+    public const long LimiteDepotMaximale = (Reglages.PlafondPieceMo + 1L) * 1024 * 1024;
 
     private string Chemin(Guid id) => Path.Combine(Dossier, id.ToString("N"));
 

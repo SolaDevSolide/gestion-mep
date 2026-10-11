@@ -1,6 +1,7 @@
 using System.Net;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Options;
 
 namespace GestionMep.Api.Securite;
 
@@ -16,27 +17,58 @@ public static class ProtectionsHttp
     public static IServiceCollection AjouterProtectionsHttp(this IServiceCollection services, IConfiguration config)
     {
         // Reverse proxy HTTPS (IIS, nginx, Traefik…) : adresse du client et schéma d'origine, acceptés seulement des
-        // réseaux listés dans ProxyInverse:Reseaux (sinon, n'importe qui pourrait choisir son adresse IP).
-        services.Configure<ForwardedHeadersOptions>(o =>
+        // réseaux listés dans ProxyInverse:Reseaux (sinon, n'importe qui pourrait choisir son adresse IP). Réglage
+        // modifiable sans redémarrage : les options sont reconstruites quand la configuration change.
+        services.AddOptions<ForwardedHeadersOptions>().Configure(o =>
         {
             o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
             foreach (var reseau in (config["ProxyInverse:Reseaux"] ?? "").Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries))
-                o.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(reseau));
+            {
+                if (System.Net.IPNetwork.TryParse(reseau, out var r)) o.KnownIPNetworks.Add(r);
+                else if (System.Net.IPAddress.TryParse(reseau, out var ip)) o.KnownProxies.Add(ip);
+            }
         });
+        services.AddSingleton<IOptionsChangeTokenSource<ForwardedHeadersOptions>>(new ConfigurationChangeTokenSource<ForwardedHeadersOptions>(config));
 
         services.AddSingleton<LimiteurConnexion>();
-        var parMinute = config.GetValue("Connexion:TentativesParMinute", 20);
         services.AddRateLimiter(o =>
         {
             o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             o.OnRejected = (ctx, annulation) => new ValueTask(ctx.HttpContext.Response.WriteAsJsonAsync(
                 new { message = "Trop de tentatives de connexion. Réessayez dans une minute." }, annulation));
-            o.AddPolicy(PolitiqueConnexion, ctx => RateLimitPartition.GetFixedWindowLimiter(
-                ctx.Connection.RemoteIpAddress?.ToString() ?? "inconnue",
-                _ => new FixedWindowRateLimiterOptions { PermitLimit = parMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+            // Limite relue à chaque requête (réglage modifiable) ; elle fait partie de la clé, donc un changement s'applique tout de suite.
+            o.AddPolicy(PolitiqueConnexion, ctx =>
+            {
+                var parMinute = Math.Max(1, config.GetValue("Connexion:TentativesParMinute", 20));
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    $"{ctx.Connection.RemoteIpAddress?.ToString() ?? "inconnue"}|{parMinute}",
+                    _ => new FixedWindowRateLimiterOptions { PermitLimit = parMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 });
+            });
         });
         return services;
     }
+
+    /// <summary>
+    /// En-têtes X-Forwarded-For / X-Forwarded-Proto du reverse proxy, avec les réseaux autorisés en cours (le middleware
+    /// standard est reconstruit quand le réglage ProxyInverse:Reseaux change).
+    /// </summary>
+    public static IApplicationBuilder UtiliserEnTetesProxy(this IApplicationBuilder app)
+    {
+        var options = app.ApplicationServices.GetRequiredService<IOptionsMonitor<ForwardedHeadersOptions>>();
+        var journaux = app.ApplicationServices.GetRequiredService<ILoggerFactory>();
+        TraitementProxy? actuel = null;
+        return app.Use((ctx, suivant) =>
+        {
+            var o = options.CurrentValue;
+            var t = actuel;
+            if (t is null || !ReferenceEquals(t.Options, o))
+                actuel = t = new TraitementProxy(o, new ForwardedHeadersMiddleware(_ => Task.CompletedTask, journaux, Options.Create(o)));
+            t.Middleware.ApplyForwarders(ctx);
+            return suivant(ctx);
+        });
+    }
+
+    private sealed record TraitementProxy(ForwardedHeadersOptions Options, ForwardedHeadersMiddleware Middleware);
 
     /// <summary>
     /// Refuse (403) toute requête /api qui modifie sans l'en-tête <see cref="EnTeteCsrf"/>. Un formulaire ou une image

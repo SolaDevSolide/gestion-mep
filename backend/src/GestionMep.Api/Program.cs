@@ -27,6 +27,12 @@ if (LigneDeCommande.EstCommande(args))
 }
 
 var builder = WebApplication.CreateBuilder(args);
+// Réglages modifiés depuis la console ou « gestion-mep reglages » : en base, ils priment sur les variables d'environnement
+// et sont relus toutes les 10 secondes (aucun redémarrage).
+var sourceReglages = new SourceReglagesBase(builder.Configuration.GetConnectionString("Mep"));
+((IConfigurationBuilder)builder.Configuration).Add(sourceReglages);
+builder.Services.AddSingleton(sourceReglages.Fournisseur);
+builder.Services.AddHostedService<RafraichissementReglages>();
 
 builder.Services.AddDbContext<MepDbContext>((sp, options) =>
     options.UseNpgsql(sp.GetRequiredService<IConfiguration>().GetConnectionString("Mep")
@@ -44,11 +50,11 @@ builder.Services.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = true)
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<DiffuseurMep>();
 builder.Services.AddScoped<ServiceMep>();
-// Pièces jointes : dossier Stockage:Dossier, taille maximale Stockage:TailleMaxMo (le formulaire accepte 1 Mo de marge).
-var stockage = new StockagePiecesJointes(builder.Configuration);
-builder.Services.AddSingleton(stockage);
+// Pièces jointes : dossier Stockage:Dossier, taille maximale Stockage:TailleMaxMo (réglage modifiable : le formulaire est
+// accepté jusqu'au plafond du réglage, la limite en cours est appliquée à chaque dépôt).
+builder.Services.AddSingleton<StockagePiecesJointes>();
 builder.Services.AddSingleton<QuotasPiecesJointes>();
-builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = stockage.TailleMaxOctets + 1024 * 1024);
+builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = StockagePiecesJointes.LimiteDepotMaximale);
 // Corps limité à 1 Mo, sauf sur les routes de dépôt de fichiers (voir PiecesJointesEndpoints.AccepterFichier).
 builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = LimitesRequetes.CorpsParDefaut);
 // Surveillance des échéances de retour arrière (désactivable : Surveillance:Activer=false, utile en test).
@@ -73,7 +79,7 @@ builder.Services.AjouterOpenApi();
 var app = builder.Build();
 
 // En premier : adresse et schéma du client derrière le reverse proxy (limite par IP, journaux).
-app.UseForwardedHeaders();
+app.UtiliserEnTetesProxy();
 if (!app.Environment.IsDevelopment()) app.UseHsts();
 app.UtiliserEnTetesSecurite(app.Environment.WebRootPath is { } racine ? Path.Combine(racine, "index.html") : null);
 app.UtiliserGestionErreurs();
@@ -114,6 +120,7 @@ api.MapResolutions();
 api.MapDeroule();
 api.MapParametres();
 api.MapAdmin();
+api.MapReglages();
 api.MapPiecesJointes();
 // Une route /api inconnue ne doit jamais retomber sur index.html.
 api.Map("{**reste}", () => Results.Json(new { message = "Route introuvable." }, statusCode: 404));

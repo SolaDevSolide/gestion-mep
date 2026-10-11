@@ -3043,6 +3043,94 @@
           }
         }
       }
+    },
+    "/api/admin/reglages": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReglageDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/reglages/{nom}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "nom",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReglageSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReglageDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "nom",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReglageDto"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6709,6 +6797,110 @@
         },
         "description": "`NomAffiche` absent ou null : inchangé."
       },
+      "ReglageDto": {
+        "required": [
+          "nom",
+          "variable",
+          "groupe",
+          "libelle",
+          "aide",
+          "type",
+          "min",
+          "max",
+          "valeur",
+          "origine",
+          "valeurFichier",
+          "defaut",
+          "modifieLe",
+          "modifiePar",
+          "alertes"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string"
+          },
+          "variable": {
+            "type": "string"
+          },
+          "groupe": {
+            "type": "string"
+          },
+          "libelle": {
+            "type": "string"
+          },
+          "aide": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TypeReglage"
+          },
+          "min": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "max": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "valeur": {
+            "type": "string"
+          },
+          "origine": {
+            "type": "string",
+            "description": "« console » (modifié dans l'application), « fichier » (fichier .env) ou « defaut »."
+          },
+          "valeurFichier": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "defaut": {
+            "type": "string"
+          },
+          "modifieLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "modifiePar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "alertes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Réglage tel que l'affichent la console et la ligne de commande."
+      },
+      "ReglageSaisie": {
+        "required": [
+          "valeur"
+        ],
+        "type": "object",
+        "properties": {
+          "valeur": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ResolutionTypeDto": {
         "required": [
           "id",
@@ -7753,6 +7945,15 @@
           "Deploiement",
           "RetourArriere",
           null
+        ]
+      },
+      "TypeReglage": {
+        "enum": [
+          "Texte",
+          "Adresse",
+          "Entier",
+          "Booleen",
+          "Reseaux"
         ]
       },
       "UtilisateurDto": {

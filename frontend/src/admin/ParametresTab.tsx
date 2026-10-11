@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Input } from '../ui/Input';
 import { useToast } from '../ui/Toast';
+import ReglagesServeur from './ReglagesServeur';
 
 export default function ParametresTab() {
   const toast = useToast();
@@ -72,6 +73,7 @@ export default function ParametresTab() {
           </Button>
         </div>
       </Card>
+      <ReglagesServeur />
       <Card>
         <CardHeader titre="Critères Go / no-go" description="Vérifications cochées par le pilote avant le Go." />
         <div className="px-5 py-5">

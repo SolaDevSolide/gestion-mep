@@ -4,6 +4,7 @@ using GestionMep.Api.Donnees;
 using GestionMep.Api.Securite;
 using GestionMep.Api.Services;
 using GestionMep.Domain;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,6 +33,10 @@ public static class PiecesJointesEndpoints
         QuotasPiecesJointes quotas, MepDbContext db, Guid? mepId, Acteur acteur, DateTimeOffset maintenant)
     {
         if (!req.HasFormContentType) throw ErreurHttp.Saisie($"Envoyer le fichier en multipart/form-data (champ « {ChampFichier} »).");
+        // Taille maximale en cours (réglage modifiable sans redémarrage), appliquée avant de lire le corps.
+        if (req.ContentLength > stockage.LimiteDepot) throw new ErreurHttp(413, stockage.MessageTropVolumineux);
+        if (req.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limite)
+            limite.MaxRequestBodySize = stockage.LimiteDepot;
         IFormCollection form;
         try
         {
@@ -94,7 +99,7 @@ public static class PiecesJointesEndpoints
 
     public static void MapPiecesJointes(this RouteGroupBuilder api)
     {
-        var limiteDepot = ((IEndpointRouteBuilder)api).ServiceProvider.GetRequiredService<StockagePiecesJointes>().TailleMaxOctets + 1024 * 1024;
+        const long limiteDepot = StockagePiecesJointes.LimiteDepotMaximale;
         // ---------- MEP, étape, exécution de résolution ----------
         api.MapGet("/meps/{id:guid}/pieces-jointes", async (Guid id, MepDbContext db) =>
         {
