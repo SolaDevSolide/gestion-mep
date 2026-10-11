@@ -20,21 +20,19 @@ public static class StructureEndpoints
     public static void MapStructure(this RouteGroupBuilder api)
     {
         // ---------- Participants ----------
-        api.MapPost("/meps/{id:guid}/participants", async (Guid id, ParticipantSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPost("/meps/{id:guid}/participants", async (Guid id, ParticipantSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var nom = Requis(c.Nom, "Le nom");
             await svc.ExigerUtilisateurExistant(c.UtilisateurId);
             mep.Participants.Add(new Participant { MepId = mep.Id, Nom = nom, Role = ServiceMep.Texte(c.Role), Contact = ServiceMep.Texte(c.Contact), UtilisateurId = c.UtilisateurId });
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "participant.ajoute", $"Participant ajouté : {nom}"));
-        });
+            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "participant.ajoute", $"Participant ajouté : {nom}");
+        })));
 
-        api.MapPut("/meps/{id:guid}/participants/{pid:guid}", async (Guid id, Guid pid, ParticipantSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPut("/meps/{id:guid}/participants/{pid:guid}", async (Guid id, Guid pid, ParticipantSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, acteur);
             Regles.ExigerPreparation(mep);
             var p = mep.Participants.FirstOrDefault(x => x.Id == pid) ?? throw ErreurHttp.NonTrouve("Participant introuvable.");
@@ -47,12 +45,11 @@ public static class StructureEndpoints
             p.Role = ServiceMep.Texte(c.Role);
             p.Contact = ServiceMep.Texte(c.Contact);
             p.UtilisateurId = c.UtilisateurId;
-            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "participant.modifie", $"Participant modifié : {p.Nom}"));
-        });
+            return await svc.EnregistrerContenu(mep, acteur, "participant.modifie", $"Participant modifié : {p.Nom}");
+        })));
 
-        api.MapDelete("/meps/{id:guid}/participants/{pid:guid}", async (Guid id, Guid pid, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapDelete("/meps/{id:guid}/participants/{pid:guid}", async (Guid id, Guid pid, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var p = mep.Participants.FirstOrDefault(x => x.Id == pid) ?? throw ErreurHttp.NonTrouve("Participant introuvable.");
@@ -63,14 +60,13 @@ public static class StructureEndpoints
             if (executee is not null) throw new RegleMetierException($"{p.Nom} a exécuté {executee.Code} : il ne peut pas être supprimé.");
             if (mep.Sauvegarde.ResponsableId == pid) throw new RegleMetierException($"{p.Nom} est responsable de la sauvegarde : changer le responsable d'abord.");
             mep.Participants.Remove(p);
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "participant.supprime", $"Participant supprimé : {p.Nom}"));
-        });
+            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "participant.supprime", $"Participant supprimé : {p.Nom}");
+        })));
 
         // ---------- Responsables techniques ----------
-        api.MapPut("/meps/{id:guid}/responsables-techniques", async (Guid id, ResponsablesTechniquesSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPut("/meps/{id:guid}/responsables-techniques", async (Guid id, ResponsablesTechniquesSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, acteur);
             ServiceMep.ExigerVersion(mep, c.Version);
             var responsables = (c.Responsables ?? []).Select(r =>
@@ -86,47 +82,43 @@ public static class StructureEndpoints
             Regles.DefinirResponsablesTechniques(mep, responsables);
             var noms = mep.ResponsablesTechniques.Count == 0 ? "aucun"
                 : string.Join(", ", mep.ResponsablesTechniques.Select(r => mep.Participants.First(p => p.Id == r.ParticipantId).Nom));
-            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "responsables-techniques.modifies", $"Responsables techniques : {noms}"));
-        });
+            return await svc.EnregistrerContenu(mep, acteur, "responsables-techniques.modifies", $"Responsables techniques : {noms}");
+        })));
 
         // ---------- Systèmes ----------
-        api.MapPost("/meps/{id:guid}/systemes", async (Guid id, SystemeSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPost("/meps/{id:guid}/systemes", async (Guid id, SystemeSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var nom = Requis(c.Nom, "Le nom");
             mep.Systemes.Add(new Systeme { MepId = mep.Id, Nom = nom, Cible = ServiceMep.Texte(c.Cible), Impact = ServiceMep.Texte(c.Impact) });
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.ajoute", $"Système ajouté : {nom}"));
-        });
+            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.ajoute", $"Système ajouté : {nom}");
+        })));
 
-        api.MapPut("/meps/{id:guid}/systemes/{sid:guid}", async (Guid id, Guid sid, SystemeSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPut("/meps/{id:guid}/systemes/{sid:guid}", async (Guid id, Guid sid, SystemeSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var s = mep.Systemes.FirstOrDefault(x => x.Id == sid) ?? throw ErreurHttp.NonTrouve("Système introuvable.");
             s.Nom = Requis(c.Nom, "Le nom");
             s.Cible = ServiceMep.Texte(c.Cible);
             s.Impact = ServiceMep.Texte(c.Impact);
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.modifie", $"Système modifié : {s.Nom}"));
-        });
+            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.modifie", $"Système modifié : {s.Nom}");
+        })));
 
-        api.MapPut("/meps/{id:guid}/systemes/{sid:guid}/sauvegarde", async (Guid id, Guid sid, SauvegardeSystemeSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPut("/meps/{id:guid}/systemes/{sid:guid}/sauvegarde", async (Guid id, Guid sid, SauvegardeSystemeSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, acteur);
             ServiceMep.ExigerVersion(mep, c.Version);
             var s = mep.Systemes.FirstOrDefault(x => x.Id == sid) ?? throw ErreurHttp.NonTrouve("Système introuvable.");
             if (c.Statut is null) throw ErreurHttp.Saisie("Le statut (ARenseigner, Requise ou NonRequise) est obligatoire.");
             Regles.DefinirSauvegardeSysteme(mep, s, c.Statut.Value, c.Moment ?? ModeSauvegarde.AvantMep, c.Contenu ?? "", c.Justification ?? "");
-            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "sauvegarde.systeme", Regles.DetailSauvegarde(s)));
-        });
+            return await svc.EnregistrerContenu(mep, acteur, "sauvegarde.systeme", Regles.DetailSauvegarde(s));
+        })));
 
-        api.MapDelete("/meps/{id:guid}/systemes/{sid:guid}", async (Guid id, Guid sid, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapDelete("/meps/{id:guid}/systemes/{sid:guid}", async (Guid id, Guid sid, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var s = mep.Systemes.FirstOrDefault(x => x.Id == sid) ?? throw ErreurHttp.NonTrouve("Système introuvable.");
@@ -139,24 +131,22 @@ public static class StructureEndpoints
             if (mep.ResponsablesTechniques.Any(r => r.SystemeIds.Contains(sid)))
                 mep.ResponsablesTechniques = mep.ResponsablesTechniques.Select(r => { r.SystemeIds = r.SystemeIds.Where(x => x != sid).ToList(); return r; }).ToList();
             mep.Systemes.Remove(s);
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.supprime", $"Système supprimé : {s.Nom}"));
-        });
+            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.supprime", $"Système supprimé : {s.Nom}");
+        })));
 
         // ---------- Livrables ----------
-        api.MapPost("/meps/{id:guid}/livrables", async (Guid id, LivrableSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPost("/meps/{id:guid}/livrables", async (Guid id, LivrableSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var objet = Requis(c.Objet, "L'objet");
             ServiceMep.ExigerSystemeExistant(mep, c.SystemeId);
             mep.Livrables.Add(new Livrable { MepId = mep.Id, Objet = objet, Version = ServiceMep.Texte(c.Version), Emplacement = ServiceMep.Texte(c.Emplacement), SystemeId = c.SystemeId });
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "livrable.ajoute", $"Livrable ajouté : {objet}"));
-        });
+            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "livrable.ajoute", $"Livrable ajouté : {objet}");
+        })));
 
-        api.MapPut("/meps/{id:guid}/livrables/{lid:guid}", async (Guid id, Guid lid, LivrableSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPut("/meps/{id:guid}/livrables/{lid:guid}", async (Guid id, Guid lid, LivrableSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var l = mep.Livrables.FirstOrDefault(x => x.Id == lid) ?? throw ErreurHttp.NonTrouve("Livrable introuvable.");
@@ -165,17 +155,16 @@ public static class StructureEndpoints
             l.Version = ServiceMep.Texte(c.Version);
             l.Emplacement = ServiceMep.Texte(c.Emplacement);
             l.SystemeId = c.SystemeId;
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "livrable.modifie", $"Livrable modifié : {l.Objet}"));
-        });
+            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "livrable.modifie", $"Livrable modifié : {l.Objet}");
+        })));
 
-        api.MapDelete("/meps/{id:guid}/livrables/{lid:guid}", async (Guid id, Guid lid, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapDelete("/meps/{id:guid}/livrables/{lid:guid}", async (Guid id, Guid lid, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var l = mep.Livrables.FirstOrDefault(x => x.Id == lid) ?? throw ErreurHttp.NonTrouve("Livrable introuvable.");
             mep.Livrables.Remove(l);
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "livrable.supprime", $"Livrable supprimé : {l.Objet}"));
-        });
+            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "livrable.supprime", $"Livrable supprimé : {l.Objet}");
+        })));
     }
 }

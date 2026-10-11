@@ -161,24 +161,22 @@ public static class ResolutionsEndpoints
 
         // ---------- Exécution ----------
         api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/resolutions", async (Guid id, Guid eid, DemarrerResolutionSaisie c, ClaimsPrincipal user,
-            ServiceMep svc, MepDbContext db) =>
+            ServiceMep svc, MepDbContext db) => Results.Ok(await svc.Modifier(id, async mep =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
             var etape = ServiceMep.TrouverEtape(mep, eid);
             ServiceMep.ExigerRevision(etape, c.Revision);
             if (c.ResolutionTypeId is null) throw ErreurHttp.Saisie("La résolution type est obligatoire.");
             var type = await db.ResolutionsTypes.AsNoTracking().FirstOrDefaultAsync(r => r.Id == c.ResolutionTypeId)
                 ?? throw ErreurHttp.Saisie("Résolution type inconnue.");
             var execution = Regles.DemarrerResolution(mep, etape, type, acteur.Id, svc.Maintenant);
-            return Results.Ok(await svc.Enregistrer(mep, acteur, "resolution.demarree", $"Résolution « {execution.Titre} » démarrée sur {etape.Code}"));
-        });
+            return await svc.Enregistrer(mep, acteur, "resolution.demarree", $"Résolution « {execution.Titre} » démarrée sur {etape.Code}");
+        })));
 
         api.MapPost("/meps/{id:guid}/resolutions/{rid:guid}/corrections/{ordre:int}", async (Guid id, Guid rid, int ordre, ControleSaisie c,
-            ClaimsPrincipal user, ServiceMep svc) =>
+            ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
             var execution = TrouverResolution(mep, rid);
             var etape = mep.Etapes.Single(e => e.Id == execution.EtapeId);
             if (c.Resultat is null) throw ErreurHttp.Saisie("Le résultat (Conforme ou Echec) est obligatoire.");
@@ -191,13 +189,12 @@ public static class ResolutionsEndpoints
                 new("resolution.correction", c.Resultat == ResultatControle.Conforme ? $"Correction {ordre} conforme{suite}" : $"Correction {ordre} en échec{suite}"),
             };
             if (execution.Statut == StatutResolution.Echouee) evenements.AddRange(EvenementsEchec(mep, execution, etape));
-            return Results.Ok(await svc.Enregistrer(mep, acteur, evenements));
-        });
+            return await svc.Enregistrer(mep, acteur, evenements);
+        })));
 
-        api.MapPost("/meps/{id:guid}/resolutions/{rid:guid}/verification", async (Guid id, Guid rid, ControleSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPost("/meps/{id:guid}/resolutions/{rid:guid}/verification", async (Guid id, Guid rid, ControleSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
             var execution = TrouverResolution(mep, rid);
             var etape = mep.Etapes.Single(e => e.Id == execution.EtapeId);
             if (c.Resultat is null) throw ErreurHttp.Saisie("Le résultat (Conforme ou Echec) est obligatoire.");
@@ -207,8 +204,8 @@ public static class ResolutionsEndpoints
             if (execution.Statut == StatutResolution.Reussie)
                 evenements.Add(new("resolution.reussie", $"Résolution « {execution.Titre} » réussie sur {etape.Code} : {etape.Code} peut être redémarrée"));
             else evenements.AddRange(EvenementsEchec(mep, execution, etape));
-            return Results.Ok(await svc.Enregistrer(mep, acteur, evenements));
-        });
+            return await svc.Enregistrer(mep, acteur, evenements);
+        })));
     }
 
     /// <summary>

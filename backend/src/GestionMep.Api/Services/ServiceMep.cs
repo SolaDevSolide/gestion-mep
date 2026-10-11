@@ -2,6 +2,7 @@ using GestionMep.Api.Auth;
 using GestionMep.Api.Donnees;
 using GestionMep.Domain;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace GestionMep.Api.Services;
 
@@ -33,13 +34,64 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
                 await AppliquerEcheance(mep);
                 return mep;
             }
-            catch (DbUpdateConcurrencyException) when (essai < 2)
+            catch (DbUpdateConcurrencyException) when (essai < EssaisEcriture - 1)
             {
-                // Quelqu'un a modifié la MEP (ou appliqué l'échéance) entre-temps : on relit.
+                // Quelqu'un a modifié la MEP (ou appliqué l'échéance) entre-temps : on relit (même nombre d'essais que Modifier).
                 db.ChangeTracker.Clear();
             }
         }
     }
+
+    /// <summary>
+    /// Nombre d'essais d'une écriture sur une MEP avant de renvoyer 409 (voir <see cref="Modifier{T}"/>). Chaque échec correspond
+    /// au succès d'une autre écriture : N écritures simultanées aboutissent toutes tant que N ≤ ce nombre (une équipe d'exécution).
+    /// </summary>
+    public const int EssaisEcriture = 5;
+
+    /// <summary>
+    /// Exécute une écriture sur une MEP avec réessai automatique. <paramref name="action"/> reçoit la MEP fraîchement chargée
+    /// (<see cref="Charger"/>), revérifie toutes ses préconditions (droits, révision de l'étape, version envoyée par le client,
+    /// règles du domaine), applique la modification et l'enregistre. Si l'enregistrement échoue uniquement parce qu'une autre
+    /// écriture vient de passer sur la même MEP (jeton de concurrence <c>Mep.Version</c>), le suivi est vidé, la MEP relue et
+    /// l'action rejouée entièrement, jusqu'à <see cref="EssaisEcriture"/> essais, puis 409 comme avant.
+    /// <para>
+    /// L'action doit donc pouvoir être rejouée : ce qu'elle ajoute au contexte (journal, entités) est annulé par
+    /// <c>ChangeTracker.Clear()</c>, et la notification n'a lieu qu'après un enregistrement réussi. Les effets hors base
+    /// (écriture ou suppression de fichier) se font avant ou après l'appel, jamais dans l'action.
+    /// </para>
+    /// <para>
+    /// Un vrai conflit reste refusé : au réessai, une étape modifiée entre-temps ne correspond plus à la révision envoyée par
+    /// le client (<see cref="ExigerRevision"/>), une MEP modifiée ne correspond plus à sa version (<see cref="ExigerVersion"/>).
+    /// </para>
+    /// </summary>
+    public async Task<T> Modifier<T>(Guid id, Func<Mep, Task<T>> action)
+    {
+        for (var essai = 1; ; essai++)
+        {
+            // Chaque essai repart d'un suivi vide : sinon EF renverrait les entités déjà suivies, avec leurs valeurs périmées.
+            db.ChangeTracker.Clear();
+            var mep = await Charger(id);
+            try
+            {
+                return await action(mep);
+            }
+            catch (Exception ex) when (essai < EssaisEcriture && EstEcritureSimultanee(ex))
+            {
+                // Une autre écriture est passée entre la lecture et l'enregistrement : on relit et on rejoue après un court délai
+                // aléatoire, pour que les requêtes en concurrence ne se retrouvent pas de nouveau au même instant.
+                db.ChangeTracker.Clear();
+                await Task.Delay(Random.Shared.Next(5, 40));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Échec dû uniquement à une écriture simultanée : jeton de concurrence (<c>Mep.Version</c>), ou clé unique prise entre-temps
+    /// (ex. code d'étape attribué deux fois). Les préconditions sont de toute façon revérifiées sur les données fraîches.
+    /// </summary>
+    private static bool EstEcritureSimultanee(Exception ex) =>
+        ex is DbUpdateConcurrencyException
+        || ex is DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } };
 
     /// <summary>Bascule la MEP en retour arrière si son échéance est atteinte. Renvoie vrai si elle a basculé.</summary>
     public async Task<bool> AppliquerEcheance(Mep mep)

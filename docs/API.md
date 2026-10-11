@@ -14,7 +14,7 @@ L'interface web s'appuie entièrement sur une API HTTP JSON. Cette page en donne
 - **Authentification** par cookie de session : `POST /api/auth/connexion` avec `{ login, motDePasse }`. Toutes les routes l'exigent, sauf la connexion, `/api/sante` et `/api/version`.
 - **Protection CSRF** : toute requête qui modifie (autre que `GET`, `HEAD`, `OPTIONS`) doit porter l'en-tête `X-Requested-With` (valeur libre), sinon 403.
 - **Réponse des écritures** : une modification d'une MEP renvoie la MEP complète, recalculée pour l'utilisateur courant (états des étapes, anomalies du plan, droits).
-- **Concurrence** : chaque MEP porte une `version` et chaque étape une `revision`. Le client renvoie celle qu'il a lue ; si la ressource a changé entre-temps, la réponse est 409 et il faut relire.
+- **Concurrence** : chaque MEP porte une `version` et chaque étape une `revision`. Le client renvoie celle qu'il a lue ; si la ressource a changé entre-temps, la réponse est 409 et il faut relire. Une écriture qui croise seulement une autre écriture sur la même MEP (sur une autre étape, par exemple) est rejouée automatiquement par le serveur : elle n'aboutit en 409 que si ce qu'elle exige (révision de l'étape, version de la MEP) a réellement changé.
 - **Temps réel** : `GET /api/meps/{id}/flux` est un flux Server-Sent Events. Il envoie `event: maj` avec `data: {"version": n}` à chaque modification ; le client relit alors la MEP.
 - **Journal** : toute écriture est inscrite dans le journal de la MEP (`GET /api/meps/{id}/journal`).
 

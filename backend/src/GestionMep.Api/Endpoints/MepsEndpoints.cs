@@ -96,10 +96,9 @@ public static class MepsEndpoints
         api.MapGet("/meps/{id:guid}", async (Guid id, ClaimsPrincipal user, ServiceMep svc) =>
             Results.Ok(await svc.VersDto(await svc.Charger(id), Acteur.Depuis(user).Id)));
 
-        api.MapPut("/meps/{id:guid}", async (Guid id, MepIdentiteSaisie corps, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPut("/meps/{id:guid}", async (Guid id, MepIdentiteSaisie corps, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             ServiceMep.ExigerVersion(mep, corps.Version);
 
@@ -154,14 +153,13 @@ public static class MepsEndpoints
                 mep.EcheanceRepli = echeance;
                 noms.Add("échéance de retour arrière");
             }
-            if (noms.Count == 0) return Results.Ok(await svc.VersDto(mep, acteur.Id));
-            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "mep.modifiee", "MEP modifiée : " + string.Join(", ", noms)));
-        });
+            if (noms.Count == 0) return await svc.VersDto(mep, acteur.Id);
+            return await svc.EnregistrerContenu(mep, acteur, "mep.modifiee", "MEP modifiée : " + string.Join(", ", noms));
+        })));
 
-        api.MapPut("/meps/{id:guid}/sauvegarde", async (Guid id, SauvegardeSaisie corps, ClaimsPrincipal user, ServiceMep svc) =>
+        api.MapPut("/meps/{id:guid}/sauvegarde", async (Guid id, SauvegardeSaisie corps, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, acteur);
             // Ces informations servent de preuve (sauvegarde réalisée, restauration testée) : après la préparation, seuls le
             // pilote, ses suppléants ou un administrateur les complètent, et plus personne une fois la MEP clôturée.
@@ -208,20 +206,24 @@ public static class MepsEndpoints
             s.DateTestRestauration = corps.DateTestRestauration;
             s.PreuveTestRestauration = preuve;
             var detail = "Informations de sauvegarde modifiées" + (changements.Count > 0 ? " : " + string.Join(" ; ", changements) : "");
-            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "sauvegarde.modifiee", detail));
-        });
+            return await svc.EnregistrerContenu(mep, acteur, "sauvegarde.modifiee", detail);
+        })));
 
         api.MapDelete("/meps/{id:guid}", async (Guid id, ClaimsPrincipal user, ServiceMep svc, MepDbContext db, StockagePiecesJointes stockage) =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
-            // Le créateur, qui n'est plus pilote d'office, peut supprimer sa MEP tant qu'elle est en préparation.
-            if (mep.CreeParUtilisateurId != acteur.Id)
-                ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote, le créateur ou un administrateur peut supprimer une MEP.");
-            Regles.ExigerPreparation(mep);
-            var pieces = await db.PiecesJointes.Where(p => p.MepId == id).Select(p => p.Id).ToListAsync();
-            db.Meps.Remove(mep);
-            await db.SaveChangesAsync(); // les lignes des pièces jointes partent en cascade
+            // Les fichiers ne sont effacés qu'une fois la suppression enregistrée (l'action peut être rejouée).
+            var pieces = await svc.Modifier(id, async mep =>
+            {
+                // Le créateur, qui n'est plus pilote d'office, peut supprimer sa MEP tant qu'elle est en préparation.
+                if (mep.CreeParUtilisateurId != acteur.Id)
+                    ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote, le créateur ou un administrateur peut supprimer une MEP.");
+                Regles.ExigerPreparation(mep);
+                var ids = await db.PiecesJointes.Where(p => p.MepId == id).Select(p => p.Id).ToListAsync();
+                db.Meps.Remove(mep);
+                await db.SaveChangesAsync(); // les lignes des pièces jointes partent en cascade
+                return ids;
+            });
             foreach (var p in pieces) stockage.Supprimer(p);
             return Results.NoContent();
         });

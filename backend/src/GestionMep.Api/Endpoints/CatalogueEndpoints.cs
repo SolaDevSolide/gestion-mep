@@ -107,9 +107,8 @@ public static class CatalogueEndpoints
             return Results.NoContent();
         });
 
-        api.MapPost("/meps/{id:guid}/systemes/depuis-catalogue", async (Guid id, DepuisCatalogueSaisie c, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) =>
+        api.MapPost("/meps/{id:guid}/systemes/depuis-catalogue", async (Guid id, DepuisCatalogueSaisie c, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) => Results.Ok(await svc.Modifier(id, async mep =>
         {
-            var mep = await svc.Charger(id);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             if (c.CatalogueId is null) throw ErreurHttp.Saisie("Le système du catalogue est obligatoire.");
@@ -118,7 +117,7 @@ public static class CatalogueEndpoints
             if (!cat.Actif) throw new RegleMetierException($"Le système {cat.Nom} est désactivé dans le catalogue.");
             if (mep.Systemes.Any(x => x.CatalogueId == cat.Id)) throw new RegleMetierException($"Le système {cat.Nom} est déjà présent dans cette MEP.");
             mep.Systemes.Add(new Systeme { MepId = mep.Id, Nom = cat.Nom, Cible = cat.Cible, Impact = ServiceMep.Texte(c.Impact), CatalogueId = cat.Id });
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.ajoute", $"Système ajouté depuis le catalogue : {cat.Nom}"));
-        });
+            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.ajoute", $"Système ajouté depuis le catalogue : {cat.Nom}");
+        })));
     }
 }

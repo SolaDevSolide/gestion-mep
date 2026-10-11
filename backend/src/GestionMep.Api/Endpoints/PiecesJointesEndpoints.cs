@@ -77,14 +77,23 @@ public static class PiecesJointesEndpoints
         if (mep.Phase == Phase.Cloturee) throw new RegleMetierException("MEP clôturée : ses pièces jointes ne sont plus modifiables.");
     }
 
-    /// <summary>Ajoute une pièce à la MEP (journal et notification) ; le fichier est effacé si l'enregistrement échoue.</summary>
-    private static async Task<MepDto> Ajouter(Mep mep, PieceJointe piece, string cible, Acteur acteur, ServiceMep svc, MepDbContext db, StockagePiecesJointes stockage)
+    /// <summary>
+    /// Ajoute une pièce déjà écrite sur disque à la MEP (journal et notification), par <see cref="ServiceMep.Modifier{T}"/> :
+    /// <paramref name="verifier"/> revérifie la cible sur la MEP fraîche à chaque essai et renvoie son libellé pour le journal.
+    /// Le fichier n'est écrit qu'une fois (avant) et n'est effacé que si l'enregistrement échoue définitivement.
+    /// </summary>
+    private static async Task<MepDto> Ajouter(Guid mepId, PieceJointe piece, Func<Mep, string> verifier, Acteur acteur, ServiceMep svc, MepDbContext db,
+        StockagePiecesJointes stockage)
     {
         try
         {
-            piece.MepId = mep.Id;
-            db.PiecesJointes.Add(piece);
-            return await svc.Enregistrer(mep, acteur, "piece.ajoutee", $"Pièce jointe ajoutée{cible} : {piece.NomFichier}");
+            return await svc.Modifier(mepId, async mep =>
+            {
+                var cible = verifier(mep);
+                piece.MepId = mep.Id;
+                db.PiecesJointes.Add(piece);
+                return await svc.Enregistrer(mep, acteur, "piece.ajoutee", $"Pièce jointe ajoutée{cible} : {piece.NomFichier}");
+            });
         }
         catch
         {
@@ -109,52 +118,68 @@ public static class PiecesJointesEndpoints
                 .Select(p => MepMapping.VersDto(p, noms));
         });
 
+        // Dépôts : la cible est vérifiée avant de lire le fichier, puis de nouveau sur la MEP fraîche à l'enregistrement.
         api.MapPost("/meps/{id:guid}/pieces-jointes", async (Guid id, HttpRequest req, ClaimsPrincipal user, ServiceMep svc, MepDbContext db,
             StockagePiecesJointes stockage, QuotasPiecesJointes quotas) =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
-            ExigerNonCloturee(mep);
-            var (piece, reservation) = await Recevoir(req, stockage, quotas, db, mep.Id, acteur, svc.Maintenant);
-            using (reservation) return Results.Ok(await Ajouter(mep, piece, "", acteur, svc, db, stockage));
+            static string Verifier(Mep m)
+            {
+                ExigerNonCloturee(m);
+                return "";
+            }
+            Verifier(await svc.Charger(id));
+            var (piece, reservation) = await Recevoir(req, stockage, quotas, db, id, acteur, svc.Maintenant);
+            using (reservation) return Results.Ok(await Ajouter(id, piece, Verifier, acteur, svc, db, stockage));
         }).AccepterFichier(limiteDepot);
 
         api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/pieces-jointes", async (Guid id, Guid eid, HttpRequest req, ClaimsPrincipal user, ServiceMep svc,
             MepDbContext db, StockagePiecesJointes stockage, QuotasPiecesJointes quotas) =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
-            var etape = ServiceMep.TrouverEtape(mep, eid);
-            ExigerNonCloturee(mep);
-            var (piece, reservation) = await Recevoir(req, stockage, quotas, db, mep.Id, acteur, svc.Maintenant);
-            piece.EtapeId = etape.Id;
-            using (reservation) return Results.Ok(await Ajouter(mep, piece, $" à {etape.Code}", acteur, svc, db, stockage));
+            string Verifier(Mep m)
+            {
+                var etape = ServiceMep.TrouverEtape(m, eid);
+                ExigerNonCloturee(m);
+                return $" à {etape.Code}";
+            }
+            Verifier(await svc.Charger(id));
+            var (piece, reservation) = await Recevoir(req, stockage, quotas, db, id, acteur, svc.Maintenant);
+            piece.EtapeId = eid;
+            using (reservation) return Results.Ok(await Ajouter(id, piece, Verifier, acteur, svc, db, stockage));
         }).AccepterFichier(limiteDepot);
 
         api.MapPost("/meps/{id:guid}/resolutions/{rid:guid}/pieces-jointes", async (Guid id, Guid rid, HttpRequest req, ClaimsPrincipal user,
             ServiceMep svc, MepDbContext db, StockagePiecesJointes stockage, QuotasPiecesJointes quotas) =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
-            var execution = mep.Resolutions.FirstOrDefault(r => r.Id == rid) ?? throw ErreurHttp.NonTrouve("Résolution introuvable.");
-            ExigerNonCloturee(mep);
-            var (piece, reservation) = await Recevoir(req, stockage, quotas, db, mep.Id, acteur, svc.Maintenant);
-            piece.ExecutionResolutionId = execution.Id;
-            using (reservation) return Results.Ok(await Ajouter(mep, piece, $" à la résolution « {execution.Titre} »", acteur, svc, db, stockage));
+            string Verifier(Mep m)
+            {
+                var execution = m.Resolutions.FirstOrDefault(r => r.Id == rid) ?? throw ErreurHttp.NonTrouve("Résolution introuvable.");
+                ExigerNonCloturee(m);
+                return $" à la résolution « {execution.Titre} »";
+            }
+            Verifier(await svc.Charger(id));
+            var (piece, reservation) = await Recevoir(req, stockage, quotas, db, id, acteur, svc.Maintenant);
+            piece.ExecutionResolutionId = rid;
+            using (reservation) return Results.Ok(await Ajouter(id, piece, Verifier, acteur, svc, db, stockage));
         }).AccepterFichier(limiteDepot);
 
         api.MapDelete("/meps/{id:guid}/pieces-jointes/{pid:guid}", async (Guid id, Guid pid, ClaimsPrincipal user, ServiceMep svc, MepDbContext db,
             StockagePiecesJointes stockage) =>
         {
             var acteur = Acteur.Depuis(user);
-            var mep = await svc.Charger(id);
-            var piece = await db.PiecesJointes.FirstOrDefaultAsync(p => p.Id == pid && p.MepId == id) ?? throw ErreurHttp.NonTrouve("Pièce jointe introuvable.");
-            if (piece.DeposeParId != acteur.Id && !Regles.EstPilote(mep, acteur.Id) && !acteur.EstAdmin)
-                throw ErreurHttp.Interdit("Seul le déposant, le pilote, un suppléant ou un administrateur peut supprimer cette pièce jointe.");
-            ExigerNonCloturee(mep);
-            db.PiecesJointes.Remove(piece);
-            var dto = await svc.Enregistrer(mep, acteur, "piece.supprimee", $"Pièce jointe supprimée{Cible(mep, piece)} : {piece.NomFichier}");
-            stockage.Supprimer(piece.Id);
+            var dto = await svc.Modifier(id, async mep =>
+            {
+                var piece = await db.PiecesJointes.FirstOrDefaultAsync(p => p.Id == pid && p.MepId == id) ?? throw ErreurHttp.NonTrouve("Pièce jointe introuvable.");
+                if (piece.DeposeParId != acteur.Id && !Regles.EstPilote(mep, acteur.Id) && !acteur.EstAdmin)
+                    throw ErreurHttp.Interdit("Seul le déposant, le pilote, un suppléant ou un administrateur peut supprimer cette pièce jointe.");
+                ExigerNonCloturee(mep);
+                db.PiecesJointes.Remove(piece);
+                return await svc.Enregistrer(mep, acteur, "piece.supprimee", $"Pièce jointe supprimée{Cible(mep, piece)} : {piece.NomFichier}");
+            });
+            // Fichier effacé une seule fois, après l'enregistrement réussi.
+            stockage.Supprimer(pid);
             return Results.Ok(dto);
         });
 
