@@ -61,7 +61,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 
 ### Déroulé d'une requête d'écriture
 
-1. Le handler charge la MEP par `ServiceMep.Charger`, qui applique d'abord l'échéance de retour arrière si elle est dépassée.
+1. Le handler passe par `ServiceMep.Modifier`, qui charge la MEP par `ServiceMep.Charger` (celui-ci applique d'abord l'échéance de retour arrière si elle est dépassée) puis exécute les étapes 2 à 4, rejouables en cas d'écriture simultanée (voir Concurrence).
 2. Il vérifie les droits (`ServiceMep.ExigerEditeur`, `Regles.EstPilote`…) et la version envoyée par le client (`ExigerVersion`, `ExigerRevision`).
 3. Il appelle une ou plusieurs fonctions de `Regles`, qui modifient l'entité ou lèvent `RegleMetierException`.
 4. `ServiceMep.Enregistrer` incrémente la version, ajoute l'événement au journal, enregistre, puis notifie le flux SSE.
@@ -71,6 +71,9 @@ Aucune dépendance vers ASP.NET ni EF Core.
 
 - Chaque MEP porte un numéro de `Version`, chaque étape une `Revision`. Le client renvoie celui qu'il a lu ; un écart donne **409** et le front recharge.
 - EF Core utilise aussi la `Version` de la MEP (et celle des résolutions types) comme jeton de concurrence, ce qui protège deux écritures simultanées sur le serveur.
+- **Réessai automatique** : toute écriture sur une MEP passe par `ServiceMep.Modifier`. Si l'enregistrement échoue seulement parce qu'une autre écriture vient de passer sur la même MEP (`DbUpdateConcurrencyException` sur `Mep.Version`, ou clé unique prise entre-temps), le serveur vide le suivi EF (`ChangeTracker.Clear()`), relit la MEP, revérifie toutes les préconditions (droits, révision de l'étape, version envoyée par le client, règles du domaine) et rejoue l'action, jusqu'à 3 essais espacés de quelques millisecondes aléatoires, puis répond 409 comme avant. Des personnes qui agissent en même temps sur des étapes différentes d'une MEP en exécution réussissent donc toutes.
+- **Ce qui reste un vrai conflit (409)** : une étape modifiée depuis sa lecture (révision périmée, par exemple deux démarrages simultanés de la même étape : un seul aboutit), une MEP modifiée depuis sa lecture sur les routes qui exigent sa `version` (fiche de la MEP, plan de retour arrière, sauvegarde, approbateurs, approbation…), ou, rarement, plus de trois écritures simultanées sur la même MEP (essais épuisés pour la dernière).
+- Une action rejouée ne doit pas avoir d'effet hors base : le journal et les entités ajoutés sont annulés par `ChangeTracker.Clear()`, la notification SSE n'est envoyée qu'après un enregistrement réussi, le fichier d'une pièce jointe est écrit une seule fois avant l'enregistrement (et effacé s'il échoue définitivement), les fichiers supprimés ne le sont qu'après le succès.
 
 ### Codes d'erreur
 

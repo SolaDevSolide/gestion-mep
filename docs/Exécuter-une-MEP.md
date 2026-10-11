@@ -107,4 +107,4 @@ L'onglet **Journal** retrace tout, du plus récent au plus ancien, groupé par j
 
 ## Travailler à plusieurs
 
-Les écrans se mettent à jour tout seuls pour tous les participants. Si une modification arrive pendant que vous saisissez quelque chose, un bandeau propose de recharger plutôt que d'écraser votre saisie. Si deux personnes modifient la même chose en même temps, la seconde est prévenue et la MEP est rechargée.
+Les écrans se mettent à jour tout seuls pour tous les participants. Si une modification arrive pendant que vous saisissez quelque chose, un bandeau propose de recharger plutôt que d'écraser votre saisie. Si deux personnes modifient la même chose en même temps, la seconde est prévenue et la MEP est rechargée. Plusieurs personnes peuvent en revanche agir au même instant sur des étapes différentes (démarrer, terminer, commenter) : toutes les actions sont prises en compte, sans message ni rechargement.
