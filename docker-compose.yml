@@ -38,12 +38,30 @@ services:
       # Indicateur de nouvelle version (lit les versions publiées sur GitHub) et lien « Signaler un problème ou une idée »
       MisesAJour__Verifier: ${VERIFIER_MISES_A_JOUR:-true}
       Signalement__Lien: ${LIEN_SIGNALEMENT-https://github.com/SolaDevSolide/gestion-mep/issues/new/choose}
+      # Échanges avec le service « mise-a-jour » (bouton « Mettre à jour » de la console, s'il est activé)
+      MisesAJour__Dossier: /data/mise-a-jour
     volumes:
       - pieces-jointes:/data/pieces-jointes
       - cles:/data/cles
       - sauvegardes:/data/sauvegardes
+      - mise-a-jour:/data/mise-a-jour
     ports:
       - "${PORT:-8080}:8080"
+    restart: unless-stopped
+
+  # Facultatif : mise à jour depuis la console d'administration. Désactivé par défaut ; l'activer avec
+  # COMPOSE_PROFILES=mise-a-jour dans .env. Il a accès à Docker (socket) pour remplacer le conteneur « app ».
+  mise-a-jour:
+    image: ${MEP_IMAGE_MISE_A_JOUR:-ghcr.io/soladevsolide/gestion-mep-mise-a-jour:latest}
+    build: ./mise-a-jour
+    profiles: [mise-a-jour]
+    environment:
+      MEP_DEPOT_IMAGE: ${MEP_DEPOT_IMAGE:-ghcr.io/soladevsolide/gestion-mep}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-compose.yml:/projet/docker-compose.yml:ro
+      - ./.env:/projet/.env
+      - mise-a-jour:/echange
     restart: unless-stopped
 
 volumes:
@@ -51,3 +69,4 @@ volumes:
   pieces-jointes:
   cles:
   sauvegardes:
+  mise-a-jour:

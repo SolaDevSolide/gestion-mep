@@ -159,4 +159,14 @@ public record MiseAJourDto(
     string? NotesUrl,
     DateTimeOffset? VerifieeLe,
     string? Erreur,
-    bool Disponible);
+    bool Disponible,
+    InstallateurDto Installateur);
+
+/// <summary>
+/// Service « mise-a-jour » (facultatif) : <c>Present</c> s'il tourne ; <c>Statut</c> pret, en-cours, terminee, echec ou
+/// indisponible ; <c>Message</c> et <c>Version</c> de sa dernière action.
+/// </summary>
+public record InstallateurDto(bool Present, string? Statut, string? Version, string? Message, DateTimeOffset? Le);
+
+/// <summary>Demande d'installation d'une version publiée (bouton « Mettre à jour » de la console).</summary>
+public record InstallationSaisie(string? Version);

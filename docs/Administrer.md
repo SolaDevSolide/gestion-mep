@@ -39,7 +39,9 @@ Les 200 derniers événements d'administration : comptes créés, modifiés, dé
 
 ### Version
 
-Version en cours, dernière version publiée sur GitHub et date de la dernière vérification. Quand une version plus récente existe, la barre latérale affiche « Mise à jour … disponible » et l'onglet donne le lien vers ses nouveautés et la marche à suivre ([Mettre à jour](Exploiter.md#mettre-à-jour)). « Vérifier maintenant » interroge GitHub sans attendre.
+Version en cours, dernière version publiée sur GitHub et date de la dernière vérification. Quand une version plus récente existe, la barre latérale affiche « Mise à jour … disponible » et l'onglet donne le lien vers ses nouveautés. « Vérifier maintenant » interroge GitHub sans attendre.
+
+Si l'équipe informatique a activé le service de mise à jour, le bouton **« Mettre à jour vers … »** installe la nouvelle version après confirmation : l'application redémarre (les personnes connectées sont déconnectées environ une minute), une sauvegarde est faite avant toute migration, et la version actuelle est remise si la nouvelle ne démarre pas. Le bouton est refusé tant qu'une MEP est en cours. Sans ce service, l'onglet renvoie à la marche à suivre manuelle ([Mettre à jour](Exploiter.md#mettre-à-jour)).
 
 L'onglet rappelle aussi le lien « Signaler un problème ou une idée », proposé à tout le monde dans le menu utilisateur.
 

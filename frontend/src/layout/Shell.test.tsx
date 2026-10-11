@@ -21,6 +21,7 @@ const miseAJour = {
   verifieeLe: null,
   erreur: null,
   disponible: true,
+  installateur: { present: false, statut: null, version: null, message: null, le: null },
 };
 
 beforeEach(() => {

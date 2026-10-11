@@ -233,6 +233,7 @@ export const api = {
 
   application: () => get<InfosApplication>('/application'),
   verifierMisesAJour: () => post<MiseAJour>('/admin/mises-a-jour/verifier', {}),
+  installerMiseAJour: (version: string) => post<MiseAJour>('/admin/mises-a-jour/installer', { version }),
 
   parametres: () => get<ParametresGlobaux>('/parametres'),
   modifierParametres: (s: ParametresGlobaux) => put<ParametresGlobaux>('/parametres', s),

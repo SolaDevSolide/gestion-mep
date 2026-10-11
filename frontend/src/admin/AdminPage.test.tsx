@@ -19,6 +19,7 @@ vi.mock('../api', () => ({
     modifierParametres: vi.fn(),
     application: vi.fn(),
     verifierMisesAJour: vi.fn(),
+    installerMiseAJour: vi.fn(),
   },
 }));
 
@@ -109,6 +110,7 @@ describe('Console d’administration', () => {
       verifieeLe: null,
       erreur: null,
       disponible: false,
+      installateur: { present: false, statut: null, version: null, message: null, le: null },
     };
     vi.mocked(api.application).mockResolvedValue({ version: '1.0.0', lienSignalement: null, miseAJour: etat });
     vi.mocked(api.verifierMisesAJour).mockResolvedValue({ ...etat, derniereVersion: '1.2.0', disponible: true });
@@ -116,5 +118,32 @@ describe('Console d’administration', () => {
     expect(await screen.findByText('L’application est à jour.')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Vérifier maintenant' }));
     expect(await screen.findByText('La version 1.2.0 est disponible')).toBeInTheDocument();
+  });
+
+  it('installe la nouvelle version par le service de mise à jour, après confirmation', async () => {
+    const installateur = { present: true, statut: 'pret', version: null, message: 'Prêt.', le: null };
+    const etat = {
+      active: true,
+      depot: 'SolaDevSolide/gestion-mep',
+      versionCourante: '1.0.0',
+      derniereVersion: '1.2.0',
+      publieeLe: null,
+      notesUrl: null,
+      verifieeLe: null,
+      erreur: null,
+      disponible: true,
+      installateur,
+    };
+    vi.mocked(api.application).mockResolvedValue({ version: '1.0.0', lienSignalement: null, miseAJour: etat });
+    vi.mocked(api.installerMiseAJour).mockResolvedValue({
+      ...etat,
+      installateur: { ...installateur, statut: 'demandee', message: 'Demande transmise au service de mise à jour.' },
+    });
+    rendre(utilisateur({ estAdmin: true }), '/admin?onglet=version');
+    await userEvent.click(await screen.findByRole('button', { name: 'Mettre à jour vers 1.2.0' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Mettre à jour' }));
+    await waitFor(() => expect(api.installerMiseAJour).toHaveBeenCalledWith('1.2.0'));
+    expect(await screen.findByText('Mise à jour en cours')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mettre à jour vers 1.2.0' })).toBeNull();
   });
 });

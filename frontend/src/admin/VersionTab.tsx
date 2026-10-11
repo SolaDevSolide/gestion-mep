@@ -1,25 +1,78 @@
-import { CircleArrowUp, CircleCheck, ExternalLink, Megaphone, RefreshCw, TriangleAlert } from 'lucide-react';
-import { useState } from 'react';
+import {
+  CircleArrowUp,
+  CircleCheck,
+  Download,
+  ExternalLink,
+  Loader2,
+  Megaphone,
+  OctagonAlert,
+  RefreshCw,
+  TriangleAlert,
+  type LucideIcon,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { formatDate, formatDateHeure } from '../format';
+import { formatDate, formatDateHeure, type Ton } from '../format';
 import { useAsync } from '../hooks';
-import type { MiseAJour } from '../types';
+import type { InfosApplication, MiseAJour } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
+import { ConfirmDialog } from '../ui/Dialog';
 import { useToast } from '../ui/Toast';
+
+/** Présentation du dernier statut du service de mise à jour (« pret » : rien à afficher). */
+const PRESENTATION: Record<string, { ton: Ton; icone: LucideIcon; titre: string }> = {
+  demandee: { ton: 'run', icone: Loader2, titre: 'Mise à jour en cours' },
+  'en-cours': { ton: 'run', icone: Loader2, titre: 'Mise à jour en cours' },
+  terminee: { ton: 'ok', icone: CircleCheck, titre: 'Dernière mise à jour réussie' },
+  echec: { ton: 'danger', icone: OctagonAlert, titre: 'Dernière mise à jour en échec' },
+  indisponible: { ton: 'warn', icone: TriangleAlert, titre: 'Service de mise à jour mal configuré' },
+};
 
 const DOC_MISE_A_JOUR = 'https://github.com/SolaDevSolide/gestion-mep/wiki/Exploiter#mettre-à-jour';
 
 /** Version en cours, dernière version publiée sur GitHub et marche à suivre pour mettre à jour. */
 export default function VersionTab() {
   const toast = useToast();
-  const { donnees, erreur } = useAsync(() => api.application(), []);
+  const chargees = useAsync(() => api.application(), []);
+  const [suivi, setSuivi] = useState<InfosApplication | null>(null);
+  const donnees = suivi ?? chargees.donnees;
+  const erreur = suivi ? '' : chargees.erreur;
   const [verifie, setVerifie] = useState<MiseAJour | null>(null);
   const [envoi, setEnvoi] = useState(false);
+  const [confirmer, setConfirmer] = useState(false);
   const etat = verifie ?? donnees?.miseAJour ?? null;
+  const installateur = etat?.installateur;
   // Version construite hors publication (« 0.0.0-dev ») : elle n'est pas comparée aux versions publiées.
   const developpement = donnees?.version.includes('-') ?? false;
+  const installationEnCours = installateur?.statut === 'demandee' || installateur?.statut === 'en-cours';
+
+  // Pendant l'installation, l'état est relu toutes les 3 secondes ; l'application redémarre au milieu (erreurs ignorées).
+  useEffect(() => {
+    if (!installationEnCours) return;
+    const t = window.setInterval(() => {
+      api
+        .application()
+        .then((a) => {
+          setSuivi(a);
+          setVerifie(null);
+        })
+        .catch(() => undefined);
+    }, 3000);
+    return () => window.clearInterval(t);
+  }, [installationEnCours]);
+
+  async function installer(): Promise<boolean> {
+    if (!etat?.derniereVersion) return false;
+    try {
+      setVerifie(await api.installerMiseAJour(etat.derniereVersion));
+      return true;
+    } catch (e) {
+      toast.erreur(e instanceof Error ? e.message : 'Mise à jour impossible.');
+      return false;
+    }
+  }
 
   async function verifier() {
     setEnvoi(true);
@@ -114,8 +167,30 @@ export default function VersionTab() {
                 </span>
               }
             >
-              L’équipe informatique change MEP_IMAGE dans le fichier .env du serveur, puis relance l’application. Une
-              sauvegarde est faite automatiquement avant toute modification de la base.
+              {installateur?.present
+                ? 'Une sauvegarde est faite automatiquement avant toute modification de la base.'
+                : 'L’équipe informatique change MEP_IMAGE dans le fichier .env du serveur, puis relance l’application. Une sauvegarde est faite automatiquement avant toute modification de la base. Elle peut aussi activer le service de mise à jour pour faire apparaître ici un bouton « Mettre à jour ».'}
+            </Alerte>
+          )}
+          {etat?.disponible && installateur?.present && !installationEnCours && (
+            <div>
+              <Button
+                variante="primaire"
+                icone={<Download className="size-4" aria-hidden />}
+                onClick={() => setConfirmer(true)}
+              >
+                Mettre à jour vers {etat.derniereVersion}
+              </Button>
+            </div>
+          )}
+          {installateur?.message && installateur.statut && installateur.statut in PRESENTATION && (
+            <Alerte
+              ton={PRESENTATION[installateur.statut].ton}
+              icone={PRESENTATION[installateur.statut].icone}
+              titre={PRESENTATION[installateur.statut].titre}
+            >
+              {installateur.message}
+              {installationEnCours && ' Les utilisateurs seront déconnectés le temps du redémarrage.'}
             </Alerte>
           )}
           {developpement && (
@@ -130,6 +205,14 @@ export default function VersionTab() {
           )}
         </div>
       </Card>
+      <ConfirmDialog
+        open={confirmer}
+        onOpenChange={setConfirmer}
+        titre={`Mettre à jour vers la version ${etat?.derniereVersion ?? ''} ?`}
+        description="L’application redémarre : les personnes connectées sont déconnectées environ une minute. Une sauvegarde de la base et des pièces jointes est faite avant toute migration. Si la nouvelle version ne démarre pas, la version actuelle est remise. Refusé tant qu’une MEP est en cours."
+        libelleConfirmer="Mettre à jour"
+        onConfirmer={installer}
+      />
       {donnees?.lienSignalement && (
         <Card>
           <CardHeader

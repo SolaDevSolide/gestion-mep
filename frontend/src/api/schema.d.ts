@@ -377,41 +377,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/mises-a-jour/verifier": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["MiseAJourDto"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/meps": {
         parameters: {
             query?: never;
@@ -2886,6 +2851,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/mises-a-jour/verifier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MiseAJourDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/mises-a-jour/installer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InstallationSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MiseAJourDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/utilisateurs": {
         parameters: {
             query?: never;
@@ -3503,6 +3542,22 @@ export interface components {
             titre: null | string;
             etapes: null | components["schemas"]["EtapeTestSaisie"][];
         };
+        /**
+         * @description Service « mise-a-jour » (facultatif) : `Present` s'il tourne ; `Statut` pret, en-cours, terminee, echec ou
+         *     indisponible ; `Message` et `Version` de sa dernière action.
+         */
+        InstallateurDto: {
+            present: boolean;
+            statut: null | string;
+            version: null | string;
+            message: null | string;
+            /** Format: date-time */
+            le: null | string;
+        };
+        /** @description Demande d'installation d'une version publiée (bouton « Mettre à jour » de la console). */
+        InstallationSaisie: {
+            version: null | string;
+        };
         /** @enum {unknown} */
         IssueMep: "Reussie" | "Repliee" | null;
         LivrableDto: {
@@ -3906,6 +3961,7 @@ export interface components {
             verifieeLe: null | string;
             erreur: null | string;
             disponible: boolean;
+            installateur: components["schemas"]["InstallateurDto"];
         };
         /** @enum {unknown} */
         ModeSauvegarde: "AvantMep" | "PendantMep" | null;

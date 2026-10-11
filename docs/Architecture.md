@@ -50,7 +50,8 @@ Aucune dépendance vers ASP.NET ni EF Core.
 | `Services/ErreurHttp.cs` | Erreurs HTTP explicites et middleware qui traduit les exceptions en `{ "message": "…" }`. |
 | `Services/DiffuseurMep.cs` | Diffusion en mémoire de la dernière version de chaque MEP aux abonnés du flux SSE. |
 | `Services/SurveillanceEcheances.cs` | Tâche de fond : chaque minute, bascule en retour arrière les MEP dont l'échéance est atteinte. |
-| `Services/StockagePiecesJointes.cs` | Écriture, lecture et suppression des fichiers joints. |
+| `Services/StockagePiecesJointes.cs` | Écriture, lecture et suppression des fichiers joints ; fichiers sans enregistrement en base mis de côté au démarrage. |
+| `Services/MisesAJour.cs` | Version en cours, vérification des versions publiées sur GitHub et dialogue avec le service facultatif de mise à jour (fichiers dans un volume partagé). |
 | `Services/Sauvegardes.cs` | Archive de la base (COPY binaire par table) et des pièces jointes ; sauvegarde avant migration ou importation, contrôle qu'aucune donnée n'est perdue, puis suppression de la sauvegarde. |
 | `Securite/` | Protections HTTP : en-têtes du proxy inverse, limite des tentatives de connexion (par IP et par compte), en-tête anti-CSRF exigé, en-têtes de sécurité (CSP…), taille maximale des requêtes, sonde `--sante` de l'image Docker. |
 | `Auth/` | Comptes locaux, cookie de session, `Acteur` (utilisateur courant). C'est le seul dossier à modifier pour brancher un SSO OpenID Connect. |
@@ -113,4 +114,4 @@ React 19 + TypeScript 7 + Vite, Tailwind CSS 4 et primitives Radix. Le détail d
 
 ## Intégration continue
 
-`.github/workflows/ci.yml` lance les tests back (avec un service PostgreSQL) et front à chaque PR et à chaque fusion sur `main`. Sur `main`, il construit et publie l'image sur `ghcr.io/soladevsolide/gestion-mep` (étiquettes `main` et `sha-…`). Une étiquette Git `vX.Y.Z` publie la version numérotée (`X.Y.Z`, `X.Y`, `latest`), puis crée la version GitHub avec ses notes, que l'indicateur de mise à jour de l'application consulte.
+`.github/workflows/ci.yml` lance les tests back (avec un service PostgreSQL) et front à chaque PR et à chaque fusion sur `main`. Sur `main`, il construit et publie l'image sur `ghcr.io/soladevsolide/gestion-mep` (étiquettes `main` et `sha-…`). Une étiquette Git `vX.Y.Z` publie la version numérotée (`X.Y.Z`, `X.Y`, `latest`), puis crée la version GitHub avec ses notes, que l'indicateur de mise à jour de l'application consulte. Le service facultatif de mise à jour (`mise-a-jour/`, un script shell sur l'image Docker CLI) est publié avec les mêmes étiquettes sur `ghcr.io/soladevsolide/gestion-mep-mise-a-jour`.

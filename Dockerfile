@@ -24,8 +24,8 @@ ENV ASPNETCORE_URLS=http://+:8080 \
 EXPOSE 8080
 # Dossiers des pièces jointes, des clés de session et des sauvegardes (volumes « pieces-jointes », « cles », « sauvegardes ») : ils doivent appartenir à
 # l'utilisateur non root de l'image.
-RUN mkdir -p /data/pieces-jointes /data/cles /data/sauvegardes \
- && chown $APP_UID /data/pieces-jointes /data/cles /data/sauvegardes
+RUN mkdir -p /data/pieces-jointes /data/cles /data/sauvegardes /data/mise-a-jour \
+ && chown $APP_UID /data/pieces-jointes /data/cles /data/sauvegardes /data/mise-a-jour
 # Commandes d'exploitation : « docker compose exec app gestion-mep aide ».
 RUN printf '#!/bin/sh\nexec dotnet /app/GestionMep.Api.dll "$@"\n' > /usr/local/bin/gestion-mep && chmod 755 /usr/local/bin/gestion-mep
 USER $APP_UID
