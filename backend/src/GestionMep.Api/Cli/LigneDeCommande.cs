@@ -352,7 +352,7 @@ public static class LigneDeCommande
     {
         var config = Configuration();
         await using var db = Base(config);
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(10) };
         var verifications = await ConnexionUnique.Tester(await SsoEndpoints.Charger(db), Cles(config), http);
         foreach (var v in verifications) Console.WriteLine($"[{(v.Ok ? "ok" : "erreur"),-6}] {v.Libelle} : {v.Detail}");
         return verifications.All(v => v.Ok) ? 0 : 1;
@@ -411,11 +411,15 @@ public static class LigneDeCommande
         if (config["Cles:Dossier"] is { Length: > 0 } cles) VerifierDossier("Clés de session", cles, obligatoire: true);
         else Attention("Cles:Dossier non défini : les sessions seront perdues à chaque recréation du conteneur.");
 
-        if (config.GetConnectionString("Mep") is not { Length: > 0 })
+        if (config.GetConnectionString("Mep") is not { Length: > 0 } chaine)
         {
             Erreur("ConnectionStrings:Mep absente (variable ConnectionStrings__Mep).");
             return 1;
         }
+        if (new Npgsql.NpgsqlConnectionStringBuilder(chaine).Password is { } mdpBase && AuthentificationLocale.MotDePasseInitialRefuse(mdpBase) is not null)
+            Attention("Mot de passe de la base faible ou d'exemple (POSTGRES_PASSWORD) : à changer hors poste de développement.");
+        if (config["Admin:MotDePasse"] is { Length: > 0 })
+            Attention("ADMIN_MOT_DE_PASSE est encore défini : il ne sert qu'au premier démarrage, le retirer de .env.");
         await using var db = Base(config);
         try
         {

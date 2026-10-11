@@ -33,16 +33,21 @@ public static class StructureEndpoints
 
         api.MapPut("/meps/{id:guid}/participants/{pid:guid}", async (Guid id, Guid pid, ParticipantSaisie c, ClaimsPrincipal user, ServiceMep svc) =>
         {
+            var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
-            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
+            ServiceMep.ExigerEditeur(mep, acteur);
             Regles.ExigerPreparation(mep);
             var p = mep.Participants.FirstOrDefault(x => x.Id == pid) ?? throw ErreurHttp.NonTrouve("Participant introuvable.");
+            // Le compte relié au pilote ou à un suppléant porte leurs droits (Go, clôture…) : comme pour désigner le pilote,
+            // seul le pilote, un suppléant ou un administrateur peut le changer. Contrôle fait sur l'état avant modification.
+            if (p.UtilisateurId != c.UtilisateurId && (mep.PiloteId == pid || mep.SuppleantIds.Contains(pid)))
+                ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote, un suppléant ou un administrateur peut changer le compte relié au pilote ou à un suppléant.");
             p.Nom = Requis(c.Nom, "Le nom");
             await svc.ExigerUtilisateurExistant(c.UtilisateurId);
             p.Role = ServiceMep.Texte(c.Role);
             p.Contact = ServiceMep.Texte(c.Contact);
             p.UtilisateurId = c.UtilisateurId;
-            return Results.Ok(await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "participant.modifie", $"Participant modifié : {p.Nom}"));
+            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "participant.modifie", $"Participant modifié : {p.Nom}"));
         });
 
         api.MapDelete("/meps/{id:guid}/participants/{pid:guid}", async (Guid id, Guid pid, ClaimsPrincipal user, ServiceMep svc) =>

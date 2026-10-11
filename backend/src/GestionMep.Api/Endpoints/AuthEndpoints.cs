@@ -23,6 +23,7 @@ public static class AuthEndpoints
         {
             var nom = ServiceMep.Texte(c.NomAffiche);
             if (nom.Length == 0) throw ErreurHttp.Saisie("Le nom affiché est obligatoire.");
+            await AuthentificationLocale.ExigerNomDisponible(db, nom, u.Id);
             u.NomAffiche = nom;
         }
         var expertises = (c.Expertises ?? []).Select(x => x.SystemeCatalogueId is { } s
@@ -40,19 +41,30 @@ public static class AuthEndpoints
 
     public static void MapAuth(this RouteGroupBuilder api)
     {
-        // Deux limites : par adresse IP (politique « connexion ») et par login (blocage progressif après 5 échecs).
+        // Limites : saisie de taille raisonnable, tentatives par adresse IP (politique « connexion »), blocage progressif
+        // par login et adresse, nombre de contrôles simultanés (voir LimiteurConnexion).
         api.MapPost("/auth/connexion", async (ConnexionSaisie corps, HttpContext ctx, MepDbContext db, IPasswordHasher<Utilisateur> hasher, LimiteurConnexion limiteur) =>
         {
+            var refus = Results.Json(new { message = "Identifiant ou mot de passe incorrect." }, statusCode: 401);
             var login = AuthentificationLocale.NormaliserLogin(corps.Login);
-            if (limiteur.BloqueJusqua(login) is not null)
+            if (!LimiteurConnexion.SaisieAdmissible(login, corps.MotDePasse)) return refus;
+            var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "inconnue";
+            if (limiteur.BloqueJusqua(login, ip) is not null)
                 return Results.Json(new { message = "Trop d'échecs de connexion pour ce compte. Réessayez dans quelques minutes." }, statusCode: 429);
-            var u = await AuthentificationLocale.Verifier(db, hasher, corps.Login, corps.MotDePasse);
+            var (execute, u) = await limiteur.Calculer(() => AuthentificationLocale.Verifier(db, hasher, login, corps.MotDePasse), ctx.RequestAborted);
+            if (!execute)
+                return Results.Json(new { message = "Serveur très sollicité. Réessayez dans un instant." }, statusCode: 503);
             if (u is null)
             {
-                limiteur.Echec(login);
-                return Results.Json(new { message = "Identifiant ou mot de passe incorrect." }, statusCode: 401);
+                if (limiteur.Echec(login, ip) && await db.Utilisateurs.FirstOrDefaultAsync(x => x.Login == login) is { } cible)
+                {
+                    JournalAdmin.Ecrire(db, null, "connexion.echecs",
+                        $"{LimiteurConnexion.SeuilAlerte} échecs de connexion en moins d'une heure sur le compte {JournalAdmin.Compte(cible)} (dernier depuis {ip})", JournalAdmin.AuteurApplication);
+                    await db.SaveChangesAsync();
+                }
+                return refus;
             }
-            limiteur.Reussite(login);
+            limiteur.Reussite(login, ip);
             if (!u.Actif) return Results.Json(new { message = "Ce compte est désactivé. Contactez un administrateur." }, statusCode: 403);
             await AuthentificationLocale.Ouvrir(ctx, u);
             return Results.Ok(Dto(u));
@@ -98,8 +110,9 @@ public static class AuthEndpoints
             if (!acteur.EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
             var login = AuthentificationLocale.NormaliserLogin(corps.Login);
             var nom = ServiceMep.Texte(corps.NomAffiche);
-            if (login.Length == 0) throw ErreurHttp.Saisie("Le login est obligatoire.");
+            AuthentificationLocale.ExigerLoginValide(login);
             if (nom.Length == 0) throw ErreurHttp.Saisie("Le nom affiché est obligatoire.");
+            await AuthentificationLocale.ExigerNomDisponible(db, nom, null);
             if ((corps.MotDePasse ?? "").Length < 8) throw ErreurHttp.Saisie("Le mot de passe doit contenir au moins 8 caractères.");
             if (await db.Utilisateurs.AnyAsync(u => u.Login == login)) throw ErreurHttp.Saisie("Ce login existe déjà.");
             var nouveau = new Utilisateur
@@ -116,9 +129,14 @@ public static class AuthEndpoints
         // Chacun gère son propre profil ; le nom affiché du cookie est rafraîchi.
         api.MapPut("/utilisateurs/moi/profil", async (ProfilSaisie corps, ClaimsPrincipal user, HttpContext ctx, MepDbContext db) =>
         {
-            var u = await db.Utilisateurs.FirstOrDefaultAsync(x => x.Id == Acteur.Depuis(user).Id)
+            var acteur = Acteur.Depuis(user);
+            var u = await db.Utilisateurs.FirstOrDefaultAsync(x => x.Id == acteur.Id)
                 ?? throw new ErreurHttp(401, "Session expirée.");
+            var ancien = u.NomAffiche;
             await AppliquerProfil(u, corps, db);
+            // Le nom affiché signe les journaux : son changement est tracé avec le login, qui ne change pas.
+            if (u.NomAffiche != ancien)
+                JournalAdmin.Ecrire(db, acteur, "compte.renomme", $"{ancien} ({u.Login}) s'affiche désormais « {u.NomAffiche} »");
             await db.SaveChangesAsync();
             await AuthentificationLocale.Ouvrir(ctx, u);
             return Results.Ok(Dto(u));

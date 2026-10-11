@@ -3859,7 +3859,9 @@ export interface components {
             auteur: string;
             type: string;
             detail: string;
+            auteurLogin: null | string;
         };
+        /** @description `AuteurLogin` : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte supprimé. */
         EvenementDto: {
             /** Format: int64 */
             id: number;
@@ -3868,6 +3870,7 @@ export interface components {
             auteur: string;
             type: string;
             detail: string;
+            auteurLogin: null | string;
         };
         ExecutionResolutionDto: {
             /** Format: uuid */

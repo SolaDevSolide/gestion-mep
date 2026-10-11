@@ -99,10 +99,17 @@ export default function SsoTab() {
     );
   }
   const microsoft = v.fournisseur === 'Microsoft';
+  // Le secret appartient à une application d'un émetteur : en changer efface l'ancien secret (le serveur ne l'envoie
+  // jamais à un autre fournisseur), il faut donc saisir celui de la nouvelle application.
+  const emetteurChange =
+    donnees.secretEnregistre &&
+    (v.fournisseur !== donnees.fournisseur ||
+      v.clientId.trim() !== donnees.clientId ||
+      (microsoft ? v.annuaire.trim().toLowerCase() !== donnees.annuaire : v.autorite.trim() !== donnees.autorite));
   const incomplet =
     !v.clientId.trim() ||
     !(microsoft ? v.annuaire.trim() : v.autorite.trim()) ||
-    (!donnees.secretEnregistre && !v.secret.trim());
+    ((!donnees.secretEnregistre || emetteurChange) && !v.secret.trim());
   const jours = donnees.secretExpireLe ? joursRestants(donnees.secretExpireLe, maintenant) : null;
 
   async function enregistrer(b: Brouillon) {
@@ -366,14 +373,23 @@ export default function SsoTab() {
               />
             )}
           </Field>
-          <Field label="Secret client">
+          <Field
+            label="Secret client"
+            hint={
+              emetteurChange
+                ? 'L’annuaire ou l’application a changé : saisissez le secret de la nouvelle application, l’ancien sera effacé.'
+                : undefined
+            }
+          >
             {(id) => (
               <Input
                 id={id}
                 type="password"
                 value={v.secret}
                 onChange={(e) => d.update({ secret: e.target.value })}
-                placeholder={donnees.secretEnregistre ? 'Enregistré — laisser vide pour le conserver' : ''}
+                placeholder={
+                  donnees.secretEnregistre && !emetteurChange ? 'Enregistré — laisser vide pour le conserver' : ''
+                }
                 autoComplete="new-password"
               />
             )}

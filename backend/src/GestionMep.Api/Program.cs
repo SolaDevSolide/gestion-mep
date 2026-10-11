@@ -47,6 +47,7 @@ builder.Services.AddScoped<ServiceMep>();
 // Pièces jointes : dossier Stockage:Dossier, taille maximale Stockage:TailleMaxMo (le formulaire accepte 1 Mo de marge).
 var stockage = new StockagePiecesJointes(builder.Configuration);
 builder.Services.AddSingleton(stockage);
+builder.Services.AddSingleton<QuotasPiecesJointes>();
 builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = stockage.TailleMaxOctets + 1024 * 1024);
 // Corps limité à 1 Mo, sauf sur les routes de dépôt de fichiers (voir PiecesJointesEndpoints.AccepterFichier).
 builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = LimitesRequetes.CorpsParDefaut);

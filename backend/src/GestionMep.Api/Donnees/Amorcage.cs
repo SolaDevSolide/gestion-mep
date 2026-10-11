@@ -1,3 +1,4 @@
+using GestionMep.Api.Auth;
 using GestionMep.Api.Services;
 using GestionMep.Domain;
 using Microsoft.AspNetCore.Identity;
@@ -100,18 +101,33 @@ public static class Amorcage
 
         var login = config["Admin:Login"];
         var motDePasse = config["Admin:MotDePasse"];
-        if (!string.IsNullOrWhiteSpace(login) && !string.IsNullOrEmpty(motDePasse))
+        if (string.IsNullOrWhiteSpace(login))
         {
-            var admin = new Utilisateur { Login = login.Trim().ToLowerInvariant(), NomAffiche = login.Trim(), EstAdmin = true };
-            admin.MotDePasseHash = hasher.HashPassword(admin, motDePasse);
-            db.Utilisateurs.Add(admin);
-            await db.SaveChangesAsync();
-            journal.LogInformation("Compte administrateur {Login} créé.", admin.Login);
+            journal.LogWarning("Aucun utilisateur : définir Admin:Login (ADMIN_LOGIN) ou Demo:Activer pour pouvoir se connecter.");
+            return;
+        }
+        // Mot de passe initial : jamais celui de l'exemple, et toujours à changer à la première connexion (il reste écrit dans .env).
+        if (!string.IsNullOrEmpty(motDePasse) && AuthentificationLocale.MotDePasseInitialRefuse(motDePasse) is { } raison)
+        {
+            journal.LogError("ADMIN_MOT_DE_PASSE refusé ({Raison}) : aucun compte créé. Le corriger dans .env, ou le laisser vide pour obtenir "
+                + "un mot de passe provisoire dans ce journal, puis redémarrer.", raison);
+            return;
+        }
+        var admin = new Utilisateur { Login = login.Trim().ToLowerInvariant(), NomAffiche = login.Trim(), EstAdmin = true };
+        if (string.IsNullOrEmpty(motDePasse))
+        {
+            var provisoire = AuthentificationLocale.PoserMotDePasseProvisoire(admin, hasher);
+            journal.LogWarning("Compte administrateur {Login} créé avec le mot de passe provisoire {MotDePasse}, à changer à la première connexion.",
+                admin.Login, provisoire);
         }
         else
         {
-            journal.LogWarning("Aucun utilisateur : définir Admin:Login et Admin:MotDePasse (ou Demo:Activer) pour pouvoir se connecter.");
+            admin.MotDePasseHash = hasher.HashPassword(admin, motDePasse);
+            admin.DoitChangerMotDePasse = true;
+            journal.LogInformation("Compte administrateur {Login} créé ; son mot de passe sera à changer à la première connexion.", admin.Login);
         }
+        db.Utilisateurs.Add(admin);
+        await db.SaveChangesAsync();
     }
 
     /// <summary>

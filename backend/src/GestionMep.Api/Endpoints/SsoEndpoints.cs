@@ -23,17 +23,22 @@ public static class SsoEndpoints
             c.SecretExpireLe, c.CreationAutomatique, c.RoleAdmin, c.Libelle, ConnexionUnique.LibelleEffectif(c), urlRetour, c.ModifieeLe,
             ConnexionUnique.Anomalies(c, cles, pourActiver: true));
 
-    /// <summary>Enregistre les réglages (secret inchangé si absent). Une connexion active doit rester utilisable (422 sinon).</summary>
+    /// <summary>
+    /// Enregistre les réglages (secret inchangé si absent, sauf changement d'émetteur ou d'application : il est alors effacé).
+    /// Une connexion active doit rester utilisable (422 sinon).
+    /// </summary>
     public static async Task Enregistrer(MepDbContext db, IDataProtectionProvider cles, Acteur? acteur, SsoSaisie s, DateTimeOffset maintenant)
     {
         var c = await Charger(db);
-        ConnexionUnique.Appliquer(c, s.Fournisseur, s.Annuaire, s.Autorite, s.ClientId, s.SecretExpireLe, s.CreationAutomatique, s.RoleAdmin, s.Libelle);
-        if (!string.IsNullOrWhiteSpace(s.Secret)) ConnexionUnique.PoserSecret(c, cles, s.Secret);
+        var secretEfface = ConnexionUnique.Appliquer(c, s.Fournisseur, s.Annuaire, s.Autorite, s.ClientId, s.SecretExpireLe, s.CreationAutomatique, s.RoleAdmin, s.Libelle);
+        var nouveauSecret = !string.IsNullOrWhiteSpace(s.Secret);
+        if (nouveauSecret) ConnexionUnique.PoserSecret(c, cles, s.Secret!);
+        else if (secretEfface) c.SecretExpireLe = null;
         var anomalies = ConnexionUnique.Anomalies(c, cles, pourActiver: c.Active);
         if (anomalies.Count > 0) throw ErreurHttp.Regle(anomalies);
         c.ModifieeLe = maintenant;
         var detail = $"Connexion unique réglée : {(c.Fournisseur == FournisseurSso.Microsoft ? $"Microsoft, annuaire {c.Annuaire}" : $"émetteur {c.Autorite}")}, application {c.ClientId}"
-            + (string.IsNullOrWhiteSpace(s.Secret) ? "" : ", nouveau secret")
+            + (nouveauSecret ? ", nouveau secret" : secretEfface ? ", ancien secret effacé (émetteur ou application changés)" : "")
             + (c.CreationAutomatique ? ", création automatique des comptes" : ", comptes déjà liés seulement")
             + (c.RoleAdmin.Length > 0 ? $", rôle administrateur « {c.RoleAdmin} »" : "");
         JournalAdmin.Ecrire(db, acteur, "sso.regle", detail);

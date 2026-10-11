@@ -25,7 +25,8 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 |---|---|
 | Créer une MEP, dupliquer, créer un modèle | Tout utilisateur |
 | Modifier le contenu en préparation (intervention, personnes, systèmes, sauvegarde, étapes, retour arrière, recette, approbateurs) | Éditeur |
-| Changer le pilote ou les suppléants | Pilote, suppléant ou administrateur (tout éditeur tant qu'aucun pilote n'est désigné) |
+| Changer le pilote ou les suppléants, ou le compte auquel ils sont reliés | Pilote, suppléant ou administrateur (tout éditeur tant qu'aucun pilote n'est désigné) |
+| Compléter les informations de sauvegarde après la préparation (sauvegarde réalisée, restauration testée, preuve) | Pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée |
 | Modifier l'échéance de retour arrière, à toute phase | Pilote, suppléant ou administrateur |
 | Cocher « Procédure relue » | Participant relié à un compte |
 | Approuver ou refuser | Approbateur désigné |
@@ -37,7 +38,7 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Revenir en préparation, passer en recette, déclencher le retour arrière, clôturer | Pilote ou suppléant |
 | Saisir un résultat de recette | Participant relié à un compte, ou administrateur |
 | Faire refaire un test de recette | Pilote ou suppléant |
-| Ajouter une pièce jointe (MEP, étape, résolution) | Tout utilisateur, sauf sur une MEP clôturée |
+| Ajouter une pièce jointe (MEP, étape, résolution) | Tout utilisateur, sauf sur une MEP clôturée, dans la limite des [plafonds de stockage](Installer.md#configuration) |
 | Supprimer une pièce jointe d'une MEP | Celui qui l'a déposée, pilote, suppléant ou administrateur |
 | Créer ou modifier une résolution type | Tout utilisateur |
 | Supprimer une résolution type ou une de ses pièces jointes | Administrateur |
@@ -49,4 +50,4 @@ Un administrateur n'a **pas** les droits du pilote : pour donner le Go ou décle
 
 ## Traçabilité
 
-Chaque action sur une MEP est inscrite dans son journal avec son auteur et l'heure. Les actions d'administration sont dans le journal de la console d'administration.
+Chaque action sur une MEP est inscrite dans son journal avec son auteur (nom affiché et identifiant, qui ne change jamais) et l'heure. Les modifications des informations de sauvegarde y gardent l'ancienne et la nouvelle valeur. Les actions d'administration sont dans le journal de la console d'administration.

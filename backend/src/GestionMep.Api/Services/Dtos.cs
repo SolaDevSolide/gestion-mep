@@ -75,7 +75,8 @@ public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle,
     List<FicheRecetteDto> FichesRecette, bool BilanActive, BilanDto? Bilan, string? NonRetourFranchi, List<PieceJointeDto> PiecesJointes,
     List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements);
 
-public record EvenementDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail);
+/// <summary><c>AuteurLogin</c> : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte supprimé.</summary>
+public record EvenementDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail, string? AuteurLogin);
 
 // ---------- Entrées ----------
 public record ConnexionSaisie(string? Login, string? MotDePasse);
@@ -83,7 +84,7 @@ public record ChangementMotDePasseSaisie(string? Ancien, string? Nouveau);
 public record CompteSaisie(string? Login, string? NomAffiche, bool EstAdmin, string? Role, string? Contact);
 public record CompteModification(string? NomAffiche, bool EstAdmin, string? Role, string? Contact);
 public record CompteEtMotDePasseDto(UtilisateurDto Utilisateur, string MotDePasseProvisoire);
-public record EvenementAdminDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail);
+public record EvenementAdminDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail, string? AuteurLogin);
 public record UtilisateurSaisie(string? Login, string? NomAffiche, string? MotDePasse, bool EstAdmin, string? Role = null, string? Contact = null);
 public record ExpertiseSaisie(Guid? SystemeCatalogueId, string? Detail);
 /// <summary><c>NomAffiche</c> absent ou null : inchangé.</summary>

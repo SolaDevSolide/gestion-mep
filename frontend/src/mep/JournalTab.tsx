@@ -136,7 +136,10 @@ export default function JournalTab({ mepId, tick }: { mepId: string; tick: numbe
     return (donnees ?? []).filter(
       (e) =>
         (type === 'tous' || familleEvenement(e.type) === type) &&
-        (!q || e.detail.toLowerCase().includes(q) || e.auteur.toLowerCase().includes(q)),
+        (!q ||
+          e.detail.toLowerCase().includes(q) ||
+          e.auteur.toLowerCase().includes(q) ||
+          (e.auteurLogin ?? '').toLowerCase().includes(q)),
     );
   }, [donnees, type, recherche]);
 
@@ -221,7 +224,10 @@ export default function JournalTab({ mepId, tick }: { mepId: string; tick: numbe
                       <p className="text-sm text-fg">{e.detail}</p>
                       <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-fg-subtle">
                         <Avatar nom={e.auteur} taille="xs" />
-                        <span className="font-medium text-fg-muted">{e.auteur}</span>
+                        <span className="font-medium text-fg-muted">
+                          {e.auteur}
+                          {e.auteurLogin && <span className="font-normal text-fg-subtle"> ({e.auteurLogin})</span>}
+                        </span>
                         <span aria-hidden>·</span>
                         <time
                           dateTime={e.quand}

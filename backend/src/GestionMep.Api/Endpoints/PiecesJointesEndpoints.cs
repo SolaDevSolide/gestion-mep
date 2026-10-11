@@ -24,8 +24,12 @@ public static class PiecesJointesEndpoints
     private static RouteHandlerBuilder AccepterFichier(this RouteHandlerBuilder route, long limite) =>
         route.WithMetadata(new RequestSizeLimitAttribute(limite));
 
-    /// <summary>Lit le fichier du formulaire et l'écrit sur disque (taille et SHA-256 calculés au passage).</summary>
-    private static async Task<PieceJointe> Recevoir(HttpRequest req, StockagePiecesJointes stockage, Acteur acteur, DateTimeOffset maintenant)
+    /// <summary>
+    /// Lit le fichier du formulaire, réserve sa place (plafonds de <see cref="QuotasPiecesJointes"/>) et l'écrit sur disque
+    /// (taille et SHA-256 calculés au passage). La réservation est à libérer une fois la pièce enregistrée ou abandonnée.
+    /// </summary>
+    private static async Task<(PieceJointe Piece, IDisposable Reservation)> Recevoir(HttpRequest req, StockagePiecesJointes stockage,
+        QuotasPiecesJointes quotas, MepDbContext db, Guid? mepId, Acteur acteur, DateTimeOffset maintenant)
     {
         if (!req.HasFormContentType) throw ErreurHttp.Saisie($"Envoyer le fichier en multipart/form-data (champ « {ChampFichier} »).");
         IFormCollection form;
@@ -49,9 +53,18 @@ public static class PiecesJointesEndpoints
             DeposeParId = acteur.Id,
             DeposeLe = maintenant,
         };
-        await using var flux = fichier.OpenReadStream();
-        (piece.Taille, piece.Sha256) = await stockage.Ecrire(piece.Id, flux, req.HttpContext.RequestAborted);
-        return piece;
+        var reservation = await quotas.Reserver(db, mepId, acteur.Id, fichier.Length, maintenant, req.HttpContext.RequestAborted);
+        try
+        {
+            await using var flux = fichier.OpenReadStream();
+            (piece.Taille, piece.Sha256) = await stockage.Ecrire(piece.Id, flux, req.HttpContext.RequestAborted);
+            return (piece, reservation);
+        }
+        catch
+        {
+            reservation.Dispose();
+            throw;
+        }
     }
 
     private static void ExigerNonCloturee(Mep mep)
@@ -92,37 +105,37 @@ public static class PiecesJointesEndpoints
         });
 
         api.MapPost("/meps/{id:guid}/pieces-jointes", async (Guid id, HttpRequest req, ClaimsPrincipal user, ServiceMep svc, MepDbContext db,
-            StockagePiecesJointes stockage) =>
+            StockagePiecesJointes stockage, QuotasPiecesJointes quotas) =>
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
             ExigerNonCloturee(mep);
-            var piece = await Recevoir(req, stockage, acteur, svc.Maintenant);
-            return Results.Ok(await Ajouter(mep, piece, "", acteur, svc, db, stockage));
+            var (piece, reservation) = await Recevoir(req, stockage, quotas, db, mep.Id, acteur, svc.Maintenant);
+            using (reservation) return Results.Ok(await Ajouter(mep, piece, "", acteur, svc, db, stockage));
         }).AccepterFichier(limiteDepot);
 
         api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/pieces-jointes", async (Guid id, Guid eid, HttpRequest req, ClaimsPrincipal user, ServiceMep svc,
-            MepDbContext db, StockagePiecesJointes stockage) =>
+            MepDbContext db, StockagePiecesJointes stockage, QuotasPiecesJointes quotas) =>
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
             var etape = ServiceMep.TrouverEtape(mep, eid);
             ExigerNonCloturee(mep);
-            var piece = await Recevoir(req, stockage, acteur, svc.Maintenant);
+            var (piece, reservation) = await Recevoir(req, stockage, quotas, db, mep.Id, acteur, svc.Maintenant);
             piece.EtapeId = etape.Id;
-            return Results.Ok(await Ajouter(mep, piece, $" à {etape.Code}", acteur, svc, db, stockage));
+            using (reservation) return Results.Ok(await Ajouter(mep, piece, $" à {etape.Code}", acteur, svc, db, stockage));
         }).AccepterFichier(limiteDepot);
 
         api.MapPost("/meps/{id:guid}/resolutions/{rid:guid}/pieces-jointes", async (Guid id, Guid rid, HttpRequest req, ClaimsPrincipal user,
-            ServiceMep svc, MepDbContext db, StockagePiecesJointes stockage) =>
+            ServiceMep svc, MepDbContext db, StockagePiecesJointes stockage, QuotasPiecesJointes quotas) =>
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
             var execution = mep.Resolutions.FirstOrDefault(r => r.Id == rid) ?? throw ErreurHttp.NonTrouve("Résolution introuvable.");
             ExigerNonCloturee(mep);
-            var piece = await Recevoir(req, stockage, acteur, svc.Maintenant);
+            var (piece, reservation) = await Recevoir(req, stockage, quotas, db, mep.Id, acteur, svc.Maintenant);
             piece.ExecutionResolutionId = execution.Id;
-            return Results.Ok(await Ajouter(mep, piece, $" à la résolution « {execution.Titre} »", acteur, svc, db, stockage));
+            using (reservation) return Results.Ok(await Ajouter(mep, piece, $" à la résolution « {execution.Titre} »", acteur, svc, db, stockage));
         }).AccepterFichier(limiteDepot);
 
         api.MapDelete("/meps/{id:guid}/pieces-jointes/{pid:guid}", async (Guid id, Guid pid, ClaimsPrincipal user, ServiceMep svc, MepDbContext db,
@@ -150,11 +163,12 @@ public static class PiecesJointesEndpoints
         });
 
         api.MapPost("/resolutions/{id:guid}/pieces-jointes", async (Guid id, HttpRequest req, ClaimsPrincipal user, MepDbContext db,
-            StockagePiecesJointes stockage, TimeProvider temps) =>
+            StockagePiecesJointes stockage, QuotasPiecesJointes quotas, TimeProvider temps) =>
         {
             var acteur = Acteur.Depuis(user);
             if (!await db.ResolutionsTypes.AnyAsync(r => r.Id == id)) throw ErreurHttp.NonTrouve("Résolution type introuvable.");
-            var piece = await Recevoir(req, stockage, acteur, temps.GetUtcNow());
+            var (piece, reservation) = await Recevoir(req, stockage, quotas, db, null, acteur, temps.GetUtcNow());
+            using var _ = reservation;
             piece.ResolutionTypeId = id;
             try
             {
