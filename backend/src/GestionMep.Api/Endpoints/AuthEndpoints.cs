@@ -39,6 +39,17 @@ public static class AuthEndpoints
         u.Expertises = expertises;
     }
 
+    /// <summary>
+    /// Profil d'un autre compte modifié par un administrateur (console) ou par <c>gestion-mep comptes</c> (acteur null) :
+    /// mêmes contrôles que le profil personnel, inscrit dans le journal d'administration.
+    /// </summary>
+    public static async Task ModifierProfil(MepDbContext db, Acteur? acteur, Utilisateur u, ProfilSaisie c, string? detail = null)
+    {
+        await AppliquerProfil(u, c, db);
+        JournalAdmin.Ecrire(db, acteur, "compte.modifie", $"Profil de {JournalAdmin.Compte(u)} modifié{(detail is null ? "" : $" : {detail}")}");
+        await db.SaveChangesAsync();
+    }
+
     public static void MapAuth(this RouteGroupBuilder api)
     {
         // Limites : saisie de taille raisonnable, tentatives par adresse IP (politique « connexion »), blocage progressif
@@ -147,9 +158,7 @@ public static class AuthEndpoints
             var acteur = Acteur.Depuis(user);
             if (!acteur.EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
             var u = await db.Utilisateurs.FirstOrDefaultAsync(x => x.Id == uid) ?? throw ErreurHttp.NonTrouve("Utilisateur introuvable.");
-            await AppliquerProfil(u, corps, db);
-            JournalAdmin.Ecrire(db, acteur, "compte.modifie", $"Profil de {JournalAdmin.Compte(u)} modifié");
-            await db.SaveChangesAsync();
+            await ModifierProfil(db, acteur, u, corps);
             return Results.Ok(Dto(u));
         });
     }

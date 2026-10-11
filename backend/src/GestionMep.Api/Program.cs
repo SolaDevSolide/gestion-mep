@@ -19,7 +19,7 @@ if (args.Contains("--sante"))
     return;
 }
 
-// Commandes d'exploitation (« gestion-mep aide ») : comptes, migration, vérification de la configuration.
+// Commandes d'exploitation et d'administration (« gestion-mep aide ») : tout ce que règle la console, plus migration et sauvegardes.
 if (LigneDeCommande.EstCommande(args))
 {
     Environment.ExitCode = await LigneDeCommande.Executer(args);
