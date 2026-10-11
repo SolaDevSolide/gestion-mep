@@ -492,3 +492,51 @@ public class EvenementJournal
     public string Type { get; set; } = "";
     public string Detail { get; set; } = "";
 }
+
+/// <summary>Fournisseur de la connexion unique : Microsoft Entra ID (préréglage) ou tout autre fournisseur OpenID Connect.</summary>
+public enum FournisseurSso { Microsoft, OpenIdConnect }
+
+/// <summary>
+/// Connexion unique (SSO) facultative, ligne unique réglée depuis la console d'administration ou la ligne de commande.
+/// Désactivée, seuls les comptes locaux se connectent ; activée, le mot de passe local reste possible.
+/// </summary>
+public class ConfigurationSso
+{
+    public const int IdUnique = 1;
+    public int Id { get; set; } = IdUnique;
+    public bool Active { get; set; }
+    public FournisseurSso Fournisseur { get; set; } = FournisseurSso.Microsoft;
+    /// <summary>Microsoft : identifiant de l'annuaire (locataire), GUID ou domaine. Jamais « common » : seul l'annuaire de l'entreprise est accepté.</summary>
+    public string Annuaire { get; set; } = "";
+    /// <summary>Autre fournisseur : adresse de l'émetteur OpenID Connect (https).</summary>
+    public string Autorite { get; set; } = "";
+    public string ClientId { get; set; } = "";
+    /// <summary>Secret client chiffré avec les clés de l'application (dossier Cles:Dossier) ; jamais renvoyé par l'API.</summary>
+    public string SecretChiffre { get; set; } = "";
+    /// <summary>Date d'expiration du secret indiquée par l'informatique : la console prévient 30 jours avant.</summary>
+    public DateOnly? SecretExpireLe { get; set; }
+    /// <summary>Crée le compte à la première connexion ; sinon seuls les comptes déjà liés entrent.</summary>
+    public bool CreationAutomatique { get; set; } = true;
+    /// <summary>Rôle d'application (claim « roles ») qui donne le rôle administrateur ; vide : rôle géré dans l'application.</summary>
+    public string RoleAdmin { get; set; } = "";
+    /// <summary>Texte du bouton de la page de connexion (vide : texte par défaut).</summary>
+    public string Libelle { get; set; } = "";
+    public DateTimeOffset? ModifieeLe { get; set; }
+}
+
+/// <summary>
+/// Compte SSO relié à un compte de l'application, par l'identifiant immuable du fournisseur (émetteur + oid/sub),
+/// jamais par l'adresse mail.
+/// </summary>
+public class IdentiteExterne
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UtilisateurId { get; set; }
+    public Utilisateur? Utilisateur { get; set; }
+    public string Emetteur { get; set; } = "";
+    public string Sujet { get; set; } = "";
+    /// <summary>Identifiant lisible chez le fournisseur (UPN, mail), pour l'affichage seulement.</summary>
+    public string Identifiant { get; set; } = "";
+    public DateTimeOffset CreeeLe { get; set; }
+    public DateTimeOffset? DerniereConnexion { get; set; }
+}

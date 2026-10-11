@@ -40,6 +40,15 @@ Après 5 échecs consécutifs, le compte est bloqué quelques minutes, et le nom
 **La connexion semble réussir mais je reste sur la page de connexion.**
 L'application doit être servie en HTTPS (sauf sur `http://localhost`) : le cookie de session n'est pas envoyé en HTTP. Voir [Installer](Installer.md#proxy-inverse-https).
 
+**« Un compte local porte déjà cet identifiant » en me connectant avec Microsoft.**
+Vous avez déjà un compte avec mot de passe. Connectez-vous avec, puis « Mon profil › Connexion unique › Lier mon compte ». Ensuite, le bouton Microsoft ouvre ce compte.
+
+**« Aucun compte relié à ce compte Microsoft ».**
+La création automatique des comptes est désactivée : un administrateur doit vous créer un compte, que vous reliez ensuite depuis « Mon profil ».
+
+**La connexion Microsoft échoue pour tout le monde.**
+Le secret client a peut-être expiré. Un administrateur lance « Tester » dans la console (onglet Connexion unique) ou `gestion-mep sso tester` : voir [Connexion Microsoft](Connexion-Microsoft.md#dépannage). En attendant, la connexion par mot de passe reste possible pour les comptes qui en ont un.
+
 **L'administrateur a perdu son mot de passe ou son compte est désactivé.**
 L'équipe informatique le débloque en ligne de commande : voir [Exploiter](Exploiter.md#commandes-dadministration).
 
@@ -64,6 +73,6 @@ Les contrôles après la mise à jour ou l'importation ont trouvé un écart (ta
 Pas encore : le temps réel est diffusé en mémoire et les migrations tournent au démarrage. Une seule instance à la fois.
 
 **Peut-on se connecter avec les comptes de l'entreprise (SSO) ?**
-Pas encore : les comptes sont gérés dans l'application.
+Oui, avec Microsoft Entra ID ou un autre fournisseur OpenID Connect, sans que ce soit obligatoire : voir [Connexion Microsoft](Connexion-Microsoft.md).
 
 Une question sans réponse ici ? Ouvrir un ticket sur le dépôt GitHub.

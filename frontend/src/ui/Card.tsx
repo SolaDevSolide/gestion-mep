@@ -17,8 +17,14 @@ export function CardHeader({
   className?: string;
 }) {
   return (
-    <div className={cn('flex items-start justify-between gap-4 border-b border-line px-5 py-4', className)}>
-      <div className="min-w-0">
+    <div
+      className={cn(
+        'flex flex-wrap items-start justify-between gap-x-4 gap-y-3 border-b border-line px-5 py-4',
+        className,
+      )}
+    >
+      {/* Sur un écran étroit, l'action passe sous le titre au lieu de l'écraser. */}
+      <div className="min-w-0 flex-1 basis-56">
         <h2 className="text-[15px] font-semibold tracking-tight text-fg">{titre}</h2>
         {description && <p className="mt-0.5 text-[13px] text-fg-subtle">{description}</p>}
       </div>

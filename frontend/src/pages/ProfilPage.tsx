@@ -1,5 +1,6 @@
-import { GraduationCap, OctagonAlert, Plus, Save, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { CircleCheck, GraduationCap, Link2, Link2Off, OctagonAlert, Plus, Save, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useAsync, useDraft, useReportDirty } from '../hooks';
@@ -7,10 +8,20 @@ import type { Expertise, SystemeCatalogue } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
+import { ConfirmDialog } from '../ui/Dialog';
 import { EmptyState } from '../ui/EmptyState';
 import { Field, Input, Select } from '../ui/Input';
 import { useToast } from '../ui/Toast';
 import { FormulaireMotDePasse } from './FormulaireMotDePasse';
+
+/** Retour de la connexion unique : le serveur renvoie vers /profil?sso=CODE. */
+const RETOURS_SSO: Record<string, string> = {
+  'deja-lie': 'Ce compte Microsoft est déjà lié à un autre compte.',
+  'sso-session': 'La demande de liaison a expiré, recommencez.',
+  'sso-injoignable': 'Le fournisseur de connexion est injoignable depuis le serveur. Réessayez plus tard.',
+  'sso-echec': 'La liaison a échoué. Réessayez ou contactez un administrateur.',
+  'compte-desactive': 'Ce compte est désactivé. Contactez un administrateur.',
+};
 
 interface Brouillon {
   nomAffiche: string;
@@ -35,6 +46,45 @@ export default function ProfilPage() {
   const v = d.value;
   const [envoi, setEnvoi] = useState(false);
   const [erreurSauvegarde, setErreurSauvegarde] = useState('');
+
+  const [params, setParams] = useSearchParams();
+  // Code lu une fois à l'arrivée, puis retiré de l'adresse pour qu'un rafraîchissement ne le rejoue pas.
+  const [codeSso] = useState(() => params.get('sso'));
+  useEffect(() => {
+    if (params.has('sso')) {
+      const suite = new URLSearchParams(params);
+      suite.delete('sso');
+      setParams(suite, { replace: true });
+    }
+  }, [params, setParams]);
+  // Si l'état de la connexion unique ne se charge pas, la carte reste simplement masquée.
+  const sso = useAsync(() => api.ssoEtat(), []);
+  const etatSso = sso.donnees;
+  const [liaison, setLiaison] = useState(false);
+  const [delier, setDelier] = useState(false);
+
+  async function lier() {
+    setLiaison(true);
+    try {
+      const { url } = await api.ssoLier();
+      window.location.assign(url);
+    } catch (e) {
+      toast.erreur(e instanceof Error ? e.message : 'Liaison impossible.');
+      setLiaison(false);
+    }
+  }
+
+  async function delierMoi(): Promise<boolean> {
+    try {
+      await api.ssoDelierMoi();
+      sso.recharger();
+      toast.succes('Compte délié.');
+      return true;
+    } catch (e) {
+      toast.erreur(e instanceof Error ? e.message : 'Dissociation impossible.');
+      return false;
+    }
+  }
 
   const systemes = catalogue ?? [];
   const nomSysteme = (id: string) => systemes.find((s) => s.id === id)?.nom ?? 'Système inconnu';
@@ -74,6 +124,17 @@ export default function ProfilPage() {
       {(erreur || erreurSauvegarde) && (
         <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">
           {erreurSauvegarde || erreur}
+        </Alerte>
+      )}
+
+      {codeSso === 'lie' && (
+        <Alerte ton="ok" icone={CircleCheck} className="mt-6">
+          Compte Microsoft lié.
+        </Alerte>
+      )}
+      {codeSso && codeSso !== 'lie' && (
+        <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">
+          {RETOURS_SSO[codeSso] ?? 'La liaison a échoué. Réessayez ou contactez un administrateur.'}
         </Alerte>
       )}
 
@@ -173,6 +234,53 @@ export default function ProfilPage() {
           )}
         </div>
       </Card>
+
+      {etatSso && (etatSso.disponible || etatSso.identifiant !== null) && (
+        <Card className="mt-6">
+          <CardHeader
+            titre="Connexion unique"
+            description={
+              etatSso.identifiant === null
+                ? 'Liez votre compte pour vous connecter sans saisir de mot de passe.'
+                : 'Votre compte est lié : vous pouvez vous connecter sans mot de passe.'
+            }
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-5">
+            {etatSso.identifiant === null ? (
+              <>
+                <p className="text-sm text-fg-muted">Vous serez redirigé vers le fournisseur pour vous identifier.</p>
+                <Button
+                  variante="primaire"
+                  icone={<Link2 className="size-4" aria-hidden />}
+                  chargement={liaison}
+                  onClick={() => void lier()}
+                >
+                  Lier mon compte
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="min-w-0 text-sm">
+                  Lié à <span className="font-mono font-semibold break-all">{etatSso.identifiant}</span>
+                </p>
+                {etatSso.peutDelier && (
+                  <Button icone={<Link2Off className="size-4" aria-hidden />} onClick={() => setDelier(true)}>
+                    Délier
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </Card>
+      )}
+      <ConfirmDialog
+        open={delier}
+        onOpenChange={setDelier}
+        titre="Délier votre compte ?"
+        description="Vous ne pourrez plus vous connecter par la connexion unique ; votre mot de passe reste valable."
+        libelleConfirmer="Délier"
+        onConfirmer={delierMoi}
+      />
 
       <Card className="mt-6">
         <CardHeader titre="Mot de passe" description="Choisissez un mot de passe personnel d’au moins 10 caractères." />

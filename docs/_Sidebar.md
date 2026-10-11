@@ -12,6 +12,7 @@
 **Installer et exploiter**
 - [Installer](Installer.md)
 - [Exploiter](Exploiter.md)
+- [Connexion Microsoft (SSO)](Connexion-Microsoft.md)
 
 **Contribuer**
 - [Contribuer](../CONTRIBUTING.md)

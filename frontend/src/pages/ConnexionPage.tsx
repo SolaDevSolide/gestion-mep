@@ -1,7 +1,9 @@
 import { Rocket, ShieldCheck, Timer, Undo2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { api } from '../api';
 import { useAuth } from '../auth';
+import { useAsync } from '../hooks';
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
 import { Field, Input } from '../ui/Input';
@@ -13,6 +15,34 @@ const COMPTES_DEMO = [
   { login: 'claire', role: 'Opérateur' },
 ];
 
+/** Messages des échecs de connexion unique : le serveur renvoie vers /connexion?erreur=CODE. */
+const ERREURS_SSO: Record<string, string> = {
+  'sso-inactif': 'La connexion Microsoft n’est plus activée. Utilisez votre identifiant et votre mot de passe.',
+  'sso-annule': 'La connexion a été annulée.',
+  'sso-echec': 'La connexion a échoué. Réessayez ou contactez un administrateur.',
+  'sso-injoignable': 'Le fournisseur de connexion est injoignable depuis le serveur. Réessayez plus tard.',
+  'compte-inconnu':
+    'Aucun compte n’est relié à ce compte Microsoft, et la création automatique est désactivée. Demandez à un administrateur de créer votre compte, ou connectez-vous avec votre mot de passe puis liez votre compte depuis « Mon profil ».',
+  'login-existant':
+    'Un compte local porte déjà cet identifiant. Connectez-vous avec votre mot de passe, puis cliquez sur « Lier mon compte » dans « Mon profil ».',
+  'compte-desactive': 'Ce compte est désactivé. Contactez un administrateur.',
+  'deja-lie': 'Ce compte Microsoft est déjà lié à un autre compte.',
+  'sso-session': 'La demande de connexion a expiré. Recommencez.',
+};
+const ERREUR_SSO_INCONNUE = 'La connexion a échoué. Réessayez ou contactez un administrateur.';
+
+/** Logo à quatre carrés, en couleurs fixes (marque du fournisseur). */
+function IconeMicrosoft() {
+  return (
+    <svg viewBox="0 0 21 21" className="size-4" aria-hidden>
+      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+    </svg>
+  );
+}
+
 export default function ConnexionPage() {
   const { utilisateur, chargement, connecter } = useAuth();
   const navigate = useNavigate();
@@ -20,6 +50,11 @@ export default function ConnexionPage() {
   const [mdp, setMdp] = useState('');
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState(false);
+  const [params] = useSearchParams();
+  // Échec de chargement : simplement pas de bouton de connexion unique.
+  const { donnees: options } = useAsync(() => api.optionsConnexion(), []);
+  const codeSso = params.get('erreur');
+  const erreurSso = codeSso ? (ERREURS_SSO[codeSso] ?? ERREUR_SSO_INCONNUE) : '';
 
   if (!chargement && utilisateur) return <Navigate to="/" replace />;
 
@@ -79,6 +114,27 @@ export default function ConnexionPage() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Connexion</h1>
           <p className="mt-1 mb-6 text-sm text-fg-subtle">Identifiez-vous pour accéder aux mises en production.</p>
+          {erreurSso && (
+            <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mb-4">
+              {erreurSso}
+            </Alerte>
+          )}
+          {options?.ssoActif && (
+            <>
+              <Button
+                variante="secondaire"
+                taille="lg"
+                className="w-full"
+                icone={<IconeMicrosoft />}
+                onClick={() => window.location.assign('/api/auth/sso/connexion')}
+              >
+                {options.ssoLibelle || 'Se connecter avec Microsoft'}
+              </Button>
+              <div className="my-5 flex items-center gap-3 text-xs text-fg-subtle" aria-hidden>
+                <span className="h-px flex-1 bg-line" /> ou <span className="h-px flex-1 bg-line" />
+              </div>
+            </>
+          )}
           <form onSubmit={(e) => void valider(e)} className="space-y-4">
             <Field label="Identifiant">
               {(id) => (

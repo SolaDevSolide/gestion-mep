@@ -1,13 +1,14 @@
-import { CircleArrowUp, NotebookText, SlidersHorizontal, Users } from 'lucide-react';
+import { CircleArrowUp, KeyRound, NotebookText, SlidersHorizontal, Users } from 'lucide-react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
 import ComptesTab from './ComptesTab';
 import JournalTab from './JournalTab';
 import ParametresTab from './ParametresTab';
+import SsoTab from './SsoTab';
 import VersionTab from './VersionTab';
 
-const ONGLETS = new Set(['comptes', 'parametres', 'journal', 'version']);
+const ONGLETS = new Set(['comptes', 'parametres', 'sso', 'journal', 'version']);
 
 /** Console d'administration : comptes, paramètres globaux et journal. Réservée aux administrateurs. */
 export default function AdminPage() {
@@ -31,6 +32,9 @@ export default function AdminPage() {
           <TabsTrigger value="parametres">
             <SlidersHorizontal className="size-4" aria-hidden /> Paramètres
           </TabsTrigger>
+          <TabsTrigger value="sso">
+            <KeyRound className="size-4" aria-hidden /> Connexion unique
+          </TabsTrigger>
           <TabsTrigger value="journal">
             <NotebookText className="size-4" aria-hidden /> Journal
           </TabsTrigger>
@@ -43,6 +47,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="parametres" className="mt-6 outline-none">
           <ParametresTab />
+        </TabsContent>
+        <TabsContent value="sso" className="mt-6 outline-none">
+          <SsoTab />
         </TabsContent>
         <TabsContent value="journal" className="mt-6 outline-none">
           <JournalTab />

@@ -195,6 +195,96 @@
         }
       }
     },
+    "/api/auth/options": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptionsConnexionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/sso/connexion": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "lier",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/auth/sso/etat": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoProfilDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/sso/lier": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoLiaisonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/sso/lien": {
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/application": {
       "get": {
         "tags": [
@@ -2582,6 +2672,154 @@
         }
       }
     },
+    "/api/admin/sso": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoReglagesDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SsoSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoReglagesDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sso/activer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoReglagesDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sso/desactiver": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoReglagesDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sso/tester": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoTestDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sso/identites": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SsoIdentiteDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/sso/identites/{id}": {
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/admin/mises-a-jour/verifier": {
       "post": {
         "tags": [
@@ -4366,6 +4604,13 @@
           }
         }
       },
+      "FournisseurSso": {
+        "enum": [
+          "Microsoft",
+          "OpenIdConnect"
+        ],
+        "description": "Fournisseur de la connexion unique : Microsoft Entra ID (préréglage) ou tout autre fournisseur OpenID Connect."
+      },
       "InstallateurDto": {
         "required": [
           "present",
@@ -6028,6 +6273,25 @@
           }
         }
       },
+      "OptionsConnexionDto": {
+        "required": [
+          "ssoActif",
+          "ssoLibelle"
+        ],
+        "type": "object",
+        "properties": {
+          "ssoActif": {
+            "type": "boolean"
+          },
+          "ssoLibelle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Options de la page de connexion (sans authentification) : bouton de connexion unique s'il est actif."
+      },
       "ParametresDto": {
         "required": [
           "approbationsMinimum"
@@ -6982,6 +7246,276 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "SsoIdentiteDto": {
+        "required": [
+          "id",
+          "utilisateurId",
+          "login",
+          "nomAffiche",
+          "identifiant",
+          "creeeLe",
+          "derniereConnexion"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "utilisateurId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "login": {
+            "type": "string"
+          },
+          "nomAffiche": {
+            "type": "string"
+          },
+          "identifiant": {
+            "type": "string"
+          },
+          "creeeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "derniereConnexion": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "Compte de l'application relié à un compte du fournisseur."
+      },
+      "SsoLiaisonDto": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "description": "Adresse à ouvrir pour lier son compte (jeton valable 5 minutes)."
+      },
+      "SsoProfilDto": {
+        "required": [
+          "disponible",
+          "libelle",
+          "identifiant",
+          "peutDelier"
+        ],
+        "type": "object",
+        "properties": {
+          "disponible": {
+            "type": "boolean"
+          },
+          "libelle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "identifiant": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "peutDelier": {
+            "type": "boolean"
+          }
+        },
+        "description": "Connexion unique vue du profil : `Disponible` si elle est active, `Identifiant` du compte lié (null sinon)."
+      },
+      "SsoReglagesDto": {
+        "required": [
+          "active",
+          "fournisseur",
+          "annuaire",
+          "autorite",
+          "clientId",
+          "secretEnregistre",
+          "secretLisible",
+          "secretExpireLe",
+          "creationAutomatique",
+          "roleAdmin",
+          "libelle",
+          "libelleEffectif",
+          "urlRetour",
+          "modifieeLe",
+          "anomalies"
+        ],
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "fournisseur": {
+            "$ref": "#/components/schemas/FournisseurSso"
+          },
+          "annuaire": {
+            "type": "string"
+          },
+          "autorite": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "secretEnregistre": {
+            "type": "boolean"
+          },
+          "secretLisible": {
+            "type": "boolean"
+          },
+          "secretExpireLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "creationAutomatique": {
+            "type": "boolean"
+          },
+          "roleAdmin": {
+            "type": "string"
+          },
+          "libelle": {
+            "type": "string"
+          },
+          "libelleEffectif": {
+            "type": "string"
+          },
+          "urlRetour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "modifieeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "anomalies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Réglages de la connexion unique pour la console. Le secret n'est jamais renvoyé : `SecretEnregistre` dit s'il existe,\n`SecretLisible` s'il se déchiffre avec les clés actuelles. `UrlRetour` : adresse à déclarer chez le fournisseur."
+      },
+      "SsoSaisie": {
+        "required": [
+          "fournisseur",
+          "annuaire",
+          "autorite",
+          "clientId",
+          "secret",
+          "secretExpireLe",
+          "creationAutomatique",
+          "roleAdmin",
+          "libelle"
+        ],
+        "type": "object",
+        "properties": {
+          "fournisseur": {
+            "$ref": "#/components/schemas/FournisseurSso"
+          },
+          "annuaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "autorite": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "clientId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secret": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secretExpireLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "creationAutomatique": {
+            "type": "boolean"
+          },
+          "roleAdmin": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "libelle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Saisie des réglages ; `Secret` null ou vide : secret inchangé."
+      },
+      "SsoTestDto": {
+        "required": [
+          "ok",
+          "verifications"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "verifications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SsoVerificationDto"
+            }
+          }
+        }
+      },
+      "SsoVerificationDto": {
+        "required": [
+          "libelle",
+          "ok",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "libelle": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
           }
         }
       },

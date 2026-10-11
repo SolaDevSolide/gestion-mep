@@ -56,6 +56,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<ParametresGlobaux> Parametres => Set<ParametresGlobaux>();
     public DbSet<PieceJointe> PiecesJointes => Set<PieceJointe>();
     public DbSet<EvenementAdmin> JournalAdmin => Set<EvenementAdmin>();
+    public DbSet<ConfigurationSso> ConfigurationsSso => Set<ConfigurationSso>();
+    public DbSet<IdentiteExterne> IdentitesExternes => Set<IdentiteExterne>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -171,6 +173,28 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         {
             e.Property(x => x.Type).HasMaxLength(64);
             e.HasIndex(x => x.Quand);
+        });
+
+        b.Entity<ConfigurationSso>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.Fournisseur).HasConversion<string>().HasMaxLength(32);
+            e.Property(x => x.Annuaire).HasMaxLength(255);
+            e.Property(x => x.Autorite).HasMaxLength(500);
+            e.Property(x => x.ClientId).HasMaxLength(255);
+            e.Property(x => x.RoleAdmin).HasMaxLength(100);
+            e.Property(x => x.Libelle).HasMaxLength(60);
+            // Ligne unique créée par la migration, connexion unique désactivée.
+            e.HasData(new ConfigurationSso { Id = ConfigurationSso.IdUnique });
+        });
+
+        b.Entity<IdentiteExterne>(e =>
+        {
+            e.Property(x => x.Emetteur).HasMaxLength(500);
+            e.Property(x => x.Sujet).HasMaxLength(255);
+            e.Property(x => x.Identifiant).HasMaxLength(255);
+            e.HasIndex(x => new { x.Emetteur, x.Sujet }).IsUnique();
+            e.HasOne(x => x.Utilisateur).WithMany().HasForeignKey(x => x.UtilisateurId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

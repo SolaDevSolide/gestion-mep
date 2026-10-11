@@ -35,6 +35,13 @@ import type {
   CompteSaisie,
   EvenementAdmin,
   NouveauCompteSaisie,
+  OptionsConnexion,
+  SsoIdentite,
+  SsoLiaison,
+  SsoProfil,
+  SsoReglages,
+  SsoSaisie,
+  SsoTest,
 } from './types';
 
 export class ApiError extends Error {
@@ -114,6 +121,10 @@ export const api = {
   connexion: (login: string, motDePasse: string) => post<Utilisateur>('/auth/connexion', { login, motDePasse }),
   deconnexion: () => post<void>('/auth/deconnexion'),
   moi: () => get<Utilisateur>('/auth/moi'),
+  optionsConnexion: () => get<OptionsConnexion>('/auth/options'),
+  ssoEtat: () => get<SsoProfil>('/auth/sso/etat'),
+  ssoLier: () => post<SsoLiaison>('/auth/sso/lier'),
+  ssoDelierMoi: () => del<void>('/auth/sso/lien'),
   utilisateurs: () => get<Utilisateur[]>('/utilisateurs'),
   modifierMonProfil: (s: ProfilSaisie) => put<Utilisateur>('/utilisateurs/moi/profil', s),
   changerMotDePasse: (s: ChangementMotDePasseSaisie) => post<Utilisateur>('/auth/mot-de-passe', s),
@@ -126,6 +137,13 @@ export const api = {
   adminReactiver: (id: string) => post<Utilisateur>(`/admin/utilisateurs/${id}/reactiver`),
   adminReinitialiserMotDePasse: (id: string) =>
     post<CompteAvecMotDePasse>(`/admin/utilisateurs/${id}/reinitialiser-mot-de-passe`),
+  ssoReglages: () => get<SsoReglages>('/admin/sso'),
+  ssoEnregistrer: (s: SsoSaisie) => put<SsoReglages>('/admin/sso', s),
+  ssoActiver: () => post<SsoReglages>('/admin/sso/activer'),
+  ssoDesactiver: () => post<SsoReglages>('/admin/sso/desactiver'),
+  ssoTester: () => post<SsoTest>('/admin/sso/tester'),
+  ssoIdentites: () => get<SsoIdentite[]>('/admin/sso/identites'),
+  ssoDelier: (id: string) => del<void>(`/admin/sso/identites/${id}`),
   adminJournal: (limite = 200) => get<EvenementAdmin[]>(`/admin/journal?limite=${limite}`),
 
   meps: (modele?: boolean) => get<MepResume[]>(`/meps${modele === undefined ? '' : `?modele=${modele}`}`),
