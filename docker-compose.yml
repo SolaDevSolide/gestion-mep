@@ -29,6 +29,10 @@ services:
       Admin__MotDePasse: ${ADMIN_MOT_DE_PASSE:-}
       Stockage__Dossier: /data/pieces-jointes
       Stockage__TailleMaxMo: ${PIECES_TAILLE_MAX_MO:-20}
+      # Plafonds des pièces jointes (Mo, 0 = sans limite) et espace disque toujours laissé libre
+      Stockage__QuotaMepMo: ${PIECES_QUOTA_MEP_MO:-1024}
+      Stockage__QuotaCompteJourMo: ${PIECES_QUOTA_COMPTE_JOUR_MO:-1024}
+      Stockage__EspaceLibreMinMo: ${PIECES_ESPACE_LIBRE_MIN_MO:-2048}
       Cles__Dossier: /data/cles
       # Sauvegardes automatiques avant une mise à jour du schéma ou une importation (supprimées si les contrôles passent)
       Sauvegardes__Dossier: /data/sauvegardes
@@ -47,8 +51,9 @@ services:
       - cles:/data/cles
       - sauvegardes:/data/sauvegardes
       - mise-a-jour:/data/mise-a-jour
+    # Publié sur 127.0.0.1 par défaut : seul un reverse proxy HTTPS de la même machine y accède (voir ADRESSE_ECOUTE dans .env.example).
     ports:
-      - "${PORT:-8080}:8080"
+      - "${ADRESSE_ECOUTE:-127.0.0.1}:${PORT:-8080}:8080"
     restart: unless-stopped
 
   # Facultatif : mise à jour depuis la console d'administration. Désactivé par défaut ; l'activer avec

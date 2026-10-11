@@ -35,7 +35,10 @@ L'application a été mise à jour sur le serveur : cliquer « Recharger ».
 Demander à un administrateur de le réinitialiser : il vous transmet un mot de passe provisoire, à changer à la connexion.
 
 **La connexion est refusée alors que le mot de passe est bon.**
-Après 5 échecs consécutifs, le compte est bloqué quelques minutes, et le nombre de tentatives par minute est limité par adresse IP. Attendre puis réessayer.
+Après 5 échecs consécutifs depuis votre poste, le compte y est bloqué quelques minutes, et le nombre de tentatives par minute est limité par adresse IP. Attendre puis réessayer. Les échecs d'une autre personne, depuis un autre poste, ne vous bloquent pas.
+
+**Le dépôt d'une pièce jointe est refusé (« limite de pièces jointes », « 24 heures », « espace disque »).**
+Des plafonds protègent le serveur : total par MEP, dépôts d'un compte sur 24 heures, espace disque minimal. Supprimer des pièces inutiles, réessayer plus tard, ou demander à l'équipe informatique de relever le plafond (voir [Installer](Installer.md#configuration)).
 
 **La connexion semble réussir mais je reste sur la page de connexion.**
 L'application doit être servie en HTTPS (sauf sur `http://localhost`) : le cookie de session n'est pas envoyé en HTTP. Voir [Installer](Installer.md#proxy-inverse-https).

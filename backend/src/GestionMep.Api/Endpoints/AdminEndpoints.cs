@@ -42,7 +42,8 @@ public static class AdminEndpoints
         admin.MapPost("/utilisateurs", async (CompteSaisie c, ClaimsPrincipal user, MepDbContext db, IPasswordHasher<Utilisateur> hasher) =>
         {
             var login = AuthentificationLocale.NormaliserLogin(c.Login);
-            if (login.Length == 0) throw ErreurHttp.Saisie("Le login est obligatoire.");
+            AuthentificationLocale.ExigerLoginValide(login);
+            await AuthentificationLocale.ExigerNomDisponible(db, Nom(c.NomAffiche), null);
             var u = new Utilisateur { Login = login, NomAffiche = Nom(c.NomAffiche), EstAdmin = c.EstAdmin, Role = ServiceMep.Texte(c.Role), Contact = ServiceMep.Texte(c.Contact) };
             if (await db.Utilisateurs.AnyAsync(x => x.Login == login)) throw ErreurHttp.Saisie("Ce login existe déjà.");
             var mdp = AuthentificationLocale.PoserMotDePasseProvisoire(u, hasher);
@@ -58,7 +59,11 @@ public static class AdminEndpoints
             var nom = Nom(c.NomAffiche);
             if (u.EstAdmin && !c.EstAdmin) await ExigerAutreAdmin(db, u, "Impossible de retirer le rôle administrateur au dernier administrateur actif.");
             var changements = new List<string>();
-            if (nom != u.NomAffiche) changements.Add($"nom « {nom} »");
+            if (nom != u.NomAffiche)
+            {
+                await AuthentificationLocale.ExigerNomDisponible(db, nom, u.Id);
+                changements.Add($"nom « {nom} »");
+            }
             if (c.EstAdmin != u.EstAdmin) changements.Add(c.EstAdmin ? "devient administrateur" : "n'est plus administrateur");
             var role = ServiceMep.Texte(c.Role);
             var contact = ServiceMep.Texte(c.Contact);
@@ -114,8 +119,10 @@ public static class AdminEndpoints
         admin.MapGet("/journal", async (int? limite, MepDbContext db) =>
         {
             var n = Math.Clamp(limite ?? 200, 1, 1000);
-            return (await db.JournalAdmin.AsNoTracking().OrderByDescending(e => e.Id).Take(n).ToListAsync())
-                .Select(e => new EvenementAdminDto(e.Id, e.Quand, e.Auteur, e.Type, e.Detail));
+            return await db.JournalAdmin.AsNoTracking().OrderByDescending(e => e.Id).Take(n)
+                .Select(e => new EvenementAdminDto(e.Id, e.Quand, e.Auteur, e.Type, e.Detail,
+                    db.Utilisateurs.Where(u => u.Id == e.UtilisateurId).Select(u => u.Login).FirstOrDefault()))
+                .ToListAsync();
         });
     }
 }

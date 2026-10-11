@@ -56,7 +56,16 @@ export type TypeEvenementAdmin =
   | 'parametres.modifies'
   | 'critere.cree'
   | 'critere.modifie'
-  | 'critere.supprime';
+  | 'critere.supprime'
+  | 'compte.renomme'
+  | 'connexion.echecs'
+  | 'sso.regle'
+  | 'sso.active'
+  | 'sso.desactive'
+  | 'sso.delie'
+  | 'sso.lie'
+  | 'donnees.controle-reussi'
+  | 'donnees.controle-echoue';
 
 /** `dateMep` : date du Go si elle existe ; `creeLe` : date de création (affichée tant que la MEP n'a pas démarré). */
 export type MepResume = S['MepResumeDto'];

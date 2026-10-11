@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 using GestionMep.Api.Auth;
@@ -10,6 +11,9 @@ namespace GestionMep.Api.Endpoints;
 
 public static class MepsEndpoints
 {
+    /// <summary>Durée d'un flux temps réel avant renouvellement par le navigateur.</summary>
+    private static readonly TimeSpan DureeFlux = TimeSpan.FromHours(1);
+
     /// <summary>Date d'un instant dans le fuseau de la MEP (UTC si le fuseau est inconnu) ; null si l'instant est absent.</summary>
     private static DateOnly? DateLocale(DateTimeOffset? instant, string fuseau)
     {
@@ -143,7 +147,12 @@ public static class MepsEndpoints
         {
             var acteur = Acteur.Depuis(user);
             var mep = await svc.Charger(id);
-            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
+            ServiceMep.ExigerEditeur(mep, acteur);
+            // Ces informations servent de preuve (sauvegarde réalisée, restauration testée) : après la préparation, seuls le
+            // pilote, ses suppléants ou un administrateur les complètent, et plus personne une fois la MEP clôturée.
+            if (mep.Phase == Phase.Cloturee) throw new RegleMetierException("La MEP est clôturée : les informations de sauvegarde ne se modifient plus.");
+            if (mep.Phase != Phase.Preparation)
+                ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Après la préparation, seuls le pilote, un suppléant ou un administrateur modifient les informations de sauvegarde.");
             ServiceMep.ExigerVersion(mep, corps.Version);
             if (corps.ResponsableId is not null) ServiceMep.TrouverParticipant(mep, corps.ResponsableId, "Responsable de la sauvegarde");
             var s = mep.Sauvegarde;
@@ -153,17 +162,38 @@ public static class MepsEndpoints
                 Regles.ExigerPreparation(mep);
                 s.Mode = mode;
             }
+            // Le journal garde l'ancienne et la nouvelle valeur des preuves, pour que toute modification reste traçable.
+            var changements = new List<string>();
+            void Preuve<T>(string nom, T avant, T apres, Func<T, string> texte)
+            {
+                if (!EqualityComparer<T>.Default.Equals(avant, apres)) changements.Add($"{nom} : {texte(avant)} → {texte(apres)}");
+            }
+            string Date(DateTimeOffset? d) => d?.ToString("dd/MM/yyyy HH:mm 'UTC'", CultureInfo.InvariantCulture) ?? "vide";
+            string Jour(DateOnly? d) => d?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? "vide";
+            string OuiNon(bool b) => b ? "oui" : "non";
+            string Texte(string t) => t.Length == 0 ? "vide" : $"« {(t.Length > 80 ? t[..80] + "…" : t)} »";
+            var realisee = corps.RealiseeLe?.ToUniversalTime();
+            var procedure = ServiceMep.Texte(corps.Procedure);
+            var copies = ServiceMep.Texte(corps.Copies);
+            var preuve = ServiceMep.Texte(corps.PreuveTestRestauration);
+            Preuve("réalisée le", s.RealiseeLe, realisee, Date);
+            Preuve("restauration testée", s.RestaurationTestee, corps.RestaurationTestee, OuiNon);
+            Preuve("date du test", s.DateTestRestauration, corps.DateTestRestauration, Jour);
+            Preuve("preuve du test", s.PreuveTestRestauration, preuve, Texte);
+            Preuve("procédure", s.Procedure, procedure, Texte);
+            Preuve("copies", s.Copies, copies, Texte);
             s.Structure = corps.Structure;
             s.Donnees = corps.Donnees;
             s.Configuration = corps.Configuration;
             s.ResponsableId = corps.ResponsableId;
-            s.RealiseeLe = corps.RealiseeLe?.ToUniversalTime();
-            s.Procedure = ServiceMep.Texte(corps.Procedure);
-            s.Copies = ServiceMep.Texte(corps.Copies);
+            s.RealiseeLe = realisee;
+            s.Procedure = procedure;
+            s.Copies = copies;
             s.RestaurationTestee = corps.RestaurationTestee;
             s.DateTestRestauration = corps.DateTestRestauration;
-            s.PreuveTestRestauration = ServiceMep.Texte(corps.PreuveTestRestauration);
-            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "sauvegarde.modifiee", "Informations de sauvegarde modifiées"));
+            s.PreuveTestRestauration = preuve;
+            var detail = "Informations de sauvegarde modifiées" + (changements.Count > 0 ? " : " + string.Join(" ; ", changements) : "");
+            return Results.Ok(await svc.EnregistrerContenu(mep, acteur, "sauvegarde.modifiee", detail));
         });
 
         api.MapDelete("/meps/{id:guid}", async (Guid id, ClaimsPrincipal user, ServiceMep svc, MepDbContext db, StockagePiecesJointes stockage) =>
@@ -185,25 +215,29 @@ public static class MepsEndpoints
         {
             if (!await db.Meps.AnyAsync(m => m.Id == id)) throw ErreurHttp.NonTrouve("MEP introuvable.");
             return await db.Journal.AsNoTracking().Where(e => e.MepId == id).OrderByDescending(e => e.Id)
-                .Select(e => new EvenementDto(e.Id, e.Quand, e.Auteur, e.Type, e.Detail)).ToListAsync();
+                .Select(e => new EvenementDto(e.Id, e.Quand, e.Auteur, e.Type, e.Detail,
+                    db.Utilisateurs.Where(u => u.Id == e.UtilisateurId).Select(u => u.Login).FirstOrDefault())).ToListAsync();
         });
 
-        api.MapGet("/meps/{id:guid}/flux", async (Guid id, HttpContext ctx, MepDbContext db, DiffuseurMep diffuseur) =>
+        // Flux limités (par compte et pour le serveur) et renouvelés toutes les heures : le navigateur se reconnecte seul.
+        api.MapGet("/meps/{id:guid}/flux", async (Guid id, HttpContext ctx, ClaimsPrincipal user, MepDbContext db, DiffuseurMep diffuseur) =>
         {
-            var ct = ctx.RequestAborted;
-            var version = await db.Meps.AsNoTracking().Where(m => m.Id == id).Select(m => (int?)m.Version).FirstOrDefaultAsync(ct);
+            var version = await db.Meps.AsNoTracking().Where(m => m.Id == id).Select(m => (int?)m.Version).FirstOrDefaultAsync(ctx.RequestAborted);
             if (version is null) throw ErreurHttp.NonTrouve("MEP introuvable.");
 
+            // Abonnement avant le premier envoi : aucune modification ne peut se perdre entre les deux.
+            using var abonnement = diffuseur.Abonner(id, Acteur.Depuis(user).Id)
+                ?? throw new ErreurHttp(429, "Trop de flux temps réel ouverts : fermez des onglets, puis réessayez.");
+            using var duree = CancellationTokenSource.CreateLinkedTokenSource(ctx.RequestAborted);
+            duree.CancelAfter(DureeFlux);
+            var ct = duree.Token;
             ctx.Response.ContentType = "text/event-stream";
             ctx.Response.Headers.CacheControl = "no-cache";
             ctx.Response.Headers["X-Accel-Buffering"] = "no"; // pas de tampon côté nginx
-            // Abonnement avant le premier envoi : aucune modification ne peut se perdre entre les deux.
-            using var abonnement = diffuseur.Abonner(id);
-            await ctx.Response.WriteAsync(": connecté\n\n", ct);
-            await ctx.Response.Body.FlushAsync(ct);
-
             try
             {
+                await ctx.Response.WriteAsync(": connecté\n\n", ct);
+                await ctx.Response.Body.FlushAsync(ct);
                 while (!ct.IsCancellationRequested)
                 {
                     using var delai = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -221,7 +255,7 @@ public static class MepsEndpoints
                     await ctx.Response.Body.FlushAsync(ct);
                 }
             }
-            catch (OperationCanceledException) { /* déconnexion du client */ }
+            catch (OperationCanceledException) { /* déconnexion du client, ou flux renouvelé (durée atteinte) */ }
         });
     }
 }

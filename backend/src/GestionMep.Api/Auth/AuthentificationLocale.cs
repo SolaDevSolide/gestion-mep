@@ -101,6 +101,18 @@ public static class AuthentificationLocale
         return string.Join('-', Enumerable.Range(0, 4).Select(i => brut.Substring(i * 4, 4)));
     }
 
+    /// <summary>Valeurs d'exemple ou évidentes, refusées comme mot de passe du compte administrateur initial.</summary>
+    private static readonly string[] MotsDePasseExemple = ["changer-moi", "changeme", "admin", "administrateur", "password", "motdepasse", "demo", "mep"];
+
+    /// <summary>Raison du refus d'un mot de passe administrateur initial (valeur d'exemple ou trop courte), ou null s'il convient.</summary>
+    public static string? MotDePasseInitialRefuse(string motDePasse)
+    {
+        var m = motDePasse.Trim().ToLowerInvariant();
+        if (MotsDePasseExemple.Any(x => m == x || m.StartsWith(x, StringComparison.Ordinal) && m.Length < x.Length + 4))
+            return "valeur d'exemple";
+        return motDePasse.Length < LongueurMinimaleMotDePasse ? $"moins de {LongueurMinimaleMotDePasse} caractères" : null;
+    }
+
     /// <summary>Contrôle d'un nouveau mot de passe choisi par l'utilisateur (400 sinon).</summary>
     public static void ValiderNouveauMotDePasse(string? nouveau, string? ancien)
     {
@@ -123,6 +135,25 @@ public static class AuthentificationLocale
     }
 
     public static string NormaliserLogin(string? login) => (login ?? "").Trim().ToLowerInvariant();
+
+    /// <summary>Login obligatoire et de longueur raisonnable (400 sinon) ; au-delà, la page de connexion le refuserait.</summary>
+    public static void ExigerLoginValide(string login)
+    {
+        if (login.Length == 0) throw Services.ErreurHttp.Saisie("Le login est obligatoire.");
+        if (login.Length > Securite.LimiteurConnexion.LongueurMaxLogin)
+            throw Services.ErreurHttp.Saisie($"Le login ne doit pas dépasser {Securite.LimiteurConnexion.LongueurMaxLogin} caractères.");
+    }
+
+    /// <summary>
+    /// Le nom affiché signe les journaux : il ne peut pas reprendre le nom affiché ou le login d'un autre compte (400 sinon),
+    /// pour que personne ne se fasse passer pour un autre.
+    /// </summary>
+    public static async Task ExigerNomDisponible(MepDbContext db, string nom, Guid? compteId)
+    {
+        var autres = await db.Utilisateurs.AsNoTracking().Where(u => u.Id != compteId).Select(u => new { u.NomAffiche, u.Login }).ToListAsync();
+        if (autres.Any(u => string.Equals(u.NomAffiche, nom, StringComparison.OrdinalIgnoreCase) || string.Equals(u.Login, nom, StringComparison.OrdinalIgnoreCase)))
+            throw Services.ErreurHttp.Saisie($"« {nom} » est déjà le nom ou le login d'un autre compte : choisissez un nom qui vous distingue.");
+    }
 
     /// <summary>Vérifie le couple login / mot de passe ; renvoie l'utilisateur ou null.</summary>
     public static async Task<Utilisateur?> Verifier(MepDbContext db, IPasswordHasher<Utilisateur> hasher, string? login, string? motDePasse)

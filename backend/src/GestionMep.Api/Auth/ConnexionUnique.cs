@@ -29,6 +29,7 @@ public static partial class ConnexionUnique
     public const string CheminRetour = "/connexion-sso/retour";
     public const string LibelleMicrosoft = "Se connecter avec Microsoft";
     public const string LibelleOidc = "Se connecter avec l'authentification unique";
+    public const string HoteMicrosoft = "login.microsoftonline.com";
     /// <summary>Clé de la propriété d'authentification qui porte le compte à lier (liaison depuis le profil).</summary>
     internal const string ProprieteLier = "mep:lier";
     private const string ButSecret = "GestionMep.Sso.Secret";
@@ -38,7 +39,9 @@ public static partial class ConnexionUnique
     public static IServiceCollection AjouterConnexionUnique(this IServiceCollection services)
     {
         services.AddSingleton<ReglagesSso>();
-        services.AddHttpClient(nameof(ConnexionUnique), c => c.Timeout = TimeSpan.FromSeconds(10));
+        // Sans suivre les redirections : le secret n'est envoyé qu'à l'adresse contrôlée du point de jeton.
+        services.AddHttpClient(nameof(ConnexionUnique), c => c.Timeout = TimeSpan.FromSeconds(10))
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
         services.AddSingleton<IConfigureOptions<OpenIdConnectOptions>, OptionsSso>();
         services.AddAuthentication().AddOpenIdConnect(Schema, _ => { });
         return services;
@@ -71,7 +74,7 @@ public static partial class ConnexionUnique
 
     /// <summary>Adresse de l'émetteur OpenID Connect correspondant aux réglages.</summary>
     public static string AutoriteEffective(ConfigurationSso c) =>
-        c.Fournisseur == FournisseurSso.Microsoft ? $"https://login.microsoftonline.com/{c.Annuaire}/v2.0" : c.Autorite.TrimEnd('/');
+        c.Fournisseur == FournisseurSso.Microsoft ? $"https://{HoteMicrosoft}/{c.Annuaire}/v2.0" : c.Autorite.TrimEnd('/');
 
     /// <summary>Adresse de retour complète : <c>Application:UrlPublique</c> si elle est définie, sinon celle de la requête.</summary>
     public static string? UrlRetour(IConfiguration config, HttpRequest? requete)
@@ -109,10 +112,15 @@ public static partial class ConnexionUnique
         return erreurs;
     }
 
-    /// <summary>Normalise une saisie (console ou ligne de commande) avant contrôle et enregistrement.</summary>
-    public static void Appliquer(ConfigurationSso c, FournisseurSso fournisseur, string? annuaire, string? autorite, string? clientId,
+    /// <summary>
+    /// Normalise une saisie (console ou ligne de commande) avant contrôle et enregistrement. Le secret appartient à une
+    /// application d'un émetteur : si l'émetteur ou l'ID d'application change, l'ancien secret est effacé (renvoie vrai), pour
+    /// qu'il ne soit jamais envoyé à un autre fournisseur ; il faut alors saisir celui de la nouvelle application.
+    /// </summary>
+    public static bool Appliquer(ConfigurationSso c, FournisseurSso fournisseur, string? annuaire, string? autorite, string? clientId,
         DateOnly? secretExpireLe, bool creationAutomatique, string? roleAdmin, string? libelle)
     {
+        var avant = (AutoriteEffective(c), c.ClientId);
         c.Fournisseur = fournisseur;
         c.Annuaire = (annuaire ?? "").Trim().ToLowerInvariant();
         c.Autorite = (autorite ?? "").Trim();
@@ -121,6 +129,9 @@ public static partial class ConnexionUnique
         c.CreationAutomatique = creationAutomatique;
         c.RoleAdmin = Borner((roleAdmin ?? "").Trim(), 100, "Le rôle d'application");
         c.Libelle = Borner((libelle ?? "").Trim(), 60, "Le texte du bouton");
+        if (c.SecretChiffre.Length == 0 || avant == (AutoriteEffective(c), c.ClientId)) return false;
+        c.SecretChiffre = "";
+        return true;
     }
 
     private static string Borner(string valeur, int max, string libelle) =>
@@ -253,8 +264,15 @@ public static partial class ConnexionUnique
             }
             using var json = await JsonDocument.ParseAsync(await reponse.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
             pointJeton = json.RootElement.TryGetProperty("token_endpoint", out var t) ? t.GetString() : null;
-            resultats.Add(new("Fournisseur joignable", pointJeton is not null, pointJeton is null ? "Document de découverte incomplet (token_endpoint absent)." : "Document de découverte lu."));
-            if (pointJeton is null) return resultats;
+            // Le secret ne part que vers un point de jeton sûr : https (http seulement en local), et chez Microsoft pour Entra ID.
+            var refus = pointJeton is null ? "Document de découverte incomplet (token_endpoint absent)."
+                : !Uri.TryCreate(pointJeton, UriKind.Absolute, out var uriJeton) || !(uriJeton.Scheme == "https" || (uriJeton.Scheme == "http" && uriJeton.IsLoopback))
+                    ? $"Point de jeton refusé ({pointJeton}) : il doit être en https."
+                : c.Fournisseur == FournisseurSso.Microsoft && !string.Equals(uriJeton.Host, HoteMicrosoft, StringComparison.OrdinalIgnoreCase)
+                    ? $"Point de jeton refusé ({pointJeton}) : il doit être sur {HoteMicrosoft}."
+                : null;
+            resultats.Add(new("Fournisseur joignable", refus is null, refus ?? "Document de découverte lu."));
+            if (refus is not null) return resultats;
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException)
         {

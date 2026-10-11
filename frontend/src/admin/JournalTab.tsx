@@ -20,6 +20,15 @@ export const LIBELLE_EVENEMENT_ADMIN: Record<string, string> = {
   'critere.cree': 'Critère Go / no-go créé',
   'critere.modifie': 'Critère Go / no-go modifié',
   'critere.supprime': 'Critère Go / no-go supprimé',
+  'compte.renomme': 'Nom affiché changé',
+  'connexion.echecs': 'Échecs de connexion répétés',
+  'sso.regle': 'Connexion unique réglée',
+  'sso.active': 'Connexion unique activée',
+  'sso.desactive': 'Connexion unique désactivée',
+  'sso.delie': 'Liaison supprimée',
+  'sso.lie': 'Compte relié à la connexion unique',
+  'donnees.controle-reussi': 'Contrôle des données réussi',
+  'donnees.controle-echoue': 'Contrôle des données en échec',
 };
 
 export function libelleEvenementAdmin(type: string): string {
@@ -27,7 +36,8 @@ export function libelleEvenementAdmin(type: string): string {
 }
 
 function tonEvenement(type: string): Ton | undefined {
-  if (type === 'compte.desactive' || type === 'critere.supprime') return 'danger';
+  if (type === 'compte.desactive' || type === 'critere.supprime' || type === 'donnees.controle-echoue') return 'danger';
+  if (type === 'connexion.echecs') return 'warn';
   if (type === 'compte.mdp-reinitialise') return 'warn';
   if (type === 'compte.cree' || type === 'compte.reactive') return 'ok';
   return undefined;
@@ -80,6 +90,7 @@ export default function JournalTab() {
               </span>
               <span className="min-w-0 text-fg">
                 <span className="font-medium">{ev.auteur}</span>
+                {ev.auteurLogin && <span className="text-fg-subtle"> ({ev.auteurLogin})</span>}
                 {ev.detail && <span className="text-fg-muted"> — {ev.detail}</span>}
               </span>
             </li>

@@ -76,6 +76,7 @@ Sans redirection, `--secret-stdin` demande le secret au clavier sans l'afficher 
 
 - Flux OpenID Connect « code d'autorisation » avec PKCE ; jeton d'identité vérifié (émetteur, audience, signature, nonce). L'annuaire est celui de l'entreprise : `common` ou `organizations`, qui ouvriraient l'application à tous les comptes Microsoft, sont refusés.
 - Le secret client est chiffré en base avec les clés de l'application (volume `cles`) et n'est jamais renvoyé par l'API ni affiché.
+- Le secret appartient à une application d'un annuaire : changer l'ID de l'annuaire, l'émetteur ou l'ID d'application efface l'ancien secret, qu'il faut saisir de nouveau (celui de la nouvelle application). Ainsi, il ne peut jamais être envoyé à un autre fournisseur. Le test ne l'envoie qu'à un point de jeton en https, et pour Microsoft, uniquement sur `login.microsoftonline.com`.
 - Après une [restauration](Exploiter.md#restaurer-ou-déménager) sur une autre machine (autres clés), le secret devient illisible : la console et `gestion-mep sso afficher` le signalent, il suffit de le saisir de nouveau.
 - Chaque réglage, activation, liaison et compte créé par Microsoft est inscrit dans le journal d'administration.
 

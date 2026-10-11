@@ -37,7 +37,19 @@ public sealed partial class Sauvegardes(string dossier, string dossierPieces, Ac
 
     public record Table(string Nom, string[] Colonnes, long Lignes);
     public record Fichier(string Nom, long Taille, string Sha256);
-    public record Manifeste(int Format, string Application, string Migration, DateTimeOffset Le, List<Table> Tables, List<Fichier> Pieces);
+    /// <summary>
+    /// <c>PiecesManquantes</c> : pièces jointes présentes en base mais dont le fichier manquait déjà sur disque lors de la
+    /// sauvegarde (signalées à ce moment-là) ; null dans les archives qui n'en ont pas.
+    /// </summary>
+    public record Manifeste(int Format, string Application, string Migration, DateTimeOffset Le, List<Table> Tables, List<Fichier> Pieces,
+        List<string>? PiecesManquantes = null);
+
+    /// <summary>Limites de lecture d'une archive : nombre d'entrées, taille du manifeste, place laissée libre sur le disque.</summary>
+    private const int EntreesMax = 1_000_000;
+    private const long ManifesteMaxOctets = 64L * 1024 * 1024;
+    private const long MargeDisqueOctets = 1024L * 1024 * 1024;
+    /// <summary>Tentatives d'exportation quand une pièce jointe est supprimée pendant la sauvegarde.</summary>
+    private const int TentativesExport = 3;
 
     /// <summary>État des données à un instant : lignes par table et fichiers de pièces jointes présents.</summary>
     public record Releve(Dictionary<string, long> Lignes, HashSet<string> Fichiers)
@@ -96,9 +108,13 @@ public sealed partial class Sauvegardes(string dossier, string dossierPieces, Ac
             var manifeste = await Extraire(archive, temporaire);
             if (!db.Database.GetMigrations().Contains(manifeste.Migration))
                 throw new ErreurHttp(1, $"L'archive vient d'une version plus récente de l'application (migration {manifeste.Migration}) : mettre l'application à jour avant d'importer.");
+            // Archive de la même version que la base : son contenu doit couvrir exactement le schéma actuel, vérifié avant
+            // de toucher à quoi que ce soit (les autres cas sont vérifiés une fois le schéma de l'archive recréé, avant chargement).
+            var appliquees = (await db.Database.GetAppliedMigrationsAsync()).ToList();
+            if (appliquees.LastOrDefault() == manifeste.Migration) await ExigerSchemaComplet(await Connexion(db), manifeste);
 
             string? sauvegarde = null;
-            if ((await db.Database.GetAppliedMigrationsAsync()).Any())
+            if (appliquees.Count > 0)
             {
                 sauvegarde = Path.Combine(Dossier, $"avant-import-{Horodatage()}.tar.gz");
                 info($"Sauvegarde des données actuelles dans {sauvegarde}.");
@@ -122,6 +138,10 @@ public sealed partial class Sauvegardes(string dossier, string dossierPieces, Ac
                 await db.Database.MigrateAsync();
                 ecarts = ecarts.Union(Comparer(attendu, await Relever(db))).ToList();
             }
+            // Chaque pièce jointe en base doit avoir son fichier (sauf celles déjà signalées manquantes à la sauvegarde).
+            var sansFichier = (await PiecesSansFichier(db)).Except(manifeste.PiecesManquantes ?? []).ToList();
+            if (sansFichier.Count > 0)
+                ecarts.Add($"{sansFichier.Count} pièce(s) jointe(s) en base sans fichier : {string.Join(", ", sansFichier.Take(5))}{(sansFichier.Count > 5 ? "…" : "")}");
             var detail = $"Importation de {Path.GetFileName(archive)} ({manifeste.Tables.Sum(t => t.Lignes)} lignes, {manifeste.Pieces.Count} fichier(s))";
             return await Conclure(db, sauvegarde, ecarts, detail, auteur);
         }
@@ -143,31 +163,31 @@ public sealed partial class Sauvegardes(string dossier, string dossierPieces, Ac
         try
         {
             var conn = await Connexion(db);
-            var tables = new List<Table>();
+            List<Table> tables;
+            List<Fichier> pieces;
+            List<string> manquantes;
             string migration;
-            // Instantané cohérent : toutes les tables sont lues dans la même transaction.
-            await using (var tx = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead))
+            // Base puis fichiers : une pièce supprimée entre les deux manquerait à l'archive. Chaque pièce de l'instantané doit
+            // donc avoir son fichier ; sinon on recommence, et après plusieurs essais, les fichiers vraiment absents du disque
+            // sont signalés et inscrits au manifeste.
+            for (var essai = 1; ; essai++)
             {
-                migration = await Scalaire<string?>(conn, """SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY "MigrationId" DESC LIMIT 1""")
-                    ?? throw new ErreurHttp(1, "Base sans migration appliquée : rien à sauvegarder.");
-                foreach (var nom in await ListerTables(conn))
+                (migration, tables, var ids) = await Instantane(conn, temporaire);
+                pieces = [];
+                foreach (var chemin in FichiersPieces())
                 {
-                    var colonnes = await ListerColonnes(conn, nom);
-                    await using (var sortie = File.Create(Path.Combine(temporaire, nom + ".copy")))
-                    await using (var copie = await conn.BeginRawBinaryCopyAsync($"COPY {Q(nom)} ({string.Join(", ", colonnes.Select(Q))}) TO STDOUT (FORMAT BINARY)"))
-                        await copie.CopyToAsync(sortie);
-                    tables.Add(new Table(nom, colonnes, await Scalaire<long>(conn, $"SELECT count(*) FROM {Q(nom)}")));
+                    await using var flux = File.OpenRead(chemin);
+                    pieces.Add(new Fichier(Path.GetFileName(chemin), flux.Length, Convert.ToHexStringLower(await SHA256.HashDataAsync(flux))));
                 }
-                await tx.RollbackAsync();
+                var presents = pieces.Select(p => p.Nom).ToHashSet();
+                manquantes = ids.Where(id => !presents.Contains(id)).Order().ToList();
+                if (manquantes.Count == 0 || essai >= TentativesExport) break;
+                info($"Pièce(s) jointe(s) modifiée(s) pendant la sauvegarde : nouvel essai ({essai + 1}/{TentativesExport}).");
             }
-
-            var pieces = new List<Fichier>();
-            foreach (var chemin in FichiersPieces())
-            {
-                await using var flux = File.OpenRead(chemin);
-                pieces.Add(new Fichier(Path.GetFileName(chemin), flux.Length, Convert.ToHexStringLower(await SHA256.HashDataAsync(flux))));
-            }
-            var manifeste = new Manifeste(FormatArchive, VersionApplication(), migration, DateTimeOffset.UtcNow, tables, pieces);
+            if (manquantes.Count > 0)
+                alerte($"Sauvegarde : {manquantes.Count} pièce(s) jointe(s) en base sans fichier sur disque ({string.Join(", ", manquantes.Take(5))}{(manquantes.Count > 5 ? "…" : "")}). Elles sont signalées dans l'archive.");
+            var manifeste = new Manifeste(FormatArchive, VersionApplication(), migration, DateTimeOffset.UtcNow, tables, pieces,
+                manquantes.Count > 0 ? manquantes : null);
 
             await using (var cible = File.Create(partiel))
             await using (var gzip = new GZipStream(cible, CompressionLevel.Fastest))
@@ -191,6 +211,63 @@ public sealed partial class Sauvegardes(string dossier, string dossierPieces, Ac
         finally
         {
             Directory.Delete(temporaire, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Copie toutes les tables dans <paramref name="temporaire"/> au sein d'une même transaction (instantané cohérent) ; renvoie
+    /// la dernière migration, les tables et les Id (format N) des pièces jointes de cet instantané.
+    /// </summary>
+    private static async Task<(string Migration, List<Table> Tables, List<string> Pieces)> Instantane(NpgsqlConnection conn, string temporaire)
+    {
+        var tables = new List<Table>();
+        await using var tx = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead);
+        var migration = await Scalaire<string?>(conn, """SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY "MigrationId" DESC LIMIT 1""")
+            ?? throw new ErreurHttp(1, "Base sans migration appliquée : rien à sauvegarder.");
+        var noms = await ListerTables(conn);
+        foreach (var nom in noms)
+        {
+            var colonnes = await ListerColonnes(conn, nom);
+            await using (var sortie = File.Create(Path.Combine(temporaire, nom + ".copy")))
+            await using (var copie = await conn.BeginRawBinaryCopyAsync($"COPY {Q(nom)} ({string.Join(", ", colonnes.Select(Q))}) TO STDOUT (FORMAT BINARY)"))
+                await copie.CopyToAsync(sortie);
+            tables.Add(new Table(nom, colonnes, await Scalaire<long>(conn, $"SELECT count(*) FROM {Q(nom)}")));
+        }
+        var pieces = noms.Contains(TablePieces)
+            ? (await Liste(conn, $"SELECT replace(\"Id\"::text, '-', '') FROM {Q(TablePieces)}")).ToList()
+            : [];
+        await tx.RollbackAsync();
+        return (migration, tables, pieces);
+    }
+
+    /// <summary>Table des pièces jointes (nom du schéma EF Core).</summary>
+    private const string TablePieces = "PiecesJointes";
+
+    /// <summary>Id (format N) des pièces jointes en base dont le fichier est absent du disque.</summary>
+    private async Task<List<string>> PiecesSansFichier(MepDbContext db)
+    {
+        var presents = FichiersPieces().Select(Path.GetFileName).ToHashSet();
+        var ids = await Liste(await Connexion(db), $"SELECT replace(\"Id\"::text, '-', '') FROM {Q(TablePieces)}");
+        return ids.Where(id => !presents.Contains(id)).Order().ToList();
+    }
+
+    /// <summary>
+    /// L'archive doit couvrir exactement le schéma de sa migration : toutes les tables, chacune une seule fois, avec toutes
+    /// ses colonnes (une archive incomplète viderait sinon les tables omises sans que les contrôles le voient).
+    /// </summary>
+    private static async Task ExigerSchemaComplet(NpgsqlConnection conn, Manifeste m)
+    {
+        var existantes = await ListerTables(conn);
+        var doublon = m.Tables.GroupBy(t => t.Nom).FirstOrDefault(g => g.Count() > 1);
+        if (doublon is not null) throw new ErreurHttp(1, $"Archive invalide : table {doublon.Key} présente deux fois.");
+        var absentes = existantes.Except(m.Tables.Select(t => t.Nom)).ToList();
+        if (absentes.Count > 0) throw new ErreurHttp(1, $"Archive incomplète : table(s) {string.Join(", ", absentes)} absente(s) du manifeste.");
+        foreach (var t in m.Tables)
+        {
+            if (!existantes.Contains(t.Nom)) throw new ErreurHttp(1, $"Table {t.Nom} de l'archive absente du schéma {m.Migration}.");
+            var colonnes = await ListerColonnes(conn, t.Nom);
+            if (t.Colonnes.Length != t.Colonnes.Distinct().Count() || !colonnes.ToHashSet().SetEquals(t.Colonnes))
+                throw new ErreurHttp(1, $"Archive invalide : colonnes de la table {t.Nom} différentes du schéma {m.Migration}.");
         }
     }
 
@@ -254,32 +331,55 @@ public sealed partial class Sauvegardes(string dossier, string dossierPieces, Ac
 
     // ---- Importation : étapes ----
 
-    /// <summary>Extrait l'archive en n'acceptant que les entrées attendues, puis vérifie le manifeste et les empreintes.</summary>
+    /// <summary>
+    /// Extrait l'archive en n'acceptant que les entrées attendues, dans des limites de taille (nombre d'entrées, manifeste,
+    /// espace disque : l'extraction s'arrête avant de remplir le disque), puis vérifie le manifeste et les empreintes.
+    /// </summary>
     private static async Task<Manifeste> Extraire(string archive, string cible)
     {
         Directory.CreateDirectory(Path.Combine(cible, "base"));
         Directory.CreateDirectory(Path.Combine(cible, "pieces"));
+        var budget = EspaceLibre(cible) is { } libre ? libre - MargeDisqueOctets : long.MaxValue;
+        if (budget <= 0) throw new ErreurHttp(1, $"Espace disque insuffisant dans {cible} pour extraire l'archive (1 Go doit rester libre).");
+        long extraits = 0;
+        var entrees = 0;
         await using (var flux = File.OpenRead(archive))
         await using (var gzip = new GZipStream(flux, CompressionMode.Decompress))
         await using (var tar = new TarReader(gzip))
         {
             while (await tar.GetNextEntryAsync() is { } entree)
             {
+                if (++entrees > EntreesMax) throw new ErreurHttp(1, $"Archive invalide : plus de {EntreesMax} entrées.");
                 if (entree.EntryType is TarEntryType.Directory) continue;
                 var nom = entree.Name;
                 var valide = entree.EntryType is TarEntryType.RegularFile or TarEntryType.V7RegularFile
                     && (nom == "manifest.json" || EntreeTable().IsMatch(nom) || EntreePiece().IsMatch(nom));
                 if (!valide) throw new ErreurHttp(1, $"Archive invalide : entrée inattendue « {nom} ».");
+                if (nom == "manifest.json" && entree.Length > ManifesteMaxOctets)
+                    throw new ErreurHttp(1, $"Archive invalide : manifest.json dépasse {ManifesteMaxOctets / 1024 / 1024} Mo.");
+                // La taille de chaque entrée est lue dans son en-tête, avant de l'écrire.
+                extraits += entree.Length;
+                if (extraits > budget)
+                    throw new ErreurHttp(1, $"Espace disque insuffisant dans {cible} pour extraire l'archive (1 Go doit rester libre).");
                 await entree.ExtractToFileAsync(Path.Combine(cible, nom), overwrite: false);
             }
         }
         var json = Path.Combine(cible, "manifest.json");
         if (!File.Exists(json)) throw new ErreurHttp(1, "Archive invalide : manifest.json absent.");
-        var m = JsonSerializer.Deserialize<Manifeste>(await File.ReadAllTextAsync(json))
-            ?? throw new ErreurHttp(1, "Archive invalide : manifest.json illisible.");
+        Manifeste? lu;
+        await using (var lecture = File.OpenRead(json))
+        {
+            try { lu = await JsonSerializer.DeserializeAsync<Manifeste>(lecture); }
+            catch (JsonException) { lu = null; }
+        }
+        var m = lu ?? throw new ErreurHttp(1, "Archive invalide : manifest.json illisible.");
         if (m.Format != FormatArchive) throw new ErreurHttp(1, $"Format d'archive {m.Format} non pris en charge.");
-        if (m.Tables.Any(t => !EntreeTable().IsMatch($"base/{t.Nom}.copy")) || m.Pieces.Any(p => !NomPiece().IsMatch(p.Nom)))
+        if (m.Tables is null || m.Pieces is null || m.Tables.Count == 0) throw new ErreurHttp(1, "Archive invalide : manifest.json incomplet.");
+        if (m.Tables.Any(t => !EntreeTable().IsMatch($"base/{t.Nom}.copy")) || m.Pieces.Any(p => !NomPiece().IsMatch(p.Nom))
+            || (m.PiecesManquantes ?? []).Any(p => !NomPiece().IsMatch(p)))
             throw new ErreurHttp(1, "Archive invalide : nom de table ou de pièce jointe inattendu dans manifest.json.");
+        if (m.Tables.Select(t => t.Nom).Distinct().Count() != m.Tables.Count || m.Pieces.Select(p => p.Nom).Distinct().Count() != m.Pieces.Count)
+            throw new ErreurHttp(1, "Archive invalide : table ou pièce jointe en double dans manifest.json.");
         foreach (var t in m.Tables)
             if (!File.Exists(Path.Combine(cible, "base", t.Nom + ".copy"))) throw new ErreurHttp(1, $"Archive incomplète : table {t.Nom} absente.");
         foreach (var p in m.Pieces)
@@ -306,14 +406,8 @@ public sealed partial class Sauvegardes(string dossier, string dossierPieces, Ac
     private static async Task ChargerTables(MepDbContext db, Manifeste m, string dossier)
     {
         var conn = await Connexion(db);
-        var existantes = (await ListerTables(conn)).ToHashSet();
-        foreach (var t in m.Tables)
-        {
-            if (!existantes.Contains(t.Nom)) throw new ErreurHttp(1, $"Table {t.Nom} de l'archive absente du schéma {m.Migration}.");
-            var colonnes = (await ListerColonnes(conn, t.Nom)).ToHashSet();
-            if (t.Colonnes.FirstOrDefault(c => !colonnes.Contains(c)) is { } inconnue)
-                throw new ErreurHttp(1, $"Colonne {t.Nom}.{inconnue} de l'archive absente du schéma {m.Migration}.");
-        }
+        await ExigerSchemaComplet(conn, m);
+        var existantes = await ListerTables(conn);
 
         await using var tx = await conn.BeginTransactionAsync();
         await Executer(conn, $"TRUNCATE {string.Join(", ", existantes.Select(Q))} CASCADE");
@@ -422,6 +516,13 @@ public sealed partial class Sauvegardes(string dossier, string dossierPieces, Ac
     {
         await using var cmd = new NpgsqlCommand(sql, conn);
         await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>Octets libres sur le disque d'un dossier ; null si on ne peut pas le savoir.</summary>
+    private static long? EspaceLibre(string dossier)
+    {
+        try { return new DriveInfo(Path.GetFullPath(dossier)).AvailableFreeSpace; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { return null; }
     }
 
     /// <summary>Identifiant SQL entre guillemets.</summary>

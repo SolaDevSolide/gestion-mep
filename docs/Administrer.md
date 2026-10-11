@@ -6,7 +6,7 @@ Cette page s'adresse aux **administrateurs** de l'application. Les mêmes opéra
 
 ## Le premier administrateur
 
-Il est créé au premier démarrage, sur une base vide, à partir des variables `ADMIN_LOGIN` et `ADMIN_MOT_DE_PASSE` du fichier `.env` (voir [Installer](Installer.md)). Il crée ensuite les autres comptes.
+Il est créé au premier démarrage, sur une base vide, à partir des variables `ADMIN_LOGIN` et `ADMIN_MOT_DE_PASSE` du fichier `.env` (voir [Installer](Installer.md)). Sans `ADMIN_MOT_DE_PASSE`, un mot de passe provisoire est écrit dans le journal de l'application. Dans tous les cas, il est à changer à la première connexion. Il crée ensuite les autres comptes.
 
 ## Console d'administration
 
@@ -26,11 +26,12 @@ Règles de sécurité :
 
 - désactiver un compte ou réinitialiser son mot de passe ferme immédiatement ses sessions ;
 - on ne peut pas désactiver son propre compte ;
-- le dernier administrateur actif ne peut être ni désactivé ni rétrogradé.
+- le dernier administrateur actif ne peut être ni désactivé ni rétrogradé ;
+- un nom affiché ne peut pas reprendre le nom affiché ou l'identifiant d'un autre compte, pour que personne ne signe les journaux à la place d'un autre.
 
 ### Connexion unique
 
-Connexion Microsoft (SSO) facultative : adresse de retour à déclarer dans Microsoft Entra, ID de l'annuaire, ID d'application, secret client (chiffré, jamais réaffiché) et sa date d'expiration, création automatique des comptes, rôle d'application qui donne le rôle administrateur. **Tester** vérifie les réglages auprès de Microsoft sans connecter personne ; **Activer** affiche le bouton sur la page de connexion, sans redémarrage. La liste « Comptes liés » permet de supprimer une liaison. Le pas-à-pas pour l'équipe informatique est dans [Connexion Microsoft](Connexion-Microsoft.md).
+Connexion Microsoft (SSO) facultative : adresse de retour à déclarer dans Microsoft Entra, ID de l'annuaire, ID d'application, secret client (chiffré, jamais réaffiché, effacé si l'annuaire ou l'application change) et sa date d'expiration, création automatique des comptes, rôle d'application qui donne le rôle administrateur. **Tester** vérifie les réglages auprès de Microsoft sans connecter personne ; **Activer** affiche le bouton sur la page de connexion, sans redémarrage. La liste « Comptes liés » permet de supprimer une liaison. Le pas-à-pas pour l'équipe informatique est dans [Connexion Microsoft](Connexion-Microsoft.md).
 
 ### Paramètres
 
@@ -39,7 +40,9 @@ Connexion Microsoft (SSO) facultative : adresse de retour à déclarer dans Micr
 
 ### Journal
 
-Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, mots de passe réinitialisés ou changés, paramètres et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
+Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, mots de passe réinitialisés ou changés, paramètres et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, contrôles des données après une mise à jour ou une importation. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
+
+L'application y signale aussi, avec l'auteur « Application », **20 échecs de connexion en moins d'une heure sur un même compte**, toutes adresses confondues : signe probable qu'on essaie de deviner son mot de passe.
 
 ### Version
 

@@ -8,12 +8,14 @@ namespace GestionMep.Api.Services;
 public static class JournalAdmin
 {
     public const string AuteurLigneDeCommande = "Ligne de commande";
+    /// <summary>Auteur des événements que l'application constate d'elle-même (alertes).</summary>
+    public const string AuteurApplication = "Application";
 
-    public static void Ecrire(MepDbContext db, Acteur? acteur, string type, string detail) =>
+    public static void Ecrire(MepDbContext db, Acteur? acteur, string type, string detail, string? auteur = null) =>
         db.JournalAdmin.Add(new EvenementAdmin
         {
             UtilisateurId = acteur?.Id,
-            Auteur = acteur?.Nom ?? AuteurLigneDeCommande,
+            Auteur = acteur?.Nom ?? auteur ?? AuteurLigneDeCommande,
             Type = type,
             Detail = detail,
         });

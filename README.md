@@ -26,7 +26,7 @@ Ouvrir http://localhost:8080 et se connecter avec `alice` (administratrice), `bo
 
 ## Installer sur un serveur
 
-L'image est publiée sur `ghcr.io/soladevsolide/gestion-mep`, avec un numéro par version (`1.0.0`). Il suffit de `docker-compose.yml` et d'un fichier `.env` tiré de `.env.example`, derrière un proxy inverse HTTPS. La base est migrée automatiquement au démarrage, après une sauvegarde automatique. La procédure complète est dans [Installer](docs/Installer.md).
+L'image est publiée sur `ghcr.io/soladevsolide/gestion-mep`, avec un numéro par version (`1.0.0`). Il suffit de `docker-compose.yml` et d'un fichier `.env` tiré de `.env.example` (lisible par son seul propriétaire), derrière un proxy inverse HTTPS. La base est migrée automatiquement au démarrage, après une sauvegarde automatique. La procédure complète est dans [Installer](docs/Installer.md).
 
 ## Documentation
 

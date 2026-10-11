@@ -72,6 +72,55 @@ public class ConnexionUniqueTests : IDisposable
     }
 
     [Fact]
+    public async Task Changer_d_annuaire_ou_d_application_efface_le_secret()
+    {
+        var alice = await _api.ClientConnecte("alice");
+        await Ok(await alice.PutAsJsonAsync("/api/admin/sso", Reglages()));
+        await Ok(await alice.PostAsync("/api/admin/sso/activer", null));
+
+        // Connexion active : changer d'annuaire sans nouveau secret est refusé (l'ancien ne partira pas vers un autre émetteur).
+        var autre = "99999999-8888-7777-6666-555555555555";
+        var refus = await alice.PutAsJsonAsync("/api/admin/sso", Reglages(annuaire: autre, secret: ""));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
+        Assert.Contains("secret client est obligatoire", await refus.Content.ReadAsStringAsync());
+
+        // Connexion désactivée : le changement passe et l'ancien secret est effacé.
+        await Ok(await alice.PostAsync("/api/admin/sso/desactiver", null));
+        var change = await Ok(await alice.PutAsJsonAsync("/api/admin/sso", Reglages(annuaire: autre, secret: "")));
+        Assert.False(change.GetProperty("secretEnregistre").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, change.GetProperty("secretExpireLe").ValueKind);
+
+        // Avec le secret de la nouvelle application, tout redevient utilisable ; un réglage annexe garde le secret.
+        await Ok(await alice.PutAsJsonAsync("/api/admin/sso", Reglages(annuaire: autre)));
+        var annexe = await Ok(await alice.PutAsJsonAsync("/api/admin/sso", Reglages(annuaire: autre, secret: "", creation: false)));
+        Assert.True(annexe.GetProperty("secretLisible").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Le_test_n_envoie_pas_le_secret_hors_de_chez_Microsoft()
+    {
+        using var scope = _api.Services.CreateScope();
+        var cles = scope.ServiceProvider.GetRequiredService<IDataProtectionProvider>();
+        var c = new ConfigurationSso { Fournisseur = FournisseurSso.Microsoft, Annuaire = Annuaire, ClientId = "client" };
+        ConnexionUnique.PoserSecret(c, cles, "secret-de-test");
+        var envois = new List<Uri>();
+        using var http = new HttpClient(new FauxFournisseur("""{"token_endpoint":"https://attaquant.example/token"}""", envois));
+        var verifications = await ConnexionUnique.Tester(c, cles, http);
+        Assert.False(verifications.Last().Ok);
+        Assert.Contains("login.microsoftonline.com", verifications.Last().Detail);
+        Assert.DoesNotContain(envois, u => u.Host == "attaquant.example");
+    }
+
+    private sealed class FauxFournisseur(string decouverte, List<Uri> envois) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage requete, CancellationToken ct)
+        {
+            envois.Add(requete.RequestUri!);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(decouverte) });
+        }
+    }
+
+    [Fact]
     public async Task Activer_affiche_le_bouton_et_desactiver_le_retire_sans_redemarrage()
     {
         var alice = await _api.ClientConnecte("alice");

@@ -4245,7 +4245,8 @@
           "quand",
           "auteur",
           "type",
-          "detail"
+          "detail",
+          "auteurLogin"
         ],
         "type": "object",
         "properties": {
@@ -4265,6 +4266,12 @@
           },
           "detail": {
             "type": "string"
+          },
+          "auteurLogin": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -4274,7 +4281,8 @@
           "quand",
           "auteur",
           "type",
-          "detail"
+          "detail",
+          "auteurLogin"
         ],
         "type": "object",
         "properties": {
@@ -4294,8 +4302,15 @@
           },
           "detail": {
             "type": "string"
+          },
+          "auteurLogin": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
-        }
+        },
+        "description": "`AuteurLogin` : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte supprimé."
       },
       "ExecutionResolutionDto": {
         "required": [

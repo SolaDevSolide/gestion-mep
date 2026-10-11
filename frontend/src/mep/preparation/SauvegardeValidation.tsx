@@ -149,7 +149,8 @@ export function SauvegardeSection() {
   const d = useDraft(mep.sauvegarde);
   useReportDirty(d.dirty);
   const v = d.value;
-  const editable = mep.droits.peutEditerContenu || mep.droits.estPilote;
+  // Après la préparation, seuls le pilote et ses suppléants complètent les preuves ; plus personne une fois la MEP clôturée.
+  const editable = mep.droits.peutEditerContenu || (mep.droits.estPilote && mep.phase !== 'Cloturee');
   const aucunSauvegarde = mep.systemes.length > 0 && mep.systemes.every((s) => s.sauvegarde.statut === 'NonRequise');
 
   async function enregistrer() {

@@ -51,20 +51,57 @@ public class SecuriteTests : IDisposable
     public void Blocage_progressif_puis_levee()
     {
         var temps = new TempsFixe();
-        var limiteur = new LimiteurConnexion(temps);
-        for (var i = 0; i < LimiteurConnexion.EchecsAvantBlocage - 1; i++) limiteur.Echec("x");
-        Assert.Null(limiteur.BloqueJusqua("x"));
-        limiteur.Echec("x");
-        Assert.Equal(temps.GetUtcNow().AddMinutes(1), limiteur.BloqueJusqua("x"));
-        limiteur.Echec("x");
-        Assert.Equal(temps.GetUtcNow().AddMinutes(2), limiteur.BloqueJusqua("x"));
-        for (var i = 0; i < 10; i++) limiteur.Echec("x");
-        Assert.Equal(temps.GetUtcNow() + LimiteurConnexion.BlocageMax, limiteur.BloqueJusqua("x"));
+        using var limiteur = new LimiteurConnexion(temps);
+        const string ip = "10.0.0.1";
+        for (var i = 0; i < LimiteurConnexion.EchecsAvantBlocage - 1; i++) limiteur.Echec("x", ip);
+        Assert.Null(limiteur.BloqueJusqua("x", ip));
+        limiteur.Echec("x", ip);
+        Assert.Equal(temps.GetUtcNow().AddMinutes(1), limiteur.BloqueJusqua("x", ip));
+        limiteur.Echec("x", ip);
+        Assert.Equal(temps.GetUtcNow().AddMinutes(2), limiteur.BloqueJusqua("x", ip));
+        for (var i = 0; i < 10; i++) limiteur.Echec("x", ip);
+        Assert.Equal(temps.GetUtcNow() + LimiteurConnexion.BlocageMax, limiteur.BloqueJusqua("x", ip));
         temps.Advance(LimiteurConnexion.BlocageMax);
-        Assert.Null(limiteur.BloqueJusqua("x"));
-        limiteur.Reussite("x");
-        limiteur.Echec("x");
-        Assert.Null(limiteur.BloqueJusqua("x"));
+        Assert.Null(limiteur.BloqueJusqua("x", ip));
+        limiteur.Reussite("x", ip);
+        limiteur.Echec("x", ip);
+        Assert.Null(limiteur.BloqueJusqua("x", ip));
+    }
+
+    [Fact]
+    public void Le_blocage_ne_touche_que_l_adresse_qui_echoue()
+    {
+        using var limiteur = new LimiteurConnexion(new TempsFixe());
+        for (var i = 0; i < LimiteurConnexion.EchecsAvantBlocage; i++) limiteur.Echec("alice", "203.0.113.9");
+        Assert.NotNull(limiteur.BloqueJusqua("alice", "203.0.113.9"));
+        // La vraie Alice, depuis son poste, n'est pas bloquée par les échecs d'un tiers.
+        Assert.Null(limiteur.BloqueJusqua("alice", "10.0.0.5"));
+    }
+
+    [Fact]
+    public void Alerte_unique_quand_un_compte_subit_des_echecs_repartis()
+    {
+        using var limiteur = new LimiteurConnexion(new TempsFixe());
+        var alertes = Enumerable.Range(0, LimiteurConnexion.SeuilAlerte * 2).Count(i => limiteur.Echec("alice", $"198.51.100.{i}"));
+        Assert.Equal(1, alertes);
+    }
+
+    [Fact]
+    public void Memoire_bornee_meme_avec_des_milliers_de_logins_distincts()
+    {
+        using var limiteur = new LimiteurConnexion(new TempsFixe());
+        for (var i = 0; i < 25_000; i++) limiteur.Echec($"inconnu-{i}", "198.51.100.1");
+        Assert.True(limiteur.NombreEntrees <= 2 * LimiteurConnexion.TailleMax, $"{limiteur.NombreEntrees} entrées");
+    }
+
+    [Fact]
+    public async Task Login_demesure_refuse_sans_controle()
+    {
+        var client = _api.Client();
+        var rep = await client.PostAsJsonAsync("/api/auth/connexion", new { login = new string('a', LimiteurConnexion.LongueurMaxLogin + 1), motDePasse = "x" });
+        Assert.Equal(HttpStatusCode.Unauthorized, rep.StatusCode);
+        var limiteur = _api.Services.GetRequiredService<LimiteurConnexion>();
+        Assert.Equal(0, limiteur.NombreEntrees);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 import { Library, Package, Pencil, Plus, Trash2, UserRound, Users, Layers } from 'lucide-react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from '../../api';
+import { AuthContext } from '../../auth';
 import { useMep } from '../../mepContext';
 import type { Livrable, Participant, Systeme, SystemeCatalogue, Utilisateur } from '../../types';
 import { Avatar } from '../../ui/Avatar';
@@ -60,15 +61,24 @@ export function PersonnesSection() {
       .catch(() => setUtilisateurs([]));
   }, []);
 
+  const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
+  /** Le compte du pilote ou d'un suppléant porte leurs droits : seuls le pilote, un suppléant ou un administrateur le changent. */
+  const existant = forme?.existant;
+  const compteVerrouille =
+    !!existant &&
+    (existant.id === mep.piloteId || mep.suppleantIds.includes(existant.id)) &&
+    !mep.droits.estPilote &&
+    !admin;
+  const comptes = compteVerrouille ? utilisateurs.filter((u) => u.id === existant?.utilisateurId) : utilisateurs;
   const champs: ChampForm[] = [
     {
       cle: 'utilisateurId',
-      label: 'Compte',
+      label: compteVerrouille ? 'Compte (modifiable par le pilote ou un administrateur)' : 'Compte',
       type: 'select',
       large: true,
       options: [
-        { valeur: '', libelle: '— aucun compte —' },
-        ...utilisateurs.map((u) => ({ valeur: u.id, libelle: `${u.nomAffiche} (${u.login})` })),
+        ...(compteVerrouille && existant?.utilisateurId ? [] : [{ valeur: '', libelle: '— aucun compte —' }]),
+        ...comptes.map((u) => ({ valeur: u.id, libelle: `${u.nomAffiche} (${u.login})` })),
       ],
     },
     { cle: 'nom', label: 'Nom', requis: true },
