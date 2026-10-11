@@ -17,17 +17,19 @@ vi.mock('../api', () => ({
     adminJournal: vi.fn(),
     parametres: vi.fn(),
     modifierParametres: vi.fn(),
+    application: vi.fn(),
+    verifierMisesAJour: vi.fn(),
   },
 }));
 
-function rendre(u: Utilisateur) {
+function rendre(u: Utilisateur, url = '/admin') {
   render(
     <AuthContext.Provider
       value={{ utilisateur: u, chargement: false, connecter: vi.fn(), deconnecter: vi.fn(), majUtilisateur: vi.fn() }}
     >
       <TooltipProvider>
         <ToastProvider>
-          <MemoryRouter initialEntries={['/admin']}>
+          <MemoryRouter initialEntries={[url]}>
             <Routes>
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/" element={<p>Accueil</p>} />
@@ -94,5 +96,25 @@ describe('Console d’administration', () => {
     await userEvent.type(screen.getByLabelText(/Nom affiché/), 'Bob 2');
     await userEvent.click(screen.getByRole('button', { name: 'Créer le compte' }));
     expect(await screen.findByText('Cet identifiant est déjà pris.')).toBeInTheDocument();
+  });
+
+  it('ouvre l’onglet Version depuis le lien et vérifie les mises à jour à la demande', async () => {
+    const etat = {
+      active: true,
+      depot: 'SolaDevSolide/gestion-mep',
+      versionCourante: '1.0.0',
+      derniereVersion: '1.0.0',
+      publieeLe: null,
+      notesUrl: null,
+      verifieeLe: null,
+      erreur: null,
+      disponible: false,
+    };
+    vi.mocked(api.application).mockResolvedValue({ version: '1.0.0', lienSignalement: null, miseAJour: etat });
+    vi.mocked(api.verifierMisesAJour).mockResolvedValue({ ...etat, derniereVersion: '1.2.0', disponible: true });
+    rendre(utilisateur({ estAdmin: true }), '/admin?onglet=version');
+    expect(await screen.findByText('L’application est à jour.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Vérifier maintenant' }));
+    expect(await screen.findByText('La version 1.2.0 est disponible')).toBeInTheDocument();
   });
 });

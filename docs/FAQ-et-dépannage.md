@@ -2,6 +2,9 @@
 
 ## Utilisation
 
+**Où signaler un problème ou proposer une idée ?**
+Menu utilisateur (en bas de la barre latérale) › « Signaler un problème ou une idée ». Le lien ouvre le formulaire des *issues* du dépôt GitHub, qui est public : n'y mettez aucune information interne. La version à indiquer est en bas du même menu.
+
 **Le bouton « Go / no-go » est grisé ou le Go est refusé.**
 Seuls le pilote et ses suppléants le voient. Le Go exige un plan sans anomalie (« Vérifier le plan »), les approbations requises et tous les critères cochés. Un modèle ne passe jamais en exécution : cliquer « Créer une MEP depuis ce modèle ».
 

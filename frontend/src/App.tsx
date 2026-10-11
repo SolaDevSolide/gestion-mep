@@ -1,28 +1,33 @@
 import { Loader2 } from 'lucide-react';
+import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
 import { NouvelleVersion } from './layout/NouvelleVersion';
 import { Shell } from './layout/Shell';
-import AdminPage from './admin/AdminPage';
 import ConnexionPage from './pages/ConnexionPage';
-import ListeMepPage from './pages/ListeMepPage';
 import MotDePasseObligatoirePage from './pages/MotDePasseObligatoirePage';
-import ProfilPage from './pages/ProfilPage';
-import MepPage from './pages/MepPage';
-import GoNoGoPage from './parametres/GoNoGoPage';
-import NouvelleResolutionPage from './parametres/NouvelleResolutionPage';
-import ResolutionsPage from './parametres/ResolutionsPage';
-import SystemesPage from './parametres/SystemesPage';
+
+// Pages chargées à la demande : l'écran de connexion n'attend pas le code de l'éditeur, de l'exécution ou de la console.
+const AdminPage = lazy(() => import('./admin/AdminPage'));
+const ListeMepPage = lazy(() => import('./pages/ListeMepPage'));
+const ProfilPage = lazy(() => import('./pages/ProfilPage'));
+const MepPage = lazy(() => import('./pages/MepPage'));
+const GoNoGoPage = lazy(() => import('./parametres/GoNoGoPage'));
+const NouvelleResolutionPage = lazy(() => import('./parametres/NouvelleResolutionPage'));
+const ResolutionsPage = lazy(() => import('./parametres/ResolutionsPage'));
+const SystemesPage = lazy(() => import('./parametres/SystemesPage'));
+
+function Chargement() {
+  return (
+    <div className="flex min-h-screen items-center justify-center text-fg-subtle" role="status">
+      <Loader2 className="mr-2 size-5 animate-spin" aria-hidden /> Chargement…
+    </div>
+  );
+}
 
 function Protege() {
   const { utilisateur, chargement } = useAuth();
-  if (chargement) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-fg-subtle" role="status">
-        <Loader2 className="mr-2 size-5 animate-spin" aria-hidden /> Chargement…
-      </div>
-    );
-  }
+  if (chargement) return <Chargement />;
   if (!utilisateur) return <Navigate to="/connexion" replace />;
   if (utilisateur.doitChangerMotDePasse) return <MotDePasseObligatoirePage />;
   return <Shell />;

@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+    # Une étiquette « v1.2.0 » publie la version 1.2.0 : image numérotée, puis version GitHub (« release ») avec ses notes.
+    tags: ['v*.*.*']
   pull_request:
 
 permissions:
@@ -71,8 +73,12 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}
+          # Version publiée : 1.2.0, 1.2 et latest. Branche main : main et sha-<commit>, pour tester avant de publier.
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=main,enable={{is_default_branch}}
             type=sha
       - uses: docker/build-push-action@v7
         with:
@@ -80,3 +86,17 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ startsWith(github.ref, 'refs/tags/v') && steps.meta.outputs.version || '0.0.0-dev' }}
+
+  publication:
+    needs: image
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    # Crée la version GitHub que l'indicateur de mise à jour de l'application consulte.
+    permissions:
+      contents: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"

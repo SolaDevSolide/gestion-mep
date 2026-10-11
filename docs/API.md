@@ -44,7 +44,8 @@ Les erreurs ont pour corps `{ "message": "…" }`, une phrase en français desti
 | `/api/resolutions` | Résolutions types et leurs versions. |
 | `/api/parametres`, `/api/criteres-go-no-go` | Paramètres globaux. |
 | `/api/pieces-jointes` | Téléchargement d'une pièce jointe. |
-| `/api/admin` | Console d'administration : comptes et journal d'administration (administrateurs seulement). |
-| `/api/sante`, `/api/version` | Sonde de santé et version du front servi. |
+| `/api/admin` | Console d'administration : comptes, journal d'administration, vérification des mises à jour (administrateurs seulement). |
+| `/api/application` | Version en cours, lien de signalement et, pour un administrateur, dernière version publiée. |
+| `/api/sante`, `/api/version` | Sonde de santé et empreinte du front servi (pour proposer de recharger un onglet après un déploiement). |
 
 L'API ne propose pas encore de jeton d'accès : un script doit se connecter et conserver le cookie de session.

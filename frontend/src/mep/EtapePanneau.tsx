@@ -54,6 +54,9 @@ interface Props {
   actions: ActionsEtape;
   onSelectionner: (id: string) => void;
   onFermer?: () => void;
+  /** Preuve déjà saisie pour cette étape avant d'en ouvrir une autre (gardée par le parent). */
+  preuveSaisie?: string;
+  onPreuveSaisie?: (preuve: string) => void;
 }
 
 /**
@@ -70,8 +73,14 @@ export function EtapePanneau({
   actions,
   onSelectionner,
   onFermer = () => undefined,
+  preuveSaisie = '',
+  onPreuveSaisie,
 }: Props) {
-  const [preuve, setPreuve] = useState('');
+  const [preuve, setPreuveLocale] = useState(preuveSaisie);
+  const setPreuve = (p: string) => {
+    setPreuveLocale(p);
+    onPreuveSaisie?.(p);
+  };
   const [confirmation, setConfirmation] = useState<'reussie' | 'echec' | 'main' | null>(null);
   const [motifMain, setMotifMain] = useState('');
   const commentaire = useDraft<string>(etape.commentaire ?? '');

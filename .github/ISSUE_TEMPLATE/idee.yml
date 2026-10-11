@@ -1,0 +1,30 @@
+name: Proposer une amélioration
+description: Une idée de fonctionnalité ou d'amélioration.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ce dépôt est **public** : décrivez le besoin sans information interne (noms de serveurs, clients, contenu de MEP).
+  - type: textarea
+    id: besoin
+    attributes:
+      label: Le besoin
+      description: Ce que vous cherchez à faire, et ce qui vous en empêche aujourd'hui.
+    validations:
+      required: true
+  - type: textarea
+    id: proposition
+    attributes:
+      label: Ce que vous proposez
+      description: Comment l'application pourrait y répondre (facultatif).
+  - type: dropdown
+    id: role
+    attributes:
+      label: Vous êtes plutôt
+      options:
+        - Développeur ou responsable technique
+        - Pilote de MEP
+        - Approbateur
+        - Équipe informatique (installation, exploitation)
+        - Autre

@@ -53,6 +53,10 @@ builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = LimitesReque
 // Surveillance des échéances de retour arrière (désactivable : Surveillance:Activer=false, utile en test).
 if (builder.Configuration.GetValue("Surveillance:Activer", true))
     builder.Services.AddHostedService<SurveillanceEcheances>();
+// Indicateur de nouvelle version (MisesAJour:Verifier=false pour ne jamais contacter GitHub).
+builder.Services.AddHttpClient(nameof(VerificationMisesAJour), c => c.Timeout = TimeSpan.FromSeconds(10));
+builder.Services.AddSingleton<VerificationMisesAJour>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<VerificationMisesAJour>());
 builder.Services.AjouterAuthentification(builder.Environment);
 builder.Services.AjouterProtectionsHttp(builder.Configuration);
 // Clés de chiffrement du cookie de session : conservées dans Cles:Dossier (volume Docker « cles »), sinon chaque
@@ -94,6 +98,7 @@ api.MapGet("/sante", () => Results.Ok(new { statut = "ok" })).AllowAnonymous();
 var versionFront = VersionFront(app.Environment);
 api.MapGet("/version", () => Results.Ok(new { version = versionFront })).AllowAnonymous();
 api.MapAuth();
+api.MapApplication();
 api.MapMeps();
 api.MapStructure();
 api.MapEtapes();
