@@ -452,6 +452,19 @@ public class ParametresGlobaux
 }
 
 /// <summary>
+/// Réglage d'exploitation modifié depuis la console ou la ligne de commande (une ligne par réglage modifié). Sa valeur
+/// remplace celle du fichier .env ; supprimer la ligne revient à la valeur du fichier.
+/// </summary>
+public class Reglage
+{
+    /// <summary>Clé de configuration, par exemple <c>Application:UrlPublique</c>.</summary>
+    public string Cle { get; set; } = "";
+    public string Valeur { get; set; } = "";
+    public DateTimeOffset ModifieLe { get; set; }
+    public string ModifiePar { get; set; } = "";
+}
+
+/// <summary>
 /// Fichier joint à une MEP, une étape, une résolution type ou une exécution de résolution.
 /// Le contenu est stocké sur disque sous l'Id ; <see cref="NomFichier"/> n'est jamais utilisé comme chemin.
 /// </summary>

@@ -23,6 +23,19 @@ public static class ParametresEndpoints
         return l.Length == 0 ? throw ErreurHttp.Saisie("Le libellé est obligatoire.") : l;
     }
 
+    /// <summary>Nombre d'approbations exigées avant le Go (console et ligne de commande ; <paramref name="acteur"/> null : ligne de commande).</summary>
+    public static async Task<int> EnregistrerApprobations(MepDbContext db, int? valeur, Acteur? acteur)
+    {
+        if (valeur is null or < 0) throw ErreurHttp.Saisie("Le nombre minimum d'approbations doit être un entier positif ou nul.");
+        var p = await db.Parametres.FirstOrDefaultAsync(x => x.Id == ParametresGlobaux.IdUnique);
+        if (p is null) db.Parametres.Add(p = new ParametresGlobaux());
+        if (p.ApprobationsMinimum != valeur.Value)
+            JournalAdmin.Ecrire(db, acteur, "parametres.modifies", $"Approbations minimum : {p.ApprobationsMinimum} → {valeur.Value}");
+        p.ApprobationsMinimum = valeur.Value;
+        await db.SaveChangesAsync();
+        return p.ApprobationsMinimum;
+    }
+
     public static void MapParametres(this RouteGroupBuilder api)
     {
         // ---------- Paramètres globaux ----------
@@ -31,14 +44,7 @@ public static class ParametresEndpoints
         api.MapPut("/parametres", async (ParametresSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
             ExigerAdmin(user);
-            if (c.ApprobationsMinimum is null or < 0) throw ErreurHttp.Saisie("Le nombre minimum d'approbations doit être un entier positif ou nul.");
-            var p = await db.Parametres.FirstOrDefaultAsync(x => x.Id == ParametresGlobaux.IdUnique);
-            if (p is null) db.Parametres.Add(p = new ParametresGlobaux());
-            if (p.ApprobationsMinimum != c.ApprobationsMinimum.Value)
-                JournalAdmin.Ecrire(db, Acteur.Depuis(user), "parametres.modifies", $"Approbations minimum : {p.ApprobationsMinimum} → {c.ApprobationsMinimum.Value}");
-            p.ApprobationsMinimum = c.ApprobationsMinimum.Value;
-            await db.SaveChangesAsync();
-            return Results.Ok(new ParametresDto(p.ApprobationsMinimum));
+            return Results.Ok(new ParametresDto(await EnregistrerApprobations(db, c.ApprobationsMinimum, Acteur.Depuis(user))));
         });
 
         // ---------- Critères go / no-go ----------

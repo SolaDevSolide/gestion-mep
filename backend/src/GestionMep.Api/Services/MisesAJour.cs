@@ -54,26 +54,30 @@ public class VerificationMisesAJour(IConfiguration config, IHttpClientFactory ht
 {
     public const string DepotParDefaut = "SolaDevSolide/gestion-mep";
 
-    private readonly bool _active = config.GetValue("MisesAJour:Verifier", true);
+    /// <summary>Réglage <c>MisesAJour:Verifier</c>, modifiable sans redémarrage.</summary>
+    private bool Active => config.GetValue("MisesAJour:Verifier", true);
     private readonly string _depot = string.IsNullOrWhiteSpace(config["MisesAJour:Depot"]) ? DepotParDefaut : config["MisesAJour:Depot"]!.Trim();
     private readonly TimeSpan _intervalle = TimeSpan.FromHours(Math.Max(1, config.GetValue("MisesAJour:IntervalleHeures", 12)));
     private readonly SemaphoreSlim _verrou = new(1, 1);
     private EtatMiseAJour? _etat;
 
-    public EtatMiseAJour Etat => _etat ?? new EtatMiseAJour(_active, _depot, null, null, null, null, null);
+    public EtatMiseAJour Etat => Active ? _etat ?? new EtatMiseAJour(true, _depot, null, null, null, null, null)
+        : new EtatMiseAJour(false, _depot, null, null, null, null, null);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!_active) return;
         using var minuterie = new PeriodicTimer(_intervalle, temps);
-        do await Verifier(stoppingToken);
+        do
+        {
+            if (Active) await Verifier(stoppingToken);
+        }
         while (await minuterie.WaitForNextTickAsync(stoppingToken));
     }
 
     /// <summary>Interroge GitHub maintenant (aussi appelé par le bouton « Vérifier » de la console).</summary>
     public async Task<EtatMiseAJour> Verifier(CancellationToken ct = default)
     {
-        if (!_active) return Etat;
+        if (!Active) return Etat;
         await _verrou.WaitAsync(ct);
         try
         {

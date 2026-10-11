@@ -57,6 +57,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<PieceJointe> PiecesJointes => Set<PieceJointe>();
     public DbSet<EvenementAdmin> JournalAdmin => Set<EvenementAdmin>();
     public DbSet<ConfigurationSso> ConfigurationsSso => Set<ConfigurationSso>();
+    public DbSet<Reglage> Reglages => Set<Reglage>();
     public DbSet<IdentiteExterne> IdentitesExternes => Set<IdentiteExterne>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -148,6 +149,14 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Id).ValueGeneratedNever();
             // Ligne unique créée par la migration, avec la valeur par défaut.
             e.HasData(new ParametresGlobaux { Id = ParametresGlobaux.IdUnique, ApprobationsMinimum = 1 });
+        });
+
+        b.Entity<Reglage>(e =>
+        {
+            e.HasKey(x => x.Cle);
+            e.Property(x => x.Cle).HasMaxLength(100);
+            e.Property(x => x.Valeur).HasMaxLength(2000);
+            e.Property(x => x.ModifiePar).HasMaxLength(200);
         });
 
         b.Entity<PieceJointe>(e =>

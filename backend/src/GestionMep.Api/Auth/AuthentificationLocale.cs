@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using GestionMep.Api.Donnees;
+using GestionMep.Api.Services;
 using GestionMep.Domain;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -27,7 +28,9 @@ public static class AuthentificationLocale
         services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
             .AddCookie(o =>
             {
+                o.Cookie = new CookieSession();
                 o.Cookie.Name = Cookie;
+                o.Cookie.IsEssential = true;
                 o.Cookie.HttpOnly = true;
                 o.Cookie.SameSite = SameSiteMode.Lax;
                 o.Cookie.SecurePolicy = env.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
@@ -44,6 +47,21 @@ public static class AuthentificationLocale
             });
         services.AddAuthorizationBuilder().AddPolicy(PolitiqueAdmin, p => p.RequireRole(Acteur.RoleAdmin));
         return services;
+    }
+
+    /// <summary>
+    /// Cookie de session marqué Secure, sauf si le réglage <see cref="Reglages.HttpsObligatoire"/> est désactivé (mode
+    /// d'essai sans reverse proxy) : il suit alors le schéma de la requête, relu à chaque fois.
+    /// </summary>
+    private sealed class CookieSession : RequestPathBaseCookieBuilder
+    {
+        public override CookieOptions Build(HttpContext context, DateTimeOffset expiresFrom)
+        {
+            var options = base.Build(context, expiresFrom);
+            if (!context.RequestServices.GetRequiredService<IConfiguration>().GetValue(Reglages.HttpsObligatoire, true))
+                options.Secure = context.Request.IsHttps;
+            return options;
+        }
     }
 
     /// <summary>

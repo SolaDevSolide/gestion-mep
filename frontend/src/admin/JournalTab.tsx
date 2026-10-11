@@ -17,6 +17,8 @@ export const LIBELLE_EVENEMENT_ADMIN: Record<string, string> = {
   'compte.mdp-reinitialise': 'Mot de passe réinitialisé',
   'compte.mdp-change': 'Mot de passe changé',
   'parametres.modifies': 'Paramètres modifiés',
+  'reglage.modifie': 'Réglage modifié',
+  'reglage.retabli': 'Réglage rétabli',
   'critere.cree': 'Critère Go / no-go créé',
   'critere.modifie': 'Critère Go / no-go modifié',
   'critere.supprime': 'Critère Go / no-go supprimé',

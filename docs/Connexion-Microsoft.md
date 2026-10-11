@@ -18,7 +18,7 @@ L'adresse de retour exacte est affichée dans la console (onglet « Connexion un
 https://mep.entreprise.fr/connexion-sso/retour
 ```
 
-Si l'adresse affichée n'est pas l'adresse publique (proxy qui réécrit l'hôte), définir `URL_PUBLIQUE=https://mep.entreprise.fr` dans `.env` (voir [Installer](Installer.md#configuration)).
+Si l'adresse affichée n'est pas l'adresse publique (proxy qui réécrit l'hôte), la régler dans la console (onglet Paramètres, « Adresse publique »), par `gestion-mep reglages definir url-publique https://mep.entreprise.fr`, ou par `URL_PUBLIQUE` dans `.env` (voir [Installer](Installer.md#configuration)).
 
 Dans le portail Entra (entra.microsoft.com) :
 

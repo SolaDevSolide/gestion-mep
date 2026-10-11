@@ -11,7 +11,8 @@ public sealed class DiffuseurMep(IConfiguration config)
 {
     /// <summary>Flux ouverts en même temps par un compte (plusieurs onglets) et pour tout le serveur : au-delà, 429.</summary>
     public const int MaxParCompte = 20;
-    private readonly int _maxTotal = Math.Max(1, config.GetValue("Flux:ConnexionsMax", 1000));
+    /// <summary>Réglage <c>Flux:ConnexionsMax</c>, relu à chaque ouverture.</summary>
+    private int MaxTotal => Math.Max(1, config.GetValue("Flux:ConnexionsMax", 1000));
 
     private readonly Dictionary<Guid, List<Channel<int>>> _abonnes = [];
     private readonly Dictionary<Guid, int> _parCompte = [];
@@ -26,10 +27,11 @@ public sealed class DiffuseurMep(IConfiguration config)
             FullMode = BoundedChannelFullMode.DropOldest,
             SingleReader = true,
         });
+        var maxTotal = MaxTotal;
         lock (_verrou)
         {
             var duCompte = _parCompte.GetValueOrDefault(utilisateurId);
-            if (duCompte >= MaxParCompte || _total >= _maxTotal) return null;
+            if (duCompte >= MaxParCompte || _total >= maxTotal) return null;
             _parCompte[utilisateurId] = duCompte + 1;
             _total++;
             if (!_abonnes.TryGetValue(mepId, out var liste)) _abonnes[mepId] = liste = [];

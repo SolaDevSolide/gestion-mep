@@ -654,6 +654,30 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("PiecesJointes");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.Reglage", b =>
+                {
+                    b.Property<string>("Cle")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("ModifieLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiePar")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Valeur")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.HasKey("Cle");
+
+                    b.ToTable("Reglages");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.ResolutionType", b =>
                 {
                     b.Property<Guid>("Id")

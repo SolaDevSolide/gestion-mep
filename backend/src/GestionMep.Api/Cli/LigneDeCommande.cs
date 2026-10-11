@@ -17,7 +17,7 @@ namespace GestionMep.Api.Cli;
 /// </summary>
 public static class LigneDeCommande
 {
-    private static readonly string[] Commandes = ["aide", "--help", "-h", "version", "--version", "migrer", "config", "comptes", "sauvegarder", "importer", "sso"];
+    private static readonly string[] Commandes = ["aide", "--help", "-h", "version", "--version", "migrer", "config", "comptes", "sauvegarder", "importer", "sso", "reglages"];
 
     private const string Aide = """
         gestion-mep : commandes d'exploitation
@@ -48,9 +48,15 @@ public static class LigneDeCommande
           gestion-mep sso activer | desactiver                Affiche ou retire le bouton de connexion unique (sans redémarrage)
           gestion-mep sso comptes                             Comptes reliés à un compte du fournisseur
           gestion-mep sso delier <login>                      Supprime la liaison d'un compte
+          gestion-mep reglages lister                         Réglages d'exploitation : valeur, origine (console, .env, défaut)
+          gestion-mep reglages definir <nom> <valeur>         Modifie un réglage, appliqué sans redémarrage (sous 10 secondes) ;
+                                                              la valeur remplace celle du fichier .env
+          gestion-mep reglages retablir <nom>                 Revient à la valeur du fichier .env (ou à la valeur par défaut)
           gestion-mep version                                 Version de l'application
 
         Dans Docker : docker compose exec app gestion-mep <commande>
+        Exemples : gestion-mep reglages definir url-publique https://mep.entreprise.fr
+                   gestion-mep reglages definir lien-signalement ""      (valeur vide : lien masqué)
         Secret depuis un fichier : docker compose exec -T app gestion-mep sso configurer --secret-stdin < secret.txt
         Codes de retour : 0 succès, 1 échec, 2 commande mal formée.
         """;
@@ -81,6 +87,9 @@ public static class LigneDeCommande
                 ["sso", "desactiver"] => await SsoChangerEtat(false),
                 ["sso", "comptes"] => await SsoComptes(),
                 ["sso", "delier", var login] => await SsoDelier(login),
+                ["reglages" or "reglage", "lister"] => await ReglagesLister(),
+                ["reglages" or "reglage", "definir", var nom, var valeur] => await ReglagesDefinir(nom, valeur),
+                ["reglages" or "reglage", "retablir", var nom] => await ReglagesRetablir(nom),
                 ["aide" or "--help" or "-h"] => AfficherAide(0),
                 _ => AfficherAide(2),
             };
@@ -103,13 +112,16 @@ public static class LigneDeCommande
         return code;
     }
 
-    private static IConfiguration Configuration() =>
-        new ConfigurationBuilder()
+    /// <summary>Même configuration que l'application : fichiers, variables d'environnement, puis réglages modifiés en base.</summary>
+    private static IConfiguration Configuration()
+    {
+        var builder = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: true)
             .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
-            .AddEnvironmentVariables()
-            .Build();
+            .AddEnvironmentVariables();
+        return builder.Add(new SourceReglagesBase(builder.Build().GetConnectionString("Mep"))).Build();
+    }
 
     private static MepDbContext Base(IConfiguration config)
     {
@@ -273,7 +285,7 @@ public static class LigneDeCommande
         Console.WriteLine($"Comptes            : {(c.CreationAutomatique ? "créés à la première connexion" : "déjà liés seulement")}");
         Console.WriteLine($"Rôle administrateur: {(c.RoleAdmin.Length > 0 ? $"rôle d'application « {c.RoleAdmin} »" : "géré dans l'application")}");
         Console.WriteLine($"Bouton             : {ConnexionUnique.LibelleEffectif(c)}");
-        Console.WriteLine($"Adresse de retour  : {ConnexionUnique.UrlRetour(config, null) ?? $"<adresse publique>{ConnexionUnique.CheminRetour} (URL_PUBLIQUE non définie)"}");
+        Console.WriteLine($"Adresse de retour  : {ConnexionUnique.UrlRetour(config, null) ?? $"<adresse publique>{ConnexionUnique.CheminRetour} (adresse publique non définie : gestion-mep reglages definir url-publique <adresse>)"}");
         foreach (var a in ConnexionUnique.Anomalies(c, cles, pourActiver: true)) Console.WriteLine($"À compléter        : {a}");
         if (AlerteExpiration(c) is { } alerte) Console.WriteLine($"Attention          : {alerte}");
         return 0;
@@ -394,6 +406,65 @@ public static class LigneDeCommande
         return 0;
     }
 
+    /// <summary>Le nombre d'approbations vit dans les paramètres métier, mais se règle avec les autres.</summary>
+    private const string Approbations = "approbations-minimum";
+
+    private static async Task<int> ReglagesLister()
+    {
+        var config = Configuration();
+        await using var db = Base(config);
+        var largeur = Reglages.Catalogue.Max(d => d.Nom.Length) + 2;
+        foreach (var groupe in (await Reglages.Lister(db, config)).GroupBy(r => r.Groupe))
+        {
+            Console.WriteLine(groupe.Key);
+            foreach (var r in groupe)
+            {
+                var origine = r.Origine switch
+                {
+                    "console" => $"modifié le {r.ModifieLe:yyyy-MM-dd HH:mm} par {r.ModifiePar}" + (r.ValeurFichier is { } f ? $", .env : {Texte(f)}" : ""),
+                    "fichier" => $"fichier .env ({r.Variable})",
+                    _ => "valeur par défaut",
+                };
+                Console.WriteLine($"  {r.Nom.PadRight(largeur)}{Texte(r.Valeur)}   [{origine}]");
+                foreach (var a in r.Alertes) Console.WriteLine($"  {"".PadRight(largeur)}Attention : {a}");
+            }
+        }
+        Console.WriteLine("Approbations");
+        Console.WriteLine($"  {Approbations.PadRight(largeur)}{(await db.Parametres.AsNoTracking().Select(p => (int?)p.ApprobationsMinimum).FirstOrDefaultAsync() ?? 1)}");
+        Console.WriteLine();
+        Console.WriteLine("Lus au démarrage, dans le fichier .env (le modifier puis « docker compose up -d ») : PORT, ADRESSE_ECOUTE,");
+        Console.WriteLine("POSTGRES_USER, POSTGRES_PASSWORD, DEMO, ADMIN_LOGIN, ADMIN_MOT_DE_PASSE, MEP_IMAGE, COMPOSE_PROFILES.");
+        return 0;
+    }
+
+    private static async Task<int> ReglagesDefinir(string nom, string valeur)
+    {
+        var config = Configuration();
+        await using var db = Base(config);
+        if (nom == Approbations)
+        {
+            if (!int.TryParse(valeur, System.Globalization.CultureInfo.InvariantCulture, out var n))
+                throw ErreurHttp.Saisie("Le nombre minimum d'approbations doit être un entier positif ou nul.");
+            Console.WriteLine($"Réglage enregistré : {Approbations} = {await ParametresEndpoints.EnregistrerApprobations(db, n, null)}.");
+            return 0;
+        }
+        var r = await Reglages.Definir(db, config, Reglages.Trouver(nom), valeur, null, DateTimeOffset.UtcNow);
+        Console.WriteLine($"Réglage enregistré : {r.Nom} = {Texte(r.Valeur)}. L'application l'applique sous 10 secondes, sans redémarrage.");
+        foreach (var a in r.Alertes) Console.WriteLine($"Attention : {a}");
+        return 0;
+    }
+
+    private static async Task<int> ReglagesRetablir(string nom)
+    {
+        var config = Configuration();
+        await using var db = Base(config);
+        var r = await Reglages.Retablir(db, config, Reglages.Trouver(nom), null);
+        Console.WriteLine($"Réglage rétabli : {r.Nom} = {Texte(r.Valeur)} ({(r.Origine == "fichier" ? "fichier .env" : "valeur par défaut")}).");
+        return 0;
+    }
+
+    private static string Texte(string valeur) => valeur.Length == 0 ? "(vide)" : valeur;
+
     /// <summary>Contrôles de démarrage, lisibles par un humain ; code 1 si un contrôle bloquant échoue.</summary>
     private static async Task<int> VerifierConfig()
     {
@@ -418,6 +489,8 @@ public static class LigneDeCommande
         }
         if (new Npgsql.NpgsqlConnectionStringBuilder(chaine).Password is { } mdpBase && AuthentificationLocale.MotDePasseInitialRefuse(mdpBase) is not null)
             Attention("Mot de passe de la base faible ou d'exemple (POSTGRES_PASSWORD) : à changer hors poste de développement.");
+        if (!config.GetValue(Reglages.HttpsObligatoire, true))
+            Attention("HTTPS non obligatoire (mode d'essai) : les mots de passe peuvent circuler en clair. « gestion-mep reglages definir https-obligatoire oui ».");
         if (config["Admin:MotDePasse"] is { Length: > 0 })
             Attention("ADMIN_MOT_DE_PASSE est encore défini : il ne sert qu'au premier démarrage, le retirer de .env.");
         await using var db = Base(config);
