@@ -107,3 +107,50 @@ public class VerificationMisesAJour(IConfiguration config, IHttpClientFactory ht
         }
     }
 }
+
+/// <summary>État du service « mise-a-jour » (conteneur facultatif) tel qu'il l'écrit dans le dossier d'échange.</summary>
+public record EtatInstallateur(bool Present, string? Statut, string? Version, string? Message, DateTimeOffset? Le);
+
+/// <summary>
+/// Dialogue avec le service « mise-a-jour » par le dossier partagé <c>MisesAJour:Dossier</c> (défaut
+/// <c>/data/mise-a-jour</c>) : il y écrit <c>etat.json</c> toutes les 5 secondes ; l'application y dépose
+/// <c>demande.json</c> avec le seul numéro de version à installer. Aucun port n'est ouvert entre les deux.
+/// </summary>
+public class InstallationMiseAJour(IConfiguration config, TimeProvider temps)
+{
+    public const string DossierParDefaut = "/data/mise-a-jour";
+
+    /// <summary>Au-delà, le service est considéré comme absent (arrêté ou jamais activé).</summary>
+    public static readonly TimeSpan BattementMaximal = TimeSpan.FromSeconds(30);
+
+    public string Dossier { get; } = string.IsNullOrWhiteSpace(config["MisesAJour:Dossier"]) ? DossierParDefaut : config["MisesAJour:Dossier"]!;
+
+    public EtatInstallateur Lire()
+    {
+        try
+        {
+            var chemin = Path.Combine(Dossier, "etat.json");
+            if (!File.Exists(chemin)) return new EtatInstallateur(false, null, null, null, null);
+            using var json = JsonDocument.Parse(File.ReadAllText(chemin));
+            var r = json.RootElement;
+            string? Texte(string nom) => r.TryGetProperty(nom, out var p) && p.ValueKind == JsonValueKind.String && p.GetString() is { Length: > 0 } s ? s : null;
+            DateTimeOffset? Date(string nom) => DateTimeOffset.TryParse(Texte(nom), out var d) ? d : null;
+            var present = Date("battement") is { } b && temps.GetUtcNow() - b < BattementMaximal;
+            return new EtatInstallateur(present, Texte("statut"), Texte("version"), Texte("message"), Date("le"));
+        }
+        catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
+        {
+            // Fichier en cours de réécriture ou illisible : considéré comme absent jusqu'au prochain battement.
+            return new EtatInstallateur(false, null, null, null, null);
+        }
+    }
+
+    /// <summary>Dépose la demande d'installation de <paramref name="version"/> (déjà validée par l'appelant).</summary>
+    public void Demander(string version, string demandeePar)
+    {
+        Directory.CreateDirectory(Dossier);
+        var temporaire = Path.Combine(Dossier, $"demande.{Guid.NewGuid():N}.tmp");
+        File.WriteAllText(temporaire, JsonSerializer.Serialize(new { version, demandeePar, le = temps.GetUtcNow() }));
+        File.Move(temporaire, Path.Combine(Dossier, "demande.json"), overwrite: true);
+    }
+}

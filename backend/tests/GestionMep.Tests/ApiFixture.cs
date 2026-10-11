@@ -23,6 +23,8 @@ public class ApiFixture : IDisposable
 
     /// <summary>Dossier temporaire des pièces jointes, supprimé à la fin.</summary>
     public string DossierPieces { get; } = Path.Combine(Path.GetTempPath(), "gestion-mep-tests-" + Guid.NewGuid().ToString("N"));
+    /// <summary>Dossier d'échange avec le service de mise à jour (etat.json, demande.json).</summary>
+    public string DossierMiseAJour => Path.Combine(DossierPieces, "mise-a-jour");
 
     public ApiFixture()
     {
@@ -43,6 +45,7 @@ public class ApiFixture : IDisposable
         Environment.SetEnvironmentVariable("Sauvegardes__Dossier", Path.Combine(DossierPieces, "sauvegardes"));
         Environment.SetEnvironmentVariable("Stockage__TailleMaxMo", "1");
         Environment.SetEnvironmentVariable("MisesAJour__Verifier", "false"); // pas d'appel à GitHub pendant les tests
+        Environment.SetEnvironmentVariable("MisesAJour__Dossier", DossierMiseAJour);
         Environment.SetEnvironmentVariable("Connexion__TentativesParMinute", "1000"); // les tests se connectent sans cesse depuis la même « adresse »
         _usine = new WebApplicationFactory<Program>();
         _ = _usine.Server; // démarre l'hôte : migration + données de démo

@@ -5,7 +5,7 @@ Application web pour préparer et exécuter les mises en production (MEP). L'éq
 - **Préparation** : plan d'étapes en graphe avec dépendances et étapes parallèles, responsables techniques, approbations, go / no-go.
 - **Exécution** : étapes à suivre en temps réel, preuves, prise de main tracée, résolutions guidées en cas d'échec.
 - **Sécurité de l'intervention** : sauvegardes, point de non-retour, procédure de retour arrière obligatoire, recette et bilan.
-- **Administration** : comptes, paramètres globaux et journal, depuis l'interface ou en ligne de commande ; indicateur de nouvelle version.
+- **Administration** : comptes, paramètres globaux et journal, depuis l'interface ou en ligne de commande ; indicateur de nouvelle version et, si l'équipe informatique l'active, mise à jour en un clic.
 - **Données protégées** : sauvegarde automatique de la base et des pièces jointes avant chaque mise à jour du schéma ou importation, supprimée seulement si les contrôles internes confirment qu'aucune donnée n'a été perdue.
 
 React, .NET 10 et PostgreSQL, livrés dans une image Docker.

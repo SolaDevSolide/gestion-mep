@@ -61,6 +61,9 @@ Les variables se règlent dans `.env`, lu par `docker-compose.yml`.
 | `PROXY_RESEAUX` | `172.16.0.0/12` | Réseaux (CIDR, séparés par des virgules) du proxy HTTPS, seuls autorisés à transmettre l'adresse du client. Le défaut couvre un proxy sur le même hôte Docker ; sinon, indiquer l'adresse du proxy (`10.0.5.12/32`). |
 | `VERIFIER_MISES_A_JOUR` | `true` | Consulte les versions publiées sur GitHub pour signaler une mise à jour aux administrateurs. `false` sur un serveur sans accès à Internet. |
 | `LIEN_SIGNALEMENT` | formulaire GitHub du dépôt | Lien « Signaler un problème ou une idée » du menu utilisateur. Vide : lien masqué. Peut pointer vers un outil interne. |
+| `COMPOSE_PROFILES` | vide | `mise-a-jour` active le bouton « Mettre à jour » de la console (voir [Mettre à jour depuis la console](Exploiter.md#mettre-à-jour-depuis-la-console)). |
+| `MEP_IMAGE_MISE_A_JOUR` | `ghcr.io/soladevsolide/gestion-mep-mise-a-jour:latest` | Image du service de mise à jour. |
+| `MEP_DEPOT_IMAGE` | `ghcr.io/soladevsolide/gestion-mep` | Seul dépôt d'images que le service de mise à jour accepte d'installer (à changer pour un registre interne). |
 | `CONNEXIONS_PAR_MINUTE` | `20` | Tentatives de connexion autorisées par minute et par adresse IP. Au-delà : refus temporaire. Un compte est en plus bloqué quelques minutes après 5 échecs consécutifs. |
 
 Pour un déploiement sans Docker Compose (Kubernetes, ECS…), l'image se règle par ses variables d'environnement :
@@ -78,6 +81,7 @@ Pour un déploiement sans Docker Compose (Kubernetes, ECS…), l'image se règle
 | `Connexion__TentativesParMinute` | Voir `CONNEXIONS_PAR_MINUTE`. |
 | `MisesAJour__Verifier` | Voir `VERIFIER_MISES_A_JOUR`. `MisesAJour__Depot` (`SolaDevSolide/gestion-mep`) et `MisesAJour__IntervalleHeures` (`12`) changent le dépôt consulté et la fréquence. |
 | `Signalement__Lien` | Voir `LIEN_SIGNALEMENT`. |
+| `MisesAJour__Dossier` | Dossier partagé avec le service de mise à jour (`/data/mise-a-jour`, volume `mise-a-jour`). |
 | `Surveillance__Activer` | `true` par défaut : bascule automatique en retour arrière quand l'échéance d'une MEP est dépassée. Ne pas désactiver en production. |
 
 ### Base de données externe

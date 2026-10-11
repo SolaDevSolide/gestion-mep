@@ -56,6 +56,7 @@ if (builder.Configuration.GetValue("Surveillance:Activer", true))
 // Indicateur de nouvelle version (MisesAJour:Verifier=false pour ne jamais contacter GitHub).
 builder.Services.AddHttpClient(nameof(VerificationMisesAJour), c => c.Timeout = TimeSpan.FromSeconds(10));
 builder.Services.AddSingleton<VerificationMisesAJour>();
+builder.Services.AddSingleton<InstallationMiseAJour>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<VerificationMisesAJour>());
 builder.Services.AjouterAuthentification(builder.Environment);
 builder.Services.AjouterProtectionsHttp(builder.Configuration);

@@ -214,25 +214,6 @@
         }
       }
     },
-    "/api/admin/mises-a-jour/verifier": {
-      "post": {
-        "tags": [
-          "GestionMep.Api"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MiseAJourDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/meps": {
       "get": {
         "tags": [
@@ -2601,6 +2582,54 @@
         }
       }
     },
+    "/api/admin/mises-a-jour/verifier": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MiseAJourDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/mises-a-jour/installer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallationSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MiseAJourDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/utilisateurs": {
       "get": {
         "tags": [
@@ -4337,6 +4366,62 @@
           }
         }
       },
+      "InstallateurDto": {
+        "required": [
+          "present",
+          "statut",
+          "version",
+          "message",
+          "le"
+        ],
+        "type": "object",
+        "properties": {
+          "present": {
+            "type": "boolean"
+          },
+          "statut": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "le": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "Service « mise-a-jour » (facultatif) : `Present` s'il tourne ; `Statut` pret, en-cours, terminee, echec ou\nindisponible ; `Message` et `Version` de sa dernière action."
+      },
+      "InstallationSaisie": {
+        "required": [
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Demande d'installation d'une version publiée (bouton « Mettre à jour » de la console)."
+      },
       "IssueMep": {
         "enum": [
           "Reussie",
@@ -5864,7 +5949,8 @@
           "notesUrl",
           "verifieeLe",
           "erreur",
-          "disponible"
+          "disponible",
+          "installateur"
         ],
         "type": [
           "null",
@@ -5914,6 +6000,9 @@
           },
           "disponible": {
             "type": "boolean"
+          },
+          "installateur": {
+            "$ref": "#/components/schemas/InstallateurDto"
           }
         },
         "description": "Dernière version publiée sur GitHub. `Disponible` : elle est plus récente que la version en cours (toujours faux\npour une version de développement). `Erreur` : dernière vérification impossible (serveur sans accès à Internet…)."

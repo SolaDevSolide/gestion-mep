@@ -182,4 +182,29 @@ public class AdministrationTests : IDisposable
         Assert.False(miseAJour.GetProperty("disponible").GetBoolean());
         Assert.False((await Ok(await alice.PostAsync("/api/admin/mises-a-jour/verifier", null))).GetProperty("active").GetBoolean());
     }
+
+    [Fact]
+    public async Task L_installation_d_une_mise_a_jour_exige_le_service_actif_et_une_version_publiee_plus_recente()
+    {
+        var alice = await _api.ClientConnecte("alice");
+        var installer = () => alice.PostAsJsonAsync("/api/admin/mises-a-jour/installer", new { version = "9.9.9" });
+        var absent = await installer();
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, absent.StatusCode);
+        Assert.Contains("pas actif", await Message(absent));
+
+        // Service présent (battement récent) : la version doit être la dernière publiée, inconnue ici (vérification coupée).
+        Directory.CreateDirectory(_api.DossierMiseAJour);
+        File.WriteAllText(Path.Combine(_api.DossierMiseAJour, "etat.json"),
+            $$"""{"statut":"pret","version":"","message":"Service de mise à jour prêt.","le":"{{DateTimeOffset.UtcNow:O}}","battement":"{{DateTimeOffset.UtcNow:O}}"}""");
+        var installateur = (await Ok(await alice.GetAsync("/api/application"))).GetProperty("miseAJour").GetProperty("installateur");
+        Assert.True(installateur.GetProperty("present").GetBoolean());
+        Assert.Equal("pret", installateur.GetProperty("statut").GetString());
+        var refus = await installer();
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
+        Assert.Contains("dernière version publiée", await Message(refus));
+        Assert.False(File.Exists(Path.Combine(_api.DossierMiseAJour, "demande.json")));
+
+        var bob = await _api.ClientConnecte("bob");
+        Assert.Equal(HttpStatusCode.Forbidden, (await bob.PostAsJsonAsync("/api/admin/mises-a-jour/installer", new { version = "9.9.9" })).StatusCode);
+    }
 }
