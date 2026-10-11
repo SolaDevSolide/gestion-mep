@@ -113,4 +113,4 @@ React 19 + TypeScript 7 + Vite, Tailwind CSS 4 et primitives Radix. Le détail d
 
 ## Intégration continue
 
-`.github/workflows/ci.yml` lance les tests back (avec un service PostgreSQL) et front à chaque PR et à chaque fusion sur `main`. Sur `main`, il construit et publie l'image sur `ghcr.io/soladevsolide/gestion-mep`.
+`.github/workflows/ci.yml` lance les tests back (avec un service PostgreSQL) et front à chaque PR et à chaque fusion sur `main`. Sur `main`, il construit et publie l'image sur `ghcr.io/soladevsolide/gestion-mep` (étiquettes `main` et `sha-…`). Une étiquette Git `vX.Y.Z` publie la version numérotée (`X.Y.Z`, `X.Y`, `latest`), puis crée la version GitHub avec ses notes, que l'indicateur de mise à jour de l'application consulte.

@@ -281,6 +281,21 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(api.modifierEtape).not.toHaveBeenCalled();
   });
 
+  it('ouvrir une autre étape avec des modifications non enregistrées : garde, puis changement', async () => {
+    rendre(planExemple());
+    await userEvent.click(carte(/^E0003/));
+    await userEvent.type(screen.getByLabelText('Action'), ' bis');
+    fireEvent.click(carte(/^E0001/));
+    expect(screen.getByRole('alertdialog', { name: 'Modifications non enregistrées' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Action')).toHaveValue('Contrôle final bis');
+    await userEvent.click(screen.getByRole('button', { name: 'Continuer' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    fireEvent.click(carte(/^E0001/));
+    await userEvent.click(screen.getByRole('button', { name: 'Changer d’étape sans enregistrer' }));
+    expect(screen.getByLabelText('Action')).not.toHaveValue('Contrôle final bis');
+    expect(api.modifierEtape).not.toHaveBeenCalled();
+  });
+
   it('résolutions : recherche sans accents, même système en tête, Entrée pour lier', async () => {
     rendre(planExemple());
     await userEvent.click(carte(/^E0003/));

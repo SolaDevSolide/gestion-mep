@@ -42,6 +42,7 @@ public class ApiFixture : IDisposable
         Environment.SetEnvironmentVariable("Cles__Dossier", Path.Combine(DossierPieces, "cles")); // /data/cles n'existe pas hors Docker
         Environment.SetEnvironmentVariable("Sauvegardes__Dossier", Path.Combine(DossierPieces, "sauvegardes"));
         Environment.SetEnvironmentVariable("Stockage__TailleMaxMo", "1");
+        Environment.SetEnvironmentVariable("MisesAJour__Verifier", "false"); // pas d'appel à GitHub pendant les tests
         Environment.SetEnvironmentVariable("Connexion__TentativesParMinute", "1000"); // les tests se connectent sans cesse depuis la même « adresse »
         _usine = new WebApplicationFactory<Program>();
         _ = _usine.Server; // démarre l'hôte : migration + données de démo

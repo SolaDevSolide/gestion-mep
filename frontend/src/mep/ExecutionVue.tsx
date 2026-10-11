@@ -24,6 +24,9 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
   const [mesSystemes, setMesSystemes] = useLocalStorageState<string[]>(`mep.${mep.id}.mesSystemes`, []);
   const [aMoi, setAMoi] = useLocalStorageState<boolean>(`mep.${mep.id}.aMoi`, false);
   const [choix, setChoix] = useState<string | null | undefined>(undefined);
+  // Preuves en cours de saisie par étape : ouvrir une autre étape puis revenir ne les perd pas.
+  // (Map stable, modifiée sur place : la saisie ne redessine pas le graphe.)
+  const [preuves] = useState(() => new Map<string, string>());
   const { donnees: resolutionsTypes } = useAsync(() => api.resolutions(), []);
   const catalogue = useAsync(() => api.catalogueSystemes(), []);
   const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue.donnees), [mep, catalogue.donnees]);
@@ -45,7 +48,8 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
 
   const actions = useMemo<ActionsEtape>(() => {
     // Étape réussie : l'espace se ferme ; en échec, il reste ouvert sur les résolutions.
-    const suivante = (ok: boolean, resultat: 'Reussie' | 'Echec') => {
+    const suivante = (ok: boolean, resultat: 'Reussie' | 'Echec', id: string) => {
+      if (ok) preuves.delete(id);
       if (ok && resultat === 'Reussie') setChoix(undefined);
       return ok;
     };
@@ -58,6 +62,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
             resultat === 'Reussie' ? `${e.code} réussie.` : `${e.code} en échec.`,
           ),
           resultat,
+          e.id,
         ),
       commenter: (e, commentaire) =>
         run(() => api.commenterEtape(mep.id, e.id, e.revision, commentaire), 'Commentaire enregistré.'),
@@ -86,7 +91,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
             : 'Vérification en échec : retour arrière déclenché.',
         ),
     };
-  }, [mep.id, run]);
+  }, [mep.id, run, preuves]);
 
   if (etapes.length === 0) {
     return <EmptyState icone={Network} titre="Aucune étape" description="Ce plan ne comporte aucune étape." />;
@@ -171,6 +176,8 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
           actions={actions}
           onSelectionner={setChoix}
           onFermer={() => setChoix(null)}
+          preuveSaisie={preuves.get(ouverte.id)}
+          onPreuveSaisie={(p) => preuves.set(ouverte.id, p)}
         />
       )}
     </div>

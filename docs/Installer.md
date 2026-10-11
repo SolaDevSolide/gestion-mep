@@ -17,7 +17,7 @@ L'application écoute en HTTP sur le port 8080. Le chiffrement HTTPS est confié
 
 - Une machine virtuelle Linux (ou Windows Server) avec **Docker Engine** et le plugin **Docker Compose v2**.
 - 2 vCPU et 4 Go de mémoire suffisent pour une équipe. Prévoir l'espace disque des pièces jointes.
-- Un accès sortant à `ghcr.io` pour récupérer l'image, ou une copie de l'image dans un registre interne.
+- Un accès sortant à `ghcr.io` pour récupérer l'image, ou une copie de l'image dans un registre interne. Facultatif : un accès sortant à `api.github.com` pour signaler les nouvelles versions aux administrateurs.
 - Un proxy inverse HTTPS (nginx, IIS, Traefik, un répartiteur de charge…) et un nom DNS.
 
 ### Sur AWS
@@ -52,13 +52,15 @@ Les variables se règlent dans `.env`, lu par `docker-compose.yml`.
 
 | Variable `.env` | Défaut | Rôle |
 |---|---|---|
-| `MEP_IMAGE` | `gestion-mep:local` | Image à lancer. En production : `ghcr.io/soladevsolide/gestion-mep:sha-<version>` (voir [Choisir une version](Exploiter.md#choisir-une-version)). |
+| `MEP_IMAGE` | `gestion-mep:local` | Image à lancer. En production, une version publiée : `ghcr.io/soladevsolide/gestion-mep:1.0.0` (voir [Choisir une version](Exploiter.md#choisir-une-version)). |
 | `PORT` | `8080` | Port publié sur l'hôte. |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` | `mep` / `mep` | Compte de la base. **Changer le mot de passe** avant le premier démarrage. |
 | `ADMIN_LOGIN` / `ADMIN_MOT_DE_PASSE` | vides | Compte administrateur créé au premier démarrage si la base est vide. |
 | `DEMO` | `false` | `true` crée les comptes de démonstration et une MEP d'exemple. **Jamais en production.** |
 | `PIECES_TAILLE_MAX_MO` | `20` | Taille maximale d'une pièce jointe, en Mo. |
 | `PROXY_RESEAUX` | `172.16.0.0/12` | Réseaux (CIDR, séparés par des virgules) du proxy HTTPS, seuls autorisés à transmettre l'adresse du client. Le défaut couvre un proxy sur le même hôte Docker ; sinon, indiquer l'adresse du proxy (`10.0.5.12/32`). |
+| `VERIFIER_MISES_A_JOUR` | `true` | Consulte les versions publiées sur GitHub pour signaler une mise à jour aux administrateurs. `false` sur un serveur sans accès à Internet. |
+| `LIEN_SIGNALEMENT` | formulaire GitHub du dépôt | Lien « Signaler un problème ou une idée » du menu utilisateur. Vide : lien masqué. Peut pointer vers un outil interne. |
 | `CONNEXIONS_PAR_MINUTE` | `20` | Tentatives de connexion autorisées par minute et par adresse IP. Au-delà : refus temporaire. Un compte est en plus bloqué quelques minutes après 5 échecs consécutifs. |
 
 Pour un déploiement sans Docker Compose (Kubernetes, ECS…), l'image se règle par ses variables d'environnement :
@@ -74,6 +76,8 @@ Pour un déploiement sans Docker Compose (Kubernetes, ECS…), l'image se règle
 | `Cles__Dossier` | Dossier des clés qui chiffrent le cookie de session (`/data/cles`), à monter sur un volume persistant. Sans lui, chaque recréation du conteneur déconnecte tout le monde. |
 | `ProxyInverse__Reseaux` | Voir `PROXY_RESEAUX`. |
 | `Connexion__TentativesParMinute` | Voir `CONNEXIONS_PAR_MINUTE`. |
+| `MisesAJour__Verifier` | Voir `VERIFIER_MISES_A_JOUR`. `MisesAJour__Depot` (`SolaDevSolide/gestion-mep`) et `MisesAJour__IntervalleHeures` (`12`) changent le dépôt consulté et la fréquence. |
+| `Signalement__Lien` | Voir `LIEN_SIGNALEMENT`. |
 | `Surveillance__Activer` | `true` par défaut : bascule automatique en retour arrière quand l'échéance d'une MEP est dépassée. Ne pas désactiver en production. |
 
 ### Base de données externe

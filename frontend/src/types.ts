@@ -93,6 +93,9 @@ export type FicheRecette = S['FicheRecetteDto'];
 export type Bilan = S['BilanDto'];
 export type PieceJointe = S['PieceJointeDto'];
 export type CritereGoNoGo = S['CritereGoNoGoDto'];
+/** Version en cours, lien de signalement et, pour un administrateur, l'état des mises à jour. */
+export type InfosApplication = S['ApplicationDto'];
+export type MiseAJour = NonNullable<S['MiseAJourDto']>;
 export type ParametresGlobaux = SaisieVerifiee<S['ParametresSaisie'], S['ParametresDto']>;
 export type RetourArriereInfo = S['RetourArriereDto'];
 export type ClotureInfo = S['ClotureDto'];

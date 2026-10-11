@@ -65,8 +65,17 @@ export default function MepPage() {
 
   const definirOnglet = useCallback((o: Onglet) => setParams({ onglet: o }, { replace: true }), [setParams]);
 
+  // MEP affichée, lue par les réponses qui arrivent après un changement de page.
+  const idRef = useRef(id);
+  useEffect(() => {
+    idRef.current = id;
+  }, [id]);
+
   const appliquer = useCallback(
     (m: Mep) => {
+      // Réponse arrivée en retard : celle d'une autre MEP (changement de page) ou d'une version plus ancienne que celle
+      // affichée (une synchronisation partie avant une action et revenue après elle). On l'ignore.
+      if (m.id !== idRef.current || m.version < versionRef.current) return;
       versionRef.current = m.version;
       setMep(m);
       setRechargementEnAttente(false);

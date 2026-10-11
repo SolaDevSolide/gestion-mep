@@ -96,6 +96,14 @@ interface Props {
   onLier: (de: string, vers: string) => void;
   onDelier: (liens: Lien[]) => void;
   onSelection: (id: string | null) => void;
+  /** Signale au parent une saisie non enregistrée, pour qu'il ne change pas d'étape sans prévenir. */
+  onDirty?: (dirty: boolean) => void;
+  /**
+   * Étape demandée (null = fermer) pendant une saisie non enregistrée : l'espace affiche alors le choix
+   * enregistrer / abandonner / continuer. undefined = aucune demande en attente.
+   */
+  demande?: string | null;
+  onAnnulerDemande?: () => void;
 }
 
 /** Badges de la barre du haut : code, type, point de non-retour. */
@@ -123,15 +131,30 @@ function Badges({ etape, type, pnr }: { etape: Etape; type: TypeEtape; pnr: bool
 
 /** Espace d'édition d'une étape (préparation) : barre du haut, colonnes Fiche / Instructions / Liens, résolutions et pièces. */
 export function PanneauEdition(props: Props) {
-  const { mep, etape, plan, etapes, modifiable, resolutions, catalogue, focusAction, onLier, onDelier, onSelection } =
-    props;
+  const {
+    mep,
+    etape,
+    plan,
+    etapes,
+    modifiable,
+    resolutions,
+    catalogue,
+    focusAction,
+    onLier,
+    onDelier,
+    onSelection,
+    onDirty,
+    demande,
+    onAnnulerDemande,
+  } = props;
   const { run } = useMep();
   const navigate = useNavigate();
   const d = useDraft<Fiche>(ficheDepuis(etape));
   useReportDirty(d.dirty);
+  useEffect(() => onDirty?.(d.dirty), [onDirty, d.dirty]);
   const v = d.value;
   const [suppr, setSuppr] = useState(false);
-  const [garde, setGarde] = useState(false);
+  const [garde, setGarde] = useState<{ cible: string | null } | null>(null);
   const [envoi, setEnvoi] = useState(false);
   const champAction = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -194,10 +217,19 @@ export function PanneauEdition(props: Props) {
     return ok;
   }
 
-  const fermer = () => {
-    if (d.dirty) setGarde(true);
-    else onSelection(null);
+  // Fermer l'espace ou ouvrir une autre étape : une saisie non enregistrée demande d'abord quoi en faire.
+  const allerA = (id: string | null) => {
+    if (d.dirty) setGarde({ cible: id });
+    else onSelection(id);
   };
+  const fermer = () => allerA(null);
+  const cible = demande !== undefined ? { cible: demande } : garde;
+  const continuer = () => {
+    setGarde(null);
+    onAnnulerDemande?.();
+  };
+  const libelleCible = (id: string | null) =>
+    id === null ? 'fermer' : `ouvrir ${etapes.find((e) => e.id === id)?.code ?? 'l’étape'}`;
 
   async function creerResolution(titre: string) {
     if (d.dirty && !(await enregistrer())) return;
@@ -237,7 +269,7 @@ export function PanneauEdition(props: Props) {
               taille="sm"
               onClick={() => {
                 d.reset();
-                setGarde(false);
+                continuer();
               }}
             >
               Annuler
@@ -261,7 +293,7 @@ export function PanneauEdition(props: Props) {
         </p>
       )}
       <AvisConflit brouillon={d} />
-      {garde && (
+      {cible && (
         <div
           role="alertdialog"
           aria-label="Modifications non enregistrées"
@@ -273,16 +305,16 @@ export function PanneauEdition(props: Props) {
             taille="sm"
             onClick={() =>
               void enregistrer().then((ok) => {
-                if (ok) onSelection(null);
+                if (ok) onSelection(cible.cible);
               })
             }
           >
-            Enregistrer et fermer
+            Enregistrer et {libelleCible(cible.cible)}
           </Button>
-          <Button taille="sm" onClick={() => onSelection(null)}>
-            Fermer sans enregistrer
+          <Button taille="sm" onClick={() => onSelection(cible.cible)}>
+            {cible.cible === null ? 'Fermer' : 'Changer d’étape'} sans enregistrer
           </Button>
-          <Button variante="fantome" taille="sm" onClick={() => setGarde(false)} autoFocus>
+          <Button variante="fantome" taille="sm" onClick={continuer} autoFocus>
             Continuer
           </Button>
         </div>
@@ -308,7 +340,7 @@ export function PanneauEdition(props: Props) {
       onCreerResolution={(titre) => void creerResolution(titre)}
       onLier={onLier}
       onDelier={onDelier}
-      onSelection={onSelection}
+      onSelection={allerA}
       suppr={suppr}
       onSuppr={setSuppr}
       onSupprimer={() => void supprimer()}

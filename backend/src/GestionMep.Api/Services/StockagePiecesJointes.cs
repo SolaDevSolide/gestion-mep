@@ -47,6 +47,37 @@ public class StockagePiecesJointes(IConfiguration config)
         }
     }
 
+    /// <summary>
+    /// Met de côté, dans le sous-dossier <c>orphelins</c>, les fichiers qui ne correspondent à aucune pièce jointe en
+    /// base : restes d'un arrêt de l'application entre l'écriture du fichier et l'enregistrement en base. Ils sont
+    /// déplacés et non supprimés, pour ne rien perdre si l'application a été branchée par erreur sur une autre base.
+    /// Ne touche qu'aux fichiers nommés comme une pièce jointe (Id sur 32 caractères hexadécimaux) et plus anciens que
+    /// <paramref name="ageMinimum"/>, pour ne jamais déplacer un dépôt en cours. Renvoie le nombre de fichiers déplacés.
+    /// </summary>
+    public int IsolerOrphelins(IReadOnlySet<Guid> connus, TimeSpan ageMinimum, DateTimeOffset maintenant)
+    {
+        if (!Directory.Exists(Dossier)) return 0;
+        var quarantaine = Path.Combine(Dossier, DossierOrphelins);
+        var deplaces = 0;
+        foreach (var chemin in Directory.EnumerateFiles(Dossier))
+        {
+            var nom = Path.GetFileName(chemin);
+            if (nom.Length != 32 || !Guid.TryParseExact(nom, "N", out var id) || connus.Contains(id)) continue;
+            if (maintenant - File.GetLastWriteTimeUtc(chemin) < ageMinimum) continue;
+            try
+            {
+                Directory.CreateDirectory(quarantaine);
+                File.Move(chemin, Path.Combine(quarantaine, nom), overwrite: true);
+                deplaces++;
+            }
+            catch (IOException) { /* verrouillé : on réessaiera au prochain démarrage */ }
+        }
+        return deplaces;
+    }
+
+    /// <summary>Sous-dossier où sont mis de côté les fichiers sans pièce jointe en base.</summary>
+    public const string DossierOrphelins = "orphelins";
+
     public string MessageTropVolumineux => $"Fichier trop volumineux : {TailleMaxMo} Mo maximum.";
 
     /// <summary>Ouvre le contenu en lecture ; null si le fichier n'existe plus.</summary>
@@ -63,15 +94,17 @@ public class StockagePiecesJointes(IConfiguration config)
     }
 
     /// <summary>
-    /// Nom d'origine assaini pour l'affichage et le téléchargement : sans chemin, sans caractères de contrôle
-    /// ni caractères interdits, 200 caractères au plus.
+    /// Nom d'origine assaini pour l'affichage et le téléchargement : sans chemin, sans caractères de contrôle,
+    /// de mise en forme invisibles (dont l'inversion d'écriture U+202E, qui fait afficher
+    /// un « .exe » comme un « .pdf ») ni caractères interdits, 200 caractères au plus.
     /// </summary>
     public static string AssainirNom(string? nom)
     {
         var n = (nom ?? "").Replace('\\', '/');
         n = n[(n.LastIndexOf('/') + 1)..];
         var interdits = new HashSet<char>("<>:\"|?*");
-        n = new string(n.Where(c => !char.IsControl(c) && !interdits.Contains(c)).ToArray()).Trim().Trim('.').Trim();
+        n = new string(n.Where(c => !char.IsControl(c) && !interdits.Contains(c)
+            && char.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.Format).ToArray()).Trim().Trim('.').Trim();
         if (n.Length > 200)
         {
             var ext = Path.GetExtension(n);

@@ -10,7 +10,7 @@ Il est créé au premier démarrage, sur une base vide, à partir des variables 
 
 ## Console d'administration
 
-Menu « Administration › Console d'administration », visible des seuls administrateurs. Trois onglets.
+Menu « Administration › Console d'administration », visible des seuls administrateurs. Quatre onglets.
 
 ![Console d'administration, onglet Comptes](images/console-admin.png)
 
@@ -36,6 +36,12 @@ Règles de sécurité :
 ### Journal
 
 Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, mots de passe réinitialisés ou changés, paramètres et critères go / no-go modifiés. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
+
+### Version
+
+Version en cours, dernière version publiée sur GitHub et date de la dernière vérification. Quand une version plus récente existe, la barre latérale affiche « Mise à jour … disponible » et l'onglet donne le lien vers ses nouveautés et la marche à suivre ([Mettre à jour](Exploiter.md#mettre-à-jour)). « Vérifier maintenant » interroge GitHub sans attendre.
+
+L'onglet rappelle aussi le lien « Signaler un problème ou une idée », proposé à tout le monde dans le menu utilisateur.
 
 ## Paramètres partagés
 

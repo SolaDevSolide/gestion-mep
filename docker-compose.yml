@@ -35,6 +35,9 @@ services:
       # Réseaux du reverse proxy HTTPS, seuls autorisés à transmettre l'adresse du client (X-Forwarded-For)
       ProxyInverse__Reseaux: ${PROXY_RESEAUX:-172.16.0.0/12}
       Connexion__TentativesParMinute: ${CONNEXIONS_PAR_MINUTE:-20}
+      # Indicateur de nouvelle version (lit les versions publiées sur GitHub) et lien « Signaler un problème ou une idée »
+      MisesAJour__Verifier: ${VERIFIER_MISES_A_JOUR:-true}
+      Signalement__Lien: ${LIEN_SIGNALEMENT-https://github.com/SolaDevSolide/gestion-mep/issues/new/choose}
     volumes:
       - pieces-jointes:/data/pieces-jointes
       - cles:/data/cles

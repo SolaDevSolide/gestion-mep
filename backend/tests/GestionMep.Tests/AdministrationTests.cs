@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using GestionMep.Api.Cli;
+using GestionMep.Api.Endpoints;
 
 namespace GestionMep.Tests;
 
@@ -163,5 +164,22 @@ public class AdministrationTests : IDisposable
         var alice = await _api.ClientConnecte("alice");
         var journal = await Ok(await alice.GetAsync("/api/admin/journal"));
         Assert.Contains(journal.EnumerateArray(), e => e.GetProperty("auteur").GetString() == "Ligne de commande" && e.GetProperty("type").GetString() == "compte.desactive");
+    }
+
+    [Fact]
+    public async Task L_application_donne_sa_version_le_lien_de_signalement_et_les_mises_a_jour_aux_seuls_admins()
+    {
+        var bob = await _api.ClientConnecte("bob");
+        var vueBob = await Ok(await bob.GetAsync("/api/application"));
+        Assert.False(string.IsNullOrEmpty(vueBob.GetProperty("version").GetString()));
+        Assert.Equal(ApplicationEndpoints.LienSignalementParDefaut, vueBob.GetProperty("lienSignalement").GetString());
+        Assert.Equal(JsonValueKind.Null, vueBob.GetProperty("miseAJour").ValueKind);
+        Assert.Equal(HttpStatusCode.Forbidden, (await bob.PostAsync("/api/admin/mises-a-jour/verifier", null)).StatusCode);
+
+        var alice = await _api.ClientConnecte("alice");
+        var miseAJour = (await Ok(await alice.GetAsync("/api/application"))).GetProperty("miseAJour");
+        Assert.False(miseAJour.GetProperty("active").GetBoolean()); // désactivée pendant les tests : aucun appel à GitHub
+        Assert.False(miseAJour.GetProperty("disponible").GetBoolean());
+        Assert.False((await Ok(await alice.PostAsync("/api/admin/mises-a-jour/verifier", null))).GetProperty("active").GetBoolean());
     }
 }

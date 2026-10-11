@@ -1,0 +1,43 @@
+name: Signaler un problème
+description: Quelque chose ne marche pas comme prévu dans l'application.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ce dépôt est **public** : n'écrivez ni nom de serveur, ni adresse, ni identifiant, ni contenu d'une vraie MEP.
+        Pour une faille de sécurité, suivez plutôt [SECURITY.md](https://github.com/SolaDevSolide/gestion-mep/blob/main/SECURITY.md).
+  - type: textarea
+    id: constat
+    attributes:
+      label: Ce qui se passe
+      description: Ce que vous avez vu, avec le message d'erreur s'il y en a un.
+    validations:
+      required: true
+  - type: textarea
+    id: etapes
+    attributes:
+      label: Comment le reproduire
+      placeholder: |
+        1. Ouvrir une MEP en préparation
+        2. Onglet Étapes, cliquer sur…
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Ce qui était attendu
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version de l'application
+      description: Menu utilisateur, en bas de la barre latérale (« Version … »).
+      placeholder: 1.0.0
+  - type: input
+    id: navigateur
+    attributes:
+      label: Navigateur
+      placeholder: Edge 140, Chrome 141…

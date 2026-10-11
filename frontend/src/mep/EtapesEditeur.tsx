@@ -38,10 +38,20 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   const groupe = groupeDepuisCle(etapes, cleGroupe);
   const code = (id: string) => mep.etapes.find((e) => e.id === id)?.code ?? '?';
 
-  function selectionner(id: string | null) {
+  // Saisie non enregistrée dans l'espace ouvert : changer d'étape passe d'abord par son choix enregistrer / abandonner.
+  const [saisieOuverte, setSaisieOuverte] = useState(false);
+  const [demande, setDemande] = useState<string | null | undefined>(undefined);
+
+  function ouvrir(id: string | null) {
     setChoix(id);
     setNouvelle(null);
+    setDemande(undefined);
     if (id) setCleGroupe(null);
+  }
+
+  function selectionner(id: string | null) {
+    if (etape && saisieOuverte && id !== etape.id) setDemande(id);
+    else ouvrir(id);
   }
 
   async function ajouter(ligne: number | null) {
@@ -154,6 +164,10 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
           onSelection={selectionner}
           groupeSelection={groupe?.cle ?? null}
           onGroupeSelection={(c) => {
+            if (c && etape && saisieOuverte) {
+              setDemande(null);
+              return;
+            }
             setCleGroupe(c);
             if (c) setChoix(null);
           }}
@@ -186,7 +200,10 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
           focusAction={nouvelle === etape.id}
           onLier={(de, vers) => void lier(de, vers)}
           onDelier={(l) => void delier(l)}
-          onSelection={selectionner}
+          onSelection={ouvrir}
+          onDirty={setSaisieOuverte}
+          demande={demande}
+          onAnnulerDemande={() => setDemande(undefined)}
         />
       )}
     </div>

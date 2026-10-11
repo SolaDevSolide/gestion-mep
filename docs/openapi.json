@@ -195,6 +195,44 @@
         }
       }
     },
+    "/api/application": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/mises-a-jour/verifier": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MiseAJourDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/meps": {
       "get": {
         "tags": [
@@ -2742,6 +2780,36 @@
   },
   "components": {
     "schemas": {
+      "ApplicationDto": {
+        "required": [
+          "version",
+          "lienSignalement",
+          "miseAJour"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "lienSignalement": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "miseAJour": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MiseAJourDto"
+              }
+            ]
+          }
+        },
+        "description": "Version en cours, lien « Signaler un problème ou proposer une idée » (null si désactivé par `Signalement:Lien`)\net, pour un administrateur seulement, l'état des mises à jour."
+      },
       "ApprobateursSaisie": {
         "required": [
           "version",
@@ -5785,6 +5853,70 @@
           }
         },
         "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP."
+      },
+      "MiseAJourDto": {
+        "required": [
+          "active",
+          "depot",
+          "versionCourante",
+          "derniereVersion",
+          "publieeLe",
+          "notesUrl",
+          "verifieeLe",
+          "erreur",
+          "disponible"
+        ],
+        "type": [
+          "null",
+          "object"
+        ],
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "depot": {
+            "type": "string"
+          },
+          "versionCourante": {
+            "type": "string"
+          },
+          "derniereVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "publieeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "notesUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "verifieeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "erreur": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "disponible": {
+            "type": "boolean"
+          }
+        },
+        "description": "Dernière version publiée sur GitHub. `Disponible` : elle est plus récente que la version en cours (toujours faux\npour une version de développement). `Erreur` : dernière vérification impossible (serveur sans accès à Internet…)."
       },
       "ModeSauvegarde": {
         "enum": [

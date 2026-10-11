@@ -139,3 +139,24 @@ public record ResolutionTypeSaisie(int? Version, string? Titre, string? Symptome
     List<CorrectionSaisie>? Corrections, string? VerificationInstruction, string? VerificationAttendu);
 public record DemarrerResolutionSaisie(Guid? ResolutionTypeId, int? Revision);
 public record ControleSaisie(ResultatControle? Resultat, string? Observation);
+
+/// <summary>
+/// Version en cours, lien « Signaler un problème ou proposer une idée » (null si désactivé par <c>Signalement:Lien</c>)
+/// et, pour un administrateur seulement, l'état des mises à jour.
+/// </summary>
+public record ApplicationDto(string Version, string? LienSignalement, MiseAJourDto? MiseAJour);
+
+/// <summary>
+/// Dernière version publiée sur GitHub. <c>Disponible</c> : elle est plus récente que la version en cours (toujours faux
+/// pour une version de développement). <c>Erreur</c> : dernière vérification impossible (serveur sans accès à Internet…).
+/// </summary>
+public record MiseAJourDto(
+    bool Active,
+    string Depot,
+    string VersionCourante,
+    string? DerniereVersion,
+    DateTimeOffset? PublieeLe,
+    string? NotesUrl,
+    DateTimeOffset? VerifieeLe,
+    string? Erreur,
+    bool Disponible);

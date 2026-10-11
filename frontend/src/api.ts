@@ -4,6 +4,8 @@ import type {
   CritereGoNoGoSaisie,
   DecisionApprobation,
   DuplicationSaisie,
+  InfosApplication,
+  MiseAJour,
   ParametresGlobaux,
   PieceJointe,
   FicheRecetteSaisie,
@@ -228,6 +230,9 @@ export const api = {
   deposerPieceResolution: (rid: string, f: File) =>
     post<PieceJointe>(`/resolutions/${rid}/pieces-jointes`, formulaireFichier(f)),
   supprimerPieceResolution: (rid: string, pid: string) => del<void>(`/resolutions/${rid}/pieces-jointes/${pid}`),
+
+  application: () => get<InfosApplication>('/application'),
+  verifierMisesAJour: () => post<MiseAJour>('/admin/mises-a-jour/verifier', {}),
 
   parametres: () => get<ParametresGlobaux>('/parametres'),
   modifierParametres: (s: ParametresGlobaux) => put<ParametresGlobaux>('/parametres', s),

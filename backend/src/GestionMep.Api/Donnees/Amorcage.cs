@@ -26,6 +26,7 @@ public static class Amorcage
             m => journal.LogInformation("{Message}", m), m => journal.LogError("{Message}", m));
         await sauvegardes.MigrerAvecSauvegarde(db, "Mise à jour au démarrage");
         await PlacerEtapesAnciennes(db, journal);
+        await IsolerPiecesOrphelines(db, sp.GetRequiredService<StockagePiecesJointes>(), temps, journal);
 
         if (await db.Utilisateurs.AnyAsync())
         {
@@ -125,5 +126,18 @@ public static class Amorcage
             Regles.CalculerLignes(await db.Etapes.Where(e => e.MepId == p.MepId && e.Plan == p.Plan).ToListAsync());
         await db.SaveChangesAsync();
         journal.LogInformation("Lignes du graphe calculées pour {Nombre} plan(s) existant(s).", plans.Count);
+    }
+
+    /// <summary>
+    /// Fichiers de pièces jointes sans ligne en base (arrêt pendant un dépôt) : déplacés dans le sous-dossier
+    /// <c>orphelins</c> s'ils ont plus d'une heure.
+    /// </summary>
+    private static async Task IsolerPiecesOrphelines(MepDbContext db, StockagePiecesJointes stockage, TimeProvider temps, ILogger journal)
+    {
+        var connus = (await db.PiecesJointes.AsNoTracking().Select(p => p.Id).ToListAsync()).ToHashSet();
+        var n = stockage.IsolerOrphelins(connus, TimeSpan.FromHours(1), temps.GetUtcNow());
+        if (n > 0)
+            journal.LogWarning("{Nombre} fichier(s) de pièce jointe sans enregistrement en base déplacé(s) dans {Dossier}.",
+                n, Path.Combine(stockage.Dossier, StockagePiecesJointes.DossierOrphelins));
     }
 }
