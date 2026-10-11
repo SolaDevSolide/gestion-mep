@@ -35,6 +35,8 @@ export function IdentiteSection() {
   const v = d.value;
 
   const edition = mep.droits.peutEditerContenu;
+  // Un modèle ne s'exécute pas : ni pilote, ni échéance, ni dates (ils se choisissent dans chaque MEP créée depuis le modèle).
+  const modele = mep.estModele;
   const peutEcheance = edition || mep.droits.estPilote;
   const lecture = !edition;
   // Pilote et suppléants : le pilote actuel, un suppléant ou un administrateur (tout éditeur tant qu'aucun pilote n'est désigné).
@@ -124,18 +126,20 @@ export function IdentiteSection() {
             />
           )}
         </Field>
-        <div className="grid grid-cols-2 gap-4 text-sm" aria-label="Dates constatées">
-          <p>
-            <span className="block text-[13px] font-medium">Démarrée le</span>
-            <span className="text-fg-muted">
-              {mep.demarrageAutorise ? formatDateHeure(mep.demarrageAutorise.le) : '—'}
-            </span>
-          </p>
-          <p>
-            <span className="block text-[13px] font-medium">Terminée le</span>
-            <span className="text-fg-muted">{mep.cloture ? formatDateHeure(mep.cloture.le) : '—'}</span>
-          </p>
-        </div>
+        {!modele && (
+          <div className="grid grid-cols-2 gap-4 text-sm" aria-label="Dates constatées">
+            <p>
+              <span className="block text-[13px] font-medium">Démarrée le</span>
+              <span className="text-fg-muted">
+                {mep.demarrageAutorise ? formatDateHeure(mep.demarrageAutorise.le) : '—'}
+              </span>
+            </p>
+            <p>
+              <span className="block text-[13px] font-medium">Terminée le</span>
+              <span className="text-fg-muted">{mep.cloture ? formatDateHeure(mep.cloture.le) : '—'}</span>
+            </p>
+          </div>
+        )}
         <Field label="Fuseau horaire">
           {(id) => (
             <Input
@@ -160,33 +164,39 @@ export function IdentiteSection() {
             />
           )}
         </Field>
-        <Field label="Pilote">
-          {personnes(v.piloteId, (x) => d.update({ piloteId: x, suppleantIds: v.suppleantIds.filter((s) => s !== x) }))}
-        </Field>
-        <Field
-          label="Suppléants"
-          hint={
-            pilotage || lecture
-              ? 'Ils ont les mêmes droits que le pilote.'
-              : 'Seul le pilote, un suppléant ou un administrateur peut changer le pilote et les suppléants.'
-          }
-        >
-          {(id) => (
-            <MultiSelect
-              id={id}
-              options={mep.participants
-                .filter((p) => p.id !== v.piloteId)
-                .map((p) => ({ valeur: p.id, libelle: p.nom, detail: p.role }))}
-              valeurs={v.suppleantIds}
-              onChange={(ids) => d.update({ suppleantIds: ids })}
-              placeholder="Aucun suppléant"
-              placeholderRecherche="Rechercher une personne…"
-              vide="Aucune autre personne : ajoutez-en dans « Personnes »."
-              disabled={!pilotage}
-              libelleInconnu="Personne supprimée"
-            />
-          )}
-        </Field>
+        {!modele && (
+          <>
+            <Field label="Pilote">
+              {personnes(v.piloteId, (x) =>
+                d.update({ piloteId: x, suppleantIds: v.suppleantIds.filter((s) => s !== x) }),
+              )}
+            </Field>
+            <Field
+              label="Suppléants"
+              hint={
+                pilotage || lecture
+                  ? 'Ils ont les mêmes droits que le pilote.'
+                  : 'Seul le pilote, un suppléant ou un administrateur peut changer le pilote et les suppléants.'
+              }
+            >
+              {(id) => (
+                <MultiSelect
+                  id={id}
+                  options={mep.participants
+                    .filter((p) => p.id !== v.piloteId)
+                    .map((p) => ({ valeur: p.id, libelle: p.nom, detail: p.role }))}
+                  valeurs={v.suppleantIds}
+                  onChange={(ids) => d.update({ suppleantIds: ids })}
+                  placeholder="Aucun suppléant"
+                  placeholderRecherche="Rechercher une personne…"
+                  vide="Aucune autre personne : ajoutez-en dans « Personnes »."
+                  disabled={!pilotage}
+                  libelleInconnu="Personne supprimée"
+                />
+              )}
+            </Field>
+          </>
+        )}
         <Field label="Environnement" className="md:col-span-2">
           {(id) => (
             <ChampEnvironnement
@@ -197,18 +207,20 @@ export function IdentiteSection() {
             />
           )}
         </Field>
-        <Field label="Échéance de retour arrière (obligatoire)" className="md:col-span-2">
-          {(id) => (
-            <Input
-              id={id}
-              type="datetime-local"
-              value={versInputDateTime(v.echeanceRepli)}
-              disabled={!peutEcheance}
-              className="md:max-w-xs"
-              onChange={(e) => d.update({ echeanceRepli: depuisInputDateTime(e.target.value) })}
-            />
-          )}
-        </Field>
+        {!modele && (
+          <Field label="Échéance de retour arrière (obligatoire)" className="md:col-span-2">
+            {(id) => (
+              <Input
+                id={id}
+                type="datetime-local"
+                value={versInputDateTime(v.echeanceRepli)}
+                disabled={!peutEcheance}
+                className="md:max-w-xs"
+                onChange={(e) => d.update({ echeanceRepli: depuisInputDateTime(e.target.value) })}
+              />
+            )}
+          </Field>
+        )}
         <Field label="Impacts attendus" className="md:col-span-2">
           {(id) => (
             <Textarea

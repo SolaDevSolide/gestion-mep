@@ -127,7 +127,7 @@ export const api = {
   adminJournal: (limite = 200) => get<EvenementAdmin[]>(`/admin/journal?limite=${limite}`),
 
   meps: (modele?: boolean) => get<MepResume[]>(`/meps${modele === undefined ? '' : `?modele=${modele}`}`),
-  creerMep: (outil: string, objet: string) => post<Mep>('/meps', { outil, objet }),
+  creerMep: (outil: string, objet: string, modele = false) => post<Mep>('/meps', { outil, objet, modele }),
   mep: (id: string) => get<Mep>(`/meps/${id}`),
   modifierIdentite: (id: string, s: MepIdentiteSaisie) => put<Mep>(`/meps/${id}`, s),
   modifierSauvegarde: (id: string, s: SauvegardeSaisie) => put<Mep>(`/meps/${id}/sauvegarde`, s),

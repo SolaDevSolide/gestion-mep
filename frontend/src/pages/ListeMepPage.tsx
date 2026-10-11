@@ -43,7 +43,16 @@ function Chrono({ m, now }: { m: MepResume; now: number }) {
   );
 }
 
-function NouvelleMepDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function NouvelleMepDialog({
+  open,
+  onOpenChange,
+  modele = false,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  /** Crée un modèle au lieu d'une MEP. */
+  modele?: boolean;
+}) {
   const navigate = useNavigate();
   const toast = useToast();
   const [outil, setOutil] = useState('');
@@ -56,8 +65,8 @@ function NouvelleMepDialog({ open, onOpenChange }: { open: boolean; onOpenChange
     setErreur('');
     setEnvoi(true);
     try {
-      const mep = await api.creerMep(outil.trim(), objet.trim());
-      toast.succes('MEP créée.');
+      const mep = await api.creerMep(outil.trim(), objet.trim(), modele);
+      toast.succes(modele ? 'Modèle créé.' : 'MEP créée.');
       onOpenChange(false);
       void navigate(`/meps/${mep.id}`);
     } catch (err) {
@@ -71,8 +80,12 @@ function NouvelleMepDialog({ open, onOpenChange }: { open: boolean; onOpenChange
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      titre="Nouvelle mise en production"
-      description="Vous en serez le pilote. Le plan se prépare ensuite, section par section."
+      titre={modele ? 'Nouveau modèle' : 'Nouvelle mise en production'}
+      description={
+        modele
+          ? 'Un modèle ne s’exécute pas : il sert de base aux prochaines MEP. Le plan se prépare ensuite, section par section.'
+          : 'Vous en serez le pilote. Le plan se prépare ensuite, section par section.'
+      }
       pied={
         <>
           <Button variante="fantome" onClick={() => onOpenChange(false)}>
@@ -85,7 +98,7 @@ function NouvelleMepDialog({ open, onOpenChange }: { open: boolean; onOpenChange
             chargement={envoi}
             disabled={!outil.trim()}
           >
-            Créer la MEP
+            {modele ? 'Créer le modèle' : 'Créer la MEP'}
           </Button>
         </>
       }
@@ -109,7 +122,11 @@ function NouvelleMepDialog({ open, onOpenChange }: { open: boolean; onOpenChange
               id={id}
               value={objet}
               onChange={(e) => setObjet(e.target.value)}
-              placeholder="ex. Passage en version 4.2 et migration de la base"
+              placeholder={
+                modele
+                  ? 'ex. Montée de version standard du portail'
+                  : 'ex. Passage en version 4.2 et migration de la base'
+              }
             />
           )}
         </Field>
@@ -161,25 +178,41 @@ export default function ListeMepPage() {
           <p className="mt-1 text-sm text-fg-subtle">Préparez, exécutez et suivez vos interventions.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            icone={<LayoutTemplate className="size-4" aria-hidden />}
-            onClick={() => {
-              setDepuisModele(true);
-              api
-                .meps(true)
-                .then((l) =>
-                  setModeles(
-                    l.map((m) => ({ id: m.id, outil: m.outil, estModele: true, environnement: m.environnement })),
-                  ),
-                )
-                .catch(() => setModeles([]));
-            }}
-          >
-            Nouvelle MEP depuis un modèle
-          </Button>
-          <Button variante="primaire" icone={<Plus className="size-4" aria-hidden />} onClick={() => setCreation(true)}>
-            Nouvelle MEP
-          </Button>
+          {modele ? (
+            <Button
+              variante="primaire"
+              icone={<Plus className="size-4" aria-hidden />}
+              onClick={() => setCreation(true)}
+            >
+              Nouveau modèle
+            </Button>
+          ) : (
+            <>
+              <Button
+                icone={<LayoutTemplate className="size-4" aria-hidden />}
+                onClick={() => {
+                  setDepuisModele(true);
+                  api
+                    .meps(true)
+                    .then((l) =>
+                      setModeles(
+                        l.map((m) => ({ id: m.id, outil: m.outil, estModele: true, environnement: m.environnement })),
+                      ),
+                    )
+                    .catch(() => setModeles([]));
+                }}
+              >
+                Nouvelle MEP depuis un modèle
+              </Button>
+              <Button
+                variante="primaire"
+                icone={<Plus className="size-4" aria-hidden />}
+                onClick={() => setCreation(true)}
+              >
+                Nouvelle MEP
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -263,19 +296,17 @@ export default function ListeMepPage() {
             titre={modele ? 'Aucun modèle pour l’instant' : 'Aucune mise en production pour l’instant'}
             description={
               modele
-                ? 'Ouvrez une MEP, cliquez sur « Dupliquer » et cochez « En faire un modèle » : elle servira de base à vos prochaines interventions.'
+                ? 'Créez un modèle, ou dupliquez une MEP en cochant « En faire un modèle » : il servira de base à vos prochaines interventions.'
                 : 'Créez votre première MEP pour préparer le plan, désigner l’équipe et suivre l’exécution en direct.'
             }
             action={
-              modele ? undefined : (
-                <Button
-                  variante="primaire"
-                  icone={<Plus className="size-4" aria-hidden />}
-                  onClick={() => setCreation(true)}
-                >
-                  Nouvelle MEP
-                </Button>
-              )
+              <Button
+                variante="primaire"
+                icone={<Plus className="size-4" aria-hidden />}
+                onClick={() => setCreation(true)}
+              >
+                {modele ? 'Nouveau modèle' : 'Nouvelle MEP'}
+              </Button>
             }
           />
         </div>
@@ -322,9 +353,11 @@ export default function ListeMepPage() {
                           </>
                         )}
                       </h2>
-                      <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime}>
-                        {meta.libelle}
-                      </StatusPill>
+                      {!m.estModele && (
+                        <StatusPill ton={meta.ton} icone={meta.Icone} anime={meta.anime}>
+                          {meta.libelle}
+                        </StatusPill>
+                      )}
                       {m.estModele && (
                         <Badge ton="later">
                           <LayoutTemplate className="size-3" aria-hidden />
@@ -342,31 +375,43 @@ export default function ListeMepPage() {
                   <div className="flex items-center gap-5 text-sm text-fg-muted">
                     <span className="inline-flex items-center gap-1.5">
                       <CalendarDays className="size-4 text-fg-subtle" aria-hidden />
-                      {m.dateMep
-                        ? `Démarrée le ${formatDate(m.dateMep)}`
-                        : m.creeLe
-                          ? `Créée le ${formatDate(m.creeLe)}`
-                          : 'Pas encore démarrée'}
+                      {m.estModele
+                        ? m.creeLe
+                          ? `Créé le ${formatDate(m.creeLe)}`
+                          : 'Modèle'
+                        : m.dateMep
+                          ? `Démarrée le ${formatDate(m.dateMep)}`
+                          : m.creeLe
+                            ? `Créée le ${formatDate(m.creeLe)}`
+                            : 'Pas encore démarrée'}
                     </span>
-                    <span className="inline-flex items-center gap-2">
-                      {m.pilote ? <Avatar nom={m.pilote} taille="sm" /> : null}
-                      <span>{m.pilote ?? 'Pas de pilote'}</span>
-                    </span>
+                    {!m.estModele && (
+                      <span className="inline-flex items-center gap-2">
+                        {m.pilote ? <Avatar nom={m.pilote} taille="sm" /> : null}
+                        <span>{m.pilote ?? 'Pas de pilote'}</span>
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 pr-32">
-                  <ProgressBar
-                    className="min-w-48 flex-1"
-                    segments={segmentsResume(m.nbEtapes, m.nbReussies, m.nbEchecs)}
-                  />
-                  <span className="text-xs text-fg-subtle tnum">
-                    {m.nbReussies}/{m.nbEtapes} étapes réussies
-                    {m.nbEchecs > 0 && (
-                      <span className="font-semibold text-danger-solid"> · {m.nbEchecs} en échec</span>
-                    )}
-                  </span>
-                  <Chrono m={m} now={now} />
-                </div>
+                {m.estModele ? (
+                  <p className="mt-4 pr-32 text-xs text-fg-subtle tnum">
+                    {m.nbEtapes} étape{m.nbEtapes > 1 ? 's' : ''} de déploiement
+                  </p>
+                ) : (
+                  <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 pr-32">
+                    <ProgressBar
+                      className="min-w-48 flex-1"
+                      segments={segmentsResume(m.nbEtapes, m.nbReussies, m.nbEchecs)}
+                    />
+                    <span className="text-xs text-fg-subtle tnum">
+                      {m.nbReussies}/{m.nbEtapes} étapes réussies
+                      {m.nbEchecs > 0 && (
+                        <span className="font-semibold text-danger-solid"> · {m.nbEchecs} en échec</span>
+                      )}
+                    </span>
+                    <Chrono m={m} now={now} />
+                  </div>
+                )}
               </Link>
               <Button
                 taille="sm"
@@ -383,7 +428,7 @@ export default function ListeMepPage() {
           );
         })}
       </ul>
-      <NouvelleMepDialog open={creation} onOpenChange={setCreation} />
+      <NouvelleMepDialog open={creation} onOpenChange={setCreation} modele={modele} />
       <DuplicationDialog
         open={duplication !== null}
         onOpenChange={(o) => {

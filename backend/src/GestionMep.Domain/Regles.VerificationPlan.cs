@@ -8,10 +8,14 @@ public static partial class Regles
     /// anomalies du contenu (<see cref="ErreursContenu"/>) puis du circuit d'approbation (<see cref="ErreursApprobation"/>).
     /// </summary>
     /// <param name="approbationsMinimum">Paramètre global <see cref="ParametresGlobaux.ApprobationsMinimum"/>.</param>
+    /// <remarks>
+    /// Un modèle n'est jamais exécuté : ce qui se décide pour chaque MEP (échéance, pilote, relecture, approbations) n'y est
+    /// pas réclamé.
+    /// </remarks>
     public static List<string> ErreursPlan(Mep mep, DateTimeOffset maintenant, int approbationsMinimum)
     {
         var erreurs = ErreursContenu(mep, maintenant);
-        erreurs.AddRange(ErreursApprobation(mep, approbationsMinimum));
+        if (!mep.EstModele) erreurs.AddRange(ErreursApprobation(mep, approbationsMinimum));
         return erreurs;
     }
 
@@ -27,12 +31,15 @@ public static partial class Regles
             var graphe = ErreurGraphe(mep, plan);
             if (graphe is not null) erreurs.Add(plan == TypePlan.Deploiement ? graphe : $"Retour arrière : {graphe}");
         }
-        if (mep.EcheanceRepli is null || mep.EcheanceRepli <= maintenant)
-            erreurs.Add("Renseigner une échéance de retour arrière future.");
+        if (!mep.EstModele)
+        {
+            if (mep.EcheanceRepli is null || mep.EcheanceRepli <= maintenant)
+                erreurs.Add("Renseigner une échéance de retour arrière future.");
 
-        var pilote = mep.Participants.FirstOrDefault(p => p.Id == mep.PiloteId);
-        if (pilote is null) erreurs.Add("Renseigner le pilote.");
-        else if (pilote.UtilisateurId is null) erreurs.Add($"Le pilote {pilote.Nom} n'est relié à aucun compte.");
+            var pilote = mep.Participants.FirstOrDefault(p => p.Id == mep.PiloteId);
+            if (pilote is null) erreurs.Add("Renseigner le pilote.");
+            else if (pilote.UtilisateurId is null) erreurs.Add($"Le pilote {pilote.Nom} n'est relié à aucun compte.");
+        }
 
         if (!mep.EtapesDu(TypePlan.Deploiement).Any()) erreurs.Add("Ajouter au moins une étape de déploiement.");
         if (!mep.EtapesDu(TypePlan.RetourArriere).Any()) erreurs.Add("Ajouter au moins une étape de retour arrière.");
@@ -54,7 +61,7 @@ public static partial class Regles
 
         erreurs.AddRange(ErreursRecette(mep));
 
-        if (mep.ProcedureRelueParId is null) erreurs.Add("La procédure doit être relue par un opérateur.");
+        if (!mep.EstModele && mep.ProcedureRelueParId is null) erreurs.Add("La procédure doit être relue par un opérateur.");
         return erreurs;
     }
 
@@ -105,7 +112,7 @@ public static partial class Regles
     /// <summary>
     /// Avertissements non bloquants du plan (ils ne figurent pas dans <see cref="ErreursPlan"/>) : aucun responsable technique,
     /// pilote également responsable technique, responsable technique absent dont les étapes ne sont pas reprenables par un autre,
-    /// aucun système sauvegardé, système sans fiche de recette.
+    /// aucun système sauvegardé, système sans fiche de recette. Pour un modèle, ni pilote ni disponibilité le jour J.
     /// </summary>
     public static List<string> Avertissements(Mep mep)
     {
@@ -114,7 +121,7 @@ public static partial class Regles
 
         if (mep.ResponsablesTechniques.Count == 0)
             avertissements.Add("Aucun responsable technique renseigné.");
-        else
+        else if (!mep.EstModele)
         {
             if (mep.PiloteId is { } pilote && mep.ResponsablesTechniques.Any(r => r.ParticipantId == pilote))
                 avertissements.Add($"{Nom(pilote)} est à la fois responsable technique et pilote : prévoir un suppléant qui connaît le plan.");

@@ -100,6 +100,8 @@ export function ApprobationsBloc() {
   const [decision, setDecision] = useState<DecisionApprobation | null>(null);
 
   const enPreparation = mep.phase === 'Preparation';
+  // Modèle : seule la liste des approbateurs compte (reprise dans chaque MEP créée) ; aucune décision ne s'y prend.
+  const modele = mep.estModele;
   const compteDuPilote = participantPar(mep, mep.piloteId)?.utilisateurId ?? null;
   const idsDesignes = useMemo(() => mep.approbations.map((a) => a.utilisateurId), [mep.approbations]);
   const d = useDraft(idsDesignes);
@@ -135,14 +137,16 @@ export function ApprobationsBloc() {
           <UserCheck className="size-4 text-accent-text" aria-hidden />
           Approbations
         </h3>
-        <p className="text-xs font-medium text-fg-muted tnum" aria-live="polite">
-          {requis === 0
-            ? 'Aucune approbation exigée'
-            : `${approuvees}/${requis} approbation${requis > 1 ? 's' : ''} requise${requis > 1 ? 's' : ''}`}
-        </p>
+        {!modele && (
+          <p className="text-xs font-medium text-fg-muted tnum" aria-live="polite">
+            {requis === 0
+              ? 'Aucune approbation exigée'
+              : `${approuvees}/${requis} approbation${requis > 1 ? 's' : ''} requise${requis > 1 ? 's' : ''}`}
+          </p>
+        )}
       </div>
 
-      {aReinitialiser && enPreparation && (
+      {aReinitialiser && enPreparation && !modele && (
         <Alerte ton="warn" icone={RotateCcw} role="status" className="mt-3" titre="Approbations à refaire">
           La MEP a été modifiée : les décisions précédentes ont été effacées et chaque approbateur doit se prononcer de
           nouveau.
@@ -154,9 +158,11 @@ export function ApprobationsBloc() {
           <Field
             label="Approbateurs"
             hint={
-              compteDuPilote
-                ? 'Choisis parmi les comptes. Le compte du pilote est exclu : on n’approuve pas sa propre MEP.'
-                : 'Choisis parmi les comptes.'
+              modele
+                ? 'Choisis parmi les comptes. Ils seront repris dans chaque MEP créée depuis ce modèle.'
+                : compteDuPilote
+                  ? 'Choisis parmi les comptes. Le compte du pilote est exclu : on n’approuve pas sa propre MEP.'
+                  : 'Choisis parmi les comptes.'
             }
           >
             {(id) => (
@@ -195,7 +201,7 @@ export function ApprobationsBloc() {
         </div>
       )}
 
-      {mep.approbations.length === 0 ? (
+      {modele ? null : mep.approbations.length === 0 ? (
         <p className="mt-3 rounded-lg border border-dashed border-line-strong px-3.5 py-3 text-sm text-fg-subtle">
           {requis === 0
             ? 'Aucune approbation n’est exigée pour cette MEP.'
@@ -257,6 +263,7 @@ export function ApprobationsBloc() {
 
       {mep.droits.estApprobateur &&
         enPreparation &&
+        !modele &&
         bloquees.length > 0 &&
         mep.approbations.some((a) => a.utilisateurId === utilisateur?.id && a.decision === null) && (
           <Alerte
@@ -268,7 +275,7 @@ export function ApprobationsBloc() {
             {bloquees.join('\n')}
           </Alerte>
         )}
-      {refus.length > 0 && enPreparation && (
+      {refus.length > 0 && enPreparation && !modele && (
         <Alerte ton="danger" icone={XCircle} className="mt-3" titre="Refus à traiter">
           {refus.map((r) => `${r.nom} : ${r.commentaire}`).join('\n')}
         </Alerte>

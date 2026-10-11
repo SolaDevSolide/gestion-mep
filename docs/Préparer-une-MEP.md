@@ -10,6 +10,7 @@ Dans « Mises en production » :
 
 - **Nouvelle MEP** : saisir l'outil ou l'application concerné et l'objet de l'intervention. Le créateur devient responsable technique de la MEP (pas pilote).
 - **Nouvelle MEP depuis un modèle** : choisir un modèle et l'environnement, puis « Créer la MEP ». Voir [Partir d'une MEP existante](#partir-dune-mep-existante).
+- **Nouveau modèle** (vue « Modèles ») : comme une nouvelle MEP, mais le résultat est un modèle. Voir [Modèles](#modèles).
 
 ## L'onglet Préparation
 
@@ -101,3 +102,19 @@ Quand le plan est complet, le pilote ou un suppléant donne le Go (voir [Cycle d
 
 - **Dupliquer** (bouton de la liste ou de l'en-tête) copie une MEP : identité, personnes, pilote et suppléants, systèmes et leur sauvegarde, responsables techniques, livrables, étapes et liens, résolutions liées, plan de retour arrière, fiches de recette (sans les résultats) et approbateurs (sans leurs décisions). Ne sont pas copiés : l'échéance, la relecture, le Go, les résultats d'exécution, le bilan et les pièces jointes. L'environnement peut être changé au passage.
 - Cocher **« En faire un modèle »** à la duplication crée un modèle, à réutiliser avec « Nouvelle MEP depuis un modèle ».
+
+## Modèles
+
+Un modèle se prépare comme une MEP (intervention, personnes, systèmes, responsables techniques, livrables, sauvegarde, étapes, retour arrière, fiches de recette, approbateurs, pièces jointes), mais il ne s'exécute jamais. Ce qui se décide pour chaque intervention n'y apparaît donc pas :
+
+| Masqué dans un modèle | Où le renseigner |
+|---|---|
+| Phase, dates de démarrage et de fin | Fixées par le Go et la clôture de la MEP |
+| Pilote et suppléants | Section « Intervention » de la MEP |
+| Échéance de retour arrière | Section « Intervention » de la MEP |
+| Disponibilité le jour J des responsables techniques | Section « Responsables techniques » de la MEP |
+| Date de réalisation de la sauvegarde, test de restauration | Section « Sauvegarde » de la MEP |
+| Relecture de la procédure, démarrage autorisé, décisions d'approbation | Section « Validation » de la MEP (les approbateurs, eux, se choisissent dans le modèle) |
+| Bouton Go / no-go et onglet Exécution | MEP en préparation, puis en exécution |
+
+« Vérifier le plan » ne réclame dans un modèle ni échéance, ni pilote, ni relecture, ni approbation. Le bouton **« Créer une MEP depuis ce modèle »**, en haut du modèle, crée la MEP et l'ouvre.

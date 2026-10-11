@@ -214,7 +214,9 @@ export function SauvegardeSection() {
         <p className="mt-2 text-xs text-fg-subtle">La sauvegarde de chaque système ne se change qu’en préparation.</p>
       )}
 
-      <h3 className="mt-6 mb-3 text-sm font-semibold">Réalisation et restauration</h3>
+      <h3 className="mt-6 mb-3 text-sm font-semibold">
+        {mep.estModele ? 'Responsable et procédure' : 'Réalisation et restauration'}
+      </h3>
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Responsable de la sauvegarde">
           {(id) => (
@@ -233,17 +235,19 @@ export function SauvegardeSection() {
             </Select>
           )}
         </Field>
-        <Field label="Réalisée le">
-          {(id) => (
-            <Input
-              id={id}
-              type="datetime-local"
-              disabled={!editable}
-              value={versInputDateTime(v.realiseeLe)}
-              onChange={(e) => d.update({ realiseeLe: depuisInputDateTime(e.target.value) })}
-            />
-          )}
-        </Field>
+        {!mep.estModele && (
+          <Field label="Réalisée le">
+            {(id) => (
+              <Input
+                id={id}
+                type="datetime-local"
+                disabled={!editable}
+                value={versInputDateTime(v.realiseeLe)}
+                onChange={(e) => d.update({ realiseeLe: depuisInputDateTime(e.target.value) })}
+              />
+            )}
+          </Field>
+        )}
         <Field label="Procédure de sauvegarde" className="md:col-span-2">
           {(id) => (
             <Textarea
@@ -266,39 +270,42 @@ export function SauvegardeSection() {
           )}
         </Field>
       </div>
-      <div className="mt-5 rounded-lg border border-line bg-surface-2/50 p-4">
-        <Checkbox
-          label="Restauration testée"
-          description="Une sauvegarde jamais restaurée n’est pas une sauvegarde."
-          checked={v.restaurationTestee}
-          disabled={!editable}
-          onChange={(c) => d.update({ restaurationTestee: c })}
-        />
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <Field label="Date du test de restauration">
-            {(id) => (
-              <Input
-                id={id}
-                type="date"
-                disabled={!editable}
-                value={v.dateTestRestauration ?? ''}
-                onChange={(e) => d.update({ dateTestRestauration: e.target.value || null })}
-              />
-            )}
-          </Field>
-          <Field label="Preuve du test">
-            {(id) => (
-              <Textarea
-                id={id}
-                rows={2}
-                disabled={!editable}
-                value={v.preuveTestRestauration}
-                onChange={(e) => d.update({ preuveTestRestauration: e.target.value })}
-              />
-            )}
-          </Field>
+      {/* Réalisation et test de restauration : propres à chaque MEP, absents d'un modèle. */}
+      {!mep.estModele && (
+        <div className="mt-5 rounded-lg border border-line bg-surface-2/50 p-4">
+          <Checkbox
+            label="Restauration testée"
+            description="Une sauvegarde jamais restaurée n’est pas une sauvegarde."
+            checked={v.restaurationTestee}
+            disabled={!editable}
+            onChange={(c) => d.update({ restaurationTestee: c })}
+          />
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <Field label="Date du test de restauration">
+              {(id) => (
+                <Input
+                  id={id}
+                  type="date"
+                  disabled={!editable}
+                  value={v.dateTestRestauration ?? ''}
+                  onChange={(e) => d.update({ dateTestRestauration: e.target.value || null })}
+                />
+              )}
+            </Field>
+            <Field label="Preuve du test">
+              {(id) => (
+                <Textarea
+                  id={id}
+                  rows={2}
+                  disabled={!editable}
+                  value={v.preuveTestRestauration}
+                  onChange={(e) => d.update({ preuveTestRestauration: e.target.value })}
+                />
+              )}
+            </Field>
+          </div>
         </div>
-      </div>
+      )}
     </SectionCarte>
   );
 }
@@ -310,59 +317,67 @@ export function ValidationSection() {
     <SectionCarte
       numero={7}
       titre="Validation avant intervention"
-      description="Relecture, approbations, puis Go du pilote."
+      description={
+        mep.estModele
+          ? 'Approbateurs repris dans chaque MEP créée depuis ce modèle. La relecture, les approbations et le Go se font dans la MEP.'
+          : 'Relecture, approbations, puis Go du pilote.'
+      }
     >
       <div className="space-y-5">
-        <div>
-          <Checkbox
-            label="Procédure relue"
-            checked={mep.procedureRelue !== null}
-            disabled={!peut}
-            onChange={(c) =>
-              void run(() => api.procedureRelue(mep.id, c), c ? 'Procédure marquée relue.' : 'Relecture retirée.')
-            }
-          />
-          {mep.procedureRelue && (
-            <p className="mt-1.5 ml-[30px] flex items-center gap-1.5 text-xs text-ok-fg">
-              <ShieldCheck className="size-3.5" aria-hidden />
-              Relue par {mep.procedureRelue.par} le {formatDateHeure(mep.procedureRelue.le)}.
-            </p>
-          )}
-          {!peut && mep.droits.peutModifierPlan && (
-            <p className="mt-1.5 ml-[30px] text-xs text-fg-subtle">
-              Seul un participant relié à un compte peut valider la relecture.
-            </p>
-          )}
-        </div>
-        <div>
-          <Checkbox
-            label="Démarrage autorisé"
-            checked={mep.demarrageAutorise !== null}
-            disabled
-            onChange={() => undefined}
-          />
-          <p className="mt-1.5 ml-[30px] text-xs text-fg-subtle">
-            {mep.demarrageAutorise
-              ? `Autorisé par ${mep.demarrageAutorise.par} le ${formatDateHeure(mep.demarrageAutorise.le)}.`
-              : 'Se coche automatiquement au Go, donné par le pilote ou un suppléant.'}
-          </p>
-          {!mep.demarrageAutorise && mep.phase === 'Preparation' && mep.droits.estPilote && (
-            <p className="mt-1 ml-[30px]">
-              <BoutonGoNoGo lien />
-            </p>
-          )}
-          {mep.goNoGo.length > 0 && (
-            <ul className="mt-2 ml-[30px] space-y-0.5 text-xs text-fg-muted" aria-label="Critères validés au Go">
-              {mep.goNoGo.map((c) => (
-                <li key={c.libelle} className="flex items-center gap-1.5">
-                  <ShieldCheck className="size-3.5 text-ok-solid" aria-hidden />
-                  {c.libelle}
-                  {c.par && <span className="text-fg-subtle"> · {c.par}</span>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        {!mep.estModele && (
+          <>
+            <div>
+              <Checkbox
+                label="Procédure relue"
+                checked={mep.procedureRelue !== null}
+                disabled={!peut}
+                onChange={(c) =>
+                  void run(() => api.procedureRelue(mep.id, c), c ? 'Procédure marquée relue.' : 'Relecture retirée.')
+                }
+              />
+              {mep.procedureRelue && (
+                <p className="mt-1.5 ml-[30px] flex items-center gap-1.5 text-xs text-ok-fg">
+                  <ShieldCheck className="size-3.5" aria-hidden />
+                  Relue par {mep.procedureRelue.par} le {formatDateHeure(mep.procedureRelue.le)}.
+                </p>
+              )}
+              {!peut && mep.droits.peutModifierPlan && (
+                <p className="mt-1.5 ml-[30px] text-xs text-fg-subtle">
+                  Seul un participant relié à un compte peut valider la relecture.
+                </p>
+              )}
+            </div>
+            <div>
+              <Checkbox
+                label="Démarrage autorisé"
+                checked={mep.demarrageAutorise !== null}
+                disabled
+                onChange={() => undefined}
+              />
+              <p className="mt-1.5 ml-[30px] text-xs text-fg-subtle">
+                {mep.demarrageAutorise
+                  ? `Autorisé par ${mep.demarrageAutorise.par} le ${formatDateHeure(mep.demarrageAutorise.le)}.`
+                  : 'Se coche automatiquement au Go, donné par le pilote ou un suppléant.'}
+              </p>
+              {!mep.demarrageAutorise && mep.phase === 'Preparation' && mep.droits.estPilote && (
+                <p className="mt-1 ml-[30px]">
+                  <BoutonGoNoGo lien />
+                </p>
+              )}
+              {mep.goNoGo.length > 0 && (
+                <ul className="mt-2 ml-[30px] space-y-0.5 text-xs text-fg-muted" aria-label="Critères validés au Go">
+                  {mep.goNoGo.map((c) => (
+                    <li key={c.libelle} className="flex items-center gap-1.5">
+                      <ShieldCheck className="size-3.5 text-ok-solid" aria-hidden />
+                      {c.libelle}
+                      {c.par && <span className="text-fg-subtle"> · {c.par}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
         <ApprobationsBloc />
       </div>
     </SectionCarte>

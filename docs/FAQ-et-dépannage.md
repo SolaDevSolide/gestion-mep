@@ -3,7 +3,7 @@
 ## Utilisation
 
 **Le bouton « Go / no-go » est grisé ou le Go est refusé.**
-Seuls le pilote et ses suppléants le voient. Le Go exige un plan sans anomalie (« Vérifier le plan »), les approbations requises et tous les critères cochés. Un modèle ne passe jamais en exécution : le dupliquer en MEP.
+Seuls le pilote et ses suppléants le voient. Le Go exige un plan sans anomalie (« Vérifier le plan »), les approbations requises et tous les critères cochés. Un modèle ne passe jamais en exécution : cliquer « Créer une MEP depuis ce modèle ».
 
 **Je ne peux pas modifier la MEP.**
 En préparation, seuls le pilote, les suppléants, les responsables techniques et les administrateurs la modifient. Après le Go, le contenu est figé : le pilote peut revenir en préparation tant que le point de non-retour n'est pas franchi.
