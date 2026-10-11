@@ -23,6 +23,77 @@ namespace GestionMep.Api.Donnees.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("GestionMep.Domain.ConfigurationSso", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Annuaire")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Autorite")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ClientId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("CreationAutomatique")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Fournisseur")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Libelle")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTimeOffset?>("ModifieeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RoleAdmin")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SecretChiffre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly?>("SecretExpireLe")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ConfigurationsSso");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Active = false,
+                            Annuaire = "",
+                            Autorite = "",
+                            ClientId = "",
+                            CreationAutomatique = true,
+                            Fournisseur = "Microsoft",
+                            Libelle = "",
+                            RoleAdmin = "",
+                            SecretChiffre = ""
+                        });
+                });
+
             modelBuilder.Entity("GestionMep.Domain.CritereGoNoGo", b =>
                 {
                     b.Property<Guid>("Id")
@@ -274,6 +345,46 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.HasIndex("MepId");
 
                     b.ToTable("ExecutionsResolution");
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.IdentiteExterne", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreeeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DerniereConnexion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Emetteur")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Identifiant")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Sujet")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("UtilisateurId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UtilisateurId");
+
+                    b.HasIndex("Emetteur", "Sujet")
+                        .IsUnique();
+
+                    b.ToTable("IdentitesExternes");
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Livrable", b =>
@@ -785,6 +896,17 @@ namespace GestionMep.Api.Donnees.Migrations
                         .HasForeignKey("MepId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.IdentiteExterne", b =>
+                {
+                    b.HasOne("GestionMep.Domain.Utilisateur", "Utilisateur")
+                        .WithMany()
+                        .HasForeignKey("UtilisateurId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Utilisateur");
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Livrable", b =>

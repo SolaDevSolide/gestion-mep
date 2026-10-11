@@ -10,6 +10,8 @@
 
 **Catalogue des systèmes** : liste globale des systèmes de l'entreprise, dans laquelle on choisit les systèmes d'une MEP.
 
+**Connexion unique (SSO)** : connexion avec son compte d'entreprise (Microsoft Entra ID ou autre fournisseur OpenID Connect) au lieu d'un mot de passe propre à l'application. Facultative : voir [Connexion Microsoft](Connexion-Microsoft.md).
+
 **Critère go / no-go** : condition à cocher avant de démarrer (par exemple « Supervision en place »).
 
 **Échéance de retour arrière** : date et heure limites de l'intervention. Une fois atteinte, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi.

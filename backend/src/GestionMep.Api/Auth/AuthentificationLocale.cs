@@ -10,10 +10,8 @@ using Microsoft.EntityFrameworkCore;
 namespace GestionMep.Api.Auth;
 
 /// <summary>
-/// Authentification par comptes locaux et cookie. Tout ce qui concerne l'identité est isolé dans ce dossier :
-/// pour ajouter un SSO OpenID Connect (Entra ID), enregistrer <c>AddOpenIdConnect</c> ici, créer le compte
-/// local au premier passage (<see cref="TrouverOuCreer"/>) puis émettre le même cookie avec <see cref="Acteur.VersPrincipal"/>.
-/// Le reste de l'API ne lit que les claims NameIdentifier / Name / Role.
+/// Authentification par comptes locaux et cookie. La connexion unique (<see cref="ConnexionUnique"/>) émet le même cookie
+/// avec <see cref="Acteur.VersPrincipal"/>. Le reste de l'API ne lit que les claims NameIdentifier / Name / Role.
 /// </summary>
 public static class AuthentificationLocale
 {
@@ -151,16 +149,4 @@ public static class AuthentificationLocale
         ctx.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, Acteur.VersPrincipal(u, CookieAuthenticationDefaults.AuthenticationScheme));
 
     public static Task Fermer(HttpContext ctx) => ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-    /// <summary>Point d'entrée prévu pour un futur SSO : retrouve le compte par login, ou le crée.</summary>
-    public static async Task<Utilisateur> TrouverOuCreer(MepDbContext db, string login, string nomAffiche)
-    {
-        var l = NormaliserLogin(login);
-        var u = await db.Utilisateurs.FirstOrDefaultAsync(x => x.Login == l);
-        if (u is not null) return u;
-        u = new Utilisateur { Login = l, NomAffiche = nomAffiche, MotDePasseHash = "" };
-        db.Utilisateurs.Add(u);
-        await db.SaveChangesAsync();
-        return u;
-    }
 }

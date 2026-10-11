@@ -37,14 +37,14 @@ Les erreurs ont pour corps `{ "message": "…" }`, une phrase en français desti
 
 | Préfixe | Contenu |
 |---|---|
-| `/api/auth` | Connexion, déconnexion, utilisateur courant, changement de mot de passe. |
+| `/api/auth` | Connexion, déconnexion, utilisateur courant, changement de mot de passe ; options de la page de connexion et connexion unique (`/api/auth/sso/…` : départ vers le fournisseur, liaison depuis le profil). |
 | `/api/utilisateurs` | Liste des comptes (pour relier une personne à un compte) et profils. |
 | `/api/meps` | MEP : création, duplication, préparation (participants, systèmes, livrables, sauvegarde, étapes, approbations, recette), exécution (démarrer, terminer, prendre la main, résolutions), phases, retour arrière, clôture, pièces jointes, journal, flux. |
 | `/api/catalogue/systemes` | Catalogue global des systèmes. |
 | `/api/resolutions` | Résolutions types et leurs versions. |
 | `/api/parametres`, `/api/criteres-go-no-go` | Paramètres globaux. |
 | `/api/pieces-jointes` | Téléchargement d'une pièce jointe. |
-| `/api/admin` | Console d'administration : comptes, journal d'administration, vérification des mises à jour (administrateurs seulement). |
+| `/api/admin` | Console d'administration : comptes, journal d'administration, vérification des mises à jour, réglages de la connexion unique (`/api/admin/sso`) (administrateurs seulement). |
 | `/api/application` | Version en cours, lien de signalement et, pour un administrateur, dernière version publiée. |
 | `/api/sante`, `/api/version` | Sonde de santé et empreinte du front servi (pour proposer de recharger un onglet après un déploiement). |
 

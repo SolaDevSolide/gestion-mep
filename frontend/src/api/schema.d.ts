@@ -342,6 +342,179 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OptionsConnexionDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/sso/connexion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    lier?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/sso/etat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SsoProfilDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/sso/lier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SsoLiaisonDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/sso/lien": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/application": {
         parameters: {
             query?: never;
@@ -2851,6 +3024,239 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/sso": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SsoReglagesDto"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SsoSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SsoReglagesDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/sso/activer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SsoReglagesDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/sso/desactiver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SsoReglagesDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/sso/tester": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SsoTestDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/sso/identites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SsoIdentiteDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/sso/identites/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/mises-a-jour/verifier": {
         parameters: {
             query?: never;
@@ -3543,6 +3949,11 @@ export interface components {
             etapes: null | components["schemas"]["EtapeTestSaisie"][];
         };
         /**
+         * @description Fournisseur de la connexion unique : Microsoft Entra ID (préréglage) ou tout autre fournisseur OpenID Connect.
+         * @enum {unknown}
+         */
+        FournisseurSso: "Microsoft" | "OpenIdConnect";
+        /**
          * @description Service « mise-a-jour » (facultatif) : `Present` s'il tourne ; `Statut` pret, en-cours, terminee, echec ou
          *     indisponible ; `Message` et `Version` de sa dernière action.
          */
@@ -3968,6 +4379,11 @@ export interface components {
         NoGoSaisie: {
             motif: null | string;
         };
+        /** @description Options de la page de connexion (sans authentification) : bouton de connexion unique s'il est actif. */
+        OptionsConnexionDto: {
+            ssoActif: boolean;
+            ssoLibelle: null | string;
+        };
         ParametresDto: {
             /** Format: int32 */
             approbationsMinimum: number;
@@ -4195,6 +4611,76 @@ export interface components {
             moment: null | components["schemas"]["ModeSauvegarde"];
             contenu: null | string;
             justification: null | string;
+        };
+        /** @description Compte de l'application relié à un compte du fournisseur. */
+        SsoIdentiteDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            utilisateurId: string;
+            login: string;
+            nomAffiche: string;
+            identifiant: string;
+            /** Format: date-time */
+            creeeLe: string;
+            /** Format: date-time */
+            derniereConnexion: null | string;
+        };
+        /** @description Adresse à ouvrir pour lier son compte (jeton valable 5 minutes). */
+        SsoLiaisonDto: {
+            url: string;
+        };
+        /** @description Connexion unique vue du profil : `Disponible` si elle est active, `Identifiant` du compte lié (null sinon). */
+        SsoProfilDto: {
+            disponible: boolean;
+            libelle: null | string;
+            identifiant: null | string;
+            peutDelier: boolean;
+        };
+        /**
+         * @description Réglages de la connexion unique pour la console. Le secret n'est jamais renvoyé : `SecretEnregistre` dit s'il existe,
+         *     `SecretLisible` s'il se déchiffre avec les clés actuelles. `UrlRetour` : adresse à déclarer chez le fournisseur.
+         */
+        SsoReglagesDto: {
+            active: boolean;
+            fournisseur: components["schemas"]["FournisseurSso"];
+            annuaire: string;
+            autorite: string;
+            clientId: string;
+            secretEnregistre: boolean;
+            secretLisible: boolean;
+            /** Format: date */
+            secretExpireLe: null | string;
+            creationAutomatique: boolean;
+            roleAdmin: string;
+            libelle: string;
+            libelleEffectif: string;
+            urlRetour: null | string;
+            /** Format: date-time */
+            modifieeLe: null | string;
+            anomalies: string[];
+        };
+        /** @description Saisie des réglages ; `Secret` null ou vide : secret inchangé. */
+        SsoSaisie: {
+            fournisseur: components["schemas"]["FournisseurSso"];
+            annuaire: null | string;
+            autorite: null | string;
+            clientId: null | string;
+            secret: null | string;
+            /** Format: date */
+            secretExpireLe: null | string;
+            creationAutomatique: boolean;
+            roleAdmin: null | string;
+            libelle: null | string;
+        };
+        SsoTestDto: {
+            ok: boolean;
+            verifications: components["schemas"]["SsoVerificationDto"][];
+        };
+        SsoVerificationDto: {
+            libelle: string;
+            ok: boolean;
+            detail: string;
         };
         /** @enum {unknown} */
         StatutSauvegarde: "ARenseigner" | "Requise" | "NonRequise" | null;

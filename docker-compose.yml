@@ -40,6 +40,8 @@ services:
       Signalement__Lien: ${LIEN_SIGNALEMENT-https://github.com/SolaDevSolide/gestion-mep/issues/new/choose}
       # Échanges avec le service « mise-a-jour » (bouton « Mettre à jour » de la console, s'il est activé)
       MisesAJour__Dossier: /data/mise-a-jour
+      # Adresse publique (https://mep.entreprise.fr) : sert à l'adresse de retour de la connexion unique ; vide, déduite de la requête
+      Application__UrlPublique: ${URL_PUBLIQUE:-}
     volumes:
       - pieces-jointes:/data/pieces-jointes
       - cles:/data/cles

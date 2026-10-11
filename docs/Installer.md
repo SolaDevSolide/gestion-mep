@@ -44,7 +44,7 @@ L'application écoute en HTTP sur le port 8080. Le chiffrement HTTPS est confié
    docker compose exec app gestion-mep config verifier
    ```
 
-5. Configurer le [proxy inverse HTTPS](#proxy-inverse-https), puis se connecter avec le compte administrateur défini dans `.env`. Ce compte n'est créé qu'au premier démarrage, sur une base vide. Créer ensuite les comptes des utilisateurs depuis la console d'administration (voir [Administrer](Administrer.md)).
+5. Configurer le [proxy inverse HTTPS](#proxy-inverse-https), puis se connecter avec le compte administrateur défini dans `.env`. Ce compte n'est créé qu'au premier démarrage, sur une base vide. Créer ensuite les comptes des utilisateurs depuis la console d'administration (voir [Administrer](Administrer.md)), ou activer la [connexion Microsoft](Connexion-Microsoft.md) pour que chacun entre avec son compte d'entreprise.
 
 ## Configuration
 
@@ -64,6 +64,7 @@ Les variables se règlent dans `.env`, lu par `docker-compose.yml`.
 | `COMPOSE_PROFILES` | vide | `mise-a-jour` active le bouton « Mettre à jour » de la console (voir [Mettre à jour depuis la console](Exploiter.md#mettre-à-jour-depuis-la-console)). |
 | `MEP_IMAGE_MISE_A_JOUR` | `ghcr.io/soladevsolide/gestion-mep-mise-a-jour:latest` | Image du service de mise à jour. |
 | `MEP_DEPOT_IMAGE` | `ghcr.io/soladevsolide/gestion-mep` | Seul dépôt d'images que le service de mise à jour accepte d'installer (à changer pour un registre interne). |
+| `URL_PUBLIQUE` | vide | Adresse publique de l'application (`https://mep.entreprise.fr`). Facultative : sert à l'adresse de retour de la [connexion Microsoft](Connexion-Microsoft.md) ; vide, elle est déduite de la requête. |
 | `CONNEXIONS_PAR_MINUTE` | `20` | Tentatives de connexion autorisées par minute et par adresse IP. Au-delà : refus temporaire. Un compte est en plus bloqué quelques minutes après 5 échecs consécutifs. |
 
 Pour un déploiement sans Docker Compose (Kubernetes, ECS…), l'image se règle par ses variables d'environnement :
@@ -78,6 +79,7 @@ Pour un déploiement sans Docker Compose (Kubernetes, ECS…), l'image se règle
 | `Sauvegardes__Dossier` | Dossier des sauvegardes (`/data/sauvegardes`), à monter sur un volume persistant avec assez de place pour une copie de la base et des pièces jointes : sauvegardes automatiques avant une mise à jour du schéma ou une importation, et défaut de `gestion-mep sauvegarder`. |
 | `Cles__Dossier` | Dossier des clés qui chiffrent le cookie de session (`/data/cles`), à monter sur un volume persistant. Sans lui, chaque recréation du conteneur déconnecte tout le monde. |
 | `ProxyInverse__Reseaux` | Voir `PROXY_RESEAUX`. |
+| `Application__UrlPublique` | Voir `URL_PUBLIQUE`. |
 | `Connexion__TentativesParMinute` | Voir `CONNEXIONS_PAR_MINUTE`. |
 | `MisesAJour__Verifier` | Voir `VERIFIER_MISES_A_JOUR`. `MisesAJour__Depot` (`SolaDevSolide/gestion-mep`) et `MisesAJour__IntervalleHeures` (`12`) changent le dépôt consulté et la fréquence. |
 | `Signalement__Lien` | Voir `LIEN_SIGNALEMENT`. |
@@ -140,4 +142,4 @@ Avec IIS (Application Request Routing + URL Rewrite) : désactiver la mise en ta
 ## Limites connues
 
 - **Une seule instance** de l'application à la fois : le flux temps réel est diffusé en mémoire et les migrations tournent au démarrage.
-- Les comptes sont locaux à l'application. La connexion par un annuaire d'entreprise (SSO) n'est pas encore disponible.
+- Connexion unique par OpenID Connect seulement (Microsoft Entra ID et autres fournisseurs OIDC) ; SAML n'est pas pris en charge. Les comptes ne sont pas synchronisés avec l'annuaire (pas de SCIM) : une personne retirée de l'annuaire ne peut plus entrer par Microsoft, mais son compte reste à désactiver dans l'application.

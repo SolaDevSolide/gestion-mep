@@ -62,6 +62,14 @@ public class ApiFixture : IDisposable
         return client;
     }
 
+    /// <summary>Client qui ne suit pas les redirections (pour lire l'en-tête Location), avec l'en-tête anti-CSRF.</summary>
+    public HttpClient ClientSansRedirection()
+    {
+        var client = _usine.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("X-Requested-With", "fetch");
+        return client;
+    }
+
     /// <summary>Client HTTP sans l'en-tête anti-CSRF (requête forgée depuis un autre site).</summary>
     public HttpClient ClientSansEnTete() => _usine.CreateClient();
 

@@ -170,3 +170,51 @@ public record InstallateurDto(bool Present, string? Statut, string? Version, str
 
 /// <summary>Demande d'installation d'une version publiée (bouton « Mettre à jour » de la console).</summary>
 public record InstallationSaisie(string? Version);
+
+/// <summary>Options de la page de connexion (sans authentification) : bouton de connexion unique s'il est actif.</summary>
+public record OptionsConnexionDto(bool SsoActif, string? SsoLibelle);
+
+/// <summary>Connexion unique vue du profil : <c>Disponible</c> si elle est active, <c>Identifiant</c> du compte lié (null sinon).</summary>
+public record SsoProfilDto(bool Disponible, string? Libelle, string? Identifiant, bool PeutDelier);
+
+/// <summary>Adresse à ouvrir pour lier son compte (jeton valable 5 minutes).</summary>
+public record SsoLiaisonDto(string Url);
+
+/// <summary>
+/// Réglages de la connexion unique pour la console. Le secret n'est jamais renvoyé : <c>SecretEnregistre</c> dit s'il existe,
+/// <c>SecretLisible</c> s'il se déchiffre avec les clés actuelles. <c>UrlRetour</c> : adresse à déclarer chez le fournisseur.
+/// </summary>
+public record SsoReglagesDto(
+    bool Active,
+    FournisseurSso Fournisseur,
+    string Annuaire,
+    string Autorite,
+    string ClientId,
+    bool SecretEnregistre,
+    bool SecretLisible,
+    DateOnly? SecretExpireLe,
+    bool CreationAutomatique,
+    string RoleAdmin,
+    string Libelle,
+    string LibelleEffectif,
+    string? UrlRetour,
+    DateTimeOffset? ModifieeLe,
+    List<string> Anomalies);
+
+/// <summary>Saisie des réglages ; <c>Secret</c> null ou vide : secret inchangé.</summary>
+public record SsoSaisie(
+    FournisseurSso Fournisseur,
+    string? Annuaire,
+    string? Autorite,
+    string? ClientId,
+    string? Secret,
+    DateOnly? SecretExpireLe,
+    bool CreationAutomatique,
+    string? RoleAdmin,
+    string? Libelle);
+
+public record SsoVerificationDto(string Libelle, bool Ok, string Detail);
+public record SsoTestDto(bool Ok, List<SsoVerificationDto> Verifications);
+
+/// <summary>Compte de l'application relié à un compte du fournisseur.</summary>
+public record SsoIdentiteDto(Guid Id, Guid UtilisateurId, string Login, string NomAffiche, string Identifiant, DateTimeOffset CreeeLe, DateTimeOffset? DerniereConnexion);

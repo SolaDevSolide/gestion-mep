@@ -59,6 +59,8 @@ builder.Services.AddSingleton<VerificationMisesAJour>();
 builder.Services.AddSingleton<InstallationMiseAJour>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<VerificationMisesAJour>());
 builder.Services.AjouterAuthentification(builder.Environment);
+// Connexion unique facultative (Microsoft Entra ID ou autre OpenID Connect), réglée en base depuis la console ou « gestion-mep sso ».
+builder.Services.AjouterConnexionUnique();
 builder.Services.AjouterProtectionsHttp(builder.Configuration);
 // Clés de chiffrement du cookie de session : conservées dans Cles:Dossier (volume Docker « cles »), sinon chaque
 // recréation du conteneur déconnecterait tout le monde. Vide : emplacement par défaut d'ASP.NET Core (poste de dev).
@@ -87,6 +89,7 @@ var fichiersStatiques = new StaticFileOptions
 };
 app.UseStaticFiles(fichiersStatiques);
 app.UtiliserProtectionCsrf();
+app.UtiliserGardeConnexionUnique();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UtiliserMotDePasseProvisoire();
@@ -99,6 +102,7 @@ api.MapGet("/sante", () => Results.Ok(new { statut = "ok" })).AllowAnonymous();
 var versionFront = VersionFront(app.Environment);
 api.MapGet("/version", () => Results.Ok(new { version = versionFront })).AllowAnonymous();
 api.MapAuth();
+api.MapSso();
 api.MapApplication();
 api.MapMeps();
 api.MapStructure();

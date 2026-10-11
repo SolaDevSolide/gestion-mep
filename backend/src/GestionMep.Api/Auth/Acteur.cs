@@ -2,7 +2,7 @@ using System.Security.Claims;
 
 namespace GestionMep.Api.Auth;
 
-/// <summary>Utilisateur courant tel que lu dans le cookie (ou, plus tard, dans le jeton OIDC).</summary>
+/// <summary>Utilisateur courant tel que lu dans le cookie de session (compte local ou connexion unique).</summary>
 public record Acteur(Guid Id, string Nom, bool EstAdmin)
 {
     public const string RoleAdmin = "admin";

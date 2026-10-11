@@ -54,7 +54,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 | `Services/MisesAJour.cs` | Version en cours, vérification des versions publiées sur GitHub et dialogue avec le service facultatif de mise à jour (fichiers dans un volume partagé). |
 | `Services/Sauvegardes.cs` | Archive de la base (COPY binaire par table) et des pièces jointes ; sauvegarde avant migration ou importation, contrôle qu'aucune donnée n'est perdue, puis suppression de la sauvegarde. |
 | `Securite/` | Protections HTTP : en-têtes du proxy inverse, limite des tentatives de connexion (par IP et par compte), en-tête anti-CSRF exigé, en-têtes de sécurité (CSP…), taille maximale des requêtes, sonde `--sante` de l'image Docker. |
-| `Auth/` | Comptes locaux, cookie de session, `Acteur` (utilisateur courant). C'est le seul dossier à modifier pour brancher un SSO OpenID Connect. |
+| `Auth/` | Comptes locaux, cookie de session, `Acteur` (utilisateur courant), connexion unique OpenID Connect (`ConnexionUnique.cs`). |
 | `Donnees/` | `MepDbContext`, migrations EF Core, `Amorcage` (migration précédée d'une sauvegarde, démonstration ou compte administrateur initial). |
 
 ### Déroulé d'une requête d'écriture
@@ -94,7 +94,8 @@ Aucune dépendance vers ASP.NET ni EF Core.
 - Connexion limitée par adresse IP (fenêtre d'une minute) et compte bloqué quelques minutes après 5 échecs consécutifs.
 - Toute requête `/api` qui modifie doit porter l'en-tête `X-Requested-With` (protection CSRF) ; le front l'ajoute toujours.
 - Toutes les réponses portent une politique de contenu (CSP) qui interdit l'affichage dans un cadre, ainsi que `nosniff` et `Referrer-Policy`. Les corps de requête sont limités à 1 Mo, sauf sur les routes de dépôt de pièces jointes.
-- Le reste de l'API ne lit que les claims `NameIdentifier`, `Name` et `Role` via `Acteur.Depuis(user)`. Un SSO OpenID Connect (Microsoft Entra ID…) s'ajoute dans `Auth/AuthentificationLocale.cs` sans toucher aux endpoints.
+- Le reste de l'API ne lit que les claims `NameIdentifier`, `Name` et `Role` via `Acteur.Depuis(user)`.
+- Connexion unique facultative (`Auth/ConnexionUnique.cs`) : gestionnaire OpenID Connect d'ASP.NET Core (code + PKCE, retour sur `/connexion-sso/retour`). Ses réglages sont une ligne de la table `ConfigurationsSso`, modifiée par la console ou `gestion-mep sso` ; `ReglagesSso` la relit au départ vers le fournisseur et au retour, et vide le cache des options OpenID Connect quand elle a changé : pas de redémarrage. Le secret est chiffré par Data Protection (mêmes clés que le cookie). Au retour, `ConnexionUnique.Resoudre` retrouve le compte par émetteur + `oid`/`sub` (table `IdentitesExternes`), le relie (liaison depuis le profil, jeton à durée limitée propre à la session) ou le crée, puis émet le même cookie qu'une connexion locale.
 
 ## Front-end
 

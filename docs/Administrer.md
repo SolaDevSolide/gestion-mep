@@ -10,7 +10,7 @@ Il est créé au premier démarrage, sur une base vide, à partir des variables 
 
 ## Console d'administration
 
-Menu « Administration › Console d'administration », visible des seuls administrateurs. Quatre onglets.
+Menu « Administration › Console d'administration », visible des seuls administrateurs. Cinq onglets.
 
 ![Console d'administration, onglet Comptes](images/console-admin.png)
 
@@ -28,6 +28,10 @@ Règles de sécurité :
 - on ne peut pas désactiver son propre compte ;
 - le dernier administrateur actif ne peut être ni désactivé ni rétrogradé.
 
+### Connexion unique
+
+Connexion Microsoft (SSO) facultative : adresse de retour à déclarer dans Microsoft Entra, ID de l'annuaire, ID d'application, secret client (chiffré, jamais réaffiché) et sa date d'expiration, création automatique des comptes, rôle d'application qui donne le rôle administrateur. **Tester** vérifie les réglages auprès de Microsoft sans connecter personne ; **Activer** affiche le bouton sur la page de connexion, sans redémarrage. La liste « Comptes liés » permet de supprimer une liaison. Le pas-à-pas pour l'équipe informatique est dans [Connexion Microsoft](Connexion-Microsoft.md).
+
 ### Paramètres
 
 - **Nombre minimum d'approbations** exigées avant le Go (0 = aucune).
@@ -35,7 +39,7 @@ Règles de sécurité :
 
 ### Journal
 
-Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, mots de passe réinitialisés ou changés, paramètres et critères go / no-go modifiés. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
+Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, mots de passe réinitialisés ou changés, paramètres et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
 
 ### Version
 
@@ -57,4 +61,4 @@ Le menu « Paramètres » est visible de tous, en lecture seule pour les non-adm
 
 ## Profils
 
-Chaque utilisateur gère son profil dans « Mon profil » : nom affiché, rôle, contact, **expertises** (systèmes du catalogue, avec un détail comme « Expert de la zone facturation ») et mot de passe. Les expertises servent à suggérer des responsables techniques lors de la préparation d'une MEP.
+Chaque utilisateur gère son profil dans « Mon profil » : nom affiché, rôle, contact, **expertises** (systèmes du catalogue, avec un détail comme « Expert de la zone facturation ») et mot de passe. Quand la connexion unique est active, « Lier mon compte » relie un compte local à son compte Microsoft ; ensuite le bouton « Se connecter avec Microsoft » ouvre ce compte. Les expertises servent à suggérer des responsables techniques lors de la préparation d'une MEP.

@@ -221,3 +221,29 @@ export type CompteSaisie = SaisieVerifiee<
   { nomAffiche: string; estAdmin: boolean; role: string; contact: string }
 >;
 export type NouveauCompteSaisie = SaisieVerifiee<S['CompteSaisie'], CompteSaisie & { login: string }>;
+
+// ---------- Connexion unique (SSO) ----------
+
+export type FournisseurSso = S['FournisseurSso'];
+export type OptionsConnexion = S['OptionsConnexionDto'];
+export type SsoProfil = S['SsoProfilDto'];
+export type SsoLiaison = S['SsoLiaisonDto'];
+export type SsoReglages = S['SsoReglagesDto'];
+export type SsoTest = S['SsoTestDto'];
+export type SsoVerification = S['SsoVerificationDto'];
+export type SsoIdentite = S['SsoIdentiteDto'];
+/** Réglages envoyés par la console : `secret` vide ou omis = secret inchangé. */
+export type SsoSaisie = SaisieVerifiee<
+  S['SsoSaisie'],
+  {
+    fournisseur: FournisseurSso;
+    annuaire: string;
+    autorite: string;
+    clientId: string;
+    secret?: string;
+    secretExpireLe?: string;
+    creationAutomatique: boolean;
+    roleAdmin: string;
+    libelle: string;
+  }
+>;
