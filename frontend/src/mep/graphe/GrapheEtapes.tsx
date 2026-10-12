@@ -118,7 +118,9 @@ export function GrapheEtapes(props: Props) {
         onPointerDown={appuyer}
         className={cn(
           // Gouttière réservée : la largeur utile ne dépend pas de la barre verticale (le graphe la prend pour minimum).
-          'max-h-[940px] overflow-auto rounded-xl bg-surface shadow-sm [scrollbar-gutter:stable]',
+          // Largeur confinée : la zone prend la largeur de la page, jamais celle du graphe (zoomé ou mesuré avant un
+          // changement), sinon la page s'élargit, une barre de défilement apparaît et la mise en page boucle.
+          'max-h-[940px] overflow-auto rounded-xl bg-surface shadow-sm [contain:inline-size] [scrollbar-gutter:stable]',
           plan === 'RetourArriere' ? 'border-2 border-rollback-solid' : 'border border-line',
           vueSaisie ? 'cursor-grabbing select-none' : 'cursor-grab',
         )}
@@ -142,8 +144,6 @@ export function GrapheEtapes(props: Props) {
             <CoucheLiens
               groupes={groupes}
               ancrages={geo.ancrages}
-              largeur={geo.largeur}
-              hauteur={geo.hauteur}
               parId={parId}
               mode={mode}
               edition={edition}

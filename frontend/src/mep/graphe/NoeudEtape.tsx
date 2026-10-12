@@ -36,7 +36,9 @@ export function NoeudEtape({
   return (
     <div
       data-noeud={e.id}
-      className={cn('group pointer-events-auto relative', edition && 'touch-none', glissee && 'opacity-30')}
+      // Calé en haut de la ligne, à la hauteur de sa fiche : les ronds restent collés à ses bords même si une fiche
+      // voisine est plus haute (sinon le rond du bas suivrait la hauteur de la ligne).
+      className={cn('group pointer-events-auto relative self-start', edition && 'touch-none', glissee && 'opacity-30')}
     >
       {edition && (
         <span

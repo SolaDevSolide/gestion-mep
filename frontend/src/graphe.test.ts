@@ -79,13 +79,13 @@ describe('tracerJonctions', () => {
     const [t] = tracerJonctions([{ cle: 'A>B', sources: ['A'], cibles: ['B'] }], { A: a(100, 0), B: a(100, 126) });
     expect(t.traits).toBeNull();
     expect(t.points).toEqual([]);
-    expect(t.fleches).toEqual(['M100,81 V124']);
+    expect(t.fleches).toEqual(['M100,80 V124']);
     expect(t.barre).toBe(103);
   });
 
   it('lien simple décalé : coudes arrondis', () => {
     const [t] = tracerJonctions([{ cle: 'A>B', sources: ['A'], cibles: ['B'] }], { A: a(100, 0), B: a(300, 126) });
-    expect(t.fleches[0]).toBe('M100,81 V95 Q100,103 108,103 H292 Q300,103 300,111 V124');
+    expect(t.fleches[0]).toBe('M100,80 V95 Q100,103 108,103 H292 Q300,103 300,111 V124');
   });
 
   it('jonction : descentes + barre pleine largeur, une flèche par cible, un point par source', () => {
@@ -96,7 +96,7 @@ describe('tracerJonctions', () => {
       D: a(400, 126),
     });
     expect(t.barre).toBe(103);
-    expect(t.traits).toBe('M100,81 V103 M340,81 V103 M50,103 H400');
+    expect(t.traits).toBe('M100,80 V103 M340,80 V103 M50,103 H400');
     expect(t.fleches).toEqual(['M50,103 V124', 'M400,103 V124']);
     expect(t.points).toEqual([
       { x: 100, y: 103 },

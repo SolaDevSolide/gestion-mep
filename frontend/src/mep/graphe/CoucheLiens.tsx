@@ -8,8 +8,6 @@ const COULEUR = { neutre: 'var(--fg-subtle)', accent: 'var(--accent)', ok: 'var(
 interface Props {
   groupes: GroupeLiens[];
   ancrages: Record<string, Ancrage>;
-  largeur: number;
-  hauteur: number;
   parId: Map<string, Etape>;
   mode: ModeGraphe;
   /** Édition : les liens deviennent sélectionnables (souris et clavier). */
@@ -26,8 +24,6 @@ interface Props {
 export function CoucheLiens({
   groupes,
   ancrages,
-  largeur,
-  hauteur,
   parId,
   mode,
   edition,
@@ -45,7 +41,11 @@ export function CoucheLiens({
     `${g.sources.length * g.cibles.length > 1 ? 'Jonction' : 'Lien'} ${g.sources.map(code).join(', ')} vers ${g.cibles.map(code).join(', ')}`;
 
   return (
-    <svg className="pointer-events-none absolute top-0 left-0 z-0 overflow-visible" width={largeur} height={hauteur}>
+    <svg
+      data-liens
+      // Toujours à la taille du graphe (sans attendre une mesure) : origine du repère des liens, voir useMesureCartes.
+      className="pointer-events-none absolute top-0 left-0 z-0 size-full overflow-visible"
+    >
       <defs>
         {(Object.keys(COULEUR) as (keyof typeof COULEUR)[]).map((k) => (
           <marker

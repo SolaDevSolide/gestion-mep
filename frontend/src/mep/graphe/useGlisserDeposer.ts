@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { courbeTemporaire, lienPossible, type Lien, type Point } from '../../graphe';
 import type { Etape } from '../../types';
+import { ancrageFiche, repereLiens } from './useMesureCartes';
 import type { DeplacementVue } from './useZoomVue';
 
 /** Cible d'un glisser de fiche : ligne, position d'insertion, et repère bleu (repère du graphe non zoomé). */
@@ -73,10 +74,8 @@ export function useGlisserDeposer(options: Options) {
     const g = graphe.current;
     const el = g?.querySelector<HTMLElement>(`[data-carte="${id}"]`);
     if (!g || !el) return null;
-    const z = zoomRef.current;
-    const b = g.getBoundingClientRect();
-    const r = el.getBoundingClientRect();
-    return { x: (r.left + r.width / 2 - b.left) / z, y: ((cote === 'bas' ? r.bottom : r.top) - b.top) / z };
+    const a = ancrageFiche(el.getBoundingClientRect(), repereLiens(g), zoomRef.current);
+    return { x: a.x, y: a[cote] };
   };
   const noeudSous = (x: number, y: number, cible: EventTarget | null): string | null => {
     const el =
@@ -153,7 +152,7 @@ export function useGlisserDeposer(options: Options) {
       const gr = graphe.current;
       if (!gr) return;
       if (g.t === 'lien') {
-        const b = gr.getBoundingClientRect();
+        const b = repereLiens(gr);
         const A = point(g.de, g.cote);
         const B = { x: (ev.clientX - b.left) / zoomRef.current, y: (ev.clientY - b.top) / zoomRef.current };
         if (A && trace.current)
