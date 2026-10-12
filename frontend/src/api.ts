@@ -37,6 +37,8 @@ import type {
   EvenementAdmin,
   NouveauCompteSaisie,
   OptionsConnexion,
+  EtatDemo,
+  ReinitialisationDemo,
   SsoIdentite,
   SsoLiaison,
   SsoProfil,
@@ -78,7 +80,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   } catch {
     throw new ApiError(0, 'Le serveur est injoignable. Vérifiez votre connexion.');
   }
-  if (res.status === 401 && path !== '/auth/connexion') {
+  if (res.status === 401 && path !== '/auth/connexion' && path !== '/demo/connexion') {
     onUnauthorized();
     throw new ApiError(401, 'Session expirée, veuillez vous reconnecter.');
   }
@@ -111,6 +113,32 @@ function formulaireFichier(f: File): FormData {
   return fd;
 }
 
+/**
+ * Mode démonstration : comptes de la connexion rapide, ou null si la démonstration n'est pas active (route absente, 404)
+ * ou injoignable. Lu sans passer par `request` : une réponse 401 ne doit pas renvoyer vers l'écran de connexion.
+ */
+function estDemoActive(v: unknown): v is EtatDemo {
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    'actif' in v &&
+    v.actif === true &&
+    'comptes' in v &&
+    Array.isArray(v.comptes)
+  );
+}
+
+async function lireDemo(): Promise<EtatDemo | null> {
+  try {
+    const r = await fetch('/api/demo', { credentials: 'include', headers: { 'X-Requested-With': 'fetch' } });
+    if (!r.ok) return null;
+    const etat: unknown = await r.json();
+    return estDemoActive(etat) ? etat : null;
+  } catch {
+    return null;
+  }
+}
+
 export const urlPieceJointe = (pid: string) => `/api/pieces-jointes/${pid}/contenu`;
 
 const get = <T>(p: string) => request<T>('GET', p);
@@ -123,6 +151,10 @@ export const api = {
   deconnexion: () => post<void>('/auth/deconnexion'),
   moi: () => get<Utilisateur>('/auth/moi'),
   optionsConnexion: () => get<OptionsConnexion>('/auth/options'),
+  // Mode démonstration (routes absentes hors démonstration).
+  demo: lireDemo,
+  connexionDemo: (login: string) => post<Utilisateur>('/demo/connexion', { login }),
+  reinitialiserDemo: () => post<ReinitialisationDemo>('/demo/reinitialiser'),
   ssoEtat: () => get<SsoProfil>('/auth/sso/etat'),
   ssoLier: () => post<SsoLiaison>('/auth/sso/lier'),
   ssoDelierMoi: () => del<void>('/auth/sso/lien'),

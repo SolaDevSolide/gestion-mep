@@ -114,7 +114,7 @@ public class ApiJalon42Tests : IDisposable
         var alice = await _api.ClientConnecte("alice");
         var id = await AidesApi.IdDemo(alice);
         var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
-        var resume = (await Ok(await alice.GetAsync("/api/meps?modele=false"))).EnumerateArray().Single();
+        var resume = (await Ok(await alice.GetAsync("/api/meps?modele=false"))).EnumerateArray().Single(m => m.GetProperty("id").GetGuid() == id);
         Assert.Equal(JsonValueKind.Null, resume.GetProperty("dateMep").ValueKind);
         var creeLe = resume.GetProperty("creeLe").GetDateTimeOffset();
         Assert.True(creeLe <= DateTimeOffset.UtcNow);
@@ -134,7 +134,7 @@ public class ApiJalon42Tests : IDisposable
         Assert.Equal(JsonValueKind.Null, apres.GetProperty("heureDebut").ValueKind);
 
         mep = await AidesApi.Go(_api, alice, id);
-        resume = (await Ok(await alice.GetAsync("/api/meps?modele=false"))).EnumerateArray().Single();
+        resume = (await Ok(await alice.GetAsync("/api/meps?modele=false"))).EnumerateArray().Single(m => m.GetProperty("id").GetGuid() == id);
         var go = mep.GetProperty("demarrageAutorise").GetProperty("le").GetDateTimeOffset();
         var attendue = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(go, TimeZoneInfo.FindSystemTimeZoneById("Europe/Paris")).DateTime);
         Assert.Equal(attendue, DateOnly.Parse(resume.GetProperty("dateMep").GetString()!));

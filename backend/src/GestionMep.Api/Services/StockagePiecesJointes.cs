@@ -81,6 +81,29 @@ public class StockagePiecesJointes(IConfiguration config)
         return deplaces;
     }
 
+    /// <summary>
+    /// Supprime tous les fichiers de pièces jointes du dossier (nommés d'après un Id), y compris ceux mis de côté dans
+    /// <see cref="DossierOrphelins"/>. Réservé à la réinitialisation de la démonstration, une fois la base vidée.
+    /// Renvoie le nombre de fichiers supprimés.
+    /// </summary>
+    public int SupprimerTout()
+    {
+        var supprimes = 0;
+        foreach (var dossier in new[] { Dossier, Path.Combine(Dossier, DossierOrphelins) }.Where(Directory.Exists))
+            foreach (var chemin in Directory.EnumerateFiles(dossier))
+            {
+                var nom = Path.GetFileName(chemin);
+                if (nom.Length != 32 || !Guid.TryParseExact(nom, "N", out _)) continue;
+                try
+                {
+                    File.Delete(chemin);
+                    supprimes++;
+                }
+                catch (IOException) { /* verrouillé : isolé au prochain démarrage (aucune ligne en base) */ }
+            }
+        return supprimes;
+    }
+
     /// <summary>Sous-dossier où sont mis de côté les fichiers sans pièce jointe en base.</summary>
     public const string DossierOrphelins = "orphelins";
 

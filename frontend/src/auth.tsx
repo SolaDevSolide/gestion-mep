@@ -22,7 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(() => {
       setUtilisateur(null);
-      void navigate('/connexion', { replace: true });
+      // Déjà sur l'écran de connexion : on garde son adresse (message ?erreur=… ou ?demo=reinitialisee).
+      if (window.location.pathname !== '/connexion') void navigate('/connexion', { replace: true });
     });
   }, [navigate]);
 

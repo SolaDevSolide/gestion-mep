@@ -20,14 +20,17 @@ public class ApiFixture : IDisposable
         Environment.GetEnvironmentVariable("TEST_PG_SERVEUR") ?? "Host=localhost;Port=5432;Username=postgres;Password=postgres";
 
     private readonly WebApplicationFactory<Program> _usine;
+    private readonly bool _demo;
 
     /// <summary>Dossier temporaire des pièces jointes, supprimé à la fin.</summary>
     public string DossierPieces { get; } = Path.Combine(Path.GetTempPath(), "gestion-mep-tests-" + Guid.NewGuid().ToString("N"));
     /// <summary>Dossier d'échange avec le service de mise à jour (etat.json, demande.json).</summary>
     public string DossierMiseAJour => Path.Combine(DossierPieces, "mise-a-jour");
 
-    public ApiFixture()
+    /// <param name="demo">false : base neuve hors mode démonstration (aucun compte, routes /api/demo absentes).</param>
+    public ApiFixture(bool demo = true)
     {
+        _demo = demo;
         using (var cn = new NpgsqlConnection(Serveur + ";Database=postgres"))
         {
             cn.Open();
@@ -38,7 +41,7 @@ public class ApiFixture : IDisposable
             cmd.ExecuteNonQuery();
         }
         Environment.SetEnvironmentVariable("ConnectionStrings__Mep", $"{Serveur};Database={Base}");
-        Environment.SetEnvironmentVariable("Demo__Activer", "true");
+        Environment.SetEnvironmentVariable("Demo__Activer", demo ? "true" : "false");
         Environment.SetEnvironmentVariable("Surveillance__Activer", "false"); // la surveillance d'arrière-plan ne doit pas interférer avec les tests
         Environment.SetEnvironmentVariable("Stockage__Dossier", DossierPieces);
         Environment.SetEnvironmentVariable("Cles__Dossier", Path.Combine(DossierPieces, "cles")); // /data/cles n'existe pas hors Docker
@@ -84,6 +87,8 @@ public class ApiFixture : IDisposable
     public void Dispose()
     {
         _usine.Dispose();
+        // Les autres tests (et ceux qui démarrent leur propre application) supposent la démonstration active.
+        if (!_demo) Environment.SetEnvironmentVariable("Demo__Activer", "true");
         NpgsqlConnection.ClearAllPools();
         if (Directory.Exists(DossierPieces)) Directory.Delete(DossierPieces, recursive: true);
     }

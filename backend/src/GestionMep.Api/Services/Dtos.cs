@@ -219,3 +219,18 @@ public record SsoTestDto(bool Ok, List<SsoVerificationDto> Verifications);
 
 /// <summary>Compte de l'application relié à un compte du fournisseur.</summary>
 public record SsoIdentiteDto(Guid Id, Guid UtilisateurId, string Login, string NomAffiche, string Identifiant, DateTimeOffset CreeeLe, DateTimeOffset? DerniereConnexion);
+
+/// <summary>
+/// Mode démonstration (route <c>/api/demo</c>, sans authentification, déclarée seulement si la démonstration est active) :
+/// comptes proposés par la connexion rapide.
+/// </summary>
+public record DemoDto(bool Actif, List<CompteDemoDto> Comptes);
+
+/// <summary>Compte de démonstration : <c>Description</c> donne son rôle dans les MEP de démonstration.</summary>
+public record CompteDemoDto(string Login, string NomAffiche, string Role, bool EstAdmin, string Description);
+
+/// <summary>Connexion rapide à un compte de démonstration (mode démonstration uniquement).</summary>
+public record ConnexionDemoSaisie(string? Login);
+
+/// <summary>Résultat de la réinitialisation de la démonstration : MEP recréées et fichiers de pièces jointes supprimés.</summary>
+public record ReinitialisationDemoDto(int Meps, int FichiersSupprimes);

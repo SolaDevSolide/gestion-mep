@@ -146,7 +146,11 @@ export default function NouvelleResolutionPage() {
             </Button>
           </div>
         </Card>
-        <Card role="region" aria-label="Aperçu en exécution" className="p-5 lg:sticky lg:top-6">
+        <Card
+          role="region"
+          aria-label="Aperçu en exécution"
+          className="p-5 lg:sticky lg:top-[calc(var(--bandeau-demo,0px)+1.5rem)]"
+        >
           <ApercuResolution b={b} systemes={catalogue.donnees ?? []} />
         </Card>
       </div>

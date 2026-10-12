@@ -2820,6 +2820,66 @@
         }
       }
     },
+    "/api/demo": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/demo/connexion": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnexionDemoSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/demo/reinitialiser": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReinitialisationDemoDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/mises-a-jour/verifier": {
       "post": {
         "tags": [
@@ -3356,6 +3416,34 @@
           }
         }
       },
+      "CompteDemoDto": {
+        "required": [
+          "login",
+          "nomAffiche",
+          "role",
+          "estAdmin",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": "string"
+          },
+          "nomAffiche": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "estAdmin": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "description": "Compte de démonstration : `Description` donne son rôle dans les MEP de démonstration."
+      },
       "CompteEtMotDePasseDto": {
         "required": [
           "utilisateur",
@@ -3498,6 +3586,21 @@
             ]
           }
         }
+      },
+      "ConnexionDemoSaisie": {
+        "required": [
+          "login"
+        ],
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Connexion rapide à un compte de démonstration (mode démonstration uniquement)."
       },
       "ConnexionSaisie": {
         "required": [
@@ -3789,6 +3892,25 @@
             "format": "int32"
           }
         }
+      },
+      "DemoDto": {
+        "required": [
+          "actif",
+          "comptes"
+        ],
+        "type": "object",
+        "properties": {
+          "actif": {
+            "type": "boolean"
+          },
+          "comptes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompteDemoDto"
+            }
+          }
+        },
+        "description": "Mode démonstration (route `/api/demo`, sans authentification, déclarée seulement si la démonstration est active) :\ncomptes proposés par la connexion rapide."
       },
       "DepuisCatalogueSaisie": {
         "required": [
@@ -6900,6 +7022,24 @@
             ]
           }
         }
+      },
+      "ReinitialisationDemoDto": {
+        "required": [
+          "meps",
+          "fichiersSupprimes"
+        ],
+        "type": "object",
+        "properties": {
+          "meps": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fichiersSupprimes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Résultat de la réinitialisation de la démonstration : MEP recréées et fichiers de pièces jointes supprimés."
       },
       "ResolutionTypeDto": {
         "required": [

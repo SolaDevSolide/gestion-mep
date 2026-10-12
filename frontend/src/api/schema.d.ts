@@ -3257,6 +3257,113 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DemoDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/connexion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConnexionDemoSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/reinitialiser": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReinitialisationDemoDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/mises-a-jour/verifier": {
         parameters: {
             query?: never;
@@ -3722,6 +3829,14 @@ export interface components {
             revision: null | number;
             commentaire: null | string;
         };
+        /** @description Compte de démonstration : `Description` donne son rôle dans les MEP de démonstration. */
+        CompteDemoDto: {
+            login: string;
+            nomAffiche: string;
+            role: string;
+            estAdmin: boolean;
+            description: string;
+        };
         CompteEtMotDePasseDto: {
             utilisateur: {
                 /** Format: uuid */
@@ -3753,6 +3868,10 @@ export interface components {
             estAdmin: boolean;
             role: null | string;
             contact: null | string;
+        };
+        /** @description Connexion rapide à un compte de démonstration (mode démonstration uniquement). */
+        ConnexionDemoSaisie: {
+            login: null | string;
         };
         ConnexionSaisie: {
             login: null | string;
@@ -3821,6 +3940,14 @@ export interface components {
             resolutionTypeId: null | string;
             /** Format: int32 */
             revision: null | number;
+        };
+        /**
+         * @description Mode démonstration (route `/api/demo`, sans authentification, déclarée seulement si la démonstration est active) :
+         *     comptes proposés par la connexion rapide.
+         */
+        DemoDto: {
+            actif: boolean;
+            comptes: components["schemas"]["CompteDemoDto"][];
         };
         DepuisCatalogueSaisie: {
             /** Format: uuid */
@@ -4605,6 +4732,13 @@ export interface components {
         };
         ReglageSaisie: {
             valeur: null | string;
+        };
+        /** @description Résultat de la réinitialisation de la démonstration : MEP recréées et fichiers de pièces jointes supprimés. */
+        ReinitialisationDemoDto: {
+            /** Format: int32 */
+            meps: number;
+            /** Format: int32 */
+            fichiersSupprimes: number;
         };
         ResolutionTypeDto: {
             /** Format: uuid */

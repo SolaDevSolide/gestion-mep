@@ -46,6 +46,7 @@ Les erreurs ont pour corps `{ "message": "…" }`, une phrase en français desti
 | `/api/pieces-jointes` | Téléchargement d'une pièce jointe. |
 | `/api/admin` | Console d'administration : comptes, journal d'administration, vérification des mises à jour, réglages de la connexion unique (`/api/admin/sso`) (administrateurs seulement). |
 | `/api/application` | Version en cours, lien de signalement et, pour un administrateur, dernière version publiée. |
+| `/api/demo` | Mode démonstration uniquement (`DEMO=true` ; sinon 404 comme une route inconnue) : `GET /api/demo` (sans session) donne les comptes de démonstration ; `POST /api/demo/connexion { login }` ouvre la session d'un compte de démonstration, avec les mêmes protections que `/api/auth/connexion` (en-tête anti-CSRF, limite par adresse, blocage progressif), 403 pour tout autre login ; `POST /api/demo/reinitialiser` (administrateurs) remet la base dans son état initial et ferme la session. |
 | `/api/sante`, `/api/version` | Sonde de santé et empreinte du front servi (pour proposer de recharger un onglet après un déploiement). |
 
 L'API ne propose pas encore de jeton d'accès : un script doit se connecter et conserver le cookie de session.

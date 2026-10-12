@@ -65,7 +65,8 @@ export type TypeEvenementAdmin =
   | 'sso.delie'
   | 'sso.lie'
   | 'donnees.controle-reussi'
-  | 'donnees.controle-echoue';
+  | 'donnees.controle-echoue'
+  | 'demo.reinitialisee';
 
 /** `dateMep` : date du Go si elle existe ; `creeLe` : date de création (affichée tant que la MEP n'a pas démarré). */
 export type MepResume = S['MepResumeDto'];
@@ -237,6 +238,10 @@ export type NouveauCompteSaisie = SaisieVerifiee<S['CompteSaisie'], CompteSaisie
 
 export type FournisseurSso = S['FournisseurSso'];
 export type OptionsConnexion = S['OptionsConnexionDto'];
+/** Mode démonstration (route /api/demo, absente hors démonstration) : comptes de la connexion rapide. */
+export type EtatDemo = S['DemoDto'];
+export type CompteDemo = S['CompteDemoDto'];
+export type ReinitialisationDemo = S['ReinitialisationDemoDto'];
 export type SsoProfil = S['SsoProfilDto'];
 export type SsoLiaison = S['SsoLiaisonDto'];
 export type SsoReglages = S['SsoReglagesDto'];

@@ -53,49 +53,10 @@ public static class Amorcage
 
         if (config.GetValue<bool>("Demo:Activer"))
         {
-            Utilisateur Creer(string login, string nom, bool admin)
-            {
-                var u = new Utilisateur { Login = login, NomAffiche = nom, EstAdmin = admin };
-                u.MotDePasseHash = hasher.HashPassword(u, "demo");
-                db.Utilisateurs.Add(u);
-                return u;
-            }
-            var alice = Creer("alice", "Alice", true);
-            var bob = Creer("bob", "Bob", false);
-            var claire = Creer("claire", "Claire", false);
-            var maintenant = temps.GetUtcNow();
-            var jeu = DonneesDemo.Creer(alice.Id, bob.Id, claire.Id, maintenant);
-            DonneesDemo.CompleterProfils(alice, bob, claire, jeu.Systemes);
-            var mep = jeu.Mep;
-            mep.CreeLe = maintenant;
-            mep.Version = 1;
-            // Le modèle est créé juste avant : la MEP de démonstration reste en tête de liste.
-            var modele = jeu.Modele;
-            modele.CreeLe = maintenant.AddSeconds(-1);
-            modele.Version = 1;
-            foreach (var r in jeu.Resolutions) r.ModifieeLe = maintenant;
-            foreach (var r in jeu.Resolutions) r.Version = 1;
-            db.SystemesCatalogue.AddRange(jeu.Systemes);
-            db.ResolutionsTypes.AddRange(jeu.Resolutions);
-            db.VersionsResolutionType.AddRange(jeu.Resolutions.Select(r => VersionResolutionType.De(r, "creee")));
-            db.CriteresGoNoGo.AddRange(jeu.Criteres);
-            var parametres = await db.Parametres.FirstOrDefaultAsync(p => p.Id == ParametresGlobaux.IdUnique);
-            if (parametres is null) db.Parametres.Add(parametres = new ParametresGlobaux());
-            parametres.ApprobationsMinimum = DonneesDemo.ApprobationsMinimum;
-            db.Meps.Add(modele);
-            db.Meps.Add(mep);
-            db.Journal.Add(new EvenementJournal
-            {
-                MepId = modele.Id, Quand = maintenant, UtilisateurId = alice.Id, Auteur = alice.NomAffiche,
-                Type = "mep.creee", Detail = "Modèle de démonstration créé",
-            });
-            db.Journal.Add(new EvenementJournal
-            {
-                MepId = mep.Id, Quand = maintenant, UtilisateurId = alice.Id, Auteur = alice.NomAffiche,
-                Type = "mep.creee", Detail = "MEP de démonstration créée",
-            });
+            await CreerDemonstration(db, hasher, temps.GetUtcNow());
             await db.SaveChangesAsync();
-            journal.LogInformation("Données de démonstration créées (comptes alice, bob, claire / mot de passe demo ; Claire approuve la MEP).");
+            journal.LogInformation("Données de démonstration créées (comptes alice, bob, claire / mot de passe demo ; Claire approuve la MEP ; "
+                + "{Nombre} MEP de démonstration).", await db.Meps.CountAsync(m => !m.EstModele));
             return;
         }
 
@@ -128,6 +89,61 @@ public static class Amorcage
         }
         db.Utilisateurs.Add(admin);
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Données d'une base neuve en mode démonstration, ajoutées au contexte sans les enregistrer : comptes de
+    /// <see cref="DonneesDemo.Comptes"/> (mot de passe <see cref="DonneesDemo.MotDePasse"/>), catalogue, résolutions types,
+    /// critères go / no-go, paramètre d'approbation, modèle, MEP « Portail de démonstration » et MEP de démonstration dans
+    /// chaque état du cycle de vie (<see cref="DonneesDemo.Scenarios"/>), avec leur journal. Sert à l'amorçage et à la
+    /// réinitialisation de la démonstration (<see cref="Services.Demonstration"/>).
+    /// </summary>
+    public static async Task CreerDemonstration(MepDbContext db, IPasswordHasher<Utilisateur> hasher, DateTimeOffset maintenant)
+    {
+        var comptes = DonneesDemo.Comptes.Select(c =>
+        {
+            var u = new Utilisateur { Login = c.Login, NomAffiche = c.Nom, EstAdmin = c.EstAdmin };
+            u.MotDePasseHash = hasher.HashPassword(u, DonneesDemo.MotDePasse);
+            db.Utilisateurs.Add(u);
+            return u;
+        }).ToList();
+        var (alice, bob, claire) = (comptes[0], comptes[1], comptes[2]);
+        var jeu = DonneesDemo.Creer(alice.Id, bob.Id, claire.Id, maintenant);
+        DonneesDemo.CompleterProfils(alice, bob, claire, jeu.Systemes);
+        var mep = jeu.Mep;
+        mep.CreeLe = maintenant;
+        mep.Version = 1;
+        // Le modèle est créé juste avant : la MEP de démonstration reste en tête de liste.
+        var modele = jeu.Modele;
+        modele.CreeLe = maintenant.AddSeconds(-1);
+        modele.Version = 1;
+        foreach (var r in jeu.Resolutions) r.ModifieeLe = maintenant;
+        foreach (var r in jeu.Resolutions) r.Version = 1;
+        db.SystemesCatalogue.AddRange(jeu.Systemes);
+        db.ResolutionsTypes.AddRange(jeu.Resolutions);
+        db.VersionsResolutionType.AddRange(jeu.Resolutions.Select(r => VersionResolutionType.De(r, "creee")));
+        db.CriteresGoNoGo.AddRange(jeu.Criteres);
+        var parametres = await db.Parametres.FirstOrDefaultAsync(p => p.Id == ParametresGlobaux.IdUnique);
+        if (parametres is null) db.Parametres.Add(parametres = new ParametresGlobaux());
+        parametres.ApprobationsMinimum = DonneesDemo.ApprobationsMinimum;
+        db.Meps.Add(modele);
+        db.Meps.Add(mep);
+        db.Journal.Add(new EvenementJournal
+        {
+            MepId = modele.Id, Quand = maintenant, UtilisateurId = alice.Id, Auteur = alice.NomAffiche,
+            Type = "mep.creee", Detail = "Modèle de démonstration créé",
+        });
+        db.Journal.Add(new EvenementJournal
+        {
+            MepId = mep.Id, Quand = maintenant, UtilisateurId = alice.Id, Auteur = alice.NomAffiche,
+            Type = "mep.creee", Detail = "MEP de démonstration créée",
+        });
+        // Une MEP par état du cycle de vie, construite en jouant les règles du domaine (journal compris).
+        foreach (var demo in DonneesDemo.Scenarios(alice.Id, bob.Id, claire.Id, jeu.Systemes, jeu.Resolutions, jeu.Criteres, maintenant))
+        {
+            db.Meps.Add(demo.Mep);
+            db.Journal.AddRange(demo.Journal);
+        }
     }
 
     /// <summary>
