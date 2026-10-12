@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useState, type MutableRefObject, type RefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type RefObject,
+} from 'react';
 import type { Ancrage } from '../../graphe';
 
 /** Position des fiches et taille du graphe (repère non zoomé), ainsi que la largeur de la zone visible. */
@@ -7,6 +15,19 @@ export interface Geometrie {
   largeur: number;
   hauteur: number;
   zone: number;
+}
+
+/**
+ * Géométrie à retenir après une mesure. Une mesure identique à l'avant-dernière est une oscillation : la mise en page
+ * bascule entre deux états (une barre de défilement qui apparaît puis disparaît, et avec elle la largeur de la zone, que
+ * le graphe reprend comme largeur minimale). On garde alors l'état affiché, sinon React relance le rendu sans fin
+ * (« Maximum update depth exceeded ») et la page devient blanche.
+ */
+export function geometrieRetenue(affichee: Geometrie, precedente: Geometrie | null, mesuree: Geometrie): Geometrie {
+  const cle = JSON.stringify(mesuree);
+  if (cle === JSON.stringify(affichee)) return affichee;
+  if (precedente && cle === JSON.stringify(precedente)) return affichee;
+  return mesuree;
 }
 
 /**
@@ -19,6 +40,8 @@ export function useMesureCartes(
   zoomRef: MutableRefObject<number>,
 ): Geometrie {
   const [geo, setGeo] = useState<Geometrie>({ ancrages: {}, largeur: 0, hauteur: 0, zone: 0 });
+  // Géométrie affichée avant l'actuelle, pour reconnaître une oscillation (voir geometrieRetenue).
+  const precedente = useRef<Geometrie | null>(null);
 
   const mesurer = useCallback(() => {
     const g = graphe.current;
@@ -40,7 +63,11 @@ export function useMesureCartes(
       hauteur: g.offsetHeight,
       zone: zone.current?.clientWidth ?? 0,
     };
-    setGeo((p) => (JSON.stringify(p) === JSON.stringify(suivante) ? p : suivante));
+    setGeo((p) => {
+      const retenue = geometrieRetenue(p, precedente.current, suivante);
+      if (retenue !== p) precedente.current = p;
+      return retenue;
+    });
   }, [zone, graphe, zoomRef]);
   useLayoutEffect(() => {
     mesurer();
