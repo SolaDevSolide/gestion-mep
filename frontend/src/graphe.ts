@@ -159,7 +159,9 @@ export function tracerJonctions(
       traces.push({
         cle: g.cle,
         traits: null,
-        fleches: [cheminCoude({ x: S[0].x, y: S[0].y + 1 }, { x: T[0].x, y: T[0].y - 2 }, barre)],
+        // Départ au bord bas de la fiche (centre du rond) ; le chemin s'arrête 2 px avant le bord haut, la pointe de la
+        // flèche (refX 8 sur 10) atteint le bord.
+        fleches: [cheminCoude(S[0], { x: T[0].x, y: T[0].y - 2 }, barre)],
         points: [],
         barre,
       });
@@ -168,7 +170,7 @@ export function tracerJonctions(
     const xs = [...S, ...T].map((p) => p.x);
     const x1 = Math.min(...xs);
     const x2 = Math.max(...xs);
-    const traits = `${S.map((s) => `M${r1(s.x)},${r1(s.y + 1)} V${r1(barre)}`).join(' ')} M${r1(x1)},${r1(barre)} H${r1(x2)}`;
+    const traits = `${S.map((s) => `M${r1(s.x)},${r1(s.y)} V${r1(barre)}`).join(' ')} M${r1(x1)},${r1(barre)} H${r1(x2)}`;
     const fleches = T.map((t) => `M${r1(t.x)},${r1(barre)} V${r1(t.y - 2)}`);
     traces.push({ cle: g.cle, traits, fleches, points: S.map((s) => ({ x: r1(s.x), y: r1(barre) })), barre });
   }
