@@ -13,9 +13,12 @@ public static class AidesApi
         return JsonDocument.Parse(texte).RootElement.Clone();
     }
 
-    /// <summary>Identifiant de la MEP de démonstration (le modèle de démonstration est écarté).</summary>
-    public static async Task<Guid> IdDemo(HttpClient c) =>
-        (await Ok(await c.GetAsync("/api/meps"))).EnumerateArray().Single(m => !m.GetProperty("estModele").GetBoolean()).GetProperty("id").GetGuid();
+    /// <summary>Identifiant de la MEP « Portail de démonstration » (le modèle et les autres MEP de démonstration sont écartés).</summary>
+    public static async Task<Guid> IdDemo(HttpClient c) => await IdMep(c, Domain.DonneesDemo.OutilPortail);
+
+    /// <summary>Identifiant d'une MEP (hors modèles) d'après son outil.</summary>
+    public static async Task<Guid> IdMep(HttpClient c, string outil) =>
+        (await Ok(await c.GetAsync("/api/meps?modele=false"))).EnumerateArray().Single(m => m.GetProperty("outil").GetString() == outil).GetProperty("id").GetGuid();
 
     public static async Task<List<Guid>> CriteresActifs(HttpClient c) =>
         (await Ok(await c.GetAsync("/api/criteres-go-no-go"))).EnumerateArray()

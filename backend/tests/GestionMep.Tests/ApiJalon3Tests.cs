@@ -72,7 +72,8 @@ public class ApiJalon3Tests : IDisposable
         var claire = await _api.ClientConnecte("claire");
         var modeles = (await Ok(await alice.GetAsync("/api/meps?modele=true"))).EnumerateArray().ToList();
         Assert.Equal("Modèle : déploiement API standard", Assert.Single(modeles).GetProperty("outil").GetString());
-        Assert.Equal(2, (await Ok(await alice.GetAsync("/api/meps"))).GetArrayLength());
+        // Le modèle, le « Portail de démonstration » et les 7 MEP de démonstration dans les autres états.
+        Assert.Equal(1 + 1 + 7, (await Ok(await alice.GetAsync("/api/meps"))).GetArrayLength());
         Assert.Equal(["Équipe présente et joignable", "Sauvegarde disponible", "Utilisateurs prévenus de l'interruption", "Supervision en place"],
             (await Ok(await claire.GetAsync("/api/criteres-go-no-go"))).EnumerateArray().Select(c => c.GetProperty("libelle").GetString()!).ToArray());
         Assert.Equal(1, (await Ok(await claire.GetAsync("/api/parametres"))).GetProperty("approbationsMinimum").GetInt32());
@@ -328,7 +329,7 @@ public class ApiJalon3Tests : IDisposable
         Assert.True(nouveauModele.GetProperty("estModele").GetBoolean());
         Assert.Equal("Production", nouveauModele.GetProperty("environnement").GetString());
         Assert.Equal(2, (await Ok(await alice.GetAsync("/api/meps?modele=true"))).GetArrayLength());
-        Assert.Equal(2, (await Ok(await alice.GetAsync("/api/meps?modele=false"))).GetArrayLength());
+        Assert.Equal(8 + 1, (await Ok(await alice.GetAsync("/api/meps?modele=false"))).GetArrayLength()); // MEP de démonstration et la copie
         Assert.Equal(HttpStatusCode.NotFound, (await alice.PostAsJsonAsync($"/api/meps/{Guid.NewGuid()}/dupliquer", new { commeModele = false })).StatusCode);
     }
 

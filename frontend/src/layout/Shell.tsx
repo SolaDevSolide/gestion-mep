@@ -102,10 +102,10 @@ export function Shell() {
   }, []);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-[calc(100vh-var(--bandeau-demo,0px))]">
       <aside
         className={cn(
-          'sticky top-0 flex h-screen shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200',
+          'sticky top-[var(--bandeau-demo,0px)] flex h-[calc(100vh-var(--bandeau-demo,0px))] shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200',
           replie ? 'w-[68px]' : 'w-64',
         )}
       >

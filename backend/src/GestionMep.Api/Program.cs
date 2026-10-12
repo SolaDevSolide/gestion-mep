@@ -110,6 +110,8 @@ var versionFront = VersionFront(app.Environment);
 api.MapGet("/version", () => Results.Ok(new { version = versionFront })).AllowAnonymous();
 api.MapAuth();
 api.MapSso();
+// Mode démonstration (Demo:Activer) : routes déclarées seulement s'il est actif.
+api.MapDemo(app.Configuration);
 api.MapApplication();
 api.MapMeps();
 api.MapStructure();

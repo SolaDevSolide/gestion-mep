@@ -94,7 +94,7 @@ public static class AuthentificationLocale
 
     /// <summary>
     /// Tant que le mot de passe est provisoire, seules les routes /api/auth (dont le changement de mot de passe),
-    /// /api/sante et /api/version répondent ; les autres renvoient 403.
+    /// /api/sante, /api/version et la lecture de /api/demo (bandeau du mode démonstration) répondent ; les autres renvoient 403.
     /// </summary>
     public static IApplicationBuilder UtiliserMotDePasseProvisoire(this IApplicationBuilder app) =>
         app.Use(async (ctx, suivant) =>
@@ -102,7 +102,8 @@ public static class AuthentificationLocale
             var chemin = ctx.Request.Path;
             if (ctx.User.HasClaim(c => c.Type == Acteur.ClaimMotDePasseProvisoire)
                 && chemin.StartsWithSegments("/api")
-                && !chemin.StartsWithSegments("/api/auth") && !chemin.StartsWithSegments("/api/sante") && !chemin.StartsWithSegments("/api/version"))
+                && !chemin.StartsWithSegments("/api/auth") && !chemin.StartsWithSegments("/api/sante") && !chemin.StartsWithSegments("/api/version")
+                && !(HttpMethods.IsGet(ctx.Request.Method) && chemin.Equals("/api/demo", StringComparison.OrdinalIgnoreCase)))
             {
                 ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
                 await ctx.Response.WriteAsJsonAsync(new { message = "Changez votre mot de passe provisoire avant de continuer." });

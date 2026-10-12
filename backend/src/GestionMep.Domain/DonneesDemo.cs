@@ -3,8 +3,9 @@ namespace GestionMep.Domain;
 /// <summary>
 /// Données de démonstration : la MEP « Portail de démonstration » reprend l'exemple de la maquette du jalon 4
 /// (graphe par lignes, systèmes BDD, API, WEB, LDAP, MDM). Tout est fictif : aucune commande n'est à lancer.
+/// Les comptes et les MEP dans les autres états du cycle de vie sont dans DonneesDemo.Scenarios.cs.
 /// </summary>
-public static class DonneesDemo
+public static partial class DonneesDemo
 {
     /// <param name="Modele">Modèle « Modèle : déploiement API standard » construit à partir de la démo.</param>
     public record Jeu(Mep Mep, Mep Modele, List<SystemeCatalogue> Systemes, List<ResolutionType> Resolutions, List<CritereGoNoGo> Criteres);
@@ -121,7 +122,7 @@ public static class DonneesDemo
         var (fixApi, droitsBdd, cdnWeb) = (resolutions[0], resolutions[1], resolutions[2]);
         var mep = new Mep
         {
-            Outil = "Portail de démonstration",
+            Outil = OutilPortail,
             VersionActuelle = "1.0-démo",
             VersionCible = "2.0-démo",
             Objet = "Tester le graphe des étapes, les recettes et les résolutions sans agir sur un système réel.",

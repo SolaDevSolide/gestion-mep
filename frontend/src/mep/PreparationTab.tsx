@@ -31,7 +31,7 @@ export default function PreparationTab() {
     <div className="mx-auto grid w-full max-w-6xl gap-6 px-6 py-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
       <nav
         aria-label="Sections de la préparation"
-        className="lg:self-start lg:[@media(min-height:760px)]:sticky lg:[@media(min-height:760px)]:top-[calc(var(--entete-h,12rem)+1rem)]"
+        className="lg:self-start lg:[@media(min-height:760px)]:sticky lg:[@media(min-height:760px)]:top-[calc(var(--entete-h,12rem)+var(--bandeau-demo,0px)+1rem)]"
       >
         <p className="mb-2 hidden px-2 text-xs text-fg-subtle lg:block tnum">
           {nbOk}/{SECTIONS.length} sections complètes

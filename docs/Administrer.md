@@ -48,7 +48,7 @@ En ligne de commande : `gestion-mep reglages lister | definir <nom> <valeur> | r
 
 ### Journal
 
-Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, mots de passe réinitialisés ou changés, paramètres, réglages du serveur et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, résolutions types supprimées, désactivées ou importées, MEP exportées en ligne de commande, mises à jour demandées, contrôles des données après une mise à jour ou une importation. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
+Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, mots de passe réinitialisés ou changés, paramètres, réglages du serveur et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, résolutions types supprimées, désactivées ou importées, MEP exportées en ligne de commande, mises à jour demandées, contrôles des données après une mise à jour ou une importation, réinitialisation de la démonstration. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
 
 L'application y signale aussi, avec l'auteur « Application », **20 échecs de connexion en moins d'une heure sur un même compte**, toutes adresses confondues : signe probable qu'on essaie de deviner son mot de passe.
 
@@ -63,6 +63,14 @@ Si l'équipe informatique a activé le service de mise à jour, le bouton **« M
 L'onglet rappelle aussi le lien « Signaler un problème ou une idée », proposé à tout le monde dans le menu utilisateur.
 
 En ligne de commande : `gestion-mep version`, `gestion-mep mettre-a-jour` (vérifie la dernière version publiée) et `gestion-mep mettre-a-jour --oui` (même demande que le bouton, mêmes refus).
+
+## Mode démonstration
+
+Avec `DEMO=true` dans `.env` (jamais sur un serveur partagé), l'application l'indique partout par un bandeau **« Mode démonstration — données fictives, réinitialisables »**, en haut de chaque page, écran de connexion compris. L'écran de connexion propose aussi une **connexion rapide** : un clic sur `alice`, `bob` ou `claire` ouvre sa session, sans mot de passe à saisir. Seuls ces trois comptes, et tant qu'ils gardent le mot de passe `demo`, sont acceptés : un compte créé dans la console, même administrateur, ne l'est jamais. La liste des MEP de démonstration et de ce qu'elles permettent d'essayer est dans [Démarrage rapide](Démarrage-rapide.md#mep-de-démonstration).
+
+Un administrateur voit dans le bandeau le bouton **« Réinitialiser la démonstration »**. Après confirmation, la base revient exactement à son état initial : comptes, MEP, catalogue, résolutions types, critères, paramètres, réglages du serveur et journaux sont recréés, les pièces jointes supprimées. Tout le monde est déconnecté ; l'auteur revient à l'écran de connexion. Le journal d'administration repart de la seule ligne « Démonstration réinitialisée par … ».
+
+En ligne de commande : `gestion-mep demo reinitialiser --oui` (voir [Exploiter](Exploiter.md#mode-démonstration)). Sans `DEMO=true`, ni le bandeau, ni la connexion rapide, ni la réinitialisation n'existent.
 
 ## Paramètres partagés
 

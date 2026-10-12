@@ -1,0 +1,208 @@
+using GestionMep.Domain;
+
+namespace GestionMep.Tests;
+
+/// <summary>
+/// MEP de démonstration dans chaque état du cycle de vie (DonneesDemo.Scenarios) : construites en jouant les règles, elles
+/// doivent être dans l'état annoncé et cohérentes avec ces mêmes règles (plan, disponibilités, horodatages, journal).
+/// </summary>
+public class DonneesDemoTests
+{
+    private static readonly Guid Alice = Guid.NewGuid(), Bob = Guid.NewGuid(), Claire = Guid.NewGuid();
+    private static readonly DateTimeOffset Maintenant = new(2026, 10, 12, 14, 30, 0, TimeSpan.Zero);
+
+    private static List<DonneesDemo.MepDemo> Scenarios(DateTimeOffset? maintenant = null)
+    {
+        var t = maintenant ?? Maintenant;
+        var jeu = DonneesDemo.Creer(Alice, Bob, Claire, t);
+        return DonneesDemo.Scenarios(Alice, Bob, Claire, jeu.Systemes, jeu.Resolutions, jeu.Criteres, t);
+    }
+
+    private static Mep Mep(string outil) => Scenarios().Single(s => s.Mep.Outil == outil).Mep;
+    private static Etape E(Mep m, string code) => m.Etapes.Single(e => e.Code == code);
+    private static string Dispo(Mep m, string code) => Regles.Disponibilite(m, E(m, code), Maintenant).Libelle;
+
+    [Fact]
+    public void Sept_mep_une_par_etat_sans_modele()
+    {
+        var meps = Scenarios().Select(s => s.Mep).ToList();
+        Assert.Equal(7, meps.Count);
+        Assert.Equal(7, meps.Select(m => m.Outil).Distinct().Count());
+        Assert.All(meps, m => Assert.False(m.EstModele));
+        Assert.Equal(
+            [Phase.Preparation, Phase.Preparation, Phase.Execution, Phase.Recette, Phase.RetourArriere, Phase.Cloturee, Phase.Cloturee],
+            meps.Select(m => m.Phase).ToArray());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(23 * 60 + 50)] // amorçage juste avant minuit (UTC) : échéances et horloge restent cohérentes
+    public void Chaque_mep_est_coherente_avec_les_regles(int minutesDansLaJournee)
+    {
+        var maintenant = new DateTimeOffset(2026, 10, 12, 0, 0, 0, TimeSpan.Zero).AddMinutes(minutesDansLaJournee);
+        foreach (var (mep, journal) in Scenarios(maintenant))
+        {
+            // Graphe valide, identifiants et participants cohérents.
+            Assert.Null(Regles.ErreurGraphe(mep, TypePlan.Deploiement));
+            Assert.Null(Regles.ErreurGraphe(mep, TypePlan.RetourArriere));
+            Assert.All(mep.Etapes, e => Assert.Equal(mep.Id, e.MepId));
+            Assert.All(mep.Participants, p => Assert.NotNull(p.UtilisateurId));
+            Assert.True(Regles.CompteDuPilote(mep) is not null, mep.Outil);
+            // Étapes démarrées : exécutant, début, révision ; terminées : fin après le début.
+            foreach (var e in mep.Etapes)
+            {
+                Regles.Disponibilite(mep, e, maintenant); // ne lève jamais
+                if (e.Etat == EtatEtape.AFaire && e.Revision == 0)
+                {
+                    Assert.Null(e.ExecutantId);
+                    continue;
+                }
+                Assert.Contains(mep.Participants, p => p.Id == e.ExecutantId);
+                Assert.NotNull(e.DebutReel);
+                Assert.True(e.DebutReel <= maintenant, $"{mep.Outil} {e.Code}");
+                Assert.True(e.Revision >= 1);
+                if (e.Etat is EtatEtape.Reussie or EtatEtape.Echec) Assert.True(e.FinReelle >= e.DebutReel, $"{mep.Outil} {e.Code}");
+            }
+            // Journal : rattaché à la MEP, chronologique, dans le passé, commencé par la création.
+            Assert.NotEmpty(journal);
+            Assert.All(journal, ev => Assert.Equal(mep.Id, ev.MepId));
+            Assert.Equal("mep.creee", journal[0].Type);
+            Assert.Equal(mep.CreeLe, journal[0].Quand);
+            Assert.True(journal.Zip(journal.Skip(1)).All(p => p.First.Quand <= p.Second.Quand), mep.Outil);
+            Assert.True(journal[^1].Quand <= maintenant, mep.Outil);
+            Assert.True(mep.Version >= 1);
+            // Aucun retour arrière automatique dû à l'échéance, ni à l'amorçage ni ensuite.
+            Assert.NotEqual(Regles.MotifEcheance, mep.RetourArriereMotif);
+            var phase = mep.Phase;
+            Assert.False(Regles.AppliquerEcheance(mep, maintenant), mep.Outil);
+            Assert.False(Regles.AppliquerEcheance(mep, maintenant.AddHours(24)), mep.Outil);
+            Assert.Equal(phase, mep.Phase);
+            if (mep.Phase is Phase.Execution or Phase.Recette) Assert.True(mep.EcheanceRepli > maintenant.AddDays(1), mep.Outil);
+            if (mep.Phase != Phase.Preparation)
+            {
+                Assert.NotNull(mep.DemarrageAutoriseLe);
+                Assert.Equal(Criteres().Count, mep.GoNoGo.Count);
+                Assert.True(mep.DemarrageAutoriseLe < mep.EcheanceRepli);
+                Assert.All(mep.Approbations, a => Assert.Equal(DecisionApprobation.Approuvee, a.Decision));
+            }
+        }
+    }
+
+    private static List<CritereGoNoGo> Criteres() => DonneesDemo.CriteresGoNoGo();
+
+    [Fact]
+    public void Preparation_incomplete_montre_ses_anomalies()
+    {
+        var m = Mep(DonneesDemo.OutilIncomplete);
+        Assert.Equal(Phase.Preparation, m.Phase);
+        var erreurs = Regles.ErreursPlan(m, Maintenant, DonneesDemo.ApprobationsMinimum);
+        foreach (var attendue in new[]
+                 {
+                     "Renseigner une échéance de retour arrière future.", "Retour arrière : préciser quand le déclencher.",
+                     "Sauvegarde : indiquer si BATCH doit être sauvegardé.", "Sauvegarde de WEB non requise : justifier.",
+                     "E0003 : compléter Instructions exactes.", "E0005 : remplacer l'action d'exemple par une action réelle.",
+                     "Recette « Export nocturne » : ajouter au moins une étape de test.", "La procédure doit être relue par un opérateur.",
+                     "Il faut 1 approbation(s).",
+                 })
+            Assert.Contains(attendue, erreurs);
+        Assert.Contains(Regles.Avertissements(m), a => a.Contains("Claire sera absent", StringComparison.Ordinal));
+        Assert.Equal("Échéance à renseigner", Dispo(m, "E0001"));
+    }
+
+    [Fact]
+    public void Preparation_prete_pour_le_go()
+    {
+        var m = Mep(DonneesDemo.OutilPrete);
+        Assert.Equal(Phase.Preparation, m.Phase);
+        Assert.Empty(Regles.ErreursPlan(m, Maintenant, DonneesDemo.ApprobationsMinimum));
+        Assert.Equal(DecisionApprobation.Approuvee, Assert.Single(m.Approbations).Decision);
+        Assert.Equal(Alice, m.ProcedureRelueParId);
+        Assert.Equal(Bob, Regles.CompteDuPilote(m));
+        Assert.True(Regles.EstPilote(m, Alice)); // suppléante
+        // Le Go passe avec tous les critères cochés.
+        var criteres = Criteres();
+        Regles.PasserEnExecution(m, Bob, criteres.Select(c => c.Id).ToList(), criteres, 1, Maintenant);
+        Assert.Equal(Phase.Execution, m.Phase);
+    }
+
+    [Fact]
+    public void Execution_en_cours_avec_un_echec_a_resoudre_et_un_point_de_non_retour_a_venir()
+    {
+        var m = Mep(DonneesDemo.OutilExecution);
+        Assert.Equal(Phase.Execution, m.Phase);
+        Assert.Equal("Terminée", Dispo(m, "E0001"));
+        Assert.Equal("Terminée", Dispo(m, "E0003"));
+        Assert.Equal("En cours", Dispo(m, "E0004"));
+        Assert.Equal("Arrêt / résolution", Dispo(m, "E0005"));
+        Assert.NotEmpty(E(m, "E0005").ResolutionIds);
+        Assert.NotEmpty(E(m, "E0005").Commentaire);
+        var pnr = E(m, "E0006");
+        Assert.True(pnr.PointDeNonRetour);
+        Assert.Null(pnr.NonRetourAutoriseParId);
+        Assert.False(Regles.NonRetourFranchi(m));
+        Assert.StartsWith("Attend", Dispo(m, "E0006"));
+        Assert.Equal(Bob, m.Participants.Single(p => p.Id == E(m, "E0004").ExecutantId).UtilisateurId);
+        Assert.Empty(m.Resolutions);
+    }
+
+    [Fact]
+    public void Recette_en_cours_partiellement_validee_apres_une_resolution_reussie()
+    {
+        var m = Mep(DonneesDemo.OutilRecette);
+        Assert.Equal(Phase.Recette, m.Phase);
+        Assert.All(m.EtapesDu(TypePlan.Deploiement), e => Assert.Equal(EtatEtape.Reussie, e.Etat));
+        var resolution = Assert.Single(m.Resolutions);
+        Assert.Equal(StatutResolution.Reussie, resolution.Statut);
+        Assert.Equal(E(m, "E0002").Id, resolution.EtapeId);
+        var tests = m.FichesRecette.SelectMany(f => f.Etapes).ToList();
+        Assert.Contains(tests, t => t.Resultat == ResultatControle.Conforme);
+        Assert.Contains(tests, t => t.Resultat == ResultatControle.Echec);
+        Assert.Contains(tests, t => t.Resultat is null);
+        Assert.All(tests.Where(t => t.Resultat is not null), t => Assert.False(string.IsNullOrWhiteSpace(t.Observation)));
+        Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, new Bilan { CeQuiAMarche = "x", Incidents = "y" }));
+    }
+
+    [Fact]
+    public void Retour_arriere_en_cours_declenche_par_une_resolution_en_echec()
+    {
+        var m = Mep(DonneesDemo.OutilRetourArriere);
+        Assert.Equal(Phase.RetourArriere, m.Phase);
+        Assert.Null(m.RetourArriereDeclenchePar);
+        Assert.Contains("Résolution", m.RetourArriereMotif, StringComparison.Ordinal);
+        Assert.Equal(StatutResolution.Echouee, Assert.Single(m.Resolutions).Statut);
+        Assert.Equal(EtatEtape.Reussie, E(m, "R0001").Etat);
+        Assert.Equal(EtatEtape.EnCours, E(m, "R0002").Etat);
+        Assert.Equal("Attend R0002", Dispo(m, "R0003"));
+        Assert.Equal("Retour arrière déclenché", Dispo(m, "E0005"));
+    }
+
+    [Fact]
+    public void Cloturees_reussie_et_repliee_avec_bilan()
+    {
+        var reussie = Mep(DonneesDemo.OutilReussie);
+        Assert.Equal((Phase.Cloturee, IssueMep.Reussie), (reussie.Phase, reussie.Issue));
+        Assert.NotNull(reussie.Bilan);
+        Assert.True(Regles.NonRetourFranchi(reussie));
+        Assert.Equal(Alice, E(reussie, "E0004").NonRetourAutoriseParId);
+        Assert.All(reussie.FichesRecette.SelectMany(f => f.Etapes), t => Assert.Equal(ResultatControle.Conforme, t.Resultat));
+        Assert.True(reussie.ClotureeLe < Maintenant.AddDays(-5));
+
+        var repliee = Mep(DonneesDemo.OutilRepliee);
+        Assert.Equal((Phase.Cloturee, IssueMep.Repliee), (repliee.Phase, repliee.Issue));
+        Assert.NotNull(repliee.Bilan);
+        Assert.Equal(Bob, repliee.RetourArriereDeclenchePar);
+        Assert.Equal(Bob, repliee.ClotureeParId);
+        Assert.All(repliee.EtapesDu(TypePlan.RetourArriere), e => Assert.Equal(EtatEtape.Reussie, e.Etat));
+        Assert.Equal(EtatEtape.Echec, E(repliee, "E0005").Etat);
+    }
+
+    [Fact]
+    public void Comptes_de_demonstration()
+    {
+        Assert.Equal(["alice", "bob", "claire"], DonneesDemo.Comptes.Select(c => c.Login).ToArray());
+        Assert.True(DonneesDemo.Comptes.Single(c => c.Login == "alice").EstAdmin);
+        Assert.True(DonneesDemo.EstCompteDemo("bob"));
+        Assert.False(DonneesDemo.EstCompteDemo("admin"));
+        Assert.False(DonneesDemo.EstCompteDemo("Bob")); // login normalisé attendu
+    }
+}

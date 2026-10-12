@@ -8,7 +8,7 @@ import { FormulaireMotDePasse } from './FormulaireMotDePasse';
 export default function MotDePasseObligatoirePage() {
   const { utilisateur, deconnecter } = useAuth();
   return (
-    <main className="flex min-h-screen items-center justify-center bg-bg p-6">
+    <main className="flex min-h-[calc(100vh-var(--bandeau-demo,0px))] items-center justify-center bg-bg p-6">
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center gap-3">
           <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-accent-fg shadow-sm">

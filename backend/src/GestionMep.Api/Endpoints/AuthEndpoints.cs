@@ -50,36 +50,48 @@ public static class AuthEndpoints
         await db.SaveChangesAsync();
     }
 
+    public const string MessageIdentifiantsIncorrects = "Identifiant ou mot de passe incorrect.";
+
+    /// <summary>
+    /// Connexion par mot de passe, partagée par le formulaire et la connexion rapide de démonstration (DemoEndpoints) :
+    /// saisie de taille raisonnable, blocage progressif par login et adresse, nombre de contrôles simultanés borné
+    /// (voir LimiteurConnexion), alerte au journal d'administration après des échecs répétés, compte actif, puis émission
+    /// du cookie de session. <paramref name="refus"/> remplace le message d'échec (401).
+    /// </summary>
+    public static async Task<IResult> Connecter(HttpContext ctx, MepDbContext db, IPasswordHasher<Utilisateur> hasher, LimiteurConnexion limiteur,
+        string login, string? motDePasse, string refus = MessageIdentifiantsIncorrects)
+    {
+        var reponseRefus = Results.Json(new { message = refus }, statusCode: 401);
+        if (!LimiteurConnexion.SaisieAdmissible(login, motDePasse)) return reponseRefus;
+        var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "inconnue";
+        if (limiteur.BloqueJusqua(login, ip) is not null)
+            return Results.Json(new { message = "Trop d'échecs de connexion pour ce compte. Réessayez dans quelques minutes." }, statusCode: 429);
+        var (execute, u) = await limiteur.Calculer(() => AuthentificationLocale.Verifier(db, hasher, login, motDePasse), ctx.RequestAborted);
+        if (!execute)
+            return Results.Json(new { message = "Serveur très sollicité. Réessayez dans un instant." }, statusCode: 503);
+        if (u is null)
+        {
+            if (limiteur.Echec(login, ip) && await db.Utilisateurs.FirstOrDefaultAsync(x => x.Login == login) is { } cible)
+            {
+                JournalAdmin.Ecrire(db, null, "connexion.echecs",
+                    $"{LimiteurConnexion.SeuilAlerte} échecs de connexion en moins d'une heure sur le compte {JournalAdmin.Compte(cible)} (dernier depuis {ip})", JournalAdmin.AuteurApplication);
+                await db.SaveChangesAsync();
+            }
+            return reponseRefus;
+        }
+        limiteur.Reussite(login, ip);
+        if (!u.Actif) return Results.Json(new { message = "Ce compte est désactivé. Contactez un administrateur." }, statusCode: 403);
+        await AuthentificationLocale.Ouvrir(ctx, u);
+        return Results.Ok(Dto(u));
+    }
+
     public static void MapAuth(this RouteGroupBuilder api)
     {
         // Limites : saisie de taille raisonnable, tentatives par adresse IP (politique « connexion »), blocage progressif
         // par login et adresse, nombre de contrôles simultanés (voir LimiteurConnexion).
-        api.MapPost("/auth/connexion", async (ConnexionSaisie corps, HttpContext ctx, MepDbContext db, IPasswordHasher<Utilisateur> hasher, LimiteurConnexion limiteur) =>
-        {
-            var refus = Results.Json(new { message = "Identifiant ou mot de passe incorrect." }, statusCode: 401);
-            var login = AuthentificationLocale.NormaliserLogin(corps.Login);
-            if (!LimiteurConnexion.SaisieAdmissible(login, corps.MotDePasse)) return refus;
-            var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "inconnue";
-            if (limiteur.BloqueJusqua(login, ip) is not null)
-                return Results.Json(new { message = "Trop d'échecs de connexion pour ce compte. Réessayez dans quelques minutes." }, statusCode: 429);
-            var (execute, u) = await limiteur.Calculer(() => AuthentificationLocale.Verifier(db, hasher, login, corps.MotDePasse), ctx.RequestAborted);
-            if (!execute)
-                return Results.Json(new { message = "Serveur très sollicité. Réessayez dans un instant." }, statusCode: 503);
-            if (u is null)
-            {
-                if (limiteur.Echec(login, ip) && await db.Utilisateurs.FirstOrDefaultAsync(x => x.Login == login) is { } cible)
-                {
-                    JournalAdmin.Ecrire(db, null, "connexion.echecs",
-                        $"{LimiteurConnexion.SeuilAlerte} échecs de connexion en moins d'une heure sur le compte {JournalAdmin.Compte(cible)} (dernier depuis {ip})", JournalAdmin.AuteurApplication);
-                    await db.SaveChangesAsync();
-                }
-                return refus;
-            }
-            limiteur.Reussite(login, ip);
-            if (!u.Actif) return Results.Json(new { message = "Ce compte est désactivé. Contactez un administrateur." }, statusCode: 403);
-            await AuthentificationLocale.Ouvrir(ctx, u);
-            return Results.Ok(Dto(u));
-        }).AllowAnonymous().RequireRateLimiting(ProtectionsHttp.PolitiqueConnexion);
+        api.MapPost("/auth/connexion", (ConnexionSaisie corps, HttpContext ctx, MepDbContext db, IPasswordHasher<Utilisateur> hasher, LimiteurConnexion limiteur) =>
+            Connecter(ctx, db, hasher, limiteur, AuthentificationLocale.NormaliserLogin(corps.Login), corps.MotDePasse))
+            .AllowAnonymous().RequireRateLimiting(ProtectionsHttp.PolitiqueConnexion);
 
         // Changement de son propre mot de passe (y compris le provisoire) ; les autres sessions du compte sont fermées.
         api.MapPost("/auth/mot-de-passe", async (ChangementMotDePasseSaisie corps, ClaimsPrincipal user, HttpContext ctx, MepDbContext db, IPasswordHasher<Utilisateur> hasher) =>

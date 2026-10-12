@@ -25,7 +25,7 @@ public static partial class LigneDeCommande
     private static readonly string[] Commandes =
     [
         "aide", "--help", "-h", "version", "--version", "migrer", "config", "comptes", "sauvegarder", "importer", "sso", "reglages", "reglage",
-        "systemes", "criteres", "resolutions", "journal", "sauvegardes", "mettre-a-jour", "meps",
+        "systemes", "criteres", "resolutions", "journal", "sauvegardes", "mettre-a-jour", "meps", "demo",
     ];
 
     private const string Aide = """
@@ -108,6 +108,11 @@ public static partial class LigneDeCommande
                                                               service de mise à jour (refusée pendant une MEP en cours)
           gestion-mep version                                 Version de l'application
 
+        Mode démonstration (DEMO=true uniquement)
+          gestion-mep demo reinitialiser --oui                Remet la base dans l'état initial de la démonstration (comptes, MEP,
+                                                              catalogue, réglages, journaux ; pièces jointes supprimées) ;
+                                                              les sessions ouvertes sont fermées. Refusée hors démonstration.
+
         Option --json : sortie JSON pour les scripts (commandes lister, afficher, expertises, journal, mettre-a-jour).
         Dans Docker : docker compose exec app gestion-mep <commande>
         Restaurer (application arrêtée) : docker compose stop app
@@ -181,6 +186,7 @@ public static partial class LigneDeCommande
                 ["meps", "exporter", var mep] => await MepsExporter(mep, null),
                 ["meps", "exporter", var mep, var fichier] => await MepsExporter(mep, fichier),
                 ["journal", .. var options] => await Journal(options),
+                ["demo", "reinitialiser", .. var options] => await DemoReinitialiser(options),
                 ["sso", "afficher"] => await SsoAfficher(),
                 ["sso", "configurer", .. var options] when options.Length > 0 => await SsoConfigurer(options),
                 ["sso", "tester"] => await SsoTester(),

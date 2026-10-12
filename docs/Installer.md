@@ -63,7 +63,7 @@ Les variables se règlent dans `.env`, lu par `docker-compose.yml`. Celles marqu
 | `ADRESSE_ECOUTE` | `127.0.0.1` | Adresse de l'hôte sur laquelle le port est publié. Par défaut, seule la machine elle-même y accède : le proxy HTTPS doit être installé dessus. Si le proxy est sur une autre machine, mettre l'adresse de la carte réseau qu'il joint (ou `0.0.0.0`) et n'ouvrir le port qu'au proxy dans le pare-feu. |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` | `mep` / `mep` | Compte de la base. **Choisir un mot de passe long et aléatoire** avant le premier démarrage (`openssl rand -base64 24`). |
 | `ADMIN_LOGIN` / `ADMIN_MOT_DE_PASSE` | vides | Compte administrateur créé au premier démarrage si la base est vide. Mot de passe vide : un mot de passe provisoire est écrit dans le journal. Retirer `ADMIN_MOT_DE_PASSE` de `.env` après le premier démarrage. |
-| `DEMO` | `false` | `true` crée les comptes de démonstration et une MEP d'exemple. **Jamais en production.** |
+| `DEMO` | `false` | `true` crée les comptes de démonstration et des MEP d'exemple dans chaque état, affiche le bandeau « Mode démonstration », la connexion rapide et la réinitialisation (voir [Démarrage rapide](Démarrage-rapide.md)). **Jamais en production.** |
 | `PIECES_TAILLE_MAX_MO` (console) | `20` | Taille maximale d'une pièce jointe, en Mo. |
 | `PIECES_QUOTA_MEP_MO` (console) | `1024` | Total des pièces jointes d'une MEP, en Mo (`0` : sans limite). |
 | `PIECES_QUOTA_COMPTE_JOUR_MO` (console) | `1024` | Pièces jointes qu'un compte peut déposer en 24 heures, en Mo (`0` : sans limite). |

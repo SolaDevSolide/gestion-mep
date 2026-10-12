@@ -22,7 +22,7 @@ echo "DEMO=true" > .env
 docker compose up --build
 ```
 
-Ouvrir http://localhost:8080 et se connecter avec `alice` (administratrice), `bob` ou `claire`, mot de passe `demo`. `docker compose down -v` remet la base à zéro.
+Ouvrir http://localhost:8080 et cliquer sur un compte de démonstration : `alice` (administratrice), `bob` ou `claire` (mot de passe `demo` pour le formulaire). Huit MEP de démonstration couvrent chaque état : préparation incomplète ou prête pour le Go, exécution, recette, retour arrière en cours, clôturées réussie et repliée ([Démarrage rapide](docs/Démarrage-rapide.md#mep-de-démonstration)). Le bouton « Réinitialiser la démonstration » du bandeau (ou `gestion-mep demo reinitialiser --oui`) remet la base dans son état initial ; `docker compose down -v` efface tout.
 
 ## Installer sur un serveur
 

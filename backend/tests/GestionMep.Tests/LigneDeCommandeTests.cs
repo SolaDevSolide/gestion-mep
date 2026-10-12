@@ -242,7 +242,8 @@ public class LigneDeCommandeTests : IDisposable
         Assert.NotEmpty(meps);
         Assert.All(meps, m => Assert.False(m.GetProperty("estModele").GetBoolean()));
         Assert.NotEmpty((await Cli("meps", "lister", "--modeles", "--json")).Json.EnumerateArray());
-        Assert.Empty((await Cli("meps", "lister", "--phase", "retour-arriere", "--json")).Json.EnumerateArray());
+        Assert.Equal(DonneesDemo.OutilRetourArriere,
+            Assert.Single((await Cli("meps", "lister", "--phase", "retour-arriere", "--json")).Json.EnumerateArray()).GetProperty("outil").GetString());
         Assert.Equal(1, (await Cli("meps", "lister", "--phase", "demain")).Code);
 
         var id = meps[0].GetProperty("id").GetString()!;
@@ -334,7 +335,11 @@ public class LigneDeCommandeTests : IDisposable
         using var scope = _api.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MepDbContext>();
         var installation = scope.ServiceProvider.GetRequiredService<InstallationMiseAJour>();
-        var mep = await db.Meps.FirstAsync(m => !m.EstModele);
+        // Les MEP de démonstration en cours (exécution, recette, retour arrière) sont clôturées : on part d'aucune MEP en cours.
+        foreach (var demoEnCours in await db.Meps.Where(m => m.Phase == Phase.Execution || m.Phase == Phase.Recette || m.Phase == Phase.RetourArriere).ToListAsync())
+            demoEnCours.Phase = Phase.Cloturee;
+        await db.SaveChangesAsync();
+        var mep = await db.Meps.FirstAsync(m => !m.EstModele && m.Phase == Phase.Preparation);
         var phase = mep.Phase;
         mep.Phase = Phase.Execution;
         await db.SaveChangesAsync();

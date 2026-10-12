@@ -2,6 +2,7 @@ import { Loader2 } from 'lucide-react';
 import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
+import { BandeauDemo } from './layout/BandeauDemo';
 import { NouvelleVersion } from './layout/NouvelleVersion';
 import { Shell } from './layout/Shell';
 import ConnexionPage from './pages/ConnexionPage';
@@ -19,7 +20,10 @@ const SystemesPage = lazy(() => import('./parametres/SystemesPage'));
 
 function Chargement() {
   return (
-    <div className="flex min-h-screen items-center justify-center text-fg-subtle" role="status">
+    <div
+      className="flex min-h-[calc(100vh-var(--bandeau-demo,0px))] items-center justify-center text-fg-subtle"
+      role="status"
+    >
       <Loader2 className="mr-2 size-5 animate-spin" aria-hidden /> Chargement…
     </div>
   );
@@ -37,6 +41,7 @@ export default function App() {
   return (
     <>
       <NouvelleVersion />
+      <BandeauDemo />
       <Routes>
         <Route path="/connexion" element={<ConnexionPage />} />
         <Route element={<Protege />}>

@@ -1,19 +1,72 @@
-import { Rocket, ShieldCheck, Timer, Undo2 } from 'lucide-react';
+import { CircleCheck, Loader2, LogIn, Rocket, ShieldCheck, Timer, Undo2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useAsync } from '../hooks';
+import type { CompteDemo } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { Field, Input } from '../ui/Input';
+import { Badge } from '../ui/StatusPill';
 import { OctagonAlert } from 'lucide-react';
 
-const COMPTES_DEMO = [
-  { login: 'alice', role: 'Pilote' },
-  { login: 'bob', role: 'Opérateur' },
-  { login: 'claire', role: 'Opérateur' },
-];
+/**
+ * Connexion rapide du mode démonstration : un clic sur un compte ouvre sa session (le serveur ne l'accepte que pour les
+ * comptes de démonstration, et seulement en mode démonstration).
+ */
+function ConnexionRapide({
+  comptes,
+  enCours,
+  desactive,
+  onChoisir,
+}: {
+  comptes: CompteDemo[];
+  enCours: string | null;
+  desactive: boolean;
+  onChoisir: (login: string) => void;
+}) {
+  return (
+    <section aria-labelledby="connexion-rapide" className="rounded-xl border border-warn-bd bg-warn-bg/40 p-4">
+      <h2 id="connexion-rapide" className="text-sm font-semibold">
+        Connexion rapide — comptes de démonstration
+      </h2>
+      <p className="mt-0.5 text-xs text-fg-muted">
+        Un clic connecte directement. Mot de passe pour le formulaire : <code className="font-mono">demo</code>
+      </p>
+      <ul className="mt-3 space-y-2">
+        {comptes.map((c) => (
+          <li key={c.login}>
+            <button
+              type="button"
+              disabled={desactive}
+              onClick={() => onChoisir(c.login)}
+              aria-label={`Se connecter en tant que ${c.nomAffiche} (${c.login})`}
+              className="flex w-full items-start gap-3 rounded-lg border border-line bg-surface p-2.5 text-left shadow-sm transition-colors duration-150 hover:border-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Avatar nom={c.nomAffiche} taille="sm" className="mt-0.5" />
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-sm font-medium text-fg">{c.nomAffiche}</span>
+                  <span className="font-mono text-xs text-fg-subtle">{c.login}</span>
+                  {c.estAdmin && <Badge ton="run">Administrateur</Badge>}
+                </span>
+                {c.role && <span className="block text-xs text-fg-muted">{c.role}</span>}
+                <span className="mt-0.5 block text-xs text-fg-subtle">{c.description}</span>
+              </span>
+              {enCours === c.login ? (
+                <Loader2 className="mt-1 size-4 shrink-0 animate-spin text-fg-subtle" aria-hidden />
+              ) : (
+                <LogIn className="mt-1 size-4 shrink-0 text-fg-subtle" aria-hidden />
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 /** Messages des échecs de connexion unique : le serveur renvoie vers /connexion?erreur=CODE. */
 const ERREURS_SSO: Record<string, string> = {
@@ -44,19 +97,36 @@ function IconeMicrosoft() {
 }
 
 export default function ConnexionPage() {
-  const { utilisateur, chargement, connecter } = useAuth();
+  const { utilisateur, chargement, connecter, majUtilisateur } = useAuth();
   const navigate = useNavigate();
   const [login, setLogin] = useState('');
   const [mdp, setMdp] = useState('');
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState(false);
+  const [rapide, setRapide] = useState<string | null>(null);
   const [params] = useSearchParams();
   // Échec de chargement : simplement pas de bouton de connexion unique.
   const { donnees: options } = useAsync(() => api.optionsConnexion(), []);
+  // Hors mode démonstration (route absente) : null, aucune connexion rapide.
+  const { donnees: demo } = useAsync(() => api.demo(), []);
   const codeSso = params.get('erreur');
   const erreurSso = codeSso ? (ERREURS_SSO[codeSso] ?? ERREUR_SSO_INCONNUE) : '';
+  const reinitialisee = params.get('demo') === 'reinitialisee';
 
   if (!chargement && utilisateur) return <Navigate to="/" replace />;
+
+  async function connexionRapide(compte: string) {
+    setErreur('');
+    setRapide(compte);
+    try {
+      majUtilisateur(await api.connexionDemo(compte));
+      void navigate('/', { replace: true });
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : 'Connexion impossible.');
+    } finally {
+      setRapide(null);
+    }
+  }
 
   async function valider(e: FormEvent) {
     e.preventDefault();
@@ -73,7 +143,7 @@ export default function ConnexionPage() {
   }
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
+    <div className="grid min-h-[calc(100vh-var(--bandeau-demo,0px))] lg:grid-cols-[1.1fr_1fr]">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-[#0d0e1a] p-12 text-white lg:flex">
         <div aria-hidden className="absolute -top-32 -left-24 size-[28rem] rounded-full bg-indigo-600/30 blur-3xl" />
         <div aria-hidden className="absolute -right-24 -bottom-40 size-[30rem] rounded-full bg-sky-500/20 blur-3xl" />
@@ -118,6 +188,24 @@ export default function ConnexionPage() {
             <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mb-4">
               {erreurSso}
             </Alerte>
+          )}
+          {reinitialisee && (
+            <Alerte ton="ok" icone={CircleCheck} className="mb-4">
+              La démonstration a été réinitialisée : reconnectez-vous avec un compte de démonstration.
+            </Alerte>
+          )}
+          {demo && demo.comptes.length > 0 && (
+            <>
+              <ConnexionRapide
+                comptes={demo.comptes}
+                enCours={rapide}
+                desactive={rapide !== null || envoi}
+                onChoisir={(c) => void connexionRapide(c)}
+              />
+              <div className="my-5 flex items-center gap-3 text-xs text-fg-subtle" aria-hidden>
+                <span className="h-px flex-1 bg-line" /> ou avec un identifiant <span className="h-px flex-1 bg-line" />
+              </div>
+            </>
           )}
           {options?.ssoActif && (
             <>
@@ -169,29 +257,6 @@ export default function ConnexionPage() {
               Se connecter
             </Button>
           </form>
-          {import.meta.env.DEV && (
-            <div className="mt-8 rounded-xl border border-dashed border-line-strong p-4">
-              <p className="text-xs font-semibold tracking-wide text-fg-subtle uppercase">Comptes de démonstration</p>
-              <p className="mt-0.5 text-xs text-fg-subtle">
-                Mot de passe : <code className="font-mono">demo</code>
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {COMPTES_DEMO.map((c) => (
-                  <button
-                    key={c.login}
-                    type="button"
-                    onClick={() => {
-                      setLogin(c.login);
-                      setMdp('demo');
-                    }}
-                    className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-fg-muted shadow-sm transition-colors duration-150 hover:border-accent hover:text-accent-text"
-                  >
-                    {c.login} <span className="text-fg-subtle">· {c.role}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </main>
     </div>

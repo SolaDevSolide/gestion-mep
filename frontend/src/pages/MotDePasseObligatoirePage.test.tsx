@@ -8,7 +8,9 @@ import { TooltipProvider } from '../ui/Tooltip';
 import { utilisateur } from '../test/fabrique';
 import type { Utilisateur } from '../types';
 
-vi.mock('../api', () => ({ api: { changerMotDePasse: vi.fn(), meps: vi.fn() } }));
+vi.mock('../api', () => ({
+  api: { changerMotDePasse: vi.fn(), meps: vi.fn(), demo: vi.fn().mockResolvedValue(null) },
+}));
 
 function rendre(u: Utilisateur) {
   const majUtilisateur = vi.fn();
@@ -34,6 +36,13 @@ describe('Mot de passe provisoire', () => {
     rendre(utilisateur({ doitChangerMotDePasse: true }));
     expect(screen.getByRole('heading', { name: 'Choisissez votre mot de passe' })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Navigation principale' })).not.toBeInTheDocument();
+  });
+
+  it('garde le bandeau du mode démonstration sur cette page', async () => {
+    vi.mocked(api.demo).mockResolvedValueOnce({ actif: true, comptes: [] });
+    rendre(utilisateur({ doitChangerMotDePasse: true, estAdmin: true }));
+    expect(await screen.findByRole('status', { name: 'Mode démonstration' })).toHaveTextContent('données fictives');
+    expect(screen.getByRole('button', { name: 'Réinitialiser la démonstration' })).toBeInTheDocument();
   });
 
   it('exige 10 caractères et une confirmation identique', async () => {
