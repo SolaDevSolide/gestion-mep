@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { etapesDuPlan } from '../domaine';
 import { construireLignes, indexLignes, pairesDuGroupe, type Lien } from '../graphe';
-import { useAsync } from '../hooks';
 import { useMep } from '../mepContext';
 import type { Mep, TypePlan } from '../types';
 import { useAstuce } from './graphe/astuce';
@@ -11,6 +10,8 @@ import { BarreSystemes } from './graphe/BarreSystemes';
 import { GrapheEtapes, groupeDepuisCle } from './graphe/GrapheEtapes';
 import { PanneauEdition, saisieDepuis } from './graphe/PanneauEdition';
 import { useModeEspace } from './graphe/EspaceEtape';
+import { useReferentiels } from '../referentiels';
+import { Apparition } from '../ui/Apparition';
 import { cn } from '../ui/cn';
 import { PanneauLiens } from './graphe/PanneauLiens';
 import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
@@ -29,9 +30,8 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   const [nouvelle, setNouvelle] = useState<string | null>(null);
   const astuce = useAstuce('');
   const modeEspace = useModeEspace();
-  const catalogue = useAsync(() => api.catalogueSystemes(), []);
-  const resolutions = useAsync(() => api.resolutions(), []);
-  const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue.donnees), [mep, catalogue.donnees]);
+  const { catalogue, resolutions, pret } = useReferentiels();
+  const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue), [mep, catalogue]);
 
   const selection = choix && etapes.some((e) => e.id === choix) ? choix : null;
   const etape = etapes.find((e) => e.id === selection) ?? null;
@@ -136,76 +136,79 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   }
 
   return (
-    // Raccourcis délégués (Échap, Suppr) : les touches viennent des fiches et liens focusables du graphe.
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-    <div className="grid gap-3" onKeyDown={clavier}>
-      <BarreSystemes
-        modifiable={modifiable}
-        catalogue={catalogue.donnees ?? []}
-        descriptions={descriptions}
-        onMessage={astuce.afficher}
-      />
-      <div className="flex min-h-7 flex-wrap items-center gap-x-4 gap-y-1">
-        <ResumePlan etapes={etapes} />
-        <p aria-live="polite" className="min-w-0 flex-1 text-[13px] font-semibold text-rollback-solid">
-          {astuce.flash ? astuce.texte : ''}
-        </p>
-        <AideGraphe edition={modifiable} />
-      </div>
-      <div className={cn('relative', etape && modeEspace === 'panneau' && 'min-[1100px]:pr-[608px]')}>
-        <GrapheEtapes
-          mep={mep}
-          plan={plan}
-          etapes={etapes}
-          mode="edition"
+    // Onglet affiché en une fois, référentiels compris (systèmes impactés, résolutions) : voir Apparition.
+    <Apparition pret={pret}>
+      {/* Raccourcis délégués (Échap, Suppr) : les touches viennent des fiches et liens focusables du graphe. */}
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+      <div className="grid gap-3" onKeyDown={clavier}>
+        <BarreSystemes
           modifiable={modifiable}
+          catalogue={catalogue}
           descriptions={descriptions}
-          selection={selection}
-          onSelection={selectionner}
-          groupeSelection={groupe?.cle ?? null}
-          onGroupeSelection={(c) => {
-            if (c && etape && saisieOuverte) {
-              setDemande(null);
-              return;
-            }
-            setCleGroupe(c);
-            if (c) setChoix(null);
-          }}
-          onPlacer={(id, l, p, auClavier) => void placer(id, l, p, auClavier)}
-          onLier={(de, vers) => void lier(de, vers)}
-          onAjouter={(l) => void ajouter(l)}
           onMessage={astuce.afficher}
         />
-        {groupe && (
-          <div className="absolute top-3 right-3 z-20">
-            <PanneauLiens
-              groupe={groupe}
-              etapes={etapes}
-              onSupprimer={(l) => void delier(l)}
-              onFermer={() => setCleGroupe(null)}
-            />
-          </div>
+        <div className="flex min-h-7 flex-wrap items-center gap-x-4 gap-y-1">
+          <ResumePlan etapes={etapes} />
+          <p aria-live="polite" className="min-w-0 flex-1 text-[13px] font-semibold text-rollback-solid">
+            {astuce.flash ? astuce.texte : ''}
+          </p>
+          <AideGraphe edition={modifiable} />
+        </div>
+        <div className={cn('relative', etape && modeEspace === 'panneau' && 'min-[1100px]:pr-[608px]')}>
+          <GrapheEtapes
+            mep={mep}
+            plan={plan}
+            etapes={etapes}
+            mode="edition"
+            modifiable={modifiable}
+            descriptions={descriptions}
+            selection={selection}
+            onSelection={selectionner}
+            groupeSelection={groupe?.cle ?? null}
+            onGroupeSelection={(c) => {
+              if (c && etape && saisieOuverte) {
+                setDemande(null);
+                return;
+              }
+              setCleGroupe(c);
+              if (c) setChoix(null);
+            }}
+            onPlacer={(id, l, p, auClavier) => void placer(id, l, p, auClavier)}
+            onLier={(de, vers) => void lier(de, vers)}
+            onAjouter={(l) => void ajouter(l)}
+            onMessage={astuce.afficher}
+          />
+          {groupe && (
+            <div className="absolute top-3 right-3 z-20">
+              <PanneauLiens
+                groupe={groupe}
+                etapes={etapes}
+                onSupprimer={(l) => void delier(l)}
+                onFermer={() => setCleGroupe(null)}
+              />
+            </div>
+          )}
+        </div>
+        {etape && (
+          <PanneauEdition
+            key={etape.id}
+            mep={mep}
+            etape={etape}
+            plan={plan}
+            etapes={etapes}
+            modifiable={modifiable}
+            resolutions={resolutions}
+            catalogue={catalogue}
+            focusAction={nouvelle === etape.id}
+            onLier={(de, vers) => void lier(de, vers)}
+            onDelier={(l) => void delier(l)}
+            onSelection={ouvrir}
+            onDirty={setSaisieOuverte}
+            demande={demande}
+            onAnnulerDemande={() => setDemande(undefined)}
+          />
         )}
       </div>
-      {etape && (
-        <PanneauEdition
-          key={etape.id}
-          mep={mep}
-          etape={etape}
-          plan={plan}
-          etapes={etapes}
-          modifiable={modifiable}
-          resolutions={resolutions.donnees ?? []}
-          catalogue={catalogue.donnees ?? []}
-          focusAction={nouvelle === etape.id}
-          onLier={(de, vers) => void lier(de, vers)}
-          onDelier={(l) => void delier(l)}
-          onSelection={ouvrir}
-          onDirty={setSaisieOuverte}
-          demande={demande}
-          onAnnulerDemande={() => setDemande(undefined)}
-        />
-      )}
-    </div>
+    </Apparition>
   );
 }
