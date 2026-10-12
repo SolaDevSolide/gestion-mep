@@ -17,7 +17,7 @@ import {
   ShieldUser,
 } from 'lucide-react';
 import { Suspense, useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useAsync, useLocalStorageState } from '../hooks';
@@ -25,6 +25,7 @@ import { useTheme, type PreferenceTheme } from '../theme';
 import { Avatar } from '../ui/Avatar';
 import { BoutonIcone } from '../ui/Button';
 import { cn } from '../ui/cn';
+import { FiletErreur } from '../ui/FiletErreur';
 import { Kbd } from '../ui/Kbd';
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from '../ui/Menu';
 import { Tooltip } from '../ui/Tooltip';
@@ -84,6 +85,7 @@ export function Shell() {
   );
   const [palette, setPalette] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   // Version, lien de signalement et, pour un administrateur, nouvelle version disponible.
   const { donnees: application } = useAsync(() => api.application(), [utilisateur?.id]);
   const miseAJour = application?.miseAJour?.disponible ? application.miseAJour : null;
@@ -263,16 +265,19 @@ export function Shell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Pages chargées à la demande (voir App) : le menu reste affiché pendant le chargement. */}
-        <Suspense
-          fallback={
-            <output className="flex flex-1 items-center justify-center py-24 text-fg-subtle">
-              <Loader2 className="mr-2 size-5 animate-spin" aria-hidden /> Chargement…
-            </output>
-          }
-        >
-          <Outlet />
-        </Suspense>
+        {/* Pages chargées à la demande (voir App) : le menu reste affiché pendant le chargement, et après une erreur
+            d'affichage (FiletErreur), réessayée au changement de page ou d'onglet. */}
+        <FiletErreur cle={location.pathname + location.search}>
+          <Suspense
+            fallback={
+              <output className="flex flex-1 items-center justify-center py-24 text-fg-subtle">
+                <Loader2 className="mr-2 size-5 animate-spin" aria-hidden /> Chargement…
+              </output>
+            }
+          >
+            <Outlet />
+          </Suspense>
+        </FiletErreur>
       </div>
       <PaletteCommandes open={palette} onOpenChange={setPalette} />
     </div>
