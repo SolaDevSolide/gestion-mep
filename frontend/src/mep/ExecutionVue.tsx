@@ -2,9 +2,11 @@ import { ListFilter, Network, User } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { api } from '../api';
 import { etapeParDefaut, etapesDuPlan, executantEffectif } from '../domaine';
-import { useAsync, useLocalStorageState } from '../hooks';
+import { useLocalStorageState } from '../hooks';
 import { useMep } from '../mepContext';
 import type { Etape, TypePlan } from '../types';
+import { useReferentiels } from '../referentiels';
+import { Apparition } from '../ui/Apparition';
 import { cn } from '../ui/cn';
 import { MultiSelect } from '../ui/Combobox';
 import { EmptyState } from '../ui/EmptyState';
@@ -27,9 +29,8 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
   // Preuves en cours de saisie par étape : ouvrir une autre étape puis revenir ne les perd pas.
   // (Map stable, modifiée sur place : la saisie ne redessine pas le graphe.)
   const [preuves] = useState(() => new Map<string, string>());
-  const { donnees: resolutionsTypes } = useAsync(() => api.resolutions(), []);
-  const catalogue = useAsync(() => api.catalogueSystemes(), []);
-  const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue.donnees), [mep, catalogue.donnees]);
+  const { catalogue, resolutions: resolutionsTypes, pret } = useReferentiels();
+  const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue), [mep, catalogue]);
 
   const defaut = useMemo(() => etapeParDefaut(etapes, moi), [etapes, moi]);
   // undefined = pas de choix (l'étape par défaut est seulement mise en avant) ; null = fermé ; un id = espace de l'étape ouvert.
@@ -98,88 +99,91 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
   }
 
   return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <div className="w-full min-w-56 sm:w-80">
-          <MultiSelect
-            options={mep.systemes.map((s) => ({
-              valeur: s.id,
-              libelle: s.nom,
-              detail: descriptions.get(s.id) || s.cible,
-            }))}
-            valeurs={mesSystemes}
-            onChange={setMesSystemes}
-            placeholder="Mes systèmes : tous"
-            placeholderRecherche="Rechercher un système…"
-            vide="Aucun système."
-          />
-        </div>
-        <button
-          type="button"
-          aria-pressed={aMoi}
-          onClick={() => setAMoi(!aMoi)}
-          className={cn(
-            'inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium shadow-sm transition-colors duration-150',
-            aMoi
-              ? 'border-accent bg-accent text-accent-fg'
-              : 'border-line-strong bg-surface text-fg hover:bg-surface-2',
-          )}
-        >
-          <User className="size-4" aria-hidden /> À moi
-          <span
-            className={cn(
-              'rounded-full px-1.5 text-[11px] font-bold tnum',
-              aMoi ? 'bg-white/25' : 'bg-surface-2 text-fg-muted',
-            )}
-          >
-            {nbMiennes}
-          </span>
-        </button>
-        {filtreActif && (
+    // Onglet affiché en une fois, référentiels compris : voir Apparition.
+    <Apparition pret={pret}>
+      <div>
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <div className="w-full min-w-56 sm:w-80">
+            <MultiSelect
+              options={mep.systemes.map((s) => ({
+                valeur: s.id,
+                libelle: s.nom,
+                detail: descriptions.get(s.id) || s.cible,
+              }))}
+              valeurs={mesSystemes}
+              onChange={setMesSystemes}
+              placeholder="Mes systèmes : tous"
+              placeholderRecherche="Rechercher un système…"
+              vide="Aucun système."
+            />
+          </div>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 text-sm text-fg-subtle underline-offset-2 hover:text-fg hover:underline"
-            onClick={() => {
-              setMesSystemes([]);
-              setAMoi(false);
-            }}
+            aria-pressed={aMoi}
+            onClick={() => setAMoi(!aMoi)}
+            className={cn(
+              'inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium shadow-sm transition-colors duration-150',
+              aMoi
+                ? 'border-accent bg-accent text-accent-fg'
+                : 'border-line-strong bg-surface text-fg hover:bg-surface-2',
+            )}
           >
-            <ListFilter className="size-4" aria-hidden />
-            Effacer les filtres ({visibles.length}/{etapes.length})
+            <User className="size-4" aria-hidden /> À moi
+            <span
+              className={cn(
+                'rounded-full px-1.5 text-[11px] font-bold tnum',
+                aMoi ? 'bg-white/25' : 'bg-surface-2 text-fg-muted',
+              )}
+            >
+              {nbMiennes}
+            </span>
           </button>
-        )}
-        <span className="ml-auto flex items-center gap-2">
-          <ResumePlan etapes={etapes} />
-          <AideGraphe edition={false} />
-        </span>
-      </div>
+          {filtreActif && (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 text-sm text-fg-subtle underline-offset-2 hover:text-fg hover:underline"
+              onClick={() => {
+                setMesSystemes([]);
+                setAMoi(false);
+              }}
+            >
+              <ListFilter className="size-4" aria-hidden />
+              Effacer les filtres ({visibles.length}/{etapes.length})
+            </button>
+          )}
+          <span className="ml-auto flex items-center gap-2">
+            <ResumePlan etapes={etapes} />
+            <AideGraphe edition={false} />
+          </span>
+        </div>
 
-      {/* Panneau latéral ouvert : le graphe lui laisse la place à droite. */}
-      <div className={ouverte && modeEspace === 'panneau' ? 'min-[1100px]:pr-[608px]' : undefined}>
-        <GrapheEtapes
-          mep={mep}
-          plan={plan}
-          etapes={etapes}
-          mode="execution"
-          descriptions={descriptions}
-          selection={selection}
-          onSelection={setChoix}
-          estEstompee={filtreActif ? (e) => !garde(e) : undefined}
-        />
+        {/* Panneau latéral ouvert : le graphe lui laisse la place à droite. */}
+        <div className={ouverte && modeEspace === 'panneau' ? 'min-[1100px]:pr-[608px]' : undefined}>
+          <GrapheEtapes
+            mep={mep}
+            plan={plan}
+            etapes={etapes}
+            mode="execution"
+            descriptions={descriptions}
+            selection={selection}
+            onSelection={setChoix}
+            estEstompee={filtreActif ? (e) => !garde(e) : undefined}
+          />
+        </div>
+        {ouverte && (
+          <EtapePanneau
+            key={ouverte.id}
+            mep={mep}
+            etape={ouverte}
+            resolutionsTypes={resolutionsTypes}
+            actions={actions}
+            onSelectionner={setChoix}
+            onFermer={() => setChoix(null)}
+            preuveSaisie={preuves.get(ouverte.id)}
+            onPreuveSaisie={(p) => preuves.set(ouverte.id, p)}
+          />
+        )}
       </div>
-      {ouverte && (
-        <EtapePanneau
-          key={ouverte.id}
-          mep={mep}
-          etape={ouverte}
-          resolutionsTypes={resolutionsTypes ?? []}
-          actions={actions}
-          onSelectionner={setChoix}
-          onFermer={() => setChoix(null)}
-          preuveSaisie={preuves.get(ouverte.id)}
-          onPreuveSaisie={(p) => preuves.set(ouverte.id, p)}
-        />
-      )}
-    </div>
+    </Apparition>
   );
 }
