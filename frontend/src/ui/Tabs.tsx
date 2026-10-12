@@ -4,8 +4,22 @@ import { cn } from './cn';
 
 export const Tabs = T.Root;
 
+/**
+ * Rangée d'onglets, qu'on fait glisser sur un écran étroit. Pas de barre de défilement : verticalement, rien ne
+ * déborde (le soulignement de l'onglet actif reste dans la rangée grâce à `pb-px`, et `-mb-px` le pose toujours sur
+ * le trait du dessous) ; horizontalement, la barre est masquée (`!` : la règle globale `* { scrollbar-width: thin }` d'index.css, hors
+ * couche, l'emporterait sinon sur l'utilitaire), la rangée défile au doigt, au pavé ou au clavier.
+ */
 export function TabsList({ className, ...rest }: ComponentProps<typeof T.List>) {
-  return <T.List className={cn('flex gap-1 overflow-x-auto', className)} {...rest} />;
+  return (
+    <T.List
+      className={cn(
+        '-mb-px flex gap-1 overflow-x-auto overflow-y-hidden pb-px [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden',
+        className,
+      )}
+      {...rest}
+    />
+  );
 }
 
 export function TabsTrigger({ className, ...rest }: ComponentProps<typeof T.Trigger>) {
