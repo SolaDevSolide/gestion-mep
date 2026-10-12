@@ -178,8 +178,11 @@ export default function ListeMepPage() {
           <p className="mt-1 text-sm text-fg-subtle">Préparez, exécutez et suivez vos interventions.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Clés distinctes : sans elles, React réutilise le même bouton d'une vue à l'autre et sa transition anime
+              le changement de couleur (primaire ↔ secondaire). */}
           {modele ? (
             <Button
+              key="nouveau-modele"
               variante="primaire"
               icone={<Plus className="size-4" aria-hidden />}
               onClick={() => setCreation(true)}
@@ -189,6 +192,7 @@ export default function ListeMepPage() {
           ) : (
             <>
               <Button
+                key="depuis-modele"
                 icone={<LayoutTemplate className="size-4" aria-hidden />}
                 onClick={() => {
                   setDepuisModele(true);
@@ -205,6 +209,7 @@ export default function ListeMepPage() {
                 Nouvelle MEP depuis un modèle
               </Button>
               <Button
+                key="nouvelle-mep"
                 variante="primaire"
                 icone={<Plus className="size-4" aria-hidden />}
                 onClick={() => setCreation(true)}
