@@ -64,6 +64,12 @@ export default function MepPage() {
   const saisieEnCours = () => dirtyRef.current.size > 0;
 
   const definirOnglet = useCallback((o: Onglet) => setParams({ onglet: o }, { replace: true }), [setParams]);
+  // setParams change à chaque changement d'URL (React Router) : lu par une référence, pour que changer d'onglet ne
+  // recrée pas `charger` et ne recharge pas toute la MEP.
+  const setParamsRef = useRef(setParams);
+  useEffect(() => {
+    setParamsRef.current = setParams;
+  }, [setParams]);
 
   // MEP affichée, lue par les réponses qui arrivent après un changement de page.
   const idRef = useRef(id);
@@ -71,22 +77,19 @@ export default function MepPage() {
     idRef.current = id;
   }, [id]);
 
-  const appliquer = useCallback(
-    (m: Mep) => {
-      // Réponse arrivée en retard : celle d'une autre MEP (changement de page) ou d'une version plus ancienne que celle
-      // affichée (une synchronisation partie avant une action et revenue après elle). On l'ignore.
-      if (m.id !== idRef.current || m.version < versionRef.current) return;
-      versionRef.current = m.version;
-      setMep(m);
-      setRechargementEnAttente(false);
-      setJournalTick((t) => t + 1);
-      if (phaseRef.current !== null && phaseRef.current !== m.phase) {
-        setParams({ onglet: ongletParDefaut(m) }, { replace: true });
-      }
-      phaseRef.current = m.phase;
-    },
-    [setParams],
-  );
+  const appliquer = useCallback((m: Mep) => {
+    // Réponse arrivée en retard : celle d'une autre MEP (changement de page) ou d'une version plus ancienne que celle
+    // affichée (une synchronisation partie avant une action et revenue après elle). On l'ignore.
+    if (m.id !== idRef.current || m.version < versionRef.current) return;
+    versionRef.current = m.version;
+    setMep(m);
+    setRechargementEnAttente(false);
+    setJournalTick((t) => t + 1);
+    if (phaseRef.current !== null && phaseRef.current !== m.phase) {
+      setParamsRef.current({ onglet: ongletParDefaut(m) }, { replace: true });
+    }
+    phaseRef.current = m.phase;
+  }, []);
 
   const charger = useCallback(
     async (forcer: boolean) => {

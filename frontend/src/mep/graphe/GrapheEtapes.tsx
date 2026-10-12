@@ -117,7 +117,8 @@ export function GrapheEtapes(props: Props) {
         ref={zone}
         onPointerDown={appuyer}
         className={cn(
-          'max-h-[940px] overflow-auto rounded-xl bg-surface shadow-sm',
+          // Gouttière réservée : la largeur utile ne dépend pas de la barre verticale (le graphe la prend pour minimum).
+          'max-h-[940px] overflow-auto rounded-xl bg-surface shadow-sm [scrollbar-gutter:stable]',
           plan === 'RetourArriere' ? 'border-2 border-rollback-solid' : 'border border-line',
           vueSaisie ? 'cursor-grabbing select-none' : 'cursor-grab',
         )}
