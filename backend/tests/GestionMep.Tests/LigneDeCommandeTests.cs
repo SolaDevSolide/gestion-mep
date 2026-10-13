@@ -322,10 +322,11 @@ public class LigneDeCommandeTests : IDisposable
         var etat = await Cli("mettre-a-jour");
         Assert.Equal(0, etat.Code);
         Assert.Contains("vérification désactivée", etat.Sortie); // pas d'appel à GitHub pendant les tests
-        Assert.Contains("absent", etat.Sortie);
+        // Sans Docker (tests lancés hors conteneur), il n'y a pas de service de mise à jour à afficher.
+        if (Installation.EstDocker) Assert.Contains("absent", etat.Sortie);
         var refus = await Cli("mettre-a-jour", "--oui");
         Assert.Equal(1, refus.Code);
-        Assert.Contains("pas actif", refus.Erreur);
+        Assert.Contains(Installation.EstDocker ? "pas actif" : "Installation sans Docker", refus.Erreur);
 
         // Méthode partagée avec la console : service présent, dernière version publiée, aucune MEP en cours.
         Directory.CreateDirectory(_api.DossierMiseAJour);

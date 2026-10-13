@@ -3199,7 +3199,8 @@
         "required": [
           "version",
           "lienSignalement",
-          "miseAJour"
+          "miseAJour",
+          "installation"
         ],
         "type": "object",
         "properties": {
@@ -3221,9 +3222,12 @@
                 "$ref": "#/components/schemas/MiseAJourDto"
               }
             ]
+          },
+          "installation": {
+            "type": "string"
           }
         },
-        "description": "Version en cours, lien « Signaler un problème ou proposer une idée » (null si désactivé par `Signalement:Lien`)\net, pour un administrateur seulement, l'état des mises à jour."
+        "description": "Version en cours, lien « Signaler un problème ou proposer une idée » (null si désactivé par `Signalement:Lien`)\net, pour un administrateur seulement, l'état des mises à jour. `Installation` : « docker », « linux » ou « windows »\n(installation sans Docker), pour que la console donne les commandes adaptées."
       },
       "ApprobateursSaisie": {
         "required": [

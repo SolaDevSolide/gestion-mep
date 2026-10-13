@@ -3778,12 +3778,14 @@ export interface components {
     schemas: {
         /**
          * @description Version en cours, lien « Signaler un problème ou proposer une idée » (null si désactivé par `Signalement:Lien`)
-         *     et, pour un administrateur seulement, l'état des mises à jour.
+         *     et, pour un administrateur seulement, l'état des mises à jour. `Installation` : « docker », « linux » ou « windows »
+         *     (installation sans Docker), pour que la console donne les commandes adaptées.
          */
         ApplicationDto: {
             version: string;
             lienSignalement: null | string;
             miseAJour: null | components["schemas"]["MiseAJourDto"];
+            installation: string;
         };
         ApprobateursSaisie: {
             /** Format: int32 */

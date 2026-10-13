@@ -12,6 +12,12 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 
+// Console Windows : accents lisibles dans les messages des commandes (code page UTF-8 au lieu de 850).
+if (OperatingSystem.IsWindows())
+{
+    try { Console.OutputEncoding = new System.Text.UTF8Encoding(false); } catch (IOException) { }
+}
+
 // HEALTHCHECK de l'image Docker : « dotnet GestionMep.Api.dll --sante ».
 if (args.Contains("--sante"))
 {
@@ -26,7 +32,20 @@ if (LigneDeCommande.EstCommande(args))
     return;
 }
 
-var builder = WebApplication.CreateBuilder(args);
+// Service Windows : lancé depuis C:\Windows\System32, l'application (wwwroot) est dans le dossier de l'exécutable.
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = Microsoft.Extensions.Hosting.WindowsServices.WindowsServiceHelpers.IsWindowsService() ? AppContext.BaseDirectory : null,
+});
+// Installation sans Docker : fichier de configuration (mêmes noms que le .env), adresse d'écoute et service système
+// (systemd ou service Windows ; sans effet ailleurs).
+var fichierInstallation = FichierInstallation.Lire(FichierInstallation.Chemin);
+builder.Configuration.AddInMemoryCollection(FichierInstallation.Reglages(fichierInstallation));
+if (FichierInstallation.AdresseEcoute(fichierInstallation) is { } ecoute)
+    builder.WebHost.UseUrls(ecoute);
+builder.Host.UseWindowsService(o => o.ServiceName = "GestionMep");
+builder.Host.UseSystemd();
 // Réglages modifiés depuis la console ou « gestion-mep reglages » : en base, ils priment sur les variables d'environnement
 // et sont relus toutes les 10 secondes (aucun redémarrage).
 var sourceReglages = new SourceReglagesBase(builder.Configuration.GetConnectionString("Mep"));

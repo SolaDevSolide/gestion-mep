@@ -78,7 +78,9 @@ public static class Amorcage
         if (string.IsNullOrEmpty(motDePasse))
         {
             var provisoire = AuthentificationLocale.PoserMotDePasseProvisoire(admin, hasher);
-            journal.LogWarning("Compte administrateur {Login} créé avec le mot de passe provisoire {MotDePasse}, à changer à la première connexion.",
+            // Mot de passe en fin de message, sans ponctuation collée : il se copie tel quel depuis le journal
+            // (docker compose logs, journalctl, Observateur d'événements).
+            journal.LogWarning("Compte administrateur {Login} créé, à changer à la première connexion. Mot de passe provisoire : {MotDePasse}",
                 admin.Login, provisoire);
         }
         else

@@ -29,6 +29,7 @@ beforeEach(() => {
     version: '1.0.0',
     lienSignalement: 'https://github.com/SolaDevSolide/gestion-mep/issues/new/choose',
     miseAJour: null,
+    installation: 'docker',
   });
 });
 
@@ -73,7 +74,12 @@ describe('Menu : version et signalement', () => {
   });
 
   it('signale une nouvelle version à un administrateur', async () => {
-    vi.mocked(api.application).mockResolvedValue({ version: '1.0.0', lienSignalement: null, miseAJour });
+    vi.mocked(api.application).mockResolvedValue({
+      version: '1.0.0',
+      lienSignalement: null,
+      miseAJour,
+      installation: 'docker',
+    });
     rendre(utilisateur({ estAdmin: true }));
     expect(await screen.findByRole('link', { name: /Mise à jour 1.1.0 disponible/ })).toHaveAttribute(
       'href',

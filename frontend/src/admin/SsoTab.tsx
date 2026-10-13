@@ -28,15 +28,20 @@ import { Field, Input } from '../ui/Input';
 import { Segmented } from '../ui/Segmented';
 import { StatusPill } from '../ui/StatusPill';
 import { useToast } from '../ui/Toast';
+import { commande, commandeAvecSecret, useInstallation, type ModeInstallation } from '../installation';
 
 const JOUR_MS = 86_400_000;
 /** Délai avant l'expiration du secret à partir duquel on prévient. */
 const PREAVIS_JOURS = 30;
 
-const COMMANDES = `docker compose exec app gestion-mep sso afficher
-docker compose exec -T app gestion-mep sso configurer --annuaire <ID annuaire> --client <ID application> --secret-stdin < secret.txt
-docker compose exec app gestion-mep sso tester
-docker compose exec app gestion-mep sso activer`;
+function commandesSso(mode: ModeInstallation) {
+  return [
+    commande(mode, 'sso afficher'),
+    commandeAvecSecret(mode, 'sso configurer --annuaire <ID annuaire> --client <ID application> --secret-stdin'),
+    commande(mode, 'sso tester'),
+    commande(mode, 'sso activer'),
+  ].join('\n');
+}
 
 interface Brouillon {
   fournisseur: FournisseurSso;
@@ -70,6 +75,7 @@ function joursRestants(expireLe: string, maintenant: number): number {
 
 /** Console : réglages de la connexion unique (Microsoft Entra ID ou OpenID Connect) et comptes liés. */
 export default function SsoTab() {
+  const installation = useInstallation();
   const toast = useToast();
   const { donnees, erreur, setDonnees } = useAsync(() => api.ssoReglages(), []);
   const identites = useAsync(() => api.ssoIdentites(), []);
@@ -557,7 +563,7 @@ export default function SsoTab() {
       <Card>
         <CardHeader titre="En ligne de commande" description="Les mêmes réglages sont possibles depuis le serveur." />
         <div className="px-5 py-5">
-          <CodeBlock code={COMMANDES} titre="Connexion unique" />
+          <CodeBlock code={commandesSso(installation)} titre="Connexion unique" />
         </div>
       </Card>
 

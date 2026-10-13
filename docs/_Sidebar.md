@@ -11,6 +11,7 @@
 
 **Installer et exploiter**
 - [Installer](Installer.md)
+- [Installer sans Docker](Installer-sans-Docker.md)
 - [Exploiter](Exploiter.md)
 - [Connexion Microsoft (SSO)](Connexion-Microsoft.md)
 

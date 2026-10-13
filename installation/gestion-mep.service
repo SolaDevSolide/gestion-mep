@@ -1,0 +1,27 @@
+# Service systemd de Gestion MEP (installation sans Docker), posé par installer.sh dans /etc/systemd/system.
+[Unit]
+Description=Gestion MEP
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+Type=notify
+User=gestion-mep
+Group=gestion-mep
+WorkingDirectory=/opt/gestion-mep/actuelle
+ExecStart=/opt/gestion-mep/actuelle/GestionMep.Api
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_NOLOGO=1
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=300
+# Durcissement : seul le dossier des données est modifiable.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/gestion-mep
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

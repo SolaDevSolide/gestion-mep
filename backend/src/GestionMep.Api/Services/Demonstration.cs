@@ -14,7 +14,7 @@ namespace GestionMep.Api.Services;
 public static class Demonstration
 {
     public const string Cle = "Demo:Activer";
-    public const string MessageInactif = "Le mode démonstration n'est pas activé (DEMO=true dans le fichier .env).";
+    public const string MessageInactif = "Le mode démonstration n'est pas activé (DEMO=true dans le fichier .env ou le fichier de configuration).";
 
     public static bool Active(IConfiguration config) => config.GetValue<bool>(Cle);
 

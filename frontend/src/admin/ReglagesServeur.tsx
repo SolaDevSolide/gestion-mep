@@ -11,6 +11,7 @@ import { Field, Input } from '../ui/Input';
 import { Segmented } from '../ui/Segmented';
 import { Badge } from '../ui/StatusPill';
 import { useToast } from '../ui/Toast';
+import { commande, fichierDemarrage, useInstallation, type ModeInstallation } from '../installation';
 
 /** Réglés au démarrage, dans le fichier .env : la console les rappelle sans pouvoir les changer. */
 const REGLAGES_DEMARRAGE: [string, string][] = [
@@ -25,7 +26,17 @@ const REGLAGES_DEMARRAGE: [string, string][] = [
   ['MEP_IMAGE, COMPOSE_PROFILES', 'Version installée et service de mise à jour.'],
 ];
 
-function Origine({ r }: { r: Reglage }) {
+/** Hors Docker : connexion à la base et dossier des données à la place du compte PostgreSQL et de l'image. */
+const REGLAGES_DEMARRAGE_AUTONOME: [string, string][] = [
+  ['ADRESSE_ECOUTE', REGLAGES_DEMARRAGE[0][1]],
+  ['PORT', REGLAGES_DEMARRAGE[1][1]],
+  ['BASE_DE_DONNEES', 'Connexion à la base PostgreSQL (serveur, nom, compte).'],
+  ['DOSSIER_DONNEES', 'Dossier des pièces jointes, des sauvegardes et des clés de session.'],
+  ['DEMO', REGLAGES_DEMARRAGE[3][1]],
+  ['ADMIN_LOGIN, ADMIN_MOT_DE_PASSE', REGLAGES_DEMARRAGE[4][1]],
+];
+
+function Origine({ r, fichierDocker }: { r: Reglage; fichierDocker: boolean }) {
   if (r.origine === 'console')
     return (
       <Badge ton="run">
@@ -33,7 +44,12 @@ function Origine({ r }: { r: Reglage }) {
         {r.modifiePar ? ` par ${r.modifiePar}` : ''}
       </Badge>
     );
-  if (r.origine === 'fichier') return <Badge>Fichier .env ({r.variable})</Badge>;
+  if (r.origine === 'fichier')
+    return (
+      <Badge>
+        {fichierDocker ? 'Fichier .env' : 'Fichier de configuration'} ({r.variable})
+      </Badge>
+    );
   return <Badge>Valeur par défaut</Badge>;
 }
 
@@ -41,7 +57,16 @@ function texte(v: string) {
   return v === '' ? '(vide)' : v;
 }
 
-function LigneReglage({ r, onChange }: { r: Reglage; onChange: (r: Reglage) => void }) {
+function LigneReglage({
+  r,
+  installation,
+  onChange,
+}: {
+  r: Reglage;
+  installation: ModeInstallation;
+  onChange: (r: Reglage) => void;
+}) {
+  const fichier = installation === 'docker' ? 'fichier .env' : 'fichier de configuration';
   const toast = useToast();
   const [saisie, setSaisie] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState<'enregistrer' | 'retablir' | null>(null);
@@ -120,7 +145,7 @@ function LigneReglage({ r, onChange }: { r: Reglage; onChange: (r: Reglage) => v
               variante="fantome"
               taille="sm"
               icone={<RotateCcw className="size-4" aria-hidden />}
-              title={`Revenir à ${r.valeurFichier === null ? 'la valeur par défaut' : 'la valeur du fichier .env'} : ${texte(valeurRetablie)}`}
+              title={`Revenir à ${r.valeurFichier === null ? 'la valeur par défaut' : `la valeur du ${fichier}`} : ${texte(valeurRetablie)}`}
               chargement={envoi === 'retablir'}
               disabled={envoi !== null}
               onClick={() => void agir('retablir')}
@@ -131,9 +156,9 @@ function LigneReglage({ r, onChange }: { r: Reglage; onChange: (r: Reglage) => v
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
-        <Origine r={r} />
+        <Origine r={r} fichierDocker={installation === 'docker'} />
         <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-fg-muted">
-          gestion-mep reglages definir {r.nom} …
+          {commande(installation, `reglages definir ${r.nom} …`)}
         </code>
       </div>
       {r.alertes.map((a) => (
@@ -147,6 +172,8 @@ function LigneReglage({ r, onChange }: { r: Reglage; onChange: (r: Reglage) => v
 
 /** Réglages d'exploitation : valeur de départ dans le fichier .env, modifiables ici ou en ligne de commande, sans redémarrage. */
 export default function ReglagesServeur() {
+  const installation = useInstallation();
+  const docker = installation === 'docker';
   const { donnees, erreur, setDonnees } = useAsync(() => api.reglages(), []);
   const groupes = new Map<string, Reglage[]>();
   for (const r of donnees ?? []) groupes.set(r.groupe, [...(groupes.get(r.groupe) ?? []), r]);
@@ -165,25 +192,22 @@ export default function ReglagesServeur() {
             titre={groupe}
             description={
               i === 0
-                ? 'La valeur de départ vient du fichier .env. Une valeur modifiée ici le remplace, sans redémarrage.'
+                ? `La valeur de départ vient du ${docker ? 'fichier .env' : 'fichier de configuration'}. Une valeur modifiée ici la remplace, sans redémarrage.`
                 : undefined
             }
           />
           <div className="divide-y divide-line">
             {reglages.map((r) => (
-              <LigneReglage key={r.nom} r={r} onChange={remplacer} />
+              <LigneReglage key={r.nom} r={r} installation={installation} onChange={remplacer} />
             ))}
           </div>
         </Card>
       ))}
       {donnees && (
         <Card>
-          <CardHeader
-            titre="Réglés au démarrage"
-            description="Lus dans le fichier .env au lancement : les modifier dans ce fichier, puis « docker compose up -d »."
-          />
+          <CardHeader titre="Réglés au démarrage" description={fichierDemarrage(installation)} />
           <dl className="divide-y divide-line">
-            {REGLAGES_DEMARRAGE.map(([variables, description]) => (
+            {(docker ? REGLAGES_DEMARRAGE : REGLAGES_DEMARRAGE_AUTONOME).map(([variables, description]) => (
               <div key={variables} className="flex flex-wrap gap-x-4 gap-y-1 px-5 py-3 text-sm">
                 <dt className="flex min-w-0 basis-72 items-center gap-2 font-mono text-[13px] text-fg">
                   <FileCog className="size-4 shrink-0 text-fg-subtle" aria-hidden />
@@ -197,7 +221,7 @@ export default function ReglagesServeur() {
             <TerminalSquare className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
               Tous les réglages ci-dessus se lisent aussi avec{' '}
-              <code className="font-mono">docker compose exec app gestion-mep reglages lister</code>.
+              <code className="font-mono">{commande(installation, 'reglages lister')}</code>.
             </span>
           </div>
         </Card>

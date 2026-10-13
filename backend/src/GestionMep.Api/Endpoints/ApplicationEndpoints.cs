@@ -30,6 +30,9 @@ public static class ApplicationEndpoints
         InstallationMiseAJour installation)
     {
         var installateur = installation.Lire();
+        // Sans Docker, pas de service de mise à jour : le script d'installation s'en charge, sur le serveur.
+        if (!installateur.Present && !Installation.EstDocker)
+            throw ErreurHttp.Regle([$"Installation sans Docker : la mise à jour se fait sur le serveur, avec « {Installation.CommandeMiseAJour(version ?? etat.DerniereVersion ?? "x.y.z")} »."]);
         if (!installateur.Present)
             throw ErreurHttp.Regle(["Le service de mise à jour n'est pas actif : l'équipe informatique doit l'activer (documentation Exploiter)."]);
         if (installateur.Statut == "en-cours")
@@ -55,7 +58,8 @@ public static class ApplicationEndpoints
             return new ApplicationDto(
                 VersionApplication.Courante,
                 lien is null ? LienSignalementParDefaut : (lien.Trim() is { Length: > 0 } l ? l : null),
-                Acteur.Depuis(user).EstAdmin ? Dto(verification.Etat, installation.Lire()) : null);
+                Acteur.Depuis(user).EstAdmin ? Dto(verification.Etat, installation.Lire()) : null,
+                Installation.Mode);
         });
 
         var admin = api.MapGroup("/admin/mises-a-jour").RequireAuthorization(AuthentificationLocale.PolitiqueAdmin);

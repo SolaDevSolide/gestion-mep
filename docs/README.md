@@ -2,7 +2,7 @@
 
 Gestion MEP est une application web pour préparer et exécuter les mises en production (MEP). L'équipe qui a développé un changement décrit l'intervention une fois : systèmes touchés, sauvegardes, étapes à suivre, contrôles et retour arrière. Le jour J, n'importe quel opérateur peut dérouler la MEP pas à pas sans avoir participé au développement. Tout est tracé dans un journal, et l'application déclenche elle-même le retour arrière si l'intervention dépasse son échéance.
 
-Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQL, fourni dans le même fichier.
+Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQL, fourni dans le même fichier, ou sans Docker, comme un service Linux ou Windows.
 
 ## Je veux…
 
@@ -13,7 +13,7 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 | Préparer une MEP (je suis développeur ou responsable technique) | [Préparer une MEP](Préparer-une-MEP.md) |
 | Conduire ou exécuter une MEP le jour J (je suis pilote ou opérateur) | [Exécuter une MEP](Exécuter-une-MEP.md) |
 | Gérer les comptes et les paramètres (je suis administrateur) | [Administrer](Administrer.md) |
-| Installer l'application sur un serveur | [Installer](Installer.md) |
+| Installer l'application sur un serveur | [Installer](Installer.md), ou [sans Docker](Installer-sans-Docker.md) (Linux ou Windows) |
 | Mettre à jour, sauvegarder, restaurer, tout administrer en ligne de commande (comptes, systèmes, critères, résolutions types, réglages, journal, export des MEP) | [Exploiter](Exploiter.md) |
 | Savoir qui a le droit de faire quoi | [Droits par rôle](Droits.md) |
 | Trouver le sens d'un mot | [Glossaire](Glossaire.md) |
