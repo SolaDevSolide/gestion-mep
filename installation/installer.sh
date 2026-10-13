@@ -175,7 +175,7 @@ SAUVEGARDE=""
 if [ -n "$PRECEDENTE" ] && [ "$PRECEDENTE" != "$CIBLE" ] && [ -x "$PRECEDENTE/GestionMep.Api" ]; then
   info "Arrêt de la version $(cat "$PRECEDENTE/VERSION" 2>/dev/null || basename "$PRECEDENTE")."
   systemctl stop gestion-mep || true
-  SAUVEGARDE="$DONNEES/sauvegardes/avant-$NOUVELLE-$(date +%Y%m%d-%H%M%S).tar.gz"
+  SAUVEGARDE="$DONNEES/sauvegardes/avant-$NOUVELLE-$(date -u +%Y%m%d-%H%M%S).tar.gz"
   info "Sauvegarde de la base et des pièces jointes : $SAUVEGARDE"
   if ! /usr/local/bin/gestion-mep sauvegarder "$SAUVEGARDE"; then
     systemctl start gestion-mep || true

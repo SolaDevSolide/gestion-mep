@@ -139,7 +139,7 @@ sudo /opt/gestion-mep/installer.sh --archive gestion-mep-1.4.1-linux-x64.tar.gz 
 Déroulé :
 
 1. Le script vérifie l'archive (empreinte SHA-256 quand il la télécharge) et la copie dans un dossier propre à la version, sans toucher à celle en service.
-2. Il arrête le service et sauvegarde la base et les pièces jointes avec la version en place (`avant-<version>-AAAAMMJJ-HHMMSS.tar.gz` dans le dossier des sauvegardes). Si la sauvegarde échoue, il relance la version en place et s'arrête : rien n'a changé.
+2. Il arrête le service et sauvegarde la base et les pièces jointes avec la version en place (`avant-<version>-AAAAMMJJ-HHMMSS.tar.gz`, heure UTC, dans le dossier des sauvegardes). Si la sauvegarde échoue, il relance la version en place et s'arrête : rien n'a changé.
 3. Il bascule sur la nouvelle version et démarre le service. L'application migre la base avec sa [sauvegarde automatique](Exploiter.md#mettre-à-jour).
 4. Il attend que l'application réponde (3 minutes au plus). Sinon, il remet la version précédente, recharge la sauvegarde de l'étape 2 et relance le service : l'application revient à l'état d'avant la mise à jour.
 

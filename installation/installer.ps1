@@ -184,7 +184,7 @@ try {
     if ($Precedente -and $Precedente.TrimEnd('\') -ne $Cible -and (Test-Path (Join-Path $Precedente 'GestionMep.Api.exe'))) {
         Info "Arrêt de la version $(Split-Path $Precedente -Leaf)."
         Stop-Service $Service -ErrorAction SilentlyContinue
-        $Sauvegarde = Join-Path $dossierDonnees "sauvegardes\avant-$Nouvelle-$(Get-Date -Format yyyyMMdd-HHmmss).tar.gz"
+        $Sauvegarde = Join-Path $dossierDonnees "sauvegardes\avant-$Nouvelle-$((Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')).tar.gz"
         Info "Sauvegarde de la base et des pièces jointes : $Sauvegarde"
         & (Join-Path $Precedente 'GestionMep.Api.exe') sauvegarder $Sauvegarde
         if ($LASTEXITCODE -ne 0) {
