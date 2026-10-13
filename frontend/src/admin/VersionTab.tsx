@@ -33,6 +33,16 @@ const PRESENTATION: Record<string, { ton: Ton; icone: LucideIcon; titre: string 
 const DOC_MISE_A_JOUR = 'https://github.com/SolaDevSolide/gestion-mep/wiki/Exploiter#mettre-à-jour';
 
 /** Version en cours, dernière version publiée sur GitHub et marche à suivre pour mettre à jour. */
+/** Installation sans Docker : la mise à jour se fait sur le serveur avec le script d'installation (pas de bouton). */
+function miseAJourSansDocker(installation: string | undefined, version: string | null | undefined) {
+  const v = version ?? 'x.y.z';
+  if (installation === 'linux')
+    return `L’équipe informatique lance « sudo /opt/gestion-mep/installer.sh --version ${v} » sur le serveur. Le script fait une sauvegarde, installe la version et revient à l’ancienne si la nouvelle ne démarre pas.`;
+  if (installation === 'windows')
+    return `L’équipe informatique lance « installer.ps1 -Version ${v} » (dossier C:\\Program Files\\GestionMep, PowerShell administrateur) sur le serveur. Le script fait une sauvegarde, installe la version et revient à l’ancienne si la nouvelle ne démarre pas.`;
+  return null;
+}
+
 export default function VersionTab() {
   const toast = useToast();
   const chargees = useAsync(() => api.application(), []);
@@ -167,9 +177,10 @@ export default function VersionTab() {
                 </span>
               }
             >
-              {installateur?.present
-                ? 'Une sauvegarde est faite automatiquement avant toute modification de la base.'
-                : 'L’équipe informatique change MEP_IMAGE dans le fichier .env du serveur, puis relance l’application. Une sauvegarde est faite automatiquement avant toute modification de la base. Elle peut aussi activer le service de mise à jour pour faire apparaître ici un bouton « Mettre à jour ».'}
+              {miseAJourSansDocker(chargees.donnees?.installation, etat?.derniereVersion) ??
+                (installateur?.present
+                  ? 'Une sauvegarde est faite automatiquement avant toute modification de la base.'
+                  : 'L’équipe informatique change MEP_IMAGE dans le fichier .env du serveur, puis relance l’application. Une sauvegarde est faite automatiquement avant toute modification de la base. Elle peut aussi activer le service de mise à jour pour faire apparaître ici un bouton « Mettre à jour ».')}
             </Alerte>
           )}
           {etat?.disponible && installateur?.present && !installationEnCours && (

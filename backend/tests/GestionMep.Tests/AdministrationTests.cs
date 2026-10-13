@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using GestionMep.Api.Cli;
 using GestionMep.Api.Endpoints;
+using GestionMep.Api.Services;
 
 namespace GestionMep.Tests;
 
@@ -190,7 +191,8 @@ public class AdministrationTests : IDisposable
         var installer = () => alice.PostAsJsonAsync("/api/admin/mises-a-jour/installer", new { version = "9.9.9" });
         var absent = await installer();
         Assert.Equal(HttpStatusCode.UnprocessableEntity, absent.StatusCode);
-        Assert.Contains("pas actif", await Message(absent));
+        // Sans Docker (tests lancés hors conteneur), le message donne la commande du script d'installation.
+        Assert.Contains(Installation.EstDocker ? "pas actif" : "Installation sans Docker", await Message(absent));
 
         // Service présent (battement récent) : la version doit être la dernière publiée, inconnue ici (vérification coupée).
         Directory.CreateDirectory(_api.DossierMiseAJour);

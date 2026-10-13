@@ -2,6 +2,7 @@ using System.Net;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
+using GestionMep.Api.Services;
 
 namespace GestionMep.Api.Securite;
 
@@ -92,9 +93,14 @@ public static class ProtectionsHttp
     /// Mode « --sante » de l'image Docker : interroge /api/sante et renvoie 0 si l'application répond
     /// (l'image aspnet n'a ni curl ni wget pour le HEALTHCHECK).
     /// </summary>
+    /// <summary>Adresse de l'application vue de la machine : celle du fichier d'installation autonome, sinon le port de l'image Docker.</summary>
+    private static string AdresseLocale() =>
+        (FichierInstallation.AdresseEcoute(FichierInstallation.Lire(FichierInstallation.Chemin)) ?? "http://localhost:8080")
+            .Replace("://0.0.0.0:", "://127.0.0.1:").Replace("://[::]:", "://[::1]:");
+
     public static async Task<int> VerifierSante()
     {
-        var url = Environment.GetEnvironmentVariable("SANTE_URL") ?? "http://localhost:8080/api/sante";
+        var url = Environment.GetEnvironmentVariable("SANTE_URL") ?? $"{AdresseLocale()}/api/sante";
         try
         {
             using var client = new HttpClient(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(4) };

@@ -28,13 +28,15 @@ Ouvrir http://localhost:8080 et cliquer sur un compte de démonstration : `alice
 
 L'image est publiée sur `ghcr.io/soladevsolide/gestion-mep`, avec un numéro par version (`1.0.0`). Il suffit de `docker-compose.yml` et d'un fichier `.env` tiré de `.env.example` (lisible par son seul propriétaire), derrière un proxy inverse HTTPS. La base est migrée automatiquement au démarrage, après une sauvegarde automatique. La procédure complète est dans [Installer](docs/Installer.md).
 
+Sans Docker, chaque version publie aussi une archive pour Linux (service systemd) et pour Windows Server (service Windows), avec un script qui installe, met à jour et revient tout seul à la version précédente en cas d'échec : voir [Installer sans Docker](docs/Installer-sans-Docker.md). Il faut alors un serveur PostgreSQL 16.
+
 ## Documentation
 
 La documentation est dans [docs/](docs/README.md), recopiée dans le wiki du dépôt :
 
 - [Démarrage rapide](docs/Démarrage-rapide.md) et [cycle de vie d'une MEP](docs/Cycle-de-vie.md) ;
 - guides : [préparer](docs/Préparer-une-MEP.md) et [exécuter](docs/Exécuter-une-MEP.md) une MEP, [administrer](docs/Administrer.md) ;
-- équipe informatique : [installer](docs/Installer.md), [exploiter](docs/Exploiter.md) ;
+- équipe informatique : [installer](docs/Installer.md) (ou [sans Docker](docs/Installer-sans-Docker.md)), [exploiter](docs/Exploiter.md) ;
 - développeurs : [contribuer](CONTRIBUTING.md), [architecture](docs/Architecture.md), [API](docs/API.md).
 
 ## Signaler un problème ou proposer une idée

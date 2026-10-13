@@ -143,9 +143,10 @@ public record ControleSaisie(ResultatControle? Resultat, string? Observation);
 
 /// <summary>
 /// Version en cours, lien « Signaler un problème ou proposer une idée » (null si désactivé par <c>Signalement:Lien</c>)
-/// et, pour un administrateur seulement, l'état des mises à jour.
+/// et, pour un administrateur seulement, l'état des mises à jour. <c>Installation</c> : « docker », « linux » ou « windows »
+/// (installation sans Docker), pour que la console donne les commandes adaptées.
 /// </summary>
-public record ApplicationDto(string Version, string? LienSignalement, MiseAJourDto? MiseAJour);
+public record ApplicationDto(string Version, string? LienSignalement, MiseAJourDto? MiseAJour, string Installation);
 
 /// <summary>
 /// Dernière version publiée sur GitHub. <c>Disponible</c> : elle est plus récente que la version en cours (toujours faux

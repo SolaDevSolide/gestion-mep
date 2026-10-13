@@ -1,0 +1,44 @@
+# Configuration de Gestion MEP installé sans Docker. Mêmes noms que le fichier .env de l'installation Docker.
+#   Linux   : /etc/gestion-mep/gestion-mep.conf, lisible seulement par root et le compte gestion-mep (il contient des secrets)
+#   Windows : C:\ProgramData\GestionMep\gestion-mep.conf, lisible seulement par les administrateurs et le service
+# Les réglages marqués (console) se modifient aussi ensuite, sans redémarrage, dans la console d'administration (onglet
+# Paramètres) ou par « gestion-mep reglages definir <nom> <valeur> » : la valeur modifiée remplace celle-ci.
+# Les autres ne sont lus qu'au démarrage : modifier ce fichier, puis redémarrer le service
+# (Linux : sudo systemctl restart gestion-mep ; Windows : Restart-Service GestionMep).
+
+# Base PostgreSQL (version 16 ou plus), à créer avant le premier démarrage (voir docs/Installer.md).
+BASE_DE_DONNEES=Host=localhost;Port=5432;Database=gestion_mep;Username=mep;Password=
+# Dossier des données : pièces jointes, clés de session, sauvegardes (Windows : C:\ProgramData\GestionMep\donnees).
+DOSSIER_DONNEES=/var/lib/gestion-mep
+# Adresse et port d'écoute. 127.0.0.1 (défaut) : joignable seulement depuis cette machine, donc par un reverse proxy HTTPS
+# installé ici. Mettre l'adresse de la carte réseau (ou 0.0.0.0) si le proxy est sur une autre machine.
+ADRESSE_ECOUTE=127.0.0.1
+PORT=8080
+# true : comptes alice/bob/claire (mot de passe demo), MEP de démonstration, connexion rapide et réinitialisation
+# (jamais sur un serveur partagé)
+DEMO=false
+# Compte administrateur créé au premier démarrage si la base est vide. Laisser le mot de passe vide : un mot de passe
+# provisoire est alors écrit dans le journal (Linux : journalctl -u gestion-mep ; Windows : observateur d'événements,
+# journal Application). S'il est choisi ici, au moins 10 caractères, et le retirer après le premier démarrage.
+ADMIN_LOGIN=admin
+ADMIN_MOT_DE_PASSE=
+# (console) Adresse publique de l'application derrière le reverse proxy (utile pour la connexion Microsoft).
+# URL_PUBLIQUE=https://mep.entreprise.fr
+# (console) Taille maximale d'une pièce jointe, et plafonds en Mo (0 = sans limite)
+# PIECES_TAILLE_MAX_MO=20
+# PIECES_QUOTA_MEP_MO=1024
+# PIECES_QUOTA_COMPTE_JOUR_MO=1024
+# PIECES_ESPACE_LIBRE_MIN_MO=2048
+# (console) Réseau(x) du reverse proxy HTTPS (CIDR, séparés par des virgules), seuls autorisés à transmettre l'adresse du
+# client. Vide : proxy sur la même machine (127.0.0.1 ou ::1). Proxy sur une autre machine : son adresse, par exemple :
+# PROXY_RESEAUX=10.0.5.12/32
+# (console) Tentatives de connexion autorisées par minute et par adresse IP
+# CONNEXIONS_PAR_MINUTE=20
+# (console) Écrans suivis en temps réel en même temps sur le serveur
+# FLUX_MAX=1000
+# (console) false : mode d'essai, la session fonctionne aussi en http simple (mots de passe en clair sur le réseau)
+# HTTPS_OBLIGATOIRE=true
+# (console) false : ne jamais interroger GitHub pour signaler une nouvelle version (serveur sans accès à Internet)
+# VERIFIER_MISES_A_JOUR=true
+# (console) Lien « Signaler un problème ou une idée » du menu utilisateur (vide : masqué)
+# LIEN_SIGNALEMENT=https://github.com/SolaDevSolide/gestion-mep/issues/new/choose

@@ -1,6 +1,6 @@
 # Installer
 
-Cette page s'adresse à l'équipe informatique qui installe l'application sur un serveur. Pour l'essayer sur un poste, voir le [démarrage rapide](Démarrage-rapide.md). Les opérations courantes (mises à jour, sauvegardes, comptes) sont dans [Exploiter](Exploiter.md).
+Cette page s'adresse à l'équipe informatique qui installe l'application sur un serveur. Pour l'essayer sur un poste, voir le [démarrage rapide](Démarrage-rapide.md). Les opérations courantes (mises à jour, sauvegardes, comptes) sont dans [Exploiter](Exploiter.md). Sans Docker, sur un serveur Linux ou Windows, voir [Installer sans Docker](Installer-sans-Docker.md).
 
 ## Vue d'ensemble
 
@@ -15,7 +15,7 @@ L'application écoute en HTTP sur le port 8080. Le chiffrement HTTPS est confié
 
 ## Prérequis
 
-- Une machine virtuelle Linux (ou Windows Server) avec **Docker Engine** et le plugin **Docker Compose v2**.
+- Une machine virtuelle Linux (ou Windows Server) avec **Docker Engine** et le plugin **Docker Compose v2**. Sans Docker : [Installer sans Docker](Installer-sans-Docker.md).
 - 2 vCPU et 4 Go de mémoire suffisent pour une équipe. Prévoir l'espace disque des pièces jointes.
 - Un accès sortant à `ghcr.io` pour récupérer l'image, ou une copie de l'image dans un registre interne. Facultatif : un accès sortant à `api.github.com` pour signaler les nouvelles versions aux administrateurs.
 - Un proxy inverse HTTPS (nginx, IIS, Traefik, un répartiteur de charge…) et un nom DNS.

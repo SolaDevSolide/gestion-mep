@@ -112,7 +112,12 @@ describe('Console d’administration', () => {
       disponible: false,
       installateur: { present: false, statut: null, version: null, message: null, le: null },
     };
-    vi.mocked(api.application).mockResolvedValue({ version: '1.0.0', lienSignalement: null, miseAJour: etat });
+    vi.mocked(api.application).mockResolvedValue({
+      version: '1.0.0',
+      lienSignalement: null,
+      miseAJour: etat,
+      installation: 'docker',
+    });
     vi.mocked(api.verifierMisesAJour).mockResolvedValue({ ...etat, derniereVersion: '1.2.0', disponible: true });
     rendre(utilisateur({ estAdmin: true }), '/admin?onglet=version');
     expect(await screen.findByText('L’application est à jour.')).toBeInTheDocument();
@@ -134,7 +139,12 @@ describe('Console d’administration', () => {
       disponible: true,
       installateur,
     };
-    vi.mocked(api.application).mockResolvedValue({ version: '1.0.0', lienSignalement: null, miseAJour: etat });
+    vi.mocked(api.application).mockResolvedValue({
+      version: '1.0.0',
+      lienSignalement: null,
+      miseAJour: etat,
+      installation: 'docker',
+    });
     vi.mocked(api.installerMiseAJour).mockResolvedValue({
       ...etat,
       installateur: { ...installateur, statut: 'demandee', message: 'Demande transmise au service de mise à jour.' },

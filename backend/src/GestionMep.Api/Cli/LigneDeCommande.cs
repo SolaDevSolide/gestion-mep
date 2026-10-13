@@ -114,17 +114,38 @@ public static partial class LigneDeCommande
                                                               les sessions ouvertes sont fermées. Refusée hors démonstration.
 
         Option --json : sortie JSON pour les scripts (commandes lister, afficher, expertises, journal, mettre-a-jour).
-        Dans Docker : docker compose exec app gestion-mep <commande>
-        Restaurer (application arrêtée) : docker compose stop app
-                                          docker compose run --rm app sauvegardes restaurer <archive> --oui
-                                          docker compose up -d app
         Exemples : gestion-mep reglages definir url-publique https://mep.entreprise.fr
                    gestion-mep reglages definir lien-signalement ""      (valeur vide : lien masqué)
                    gestion-mep comptes modifier jdupont --ajouter-expertise BDD --detail "Base clients"
-        Secret depuis un fichier : docker compose exec -T app gestion-mep sso configurer --secret-stdin < secret.txt
-        Fichier depuis l'hôte : docker compose exec -T app gestion-mep resolutions importer - < resolutions.json
         Codes de retour : 0 succès, 1 échec, 2 commande mal formée.
         """;
+
+    /// <summary>Fin de l'aide propre au type d'installation : comment lancer une commande, restaurer, passer un fichier.</summary>
+    private static string AideInstallation() => Installation.Mode switch
+    {
+        Installation.Docker => """
+            Dans Docker : docker compose exec app gestion-mep <commande>
+            Restaurer (application arrêtée) : docker compose stop app
+                                              docker compose run --rm app gestion-mep sauvegardes restaurer <archive> --oui
+                                              docker compose up -d app
+            Secret depuis un fichier : docker compose exec -T app gestion-mep sso configurer --secret-stdin < secret.txt
+            Fichier depuis l'hôte : docker compose exec -T app gestion-mep resolutions importer - < resolutions.json
+            """,
+        Installation.Linux => $"""
+            Installation sans Docker (Linux) : sudo gestion-mep <commande> ; configuration : {FichierInstallation.Chemin}
+            Restaurer (application arrêtée) : sudo systemctl stop gestion-mep
+                                              sudo gestion-mep sauvegardes restaurer <archive> --oui
+                                              sudo systemctl start gestion-mep
+            Secret depuis un fichier : sudo gestion-mep sso configurer --secret-stdin < secret.txt
+            """,
+        _ => $"""
+            Installation sans Docker (Windows, PowerShell administrateur) : gestion-mep <commande> ; configuration : {FichierInstallation.Chemin}
+            Restaurer (application arrêtée) : Stop-Service GestionMep
+                                              gestion-mep sauvegardes restaurer <archive> --oui
+                                              Start-Service GestionMep
+            Secret depuis un fichier : Get-Content secret.txt | gestion-mep sso configurer --secret-stdin
+            """,
+    };
 
     /// <summary>Sortie JSON demandée (option --json), pour la commande en cours.</summary>
     private static readonly AsyncLocal<bool> SortieJson = new();
@@ -216,7 +237,7 @@ public static partial class LigneDeCommande
             else Console.Error.WriteLine($"Erreur : {e.Message}");
             return 1;
         }
-        catch (RegleMetierException e)
+        catch (Exception e) when (e is RegleMetierException or ConfigurationIllisibleException)
         {
             Console.Error.WriteLine($"Erreur : {e.Message}");
             return 1;
@@ -225,7 +246,7 @@ public static partial class LigneDeCommande
 
     private static int AfficherAide(int code)
     {
-        (code == 0 ? Console.Out : Console.Error).WriteLine(Aide);
+        (code == 0 ? Console.Out : Console.Error).WriteLine(Aide + Environment.NewLine + AideInstallation());
         return code;
     }
 
@@ -236,7 +257,8 @@ public static partial class LigneDeCommande
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: true)
             .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
-            .AddEnvironmentVariables();
+            .AddEnvironmentVariables()
+            .AjouterFichierInstallation();
         return builder.Add(new SourceReglagesBase(builder.Build().GetConnectionString("Mep"))).Build();
     }
 
@@ -739,8 +761,8 @@ public static partial class LigneDeCommande
             {
                 var origine = r.Origine switch
                 {
-                    "console" => $"modifié le {r.ModifieLe:yyyy-MM-dd HH:mm} par {r.ModifiePar}" + (r.ValeurFichier is { } f ? $", .env : {Texte(f)}" : ""),
-                    "fichier" => $"fichier .env ({r.Variable})",
+                    "console" => $"modifié le {r.ModifieLe:yyyy-MM-dd HH:mm} par {r.ModifiePar}" + (r.ValeurFichier is { } f ? $", {Installation.NomFichier} : {Texte(f)}" : ""),
+                    "fichier" => $"{Installation.NomFichier} ({r.Variable})",
                     _ => "valeur par défaut",
                 };
                 Console.WriteLine($"  {r.Nom.PadRight(largeur)}{Texte(r.Valeur)}   [{origine}]");
@@ -750,8 +772,10 @@ public static partial class LigneDeCommande
         Console.WriteLine("Approbations");
         Console.WriteLine($"  {Approbations.PadRight(largeur)}{(await db.Parametres.AsNoTracking().Select(p => (int?)p.ApprobationsMinimum).FirstOrDefaultAsync() ?? 1)}");
         Console.WriteLine();
-        Console.WriteLine("Lus au démarrage, dans le fichier .env (le modifier puis « docker compose up -d ») : PORT, ADRESSE_ECOUTE,");
-        Console.WriteLine("POSTGRES_USER, POSTGRES_PASSWORD, DEMO, ADMIN_LOGIN, ADMIN_MOT_DE_PASSE, MEP_IMAGE, COMPOSE_PROFILES.");
+        Console.WriteLine($"Lus au démarrage, dans le {Installation.FichierDemarrage} :");
+        Console.WriteLine(Installation.EstDocker
+            ? "PORT, ADRESSE_ECOUTE, POSTGRES_USER, POSTGRES_PASSWORD, DEMO, ADMIN_LOGIN, ADMIN_MOT_DE_PASSE, MEP_IMAGE, COMPOSE_PROFILES."
+            : "BASE_DE_DONNEES, DOSSIER_DONNEES, PORT, ADRESSE_ECOUTE, DEMO, ADMIN_LOGIN, ADMIN_MOT_DE_PASSE.");
         return 0;
     }
 
@@ -777,7 +801,7 @@ public static partial class LigneDeCommande
         var config = Configuration();
         await using var db = Base(config);
         var r = await Reglages.Retablir(db, config, Reglages.Trouver(nom), null);
-        Console.WriteLine($"Réglage rétabli : {r.Nom} = {Texte(r.Valeur)} ({(r.Origine == "fichier" ? "fichier .env" : "valeur par défaut")}).");
+        Console.WriteLine($"Réglage rétabli : {r.Nom} = {Texte(r.Valeur)} ({(r.Origine == "fichier" ? Installation.NomFichier : "valeur par défaut")}).");
         return 0;
     }
 
@@ -810,7 +834,7 @@ public static partial class LigneDeCommande
         if (!config.GetValue(Reglages.HttpsObligatoire, true))
             Attention("HTTPS non obligatoire (mode d'essai) : les mots de passe peuvent circuler en clair. « gestion-mep reglages definir https-obligatoire oui ».");
         if (config["Admin:MotDePasse"] is { Length: > 0 })
-            Attention("ADMIN_MOT_DE_PASSE est encore défini : il ne sert qu'au premier démarrage, le retirer de .env.");
+            Attention($"ADMIN_MOT_DE_PASSE est encore défini : il ne sert qu'au premier démarrage, le retirer du {Installation.NomFichier}.");
         await using var db = Base(config);
         try
         {
