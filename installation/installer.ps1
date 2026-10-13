@@ -30,8 +30,28 @@ $Compte = 'NT AUTHORITY\LocalService'
 $AttenteSante = if ($env:GESTION_MEP_ATTENTE_SANTE) { [int]$env:GESTION_MEP_ATTENTE_SANTE } else { 180 }
 $VersionsGardees = 3
 
-function Info([string]$m) { Write-Host "[gestion-mep] $m" }
-function Erreur([string]$m) { Write-Host "[gestion-mep] Erreur : $m" -ForegroundColor Red; exit 1 }
+# Accents lisibles : console en UTF-8, pour ce script comme pour les commandes de l'application qu'il lance.
+try {
+    [Console]::OutputEncoding = New-Object Text.UTF8Encoding $false
+    $OutputEncoding = [Console]::OutputEncoding
+}
+catch { }
+
+# Messages : une étape par bloc, détails en retrait, résultat en couleur.
+function Etape([string]$m) { Write-Host ''; Write-Host "== $m" -ForegroundColor Cyan }
+function Info([string]$m) { Write-Host "   $m" }
+function Attention([string]$m) { Write-Host "   $m" -ForegroundColor Yellow }
+function Succes([string]$m) { Write-Host ''; Write-Host "   $m" -ForegroundColor Green }
+function Erreur([string]$m) {
+    Write-Host ''
+    # Blanc sur rouge : lisible aussi sur le fond bleu de Windows PowerShell.
+    Write-Host " ERREUR : $m " -ForegroundColor White -BackgroundColor DarkRed
+    Write-Host ''
+    exit 1
+}
+
+Write-Host ''
+Write-Host 'Gestion MEP : installation sans Docker (Windows)' -ForegroundColor White
 
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
@@ -51,7 +71,8 @@ try {
     if ($env:GESTION_MEP_SOURCE) { $Source = $env:GESTION_MEP_SOURCE }
     elseif ($Version -and (Test-Path (Join-Path $Racine "versions\$Version\GestionMep.Api.exe"))) {
         # Version déjà présente sur le serveur (retour à une version précédente) : rien à télécharger.
-        Info "Version $Version déjà présente dans $Racine\versions."
+        Etape "Version $Version"
+        Info "Déjà présente dans $Racine\versions : rien à télécharger."
         $Source = Join-Path $Racine "versions\$Version"
     }
     elseif ($Version) {
@@ -61,7 +82,7 @@ try {
         if ($Version -notmatch '^\d+\.\d+\.\d+$') { Erreur "numéro de version attendu, par exemple 1.4.0 (reçu : $Version)." }
         $nom = "gestion-mep-$Version-win-x64.zip"
         $base = "https://github.com/$Depot/releases/download/v$Version"
-        Info "Téléchargement de la version $Version."
+        Etape "Téléchargement de la version $Version"
         try {
             Invoke-WebRequest -UseBasicParsing "$base/$nom" -OutFile (Join-Path $Travail $nom)
             Invoke-WebRequest -UseBasicParsing "$base/SHA256SUMS" -OutFile (Join-Path $Travail 'SHA256SUMS')
@@ -100,6 +121,9 @@ try {
     }
     $Nouvelle = (Get-Content (Join-Path $Source 'VERSION') -TotalCount 1).Trim()
     if ($Nouvelle -notmatch '^[0-9A-Za-z.+-]+$') { Erreur 'numéro de version illisible dans l''archive.' }
+    Etape "Installation de la version $Nouvelle"
+    Info "Fichiers : $Racine\versions\$Nouvelle"
+    Info "Configuration : $Conf"
 
     # 2. Dossiers, droits, configuration
     New-Item -ItemType Directory -Force -Path (Join-Path $Racine 'versions') | Out-Null
@@ -136,7 +160,7 @@ try {
     $chemin = [Environment]::GetEnvironmentVariable('Path', 'Machine')
     if (($chemin -split ';') -notcontains $Racine) {
         [Environment]::SetEnvironmentVariable('Path', "$chemin;$Racine", 'Machine')
-        Info "Commande gestion-mep ajoutée au PATH (nouvelles consoles)."
+        Info 'Commande gestion-mep ajoutée au PATH (nouvelles consoles).'
     }
     $actuelle = Join-Path $Racine 'actuelle'
     function Basculer([string]$vers) {
@@ -155,10 +179,13 @@ try {
     $config = Get-Content $Conf
     if ($nouvelleConf -or ($config | Where-Object { $_ -match '^BASE_DE_DONNEES=.*Password=;?\s*$' })) {
         if (-not (Test-Path $actuelle)) { Basculer $Cible }
-        Info "Version $Nouvelle copiée. Avant le premier démarrage :"
-        Info '  1. créer la base PostgreSQL (voir docs/Installer.md, Installation sans Docker) ;'
-        Info "  2. renseigner BASE_DE_DONNEES (et les autres réglages) dans $Conf ;"
-        Info "  3. relancer : & `"$Racine\installer.ps1`""
+        Etape 'À faire avant le premier démarrage'
+        Info '1. Créer la base PostgreSQL (voir docs/Installer-sans-Docker.md).'
+        Info '2. Renseigner BASE_DE_DONNEES (et les autres réglages) dans :'
+        Attention "     $Conf"
+        Info '3. Relancer :'
+        Attention "     & `"$Racine\installer.ps1`""
+        Write-Host ''
         exit 0
     }
 
@@ -182,38 +209,48 @@ try {
     if (Test-Path $actuelle) { $Precedente = (Get-Item $actuelle).Target | Select-Object -First 1 }
     $Sauvegarde = $null
     if ($Precedente -and $Precedente.TrimEnd('\') -ne $Cible -and (Test-Path (Join-Path $Precedente 'GestionMep.Api.exe'))) {
-        Info "Arrêt de la version $(Split-Path $Precedente -Leaf)."
+        Etape "Mise à jour depuis la version $(Split-Path $Precedente -Leaf)"
+        Info 'Arrêt du service.'
         Stop-Service $Service -ErrorAction SilentlyContinue
         $Sauvegarde = Join-Path $dossierDonnees "sauvegardes\avant-$Nouvelle-$((Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')).tar.gz"
-        Info "Sauvegarde de la base et des pièces jointes : $Sauvegarde"
-        & (Join-Path $Precedente 'GestionMep.Api.exe') sauvegarder $Sauvegarde
+        Info 'Sauvegarde de la base et des pièces jointes :'
+        Info "  $Sauvegarde"
+        & (Join-Path $Precedente 'GestionMep.Api.exe') sauvegarder $Sauvegarde | ForEach-Object { Write-Host "     $_" }
         if ($LASTEXITCODE -ne 0) {
             Start-Service $Service -ErrorAction SilentlyContinue
             Erreur 'sauvegarde impossible : rien n''a été changé, la version précédente est relancée.'
         }
     }
-    elseif ($Precedente) { Info "Version $Nouvelle déjà en place : redémarrage." }
+    elseif ($Precedente) { Etape "Version $Nouvelle déjà en place : redémarrage" }
 
     Stop-Service $Service -ErrorAction SilentlyContinue
     Basculer $Cible
-    Info "Démarrage de la version $Nouvelle (migration de la base si nécessaire)."
+    Etape "Démarrage de la version $Nouvelle"
+    Info 'Migration de la base si nécessaire, puis vérification que l''application répond (3 minutes au plus).'
     Start-Service $Service -ErrorAction SilentlyContinue
     if (Sante) {
-        Info "Version $Nouvelle installée et en marche."
+        Succes "Version $Nouvelle installée et en marche."
         Get-ChildItem (Join-Path $Racine 'versions') -Directory | Sort-Object LastWriteTime -Descending |
             Where-Object { $_.FullName -ne $Cible -and $_.FullName -ne $Precedente } |
             Select-Object -Skip ($VersionsGardees - 2) | Remove-Item -Recurse -Force
         if ($config | Where-Object { $_ -match '^ADMIN_MOT_DE_PASSE=.+' }) {
-            Info "Pensez à retirer ADMIN_MOT_DE_PASSE de $Conf (compte administrateur créé)."
+            Attention "Pensez à retirer ADMIN_MOT_DE_PASSE de $Conf (compte administrateur créé)."
         }
-        Info 'Journal : observateur d''événements, journal Application ; commandes : gestion-mep aide'
+        $ecoute = ($config | Where-Object { $_ -match '^PORT=\d+' } | Select-Object -First 1) -replace '^PORT=', ''
+        if (-not $ecoute) { $ecoute = '8080' }
+        Write-Host ''
+        Info "Adresse locale : http://127.0.0.1:$ecoute"
+        Info 'Commandes      : gestion-mep aide (nouvelle console en administrateur)'
+        Info 'Journal        : Observateur d''événements, journal Application'
+        Write-Host ''
         exit 0
     }
 
     if (-not $Sauvegarde) {
         Erreur "la version $Nouvelle ne démarre pas : voir l'observateur d'événements (journal Application) et $Conf."
     }
-    Info "La version $Nouvelle ne démarre pas : retour à la version précédente et à ses données."
+    Etape 'Retour à la version précédente'
+    Attention "La version $Nouvelle ne démarre pas : retour à la version précédente et à ses données."
     Stop-Service $Service -ErrorAction SilentlyContinue
     Basculer $Precedente
     & $exe sauvegardes restaurer $Sauvegarde --oui

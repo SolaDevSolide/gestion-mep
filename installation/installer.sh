@@ -11,6 +11,7 @@
 # version ne démarre pas, retour automatique à la précédente avec ses données. PostgreSQL n'est pas installé par ce script.
 set -eu
 
+printf '\nGestion MEP : installation sans Docker (Linux)\n'
 DEPOT="${GESTION_MEP_DEPOT:-SolaDevSolide/gestion-mep}"
 RACINE=/opt/gestion-mep
 DONNEES=/var/lib/gestion-mep
@@ -20,8 +21,14 @@ COMPTE=gestion-mep
 ATTENTE_SANTE="${GESTION_MEP_ATTENTE_SANTE:-180}"
 VERSIONS_GARDEES=3
 
-info() { printf '[gestion-mep] %s\n' "$*"; }
-erreur() { printf '[gestion-mep] Erreur : %s\n' "$*" >&2; exit 1; }
+# Messages : une étape par bloc, détails en retrait, résultat en couleur (dans un terminal seulement).
+if [ -t 1 ]; then CYAN=$(printf '\033[36m'); VERT=$(printf '\033[32m'); JAUNE=$(printf '\033[33m'); ROUGE=$(printf '\033[31m'); NORMAL=$(printf '\033[0m')
+else CYAN=""; VERT=""; JAUNE=""; ROUGE=""; NORMAL=""; fi
+etape() { printf '\n%s== %s%s\n' "$CYAN" "$*" "$NORMAL"; }
+info() { printf '   %s\n' "$*"; }
+attention() { printf '   %s%s%s\n' "$JAUNE" "$*" "$NORMAL"; }
+succes() { printf '\n   %s%s%s\n' "$VERT" "$*" "$NORMAL"; }
+erreur() { printf '\n   %sERREUR : %s%s\n\n' "$ROUGE" "$*" "$NORMAL" >&2; exit 1; }
 
 usage() {
   sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
@@ -59,7 +66,8 @@ if [ -n "${GESTION_MEP_SOURCE:-}" ]; then
   SOURCE="$GESTION_MEP_SOURCE"
 elif [ -n "$VERSION" ] && [ -x "$RACINE/versions/$VERSION/GestionMep.Api" ]; then
   # Version déjà présente sur le serveur (retour à une version précédente) : rien à télécharger.
-  info "Version $VERSION déjà présente dans $RACINE/versions."
+  etape "Version $VERSION"
+  info "Déjà présente dans $RACINE/versions : rien à télécharger."
   SOURCE="$RACINE/versions/$VERSION"
 elif [ -n "$VERSION" ]; then
   if [ "$VERSION" = derniere ]; then
@@ -70,7 +78,7 @@ elif [ -n "$VERSION" ]; then
   echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || erreur "numéro de version attendu, par exemple 1.4.0 (reçu : $VERSION)."
   nom="gestion-mep-$VERSION-linux-x64.tar.gz"
   base="https://github.com/$DEPOT/releases/download/v$VERSION"
-  info "Téléchargement de la version $VERSION."
+  etape "Téléchargement de la version $VERSION"
   telecharger "$base/$nom" "$TRAVAIL/$nom" || erreur "téléchargement impossible de $base/$nom."
   telecharger "$base/SHA256SUMS" "$TRAVAIL/SHA256SUMS" || erreur "téléchargement impossible de $base/SHA256SUMS."
   (cd "$TRAVAIL" && grep " $nom\$" SHA256SUMS | sha256sum -c --quiet -) || erreur "empreinte SHA-256 incorrecte : archive corrompue ou modifiée."
@@ -101,6 +109,9 @@ if [ -z "${GESTION_MEP_SOURCE:-}" ] && [ -f "$SOURCE/installer.sh" ] && ! cmp -s
 fi
 NOUVELLE=$(cat "$SOURCE/VERSION")
 echo "$NOUVELLE" | grep -Eq '^[0-9A-Za-z.+-]+$' || erreur "numéro de version illisible dans l'archive."
+etape "Installation de la version $NOUVELLE"
+info "Fichiers : $RACINE/versions/$NOUVELLE"
+info "Configuration : $CONF"
 
 # 2. Compte de service, dossiers, configuration
 if ! id "$COMPTE" > /dev/null 2>&1; then
@@ -150,10 +161,13 @@ systemctl enable gestion-mep > /dev/null 2>&1 || true
 
 if [ "$NOUVELLE_CONF" = true ] || grep -Eq '^BASE_DE_DONNEES=.*Password=;?$' "$CONF"; then
   if [ ! -L "$RACINE/actuelle" ]; then ln -sfn "$CIBLE" "$RACINE/actuelle"; fi
-  info "Version $NOUVELLE copiée. Avant le premier démarrage :"
-  info "  1. créer la base PostgreSQL (voir docs/Installer.md, Installation sans Docker) ;"
-  info "  2. renseigner BASE_DE_DONNEES (et les autres réglages) dans $CONF ;"
-  info "  3. relancer : sudo $RACINE/installer.sh"
+  etape "À faire avant le premier démarrage"
+  info "1. Créer la base PostgreSQL (voir docs/Installer-sans-Docker.md)."
+  info "2. Renseigner BASE_DE_DONNEES (et les autres réglages) dans :"
+  attention "     $CONF"
+  info "3. Relancer :"
+  attention "     sudo $RACINE/installer.sh"
+  echo
   exit 0
 fi
 
@@ -173,32 +187,41 @@ PRECEDENTE=""
 if [ -L "$RACINE/actuelle" ]; then PRECEDENTE=$(readlink -f "$RACINE/actuelle"); fi
 SAUVEGARDE=""
 if [ -n "$PRECEDENTE" ] && [ "$PRECEDENTE" != "$CIBLE" ] && [ -x "$PRECEDENTE/GestionMep.Api" ]; then
-  info "Arrêt de la version $(cat "$PRECEDENTE/VERSION" 2>/dev/null || basename "$PRECEDENTE")."
+  etape "Mise à jour depuis la version $(cat "$PRECEDENTE/VERSION" 2>/dev/null || basename "$PRECEDENTE")"
+  info "Arrêt du service."
   systemctl stop gestion-mep || true
   SAUVEGARDE="$DONNEES/sauvegardes/avant-$NOUVELLE-$(date -u +%Y%m%d-%H%M%S).tar.gz"
-  info "Sauvegarde de la base et des pièces jointes : $SAUVEGARDE"
-  if ! /usr/local/bin/gestion-mep sauvegarder "$SAUVEGARDE"; then
+  info "Sauvegarde de la base et des pièces jointes :"
+  info "  $SAUVEGARDE"
+  if ! /usr/local/bin/gestion-mep sauvegarder "$SAUVEGARDE" > "$TRAVAIL/sauvegarde.txt" 2>&1; then
+    sed 's/^/     /' "$TRAVAIL/sauvegarde.txt"
     systemctl start gestion-mep || true
     erreur "sauvegarde impossible : rien n'a été changé, la version précédente est relancée."
   fi
+  info "Sauvegarde écrite."
 elif [ "$PRECEDENTE" = "$CIBLE" ]; then
-  info "Version $NOUVELLE déjà en place : redémarrage."
+  etape "Version $NOUVELLE déjà en place : redémarrage"
 fi
 
 ln -sfn "$CIBLE" "$RACINE/actuelle.tmp" && mv -Tf "$RACINE/actuelle.tmp" "$RACINE/actuelle"
-info "Démarrage de la version $NOUVELLE (migration de la base si nécessaire)."
+etape "Démarrage de la version $NOUVELLE"
+info "Migration de la base si nécessaire, puis vérification que l'application répond (3 minutes au plus)."
 systemctl restart gestion-mep || true
 if sante; then
-  info "Version $NOUVELLE installée et en marche."
+  succes "Version $NOUVELLE installée et en marche."
   # Nettoyage : versions gardées (dont l'actuelle et la précédente) ; la sauvegarde avant mise à jour est conservée.
   ls -1dt "$RACINE"/versions/*/ 2>/dev/null | sed 's:/$::' | while read -r v; do
     [ "$v" = "$CIBLE" ] || [ "$v" = "$PRECEDENTE" ] && continue
     echo "$v"
   done | tail -n +"$((VERSIONS_GARDEES - 1))" | while read -r v; do rm -rf "$v"; done
   if grep -Eq '^ADMIN_MOT_DE_PASSE=.+' "$CONF"; then
-    info "Pensez à retirer ADMIN_MOT_DE_PASSE de $CONF (compte administrateur créé)."
+    attention "Pensez à retirer ADMIN_MOT_DE_PASSE de $CONF (compte administrateur créé)."
   fi
-  info "Journal : journalctl -u gestion-mep -f ; commandes : sudo gestion-mep aide"
+  echo
+  info "Adresse locale : http://127.0.0.1:$(sed -n 's/^PORT=\([0-9]*\).*/\1/p' "$CONF" | head -n 1 | grep . || echo 8080)"
+  info "Commandes      : sudo gestion-mep aide"
+  info "Journal        : sudo journalctl -u gestion-mep -f"
+  echo
   exit 0
 fi
 
@@ -206,7 +229,8 @@ journalctl -u gestion-mep -n 30 --no-pager 2>/dev/null || true
 if [ -z "$SAUVEGARDE" ]; then
   erreur "la version $NOUVELLE ne démarre pas : voir le journal ci-dessus (journalctl -u gestion-mep) et $CONF."
 fi
-info "La version $NOUVELLE ne démarre pas : retour à la version précédente et à ses données."
+etape "Retour à la version précédente"
+attention "La version $NOUVELLE ne démarre pas : retour à la version précédente et à ses données."
 systemctl stop gestion-mep || true
 ln -sfn "$PRECEDENTE" "$RACINE/actuelle.tmp" && mv -Tf "$RACINE/actuelle.tmp" "$RACINE/actuelle"
 /usr/local/bin/gestion-mep sauvegardes restaurer "$SAUVEGARDE" --oui || true

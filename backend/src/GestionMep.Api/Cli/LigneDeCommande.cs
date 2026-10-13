@@ -242,6 +242,13 @@ public static partial class LigneDeCommande
             Console.Error.WriteLine($"Erreur : {e.Message}");
             return 1;
         }
+        catch (Exception e) when (BaseInjoignable(e) is { } cause)
+        {
+            // Base arrêtée ou mal renseignée : un message clair plutôt qu'une pile d'appels.
+            Console.Error.WriteLine($"Erreur : base de données injoignable ({cause.Message.TrimEnd('.')}). Vérifier que PostgreSQL tourne "
+                + $"et la connexion à la base dans le {Installation.NomFichier}.");
+            return 1;
+        }
     }
 
     private static int AfficherAide(int code)
@@ -279,6 +286,13 @@ public static partial class LigneDeCommande
     // ---------- Outils communs ----------
 
     /// <summary>Commande mal formée (option inconnue, valeur manquante) : code de retour 2.</summary>
+    private static Npgsql.NpgsqlException? BaseInjoignable(Exception? e)
+    {
+        for (; e is not null; e = e.InnerException)
+            if (e is Npgsql.NpgsqlException n and not Npgsql.PostgresException) return n;
+        return null;
+    }
+
     private sealed class ErreurUsage(string message) : Exception(message);
 
     /// <summary>Options d'une commande, dans l'ordre donné (« --nom valeur » ou drapeau seul).</summary>

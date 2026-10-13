@@ -12,6 +12,12 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 
+// Console Windows : accents lisibles dans les messages des commandes (code page UTF-8 au lieu de 850).
+if (OperatingSystem.IsWindows())
+{
+    try { Console.OutputEncoding = new System.Text.UTF8Encoding(false); } catch (IOException) { }
+}
+
 // HEALTHCHECK de l'image Docker : « dotnet GestionMep.Api.dll --sante ».
 if (args.Contains("--sante"))
 {
