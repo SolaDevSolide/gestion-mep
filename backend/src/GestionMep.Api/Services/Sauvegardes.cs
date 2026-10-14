@@ -20,8 +20,9 @@ namespace GestionMep.Api.Services;
 /// <para>
 /// Avant une mise à jour du schéma (<see cref="MigrerAvecSauvegarde"/>) et avant une importation (<see cref="Importer"/>),
 /// une sauvegarde est faite automatiquement. Une fois l'opération terminée, des contrôles comparent les données à celles
-/// de la sauvegarde (aucune table disparue, aucune ligne en moins, aucun fichier manquant) : la sauvegarde n'est
-/// supprimée que s'ils passent ; sinon elle est conservée et l'écart inscrit dans le journal d'administration.
+/// de la sauvegarde (aucune table disparue, sauf celles qu'une migration reprend dans une autre table, aucune ligne en
+/// moins, aucun fichier manquant) : la sauvegarde n'est supprimée que s'ils passent ; sinon elle est conservée et l'écart
+/// inscrit dans le journal d'administration.
 /// </para>
 /// </summary>
 public sealed partial class Sauvegardes(string dossier, string dossierPieces, Action<string> info, Action<string> alerte)
@@ -330,20 +331,67 @@ public sealed partial class Sauvegardes(string dossier, string dossierPieces, Ac
     }
 
     /// <summary>
+    /// Tables qu'une migration supprime après avoir repris leurs lignes dans une autre table (table d'origine → table
+    /// d'arrivée). Les contrôles comptent les lignes d'une table reprise avec celles de sa table d'arrivée au lieu de la
+    /// signaler disparue. Toute migration qui reprend ainsi une table s'y déclare.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> Reprises = new Dictionary<string, string>
+    {
+        // EnvironnementsEtObjetsImpactes : les livrables deviennent des objets impactés.
+        ["Livrables"] = "ObjetsImpactes",
+    };
+
+    /// <summary>
     /// Écarts entre la référence et l'état constaté : table disparue, lignes en moins (ou différentes si
     /// <paramref name="egalite"/>), fichier de pièce jointe manquant. Liste vide : aucune donnée perdue.
+    /// <para>
+    /// Une table disparue mais déclarée dans <paramref name="reprises"/> (par défaut <see cref="Reprises"/>) n'est pas un
+    /// écart si sa table d'arrivée existe : ses lignes s'ajoutent à celles attendues dans la table d'arrivée. Elle reste
+    /// signalée disparue si la table d'arrivée n'existe pas, et la table d'arrivée est en écart si elle a moins de lignes
+    /// que la somme attendue.
+    /// </para>
     /// </summary>
-    public static List<string> Comparer(Releve reference, Releve constate, bool egalite = false)
+    public static List<string> Comparer(Releve reference, Releve constate, bool egalite = false, IReadOnlyDictionary<string, string>? reprises = null)
     {
-        var ecarts = new List<string>();
-        foreach (var (table, attendu) in reference.Lignes.OrderBy(l => l.Key))
+        reprises ??= Reprises;
+        var attendus = new Dictionary<string, long>(reference.Lignes);
+        var reprisesVers = new Dictionary<string, List<(string Origine, long Lignes)>>();
+        foreach (var (table, lignes) in reference.Lignes.OrderBy(l => l.Key))
         {
+            if (constate.Lignes.ContainsKey(table) || Arrivee(table, constate, reprises) is not { } arrivee) continue;
+            attendus.Remove(table);
+            attendus[arrivee] = attendus.GetValueOrDefault(arrivee) + lignes;
+            if (!reprisesVers.TryGetValue(arrivee, out var origines)) reprisesVers[arrivee] = origines = [];
+            origines.Add((table, lignes));
+        }
+
+        var ecarts = new List<string>();
+        foreach (var (table, attendu) in attendus.OrderBy(l => l.Key))
+        {
+            var dont = reprisesVers.TryGetValue(table, out var origines)
+                ? $" (dont {string.Join(", ", origines.Select(o => $"{o.Lignes} reprise(s) de {o.Origine}"))})"
+                : "";
             if (!constate.Lignes.TryGetValue(table, out var n)) ecarts.Add($"table {table} disparue ({attendu} ligne(s))");
-            else if (n < attendu || (egalite && n != attendu)) ecarts.Add($"table {table} : {attendu} ligne(s) attendue(s), {n} trouvée(s)");
+            else if (n < attendu || (egalite && n != attendu)) ecarts.Add($"table {table} : {attendu} ligne(s) attendue(s){dont}, {n} trouvée(s)");
         }
         var manquants = reference.Fichiers.Except(constate.Fichiers).ToList();
         if (manquants.Count > 0) ecarts.Add($"{manquants.Count} fichier(s) de pièce jointe manquant(s) : {string.Join(", ", manquants.Take(5))}{(manquants.Count > 5 ? "…" : "")}");
         return ecarts;
+    }
+
+    /// <summary>
+    /// Table qui a reçu les lignes de la table disparue <paramref name="table"/> : la première table présente en suivant les
+    /// reprises déclarées (une table d'arrivée peut à son tour avoir été reprise) ; null s'il n'y en a pas.
+    /// </summary>
+    private static string? Arrivee(string table, Releve constate, IReadOnlyDictionary<string, string> reprises)
+    {
+        var vues = new HashSet<string> { table };
+        while (reprises.TryGetValue(table, out var suivante) && vues.Add(suivante))
+        {
+            if (constate.Lignes.ContainsKey(suivante)) return suivante;
+            table = suivante;
+        }
+        return null;
     }
 
     /// <summary>Supprime la sauvegarde si aucun écart, sinon la conserve ; trace le résultat dans le journal d'administration.</summary>

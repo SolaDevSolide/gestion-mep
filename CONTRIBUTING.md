@@ -81,6 +81,7 @@ dotnet ef migrations add AjoutCommentaireEtape --project src/GestionMep.Api --ou
 - Relire le fichier généré : une colonne renommée apparaît souvent comme une suppression puis un ajout, ce qui perd les données.
 - Une migration qui transforme des données existantes a son test (exemple : `MigrationJalon4Tests.cs`).
 - La migration s'applique toute seule au prochain démarrage de l'API, après une sauvegarde automatique (`Services/Sauvegardes.cs`). Les contrôles qui suivent exigent qu'aucune table ne disparaisse et qu'aucune ne perde de lignes : une migration qui supprime des données volontairement laissera la sauvegarde en place et un écart dans le journal d'administration.
+- Une migration qui reprend les lignes d'une table dans une autre puis supprime la table d'origine déclare cette reprise dans `Sauvegardes.Reprises` (table d'origine → table d'arrivée, exemple : `Livrables` → `ObjetsImpactes`) : les contrôles comptent alors les lignes de la table d'origine avec celles de la table d'arrivée au lieu de la signaler disparue.
 
 ## Contrat d'API (OpenAPI)
 

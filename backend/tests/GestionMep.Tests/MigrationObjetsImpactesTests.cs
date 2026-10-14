@@ -1,4 +1,5 @@
 using GestionMep.Api.Donnees;
+using GestionMep.Api.Services;
 using GestionMep.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -118,5 +119,52 @@ public class MigrationObjetsImpactesTests
         Assert.Equal(4L, (long)(await cmd2.ExecuteScalarAsync())!);
         await using var cmd3 = new NpgsqlCommand("select \"Corps\" from \"ModelesTexte\"", cn2);
         Assert.Equal("**Livrables**\n{{livrables}}\n{{systemes}}", (string)(await cmd3.ExecuteScalarAsync())!);
+    }
+
+    [Fact]
+    public async Task La_sauvegarde_automatique_compte_les_livrables_repris_sans_fausse_alerte()
+    {
+        const string baseControle = Base + "_controle";
+        using (var cn = new NpgsqlConnection(Serveur + ";Database=postgres"))
+        {
+            cn.Open();
+            using var cmd = cn.CreateCommand();
+            cmd.CommandText = $"drop database if exists {baseControle} with (force)";
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = $"create database {baseControle}";
+            cmd.ExecuteNonQuery();
+        }
+        var chaine = $"{Serveur};Database={baseControle}";
+        var options = new DbContextOptionsBuilder<MepDbContext>().UseNpgsql(chaine).Options;
+        await using (var db = new MepDbContext(options))
+            await db.GetService<IMigrator>().MigrateAsync("BibliothequeEtapesModeles");
+        var mep = Guid.NewGuid();
+        await using (var cn = new NpgsqlConnection(chaine))
+        {
+            await cn.OpenAsync();
+            await MigrationJalon4Tests.Inserer(cn, "Meps", new() { ["Id"] = mep, ["Outil"] = "Avec livrables", ["Environnement"] = "Recette" });
+            foreach (var objet in new[] { "Service commandes", "Notes de version" })
+                await MigrationJalon4Tests.Inserer(cn, "Livrables", new() { ["Id"] = Guid.NewGuid(), ["MepId"] = mep, ["Objet"] = objet, ["Version"] = "1", ["Emplacement"] = "" });
+        }
+
+        var dossier = Path.Combine(Path.GetTempPath(), $"gestion-mep-controle-{Guid.NewGuid():N}");
+        try
+        {
+            var alertes = new List<string>();
+            var sauvegardes = new Sauvegardes(Path.Combine(dossier, "sauvegardes"), Path.Combine(dossier, "pieces"), _ => { }, alertes.Add);
+            await using (var db = new MepDbContext(options))
+                Assert.True(await sauvegardes.MigrerAvecSauvegarde(db, "test"));
+
+            Assert.Empty(alertes);
+            Assert.Empty(Directory.GetFiles(Path.Combine(dossier, "sauvegardes"), "avant-mise-a-jour-*"));
+            await using var lecture = new MepDbContext(options);
+            Assert.Equal(2, await lecture.ObjetsImpactes.CountAsync(o => o.MepId == mep));
+            var controle = await lecture.JournalAdmin.AsNoTracking().SingleAsync(e => e.Type.StartsWith("donnees.controle"));
+            Assert.Equal("donnees.controle-reussi", controle.Type);
+        }
+        finally
+        {
+            if (Directory.Exists(dossier)) Directory.Delete(dossier, recursive: true);
+        }
     }
 }
