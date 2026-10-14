@@ -23,11 +23,11 @@ public record EquipeDto(Guid Id, string Nom, string Description, List<Guid> Memb
 /// <c>ToucheProduction</c> : l'un des systèmes de la MEP touche un environnement de production.
 /// <c>EquipeIds</c> : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait
 /// partie, par l'un de ses comptes reliés). <c>Personnes</c> : noms des personnes de la MEP et, pour celles qui ont un compte,
-/// noms et logins de tous leurs comptes reliés (pour la recherche).
+/// noms et logins de tous leurs comptes reliés (pour la recherche). <c>Type</c> : MEP complète ou simplifiée.
 /// </summary>
 public record MepResumeDto(Guid Id, string Outil, string VersionCible, string Objet, DateOnly? DateMep, Phase Phase,
     DateTimeOffset? EcheanceRepli, string? Pilote, int NbEtapes, int NbReussies, int NbEchecs, bool ToucheProduction, bool EstModele,
-    DateTimeOffset CreeLe, IssueMep? Issue, bool RetourArriereActive, List<Guid> EquipeIds, List<string> Personnes);
+    DateTimeOffset CreeLe, IssueMep? Issue, bool RetourArriereActive, List<Guid> EquipeIds, List<string> Personnes, TypeMep Type);
 
 public record SauvegardeDto(ModeSauvegarde Mode, bool Structure, bool Donnees, bool Configuration, Guid? ResponsableId, DateTimeOffset? RealiseeLe,
     string Procedure, string Copies, bool RestaurationTestee, DateOnly? DateTestRestauration, string PreuveTestRestauration);
@@ -128,6 +128,9 @@ public record DroitsDto(bool EstPilote, bool PeutModifierPlan, Guid? Participant
 /// <summary>
 /// <c>RetourArriereActive</c> : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).
 /// <c>EcheanceRepli</c> est facultative et ne s'applique que si le retour arrière est activé.
+/// <c>Type</c> : MEP complète ou simplifiée. MEP simplifiée : <c>SuppleantIds</c> liste les suppléants implicites (toutes les
+/// personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
+/// résolutions liées.
 /// </summary>
 public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle, string VersionCible, string Objet, string Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string FuseauHoraire, int? IndisponibiliteMinutes,
@@ -138,7 +141,7 @@ public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle,
     List<ExecutionResolutionDto> Resolutions, List<string> ErreursPlan, DroitsDto Droits,
     bool EstModele, int ApprobationsMinimum, List<ApprobationDto> Approbations, List<CritereValideDto> GoNoGo,
     List<FicheRecetteDto> FichesRecette, bool BilanActive, BilanDto? Bilan, string? NonRetourFranchi, List<PieceJointeDto> PiecesJointes,
-    List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements, bool RetourArriereActive, CommunicationDto Communication);
+    List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements, bool RetourArriereActive, CommunicationDto Communication, TypeMep Type);
 
 /// <summary>
 /// Section Communication de la MEP (tout est facultatif). <c>PreuveValidationId</c> : pièce jointe de la MEP qui prouve la
@@ -193,12 +196,19 @@ public record UtilisateurSaisie(string? Login, string? NomAffiche, string? MotDe
 public record ExpertiseSaisie(Guid? SystemeCatalogueId, string? Detail);
 /// <summary><c>NomAffiche</c> absent ou null : inchangé.</summary>
 public record ProfilSaisie(string? NomAffiche, string? Role, string? Contact, List<ExpertiseSaisie>? Expertises);
-/// <summary>Création d'une MEP, ou d'un modèle si <c>Modele</c> vaut true.</summary>
-public record MepCreationSaisie(string? Outil, string? Objet, bool? Modele = null);
+/// <summary>
+/// Création d'une MEP, ou d'un modèle si <c>Modele</c> vaut true. <c>Type</c> absent : MEP complète ; un modèle est
+/// toujours complet.
+/// </summary>
+public record MepCreationSaisie(string? Outil, string? Objet, bool? Modele = null, TypeMep? Type = null);
+
+/// <summary>Changement de type d'une MEP en préparation (passer en simplifiée efface durées, criticités, résolutions liées et versions).</summary>
+public record TypeMepSaisie(int? Version, TypeMep? Type);
 
 /// <summary>
 /// <c>BilanActive</c> et <c>RetourArriereActive</c> absents : inchangés. <c>EcheanceRepli</c> null : sans échéance. La MEP n'a plus
 /// d'environnement propre : ils se choisissent par système (<c>PUT /meps/{id}/systemes/{sid}/environnements</c>).
+/// MEP simplifiée : <c>VersionActuelle</c>, <c>VersionCible</c> et <c>SuppleantIds</c> sont ignorés (pas de versions, suppléants implicites).
 /// </summary>
 public record MepIdentiteSaisie(int? Version, string? Outil, string? VersionActuelle, string? VersionCible, string? Objet, string? Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string? FuseauHoraire, int? IndisponibiliteMinutes,

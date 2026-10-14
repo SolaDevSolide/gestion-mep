@@ -27,6 +27,7 @@ import { DuplicationDialog } from './DuplicationDialog';
 import { CompteARebours } from './CompteARebours';
 import { PlanCheck } from './PlanCheck';
 import { PresentsMep } from '../presence';
+import { BadgeSimplifiee, estSimplifiee } from './typeMep';
 
 /** En-tête collant : identité, phase, personnes présentes, compte à rebours, progression, actions du pilote, onglets. */
 export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
@@ -90,6 +91,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                   Modèle
                 </Badge>
               )}
+              {estSimplifiee(mep) && <BadgeSimplifiee />}
             </div>
             <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 pl-8 text-[13px] text-fg-muted">
               {mep.objet && <span className="max-w-md truncate">{mep.objet}</span>}

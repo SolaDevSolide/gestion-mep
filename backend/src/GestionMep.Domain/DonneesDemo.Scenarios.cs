@@ -31,6 +31,7 @@ public static partial class DonneesDemo
     public const string OutilRetourArriere = "Messagerie interne";
     public const string OutilReussie = "Gestion des stocks";
     public const string OutilRepliee = "Extranet partenaires";
+    public const string OutilSimplifiee = "Formulaire de contact";
 
     /// <summary>MEP de démonstration et son journal (horodatages relatifs au moment de l'amorçage).</summary>
     public record MepDemo(Mep Mep, List<EvenementJournal> Journal);
@@ -39,7 +40,7 @@ public static partial class DonneesDemo
 
     /// <summary>
     /// MEP de démonstration supplémentaires : préparation incomplète, prête pour le Go, exécution en cours, recette en cours,
-    /// retour arrière en cours, clôturée réussie, clôturée repliée. Le catalogue, les résolutions types et les critères sont
+    /// retour arrière en cours, clôturée réussie, clôturée repliée, et une MEP simplifiée en cours d'exécution. Le catalogue, les résolutions types et les critères sont
     /// ceux de <see cref="Creer"/> (mêmes identifiants) ; les comptes sont ceux de <see cref="Comptes"/>.
     /// </summary>
     public static List<MepDemo> Scenarios(Guid alice, Guid bob, Guid claire, IReadOnlyList<SystemeCatalogue> catalogue,
@@ -47,7 +48,7 @@ public static partial class DonneesDemo
     {
         var equipe = new Equipe(new Compte(alice, "Alice"), new Compte(bob, "Bob"), new Compte(claire, "Claire"));
         var c = new Contexte(equipe, catalogue, resolutions, criteres, maintenant);
-        return [Incomplete(c), Prete(c), EnExecution(c), EnRecette(c), EnRetourArriere(c), Reussie(c), Repliee(c)];
+        return [Incomplete(c), Prete(c), EnExecution(c), EnRecette(c), EnRetourArriere(c), Reussie(c), Repliee(c), Simplifiee(c)];
     }
 
     private sealed record Compte(Guid Id, string Nom);
@@ -99,7 +100,7 @@ public static partial class DonneesDemo
         {
             Mep.CreeLe = T;
             Mep.CreeParUtilisateurId = qui.Id;
-            Ev(qui, "mep.creee", $"MEP créée : {Mep.Outil}");
+            Ev(qui, "mep.creee", Mep.Type == TypeMep.Simplifiee ? $"MEP simplifiée créée : {Mep.Outil}" : $"MEP créée : {Mep.Outil}");
         }
 
         public void Note(Compte qui, string type, string detail) => Ev(qui, type, detail);
@@ -556,6 +557,91 @@ public static partial class DonneesDemo
         d.Plus(7).Echouer(eq.Claire, e5, "Erreur fictive : 403 au moment de la purge du cache CDN.");
         d.Plus(2).Commenter(eq.Claire, e5, "Le jeton de purge a sans doute expiré : appliquer la résolution type « WEB : purge du cache CDN refusée ».");
         d.A(c.Maintenant.AddMinutes(-6)).Demarrer(eq.Bob, e4);
+        return d.Fin();
+    }
+
+    // ---------- 3 bis. MEP simplifiée en exécution ----------
+
+    /// <summary>
+    /// Petit correctif mené en MEP simplifiée : Claire pilote, Alice et Bob sont suppléants sans avoir été choisis, ni versions
+    /// ni durée, criticité ou résolutions liées. Exécution depuis 40 minutes : paramètre en base et formulaire publiés, service
+    /// messages en échec sur API et BDD (toutes les résolutions de ces deux systèmes sont proposées, regroupées par système).
+    /// Échéance dans trois jours.
+    /// </summary>
+    private static MepDemo Simplifiee(Contexte c)
+    {
+        var (mep, alice, bob, claire) = NouvelleMep(c, OutilSimplifiee, "", "",
+            "Correctif : les messages du formulaire de contact partent vers l'ancienne adresse du support.",
+            "Formulaire de contact indisponible 5 minutes.", 5, e => e.Claire);
+        mep.Type = TypeMep.Simplifiee;
+        mep.EcheanceRepli = c.Soir(3);
+        var bdd = Sys(mep, c.Sys("BDD"), "Paramètre « adresse du support »", StatutSauvegarde.Requise, ModeSauvegarde.AvantMep,
+            "Export de la table `parametres` la veille (`parametres-veille.sql`).");
+        var api = Sys(mep, c.Sys("API"), "Service messages 1.8.1", StatutSauvegarde.NonRequise, ModeSauvegarde.AvantMep,
+            justification: "Service sans état, la version 1.8.0 reste dans le dépôt d'artefacts.");
+        var web = Sys(mep, c.Sys("WEB"), "Formulaire de contact", StatutSauvegarde.NonRequise, ModeSauvegarde.AvantMep,
+            justification: "Page republiée depuis le dépôt.");
+        Responsables(mep,
+            (bob, [api, bdd], "Service messages et paramètres", DisponibiliteJourJ.Joignable),
+            (claire, [web], "Formulaire de contact", DisponibiliteJourJ.Joignable));
+        // Objets impactés : la version de chaque objet se garde, même sans version actuelle ni cible pour la MEP.
+        Objets(mep, bdd, c.Sys("BDD"), "adresse du support corrigée", "parametres");
+        Objets(mep, api, c.Sys("API"), "1.8.1", "messagerie-api.jar");
+        Objets(mep, web, c.Sys("WEB"), "formulaire corrigé", "portail-web.tar.gz");
+
+        var e1 = E(mep, 1, 0, "Nouvelle adresse du support dans les paramètres", [bdd], 0, Criticite.Faible,
+            Sim + Code("psql -h bdd-demo -U admin -d messages -c \"UPDATE parametres SET valeur = 'support@exemple.invalid' WHERE cle = 'adresse_support';\""),
+            "UPDATE 1");
+        var e2 = E(mep, 2, 1, "Redémarrage du service messages 1.8.1", [api, bdd], 0, Criticite.Faible,
+            Sim + Code("cd /opt/messages && ./deploy.sh 1.8.1"), "`GET /sante` renvoie 200 et la base est joignable.", e1);
+        var e3 = E(mep, 3, 1, "Publication du formulaire corrigé", [web], 0, Criticite.Faible,
+            Sim + Code("./publier.sh contact"), "Le formulaire affiche « Votre message a été envoyé au support ».", e1);
+        var e4 = E(mep, 4, 2, "Envoi d'un message de test", [web, api], 0, Criticite.Faible,
+            "Envoyer un message depuis le formulaire avec l'objet « Test MEP ».", "Le message arrive dans la boîte du support.", e2, e3);
+        Regles.DefinirFin(e4, FinEtape.Verification);
+        var r1 = R(mep, 1, 0, "Remettre l'ancienne adresse", [bdd], 0,
+            Sim + Code("psql -h bdd-demo -U admin -d messages -f parametres-veille.sql"), "Ancienne adresse en place.");
+        R(mep, 2, 1, "Republier le service messages 1.8.0", [api], 0, Sim + Code("cd /opt/messages && ./deploy.sh 1.8.0"),
+            "`GET /sante` renvoie la version 1.8.0.", r1);
+        // MEP simplifiée : les étapes n'ont ni durée, ni criticité, ni résolutions liées.
+        foreach (var e in mep.Etapes) Regles.AppliquerTypeAEtape(mep, e);
+        mep.PlanRepli = Repli(10, "Service messages 1.8.0.", "Table `parametres` rechargée depuis `parametres-veille.sql`.");
+
+        Fiche(mep, web, "Formulaire de contact", ("Envoyer un message depuis le site public.", "Accusé de réception affiché."));
+        Fiche(mep, api, "Service messages", (Code("curl -fsS https://messages.exemple.invalid/sante"), "Réponse 200, version 1.8.1."));
+        Fiche(mep, bdd, "Paramètres", (Code("psql -h bdd-demo -U lecture -d messages -c \"SELECT valeur FROM parametres WHERE cle = 'adresse_support';\""),
+            "support@exemple.invalid"));
+
+        var eq = c.Equipe;
+        var go = c.Maintenant.AddMinutes(-40);
+        // Pas de version dans une MEP simplifiée : {{version_cible}} reste à compléter dans l'annonce.
+        mep.Communication = new Communication
+        {
+            ReferenceDemande = "CHG-DEMO-0414",
+            NiveauRisque = NiveauRisque.Faible,
+            Benefices = "Les messages du formulaire de contact arrivent au support",
+            UtilisateursImpactes = "visiteurs du site public (fictif)",
+            ArretApplicatif = true,
+            ActionUtilisateurs = "aucune",
+            HeureLimite = Heure(go),
+            DateAnnoncee = Jour(go),
+            HeureDebutAnnoncee = Heure(go),
+            HeureFinAnnoncee = Heure(go.AddHours(1)),
+        };
+
+        var d = new Deroule(mep, c.Maintenant.AddDays(-1).AddHours(-6));
+        d.Creer(eq.Claire);
+        d.Plus(20).Approbateurs(eq.Claire, eq.Alice);
+        d.Plus(30).Relire(eq.Bob);
+        d.A(c.Maintenant.AddHours(-2)).Approuver(eq.Alice, "");
+        d.A(go).Go(eq.Claire, c.Criteres);
+        d.Plus(2).Demarrer(eq.Bob, e1);
+        d.Plus(3).Reussir(eq.Bob, e1, "UPDATE 1 — fictif");
+        d.Plus(1).Demarrer(eq.Bob, e2);
+        d.Plus(1).Demarrer(eq.Claire, e3);
+        d.Plus(4).Reussir(eq.Claire, e3, "Formulaire publié — fictif");
+        d.Plus(3).Echouer(eq.Bob, e2, "Erreur fictive : password authentication failed for user \"messages\".");
+        d.Plus(2).Commenter(eq.Bob, e2, "La connexion à la base est refusée depuis le redémarrage : voir les résolutions API et BDD proposées.");
         return d.Fin();
     }
 

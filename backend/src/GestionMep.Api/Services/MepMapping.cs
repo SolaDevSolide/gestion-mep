@@ -44,7 +44,7 @@ public static class MepMapping
         return new MepDto(
             m.Id, m.Version, m.Outil, m.VersionActuelle, m.VersionCible, m.Objet, m.Impacts,
             m.DateMep, m.HeureDebut, m.HeureFin, m.FuseauHoraire, m.IndisponibiliteMinutes,
-            m.PiloteId, [.. m.SuppleantIds], m.Phase, m.EcheanceRepli,
+            m.PiloteId, Regles.Suppleants(m), m.Phase, m.EcheanceRepli,
             m.Issue,
             m.RetourArriereDeclencheLe is { } declenche ? new RetourArriereDto(declenche, Nom(m.RetourArriereDeclenchePar), m.RetourArriereMotif) : null,
             m.ClotureeLe is { } cloture ? new ClotureDto(cloture, Nom(m.ClotureeParId)) : null,
@@ -94,6 +94,7 @@ public static class MepMapping
             m.ResponsablesTechniques.Select(r => new ResponsableTechniqueDto(r.ParticipantId, [.. r.SystemeIds], r.Perimetre, r.Disponibilite, r.ContactJourJ)).ToList(),
             Regles.Avertissements(m),
             m.RetourArriereActive,
-            Communication(m.Communication, pieces));
+            Communication(m.Communication, pieces),
+            m.Type);
     }
 }

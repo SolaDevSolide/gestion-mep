@@ -5,7 +5,7 @@ import { api } from '../api';
 import type { MepResume } from '../types';
 import ListeMepPage from './ListeMepPage';
 
-vi.mock('../api', () => ({ api: { meps: vi.fn(), equipes: vi.fn() } }));
+vi.mock('../api', () => ({ api: { meps: vi.fn(), equipes: vi.fn(), creerMep: vi.fn() } }));
 
 const resume = (p: Partial<MepResume>): MepResume => ({
   id: 'm',
@@ -24,6 +24,7 @@ const resume = (p: Partial<MepResume>): MepResume => ({
   creeLe: '2026-10-01T08:00:00Z',
   issue: null,
   retourArriereActive: true,
+  type: 'Complete',
   equipeIds: [],
   personnes: [],
   ...p,
@@ -92,5 +93,45 @@ describe('ListeMepPage', () => {
     expect(portail).toHaveTextContent(/Production/);
     const recette = screen.getByText('Recette seule').closest('li') ?? document.body;
     expect(recette).not.toHaveTextContent(/Production/);
+  });
+});
+
+describe('ListeMepPage : MEP simplifiée', () => {
+  beforeEach(() => {
+    vi.mocked(api.equipes).mockResolvedValue([]);
+    vi.mocked(api.creerMep).mockReset();
+  });
+
+  it('crée une MEP du type choisi (complète par défaut)', async () => {
+    vi.mocked(api.meps).mockResolvedValue([]);
+    vi.mocked(api.creerMep).mockResolvedValue({ id: 'n' } as never);
+    rendre();
+    await userEvent.click((await screen.findAllByRole('button', { name: /^Nouvelle MEP$/ }))[0]);
+    expect(screen.getByRole('radio', { name: /MEP complète/ })).toBeChecked();
+    await userEvent.click(screen.getByRole('radio', { name: /MEP simplifiée/ }));
+    await userEvent.type(screen.getByLabelText('Outil ou application'), 'Correctif');
+    await userEvent.click(screen.getByRole('button', { name: 'Créer la MEP' }));
+    expect(api.creerMep).toHaveBeenCalledWith('Correctif', '', false, 'Simplifiee');
+  });
+
+  it('pas de choix de type pour un modèle', async () => {
+    vi.mocked(api.meps).mockResolvedValue([]);
+    rendre();
+    await userEvent.click(screen.getByRole('radio', { name: /Modèles/ }));
+    await userEvent.click((await screen.findAllByRole('button', { name: /Nouveau modèle/ }))[0]);
+    expect(screen.getByRole('dialog', { name: 'Nouveau modèle' })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /MEP simplifiée/ })).not.toBeInTheDocument();
+  });
+
+  it('repère les MEP simplifiées dans la liste, sans version cible', async () => {
+    vi.mocked(api.meps).mockResolvedValue([
+      resume({ id: 'a', outil: 'Portail', versionCible: '2.0' }),
+      resume({ id: 'b', outil: 'Correctif', type: 'Simplifiee', versionCible: '9.9' }),
+    ]);
+    rendre();
+    expect(await screen.findByText('Correctif')).toBeInTheDocument();
+    expect(screen.getAllByText('MEP simplifiée')).toHaveLength(1);
+    expect(screen.getByText('2.0')).toBeInTheDocument();
+    expect(screen.queryByText('9.9')).not.toBeInTheDocument();
   });
 });

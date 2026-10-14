@@ -39,7 +39,7 @@ public static class StructureEndpoints
             var p = mep.Participants.FirstOrDefault(x => x.Id == pid) ?? throw ErreurHttp.NonTrouve("Participant introuvable.");
             // Le compte relié au pilote ou à un suppléant porte leurs droits (Go, clôture…) : comme pour désigner le pilote,
             // seul le pilote, un suppléant ou un administrateur peut le changer. Contrôle fait sur l'état avant modification.
-            if (p.UtilisateurId != c.UtilisateurId && (mep.PiloteId == pid || mep.SuppleantIds.Contains(pid)))
+            if (p.UtilisateurId != c.UtilisateurId && (mep.PiloteId == pid || Regles.Suppleants(mep).Contains(pid)))
                 ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote, un suppléant ou un administrateur peut changer le compte relié au pilote ou à un suppléant.");
             p.Nom = Requis(c.Nom, "Le nom");
             await svc.ExigerUtilisateurExistant(c.UtilisateurId);

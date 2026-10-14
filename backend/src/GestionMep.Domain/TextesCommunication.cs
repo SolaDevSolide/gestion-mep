@@ -38,6 +38,7 @@ public static class VariablesTexte
     [
         new("application", "Application", GroupeMep, "Outil concerné (Intervention)."),
         new("objet", "Objet de la MEP", GroupeMep, "Objet de l'intervention."),
+        new("type_mep", "Type de MEP", GroupeMep, "« MEP complète » ou « MEP simplifiée »."),
         new("version_actuelle", "Version actuelle", GroupeMep, "Version en production avant la MEP."),
         new("version_cible", "Version cible", GroupeMep, "Version installée par la MEP."),
         new("impacts", "Impacts attendus", GroupeMep, "Impacts saisis dans Intervention."),
@@ -160,6 +161,7 @@ public static class VariablesTexte
         {
             ["application"] = V(mep.Outil),
             ["objet"] = V(mep.Objet),
+            ["type_mep"] = V(mep.Type == TypeMep.Simplifiee ? "MEP simplifiée" : "MEP complète"),
             ["version_actuelle"] = V(mep.VersionActuelle),
             ["version_cible"] = V(mep.VersionCible),
             ["impacts"] = V(UneLigne(mep.Impacts)),

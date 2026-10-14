@@ -30,7 +30,8 @@ public static partial class Regles
             Objet = source.Objet, Impacts = source.Impacts,
             FuseauHoraire = source.FuseauHoraire, IndisponibiliteMinutes = source.IndisponibiliteMinutes,
             Environnement = source.Environnement,
-            EstModele = commeModele, BilanActive = source.BilanActive, RetourArriereActive = source.RetourArriereActive,
+            // Un modèle est toujours complet ; une MEP créée depuis un modèle l'est donc aussi.
+            EstModele = commeModele, Type = commeModele ? TypeMep.Complete : source.Type, BilanActive = source.BilanActive, RetourArriereActive = source.RetourArriereActive,
             CreeLe = maintenant, CreeParUtilisateurId = utilisateurId,
             PlanRepli = new PlanRepli
             {
@@ -56,7 +57,8 @@ public static partial class Regles
         }
         Guid? P(Guid? id) => id is { } g && participants.TryGetValue(g, out var n) ? n : null;
         mep.PiloteId = P(source.PiloteId);
-        mep.SuppleantIds = source.SuppleantIds.Select(id => P(id)).OfType<Guid>().ToList();
+        // Suppléants implicites d'une MEP simplifiée copiée en modèle (complet) : ils deviennent des suppléants choisis.
+        mep.SuppleantIds = mep.Type == TypeMep.Simplifiee ? [] : Suppleants(source).Select(id => P(id)).OfType<Guid>().ToList();
 
         var systemes = new Dictionary<Guid, Guid>();
         foreach (var s in source.Systemes)

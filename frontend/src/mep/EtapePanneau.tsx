@@ -17,6 +17,7 @@ import { EtapeInfos } from './etape/EtapeInfos';
 import { EtapeInstructions } from './etape/EtapeInstructions';
 import { EtapeRetour } from './etape/EtapeRetour';
 import { Surcouche } from './graphe/EspaceEtape';
+import { estSimplifiee, resolutionsParSysteme } from './typeMep';
 
 export interface ActionsEtape {
   demarrer: (e: Etape) => Promise<boolean | void> | void;
@@ -94,9 +95,13 @@ export function EtapePanneau({
   const droits = droitsEtape(mep, etape, admin);
   const nomExec = nomParticipant(mep, etape.executantId);
   const { enCours, historique } = resolutionsDeLEtape(mep, etape);
-  const liees = etape.resolutionIds
-    .map((id) => resolutionsTypes.find((r) => r.id === id))
-    .filter((r): r is ResolutionType => !!r);
+  // MEP simplifiée : pas de résolutions liées, toutes celles des systèmes de l'étape sont proposées (regroupées par système).
+  const groupes = estSimplifiee(mep) ? resolutionsParSysteme(mep, etape, resolutionsTypes) : null;
+  const liees = groupes
+    ? groupes.flatMap((g) => g.resolutions)
+    : etape.resolutionIds
+        .map((id) => resolutionsTypes.find((r) => r.id === id))
+        .filter((r): r is ResolutionType => !!r);
   const commentaireAEnvoyer = commentaire.dirty ? commentaire.value.trim() : undefined;
 
   const barre = (
@@ -139,6 +144,7 @@ export function EtapePanneau({
             mep={mep}
             etape={etape}
             liees={liees}
+            titreResolutions={groupes ? 'Résolutions des systèmes' : undefined}
             historique={historique}
             peutPrendreLaMain={droits.peutPrendreLaMain}
             onPrendreLaMain={() => setConfirmation('main')}
@@ -151,6 +157,7 @@ export function EtapePanneau({
             etape={etape}
             droits={droits}
             liees={liees}
+            groupes={groupes}
             enCours={enCours}
             actions={actions}
           />

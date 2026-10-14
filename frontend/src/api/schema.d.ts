@@ -725,6 +725,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meps/{id}/type": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TypeMepSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meps/{id}/sauvegarde": {
         parameters: {
             query?: never;
@@ -5907,6 +5946,9 @@ export interface components {
             /**
              * @description `RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).
              *     `EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.
+             *     `Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les
+             *     personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
+             *     résolutions liées.
              */
             mep: {
                 /** Format: uuid */
@@ -6286,6 +6328,14 @@ export interface components {
                     /** Format: uuid */
                     preuveValidationId: null | string;
                 };
+                /**
+                 * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+                 *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+                 *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+                 *     valeur par défaut, est la MEP complète.
+                 * @enum {unknown}
+                 */
+                type: "Complete" | "Simplifiee";
             };
             /** Format: int32 */
             ajoutes: number;
@@ -6360,15 +6410,22 @@ export interface components {
             /** Format: uuid */
             systemeCatalogueId: null | string;
         };
-        /** @description Création d'une MEP, ou d'un modèle si `Modele` vaut true. */
+        /**
+         * @description Création d'une MEP, ou d'un modèle si `Modele` vaut true. `Type` absent : MEP complète ; un modèle est
+         *     toujours complet.
+         */
         MepCreationSaisie: {
             outil: null | string;
             objet: null | string;
             modele?: null | boolean;
+            type?: null | components["schemas"]["TypeMep"];
         };
         /**
          * @description `RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).
          *     `EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.
+         *     `Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les
+         *     personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
+         *     résolutions liées.
          */
         MepDto: {
             /** Format: uuid */
@@ -6748,10 +6805,19 @@ export interface components {
                 /** Format: uuid */
                 preuveValidationId: null | string;
             };
+            /**
+             * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+             *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+             *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+             *     valeur par défaut, est la MEP complète.
+             * @enum {unknown}
+             */
+            type: "Complete" | "Simplifiee";
         };
         /**
          * @description `BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance. La MEP n'a plus
          *     d'environnement propre : ils se choisissent par système (`PUT /meps/{id}/systemes/{sid}/environnements`).
+         *     MEP simplifiée : `VersionActuelle`, `VersionCible` et `SuppleantIds` sont ignorés (pas de versions, suppléants implicites).
          */
         MepIdentiteSaisie: {
             /** Format: int32 */
@@ -6784,7 +6850,7 @@ export interface components {
          *     `ToucheProduction` : l'un des systèmes de la MEP touche un environnement de production.
          *     `EquipeIds` : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait
          *     partie, par l'un de ses comptes reliés). `Personnes` : noms des personnes de la MEP et, pour celles qui ont un compte,
-         *     noms et logins de tous leurs comptes reliés (pour la recherche).
+         *     noms et logins de tous leurs comptes reliés (pour la recherche). `Type` : MEP complète ou simplifiée.
          */
         MepResumeDto: {
             /** Format: uuid */
@@ -6812,6 +6878,7 @@ export interface components {
             retourArriereActive: boolean;
             equipeIds: string[];
             personnes: string[];
+            type: components["schemas"]["TypeMep"];
         };
         /**
          * @description Dernière version publiée sur GitHub. `Disponible` : elle est plus récente que la version en cours (toujours faux
@@ -7481,6 +7548,20 @@ export interface components {
         };
         /** @enum {unknown} */
         TypeEtape: "Standard" | "Sauvegarde" | null;
+        /**
+         * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+         *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+         *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+         *     valeur par défaut, est la MEP complète.
+         * @enum {unknown}
+         */
+        TypeMep: "Complete" | "Simplifiee";
+        /** @description Changement de type d'une MEP en préparation (passer en simplifiée efface durées, criticités, résolutions liées et versions). */
+        TypeMepSaisie: {
+            /** Format: int32 */
+            version: null | number;
+            type: null | components["schemas"]["TypeMep"];
+        };
         /**
          * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
          * @enum {unknown}

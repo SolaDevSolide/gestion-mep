@@ -34,6 +34,14 @@ public enum FinEtape { TestUnitaire, Verification }
 
 public enum DecisionApprobation { Approuvee, Refusee }
 
+/// <summary>
+/// Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+/// Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+/// résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+/// valeur par défaut, est la MEP complète.
+/// </summary>
+public enum TypeMep { Complete, Simplifiee }
+
 /// <summary>Disponibilité d'un responsable technique le jour de la MEP.</summary>
 public enum DisponibiliteJourJ { Joignable, Absent }
 
@@ -101,7 +109,10 @@ public class Mep
     public string FuseauHoraire { get; set; } = "Europe/Paris";
     public int? IndisponibiliteMinutes { get; set; }
     public Guid? PiloteId { get; set; }
-    /// <summary>Participants suppléants du pilote : ils ont les mêmes droits que lui.</summary>
+    /// <summary>
+    /// Participants suppléants du pilote : ils ont les mêmes droits que lui. MEP simplifiée : liste vide, les suppléants sont
+    /// implicites (toutes les personnes sauf le pilote, voir <see cref="Regles.Suppleants"/>).
+    /// </summary>
     public List<Guid> SuppleantIds { get; set; } = [];
     /// <summary>
     /// Obsolète : ancien environnement de la MEP (texte libre). Les environnements appartiennent désormais aux systèmes
@@ -110,6 +121,8 @@ public class Mep
     public string Environnement { get; set; } = "";
     /// <summary>Modèle de MEP : sert uniquement à être dupliqué, ne passe jamais en exécution.</summary>
     public bool EstModele { get; set; }
+    /// <summary>Complète (par défaut, et pour les MEP existantes) ou simplifiée ; un modèle est toujours complet.</summary>
+    public TypeMep Type { get; set; } = TypeMep.Complete;
 
     // Pilotage
     public Phase Phase { get; set; } = Phase.Preparation;

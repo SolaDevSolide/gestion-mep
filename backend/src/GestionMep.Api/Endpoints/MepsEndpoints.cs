@@ -44,7 +44,7 @@ public static class MepsEndpoints
                 NbEtapes = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement),
                 NbReussies = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
                 NbEchecs = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
-                Environnements = m.Systemes.Select(s => s.Environnements).ToList(), m.EstModele, m.CreeLe, m.RetourArriereActive,
+                Environnements = m.Systemes.Select(s => s.Environnements).ToList(), m.EstModele, m.CreeLe, m.RetourArriereActive, m.Type,
                 Comptes = m.Participants.Where(p => p.UtilisateurId != null).Select(p => p.UtilisateurId!.Value).ToList(),
                 Noms = m.Participants.Select(p => p.Nom).ToList(),
             })
@@ -55,7 +55,8 @@ public static class MepsEndpoints
             m.Environnements.Any(l => l.Any(e => e.Production)), m.EstModele, m.CreeLe, m.Issue,
             m.RetourArriereActive,
             [.. m.Comptes.SelectMany(annuaire.EquipesDeLaPersonne).Distinct().Order()],
-            [.. m.Noms.Concat(m.Comptes.SelectMany(annuaire.TermesDeRecherche)).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)])).ToList();
+            [.. m.Noms.Concat(m.Comptes.SelectMany(annuaire.TermesDeRecherche)).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)],
+            m.Type)).ToList();
 
     /// <summary>Journal d'une MEP, du plus récent au plus ancien (partagé avec <c>gestion-mep meps exporter</c>).</summary>
     public static async Task<List<EvenementDto>> Journal(MepDbContext db, Guid id)
@@ -77,13 +78,17 @@ public static class MepsEndpoints
             var outil = ServiceMep.Texte(corps.Outil);
             if (outil.Length == 0) throw ErreurHttp.Saisie("L'outil est obligatoire.");
             var modele = corps.Modele == true;
-            var mep = new Mep { Outil = outil, Objet = ServiceMep.Texte(corps.Objet), EstModele = modele, CreeLe = svc.Maintenant, CreeParUtilisateurId = acteur.Id };
+            var type = corps.Type ?? TypeMep.Complete;
+            if (!Enum.IsDefined(type)) throw ErreurHttp.Saisie("Type de MEP inconnu : Complete ou Simplifiee.");
+            if (modele && type != TypeMep.Complete) throw ErreurHttp.Saisie("Un modèle est toujours une MEP complète.");
+            var mep = new Mep { Outil = outil, Objet = ServiceMep.Texte(corps.Objet), EstModele = modele, Type = type, CreeLe = svc.Maintenant, CreeParUtilisateurId = acteur.Id };
             // Le créateur est participant et responsable technique ; le pilote se choisit ensuite.
             var createur = new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Responsable technique", UtilisateurId = acteur.Id };
             mep.Participants.Add(createur);
             mep.ResponsablesTechniques.Add(new ResponsableTechnique { ParticipantId = createur.Id, Disponibilite = DisponibiliteJourJ.Joignable });
             db.Meps.Add(mep);
-            var dto = await svc.Enregistrer(mep, acteur, "mep.creee", modele ? $"Modèle créé : {outil}" : $"MEP créée : {outil}");
+            var dto = await svc.Enregistrer(mep, acteur, "mep.creee",
+                modele ? $"Modèle créé : {outil}" : type == TypeMep.Simplifiee ? $"MEP simplifiée créée : {outil}" : $"MEP créée : {outil}");
             return Results.Created($"/api/meps/{mep.Id}", dto);
         });
 
@@ -118,8 +123,9 @@ public static class MepsEndpoints
 
             if (corps.IndisponibiliteMinutes is < 0) throw ErreurHttp.Saisie("L'indisponibilité ne peut pas être négative.");
             if (corps.PiloteId is not null) ServiceMep.TrouverParticipant(mep, corps.PiloteId, "Pilote");
-            // suppleantIds absent (null) : inchangés.
-            var suppleants = corps.SuppleantIds ?? [.. mep.SuppleantIds];
+            // suppleantIds absent (null) : inchangés. MEP simplifiée : suppléants implicites et pas de versions, la saisie est ignorée.
+            var simplifiee = Regles.EstSimplifiee(mep);
+            var suppleants = simplifiee ? [] : corps.SuppleantIds ?? [.. mep.SuppleantIds];
             foreach (var s in suppleants) ServiceMep.TrouverParticipant(mep, s, "Suppléant");
             var outil = ServiceMep.Texte(corps.Outil);
             if (outil.Length == 0) throw ErreurHttp.Saisie("L'outil est obligatoire.");
@@ -132,8 +138,11 @@ public static class MepsEndpoints
                 if (!EqualityComparer<T>.Default.Equals(actuel, nouveau)) modifs.Add((nom, () => poser(nouveau)));
             }
             Si(mep.Outil, outil, v => mep.Outil = v, "outil");
-            Si(mep.VersionActuelle, ServiceMep.Texte(corps.VersionActuelle), v => mep.VersionActuelle = v, "version actuelle");
-            Si(mep.VersionCible, ServiceMep.Texte(corps.VersionCible), v => mep.VersionCible = v, "version cible");
+            if (!simplifiee)
+            {
+                Si(mep.VersionActuelle, ServiceMep.Texte(corps.VersionActuelle), v => mep.VersionActuelle = v, "version actuelle");
+                Si(mep.VersionCible, ServiceMep.Texte(corps.VersionCible), v => mep.VersionCible = v, "version cible");
+            }
             Si(mep.Objet, ServiceMep.Texte(corps.Objet), v => mep.Objet = v, "objet");
             Si(mep.Impacts, ServiceMep.Texte(corps.Impacts), v => mep.Impacts = v, "impacts");
             // dateMep, heureDebut, heureFin : ignorés depuis le jalon 4.2 (début = Go, fin = clôture).
@@ -180,6 +189,30 @@ public static class MepsEndpoints
             }
             if (noms.Count > 0) evenements.Add(new("mep.modifiee", "MEP modifiée : " + string.Join(", ", noms)));
             return await svc.EnregistrerContenu(mep, acteur, evenements);
+        })));
+
+        // Type de MEP, en préparation : simplifiée → complète (tout est conservé) ou complète → simplifiée (destructif).
+        api.MapPut("/meps/{id:guid}/type", async (Guid id, TypeMepSaisie corps, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
+        {
+            var acteur = Acteur.Depuis(user);
+            ServiceMep.ExigerEditeur(mep, acteur);
+            // Réservé au pilote (ou un suppléant, ou un administrateur) ; tant qu'aucun pilote n'est désigné, à tout éditeur.
+            if (mep.PiloteId is not null)
+                ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote, un suppléant ou un administrateur peut changer le type de la MEP.");
+            ServiceMep.ExigerVersion(mep, corps.Version);
+            var type = corps.Type ?? throw ErreurHttp.Saisie("Le type (Complete ou Simplifiee) est obligatoire.");
+            if (!Enum.IsDefined(type)) throw ErreurHttp.Saisie("Type de MEP inconnu : Complete ou Simplifiee.");
+            if (type == mep.Type) return await svc.VersDto(mep, acteur.Id);
+            if (type == TypeMep.Complete)
+            {
+                var suppleants = Regles.PasserEnComplete(mep);
+                return await svc.EnregistrerContenu(mep, acteur, "mep.type",
+                    $"MEP passée en complète : tout est conservé ; {suppleants} suppléant(s) conservé(s), versions et criticités à renseigner");
+            }
+            var e = Regles.PasserEnSimplifiee(mep);
+            return await svc.EnregistrerContenu(mep, acteur, "mep.type",
+                $"MEP passée en simplifiée : effacés {e.Durees} durée(s), {e.Criticites} criticité(s), {e.ResolutionsLiees} résolution(s) liée(s)"
+                + (e.Versions ? ", versions actuelle et cible" : "") + $", {e.Suppleants} suppléant(s) choisi(s) (désormais toutes les personnes sauf le pilote)");
         })));
 
         api.MapPut("/meps/{id:guid}/sauvegarde", async (Guid id, SauvegardeSaisie corps, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>

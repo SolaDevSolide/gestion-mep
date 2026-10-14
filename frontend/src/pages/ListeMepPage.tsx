@@ -3,6 +3,7 @@ import {
   CalendarDays,
   Copy,
   Factory,
+  Feather,
   LayoutTemplate,
   Plus,
   Rocket,
@@ -17,7 +18,7 @@ import { calculerCompteARebours, formatDate, LIBELLE_PHASE } from '../format';
 import { useAsync, useNow } from '../hooks';
 import { mepCorrespond } from '../personnes';
 import { metaPhase } from '../statuts';
-import type { MepResume, Phase } from '../types';
+import type { MepResume, Phase, TypeMep } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
@@ -29,6 +30,7 @@ import { ProgressBar } from '../ui/ProgressBar';
 import { Badge, StatusPill } from '../ui/StatusPill';
 import { Segmented } from '../ui/Segmented';
 import { DuplicationDialog, type SourceDuplication } from '../mep/DuplicationDialog';
+import { BadgeSimplifiee, estSimplifiee } from '../mep/typeMep';
 import { useToast } from '../ui/Toast';
 import { OctagonAlert } from 'lucide-react';
 
@@ -55,6 +57,65 @@ function Chrono({ m, now }: { m: MepResume; now: number }) {
   );
 }
 
+const TYPES_MEP: { valeur: TypeMep; libelle: string; Icone: typeof Rocket; description: string }[] = [
+  {
+    valeur: 'Complete',
+    libelle: 'MEP complète',
+    Icone: Rocket,
+    description:
+      'Le plan détaillé : versions, pilote et suppléants choisis, durée, criticité et résolutions par étape.',
+  },
+  {
+    valeur: 'Simplifiee',
+    libelle: 'MEP simplifiée',
+    Icone: Feather,
+    description:
+      'Pour une petite intervention : un pilote, les autres personnes sont suppléantes, des étapes sans durée ni criticité.',
+  },
+];
+
+/** Choix du type d'une nouvelle MEP : deux cartes radio (complète par défaut). */
+function ChoixType({ valeur, onChange }: { valeur: TypeMep; onChange: (t: TypeMep) => void }) {
+  return (
+    <fieldset>
+      <legend className="mb-1.5 text-[13px] font-medium">Type de MEP</legend>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {TYPES_MEP.map((t) => {
+          const actif = valeur === t.valeur;
+          return (
+            <label
+              key={t.valeur}
+              className={cn(
+                'flex cursor-pointer flex-col gap-1 rounded-lg border-[1.5px] p-3 transition-colors duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent',
+                actif
+                  ? 'border-accent bg-accent-soft shadow-[0_0_0_3px_var(--accent-soft)]'
+                  : 'border-line-strong hover:border-accent',
+              )}
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <input
+                  type="radio"
+                  name="type-mep"
+                  value={t.valeur}
+                  checked={actif}
+                  onChange={() => onChange(t.valeur)}
+                  className="size-4 shrink-0 accent-[var(--accent)]"
+                />
+                <t.Icone className="size-4 text-fg-subtle" aria-hidden />
+                {t.libelle}
+              </span>
+              <span className="pl-6 text-xs leading-snug text-fg-muted">{t.description}</span>
+            </label>
+          );
+        })}
+      </div>
+      <p className="mt-1.5 text-xs text-fg-subtle">
+        Le type se change pendant la préparation : une MEP simplifiée passe en complète sans rien perdre.
+      </p>
+    </fieldset>
+  );
+}
+
 function NouvelleMepDialog({
   open,
   onOpenChange,
@@ -69,6 +130,7 @@ function NouvelleMepDialog({
   const toast = useToast();
   const [outil, setOutil] = useState('');
   const [objet, setObjet] = useState('');
+  const [type, setType] = useState<TypeMep>('Complete');
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState(false);
 
@@ -77,7 +139,8 @@ function NouvelleMepDialog({
     setErreur('');
     setEnvoi(true);
     try {
-      const mep = await api.creerMep(outil.trim(), objet.trim(), modele);
+      // Un modèle est toujours une MEP complète.
+      const mep = await api.creerMep(outil.trim(), objet.trim(), modele, modele ? 'Complete' : type);
       toast.succes(modele ? 'Modèle créé.' : 'MEP créée.');
       onOpenChange(false);
       void navigate(`/meps/${mep.id}`);
@@ -116,6 +179,7 @@ function NouvelleMepDialog({
       }
     >
       <form id="form-nouvelle-mep" onSubmit={(e) => void creer(e)} className="space-y-4">
+        {!modele && <ChoixType valeur={type} onChange={setType} />}
         <Field label="Outil ou application">
           {(id) => (
             <Input
@@ -371,7 +435,7 @@ export default function ListeMepPage() {
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                       <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight">
                         <span className="truncate">{m.outil || 'Sans nom'}</span>
-                        {m.versionCible.trim() && (
+                        {!estSimplifiee(m) && m.versionCible.trim() && (
                           <>
                             <ArrowRight className="size-4 shrink-0 text-fg-subtle" aria-hidden />
                             <span className="font-mono text-[15px] font-semibold">{m.versionCible}</span>
@@ -396,6 +460,7 @@ export default function ListeMepPage() {
                           <span className="sr-only"> : la MEP touche un environnement de production</span>
                         </Badge>
                       )}
+                      {estSimplifiee(m) && <BadgeSimplifiee className="text-[11px]" />}
                     </div>
                     {m.objet && <p className="mt-1 line-clamp-1 text-sm text-fg-muted">{m.objet}</p>}
                   </div>

@@ -24,7 +24,7 @@ public static partial class Regles
                 return new(StatutDisponibilite.RetourArriere, "RETOUR ARRIÈRE");
         }
 
-        if (string.IsNullOrWhiteSpace(etape.Action) || etape.SystemeIds.Count == 0 || etape.Criticite is null)
+        if (string.IsNullOrWhiteSpace(etape.Action) || etape.SystemeIds.Count == 0 || (etape.Criticite is null && !EstSimplifiee(mep)))
             return new(StatutDisponibilite.FicheACompleter, "Fiche à compléter");
         if (string.IsNullOrWhiteSpace(etape.Instructions) || string.IsNullOrWhiteSpace(etape.ResultatAttendu))
             return new(StatutDisponibilite.InstructionsACompleter, "Instructions à compléter");

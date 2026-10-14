@@ -392,14 +392,23 @@ public static partial class LigneDeCommande
 
     private static async Task<int> MepsLister(string[] arguments)
     {
-        var o = Options.Lire(arguments, ["--phase", "--equipe"], "--modeles");
+        var o = Options.Lire(arguments, ["--phase", "--equipe", "--type"], "--modeles");
         Phase? phase = o.Valeur("--phase") is { } p
             ? Enum.TryParse<Phase>(p.Replace("-", "", StringComparison.Ordinal), ignoreCase: true, out var lue) && Enum.IsDefined(lue) ? lue
                 : throw ErreurHttp.Saisie("--phase attend preparation, execution, recette, retour-arriere ou cloturee.")
             : null;
+        TypeMep? type = o.Valeur("--type") is { } t
+            ? t.ToLowerInvariant() switch
+            {
+                "complete" => TypeMep.Complete,
+                "simplifiee" => TypeMep.Simplifiee,
+                _ => throw ErreurHttp.Saisie("--type attend complete ou simplifiee."),
+            }
+            : null;
         await using var db = Base(Configuration());
         Guid? equipe = o.Valeur("--equipe") is { } e ? (await EquipesEndpoints.Trouver(db, e)).Id : null;
-        var meps = (await MepsEndpoints.Lister(db, o.A("--modeles"), equipe)).Where(m => phase is null || m.Phase == phase).ToList();
+        var meps = (await MepsEndpoints.Lister(db, o.A("--modeles"), equipe))
+            .Where(m => (phase is null || m.Phase == phase) && (type is null || m.Type == type)).ToList();
         if (EnJson)
         {
             EcrireJson(meps);
@@ -410,11 +419,11 @@ public static partial class LigneDeCommande
             Console.WriteLine(o.A("--modeles") ? "Aucun modèle." : "Aucune MEP.");
             return 0;
         }
-        Console.WriteLine($"{"ID",-8}  {"PHASE",-24}  {"CRÉÉE LE",-10}  {"PROD.",-5}  ÉTAPES   OUTIL ET OBJET");
+        Console.WriteLine($"{"ID",-8}  {"PHASE",-24}  {"CRÉÉE LE",-10}  {"PROD.",-5}  {"TYPE",-11}  ÉTAPES   OUTIL ET OBJET");
         foreach (var m in meps)
         {
             var phaseTexte = Libelle(m.Phase) + (m.Issue is { } issue ? issue == IssueMep.Reussie ? ", réussie" : ", repliée" : "");
-            Console.WriteLine($"{m.Id.ToString()[..8]}  {phaseTexte,-24}  {m.CreeLe:yyyy-MM-dd}  {(m.ToucheProduction ? "oui" : ""),-5}  {$"{m.NbReussies}/{m.NbEtapes}",-7}  "
+            Console.WriteLine($"{m.Id.ToString()[..8]}  {phaseTexte,-24}  {m.CreeLe:yyyy-MM-dd}  {(m.ToucheProduction ? "oui" : ""),-5}  {(m.Type == TypeMep.Simplifiee ? "simplifiée" : "complète"),-11}  {$"{m.NbReussies}/{m.NbEtapes}",-7}  "
                 + $"{m.Outil}{(m.VersionCible.Length > 0 ? $" {m.VersionCible}" : "")}{(m.Objet.Length > 0 ? $" : {m.Objet}" : "")}");
         }
         return 0;

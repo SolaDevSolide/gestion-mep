@@ -3,9 +3,15 @@ namespace GestionMep.Domain;
 // Règles métier : droits.
 public static partial class Regles
 {
-    /// <summary>Pilote ou l'un de ses suppléants (mêmes droits).</summary>
-    public static bool EstPilote(Mep mep, Guid utilisateurId) =>
-        mep.Participants.Any(p => p.UtilisateurId == utilisateurId && (p.Id == mep.PiloteId || mep.SuppleantIds.Contains(p.Id)));
+    /// <summary>
+    /// Pilote ou l'un de ses suppléants (mêmes droits). MEP simplifiée : toute personne de la MEP dès qu'un pilote est désigné
+    /// (suppléants implicites, voir <see cref="Suppleants"/>).
+    /// </summary>
+    public static bool EstPilote(Mep mep, Guid utilisateurId)
+    {
+        var suppleants = Suppleants(mep);
+        return mep.Participants.Any(p => p.UtilisateurId == utilisateurId && (p.Id == mep.PiloteId || suppleants.Contains(p.Id)));
+    }
 
     /// <summary>Compte relié à l'un des responsables techniques de la MEP.</summary>
     public static bool EstResponsableTechnique(Mep mep, Guid utilisateurId) =>

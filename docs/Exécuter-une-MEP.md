@@ -59,7 +59,7 @@ Si l'exécutant d'une étape en cours ou en échec est injoignable, une autre pe
 
 ## Quand une étape échoue
 
-L'étape en échec propose ses **résolutions prévues** (« Problème connu ? »). L'exécutant ou le pilote clique « Appliquer cette résolution » :
+L'étape en échec propose ses **résolutions prévues** (« Problème connu ? »). Dans une [MEP simplifiée](Préparer-une-MEP.md#mep-complète-ou-simplifiée), qui n'a pas de résolutions liées, ce sont **toutes les résolutions types actives des systèmes de l'étape**, regroupées par système, puis sous « Tous les systèmes » celles qui ne visent aucun système. L'exécutant ou le pilote (ou, dans une MEP simplifiée, n'importe quelle personne de la MEP, toutes étant suppléantes) clique « Appliquer cette résolution » :
 
 1. le diagnostic s'affiche, puis chaque correction dans l'ordre ;
 2. pour chaque correction : l'appliquer, noter l'observation, déclarer « Conforme » ou « Échec » ;

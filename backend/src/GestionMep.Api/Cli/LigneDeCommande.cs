@@ -95,7 +95,7 @@ public static partial class LigneDeCommande
                                                               est refusée, remplacée ou ignorée ; --essai : contrôle sans écrire
 
         MEP et journal
-          gestion-mep meps lister [--phase <phase>] [--equipe <équipe>] [--modeles]
+          gestion-mep meps lister [--phase <phase>] [--equipe <équipe>] [--type complete|simplifiee] [--modeles]
                                                               Phases : preparation, execution, recette, retour-arriere, cloturee
           gestion-mep meps exporter <id> [fichier.json|-]     MEP complète et son journal, en JSON (archive, audit)
           gestion-mep journal [--depuis AAAA-MM-JJ] [--limite n]

@@ -14,6 +14,7 @@ import { EtapePanneau, type ActionsEtape } from './EtapePanneau';
 import { GrapheEtapes } from './graphe/GrapheEtapes';
 import { useModeEspace } from './graphe/EspaceEtape';
 import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
+import { estSimplifiee } from './typeMep';
 import { descriptionsSystemes } from './graphe/systemes';
 
 /** Vue d'exécution d'un plan : graphe des étapes (états, liens verts une fois les préalables réussis), espace de l'étape ouverte. */
@@ -165,7 +166,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
             </button>
           )}
           <span className="ml-auto flex items-center gap-2">
-            <ResumePlan etapes={etapes} />
+            <ResumePlan etapes={etapes} sansDuree={estSimplifiee(mep)} />
             <AideGraphe edition={false} />
           </span>
         </div>

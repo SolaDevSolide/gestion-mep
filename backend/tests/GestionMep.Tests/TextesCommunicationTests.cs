@@ -63,6 +63,9 @@ public class TextesCommunicationTests
         Assert.Equal("Alice", v["pilote"].Texte);
         Assert.Equal("poste 12", v["pilote_contact"].Texte);
         Assert.Equal("https://mep.exemple.invalid/meps/1", v["lien_mep"].Texte);
+        Assert.Equal("MEP complète", v["type_mep"].Texte);
+        mep.Type = TypeMep.Simplifiee;
+        Assert.Equal("MEP simplifiée", Valeurs(mep)["type_mep"].Texte);
         // Informations absentes : à compléter.
         Assert.True(v["reference_demande"].EstManquante);
         Assert.True(v["validation_utilisateurs"].EstManquante);

@@ -60,6 +60,7 @@ export function mep(p: Partial<Mep> = {}): Mep {
     fichesRecette: [],
     bilanActive: true,
     retourArriereActive: true,
+    type: 'Complete',
     bilan: null,
     nonRetourFranchi: null,
     piecesJointes: [],

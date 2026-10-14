@@ -36,6 +36,8 @@ import type {
   ResolutionTypeSaisie,
   ResultatControle,
   SauvegardeSaisie,
+  TypeMep,
+  TypeMepSaisie,
   VersionResolutionType,
   ResponsableTechniqueSaisie,
   SystemeCatalogue,
@@ -213,7 +215,10 @@ export const api = {
   adminJournal: (limite = 200) => get<EvenementAdmin[]>(`/admin/journal?limite=${limite}`),
 
   meps: (modele?: boolean) => get<MepResume[]>(`/meps${modele === undefined ? '' : `?modele=${modele}`}`),
-  creerMep: (outil: string, objet: string, modele = false) => post<Mep>('/meps', { outil, objet, modele }),
+  creerMep: (outil: string, objet: string, modele = false, type: TypeMep = 'Complete') =>
+    post<Mep>('/meps', { outil, objet, modele, type }),
+  /** Type de la MEP, en préparation : passer en simplifiée efface durées, criticités, résolutions liées et versions. */
+  changerTypeMep: (id: string, s: TypeMepSaisie) => put<Mep>(`/meps/${id}/type`, s),
   mep: (id: string) => get<Mep>(`/meps/${id}`),
   modifierIdentite: (id: string, s: MepIdentiteSaisie) => put<Mep>(`/meps/${id}`, s),
   modifierSauvegarde: (id: string, s: SauvegardeSaisie) => put<Mep>(`/meps/${id}/sauvegarde`, s),
