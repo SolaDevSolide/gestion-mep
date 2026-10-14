@@ -529,6 +529,36 @@
         }
       }
     },
+    "/api/meps/{id}/tests-unitaires": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestsUnitairesDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/meps/{id}/flux": {
       "get": {
         "tags": [
@@ -4052,7 +4082,11 @@
           "disponibilite",
           "type",
           "pointDeNonRetour",
-          "nonRetourAutorise"
+          "nonRetourAutorise",
+          "fin",
+          "resultatConstate",
+          "sauvegardeEmplacement",
+          "sauvegardeMethodeRecuperation"
         ],
         "type": "object",
         "properties": {
@@ -4226,9 +4260,25 @@
                 "format": "date-time"
               }
             }
+          },
+          "fin": {
+            "enum": [
+              "TestUnitaire",
+              "Verification"
+            ],
+            "description": "Fin d'une étape : test unitaire (le résultat attendu est l'instruction de test, le résultat constaté se saisit en\nterminant l'étape) ou simple vérification. Stockée en entier : 0, la valeur par défaut, est le test unitaire."
+          },
+          "resultatConstate": {
+            "type": "string"
+          },
+          "sauvegardeEmplacement": {
+            "type": "string"
+          },
+          "sauvegardeMethodeRecuperation": {
+            "type": "string"
           }
         },
-        "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche)."
+        "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement."
       },
       "EtapeSaisie": {
         "required": [
@@ -4359,9 +4409,31 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "fin": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FinEtape"
+              }
+            ]
+          },
+          "sauvegardeEmplacement": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sauvegardeMethodeRecuperation": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "`Ligne` et `Position` ne servent qu'à la création (`POST /etapes`)."
+        "description": "`Ligne` et `Position` ne servent qu'à la création (`POST /etapes`). `Fin`, `SauvegardeEmplacement` et\n`SauvegardeMethodeRecuperation` absents : inchangés (test unitaire pour une nouvelle étape)."
       },
       "EtapeTestDto": {
         "required": [
@@ -4449,8 +4521,7 @@
           "AFaire",
           "EnCours",
           "Reussie",
-          "Echec",
-          null
+          "Echec"
         ]
       },
       "EvenementAdminDto": {
@@ -4832,6 +4903,13 @@
             }
           }
         }
+      },
+      "FinEtape": {
+        "enum": [
+          "TestUnitaire",
+          "Verification",
+          null
+        ]
       },
       "FournisseurSso": {
         "enum": [
@@ -5403,7 +5481,9 @@
                     "statut",
                     "moment",
                     "contenu",
-                    "justification"
+                    "justification",
+                    "emplacement",
+                    "methodeRecuperation"
                   ],
                   "type": "object",
                   "properties": {
@@ -5427,8 +5507,15 @@
                     },
                     "justification": {
                       "type": "string"
+                    },
+                    "emplacement": {
+                      "type": "string"
+                    },
+                    "methodeRecuperation": {
+                      "type": "string"
                     }
-                  }
+                  },
+                  "description": "`Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan)."
                 }
               }
             }
@@ -5496,7 +5583,11 @@
                 "disponibilite",
                 "type",
                 "pointDeNonRetour",
-                "nonRetourAutorise"
+                "nonRetourAutorise",
+                "fin",
+                "resultatConstate",
+                "sauvegardeEmplacement",
+                "sauvegardeMethodeRecuperation"
               ],
               "type": "object",
               "properties": {
@@ -5670,9 +5761,25 @@
                       "format": "date-time"
                     }
                   }
+                },
+                "fin": {
+                  "enum": [
+                    "TestUnitaire",
+                    "Verification"
+                  ],
+                  "description": "Fin d'une étape : test unitaire (le résultat attendu est l'instruction de test, le résultat constaté se saisit en\nterminant l'étape) ou simple vérification. Stockée en entier : 0, la valeur par défaut, est le test unitaire."
+                },
+                "resultatConstate": {
+                  "type": "string"
+                },
+                "sauvegardeEmplacement": {
+                  "type": "string"
+                },
+                "sauvegardeMethodeRecuperation": {
+                  "type": "string"
                 }
               },
-              "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche)."
+              "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement."
             }
           },
           "resolutions": {
@@ -7522,7 +7629,9 @@
           "statut",
           "moment",
           "contenu",
-          "justification"
+          "justification",
+          "emplacement",
+          "methodeRecuperation"
         ],
         "type": "object",
         "properties": {
@@ -7546,8 +7655,15 @@
           },
           "justification": {
             "type": "string"
+          },
+          "emplacement": {
+            "type": "string"
+          },
+          "methodeRecuperation": {
+            "type": "string"
           }
-        }
+        },
+        "description": "`Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan)."
       },
       "SauvegardeSystemeSaisie": {
         "required": [
@@ -7597,8 +7713,21 @@
               "null",
               "string"
             ]
+          },
+          "emplacement": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "methodeRecuperation": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
-        }
+        },
+        "description": "`Emplacement` et `MethodeRecuperation` absents : inchangés."
       },
       "SsoIdentiteDto": {
         "required": [
@@ -7977,7 +8106,9 @@
               "statut",
               "moment",
               "contenu",
-              "justification"
+              "justification",
+              "emplacement",
+              "methodeRecuperation"
             ],
             "type": "object",
             "properties": {
@@ -8001,8 +8132,15 @@
               },
               "justification": {
                 "type": "string"
+              },
+              "emplacement": {
+                "type": "string"
+              },
+              "methodeRecuperation": {
+                "type": "string"
               }
-            }
+            },
+            "description": "`Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan)."
           }
         }
       },
@@ -8074,8 +8212,101 @@
               "null",
               "string"
             ]
+          },
+          "resultatConstate": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
-        }
+        },
+        "description": "`ResultatConstate` : résultat du test unitaire, exigé pour le réussir (à défaut, la preuve en tient lieu)."
+      },
+      "TestsUnitairesDto": {
+        "required": [
+          "faits",
+          "nonFaits",
+          "verifications",
+          "tests"
+        ],
+        "type": "object",
+        "properties": {
+          "faits": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nonFaits": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "verifications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestUnitaireDto"
+            }
+          }
+        },
+        "description": "Suivi des tests unitaires d'une MEP, dans l'ordre du plan : le déploiement, puis le retour arrière s'il a été déclenché.\n`Verifications` : nombre d'étapes suivies qui se terminent par une simple vérification (absentes de `Tests`)."
+      },
+      "TestUnitaireDto": {
+        "required": [
+          "etapeId",
+          "code",
+          "plan",
+          "action",
+          "etat",
+          "fait",
+          "resultatAttendu",
+          "resultatConstate",
+          "executant",
+          "finReelle"
+        ],
+        "type": "object",
+        "properties": {
+          "etapeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/TypePlan"
+          },
+          "action": {
+            "type": "string"
+          },
+          "etat": {
+            "$ref": "#/components/schemas/EtatEtape"
+          },
+          "fait": {
+            "type": "boolean"
+          },
+          "resultatAttendu": {
+            "type": "string"
+          },
+          "resultatConstate": {
+            "type": "string"
+          },
+          "executant": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "finReelle": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "Test unitaire d'une étape : `Fait` si l'étape est terminée (réussie ou en échec) ; `Executant` : dernier exécutant."
       },
       "TypeEtape": {
         "enum": [
@@ -8087,9 +8318,9 @@
       "TypePlan": {
         "enum": [
           "Deploiement",
-          "RetourArriere",
-          null
-        ]
+          "RetourArriere"
+        ],
+        "description": "Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière."
       },
       "TypeReglage": {
         "enum": [

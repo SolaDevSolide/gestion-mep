@@ -36,7 +36,7 @@ Les étapes filtrées sont estompées, pas masquées. Les choix sont mémorisés
 ```mermaid
 flowchart LR
     A[Disponible] -- Démarrer --> B[En cours]
-    B -- "Réussie<br/>(preuve)" --> C[Réussie]
+    B -- "Réussie<br/>(résultat constaté si test unitaire)" --> C[Réussie]
     B -- "Échec<br/>(preuve obligatoire)" --> D[Échec]
     D -- Appliquer une résolution --> E[Résolution en cours]
     E -- tout conforme --> A
@@ -46,8 +46,8 @@ flowchart LR
 
 1. Cliquer une étape disponible, lire les instructions. Les blocs de code ont un bouton « Copier ».
 2. **Démarrer** : vous devenez l'exécutant de l'étape. Toute personne de la MEP reliée à un compte peut démarrer une étape disponible ; un administrateur aussi (il est alors ajouté à la MEP comme exécutant).
-3. Réaliser l'intervention, puis renseigner la **preuve** (ce que vous avez constaté).
-4. **Réussie** (avec la confirmation « J'ai vérifié et obtenu le résultat attendu ») ou **Échec** (preuve obligatoire).
+3. Réaliser l'intervention, puis renseigner la **preuve** (ce que vous avez constaté : sortie de commande, capture décrite…).
+4. **Réussie** (avec la confirmation « J'ai vérifié et obtenu le résultat attendu ») ou **Échec** (preuve obligatoire). Pour une étape qui se termine par un **test unitaire** (le cas par défaut), la confirmation « Réussie » demande aussi le **résultat constaté** ; une **simple vérification** n'en demande pas. En cas d'échec d'un test unitaire, la preuve tient lieu de résultat constaté.
 
 Seuls l'exécutant, le pilote et les suppléants peuvent terminer une étape. Un commentaire peut être ajouté à tout moment. Les étapes suivantes deviennent disponibles dès que leurs préalables ont réussi : plusieurs personnes travaillent en parallèle.
 
@@ -101,7 +101,9 @@ Si la recette révèle un problème et que le point de non-retour n'est pas fran
 
 ## Le journal
 
-L'onglet **Journal** retrace tout, du plus récent au plus ancien, groupé par jour : qui a fait quoi et quand, motifs des prises de main, du no-go et du retour arrière, critères cochés au Go, résultats de recette. Une recherche et un filtre par type d'événement aident à s'y retrouver.
+L'onglet **Journal** retrace tout, du plus récent au plus ancien, groupé par jour : qui a fait quoi et quand, motifs des prises de main, du no-go et du retour arrière, critères cochés au Go, résultats constatés des tests unitaires, résultats de recette. Une recherche et un filtre par type d'événement aident à s'y retrouver.
+
+En tête du journal, l'encadré **Tests unitaires** compte les tests faits et non faits (et les simples vérifications) ; déplié, il donne pour chaque test le résultat attendu, le résultat constaté, l'exécutant et l'état (réussi, échec, non fait). Les étapes du retour arrière n'y figurent qu'une fois celui-ci déclenché. Une étape reprise après un échec redevient « non faite » jusqu'à sa nouvelle fin.
 
 ![Onglet Journal](images/journal.png)
 

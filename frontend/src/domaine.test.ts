@@ -53,7 +53,14 @@ describe('domaine', () => {
   it('un champ facultatif ne rend pas une section orange', () => {
     // Heures et indisponibilité absentes, restauration non testée : la vérification du plan ne les réclame pas.
     const base = mep({ heureDebut: null, heureFin: null, indisponibiliteMinutes: null, erreursPlan: [] });
-    base.systemes[0].sauvegarde = { statut: 'Requise', moment: 'AvantMep', contenu: '', justification: '' };
+    base.systemes[0].sauvegarde = {
+      statut: 'Requise',
+      moment: 'AvantMep',
+      contenu: '',
+      justification: '',
+      emplacement: '/sauvegardes',
+      methodeRecuperation: 'Restaurer le fichier',
+    };
     base.sauvegarde.restaurationTestee = false;
     const c = completude(base);
     expect(c.intervention).toBe(true);

@@ -24,7 +24,7 @@ public class MigrationJalon4Tests
     private record Json(string Texte);
 
     /// <summary>Insère une ligne : les colonnes obligatoires non fournies reçoivent une valeur neutre selon leur type.</summary>
-    private static async Task Inserer(NpgsqlConnection cn, string table, Dictionary<string, object?> valeurs)
+    internal static async Task Inserer(NpgsqlConnection cn, string table, Dictionary<string, object?> valeurs)
     {
         var obligatoires = new Dictionary<string, string>();
         await using (var cmd = new NpgsqlCommand(

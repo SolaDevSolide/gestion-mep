@@ -27,6 +27,10 @@ public static class EtapesEndpoints
         e.Instructions = ServiceMep.Texte(c.Instructions);
         e.ResultatAttendu = ServiceMep.Texte(c.ResultatAttendu);
         e.ResolutionIds = resolutionIds;
+        if (c.Fin is { } fin) Regles.DefinirFin(e, fin);
+        if (c.SauvegardeEmplacement is not null) e.SauvegardeEmplacement = ServiceMep.Texte(c.SauvegardeEmplacement);
+        if (c.SauvegardeMethodeRecuperation is not null) e.SauvegardeMethodeRecuperation = ServiceMep.Texte(c.SauvegardeMethodeRecuperation);
+        // Après les champs de sauvegarde : une étape standard les efface.
         Regles.DefinirType(e, c.Type ?? TypeEtape.Standard, c.PointDeNonRetour);
         if (dependances is not null) Regles.DefinirDependances(mep, e, dependances);
     }
@@ -158,10 +162,13 @@ public static class EtapesEndpoints
             ServiceMep.ExigerRevision(e, c.Revision);
             if (c.Resultat is null) throw ErreurHttp.Saisie("Le résultat (Reussie ou Echec) est obligatoire.");
             var preuve = ServiceMep.Texte(c.Preuve);
-            Regles.Terminer(mep, e, c.Resultat.Value, preuve, c.ResultatVerifie, acteur.Id, svc.Maintenant, c.Commentaire);
+            Regles.Terminer(mep, e, c.Resultat.Value, preuve, c.ResultatVerifie, acteur.Id, svc.Maintenant, c.Commentaire, ServiceMep.Texte(c.ResultatConstate));
+            // Le résultat constaté d'un test unitaire est tracé au journal, s'il diffère de la preuve.
+            var constate = e.Fin == FinEtape.TestUnitaire && e.ResultatConstate != preuve ? $"(test unitaire, constaté : {e.ResultatConstate})" : "";
+            var detail = string.Join(" ", new[] { preuve, constate }.Where(t => t.Length > 0));
             return c.Resultat == EtatEtape.Reussie
-                ? await svc.Enregistrer(mep, acteur, "etape.reussie", $"{e.Code} réussie : {preuve}")
-                : await svc.Enregistrer(mep, acteur, "etape.echec", $"{e.Code} en échec : {preuve}");
+                ? await svc.Enregistrer(mep, acteur, "etape.reussie", $"{e.Code} réussie : {detail}")
+                : await svc.Enregistrer(mep, acteur, "etape.echec", $"{e.Code} en échec : {detail}");
         })));
 
         // Commentaire facultatif sur l'exécution (exécution, recette ou retour arrière).

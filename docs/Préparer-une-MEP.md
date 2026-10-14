@@ -21,7 +21,7 @@ Il est découpé en huit sections. Chacune affiche son état (complète ou à co
 3. **Systèmes** : les systèmes touchés, ajoutés depuis le catalogue global ou librement.
 4. **Responsables techniques** : les développeurs et sachants, avec ce qu'ils ont développé, leur disponibilité le jour J et leur contact. L'application suggère les comptes dont le profil indique une expertise sur les systèmes de la MEP.
 5. **Livrables** : paquets, versions ou artefacts déployés.
-6. **Sauvegarde** : pour **chaque système**, indiquer si une sauvegarde est requise. Si oui : avant ou pendant la MEP, et quoi sauvegarder. Si non : une justification. Une sauvegarde faite pendant la MEP doit correspondre à une étape de type « Sauvegarde » sur ce système. S'y ajoutent les informations communes : responsable, copies, test de restauration.
+6. **Sauvegarde** : pour **chaque système**, indiquer si une sauvegarde est requise. Si oui : avant ou pendant la MEP, quoi sauvegarder, et obligatoirement l'**emplacement** de la sauvegarde et la **méthode de récupération** (comment la restaurer). Si non : une justification. Une sauvegarde faite pendant la MEP doit correspondre à une étape de type « Sauvegarde » sur ce système. S'y ajoutent les informations communes : responsable, copies, test de restauration.
 7. **Validation** : relecture de la procédure, approbations, et rappel du Go.
 8. **Pièces jointes** : documents utiles (procédures, captures, scripts).
 
@@ -42,9 +42,10 @@ Le plan de déploiement se dessine comme un graphe, de haut en bas :
 Cliquer une étape ouvre son **espace d'édition** :
 
 - **action** (titre court) et **systèmes** concernés ;
-- **criticité**, **durée estimée** (facultative), **type** (Standard ou Sauvegarde) ;
+- **criticité**, **durée estimée** (facultative), **type** (Standard ou Sauvegarde). Une étape de type Sauvegarde indique aussi, obligatoirement, l'**emplacement** de la sauvegarde et la **méthode de récupération** ;
+- **fin de l'étape** : **test unitaire** (par défaut) ou **simple vérification** (voir ci-dessous) ;
 - **instructions** : blocs de texte et blocs de code. Les blocs de code s'affichent avec un bouton « Copier » le jour J : y mettre les commandes exactes ;
-- **résultat attendu** : ce que l'opérateur doit constater pour déclarer l'étape réussie ;
+- **résultat attendu** : ce que l'opérateur doit constater pour déclarer l'étape réussie. Pour un test unitaire, c'est l'instruction de test ;
 - **liens** : étapes préalables et étapes débloquées ;
 - **résolutions types** liées à l'étape (voir plus bas) ;
 - **point de non-retour** : à cocher pour l'étape après laquelle on ne peut plus revenir en arrière ;
@@ -53,6 +54,13 @@ Cliquer une étape ouvre son **espace d'édition** :
 ![Espace d'édition d'une étape : systèmes, criticité, blocs Texte et Code](images/edition-etape.png)
 
 Les codes d'étape (`E0001` pour le déploiement, `R0001` pour le retour arrière) ne sont jamais renumérotés.
+
+Chaque étape se termine par :
+
+- un **test unitaire** (choix par défaut) : le résultat attendu sert d'instruction de test, et l'exécutant saisit le **résultat constaté** en terminant l'étape. On sait ainsi, après coup, quels tests ont été faits et ce qu'ils ont donné (onglet Journal, [API](API.md) et export de la MEP) ;
+- une **simple vérification** : l'exécutant confirme avoir obtenu le résultat attendu, sans saisir de résultat.
+
+Les étapes des MEP créées avant ce choix sont des tests unitaires, sans résultat constaté pour celles déjà terminées.
 
 Le responsable d'une étape n'est pas choisi à l'avance : c'est celui qui la démarre le jour J.
 
@@ -81,7 +89,7 @@ Le jour J, une étape en échec propose ses résolutions liées et guide l'opér
 
 Le bouton « Vérifier le plan » liste :
 
-- les **anomalies**, qui bloquent le Go : échéance absente ou passée, pilote manquant ou non relié à un compte, plan de déploiement ou de retour arrière vide, graphe invalide, étape incomplète (action, système, criticité, instructions, résultat attendu), sauvegarde non renseignée ou non justifiée, sauvegarde pendant la MEP sans étape de sauvegarde, recette absente ou incomplète, procédure non relue, approbations manquantes ou refusées ;
+- les **anomalies**, qui bloquent le Go : échéance absente ou passée, pilote manquant ou non relié à un compte, plan de déploiement ou de retour arrière vide, graphe invalide, étape incomplète (action, système, criticité, instructions, résultat attendu ; emplacement et méthode de récupération pour une étape de sauvegarde), sauvegarde non renseignée ou non justifiée, sauvegarde requise sans emplacement ou sans méthode de récupération, sauvegarde pendant la MEP sans étape de sauvegarde, recette absente ou incomplète, procédure non relue, approbations manquantes ou refusées ;
 - les **avertissements**, qui ne bloquent pas : aucun responsable technique, responsable technique absent le jour J, pilote qui est aussi responsable technique, aucun système sauvegardé, système sans recette.
 
 ![« Vérifier le plan » : il manque une approbation](images/verifier-le-plan.png)
@@ -100,7 +108,7 @@ Quand le plan est complet, le pilote ou un suppléant donne le Go (voir [Cycle d
 
 ## Partir d'une MEP existante
 
-- **Dupliquer** (bouton de la liste ou de l'en-tête) copie une MEP : identité, personnes, pilote et suppléants, systèmes et leur sauvegarde, responsables techniques, livrables, étapes et liens, résolutions liées, plan de retour arrière, fiches de recette (sans les résultats) et approbateurs (sans leurs décisions). Ne sont pas copiés : l'échéance, la relecture, le Go, les résultats d'exécution, le bilan et les pièces jointes. L'environnement peut être changé au passage.
+- **Dupliquer** (bouton de la liste ou de l'en-tête) copie une MEP : identité, personnes, pilote et suppléants, systèmes et leur sauvegarde, responsables techniques, livrables, étapes et liens, résolutions liées, plan de retour arrière, fiches de recette (sans les résultats) et approbateurs (sans leurs décisions). Ne sont pas copiés : l'échéance, la relecture, le Go, les résultats d'exécution (dont les résultats constatés des tests unitaires), le bilan et les pièces jointes. L'environnement peut être changé au passage.
 - Cocher **« En faire un modèle »** à la duplication crée un modèle, à réutiliser avec « Nouvelle MEP depuis un modèle ».
 
 ## Modèles

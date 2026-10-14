@@ -26,12 +26,20 @@ public static partial class Regles
         etape.Revision++;
     }
 
-    /// <summary>Type d'étape et point de non-retour : réservés au déploiement.</summary>
+    /// <summary>
+    /// Type d'étape et point de non-retour : réservés au déploiement. Une étape standard perd l'emplacement et la méthode de
+    /// récupération propres aux étapes de sauvegarde.
+    /// </summary>
     public static void DefinirType(Etape etape, TypeEtape type, bool pointDeNonRetour)
     {
         if (etape.Plan == TypePlan.RetourArriere && (type != TypeEtape.Standard || pointDeNonRetour))
             throw new RegleMetierException("Le plan de retour arrière n'accepte ni étape de sauvegarde ni point de non-retour.");
         etape.Type = type;
+        if (type != TypeEtape.Sauvegarde)
+        {
+            etape.SauvegardeEmplacement = "";
+            etape.SauvegardeMethodeRecuperation = "";
+        }
         if (etape.PointDeNonRetour != pointDeNonRetour)
         {
             etape.NonRetourAutoriseParId = null;

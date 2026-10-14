@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import { nomParticipant } from '../../domaine';
-import { LIBELLE_CRITICITE } from '../../format';
+import { LIBELLE_CRITICITE, LIBELLE_FIN } from '../../format';
 import { construireLignes, indexLignes, type Lien } from '../../graphe';
 import { useDraft, useReportDirty } from '../../hooks';
 import { useMep } from '../../mepContext';
@@ -11,6 +11,7 @@ import type {
   Criticite,
   Etape,
   EtapeSaisie,
+  FinEtape,
   Mep,
   ResolutionType,
   SystemeCatalogue,
@@ -42,6 +43,9 @@ export function saisieDepuis(e: Etape): EtapeSaisie {
     resolutionIds: e.resolutionIds,
     type: e.type,
     pointDeNonRetour: e.pointDeNonRetour,
+    fin: e.fin,
+    sauvegardeEmplacement: e.sauvegardeEmplacement,
+    sauvegardeMethodeRecuperation: e.sauvegardeMethodeRecuperation,
   };
 }
 
@@ -56,6 +60,9 @@ export interface Fiche {
   resultatAttendu: string;
   resolutionIds: string[];
   pointDeNonRetour: boolean;
+  fin: FinEtape;
+  sauvegardeEmplacement: string;
+  sauvegardeMethodeRecuperation: string;
 }
 
 const ficheDepuis = (e: Etape): Fiche => ({
@@ -68,18 +75,28 @@ const ficheDepuis = (e: Etape): Fiche => ({
   resultatAttendu: e.resultatAttendu,
   resolutionIds: e.resolutionIds,
   pointDeNonRetour: e.pointDeNonRetour,
+  fin: e.fin,
+  sauvegardeEmplacement: e.sauvegardeEmplacement,
+  sauvegardeMethodeRecuperation: e.sauvegardeMethodeRecuperation,
 });
 
-/** Points à compléter (la durée estimée est facultative). */
+/**
+ * Points à compléter (la durée estimée est facultative), comme « Vérifier le plan » : une étape de type Sauvegarde dit aussi
+ * où se trouve la sauvegarde et comment la récupérer.
+ */
 export function anomaliesFiche(
-  f: Pick<Fiche, 'action' | 'systemeIds' | 'criticite' | 'instructions' | 'resultatAttendu'>,
+  f: Pick<Fiche, 'action' | 'systemeIds' | 'criticite' | 'instructions' | 'resultatAttendu'> &
+    Partial<Pick<Fiche, 'type' | 'sauvegardeEmplacement' | 'sauvegardeMethodeRecuperation'>>,
 ): string[] {
+  const sauvegarde = f.type === 'Sauvegarde';
   return [
     !f.action.trim() && 'l’action',
     f.systemeIds.length === 0 && 'au moins un système',
     !f.criticite && 'la criticité',
     !f.instructions.trim() && 'les instructions',
     !f.resultatAttendu.trim() && 'le résultat attendu',
+    sauvegarde && !f.sauvegardeEmplacement?.trim() && 'l’emplacement de la sauvegarde',
+    sauvegarde && !f.sauvegardeMethodeRecuperation?.trim() && 'la méthode de récupération',
   ].filter((x): x is string => !!x);
 }
 
@@ -193,7 +210,7 @@ export function PanneauEdition(props: Props) {
   const catalogueIds = systemesDe(mep, v.systemeIds)
     .map((s) => s.catalogueId)
     .filter((c): c is string => !!c);
-  const anomalies = anomaliesFiche(v);
+  const anomalies = anomaliesFiche({ ...v, type: plan === 'Deploiement' ? v.type : 'Standard' });
 
   async function enregistrer(): Promise<boolean> {
     if (d.conflit) return false;
@@ -209,6 +226,9 @@ export function PanneauEdition(props: Props) {
       resolutionIds: v.resolutionIds,
       type: plan === 'Deploiement' ? v.type : 'Standard',
       pointDeNonRetour: plan === 'Deploiement' && v.pointDeNonRetour,
+      fin: v.fin,
+      sauvegardeEmplacement: v.sauvegardeEmplacement.trim(),
+      sauvegardeMethodeRecuperation: v.sauvegardeMethodeRecuperation.trim(),
     };
     setEnvoi(true);
     const ok = await run(() => api.modifierEtape(mep.id, etape.id, saisie), `${etape.code} enregistrée.`);
@@ -423,9 +443,21 @@ function EspaceLecture({
           <Bloc titre="Instructions exactes">
             <Instructions source={etape.instructions} />
           </Bloc>
-          <Bloc titre="Résultat attendu">
+          <Bloc titre={`Résultat attendu · ${LIBELLE_FIN[etape.fin]}`}>
             <Markdown source={etape.resultatAttendu} vide="Non renseigné." />
           </Bloc>
+          {etape.type === 'Sauvegarde' && (
+            <Bloc titre="Sauvegarde">
+              <dl className="grid gap-1 text-[13px]">
+                <dt className="font-medium">Emplacement</dt>
+                <dd className="text-fg-muted">{etape.sauvegardeEmplacement || 'Non renseigné.'}</dd>
+                <dt className="font-medium">Méthode de récupération</dt>
+                <dd className="whitespace-pre-line text-fg-muted">
+                  {etape.sauvegardeMethodeRecuperation || 'Non renseignée.'}
+                </dd>
+              </dl>
+            </Bloc>
+          )}
         </>
       }
       droite={

@@ -6,7 +6,7 @@ public static partial class Regles
     /// <summary>
     /// Copie profonde d'une MEP, en préparation, avec de nouveaux identifiants et toutes les références remappées
     /// (codes d'étapes, lignes et positions conservés). Ne sont pas copiés : échéance, date et heures de MEP, responsable des étapes (obsolète), relecture, go / no-go, bilan,
-    /// résolutions exécutées, résultats (étapes, recettes, sauvegarde réalisée) et décisions d'approbation.
+    /// résolutions exécutées, résultats (étapes et leur résultat constaté, recettes, sauvegarde réalisée) et décisions d'approbation.
     /// </summary>
     public const string PrefixeModele = "Modèle : ";
 
@@ -59,6 +59,7 @@ public static partial class Regles
                 Sauvegarde = new SauvegardeSysteme
                 {
                     Statut = s.Sauvegarde.Statut, Moment = s.Sauvegarde.Moment, Contenu = s.Sauvegarde.Contenu, Justification = s.Sauvegarde.Justification,
+                    Emplacement = s.Sauvegarde.Emplacement, MethodeRecuperation = s.Sauvegarde.MethodeRecuperation,
                 },
             };
             systemes[s.Id] = copie.Id;
@@ -90,7 +91,8 @@ public static partial class Regles
                 Id = etapes[e.Id], MepId = mep.Id, Plan = e.Plan, Type = e.Type, PointDeNonRetour = e.PointDeNonRetour,
                 Code = e.Code, Ligne = e.Ligne, Ordre = e.Ordre, Action = e.Action, SystemeIds = e.SystemeIds.Select(id => S(id)).OfType<Guid>().ToList(),
                 DureeEstimeeMinutes = e.DureeEstimeeMinutes,
-                Criticite = e.Criticite, Instructions = e.Instructions, ResultatAttendu = e.ResultatAttendu,
+                Criticite = e.Criticite, Instructions = e.Instructions, ResultatAttendu = e.ResultatAttendu, Fin = e.Fin,
+                SauvegardeEmplacement = e.SauvegardeEmplacement, SauvegardeMethodeRecuperation = e.SauvegardeMethodeRecuperation,
                 Dependances = e.Dependances.Where(etapes.ContainsKey).Select(d => etapes[d]).ToList(),
                 ResolutionIds = [.. e.ResolutionIds],
             });

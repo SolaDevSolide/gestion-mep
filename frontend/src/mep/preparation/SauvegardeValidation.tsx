@@ -17,7 +17,10 @@ import { ChampBlocs } from '../ChampBlocs';
 import { ApprobationsBloc } from './Approbations';
 import { SectionCarte, vide } from './Formulaires';
 
-/** Ligne de sauvegarde d'un système : requise (moment, contenu) ou non requise (justification obligatoire). */
+/**
+ * Ligne de sauvegarde d'un système : requise (moment, contenu, emplacement et méthode de récupération, ces deux derniers
+ * réclamés par « Vérifier le plan ») ou non requise (justification obligatoire).
+ */
 function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
   const { mep, run } = useMep();
   const edition = mep.droits.peutEditerContenu;
@@ -26,6 +29,10 @@ function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
   const v = d.value;
   const manqueEtape = mep.erreursPlan.some((e) => e.startsWith(`Sauvegarde de ${systeme.nom} pendant la MEP`));
   const invalide = v.statut === 'ARenseigner' || (v.statut === 'NonRequise' && !v.justification.trim());
+  const manquants = [
+    !v.emplacement.trim() && 'l’emplacement',
+    !v.methodeRecuperation.trim() && 'la méthode de récupération',
+  ].filter((x): x is string => !!x);
 
   async function enregistrer() {
     if (d.conflit) return;
@@ -33,6 +40,8 @@ function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
       ...v,
       contenu: v.statut === 'Requise' ? v.contenu.trim() : '',
       justification: v.statut === 'NonRequise' ? v.justification.trim() : '',
+      emplacement: v.statut === 'Requise' ? v.emplacement.trim() : '',
+      methodeRecuperation: v.statut === 'Requise' ? v.methodeRecuperation.trim() : '',
     };
     const ok = await run(
       () => api.modifierSauvegardeSysteme(mep.id, systeme.id, { ...s, version: mep.version }),
@@ -108,6 +117,36 @@ function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
             disabled={!edition}
             onChange={(contenu) => d.update({ contenu })}
           />
+          <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
+            <Field label="Emplacement de la sauvegarde *">
+              {(id) => (
+                <Input
+                  id={id}
+                  disabled={!edition}
+                  value={v.emplacement}
+                  onChange={(e) => d.update({ emplacement: e.target.value })}
+                  placeholder="ex. /sauvegardes/clients.sql sur srv-sauvegarde"
+                />
+              )}
+            </Field>
+            <Field label="Méthode de récupération *">
+              {(id) => (
+                <Textarea
+                  id={id}
+                  rows={2}
+                  disabled={!edition}
+                  value={v.methodeRecuperation}
+                  onChange={(e) => d.update({ methodeRecuperation: e.target.value })}
+                  placeholder="ex. psql -d clients < clients.sql"
+                />
+              )}
+            </Field>
+            {manquants.length > 0 && (
+              <p className="flex items-center gap-1.5 text-xs text-warn-fg md:col-span-2">
+                <TriangleAlert className="size-3.5" aria-hidden />À compléter avant le Go : {manquants.join(' et ')}.
+              </p>
+            )}
+          </div>
           {v.moment === 'PendantMep' && (
             <div className="md:col-span-2">
               <Alerte

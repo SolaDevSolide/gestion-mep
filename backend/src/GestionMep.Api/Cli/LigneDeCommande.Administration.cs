@@ -297,7 +297,10 @@ public static partial class LigneDeCommande
         return 0;
     }
 
-    /// <summary>MEP complète (comme la renvoie l'API) et son journal dans l'ordre chronologique, pour l'archive ou l'audit.</summary>
+    /// <summary>
+    /// MEP complète (comme la renvoie l'API), suivi de ses tests unitaires et journal dans l'ordre chronologique, pour l'archive
+    /// ou l'audit.
+    /// </summary>
     private static async Task<int> MepsExporter(string mepTexte, string? fichier)
     {
         var config = Configuration();
@@ -314,6 +317,7 @@ public static partial class LigneDeCommande
             Application = VersionApplication.Courante,
             ExporteeLe = DateTimeOffset.UtcNow,
             Mep = await service.VersDto(mep, null),
+            TestsUnitaires = MepMapping.TestsUnitaires(mep),
             Journal = journal,
         };
         JournalAdmin.Ecrire(db, null, "mep.exportee", $"{(mep.EstModele ? "Modèle" : "MEP")} « {mep.Outil} » ({mep.Id}) exporté{(mep.EstModele ? "" : "e")} avec son journal");

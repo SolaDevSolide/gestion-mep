@@ -169,6 +169,14 @@ export function EtapeRetour({ mep, etape, droits, preuve, onPreuve, commentaire,
         )
       )}
 
+      {etape.fin === 'TestUnitaire' && etape.resultatConstate.trim() && etape.resultatConstate !== etape.preuve && (
+        <Bloc titre="Résultat constaté">
+          <p className="rounded-md bg-surface-2/60 px-2.5 py-1.5 text-sm whitespace-pre-line">
+            {etape.resultatConstate}
+          </p>
+        </Bloc>
+      )}
+
       <PiecesJointes
         compact
         lectureSeule={mep.phase === 'Cloturee'}

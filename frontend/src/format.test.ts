@@ -1,5 +1,6 @@
 import {
   calculerCompteARebours,
+  compte,
   familleEvenement,
   formatDate,
   formatDuree,
@@ -8,6 +9,7 @@ import {
   LIBELLE_CRITICITE,
   LIBELLE_DISPONIBILITE,
   LIBELLE_ETAT,
+  LIBELLE_FIN,
   LIBELLE_ISSUE,
   LIBELLE_PHASE,
   ressembleCommande,
@@ -22,6 +24,14 @@ describe('énumérations', () => {
     expect(LIBELLE_CRITICITE.Moderee).toBe('Modérée');
     expect(LIBELLE_CRITICITE.Elevee).toBe('Élevée');
     expect(LIBELLE_PHASE.Execution).toBe('Exécution');
+    expect(LIBELLE_FIN.TestUnitaire).toBe('Test unitaire');
+    expect(LIBELLE_FIN.Verification).toBe('Simple vérification');
+  });
+  it('accorde un mot au nombre', () => {
+    expect(compte(0, 'non fait')).toBe('0 non fait');
+    expect(compte(1, 'fait')).toBe('1 fait');
+    expect(compte(2, 'fait')).toBe('2 faits');
+    expect(compte(3, 'simple vérification', 'simples vérifications')).toBe('3 simples vérifications');
   });
   it('associe une couleur à la disponibilité', () => {
     expect(tonDisponibilite('Disponible')).toBe('ok');

@@ -39,6 +39,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Input, Select } from '../ui/Input';
 import { TON } from '../ui/tons';
 import { Code2, OctagonAlert } from 'lucide-react';
+import { TestsUnitairesEncadre } from './TestsUnitairesEncadre';
 
 function iconeEvenement(type: string): { Icone: LucideIcon; ton: Ton } {
   switch (type) {
@@ -124,7 +125,7 @@ function jour(iso: string): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-/** Chronologie verticale du journal d'audit. */
+/** Chronologie verticale du journal d'audit, précédée du suivi des tests unitaires. */
 export default function JournalTab({ mepId, tick }: { mepId: string; tick: number }) {
   const { donnees, erreur } = useAsync(() => api.journal(mepId), [mepId, tick]);
   const [type, setType] = useState('tous');
@@ -156,6 +157,7 @@ export default function JournalTab({ mepId, tick }: { mepId: string; tick: numbe
 
   return (
     <div className="mx-auto w-full max-w-4xl px-6 py-6">
+      <TestsUnitairesEncadre mepId={mepId} tick={tick} />
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-60 flex-1">
           <Search

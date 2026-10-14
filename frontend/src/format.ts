@@ -1,6 +1,7 @@
 import type {
   Criticite,
   EtatEtape,
+  FinEtape,
   IssueMep,
   Phase,
   ResultatControle,
@@ -38,6 +39,16 @@ export const LIBELLE_CRITICITE: Record<Criticite, string> = {
 };
 
 export const LIBELLE_RESULTAT: Record<ResultatControle, string> = { Conforme: 'Conforme', Echec: 'Échec' };
+
+/** Nombre suivi du mot accordé : « 1 fait », « 2 faits », « 0 non fait ». */
+export const compte = (n: number, singulier: string, pluriel = `${singulier}s`): string =>
+  `${n} ${n > 1 ? pluriel : singulier}`;
+
+/** Fin d'une étape : test unitaire (résultat constaté saisi en la terminant) ou simple vérification. */
+export const LIBELLE_FIN: Record<FinEtape, string> = {
+  TestUnitaire: 'Test unitaire',
+  Verification: 'Simple vérification',
+};
 
 export const LIBELLE_STATUT_RESOLUTION: Record<StatutResolution, string> = {
   EnCours: 'En cours',

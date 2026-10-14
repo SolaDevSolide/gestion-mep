@@ -251,6 +251,9 @@ public class LigneDeCommandeTests : IDisposable
         Assert.Equal(0, (await Cli("meps", "exporter", id[..8], fichier)).Code);
         var export = JsonDocument.Parse(await File.ReadAllTextAsync(fichier)).RootElement;
         Assert.Equal(id, export.GetProperty("mep").GetProperty("id").GetString());
+        // Type de fin et résultat constaté de chaque étape, et suivi des tests unitaires.
+        Assert.True(export.GetProperty("mep").GetProperty("etapes")[0].TryGetProperty("resultatConstate", out _));
+        Assert.True(export.GetProperty("testsUnitaires").TryGetProperty("nonFaits", out _));
         var journal = export.GetProperty("journal").EnumerateArray().ToList();
         Assert.NotEmpty(journal);
         Assert.True(journal[0].GetProperty("id").GetInt64() < journal[^1].GetProperty("id").GetInt64() || journal.Count == 1);

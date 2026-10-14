@@ -5,9 +5,13 @@ public static partial class Regles
 {
     /// <summary>
     /// Sauvegarde d'un système de la MEP (préparation uniquement). Les textes sont rognés ; la justification d'une sauvegarde
-    /// non requise et l'étape de sauvegarde sont vérifiées par <see cref="ErreursSauvegarde"/>, pas ici.
+    /// non requise, l'emplacement et la méthode de récupération d'une sauvegarde requise et l'étape de sauvegarde sont vérifiés
+    /// par <see cref="ErreursSauvegarde"/>, pas ici.
     /// </summary>
-    public static void DefinirSauvegardeSysteme(Mep mep, Systeme systeme, StatutSauvegarde statut, ModeSauvegarde moment, string contenu, string justification)
+    /// <param name="emplacement">Où se trouve la sauvegarde (null : inchangé).</param>
+    /// <param name="methodeRecuperation">Comment la récupérer (null : inchangée).</param>
+    public static void DefinirSauvegardeSysteme(Mep mep, Systeme systeme, StatutSauvegarde statut, ModeSauvegarde moment, string contenu, string justification,
+        string? emplacement = null, string? methodeRecuperation = null)
     {
         ExigerPreparation(mep);
         if (!Enum.IsDefined(statut) || !Enum.IsDefined(moment)) throw new RegleMetierException("Sauvegarde : valeur inconnue.");
@@ -16,6 +20,8 @@ public static partial class Regles
         s.Moment = moment;
         s.Contenu = (contenu ?? "").Trim();
         s.Justification = (justification ?? "").Trim();
+        if (emplacement is not null) s.Emplacement = emplacement.Trim();
+        if (methodeRecuperation is not null) s.MethodeRecuperation = methodeRecuperation.Trim();
     }
 
     /// <summary>Détail du journal : « Sauvegarde BDD : requise (avant la MEP) », « … : non requise (justification) »…</summary>

@@ -29,7 +29,15 @@ const systeme = (id: string, nom: string, sauvegarde: Partial<Systeme['sauvegard
   ...mep().systemes[0],
   id,
   nom,
-  sauvegarde: { statut: 'ARenseigner', moment: 'AvantMep', contenu: '', justification: '', ...sauvegarde },
+  sauvegarde: {
+    statut: 'ARenseigner',
+    moment: 'AvantMep',
+    contenu: '',
+    justification: '',
+    emplacement: '',
+    methodeRecuperation: '',
+    ...sauvegarde,
+  },
 });
 const droitsEdition = { ...mep().droits, peutEditerContenu: true, peutModifierPlan: true };
 
@@ -62,6 +70,8 @@ describe('Sauvegarde par système', () => {
       moment: 'AvantMep',
       contenu: '',
       justification: 'Service sans état',
+      emplacement: '',
+      methodeRecuperation: '',
       version: 1,
     });
   });
@@ -89,8 +99,30 @@ describe('Sauvegarde par système', () => {
       moment: 'PendantMep',
       contenu: 'pg_dump',
       justification: '',
+      emplacement: '',
+      methodeRecuperation: '',
       version: 1,
     });
+  });
+
+  it('« Requise » réclame l’emplacement et la méthode de récupération', async () => {
+    const { run } = rendre(
+      mep({ systemes: [systeme('s1', 'BDD', { statut: 'Requise' })], droits: droitsEdition }),
+      <SauvegardeSection />,
+    );
+    const ligne = screen.getByRole('listitem', { name: 'Sauvegarde de BDD' });
+    expect(ligne).toHaveTextContent('À compléter avant le Go : l’emplacement et la méthode de récupération.');
+    await userEvent.type(within(ligne).getByLabelText(/Emplacement de la sauvegarde/), ' /sauvegardes/bdd.sql ');
+    expect(ligne).toHaveTextContent('À compléter avant le Go : la méthode de récupération.');
+    await userEvent.type(within(ligne).getByLabelText(/Méthode de récupération/), 'psql < bdd.sql');
+    expect(ligne).not.toHaveTextContent('À compléter');
+    await userEvent.click(within(ligne).getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(run).toHaveBeenCalled());
+    expect(api.modifierSauvegardeSysteme).toHaveBeenCalledWith(
+      'm1',
+      's1',
+      expect.objectContaining({ emplacement: '/sauvegardes/bdd.sql', methodeRecuperation: 'psql < bdd.sql' }),
+    );
   });
 
   it('bandeau d’avertissement quand aucun système n’est sauvegardé', () => {
