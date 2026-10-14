@@ -22,6 +22,7 @@ const BibliothequeRecettesPage = lazy(() => import('./parametres/BibliothequeRec
 const SystemesPage = lazy(() => import('./parametres/SystemesPage'));
 const ModelesTextePage = lazy(() => import('./parametres/ModelesTextePage'));
 const ModeleTexteEditeurPage = lazy(() => import('./parametres/ModeleTexteEditeurPage'));
+const SystemeFichePage = lazy(() => import('./parametres/SystemeFichePage'));
 
 function Chargement() {
   return (
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="/profil" element={<ProfilPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/parametres/systemes" element={<SystemesPage />} />
+          <Route path="/parametres/systemes/:id" element={<SystemeFichePage />} />
           <Route path="/parametres/resolutions" element={<ResolutionsPage />} />
           <Route path="/parametres/resolutions/nouvelle" element={<NouvelleResolutionPage />} />
           <Route path="/parametres/etapes" element={<BibliothequeEtapesPage />} />

@@ -9,7 +9,7 @@ Peuvent modifier une MEP en préparation : son pilote, ses suppléants, ses resp
 Dans « Mises en production » :
 
 - **Nouvelle MEP** : saisir l'outil ou l'application concerné et l'objet de l'intervention. Le créateur devient responsable technique de la MEP (pas pilote).
-- **Nouvelle MEP depuis un modèle** : choisir un modèle et l'environnement, puis « Créer la MEP ». Voir [Partir d'une MEP existante](#partir-dune-mep-existante).
+- **Nouvelle MEP depuis un modèle** : choisir un modèle, puis « Créer la MEP ». Voir [Partir d'une MEP existante](#partir-dune-mep-existante).
 - **Nouveau modèle** (vue « Modèles ») : comme une nouvelle MEP, mais le résultat est un modèle. Voir [Modèles](#modèles).
 
 ## Les onglets d'une MEP
@@ -27,11 +27,11 @@ La MEP s'ouvre sur l'onglet qui correspond à sa phase : Préparation, puis Exé
 
 Il est découpé en neuf sections. Chacune affiche son état (complète ou à compléter), et un compteur indique combien sont complètes.
 
-1. **Intervention** : outil, objet, version actuelle et version cible, environnement, fuseau horaire, indisponibilité prévue, impacts attendus, pilote et suppléants, case **« Plan de retour arrière »** avec, en dessous, l'**échéance de retour arrière** (facultative), et option « Bilan de clôture ». Les dates de début et de fin ne se saisissent pas : ce sont celles du Go et de la clôture. Voir [Retour arrière facultatif](#retour-arrière-facultatif).
+1. **Intervention** : outil, objet, version actuelle et version cible, fuseau horaire, indisponibilité prévue, impacts attendus, pilote et suppléants, case **« Plan de retour arrière »** avec, en dessous, l'**échéance de retour arrière** (facultative), et option « Bilan de clôture ». Les dates de début et de fin ne se saisissent pas : ce sont celles du Go et de la clôture. Voir [Retour arrière facultatif](#retour-arrière-facultatif).
 2. **Personnes** : toutes les personnes de l'intervention. Relier chaque personne à son compte permet de pré-remplir son nom, son rôle et son contact, et lui donne le droit d'exécuter des étapes. Quand des équipes existent, le champ « Équipe » du dialogue restreint les comptes proposés. Les comptes désactivés (personnes parties) ne sont plus proposés ; une personne déjà reliée à un tel compte reste affichée, avec la mention « désactivé ».
-3. **Systèmes** : les systèmes touchés, ajoutés depuis le catalogue global ou librement.
+3. **Systèmes** : les systèmes touchés, ajoutés depuis le catalogue global ou librement, et pour chacun les **environnements** concernés (un ou plusieurs : préproduction puis production, par exemple). Pour un système du catalogue, on les choisit parmi ceux de sa fiche ; pour un système ajouté librement, parmi les suggestions ou sous un autre nom. La section est complète quand chaque système a au moins un environnement. La MEP n'a pas d'environnement à elle : la liste des MEP signale « Production » dès qu'un système touche un environnement de production. Voir [Environnements et objets impactés](#environnements-et-objets-impactés).
 4. **Responsables techniques** : les développeurs et sachants, avec ce qu'ils ont développé, leur disponibilité le jour J et leur contact. L'application suggère les comptes dont le profil indique une expertise sur les systèmes de la MEP.
-5. **Livrables** : paquets, versions ou artefacts déployés.
+5. **Objets impactés** : par système, puis par catégorie (tables, vues, traitements…), les objets que la MEP modifie, avec leur version ou leur correction. Voir [Environnements et objets impactés](#environnements-et-objets-impactés).
 6. **Sauvegarde** : pour **chaque système**, indiquer si une sauvegarde est requise. Si oui : avant ou pendant la MEP, quoi sauvegarder, et obligatoirement l'**emplacement** de la sauvegarde et la **méthode de récupération** (comment la restaurer). Si non : une justification. Une sauvegarde faite pendant la MEP doit correspondre à une étape de type « Sauvegarde » sur ce système. S'y ajoutent les informations communes : responsable, copies, test de restauration.
 7. **Validation** : relecture de la procédure, approbations, et rappel du Go.
 8. **Communication** (facultative, toujours complète) : de quoi remplir les courriels de la MEP. Référence de la demande (ticket ou demande de changement), niveau de risque (non évalué, faible, modéré, élevé), bénéfices et nouveautés (un par ligne), utilisateurs impactés, case **« Arrêt applicatif »** (sa durée est l'indisponibilité prévue de la section Intervention), action attendue des utilisateurs et heure limite, **créneau annoncé** (date, heure de début et de fin annoncées aux utilisateurs ; à défaut, les textes prennent le Go et la clôture), validation par les utilisateurs (par qui, quand, et une pièce jointe de la MEP comme preuve). En dessous, la carte **Textes à copier** remplit les modèles de texte de l'équipe avec ces informations : voir [Modèles de texte](Modèles-de-texte.md). Modifier la communication ne remet pas en cause les approbations. Après le Go, le pilote, un suppléant ou un administrateur la complète encore, jusqu'à la clôture.
@@ -54,7 +54,7 @@ Le plan de déploiement se dessine comme un graphe, de haut en bas :
 
 Cliquer une étape ouvre son **espace d'édition** :
 
-- **action** (titre court) et **systèmes** concernés ;
+- **action** (titre court), **systèmes** concernés et, pour chacun, le ou les **environnements** où l'étape s'exécute, parmi ceux choisis pour ce système dans la MEP (un système qui n'en a qu'un est coché d'office). La fiche de l'étape, dans le graphe et le jour J, affiche ces environnements à côté de chaque système, la production en orange ;
 - **criticité**, **durée estimée** (facultative), **type** (Standard ou Sauvegarde). Une étape de type Sauvegarde indique aussi, obligatoirement, l'**emplacement** de la sauvegarde et la **méthode de récupération** ;
 - **fin de l'étape** : **test unitaire** (par défaut) ou **simple vérification** (voir ci-dessous) ;
 - **instructions** : blocs de texte et blocs de code. Les blocs de code s'affichent avec un bouton « Copier » le jour J : y mettre les commandes exactes ;
@@ -76,6 +76,17 @@ Chaque étape se termine par :
 Les étapes des MEP créées avant ce choix sont des tests unitaires, sans résultat constaté pour celles déjà terminées.
 
 Le responsable d'une étape n'est pas choisi à l'avance : c'est celui qui la démarre le jour J.
+
+## Environnements et objets impactés
+
+Les environnements et les objets connus de chaque système sont décrits une fois pour toutes dans sa **fiche** du catalogue (Paramètres › Systèmes, voir [Administrer](Administrer.md#paramètres-partagés)). Dans la MEP :
+
+- **Préparation › Systèmes** : choisir les environnements de chaque système. Une étape qui garde un environnement retiré du système l'affiche barré sur sa fiche, et « Vérifier le plan » le signale comme une anomalie ;
+- **Préparation › Objets impactés** : un bloc par système, avec ses environnements et le décompte de ses objets (« 2 tables, 1 vue »). Chaque catégorie retenue s'affiche en tuile avec son nombre d'objets ; la sélectionner montre ses objets (catégorie, type, nom, libellé, version ou correction, précision). **« Ajouter une catégorie »** propose les catégories de la fiche pas encore utilisées, puis ouvre le choix des objets ; une catégorie absente de la fiche s'ajoute d'abord à la fiche (lien « Fiche du système »).
+- **« Choisir les objets… »** ouvre une fenêtre qui liste les objets de la fiche, catégorie par catégorie (avec le nombre d'objets cochés sur le total) : recherche sur le nom, le libellé, le type et la précision, filtre par type, « Cochés » pour ne voir que la sélection, version commune à appliquer aux objets cochés, ou une version par ligne. On ne choisit que des objets de la fiche : un objet manquant s'y ajoute d'abord.
+- **Excel** : « Modèle Excel » télécharge un classeur à remplir (un onglet de saisie et, à côté, les objets connus de chaque système), « Exporter » les objets déjà choisis. « Importer » ajoute ou met à jour les objets du classeur (colonnes Système, Catégorie, Type, Nom, Libellé, Précision, Version ou correction), sans rien retirer. Une ligne dont le système, la catégorie ou l'objet est inconnu de la fiche est **refusée** : rien n'est créé à sa place, et la fenêtre d'import liste chaque ligne refusée avec un lien « Compléter la fiche ».
+
+Les livrables des MEP créées avant les objets impactés sont devenus des objets de la catégorie « Packages », marqués **« Repris »** : nom, version et emplacement sont conservés (l'emplacement dans la précision). Pour un système du catalogue, ils ont aussi été ajoutés à sa fiche, dans la même catégorie ; ceux qui n'étaient rattachés à aucun système restent visibles dans un bloc « Sans système ». L'environnement unique des MEP existantes est devenu celui de chacun de leurs systèmes et de chacune de leurs étapes, et s'est ajouté à la fiche des systèmes du catalogue.
 
 ## Le plan de retour arrière (Plan › Retour arrière)
 
@@ -138,11 +149,11 @@ Dans Plan › Étapes, deux boutons sont accolés en haut à gauche du graphe :
 
 L'étape choisie arrive **flottante** au-dessus du graphe, avec la pastille « À placer » : on la **glisse** sur une ligne (entre deux étapes ou en bout de ligne), ou on clique l'un des blocs **« ↓ Poser ici »** (en bout de ligne) ou **« Poser ici, sur une nouvelle ligne »**. **Échap** annule : rien n'est écrit tant qu'elle n'est pas posée. Une fois posée, c'est une étape ordinaire : nouveau code, liens par défaut avec la ligne au-dessus et la ligne en dessous, pas de point de non-retour. La modifier ne change pas le modèle ; son espace d'édition rappelle « Copie de l'étape modèle « … » », sans marque sur la fiche du graphe.
 
-Les systèmes du modèle deviennent les systèmes de la MEP issus du même système du catalogue. Si un système du modèle n'est **pas dans la MEP**, il n'est pas ajouté : l'aperçu et le message après la pose le signalent, à vous de l'ajouter aux systèmes impactés si besoin. Le plan de retour arrière n'accepte que les étapes modèles normales.
+Les systèmes du modèle deviennent les systèmes de la MEP issus du même système du catalogue. Si un système du modèle n'est **pas dans la MEP**, il n'est pas ajouté : l'aperçu et le message après la pose le signalent, à vous de l'ajouter aux systèmes impactés si besoin. Les environnements ne font pas partie du modèle : un système qui n'a qu'un environnement dans la MEP le donne à la copie ; s'il en a plusieurs, la copie arrive sans environnement pour ce système, à choisir dans son espace d'édition. Le plan de retour arrière n'accepte que les étapes modèles normales.
 
 ### Transformer une étape en étape modèle
 
-Dans l'espace d'une étape, **« Transformer en étape modèle »** ouvre une confirmation : nom de l'étape modèle (modifiable), systèmes, ce qui est repris (action, systèmes, criticité, durée, type et sauvegarde, instructions, résultat attendu, fin, résolutions) et ce qui ne l'est pas (point de non-retour, liens, exécutant, résultats et pièces jointes). Seuls les systèmes issus du catalogue sont repris ; une étape sans système du catalogue ne peut pas devenir une étape modèle. L'étape de la MEP ne change pas.
+Dans l'espace d'une étape, **« Transformer en étape modèle »** ouvre une confirmation : nom de l'étape modèle (modifiable), systèmes, ce qui est repris (action, systèmes, criticité, durée, type et sauvegarde, instructions, résultat attendu, fin, résolutions) et ce qui ne l'est pas (point de non-retour, liens, environnements, exécutant, résultats et pièces jointes). Seuls les systèmes issus du catalogue sont repris ; une étape sans système du catalogue ne peut pas devenir une étape modèle. L'étape de la MEP ne change pas.
 
 ## Préparer à plusieurs
 
@@ -169,8 +180,8 @@ Le jour J, une étape en échec propose ses résolutions liées et guide l'opér
 
 Le bouton « Vérifier le plan » liste :
 
-- les **anomalies**, qui bloquent le Go : échéance de retour arrière passée, pilote manquant ou non relié à un compte, plan de déploiement vide, plan de retour arrière vide ou sans « quand le déclencher » (si la case « Plan de retour arrière » est cochée), graphe invalide, étape incomplète (action, système, criticité, instructions, résultat attendu ; emplacement et méthode de récupération pour une étape de sauvegarde), sauvegarde non renseignée ou non justifiée, sauvegarde requise sans emplacement ou sans méthode de récupération, sauvegarde pendant la MEP sans étape de sauvegarde, recette absente ou incomplète, procédure non relue, approbations manquantes ou refusées ;
-- les **avertissements**, qui ne bloquent pas : aucun responsable technique, responsable technique absent le jour J, pilote qui est aussi responsable technique, aucun système sauvegardé, système sans recette.
+- les **anomalies**, qui bloquent le Go : échéance de retour arrière passée, pilote manquant ou non relié à un compte, plan de déploiement vide, plan de retour arrière vide ou sans « quand le déclencher » (si la case « Plan de retour arrière » est cochée), graphe invalide, étape incomplète (action, système, criticité, instructions, résultat attendu ; emplacement et méthode de récupération pour une étape de sauvegarde), sauvegarde non renseignée ou non justifiée, sauvegarde requise sans emplacement ou sans méthode de récupération, sauvegarde pendant la MEP sans étape de sauvegarde, étape qui garde un environnement qui n'est plus choisi pour son système, recette absente ou incomplète, procédure non relue, approbations manquantes ou refusées ;
+- les **avertissements**, qui ne bloquent pas : aucun responsable technique, responsable technique absent le jour J, pilote qui est aussi responsable technique, aucun système sauvegardé, système sans recette, système sans environnement choisi.
 
 ![« Vérifier le plan » : il manque une approbation](images/verifier-le-plan.png)
 
@@ -188,12 +199,12 @@ Quand le plan est complet, le pilote ou un suppléant donne le Go (voir [Cycle d
 
 ## Partir d'une MEP existante
 
-- **Dupliquer** (bouton de la liste ou de l'en-tête) copie une MEP : identité, personnes, pilote et suppléants, systèmes et leur sauvegarde, responsables techniques, livrables, étapes et liens, résolutions liées, plan de retour arrière (et le choix de l'avoir ou non), fiches de recette (sans les résultats) et approbateurs (sans leurs décisions). La communication est copiée (niveau de risque, bénéfices, utilisateurs impactés, arrêt applicatif, action attendue et heure limite), sauf la référence de la demande, le créneau annoncé et la validation par les utilisateurs. Ne sont pas copiés : l'échéance, la relecture, le Go, les résultats d'exécution (dont les résultats constatés des tests unitaires), le bilan et les pièces jointes. L'environnement peut être changé au passage.
+- **Dupliquer** (bouton de la liste ou de l'en-tête) copie une MEP : identité, personnes, pilote et suppléants, systèmes avec leurs environnements et leur sauvegarde, responsables techniques, objets impactés, étapes (avec leurs environnements) et liens, résolutions liées, plan de retour arrière (et le choix de l'avoir ou non), fiches de recette (sans les résultats) et approbateurs (sans leurs décisions). La communication est copiée (niveau de risque, bénéfices, utilisateurs impactés, arrêt applicatif, action attendue et heure limite), sauf la référence de la demande, le créneau annoncé et la validation par les utilisateurs. Ne sont pas copiés : l'échéance, la relecture, le Go, les résultats d'exécution (dont les résultats constatés des tests unitaires), le bilan et les pièces jointes.
 - Cocher **« En faire un modèle »** à la duplication crée un modèle, à réutiliser avec « Nouvelle MEP depuis un modèle ».
 
 ## Modèles
 
-Un modèle se prépare comme une MEP (intervention, personnes, systèmes, responsables techniques, livrables, sauvegarde, étapes, retour arrière, fiches de recette, approbateurs, pièces jointes), mais il ne s'exécute jamais. Ce qui se décide pour chaque intervention n'y apparaît donc pas :
+Un modèle se prépare comme une MEP (intervention, personnes, systèmes, responsables techniques, objets impactés, sauvegarde, étapes, retour arrière, fiches de recette, approbateurs, pièces jointes), mais il ne s'exécute jamais. Ce qui se décide pour chaque intervention n'y apparaît donc pas :
 
 | Masqué dans un modèle | Où le renseigner |
 |---|---|

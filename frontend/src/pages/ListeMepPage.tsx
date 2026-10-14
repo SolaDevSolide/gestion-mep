@@ -1,4 +1,14 @@
-import { ArrowRight, CalendarDays, Copy, LayoutTemplate, Plus, Rocket, Search, TimerReset } from 'lucide-react';
+import {
+  ArrowRight,
+  CalendarDays,
+  Copy,
+  Factory,
+  LayoutTemplate,
+  Plus,
+  Rocket,
+  Search,
+  TimerReset,
+} from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
@@ -199,11 +209,7 @@ export default function ListeMepPage() {
                   setDepuisModele(true);
                   api
                     .meps(true)
-                    .then((l) =>
-                      setModeles(
-                        l.map((m) => ({ id: m.id, outil: m.outil, estModele: true, environnement: m.environnement })),
-                      ),
-                    )
+                    .then((l) => setModeles(l.map((m) => ({ id: m.id, outil: m.outil, estModele: true }))))
                     .catch(() => setModeles([]));
                 }}
               >
@@ -383,9 +389,11 @@ export default function ListeMepPage() {
                           Modèle
                         </Badge>
                       )}
-                      {m.environnement && (
-                        <Badge ton={m.environnement.toLowerCase().startsWith('prod') ? 'warn' : undefined}>
-                          {m.environnement}
+                      {m.toucheProduction && (
+                        <Badge ton="warn">
+                          <Factory className="size-3" aria-hidden />
+                          Production
+                          <span className="sr-only"> : la MEP touche un environnement de production</span>
                         </Badge>
                       )}
                     </div>
@@ -437,9 +445,7 @@ export default function ListeMepPage() {
                 className="absolute right-4 bottom-4"
                 icone={<Copy className="size-3.5" aria-hidden />}
                 aria-label={`Dupliquer ${m.outil || 'la MEP'}`}
-                onClick={() =>
-                  setDuplication({ id: m.id, outil: m.outil, estModele: m.estModele, environnement: m.environnement })
-                }
+                onClick={() => setDuplication({ id: m.id, outil: m.outil, estModele: m.estModele })}
               >
                 Dupliquer
               </Button>

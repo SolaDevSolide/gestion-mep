@@ -89,6 +89,21 @@ public class ReglesBibliothequesTests
     }
 
     [Fact]
+    public void Une_copie_prend_l_environnement_unique_de_chaque_systeme_et_aucun_s_il_y_a_le_choix()
+    {
+        var jeu = Jeu();
+        var mep = jeu.Mep;
+        S(mep, "BDD").Environnements = [new EnvironnementSysteme { Nom = "Préproduction" }, new EnvironnementSysteme { Nom = "Production", Production = true }];
+        S(mep, "API").Environnements = [new EnvironnementSysteme { Nom = "Production", Production = true }];
+
+        var (etape, _) = InsererEtapeModele(mep, Modele(Cat(jeu, "BDD"), Cat(jeu, "API")), TypePlan.Deploiement, null, null, []);
+
+        var env = Assert.Single(etape.Environnements);
+        Assert.Equal((S(mep, "API").Id, "Production"), (env.SystemeId, env.Nom));
+        Assert.Empty(ErreursEnvironnements(mep));
+    }
+
+    [Fact]
     public void Le_retour_arriere_refuse_une_etape_modele_de_sauvegarde()
     {
         var jeu = Jeu();
@@ -131,7 +146,7 @@ public class ReglesBibliothequesTests
         var fiche = jeu.Mep.FichesRecette[0];
         fiche.ModeleRecetteId = Guid.NewGuid();
 
-        var copie = Dupliquer(jeu.Mep, null, false, Alice, Maintenant);
+        var copie = Dupliquer(jeu.Mep, false, Alice, Maintenant);
 
         Assert.Equal(modele.Id, copie.Etapes.Single(e => e.Code == etape.Code).ModeleEtapeId);
         Assert.Equal(fiche.ModeleRecetteId, copie.FichesRecette.Single(f => f.Titre == fiche.Titre).ModeleRecetteId);

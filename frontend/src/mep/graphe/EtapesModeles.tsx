@@ -115,6 +115,10 @@ export function apercuDepuisModele(mep: Mep, plan: TypePlan, m: ModeleEtape): Et
     sauvegardeMethodeRecuperation: m.sauvegardeMethodeRecuperation,
     disponibilite: { statut: 'Disponible', libelle: 'Disponible' },
     modeleEtapeId: m.id,
+    // Comme côté serveur : l'environnement unique d'un système est repris, sinon il reste à choisir.
+    environnements: systemeIds
+      .filter((s) => s.environnements.length === 1)
+      .map((s) => ({ systemeId: s.id, nom: s.environnements[0].nom })),
   };
 }
 
@@ -569,7 +573,12 @@ export function TransformerDialog({
     `Fin de l’étape (${LIBELLE_FIN[etape.fin]})`,
     `Résolutions en cas d’échec (${etape.resolutionIds.length})`,
   ];
-  const nonRepris = ['Point de non-retour', 'Liens avec les autres étapes', 'Exécutant, résultats et pièces jointes'];
+  const nonRepris = [
+    'Point de non-retour',
+    'Liens avec les autres étapes',
+    'Environnements (propres à chaque MEP)',
+    'Exécutant, résultats et pièces jointes',
+  ];
 
   async function creer() {
     setEnvoi(true);

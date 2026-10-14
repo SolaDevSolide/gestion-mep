@@ -20,12 +20,13 @@ public record EquipeDto(Guid Id, string Nom, string Description, List<Guid> Memb
 /// <summary>
 /// <c>DateMep</c> : date du Go (dans le fuseau de la MEP) ou null ; <c>CreeLe</c> : création de la MEP ;
 /// <c>RetourArriereActive</c> : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).
+/// <c>ToucheProduction</c> : l'un des systèmes de la MEP touche un environnement de production.
 /// <c>EquipeIds</c> : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait
 /// partie, par l'un de ses comptes reliés). <c>Personnes</c> : noms des personnes de la MEP et, pour celles qui ont un compte,
 /// noms et logins de tous leurs comptes reliés (pour la recherche).
 /// </summary>
 public record MepResumeDto(Guid Id, string Outil, string VersionCible, string Objet, DateOnly? DateMep, Phase Phase,
-    DateTimeOffset? EcheanceRepli, string? Pilote, int NbEtapes, int NbReussies, int NbEchecs, string Environnement, bool EstModele,
+    DateTimeOffset? EcheanceRepli, string? Pilote, int NbEtapes, int NbReussies, int NbEchecs, bool ToucheProduction, bool EstModele,
     DateTimeOffset CreeLe, IssueMep? Issue, bool RetourArriereActive, List<Guid> EquipeIds, List<string> Personnes);
 
 public record SauvegardeDto(ModeSauvegarde Mode, bool Structure, bool Donnees, bool Configuration, Guid? ResponsableId, DateTimeOffset? RealiseeLe,
@@ -36,12 +37,23 @@ public record ParticipantDto(Guid Id, string Nom, string Role, string Contact, G
 /// <summary><c>Emplacement</c> et <c>MethodeRecuperation</c> : obligatoires si la sauvegarde est requise (vérification du plan).</summary>
 public record SauvegardeSystemeDto(StatutSauvegarde Statut, ModeSauvegarde Moment, string Contenu, string Justification, string Emplacement,
     string MethodeRecuperation);
-public record SystemeDto(Guid Id, string Nom, string Cible, string Impact, Guid? CatalogueId, SauvegardeSystemeDto Sauvegarde);
+/// <summary>Environnement d'un système de la MEP (<c>Production</c> : copié de la fiche du catalogue, ou déduit du nom hors catalogue).</summary>
+public record EnvironnementSystemeDto(string Nom, bool Production);
+/// <summary><c>Environnements</c> : environnements touchés par la MEP sur ce système.</summary>
+public record SystemeDto(Guid Id, string Nom, string Cible, string Impact, Guid? CatalogueId, SauvegardeSystemeDto Sauvegarde,
+    List<EnvironnementSystemeDto> Environnements);
 public record PlanRepliDto(string QuandDeclencher, int? DureeTesteeMinutes, string VersionARestaurer, string DonneesDepuisSauvegarde, string SiRepliEchoue);
 /// <summary><c>Par</c> vaut null quand le retour arrière s'est déclenché automatiquement.</summary>
 public record RetourArriereDto(DateTimeOffset Le, string? Par, string Motif);
 public record ClotureDto(DateTimeOffset Le, string? Par);
-public record LivrableDto(Guid Id, string Objet, string Version, string Emplacement, Guid? SystemeId);
+/// <summary>
+/// Objet impacté : copie de l'objet du catalogue (<c>ObjetCatalogueId</c>) au moment du choix, et version ou correction livrée.
+/// <c>Repris</c> : ancien livrable repris par la migration ; <c>ObjetCatalogueId</c> null : livrable d'un système hors catalogue.
+/// </summary>
+public record ObjetImpacteDto(Guid Id, Guid? SystemeId, Guid? ObjetCatalogueId, string Categorie, string Type, string Nom, string Libelle,
+    string Precision, string Version, bool Repris);
+/// <summary>Environnement d'une étape sur l'un de ses systèmes.</summary>
+public record EnvironnementEtapeDto(Guid SystemeId, string Nom);
 public record DisponibiliteDto(StatutDisponibilite Statut, string Libelle);
 
 /// <summary>
@@ -49,13 +61,14 @@ public record DisponibiliteDto(StatutDisponibilite Statut, string Libelle);
 /// (le résultat attendu est l'instruction de test, <c>ResultatConstate</c> se saisit en terminant l'étape) ou simple vérification.
 /// <c>SauvegardeEmplacement</c> et <c>SauvegardeMethodeRecuperation</c> : étape de type Sauvegarde seulement.
 /// <c>ModeleEtapeId</c> : étape modèle dont l'étape est une copie (null : saisie dans la MEP).
+/// <c>Environnements</c> : environnements où agit l'étape, système par système.
 /// </summary>
 public record EtapeDto(Guid Id, TypePlan Plan, string Code, int Ligne, int Ordre, string Action, List<Guid> SystemeIds, Guid? ResponsableId, Guid? ExecutantId,
     Criticite? Criticite, int? DureeEstimeeMinutes,
     EtatEtape Etat, string Instructions, string ResultatAttendu, string Preuve, string Commentaire, DateTimeOffset? DebutReel, DateTimeOffset? FinReelle,
     int Revision, List<Guid> Dependances, List<Guid> ResolutionIds, DisponibiliteDto Disponibilite,
     TypeEtape Type, bool PointDeNonRetour, ValidationDto? NonRetourAutorise, FinEtape Fin, string ResultatConstate, string SauvegardeEmplacement,
-    string SauvegardeMethodeRecuperation, Guid? ModeleEtapeId);
+    string SauvegardeMethodeRecuperation, Guid? ModeleEtapeId, List<EnvironnementEtapeDto> Environnements);
 
 /// <summary>Test unitaire d'une étape : <c>Fait</c> si l'étape est terminée (réussie ou en échec) ; <c>Executant</c> : dernier exécutant.</summary>
 public record TestUnitaireDto(Guid EtapeId, string Code, TypePlan Plan, string Action, EtatEtape Etat, bool Fait, string ResultatAttendu,
@@ -88,7 +101,14 @@ public record ExecutionResolutionDto(Guid Id, Guid EtapeId, Guid ResolutionTypeI
     ResultatControle? VerificationResultat, string VerificationObservation, StatutResolution Statut,
     string DemarreePar, DateTimeOffset DemarreeLe, DateTimeOffset? TermineeLe);
 
-public record SystemeCatalogueDto(Guid Id, string Nom, string Description, string Cible, bool Actif);
+public record EnvironnementCatalogueDto(string Nom, string Cible, bool Production);
+/// <summary>
+/// Système du catalogue : <c>Environnements</c> et <c>Categories</c> (dans l'ordre de la fiche), <c>NbObjets</c> connus
+/// (le détail : <c>GET /catalogue/systemes/{id}/objets</c>).
+/// </summary>
+public record SystemeCatalogueDto(Guid Id, string Nom, string Description, string Cible, bool Actif, List<EnvironnementCatalogueDto> Environnements,
+    List<string> Categories, int NbObjets);
+public record ObjetCatalogueDto(Guid Id, string Categorie, string Type, string Nom, string Libelle, string Precision);
 /// <summary>
 /// <c>Utilisations</c> : nombre de MEP où la résolution a été liée à une étape (une fois par MEP) ; <c>CreeeLe</c> : création.
 /// Les listes sont triées par nombre d'utilisations, puis par ordre de création.
@@ -114,9 +134,9 @@ public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle,
     Guid? PiloteId, List<Guid> SuppleantIds, Phase Phase, DateTimeOffset? EcheanceRepli,
     IssueMep? Issue, RetourArriereDto? RetourArriere, ClotureDto? Cloture, PlanRepliDto PlanRepli, SauvegardeDto Sauvegarde,
     ValidationDto? ProcedureRelue, ValidationDto? DemarrageAutorise,
-    List<ParticipantDto> Participants, List<SystemeDto> Systemes, List<LivrableDto> Livrables, List<EtapeDto> Etapes,
+    List<ParticipantDto> Participants, List<SystemeDto> Systemes, List<ObjetImpacteDto> ObjetsImpactes, List<EtapeDto> Etapes,
     List<ExecutionResolutionDto> Resolutions, List<string> ErreursPlan, DroitsDto Droits,
-    string Environnement, bool EstModele, int ApprobationsMinimum, List<ApprobationDto> Approbations, List<CritereValideDto> GoNoGo,
+    bool EstModele, int ApprobationsMinimum, List<ApprobationDto> Approbations, List<CritereValideDto> GoNoGo,
     List<FicheRecetteDto> FichesRecette, bool BilanActive, BilanDto? Bilan, string? NonRetourFranchi, List<PieceJointeDto> PiecesJointes,
     List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements, bool RetourArriereActive, CommunicationDto Communication);
 
@@ -177,12 +197,12 @@ public record ProfilSaisie(string? NomAffiche, string? Role, string? Contact, Li
 public record MepCreationSaisie(string? Outil, string? Objet, bool? Modele = null);
 
 /// <summary>
-/// <c>Environnement</c>, <c>BilanActive</c> et <c>RetourArriereActive</c> absents : inchangés. <c>EcheanceRepli</c> null : sans échéance.
+/// <c>BilanActive</c> et <c>RetourArriereActive</c> absents : inchangés. <c>EcheanceRepli</c> null : sans échéance. La MEP n'a plus
+/// d'environnement propre : ils se choisissent par système (<c>PUT /meps/{id}/systemes/{sid}/environnements</c>).
 /// </summary>
 public record MepIdentiteSaisie(int? Version, string? Outil, string? VersionActuelle, string? VersionCible, string? Objet, string? Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string? FuseauHoraire, int? IndisponibiliteMinutes,
-    Guid? PiloteId, List<Guid>? SuppleantIds, DateTimeOffset? EcheanceRepli, string? Environnement = null, bool? BilanActive = null,
-    bool? RetourArriereActive = null);
+    Guid? PiloteId, List<Guid>? SuppleantIds, DateTimeOffset? EcheanceRepli, bool? BilanActive = null, bool? RetourArriereActive = null);
 
 /// <summary>Section Communication, remplacée en entier (champs absents : vides).</summary>
 public record CommunicationSaisie(int? Version, string? ReferenceDemande, NiveauRisque? NiveauRisque, string? Benefices, string? UtilisateursImpactes,
@@ -201,16 +221,28 @@ public record SystemeSaisie(string? Nom, string? Cible, string? Impact);
 /// <summary><c>Emplacement</c> et <c>MethodeRecuperation</c> absents : inchangés.</summary>
 public record SauvegardeSystemeSaisie(int? Version, StatutSauvegarde? Statut, ModeSauvegarde? Moment, string? Contenu, string? Justification,
     string? Emplacement = null, string? MethodeRecuperation = null);
-public record LivrableSaisie(string? Objet, string? Version, string? Emplacement, Guid? SystemeId);
+/// <summary>Environnements touchés par la MEP sur un système, dans l'ordre voulu (ceux de sa fiche au catalogue, ou libres hors catalogue).</summary>
+public record EnvironnementsSystemeSaisie(List<string>? Noms);
+/// <summary>Objet du catalogue retenu pour un système de la MEP, avec sa version ou correction.</summary>
+public record ObjetChoisiSaisie(Guid? ObjetCatalogueId, string? Version);
+/// <summary>Objets impactés d'un système : la liste remplace les objets du catalogue déjà retenus pour ce système.</summary>
+public record ObjetsSystemeSaisie(List<ObjetChoisiSaisie>? Objets);
+/// <summary>Ligne du fichier Excel rejetée à l'import (objet absent de la fiche du système, système inconnu…).</summary>
+public record LigneRejeteeDto(int Ligne, string Systeme, string Categorie, string Nom, string Raison, Guid? SystemeCatalogueId);
+/// <summary>Résultat d'un import Excel d'objets impactés : MEP à jour, compteurs et lignes rejetées (rien n'est créé au catalogue).</summary>
+public record ImportObjetsDto(MepDto Mep, int Ajoutes, int Modifies, int Inchanges, List<LigneRejeteeDto> Rejetees);
+public record EnvironnementEtapeSaisie(Guid? SystemeId, string? Nom);
 
 /// <summary>
-/// <c>Ligne</c> et <c>Position</c> ne servent qu'à la création (<c>POST /etapes</c>). <c>Fin</c>, <c>SauvegardeEmplacement</c> et
-/// <c>SauvegardeMethodeRecuperation</c> absents : inchangés (test unitaire pour une nouvelle étape).
+/// <c>Ligne</c> et <c>Position</c> ne servent qu'à la création (<c>POST /etapes</c>). <c>Fin</c>, <c>SauvegardeEmplacement</c>,
+/// <c>SauvegardeMethodeRecuperation</c> et <c>Environnements</c> absents : inchangés (test unitaire pour une nouvelle étape) ;
+/// les environnements d'un système retiré de l'étape partent avec lui.
 /// </summary>
 public record EtapeSaisie(int? Revision, string? Action, List<Guid>? SystemeIds, Guid? ResponsableId, Criticite? Criticite,
     string? Instructions, string? ResultatAttendu, List<Guid>? Dependances, TypePlan? Plan = null, List<Guid>? ResolutionIds = null,
     TypeEtape? Type = null, bool PointDeNonRetour = false, int? DureeEstimeeMinutes = null, int? Ligne = null, int? Position = null,
-    FinEtape? Fin = null, string? SauvegardeEmplacement = null, string? SauvegardeMethodeRecuperation = null);
+    FinEtape? Fin = null, string? SauvegardeEmplacement = null, string? SauvegardeMethodeRecuperation = null,
+    List<EnvironnementEtapeSaisie>? Environnements = null);
 
 public record PlacerSaisie(int? Ligne, int? Position, bool LiensParDefaut = true);
 public record RevisionSaisie(int? Revision);
@@ -226,7 +258,8 @@ public record PhaseSaisie(Phase? Phase, List<Guid>? CriteresCoches = null);
 public record NoGoSaisie(string? Motif);
 public record ApprobateursSaisie(int? Version, List<Guid>? UtilisateurIds);
 public record DecisionSaisie(int? Version, DecisionApprobation? Decision, string? Commentaire);
-public record DuplicationSaisie(string? Environnement, bool CommeModele);
+/// <summary>Duplication : la copie reprend les systèmes avec leurs environnements, modifiables ensuite.</summary>
+public record DuplicationSaisie(bool CommeModele);
 public record FicheRecetteCreationSaisie(Guid? SystemeId, string? Titre);
 public record EtapeTestSaisie(Guid? Id, string? Instructions, string? ResultatAttendu);
 /// <param name="SystemeId">Facultatif : la fiche garde son système ; sert seulement à rattacher une ancienne fiche sans système.</param>
@@ -277,6 +310,15 @@ public record PlanRepliSaisie(int? Version, string? QuandDeclencher, int? DureeT
     string? DonneesDepuisSauvegarde, string? SiRepliEchoue);
 public record RetourArriereSaisie(string? Motif);
 public record SystemeCatalogueSaisie(string? Nom, string? Description, string? Cible, bool? Actif);
+/// <summary>Production absente : déduite du nom (« Production », « prod »…).</summary>
+public record EnvironnementCatalogueSaisie(string? Nom, string? Cible, bool? Production);
+public record EnvironnementsCatalogueSaisie(List<EnvironnementCatalogueSaisie>? Environnements);
+/// <summary><c>Ancien</c> : nom actuel d'une catégorie renommée (ses objets la suivent).</summary>
+public record CategorieSaisie(string? Nom, string? Ancien = null);
+/// <summary>Catégories de la fiche, dans l'ordre ; une catégorie absente est retirée avec ses objets.</summary>
+public record CategoriesSystemeSaisie(List<CategorieSaisie>? Categories);
+public record ObjetCatalogueSaisie(string? Categorie, string? Type, string? Nom, string? Libelle, string? Precision);
+public record CategoriesDefautSaisie(List<string>? Categories);
 public record DepuisCatalogueSaisie(Guid? CatalogueId, string? Impact);
 public record CorrectionSaisie(int? Ordre, string? Instruction, string? ResultatAttendu);
 public record ResolutionTypeSaisie(int? Version, string? Titre, string? Symptomes, string? Diagnostic, List<Guid>? SystemeCatalogueIds,

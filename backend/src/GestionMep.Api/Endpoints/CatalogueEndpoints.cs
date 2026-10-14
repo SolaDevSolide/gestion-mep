@@ -7,10 +7,23 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GestionMep.Api.Endpoints;
 
-/// <summary>Catalogue global des systèmes (lecture : tout connecté ; écriture : admin) et ajout d'un système du catalogue à une MEP.</summary>
+/// <summary>
+/// Catalogue global des systèmes (lecture : tout connecté ; écriture : admin) : fiche de chaque système (environnements,
+/// catégories et objets), catégories par défaut, et ajout d'un système du catalogue à une MEP.
+/// </summary>
 public static class CatalogueEndpoints
 {
-    private static SystemeCatalogueDto Dto(SystemeCatalogue s) => new(s.Id, s.Nom, s.Description, s.Cible, s.Actif);
+    public static SystemeCatalogueDto Dto(SystemeCatalogue s) => new(s.Id, s.Nom, s.Description, s.Cible, s.Actif,
+        s.Environnements.Select(e => new EnvironnementCatalogueDto(e.Nom, e.Cible, e.Production)).ToList(), [.. s.Categories], s.Objets.Count);
+
+    public static ObjetCatalogueDto Dto(ObjetCatalogue o) => new(o.Id, o.Categorie, o.Type, o.Nom, o.Libelle, o.Precision);
+
+    /// <summary>Objets de la fiche, dans l'ordre des catégories puis par nom.</summary>
+    public static List<ObjetCatalogueDto> Objets(SystemeCatalogue s) =>
+        s.Objets.OrderBy(o => s.Categories.IndexOf(o.Categorie)).ThenBy(o => o.Nom, StringComparer.OrdinalIgnoreCase).Select(Dto).ToList();
+
+    private static async Task<SystemeCatalogue> Trouver(MepDbContext db, Guid id) =>
+        await db.SystemesCatalogue.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Système du catalogue introuvable.");
 
     private static void ExigerAdmin(ClaimsPrincipal user)
     {
@@ -63,6 +76,84 @@ public static class CatalogueEndpoints
         return Dto(s);
     }
 
+    /// <summary>Remplace les environnements de la fiche (les MEP gardent ceux déjà choisis).</summary>
+    public static async Task<SystemeCatalogueDto> DefinirEnvironnements(MepDbContext db, Acteur? acteur, Guid id, EnvironnementsCatalogueSaisie c)
+    {
+        var s = await Trouver(db, id);
+        try { Regles.DefinirEnvironnementsCatalogue(s, (c.Environnements ?? []).Select(e => (e.Nom, e.Cible, e.Production))); }
+        catch (RegleMetierException ex) { throw ErreurHttp.Saisie(ex.Message); }
+        s.Version++;
+        JournalAdmin.Ecrire(db, acteur, "systeme.environnements",
+            $"Environnements de « {s.Nom} » : {(s.Environnements.Count == 0 ? "aucun" : string.Join(", ", s.Environnements.Select(e => e.Nom)))}");
+        await db.SaveChangesAsync();
+        return Dto(s);
+    }
+
+    /// <summary>Remplace les catégories de la fiche : renommage (les objets suivent) ou retrait (avec leurs objets).</summary>
+    public static async Task<SystemeCatalogueDto> DefinirCategories(MepDbContext db, Acteur? acteur, Guid id, CategoriesSystemeSaisie c)
+    {
+        var s = await Trouver(db, id);
+        int retires;
+        try { retires = Regles.DefinirCategoriesCatalogue(s, (c.Categories ?? []).Select(x => (x.Nom, x.Ancien))); }
+        catch (RegleMetierException ex) { throw ErreurHttp.Saisie(ex.Message); }
+        s.Version++;
+        JournalAdmin.Ecrire(db, acteur, "systeme.categories",
+            $"Catégories de « {s.Nom} » : {(s.Categories.Count == 0 ? "aucune" : string.Join(", ", s.Categories))}{(retires > 0 ? $" ({retires} objet(s) retiré(s))" : "")}");
+        await db.SaveChangesAsync();
+        return Dto(s);
+    }
+
+    /// <summary>Ajoute (<paramref name="objetId"/> null) ou modifie un objet de la fiche.</summary>
+    public static async Task<ObjetCatalogueDto> EnregistrerObjet(MepDbContext db, Acteur? acteur, Guid id, Guid? objetId, ObjetCatalogueSaisie c)
+    {
+        var s = await Trouver(db, id);
+        if (objetId is { } oid && s.Objets.All(o => o.Id != oid)) throw ErreurHttp.NonTrouve("Objet introuvable dans la fiche du système.");
+        ObjetCatalogue objet;
+        try { objet = Regles.EnregistrerObjetCatalogue(s, objetId, c.Categorie, c.Type, c.Nom, c.Libelle, c.Precision); }
+        catch (RegleMetierException ex) { throw ErreurHttp.Saisie(ex.Message); }
+        s.Version++;
+        JournalAdmin.Ecrire(db, acteur, objetId is null ? "systeme.objet-ajoute" : "systeme.objet-modifie",
+            $"Objet « {objet.Nom} » ({objet.Categorie}) {(objetId is null ? "ajouté à" : "modifié dans")} la fiche « {s.Nom} »");
+        await db.SaveChangesAsync();
+        return Dto(objet);
+    }
+
+    /// <summary>Retire un objet de la fiche (les MEP qui l'ont retenu gardent leur copie).</summary>
+    public static async Task SupprimerObjet(MepDbContext db, Acteur? acteur, Guid id, Guid objetId)
+    {
+        var s = await Trouver(db, id);
+        var o = s.Objets.FirstOrDefault(x => x.Id == objetId) ?? throw ErreurHttp.NonTrouve("Objet introuvable dans la fiche du système.");
+        s.Objets = s.Objets.Where(x => x.Id != objetId).ToList();
+        s.Version++;
+        JournalAdmin.Ecrire(db, acteur, "systeme.objet-supprime", $"Objet « {o.Nom} » ({o.Categorie}) retiré de la fiche « {s.Nom} »");
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>Catégories d'objets proposées par défaut à chaque système.</summary>
+    public static async Task<List<string>> CategoriesDefaut(MepDbContext db) =>
+        (await db.Parametres.AsNoTracking().FirstOrDefaultAsync(p => p.Id == ParametresGlobaux.IdUnique))?.CategoriesObjets
+        ?? [.. ParametresGlobaux.CategoriesObjetsParDefaut];
+
+    /// <summary>Remplace la liste des catégories par défaut (les systèmes gardent leurs catégories).</summary>
+    public static async Task<List<string>> DefinirCategoriesDefaut(MepDbContext db, Acteur? acteur, CategoriesDefautSaisie c)
+    {
+        List<string> liste;
+        try { liste = Regles.NormaliserCategoriesDefaut(c.Categories ?? []); }
+        catch (RegleMetierException ex) { throw ErreurHttp.Saisie(ex.Message); }
+        var p = await db.Parametres.FirstOrDefaultAsync(x => x.Id == ParametresGlobaux.IdUnique);
+        if (p is null) db.Parametres.Add(p = new ParametresGlobaux());
+        var ajoutees = liste.Where(x => !p.CategoriesObjets.Contains(x)).ToList();
+        var retirees = p.CategoriesObjets.Where(x => !liste.Contains(x)).ToList();
+        p.CategoriesObjets = liste;
+        var details = new List<string>();
+        if (ajoutees.Count > 0) details.Add("ajoutées : " + string.Join(", ", ajoutees));
+        if (retirees.Count > 0) details.Add("retirées : " + string.Join(", ", retirees));
+        JournalAdmin.Ecrire(db, acteur, "categories.modifiees",
+            "Catégories d'objets par défaut modifiées" + (details.Count > 0 ? " (" + string.Join(" ; ", details) + ")" : ""));
+        await db.SaveChangesAsync();
+        return liste;
+    }
+
     /// <summary>Supprime le système ; s'il est utilisé par une MEP, une résolution type, un modèle de recette ou une étape modèle, le désactive (renvoie false).</summary>
     public static async Task<bool> Supprimer(MepDbContext db, Acteur? acteur, Guid id)
     {
@@ -108,6 +199,54 @@ public static class CatalogueEndpoints
             return Results.NoContent();
         });
 
+        // ---------- Fiche d'un système : environnements, catégories, objets ----------
+        api.MapGet("/catalogue/systemes/{id:guid}/objets", async (Guid id, MepDbContext db) =>
+        {
+            var s = await db.SystemesCatalogue.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Système du catalogue introuvable.");
+            return Objets(s).AsEnumerable();
+        });
+
+        api.MapPut("/catalogue/systemes/{id:guid}/environnements", async (Guid id, EnvironnementsCatalogueSaisie c, ClaimsPrincipal user, MepDbContext db) =>
+        {
+            ExigerAdmin(user);
+            return Results.Ok(await DefinirEnvironnements(db, Acteur.Depuis(user), id, c));
+        });
+
+        api.MapPut("/catalogue/systemes/{id:guid}/categories", async (Guid id, CategoriesSystemeSaisie c, ClaimsPrincipal user, MepDbContext db) =>
+        {
+            ExigerAdmin(user);
+            return Results.Ok(await DefinirCategories(db, Acteur.Depuis(user), id, c));
+        });
+
+        api.MapPost("/catalogue/systemes/{id:guid}/objets", async (Guid id, ObjetCatalogueSaisie c, ClaimsPrincipal user, MepDbContext db) =>
+        {
+            ExigerAdmin(user);
+            var o = await EnregistrerObjet(db, Acteur.Depuis(user), id, null, c);
+            return Results.Created($"/api/catalogue/systemes/{id}/objets/{o.Id}", o);
+        });
+
+        api.MapPut("/catalogue/systemes/{id:guid}/objets/{oid:guid}", async (Guid id, Guid oid, ObjetCatalogueSaisie c, ClaimsPrincipal user, MepDbContext db) =>
+        {
+            ExigerAdmin(user);
+            return Results.Ok(await EnregistrerObjet(db, Acteur.Depuis(user), id, oid, c));
+        });
+
+        api.MapDelete("/catalogue/systemes/{id:guid}/objets/{oid:guid}", async (Guid id, Guid oid, ClaimsPrincipal user, MepDbContext db) =>
+        {
+            ExigerAdmin(user);
+            await SupprimerObjet(db, Acteur.Depuis(user), id, oid);
+            return Results.NoContent();
+        });
+
+        // ---------- Catégories d'objets par défaut ----------
+        api.MapGet("/catalogue/categories", async (MepDbContext db) => (await CategoriesDefaut(db)).AsEnumerable());
+
+        api.MapPut("/catalogue/categories", async (CategoriesDefautSaisie c, ClaimsPrincipal user, MepDbContext db) =>
+        {
+            ExigerAdmin(user);
+            return Results.Ok((await DefinirCategoriesDefaut(db, Acteur.Depuis(user), c)).AsEnumerable());
+        });
+
         api.MapPost("/meps/{id:guid}/systemes/depuis-catalogue", async (Guid id, DepuisCatalogueSaisie c, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) => Results.Ok(await svc.Modifier(id, async mep =>
         {
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
@@ -117,7 +256,12 @@ public static class CatalogueEndpoints
                 ?? throw ErreurHttp.Saisie("Système du catalogue inconnu.");
             if (!cat.Actif) throw new RegleMetierException($"Le système {cat.Nom} est désactivé dans le catalogue.");
             if (mep.Systemes.Any(x => x.CatalogueId == cat.Id)) throw new RegleMetierException($"Le système {cat.Nom} est déjà présent dans cette MEP.");
-            mep.Systemes.Add(new Systeme { MepId = mep.Id, Nom = cat.Nom, Cible = cat.Cible, Impact = ServiceMep.Texte(c.Impact), CatalogueId = cat.Id });
+            // Un seul environnement dans la fiche : il est choisi d'office (modifiable ensuite).
+            mep.Systemes.Add(new Systeme
+            {
+                MepId = mep.Id, Nom = cat.Nom, Cible = cat.Cible, Impact = ServiceMep.Texte(c.Impact), CatalogueId = cat.Id,
+                Environnements = cat.Environnements.Count == 1 ? [new EnvironnementSysteme { Nom = cat.Environnements[0].Nom, Production = cat.Environnements[0].Production }] : [],
+            });
             return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.ajoute", $"Système ajouté depuis le catalogue : {cat.Nom}");
         })));
     }

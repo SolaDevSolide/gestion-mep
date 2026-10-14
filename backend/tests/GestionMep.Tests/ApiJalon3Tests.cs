@@ -80,7 +80,7 @@ public class ApiJalon3Tests : IDisposable
 
         var id = await AidesApi.IdDemo(alice);
         var mep = await Ok(await claire.GetAsync($"/api/meps/{id}"));
-        Assert.Equal("Production", mep.GetProperty("environnement").GetString());
+        Assert.All(mep.GetProperty("systemes").EnumerateArray(), s => Assert.Equal("Production", s.GetProperty("environnements")[0].GetProperty("nom").GetString()));
         Assert.False(mep.GetProperty("estModele").GetBoolean());
         Assert.Equal([Participant(mep, "Bob")], mep.GetProperty("suppleantIds").EnumerateArray().Select(x => x.GetGuid()).ToArray());
         var approbation = Assert.Single(mep.GetProperty("approbations").EnumerateArray().ToList());
@@ -166,8 +166,9 @@ public class ApiJalon3Tests : IDisposable
         Assert.Contains(journal, e => e.Type == "approbation.refusee" && e.Detail == "MEP refusée par Claire : Préciser le repli");
 
         // Sans décision à effacer, une modification n'écrit rien de plus.
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/livrables", new { objet = "Notes de version", version = "2.0", emplacement = "", systemeId = (Guid?)null }));
-        Assert.Equal("livrable.ajoute", (await Journal(alice, id))[0].Type);
+        var sid = mep.GetProperty("systemes")[0].GetProperty("id").GetGuid();
+        mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/systemes/{sid}/environnements", new { noms = new[] { "Recette", "Production" } }));
+        Assert.Equal("systeme.environnements", (await Journal(alice, id))[0].Type);
 
         mep = await Ok(await claire.PostAsJsonAsync($"/api/meps/{id}/approbation", new { version = Version(mep), decision = "Approuvee", commentaire = "OK" }));
         Assert.Empty(Erreurs(mep));
@@ -305,13 +306,12 @@ public class ApiJalon3Tests : IDisposable
         Assert.Equal(HttpStatusCode.UnprocessableEntity, go.StatusCode);
         Assert.StartsWith("Un modèle ne passe pas en exécution", await Message(go));
 
-        var cree = await bob.PostAsJsonAsync($"/api/meps/{modeleId}/dupliquer", new { environnement = "Préproduction", commeModele = false });
+        var cree = await bob.PostAsJsonAsync($"/api/meps/{modeleId}/dupliquer", new { commeModele = false });
         Assert.Equal(HttpStatusCode.Created, cree.StatusCode);
         var copie = await Lire(cree);
         var copieId = copie.GetProperty("id").GetGuid();
         Assert.Equal($"/api/meps/{copieId}", cree.Headers.Location!.ToString());
         Assert.False(copie.GetProperty("estModele").GetBoolean());
-        Assert.Equal("Préproduction", copie.GetProperty("environnement").GetString());
         Assert.Equal("Preparation", copie.GetProperty("phase").GetString());
         Assert.Equal(1, copie.GetProperty("version").GetInt32());
         Assert.Equal(JsonValueKind.Null, copie.GetProperty("echeanceRepli").ValueKind);
@@ -325,10 +325,11 @@ public class ApiJalon3Tests : IDisposable
         Assert.True(copie.GetProperty("retourArriereActive").GetBoolean());
         Assert.Equal(("mep.creee", "Bob", "MEP créée depuis le modèle « Modèle : déploiement API standard »"), (await Journal(bob, copieId)).Single());
 
-        // Dupliquer une MEP comme modèle, sans changer l'environnement.
+        // Dupliquer une MEP comme modèle : les environnements des systèmes sont gardés.
         var nouveauModele = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/dupliquer", new { commeModele = true }));
         Assert.True(nouveauModele.GetProperty("estModele").GetBoolean());
-        Assert.Equal("Production", nouveauModele.GetProperty("environnement").GetString());
+        Assert.Equal((await Ok(await alice.GetAsync($"/api/meps/{id}"))).GetProperty("systemes").EnumerateArray().Select(s => s.GetProperty("environnements").GetArrayLength()),
+            nouveauModele.GetProperty("systemes").EnumerateArray().Select(s => s.GetProperty("environnements").GetArrayLength()));
         Assert.Equal(2, (await Ok(await alice.GetAsync("/api/meps?modele=true"))).GetArrayLength());
         Assert.Equal(8 + 1, (await Ok(await alice.GetAsync("/api/meps?modele=false"))).GetArrayLength()); // MEP de démonstration et la copie
         Assert.Equal(HttpStatusCode.NotFound, (await alice.PostAsJsonAsync($"/api/meps/{Guid.NewGuid()}/dupliquer", new { commeModele = false })).StatusCode);

@@ -9,6 +9,8 @@ import { StatusPill } from '../../ui/StatusPill';
 import { AppelerCarte } from '../AppelerCarte';
 import { Bloc } from '../graphe/EspaceEtape';
 import { etatCarte } from '../graphe/etatCarte';
+import { environnementsEtape } from '../../environnements';
+import { PastilleEnvironnement } from '../../ui/PastilleEnvironnement';
 import { PuceSysteme, systemesDe } from '../graphe/systemes';
 
 /** Liste compacte d'étapes liées avec leur état (préalables, débloque). */
@@ -189,14 +191,21 @@ export function EtapeInfos({
 
       <AppelerCarte mep={mep} etape={etape} />
 
-      <Bloc titre="Systèmes">
-        <div className="flex flex-wrap gap-1.5">
-          {systemes.length > 0 ? (
-            systemes.map((s) => <PuceSysteme key={s.id} nom={s.nom} />)
-          ) : (
-            <span className="text-[13px] text-fg-subtle">Non précisé</span>
-          )}
-        </div>
+      <Bloc titre="Systèmes et environnements">
+        {systemes.length > 0 ? (
+          <ul className="space-y-1.5">
+            {systemes.map((s) => (
+              <li key={s.id} className="flex flex-wrap items-center gap-1.5">
+                <PuceSysteme nom={s.nom} />
+                {environnementsEtape(etape, s).map((e) => (
+                  <PastilleEnvironnement key={e.nom} nom={e.nom} production={e.production} retire={e.retire} />
+                ))}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span className="text-[13px] text-fg-subtle">Non précisé</span>
+        )}
       </Bloc>
       <Bloc titre={`Attend (${prealables.length})`}>
         <ListeEtats etapes={prealables} vide="Aucun préalable." onSelectionner={onSelectionner} />

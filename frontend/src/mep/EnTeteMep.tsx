@@ -1,6 +1,8 @@
-import { ArrowRight, CalendarDays, ChevronLeft, Copy, LayoutTemplate, Mail } from 'lucide-react';
+import { ArrowRight, CalendarDays, ChevronLeft, Copy, LayoutTemplate, Mail, Server } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { couleurSysteme } from '../couleursSysteme';
+import { abregerEnvironnement } from '../environnements';
 import { etapesDuPlan, nomParticipant, planActif, segmentsProgression } from '../domaine';
 import { formatDateHeure } from '../format';
 import { metaPhase } from '../statuts';
@@ -88,14 +90,6 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                   Modèle
                 </Badge>
               )}
-              {mep.environnement && (
-                <Badge
-                  ton={mep.environnement.toLowerCase().startsWith('prod') ? 'warn' : undefined}
-                  className="text-xs"
-                >
-                  {mep.environnement}
-                </Badge>
-              )}
             </div>
             <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 pl-8 text-[13px] text-fg-muted">
               {mep.objet && <span className="max-w-md truncate">{mep.objet}</span>}
@@ -106,6 +100,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                   {mep.cloture && ` · Terminée le ${formatDateHeure(mep.cloture.le)}`}
                 </span>
               )}
+              <EnvironnementsMep mep={mep} />
               {pilote && !mep.estModele && (
                 <span className="inline-flex items-center gap-1.5">
                   <Avatar nom={pilote} taille="xs" />
@@ -186,8 +181,40 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
       <DuplicationDialog
         open={duplication}
         onOpenChange={setDuplication}
-        source={{ id: mep.id, outil: mep.outil, estModele: mep.estModele, environnement: mep.environnement }}
+        source={{ id: mep.id, outil: mep.outil, estModele: mep.estModele }}
       />
     </header>
+  );
+}
+
+/** Environnements touchés, système par système : « BDD Préprod, Prod · BATCH Prod » (production en orange). */
+function EnvironnementsMep({ mep }: { mep: Mep }) {
+  const systemes = mep.systemes.filter((s) => s.environnements.length > 0);
+  if (systemes.length === 0) return null;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5" aria-label="Environnements par système">
+      <Server className="size-3.5 text-fg-subtle" aria-hidden />
+      {systemes.map((s, i) => (
+        <span key={s.id} className="inline-flex items-center gap-1">
+          {i > 0 && (
+            <span className="text-fg-subtle" aria-hidden>
+              ·
+            </span>
+          )}
+          <i className="size-2 shrink-0 rounded-full" style={{ background: couleurSysteme(s.nom) }} aria-hidden />
+          <span className="font-semibold text-fg">{s.nom}</span>
+          <span>
+            {s.environnements.map((e, j) => (
+              <span key={e.nom}>
+                {j > 0 && ', '}
+                <span title={e.nom} className={cn(e.production && 'font-semibold text-warn-solid')}>
+                  {abregerEnvironnement(e.nom)}
+                </span>
+              </span>
+            ))}
+          </span>
+        </span>
+      ))}
+    </span>
   );
 }

@@ -397,11 +397,10 @@ public class ReglesJalon3Tests
         var source = Demo();
         Go(source);
         Reussir(source, "E0004", Alice);
-        var copie = Regles.Dupliquer(source, " Recette ", commeModele: false, Dave, Maintenant.AddDays(1));
+        var copie = Regles.Dupliquer(source, commeModele: false, Dave, Maintenant.AddDays(1));
 
         Assert.NotEqual(source.Id, copie.Id);
         Assert.Equal(Phase.Preparation, copie.Phase);
-        Assert.Equal("Recette", copie.Environnement);
         Assert.False(copie.EstModele);
         Assert.Equal(Dave, copie.CreeParUtilisateurId);
         Assert.Equal(source.Outil + " (copie)", copie.Outil);
@@ -430,7 +429,7 @@ public class ReglesJalon3Tests
 
         var systemes = copie.Systemes.Select(s => s.Id).ToHashSet();
         Assert.Equal(source.Systemes.Select(s => s.CatalogueId), copie.Systemes.Select(s => s.CatalogueId));
-        Assert.All(copie.Livrables, l => Assert.Contains(l.SystemeId!.Value, systemes));
+        Assert.All(copie.ObjetsImpactes, l => Assert.Contains(l.SystemeId!.Value, systemes));
 
         Assert.Equal(source.Etapes.Select(e => e.Code).Order(), copie.Etapes.Select(e => e.Code).Order());
         foreach (var e in copie.Etapes)
@@ -483,7 +482,7 @@ public class ReglesJalon3Tests
         Assert.Equal("Modèle : déploiement API standard", modele.Outil);
         Assert.Equal(12, modele.Etapes.Count);
 
-        var m = Regles.Dupliquer(j.Mep, null, commeModele: true, Alice, Maintenant);
+        var m = Regles.Dupliquer(j.Mep, commeModele: true, Alice, Maintenant);
         m.EcheanceRepli = j.Mep.EcheanceRepli;
         m.ProcedureRelueParId = Bob;
         Approuver(m);
@@ -491,9 +490,9 @@ public class ReglesJalon3Tests
         Assert.StartsWith("Un modèle ne passe pas en exécution", ex.Message);
 
         // Dupliquer le modèle donne une MEP exécutable une fois complétée.
-        var mep = Regles.Dupliquer(m, "Production", commeModele: false, Alice, Maintenant);
+        var mep = Regles.Dupliquer(m, commeModele: false, Alice, Maintenant);
         Assert.False(mep.EstModele);
-        Assert.Equal("Production", mep.Environnement);
+        Assert.True(Regles.ToucheProduction(mep));
         mep.EcheanceRepli = j.Mep.EcheanceRepli;
         mep.ProcedureRelueParId = Bob;
         Go(mep);

@@ -134,6 +134,7 @@ api.MapDemo(app.Configuration);
 api.MapApplication();
 api.MapMeps();
 api.MapStructure();
+api.MapObjetsImpactes();
 api.MapEtapes();
 api.MapPhase();
 api.MapCatalogue();

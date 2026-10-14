@@ -14,6 +14,9 @@ public static class MepMapping
         new(p.Id, p.MepId, p.EtapeId, p.ResolutionTypeId, p.ExecutionResolutionId, p.NomFichier, p.TypeContenu, p.Taille, p.Sha256,
             p.DeposeParId, p.DeposeParId is { } d && nomsUtilisateurs.TryGetValue(d, out var n) ? n : null, p.DeposeLe);
 
+    public static ObjetImpacteDto VersDto(ObjetImpacte o) =>
+        new(o.Id, o.SystemeId, o.ObjetCatalogueId, o.Categorie, o.Type, o.Nom, o.Libelle, o.Precision, o.Version, o.Repris);
+
     /// <summary>Suivi des tests unitaires (route <c>/meps/{id}/tests-unitaires</c> et <c>gestion-mep meps exporter</c>).</summary>
     public static TestsUnitairesDto TestsUnitaires(Mep m)
     {
@@ -54,8 +57,9 @@ public static class MepMapping
             m.Participants.Select(p => new ParticipantDto(p.Id, p.Nom, p.Role, p.Contact, p.UtilisateurId, Nom(p.UtilisateurId))).ToList(),
             m.Systemes.Select(x => new SystemeDto(x.Id, x.Nom, x.Cible, x.Impact, x.CatalogueId,
                 new SauvegardeSystemeDto(x.Sauvegarde.Statut, x.Sauvegarde.Moment, x.Sauvegarde.Contenu, x.Sauvegarde.Justification,
-                    x.Sauvegarde.Emplacement, x.Sauvegarde.MethodeRecuperation))).ToList(),
-            m.Livrables.Select(l => new LivrableDto(l.Id, l.Objet, l.Version, l.Emplacement, l.SystemeId)).ToList(),
+                    x.Sauvegarde.Emplacement, x.Sauvegarde.MethodeRecuperation),
+                x.Environnements.Select(e => new EnvironnementSystemeDto(e.Nom, e.Production)).ToList())).ToList(),
+            Regles.ObjetsTries(m).Select(VersDto).ToList(),
             m.EtapesTriees().Select(e =>
             {
                 var d = Regles.Disponibilite(m, e, maintenant);
@@ -63,7 +67,8 @@ public static class MepMapping
                     e.DureeEstimeeMinutes, e.Etat,
                     e.Instructions, e.ResultatAttendu, e.Preuve, e.Commentaire, e.DebutReel, e.FinReelle, e.Revision, [.. e.Dependances], [.. e.ResolutionIds],
                     new DisponibiliteDto(d.Statut, d.Libelle), e.Type, e.PointDeNonRetour, Validation(e.NonRetourAutoriseParId, e.NonRetourAutoriseLe),
-                    e.Fin, e.ResultatConstate, e.SauvegardeEmplacement, e.SauvegardeMethodeRecuperation, e.ModeleEtapeId);
+                    e.Fin, e.ResultatConstate, e.SauvegardeEmplacement, e.SauvegardeMethodeRecuperation, e.ModeleEtapeId,
+                    e.Environnements.Select(x => new EnvironnementEtapeDto(x.SystemeId, x.Nom)).ToList());
             }).ToList(),
             m.Resolutions.OrderBy(r => r.DemarreeLe).Select(r => new ExecutionResolutionDto(
                 r.Id, r.EtapeId, r.ResolutionTypeId, r.Titre, r.Symptomes, r.Diagnostic,
@@ -76,7 +81,7 @@ public static class MepMapping
                 utilisateurId is { } a && m.Approbations.Any(x => x.UtilisateurId == a),
                 utilisateurId is { } rt && Regles.EstResponsableTechnique(m, rt),
                 m.Phase == Phase.Preparation && utilisateurId is { } ed && Regles.PeutEditerContenu(m, ed, estAdmin)),
-            m.Environnement, m.EstModele, approbationsMinimum,
+            m.EstModele, approbationsMinimum,
             m.Approbations.Select(a => new ApprobationDto(a.Id, a.UtilisateurId, Nom(a.UtilisateurId) ?? a.Nom, a.Decision, a.Commentaire, a.Le)).ToList(),
             m.GoNoGo.Select(c => new CritereValideDto(c.Libelle, Nom(c.ParId), c.Le)).ToList(),
             m.FichesRecette.OrderBy(f => f.Ordre).Select(f => new FicheRecetteDto(f.Id, f.Ordre, f.SystemeId, f.Titre,

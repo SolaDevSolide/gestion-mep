@@ -8,7 +8,9 @@
 
 **Bilan** : retour d'expérience rédigé à la clôture : ce qui a marché, incidents, actions.
 
-**Catalogue des systèmes** : liste globale des systèmes de l'entreprise, dans laquelle on choisit les systèmes d'une MEP.
+**Catalogue des systèmes** : liste globale des systèmes de l'entreprise, dans laquelle on choisit les systèmes d'une MEP. Chaque système y a sa fiche.
+
+**Catégorie** : regroupement des objets d'un système dans sa fiche (tables, vues, traitements…). Des catégories par défaut sont proposées à chaque système.
 
 **Comptes reliés** : comptes d'une même personne reliés par un administrateur, sans rien fusionner ni supprimer. Ils apparaissent sous le nom du compte principal et chacun garde son historique.
 
@@ -19,6 +21,8 @@
 **Critère go / no-go** : condition à cocher avant de démarrer (par exemple « Supervision en place »).
 
 **Échéance de retour arrière** : date et heure limites de l'intervention. Une fois atteinte, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi.
+
+**Environnement** : instance d'un système (recette, préproduction, production…), décrite dans sa fiche. Une MEP choisit les environnements de chacun de ses systèmes, puis chaque étape ceux où elle s'exécute.
 
 **Éditeur** : personne qui peut modifier une MEP en préparation : pilote, suppléant, responsable technique ou administrateur.
 
@@ -34,6 +38,8 @@
 
 **Bibliothèque de recettes** : modèles de fiches de recette rattachés à un système du catalogue, insérés par copie dans les MEP.
 
+**Fiche du système** : description d'un système du catalogue : ses environnements, ses catégories et ses objets connus, seuls proposés comme objets impactés.
+
 **Fiche de recette** : liste d'étapes de test qui vérifient un système après le déploiement. Elle appartient à un seul système ; chaque étape a un déroulé en blocs Texte ou Code et un résultat attendu.
 
 **Go / no-go** : décision du pilote de démarrer l'exécution (Go) ou de la reporter (no-go, avec un motif).
@@ -42,7 +48,9 @@
 
 **Ligne** : rangée du graphe des étapes. Les étapes d'une même ligne peuvent se dérouler en parallèle.
 
-**MEP** : mise en production, c'est-à-dire l'intervention qui déploie un changement sur un environnement.
+**MEP** : mise en production, c'est-à-dire l'intervention qui déploie un changement sur un ou plusieurs environnements de ses systèmes.
+
+**Objet impacté** : objet d'un système (table, traitement, fichier…) modifié par la MEP, choisi dans la fiche du système, avec sa version ou sa correction. « Repris » signale un ancien livrable converti.
 
 **Modèle** : MEP qui sert de point de départ à d'autres et qui ne s'exécute jamais.
 

@@ -49,7 +49,7 @@ export function CarteEtape({ mep, etape: e, mode, descriptions, selectionnee, es
           ⛔ POINT DE NON-RETOUR
         </div>
       )}
-      <BandeauSystemes systemes={systemes} descriptions={descriptions} />
+      <BandeauSystemes systemes={systemes} descriptions={descriptions} etape={e} />
       <div className="grid gap-1 px-2.5 pt-1.5 pb-2.5">
         <div className="flex items-center justify-between gap-2">
           <span className="font-mono text-xs text-fg-subtle">{e.code}</span>
@@ -115,7 +115,10 @@ export function libelleCarte(mep: Mep, e: Etape, mode: ModeGraphe): string {
   const morceaux = [`${e.code} ${e.action || 'sans libellé'}`];
   if (mode === 'execution') morceaux.push(etatCarte(e).libelle);
   const sys = systemesDe(mep, e.systemeIds)
-    .map((s) => s.nom)
+    .map((s) => {
+      const envs = (e.environnements ?? []).filter((x) => x.systemeId === s.id).map((x) => x.nom);
+      return envs.length > 0 ? `${s.nom} (${envs.join(', ')})` : s.nom;
+    })
     .join(', ');
   if (sys) morceaux.push(sys);
   if (e.pointDeNonRetour) morceaux.push('point de non-retour');

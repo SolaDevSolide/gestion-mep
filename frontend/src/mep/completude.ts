@@ -5,7 +5,7 @@ export type IdSection =
   | 'personnes'
   | 'systemes'
   | 'techniques'
-  | 'livrables'
+  | 'objets'
   | 'sauvegarde'
   | 'validation'
   | 'communication'
@@ -25,12 +25,13 @@ export function completude(mep: Mep): Record<IdSection, boolean> {
       rempli(mep.outil) &&
       aucune(/échéance de retour arrière est passée|^Renseigner le pilote|^Le pilote .* n'est relié/),
     personnes: mep.participants.length > 0 && aucune(/n'est relié à aucun compte/),
-    systemes: mep.systemes.length > 0,
+    // Chaque système dit quels environnements la MEP touche.
+    systemes: mep.systemes.length > 0 && mep.systemes.every((s) => s.environnements.length > 0),
     // Les avertissements ne bloquent rien, mais un point ouvert garde la section en orange pour inviter à le traiter.
     techniques:
       mep.responsablesTechniques.length > 0 &&
-      mep.avertissements.every((a) => /^Aucune recette|^Aucun système n'est sauvegardé/.test(a)),
-    livrables: mep.livrables.length > 0,
+      mep.avertissements.every((a) => /^Aucune recette|^Aucun système n'est sauvegardé|^Aucun environnement/.test(a)),
+    objets: mep.objetsImpactes.length > 0,
     // Chaque système doit dire s'il est sauvegardé (erreurs « Sauvegarde : indiquer… », « …non requise : justifier », « …pendant la MEP : … »).
     sauvegarde: mep.systemes.every((s) => s.sauvegarde.statut !== 'ARenseigner') && aucune(/^Sauvegarde/),
     validation: aucune(/relue|approbation|a refusé :|ne peut pas approuver/),

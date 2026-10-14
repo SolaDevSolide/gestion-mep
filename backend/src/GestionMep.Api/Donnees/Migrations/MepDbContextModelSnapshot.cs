@@ -180,6 +180,10 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<int?>("DureeEstimeeMinutes")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Environnements")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<int>("Etat")
                         .HasColumnType("integer");
 
@@ -439,36 +443,6 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsUnique();
 
                     b.ToTable("IdentitesExternes");
-                });
-
-            modelBuilder.Entity("GestionMep.Domain.Livrable", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Emplacement")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("MepId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Objet")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("SystemeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Version")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MepId");
-
-                    b.ToTable("Livrables");
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Mep", b =>
@@ -766,6 +740,54 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("ModelesTexte");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.ObjetImpacte", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Categorie")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Libelle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("MepId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ObjetCatalogueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Precision")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Repris")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("SystemeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MepId");
+
+                    b.ToTable("ObjetsImpactes");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.ParametresGlobaux", b =>
                 {
                     b.Property<int>("Id")
@@ -773,6 +795,10 @@ namespace GestionMep.Api.Donnees.Migrations
 
                     b.Property<int>("ApprobationsMinimum")
                         .HasColumnType("integer");
+
+                    b.Property<string>("CategoriesObjets")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.HasKey("Id");
 
@@ -782,7 +808,8 @@ namespace GestionMep.Api.Donnees.Migrations
                         new
                         {
                             Id = 1,
-                            ApprobationsMinimum = 1
+                            ApprobationsMinimum = 1,
+                            CategoriesObjets = "[\"Code source\",\"Packages\",\"Flux\",\"Services\",\"Base de donn\\u00E9es\",\"Tables\",\"Colonnes\",\"Vues\",\"Proc\\u00E9dures stock\\u00E9es\",\"Fonctions\",\"Triggers\",\"Index\",\"R\\u00E9f\\u00E9rentiels\",\"Interfaces\",\"Configuration\",\"Infrastructure\",\"S\\u00E9curit\\u00E9\",\"API\",\"Fichiers d\\u0027\\u00E9change\",\"Ordonnancement\",\"Monitoring\",\"Sauvegarde / rollback\",\"Documentation technique et fonctionnelle\",\"Tests\",\"D\\u00E9pendances\",\"Certificats\",\"R\\u00E9seau\",\"Exploitation\",\"Tra\\u00E7abilit\\u00E9\"]"
                         });
                 });
 
@@ -963,6 +990,10 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Environnements")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("Impact")
                         .IsRequired()
                         .HasColumnType("text");
@@ -989,6 +1020,10 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<bool>("Actif")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Categories")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("Cible")
                         .IsRequired()
                         .HasColumnType("text");
@@ -997,9 +1032,21 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Environnements")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("Nom")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("Objets")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1158,15 +1205,6 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired();
 
                     b.Navigation("Utilisateur");
-                });
-
-            modelBuilder.Entity("GestionMep.Domain.Livrable", b =>
-                {
-                    b.HasOne("GestionMep.Domain.Mep", null)
-                        .WithMany("Livrables")
-                        .HasForeignKey("MepId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Mep", b =>
@@ -1331,6 +1369,15 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.ObjetImpacte", b =>
+                {
+                    b.HasOne("GestionMep.Domain.Mep", null)
+                        .WithMany("ObjetsImpactes")
+                        .HasForeignKey("MepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("GestionMep.Domain.Participant", b =>
                 {
                     b.HasOne("GestionMep.Domain.Mep", null)
@@ -1431,7 +1478,7 @@ namespace GestionMep.Api.Donnees.Migrations
                 {
                     b.Navigation("Etapes");
 
-                    b.Navigation("Livrables");
+                    b.Navigation("ObjetsImpactes");
 
                     b.Navigation("Participants");
 

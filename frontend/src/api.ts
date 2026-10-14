@@ -21,7 +21,12 @@ import type {
   TestsUnitaires,
   Presence,
   EtapeSaisie,
-  LivrableSaisie,
+  ObjetsSystemeSaisie,
+  ImportObjets,
+  ObjetCatalogue,
+  ObjetCatalogueSaisie,
+  CategorieSaisie,
+  EnvironnementCatalogue,
   Mep,
   MepIdentiteSaisie,
   MepResume,
@@ -233,9 +238,14 @@ export const api = {
   supprimerSysteme: (id: string, sid: string) => del<Mep>(`/meps/${id}/systemes/${sid}`),
   modifierSauvegardeSysteme: (id: string, sid: string, s: SauvegardeSystemeSaisie) =>
     put<Mep>(`/meps/${id}/systemes/${sid}/sauvegarde`, s),
-  ajouterLivrable: (id: string, s: LivrableSaisie) => post<Mep>(`/meps/${id}/livrables`, s),
-  modifierLivrable: (id: string, lid: string, s: LivrableSaisie) => put<Mep>(`/meps/${id}/livrables/${lid}`, s),
-  supprimerLivrable: (id: string, lid: string) => del<Mep>(`/meps/${id}/livrables/${lid}`),
+  // Environnements et objets impactés d'un système de la MEP (choisis dans la fiche du catalogue).
+  environnementsSysteme: (id: string, sid: string, noms: string[]) =>
+    put<Mep>(`/meps/${id}/systemes/${sid}/environnements`, { noms }),
+  objetsSysteme: (id: string, sid: string, s: ObjetsSystemeSaisie) => put<Mep>(`/meps/${id}/systemes/${sid}/objets`, s),
+  supprimerObjetImpacte: (id: string, oid: string) => del<Mep>(`/meps/${id}/objets/${oid}`),
+  // Objets impactés en Excel : modèle vide ou export (téléchargement direct), puis import.
+  urlObjetsExcel: (id: string, modele: boolean) => `/api/meps/${id}/objets/excel${modele ? '?modele=true' : ''}`,
+  importerObjets: (id: string, f: File) => post<ImportObjets>(`/meps/${id}/objets/excel`, formulaireFichier(f)),
 
   /** Création : `ligne` absente = nouvelle ligne en bas, `position` absente = en fin de ligne ; liens par défaut calculés par le serveur. */
   ajouterEtape: (id: string, plan: TypePlan = 'Deploiement', ligne?: number, position?: number) =>
@@ -387,6 +397,19 @@ export const api = {
   modifierSystemeCatalogue: (id: string, s: SystemeCatalogueSaisie) =>
     put<SystemeCatalogue>(`/catalogue/systemes/${id}`, s),
   supprimerSystemeCatalogue: (id: string) => del<void>(`/catalogue/systemes/${id}`),
+  // Fiche d'un système du catalogue : environnements, catégories, objets (modification réservée aux administrateurs).
+  objetsCatalogue: (id: string) => get<ObjetCatalogue[]>(`/catalogue/systemes/${id}/objets`),
+  environnementsCatalogue: (id: string, environnements: EnvironnementCatalogue[]) =>
+    put<SystemeCatalogue>(`/catalogue/systemes/${id}/environnements`, { environnements }),
+  categoriesCatalogue: (id: string, categories: CategorieSaisie[]) =>
+    put<SystemeCatalogue>(`/catalogue/systemes/${id}/categories`, { categories }),
+  ajouterObjetCatalogue: (id: string, s: ObjetCatalogueSaisie) =>
+    post<ObjetCatalogue>(`/catalogue/systemes/${id}/objets`, s),
+  modifierObjetCatalogue: (id: string, oid: string, s: ObjetCatalogueSaisie) =>
+    put<ObjetCatalogue>(`/catalogue/systemes/${id}/objets/${oid}`, s),
+  supprimerObjetCatalogue: (id: string, oid: string) => del<void>(`/catalogue/systemes/${id}/objets/${oid}`),
+  categoriesParDefaut: () => get<string[]>('/catalogue/categories'),
+  definirCategoriesParDefaut: (categories: string[]) => put<string[]>('/catalogue/categories', { categories }),
   ajouterSystemeDepuisCatalogue: (id: string, catalogueId: string, impact: string) =>
     post<Mep>(`/meps/${id}/systemes/depuis-catalogue`, { catalogueId, impact }),
 

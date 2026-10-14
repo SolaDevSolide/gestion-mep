@@ -136,6 +136,43 @@ public class LigneDeCommandeTests : IDisposable
     }
 
     [Fact]
+    public async Task La_fiche_d_un_systeme_et_les_categories_par_defaut_se_gerent()
+    {
+        Assert.Equal(0, (await Cli("systemes", "ajouter", "ERP")).Code);
+        Assert.Equal(0, (await Cli("systemes", "environnement", "ERP", "Recette", "--cible", "erp-rec")).Code);
+        Assert.Contains("Recette, Prod", (await Cli("systemes", "environnement", "erp", "Prod")).Sortie);
+        Assert.Equal(0, (await Cli("systemes", "categorie", "ERP", "Tables")).Code);
+        Assert.Equal(0, (await Cli("systemes", "objet", "ERP", "Tables", "clients", "--type", "Table", "--libelle", "Clients")).Code);
+        var inconnue = await Cli("systemes", "objet", "ERP", "Vues", "v1");
+        Assert.Equal(1, inconnue.Code);
+        Assert.Contains("n'existe pas dans la fiche", inconnue.Erreur);
+        Assert.Equal(0, (await Cli("systemes", "categorie", "ERP", "Tables", "--renommer", "Tables SQL")).Code);
+
+        var fiche = (await Cli("systemes", "afficher", "ERP", "--json")).Json;
+        Assert.Equal([false, true], fiche.GetProperty("systeme").GetProperty("environnements").EnumerateArray().Select(e => e.GetProperty("production").GetBoolean()).ToArray());
+        var objet = Assert.Single(fiche.GetProperty("objets").EnumerateArray().ToList());
+        Assert.Equal(("Tables SQL", "clients", "Table"), (objet.GetProperty("categorie").GetString(), objet.GetProperty("nom").GetString(), objet.GetProperty("type").GetString()));
+        var texte = (await Cli("systemes", "afficher", "ERP")).Sortie;
+        Assert.Contains("Tables SQL (1)", texte);
+        Assert.Contains("production", texte);
+        Assert.Contains("Prod*", (await Cli("systemes", "lister")).Sortie);
+
+        Assert.Equal(0, (await Cli("systemes", "objet", "ERP", "Tables SQL", "clients", "--retirer")).Code);
+        Assert.Equal(0, (await Cli("systemes", "categorie", "ERP", "Tables SQL", "--retirer")).Code);
+        Assert.Equal(0, (await Cli("systemes", "environnement", "ERP", "Prod", "--retirer")).Code);
+        Assert.True(await Journalise("systeme.objet-ajoute", "clients"));
+
+        Assert.Equal(29, (await Cli("categories", "lister", "--json")).Json.GetArrayLength());
+        Assert.Equal(0, (await Cli("categories", "ajouter", "Licences")).Code);
+        Assert.Equal(1, (await Cli("categories", "ajouter", "licences")).Code);
+        Assert.Equal(0, (await Cli("categories", "retirer", "Tables")).Code);
+        var categories = (await Cli("categories", "lister")).Sortie;
+        Assert.Contains("Licences", categories);
+        Assert.DoesNotContain("Tables", categories);
+        Assert.True(await Journalise("categories.modifiees", "Licences"));
+    }
+
+    [Fact]
     public async Task Les_criteres_go_no_go_se_designent_par_numero_ou_identifiant()
     {
         var avant = (await Cli("criteres", "lister", "--json")).Json.GetArrayLength();

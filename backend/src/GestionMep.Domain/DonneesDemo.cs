@@ -269,8 +269,8 @@ public static partial class DonneesDemo
     }
 
     /// <summary>
-    /// Catalogue global de démonstration : systèmes (BDD, API, WEB, LDAP, MDM, BATCH, dans cet ordre)
-    /// et résolutions types (API, BDD, WEB, API + BDD, BATCH, LDAP, BDD, dans cet ordre).
+    /// Catalogue global de démonstration : systèmes (BDD, API, WEB, LDAP, MDM, BATCH, dans cet ordre) avec leurs environnements,
+    /// catégories et objets connus, et résolutions types (API, BDD, WEB, API + BDD, BATCH, LDAP, BDD, dans cet ordre).
     /// </summary>
     public static (List<SystemeCatalogue> Systemes, List<ResolutionType> Resolutions) Catalogue()
     {
@@ -280,6 +280,7 @@ public static partial class DonneesDemo
         var ldap = new SystemeCatalogue { Nom = "LDAP", Description = "Annuaire LDAP", Cible = Fictif };
         var mdm = new SystemeCatalogue { Nom = "MDM", Description = "MDM Phoenix", Cible = Fictif };
         var batch = new SystemeCatalogue { Nom = "BATCH", Description = "Traitements nocturnes", Cible = Fictif };
+        CompleterFiches(bdd, api, web, ldap, mdm, batch);
         var fixApi = new ResolutionType
         {
             Titre = "API : réponse de test absente",
@@ -417,10 +418,10 @@ public static partial class DonneesDemo
 
                 Une mise en production de **{{application}}** ({{version_actuelle}} → {{version_cible}}) est prévue le **{{date}}** de {{heure_debut}} à {{heure_fin}}.
 
-                Niveau de risque : **{{niveau_risque}}**. Référence : {{reference_demande}}.
+                Niveau de risque : **{{niveau_risque}}**. Référence : {{reference_demande}}. Production touchée : **{{touche_production}}**.
 
-                **Systèmes concernés**
-                {{systemes}}
+                **Environnements concernés**
+                {{environnements}}
 
                 **Responsables techniques joignables**
                 {{responsables_techniques}}
@@ -470,7 +471,6 @@ public static partial class DonneesDemo
             VersionCible = "2.0-démo",
             Objet = "Tester le graphe des étapes, les recettes et les résolutions sans agir sur un système réel.",
             FuseauHoraire = "Europe/Paris",
-            Environnement = "Production",
             BilanActive = true,
             // Échéance initialisée à demain 23:59.
             EcheanceRepli = new DateTimeOffset(maintenant.UtcDateTime.Date.AddDays(1).AddHours(23).AddMinutes(59), TimeSpan.Zero),
@@ -498,7 +498,14 @@ public static partial class DonneesDemo
         Sauvegarde(ldap, StatutSauvegarde.NonRequise, justification: "Annuaire seulement lu par l'API : rien n'y est modifié.");
         Sauvegarde(mdm, StatutSauvegarde.NonRequise, justification: "Le MDM garde l'historique des versions : il restaure lui-même les commandes.");
 
-        mep.Livrables.Add(new Livrable { MepId = mep.Id, Objet = "Package fictif", Version = "2.0-démo", Emplacement = "Aucun téléchargement à effectuer", SystemeId = api.Id });
+        // Objets impactés, choisis dans la fiche de chaque système au catalogue.
+        Objets(mep, bdd, catalogue[0], "2.0-démo : colonne segment", "clients");
+        Objets(mep, bdd, catalogue[0], "2.0-démo : nouveau format", "commandes");
+        Objets(mep, api, catalogue[1], "2.0-démo", "commandes-api.jar", "/v2/commandes");
+        Objets(mep, web, catalogue[2], "2.0-démo", "portail-web.tar.gz");
+        Objets(mep, web, catalogue[2], "API_URL vers la v2", "nginx/portail.conf");
+        Objets(mep, ldap, catalogue[3], "lecture seule", "cn=app-commandes");
+        Objets(mep, mdm, catalogue[4], "format 2.0", "flux-commandes");
 
         // Communication : de quoi remplir les textes à copier ; l'indisponibilité prévue reste à saisir (information manquante signalée).
         mep.Communication = new Communication
@@ -589,8 +596,7 @@ public static partial class DonneesDemo
         mep.ProcedureRelueParId = bob;
         mep.ProcedureRelueLe = bob is null ? null : maintenant;
 
-        var modele = Regles.Dupliquer(mep, "", commeModele: true, alice ?? Guid.Empty, maintenant);
-        modele.Environnement = "";
+        var modele = Regles.Dupliquer(mep, commeModele: true, alice ?? Guid.Empty, maintenant);
         modele.Outil = "Modèle : déploiement API standard";
         modele.VersionActuelle = "";
         modele.VersionCible = "";
@@ -606,9 +612,14 @@ public static partial class DonneesDemo
         return p;
     }
 
+    /// <summary>Système de la MEP issu du catalogue ; la MEP touche par défaut son environnement de production.</summary>
     private static Systeme Systeme(Mep mep, SystemeCatalogue c, string impact)
     {
-        var s = new Systeme { MepId = mep.Id, Nom = c.Nom, Cible = c.Cible, Impact = impact, CatalogueId = c.Id };
+        var s = new Systeme
+        {
+            MepId = mep.Id, Nom = c.Nom, Cible = c.Cible, Impact = impact, CatalogueId = c.Id,
+            Environnements = c.Environnements.Where(e => e.Production).Select(e => new EnvironnementSysteme { Nom = e.Nom, Production = true }).ToList(),
+        };
         mep.Systemes.Add(s);
         return s;
     }
@@ -640,7 +651,7 @@ public static partial class DonneesDemo
         {
             MepId = mep.Id, Plan = plan, Code = $"{(plan == TypePlan.Deploiement ? 'E' : 'R')}{n:0000}", Ligne = ligne,
             Ordre = mep.Etapes.Count(x => x.Plan == plan && x.Ligne == ligne), Action = action, SystemeIds = systemes.Select(s => s.Id).ToList(),
-            DureeEstimeeMinutes = duree, ExecutantId = etat == EtatEtape.AFaire ? null : qui.Id, Criticite = criticite, Etat = etat, Instructions = instructions,
+            Environnements = EnvironnementsParDefaut(systemes), DureeEstimeeMinutes = duree, ExecutantId = etat == EtatEtape.AFaire ? null : qui.Id, Criticite = criticite, Etat = etat, Instructions = instructions,
             ResultatAttendu = attendu, Preuve = preuve, ResultatConstate = etat is EtatEtape.Reussie or EtatEtape.Echec ? preuve : "", Dependances = prealables.Select(p => p.Id).ToList(),
             Revision = etat == EtatEtape.AFaire ? 0 : 1,
         };

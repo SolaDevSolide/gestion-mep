@@ -25,7 +25,7 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         for (var essai = 0; ; essai++)
         {
             var mep = await db.Meps
-                .Include(m => m.Participants).Include(m => m.Systemes).Include(m => m.Livrables).Include(m => m.Etapes).Include(m => m.Resolutions)
+                .Include(m => m.Participants).Include(m => m.Systemes).Include(m => m.ObjetsImpactes).Include(m => m.Etapes).Include(m => m.Resolutions)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(m => m.Id == id)
                 ?? throw ErreurHttp.NonTrouve("MEP introuvable.");

@@ -8,8 +8,9 @@ import { cn } from '../ui/cn';
 import { completude, type IdSection } from './completude';
 import { IdentiteSection } from './preparation/IdentiteSection';
 import { ResponsablesTechniquesSection } from './preparation/ResponsablesTechniquesSection';
-import { LivrablesSection, PersonnesSection, SystemesSection } from './preparation/ListesSections';
+import { PersonnesSection, SystemesSection } from './preparation/ListesSections';
 import { CommunicationSection } from './preparation/CommunicationSection';
+import { ObjetsImpactesSection } from './preparation/ObjetsImpactesSection';
 import { PiecesSection } from './preparation/PiecesSection';
 import { SauvegardeSection, ValidationSection } from './preparation/SauvegardeValidation';
 
@@ -18,7 +19,7 @@ const SECTIONS: { id: IdSection; numero: number; titre: string }[] = [
   { id: 'personnes', numero: 2, titre: 'Personnes' },
   { id: 'systemes', numero: 3, titre: 'Systèmes' },
   { id: 'techniques', numero: 4, titre: 'Responsables techniques' },
-  { id: 'livrables', numero: 5, titre: 'Livrables' },
+  { id: 'objets', numero: 5, titre: 'Objets impactés' },
   { id: 'sauvegarde', numero: 6, titre: 'Sauvegarde' },
   { id: 'validation', numero: 7, titre: 'Validation' },
   { id: 'communication', numero: 8, titre: 'Communication' },
@@ -132,8 +133,8 @@ export default function PreparationTab() {
         <ZonePresence cle="preparation:techniques" className={section !== 'techniques' ? 'hidden' : undefined}>
           <ResponsablesTechniquesSection />
         </ZonePresence>
-        <ZonePresence cle="preparation:livrables" className={section !== 'livrables' ? 'hidden' : undefined}>
-          <LivrablesSection />
+        <ZonePresence cle="preparation:objets" className={section !== 'objets' ? 'hidden' : undefined}>
+          <ObjetsImpactesSection />
         </ZonePresence>
         <ZonePresence cle="preparation:sauvegarde" className={section !== 'sauvegarde' ? 'hidden' : undefined}>
           <SauvegardeSection />

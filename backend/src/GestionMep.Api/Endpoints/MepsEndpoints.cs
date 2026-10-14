@@ -44,14 +44,15 @@ public static class MepsEndpoints
                 NbEtapes = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement),
                 NbReussies = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
                 NbEchecs = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
-                m.Environnement, m.EstModele, m.CreeLe, m.RetourArriereActive,
+                Environnements = m.Systemes.Select(s => s.Environnements).ToList(), m.EstModele, m.CreeLe, m.RetourArriereActive,
                 Comptes = m.Participants.Where(p => p.UtilisateurId != null).Select(p => p.UtilisateurId!.Value).ToList(),
                 Noms = m.Participants.Select(p => p.Nom).ToList(),
             })
             .ToListAsync())
         // dateMep : date du Go (la date saisie n'existe plus depuis le jalon 4.2).
         .Select(m => new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, DateLocale(m.DemarrageAutoriseLe, m.FuseauHoraire), m.Phase,
-            m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs, m.Environnement, m.EstModele, m.CreeLe, m.Issue,
+            m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs,
+            m.Environnements.Any(l => l.Any(e => e.Production)), m.EstModele, m.CreeLe, m.Issue,
             m.RetourArriereActive,
             [.. m.Comptes.SelectMany(annuaire.EquipesDeLaPersonne).Distinct().Order()],
             [.. m.Noms.Concat(m.Comptes.SelectMany(annuaire.TermesDeRecherche)).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)])).ToList();
@@ -90,7 +91,7 @@ public static class MepsEndpoints
         {
             var acteur = Acteur.Depuis(user);
             var source = await svc.Charger(id);
-            var copie = Regles.Dupliquer(source, corps.Environnement, corps.CommeModele, acteur.Id, svc.Maintenant);
+            var copie = Regles.Dupliquer(source, corps.CommeModele, acteur.Id, svc.Maintenant);
             // Celui qui duplique doit pouvoir éditer sa copie : il en devient participant et responsable technique s'il n'y figure pas.
             if (!Regles.PeutEditerContenu(copie, acteur.Id, acteur.EstAdmin))
             {
@@ -141,7 +142,6 @@ public static class MepsEndpoints
             Si(mep.PiloteId, corps.PiloteId, v => mep.PiloteId = v, "pilote");
             if (!mep.SuppleantIds.SequenceEqual(suppleants)) modifs.Add(("suppléants", () => mep.SuppleantIds = [.. suppleants]));
             // Clés facultatives (absentes : inchangées).
-            if (corps.Environnement is not null) Si(mep.Environnement, ServiceMep.Texte(corps.Environnement), v => mep.Environnement = v, "environnement");
             if (corps.BilanActive is { } bilan) Si(mep.BilanActive, bilan, v => mep.BilanActive = v, "bilan de clôture");
             // Activation ou désactivation du plan de retour arrière : un événement de journal à part, pour qu'elle se repère.
             var retourArriere = corps.RetourArriereActive is { } ra && ra != mep.RetourArriereActive ? ra : (bool?)null;

@@ -50,6 +50,25 @@ describe('domaine', () => {
     expect(completude(mep({ erreursPlan: ['Claire a refusé : non'] })).validation).toBe(false);
     expect(completude(mep({ erreursPlan: [] })).validation).toBe(true);
   });
+  it('complétude : chaque système dit ses environnements ; les objets impactés remplissent la section 5', () => {
+    const m = mep();
+    expect(completude(m).systemes).toBe(true);
+    expect(completude(m).objets).toBe(false);
+    expect(completude(mep({ systemes: [{ ...m.systemes[0], environnements: [] }] })).systemes).toBe(false);
+    const objet = {
+      id: 'o1',
+      systemeId: 's1',
+      objetCatalogueId: 'c1',
+      categorie: 'Tables',
+      type: 'Table',
+      nom: 'clients',
+      libelle: '',
+      precision: '',
+      version: '2.0',
+      repris: false,
+    };
+    expect(completude(mep({ objetsImpactes: [objet] })).objets).toBe(true);
+  });
   it('un champ facultatif ne rend pas une section orange', () => {
     // Heures et indisponibilité absentes, restauration non testée : la vérification du plan ne les réclame pas.
     const base = mep({ heureDebut: null, heureFin: null, indisponibiliteMinutes: null, erreursPlan: [] });

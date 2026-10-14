@@ -946,40 +946,7 @@
         }
       }
     },
-    "/api/meps/{id}/livrables": {
-      "post": {
-        "tags": [
-          "GestionMep.Api"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LivrableSaisie"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/meps/{id}/livrables/{lid}": {
+    "/api/meps/{id}/systemes/{sid}/environnements": {
       "put": {
         "tags": [
           "GestionMep.Api"
@@ -995,7 +962,7 @@
             }
           },
           {
-            "name": "lid",
+            "name": "sid",
             "in": "path",
             "required": true,
             "schema": {
@@ -1008,7 +975,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LivrableSaisie"
+                "$ref": "#/components/schemas/EnvironnementsSystemeSaisie"
               }
             }
           },
@@ -1019,7 +986,51 @@
             "description": "OK"
           }
         }
-      },
+      }
+    },
+    "/api/meps/{id}/systemes/{sid}/objets": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObjetsSystemeSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/objets/{oid}": {
       "delete": {
         "tags": [
           "GestionMep.Api"
@@ -1035,7 +1046,58 @@
             }
           },
           {
-            "name": "lid",
+            "name": "oid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/objets/excel": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "modele",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
@@ -1749,6 +1811,250 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/catalogue/systemes/{id}/objets": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ObjetCatalogueDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObjetCatalogueSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/catalogue/systemes/{id}/environnements": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvironnementsCatalogueSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/catalogue/systemes/{id}/categories": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoriesSystemeSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/catalogue/systemes/{id}/objets/{oid}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "oid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObjetCatalogueSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "oid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/catalogue/categories": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoriesDefautSaisie"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -4399,6 +4705,62 @@
           }
         }
       },
+      "CategorieSaisie": {
+        "required": [
+          "nom"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ancien": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "`Ancien` : nom actuel d'une catégorie renommée (ses objets la suivent)."
+      },
+      "CategoriesDefautSaisie": {
+        "required": [
+          "categories"
+        ],
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CategoriesSystemeSaisie": {
+        "required": [
+          "categories"
+        ],
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CategorieSaisie"
+            }
+          }
+        },
+        "description": "Catégories de la fiche, dans l'ordre ; une catégorie absente est retirée avec ses objets."
+      },
       "ChangementMotDePasseSaisie": {
         "required": [
           "ancien",
@@ -5366,21 +5728,153 @@
       },
       "DuplicationSaisie": {
         "required": [
-          "environnement",
           "commeModele"
         ],
         "type": "object",
         "properties": {
-          "environnement": {
+          "commeModele": {
+            "type": "boolean"
+          }
+        },
+        "description": "Duplication : la copie reprend les systèmes avec leurs environnements, modifiables ensuite."
+      },
+      "EnvironnementCatalogueDto": {
+        "required": [
+          "nom",
+          "cible",
+          "production"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string"
+          },
+          "cible": {
+            "type": "string"
+          },
+          "production": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EnvironnementCatalogueSaisie": {
+        "required": [
+          "nom",
+          "cible",
+          "production"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
             "type": [
               "null",
               "string"
             ]
           },
-          "commeModele": {
-            "type": "boolean"
+          "cible": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "production": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "description": "Production absente : déduite du nom (« Production », « prod »…)."
+      },
+      "EnvironnementEtapeDto": {
+        "required": [
+          "systemeId",
+          "nom"
+        ],
+        "type": "object",
+        "properties": {
+          "systemeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          }
+        },
+        "description": "Environnement d'une étape sur l'un de ses systèmes."
+      },
+      "EnvironnementEtapeSaisie": {
+        "required": [
+          "systemeId",
+          "nom"
+        ],
+        "type": "object",
+        "properties": {
+          "systemeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
+      },
+      "EnvironnementsCatalogueSaisie": {
+        "required": [
+          "environnements"
+        ],
+        "type": "object",
+        "properties": {
+          "environnements": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/EnvironnementCatalogueSaisie"
+            }
+          }
+        }
+      },
+      "EnvironnementsSystemeSaisie": {
+        "required": [
+          "noms"
+        ],
+        "type": "object",
+        "properties": {
+          "noms": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Environnements touchés par la MEP sur un système, dans l'ordre voulu (ceux de sa fiche au catalogue, ou libres hors catalogue)."
+      },
+      "EnvironnementSystemeDto": {
+        "required": [
+          "nom",
+          "production"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string"
+          },
+          "production": {
+            "type": "boolean"
+          }
+        },
+        "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
       },
       "EquipeCommunicationSaisie": {
         "required": [
@@ -5510,7 +6004,8 @@
           "resultatConstate",
           "sauvegardeEmplacement",
           "sauvegardeMethodeRecuperation",
-          "modeleEtapeId"
+          "modeleEtapeId",
+          "environnements"
         ],
         "type": "object",
         "properties": {
@@ -5707,9 +6202,29 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "environnements": {
+            "type": "array",
+            "items": {
+              "required": [
+                "systemeId",
+                "nom"
+              ],
+              "type": "object",
+              "properties": {
+                "systemeId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "nom": {
+                  "type": "string"
+                }
+              },
+              "description": "Environnement d'une étape sur l'un de ses systèmes."
+            }
           }
         },
-        "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP)."
+        "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système."
       },
       "EtapeModeleRecetteDto": {
         "required": [
@@ -5903,9 +6418,18 @@
               "null",
               "string"
             ]
+          },
+          "environnements": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/EnvironnementEtapeSaisie"
+            }
           }
         },
-        "description": "`Ligne` et `Position` ne servent qu'à la création (`POST /etapes`). `Fin`, `SauvegardeEmplacement` et\n`SauvegardeMethodeRecuperation` absents : inchangés (test unitaire pour une nouvelle étape)."
+        "description": "`Ligne` et `Position` ne servent qu'à la création (`POST /etapes`). `Fin`, `SauvegardeEmplacement`,\n`SauvegardeMethodeRecuperation` et `Environnements` absents : inchangés (test unitaire pour une nouvelle étape) ;\nles environnements d'un système retiré de l'étape partent avec lui."
       },
       "EtapeTestDto": {
         "required": [
@@ -6419,6 +6943,1480 @@
         ],
         "description": "Fournisseur de la connexion unique : Microsoft Entra ID (préréglage) ou tout autre fournisseur OpenID Connect."
       },
+      "ImportObjetsDto": {
+        "required": [
+          "mep",
+          "ajoutes",
+          "modifies",
+          "inchanges",
+          "rejetees"
+        ],
+        "type": "object",
+        "properties": {
+          "mep": {
+            "required": [
+              "id",
+              "version",
+              "outil",
+              "versionActuelle",
+              "versionCible",
+              "objet",
+              "impacts",
+              "dateMep",
+              "heureDebut",
+              "heureFin",
+              "fuseauHoraire",
+              "indisponibiliteMinutes",
+              "piloteId",
+              "suppleantIds",
+              "phase",
+              "echeanceRepli",
+              "issue",
+              "retourArriere",
+              "cloture",
+              "planRepli",
+              "sauvegarde",
+              "procedureRelue",
+              "demarrageAutorise",
+              "participants",
+              "systemes",
+              "objetsImpactes",
+              "etapes",
+              "resolutions",
+              "erreursPlan",
+              "droits",
+              "estModele",
+              "approbationsMinimum",
+              "approbations",
+              "goNoGo",
+              "fichesRecette",
+              "bilanActive",
+              "bilan",
+              "nonRetourFranchi",
+              "piecesJointes",
+              "responsablesTechniques",
+              "avertissements",
+              "retourArriereActive",
+              "communication"
+            ],
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "version": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "outil": {
+                "type": "string"
+              },
+              "versionActuelle": {
+                "type": "string"
+              },
+              "versionCible": {
+                "type": "string"
+              },
+              "objet": {
+                "type": "string"
+              },
+              "impacts": {
+                "type": "string"
+              },
+              "dateMep": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date"
+              },
+              "heureDebut": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "time"
+              },
+              "heureFin": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "time"
+              },
+              "fuseauHoraire": {
+                "type": "string"
+              },
+              "indisponibiliteMinutes": {
+                "type": [
+                  "null",
+                  "integer"
+                ],
+                "format": "int32"
+              },
+              "piloteId": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "uuid"
+              },
+              "suppleantIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "phase": {
+                "enum": [
+                  "Preparation",
+                  "Execution",
+                  "RetourArriere",
+                  "Cloturee",
+                  "Recette"
+                ],
+                "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin."
+              },
+              "echeanceRepli": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "issue": {
+                "enum": [
+                  "Reussie",
+                  "Repliee",
+                  null
+                ]
+              },
+              "retourArriere": {
+                "required": [
+                  "le",
+                  "par",
+                  "motif"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "motif": {
+                    "type": "string"
+                  }
+                },
+                "description": "`Par` vaut null quand le retour arrière s'est déclenché automatiquement."
+              },
+              "cloture": {
+                "required": [
+                  "le",
+                  "par"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  }
+                }
+              },
+              "planRepli": {
+                "required": [
+                  "quandDeclencher",
+                  "dureeTesteeMinutes",
+                  "versionARestaurer",
+                  "donneesDepuisSauvegarde",
+                  "siRepliEchoue"
+                ],
+                "type": "object",
+                "properties": {
+                  "quandDeclencher": {
+                    "type": "string"
+                  },
+                  "dureeTesteeMinutes": {
+                    "type": [
+                      "null",
+                      "integer"
+                    ],
+                    "format": "int32"
+                  },
+                  "versionARestaurer": {
+                    "type": "string"
+                  },
+                  "donneesDepuisSauvegarde": {
+                    "type": "string"
+                  },
+                  "siRepliEchoue": {
+                    "type": "string"
+                  }
+                }
+              },
+              "sauvegarde": {
+                "required": [
+                  "mode",
+                  "structure",
+                  "donnees",
+                  "configuration",
+                  "responsableId",
+                  "realiseeLe",
+                  "procedure",
+                  "copies",
+                  "restaurationTestee",
+                  "dateTestRestauration",
+                  "preuveTestRestauration"
+                ],
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "enum": [
+                      "AvantMep",
+                      "PendantMep"
+                    ],
+                    "description": "Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée."
+                  },
+                  "structure": {
+                    "type": "boolean"
+                  },
+                  "donnees": {
+                    "type": "boolean"
+                  },
+                  "configuration": {
+                    "type": "boolean"
+                  },
+                  "responsableId": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "uuid"
+                  },
+                  "realiseeLe": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date-time"
+                  },
+                  "procedure": {
+                    "type": "string"
+                  },
+                  "copies": {
+                    "type": "string"
+                  },
+                  "restaurationTestee": {
+                    "type": "boolean"
+                  },
+                  "dateTestRestauration": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date"
+                  },
+                  "preuveTestRestauration": {
+                    "type": "string"
+                  }
+                }
+              },
+              "procedureRelue": {
+                "required": [
+                  "par",
+                  "le"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "par": {
+                    "type": "string"
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "demarrageAutorise": {
+                "required": [
+                  "par",
+                  "le"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "par": {
+                    "type": "string"
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "nom",
+                    "role",
+                    "contact",
+                    "utilisateurId",
+                    "utilisateurNom"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "nom": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "contact": {
+                      "type": "string"
+                    },
+                    "utilisateurId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "utilisateurNom": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              },
+              "systemes": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "nom",
+                    "cible",
+                    "impact",
+                    "catalogueId",
+                    "sauvegarde",
+                    "environnements"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "nom": {
+                      "type": "string"
+                    },
+                    "cible": {
+                      "type": "string"
+                    },
+                    "impact": {
+                      "type": "string"
+                    },
+                    "catalogueId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "sauvegarde": {
+                      "required": [
+                        "statut",
+                        "moment",
+                        "contenu",
+                        "justification",
+                        "emplacement",
+                        "methodeRecuperation"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "statut": {
+                          "enum": [
+                            "ARenseigner",
+                            "Requise",
+                            "NonRequise"
+                          ],
+                          "description": "Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu."
+                        },
+                        "moment": {
+                          "enum": [
+                            "AvantMep",
+                            "PendantMep"
+                          ],
+                          "description": "Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée."
+                        },
+                        "contenu": {
+                          "type": "string"
+                        },
+                        "justification": {
+                          "type": "string"
+                        },
+                        "emplacement": {
+                          "type": "string"
+                        },
+                        "methodeRecuperation": {
+                          "type": "string"
+                        }
+                      },
+                      "description": "`Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan)."
+                    },
+                    "environnements": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "nom",
+                          "production"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "nom": {
+                            "type": "string"
+                          },
+                          "production": {
+                            "type": "boolean"
+                          }
+                        },
+                        "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
+                      }
+                    }
+                  },
+                  "description": "`Environnements` : environnements touchés par la MEP sur ce système."
+                }
+              },
+              "objetsImpactes": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "systemeId",
+                    "objetCatalogueId",
+                    "categorie",
+                    "type",
+                    "nom",
+                    "libelle",
+                    "precision",
+                    "version",
+                    "repris"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "systemeId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "objetCatalogueId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "categorie": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "nom": {
+                      "type": "string"
+                    },
+                    "libelle": {
+                      "type": "string"
+                    },
+                    "precision": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "repris": {
+                      "type": "boolean"
+                    }
+                  },
+                  "description": "Objet impacté : copie de l'objet du catalogue (`ObjetCatalogueId`) au moment du choix, et version ou correction livrée.\n`Repris` : ancien livrable repris par la migration ; `ObjetCatalogueId` null : livrable d'un système hors catalogue."
+                }
+              },
+              "etapes": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "plan",
+                    "code",
+                    "ligne",
+                    "ordre",
+                    "action",
+                    "systemeIds",
+                    "responsableId",
+                    "executantId",
+                    "criticite",
+                    "dureeEstimeeMinutes",
+                    "etat",
+                    "instructions",
+                    "resultatAttendu",
+                    "preuve",
+                    "commentaire",
+                    "debutReel",
+                    "finReelle",
+                    "revision",
+                    "dependances",
+                    "resolutionIds",
+                    "disponibilite",
+                    "type",
+                    "pointDeNonRetour",
+                    "nonRetourAutorise",
+                    "fin",
+                    "resultatConstate",
+                    "sauvegardeEmplacement",
+                    "sauvegardeMethodeRecuperation",
+                    "modeleEtapeId",
+                    "environnements"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "plan": {
+                      "enum": [
+                        "Deploiement",
+                        "RetourArriere"
+                      ],
+                      "description": "Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière."
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "ligne": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "ordre": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "action": {
+                      "type": "string"
+                    },
+                    "systemeIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "responsableId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "executantId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "criticite": {
+                      "enum": [
+                        "Faible",
+                        "Moderee",
+                        "Elevee",
+                        "Bloquante",
+                        null
+                      ]
+                    },
+                    "dureeEstimeeMinutes": {
+                      "type": [
+                        "null",
+                        "integer"
+                      ],
+                      "format": "int32"
+                    },
+                    "etat": {
+                      "enum": [
+                        "AFaire",
+                        "EnCours",
+                        "Reussie",
+                        "Echec"
+                      ]
+                    },
+                    "instructions": {
+                      "type": "string"
+                    },
+                    "resultatAttendu": {
+                      "type": "string"
+                    },
+                    "preuve": {
+                      "type": "string"
+                    },
+                    "commentaire": {
+                      "type": "string"
+                    },
+                    "debutReel": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    },
+                    "finReelle": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "dependances": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "resolutionIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "disponibilite": {
+                      "required": [
+                        "statut",
+                        "libelle"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "statut": {
+                          "enum": [
+                            "PlanInvalide",
+                            "EcheanceARenseigner",
+                            "RetourArriere",
+                            "FicheACompleter",
+                            "InstructionsACompleter",
+                            "Attend",
+                            "Terminee",
+                            "EnCours",
+                            "ArretResolution",
+                            "ResolutionEnCours",
+                            "SiRetourArriere",
+                            "Disponible"
+                          ]
+                        },
+                        "libelle": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "type": {
+                      "enum": [
+                        "Standard",
+                        "Sauvegarde"
+                      ],
+                      "description": "Nature d'une étape de déploiement : standard, ou étape qui réalise la sauvegarde."
+                    },
+                    "pointDeNonRetour": {
+                      "type": "boolean"
+                    },
+                    "nonRetourAutorise": {
+                      "required": [
+                        "par",
+                        "le"
+                      ],
+                      "type": [
+                        "null",
+                        "object"
+                      ],
+                      "properties": {
+                        "par": {
+                          "type": "string"
+                        },
+                        "le": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "fin": {
+                      "enum": [
+                        "TestUnitaire",
+                        "Verification"
+                      ],
+                      "description": "Fin d'une étape : test unitaire (le résultat attendu est l'instruction de test, le résultat constaté se saisit en\nterminant l'étape) ou simple vérification. Stockée en entier : 0, la valeur par défaut, est le test unitaire."
+                    },
+                    "resultatConstate": {
+                      "type": "string"
+                    },
+                    "sauvegardeEmplacement": {
+                      "type": "string"
+                    },
+                    "sauvegardeMethodeRecuperation": {
+                      "type": "string"
+                    },
+                    "modeleEtapeId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "environnements": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "systemeId",
+                          "nom"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "systemeId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "nom": {
+                            "type": "string"
+                          }
+                        },
+                        "description": "Environnement d'une étape sur l'un de ses systèmes."
+                      }
+                    }
+                  },
+                  "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système."
+                }
+              },
+              "resolutions": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "etapeId",
+                    "resolutionTypeId",
+                    "titre",
+                    "symptomes",
+                    "diagnostic",
+                    "corrections",
+                    "verificationInstruction",
+                    "verificationAttendu",
+                    "verificationResultat",
+                    "verificationObservation",
+                    "statut",
+                    "demarreePar",
+                    "demarreeLe",
+                    "termineeLe"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "etapeId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resolutionTypeId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "titre": {
+                      "type": "string"
+                    },
+                    "symptomes": {
+                      "type": "string"
+                    },
+                    "diagnostic": {
+                      "type": "string"
+                    },
+                    "corrections": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "ordre",
+                          "instruction",
+                          "resultatAttendu",
+                          "resultat",
+                          "observation",
+                          "par",
+                          "le"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "ordre": {
+                            "type": "integer",
+                            "format": "int32"
+                          },
+                          "instruction": {
+                            "type": "string"
+                          },
+                          "resultatAttendu": {
+                            "type": "string"
+                          },
+                          "resultat": {
+                            "enum": [
+                              "Conforme",
+                              "Echec",
+                              null
+                            ]
+                          },
+                          "observation": {
+                            "type": "string"
+                          },
+                          "par": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "le": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "verificationInstruction": {
+                      "type": "string"
+                    },
+                    "verificationAttendu": {
+                      "type": "string"
+                    },
+                    "verificationResultat": {
+                      "enum": [
+                        "Conforme",
+                        "Echec",
+                        null
+                      ]
+                    },
+                    "verificationObservation": {
+                      "type": "string"
+                    },
+                    "statut": {
+                      "enum": [
+                        "EnCours",
+                        "Reussie",
+                        "Echouee"
+                      ]
+                    },
+                    "demarreePar": {
+                      "type": "string"
+                    },
+                    "demarreeLe": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "termineeLe": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    }
+                  }
+                }
+              },
+              "erreursPlan": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "droits": {
+                "required": [
+                  "estPilote",
+                  "peutModifierPlan",
+                  "participantId",
+                  "estApprobateur",
+                  "estResponsableTechnique",
+                  "peutEditerContenu"
+                ],
+                "type": "object",
+                "properties": {
+                  "estPilote": {
+                    "type": "boolean"
+                  },
+                  "peutModifierPlan": {
+                    "type": "boolean"
+                  },
+                  "participantId": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "uuid"
+                  },
+                  "estApprobateur": {
+                    "type": "boolean"
+                  },
+                  "estResponsableTechnique": {
+                    "type": "boolean"
+                  },
+                  "peutEditerContenu": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "estModele": {
+                "type": "boolean"
+              },
+              "approbationsMinimum": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "approbations": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "utilisateurId",
+                    "nom",
+                    "decision",
+                    "commentaire",
+                    "le"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "utilisateurId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "nom": {
+                      "type": "string"
+                    },
+                    "decision": {
+                      "enum": [
+                        "Approuvee",
+                        "Refusee",
+                        null
+                      ]
+                    },
+                    "commentaire": {
+                      "type": "string"
+                    },
+                    "le": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    }
+                  }
+                }
+              },
+              "goNoGo": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "libelle",
+                    "par",
+                    "le"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "libelle": {
+                      "type": "string"
+                    },
+                    "par": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "le": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              },
+              "fichesRecette": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "ordre",
+                    "systemeId",
+                    "titre",
+                    "etapes"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "ordre": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "systemeId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "titre": {
+                      "type": "string"
+                    },
+                    "etapes": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "id",
+                          "ordre",
+                          "instructions",
+                          "resultatAttendu",
+                          "resultat",
+                          "observation",
+                          "par",
+                          "le",
+                          "valideePar",
+                          "valideeLe"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "ordre": {
+                            "type": "integer",
+                            "format": "int32"
+                          },
+                          "instructions": {
+                            "type": "string"
+                          },
+                          "resultatAttendu": {
+                            "type": "string"
+                          },
+                          "resultat": {
+                            "enum": [
+                              "Conforme",
+                              "Echec",
+                              null
+                            ]
+                          },
+                          "observation": {
+                            "type": "string"
+                          },
+                          "par": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "le": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "format": "date-time"
+                          },
+                          "valideePar": {
+                            "type": "string",
+                            "description": "Validation reportée d'un fichier Excel : nom saisi par le métier (« » sinon) ; `Par` est alors le compte qui a importé."
+                          },
+                          "valideeLe": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "description": "Validation reportée d'un fichier Excel : date indiquée dans le fichier.",
+                            "format": "date"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "bilanActive": {
+                "type": "boolean"
+              },
+              "bilan": {
+                "required": [
+                  "ceQuiAMarche",
+                  "incidents",
+                  "actions",
+                  "redigePar",
+                  "le"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "ceQuiAMarche": {
+                    "type": "string"
+                  },
+                  "incidents": {
+                    "type": "string"
+                  },
+                  "actions": {
+                    "type": "string"
+                  },
+                  "redigePar": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "le": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date-time"
+                  }
+                }
+              },
+              "nonRetourFranchi": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "piecesJointes": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "mepId",
+                    "etapeId",
+                    "resolutionTypeId",
+                    "executionResolutionId",
+                    "nomFichier",
+                    "typeContenu",
+                    "taille",
+                    "sha256",
+                    "deposeParId",
+                    "deposePar",
+                    "deposeLe"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "mepId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "etapeId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "resolutionTypeId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "executionResolutionId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "nomFichier": {
+                      "type": "string"
+                    },
+                    "typeContenu": {
+                      "type": "string"
+                    },
+                    "taille": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "sha256": {
+                      "type": "string"
+                    },
+                    "deposeParId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "deposePar": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "deposeLe": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              },
+              "responsablesTechniques": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "participantId",
+                    "systemeIds",
+                    "perimetre",
+                    "disponibilite",
+                    "contactJourJ"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "participantId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "systemeIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "perimetre": {
+                      "type": "string"
+                    },
+                    "disponibilite": {
+                      "enum": [
+                        "Joignable",
+                        "Absent"
+                      ],
+                      "description": "Disponibilité d'un responsable technique le jour de la MEP."
+                    },
+                    "contactJourJ": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "avertissements": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "retourArriereActive": {
+                "type": "boolean"
+              },
+              "communication": {
+                "required": [
+                  "referenceDemande",
+                  "niveauRisque",
+                  "benefices",
+                  "utilisateursImpactes",
+                  "arretApplicatif",
+                  "actionUtilisateurs",
+                  "heureLimite",
+                  "dateAnnoncee",
+                  "heureDebutAnnoncee",
+                  "heureFinAnnoncee",
+                  "valideeParUtilisateurs",
+                  "valideePar",
+                  "valideeLe",
+                  "preuveValidationId"
+                ],
+                "type": "object",
+                "properties": {
+                  "referenceDemande": {
+                    "type": "string"
+                  },
+                  "niveauRisque": {
+                    "enum": [
+                      "NonEvalue",
+                      "Faible",
+                      "Modere",
+                      "Eleve"
+                    ],
+                    "description": "Niveau de risque retenu par l'analyse d'impact (section Communication). Stocké en entier : toute nouvelle valeur s'ajoute à la fin."
+                  },
+                  "benefices": {
+                    "type": "string"
+                  },
+                  "utilisateursImpactes": {
+                    "type": "string"
+                  },
+                  "arretApplicatif": {
+                    "type": "boolean"
+                  },
+                  "actionUtilisateurs": {
+                    "type": "string"
+                  },
+                  "heureLimite": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "time"
+                  },
+                  "dateAnnoncee": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date"
+                  },
+                  "heureDebutAnnoncee": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "time"
+                  },
+                  "heureFinAnnoncee": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "time"
+                  },
+                  "valideeParUtilisateurs": {
+                    "type": "boolean"
+                  },
+                  "valideePar": {
+                    "type": "string"
+                  },
+                  "valideeLe": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date"
+                  },
+                  "preuveValidationId": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "uuid"
+                  }
+                },
+                "description": "Section Communication de la MEP (tout est facultatif). `PreuveValidationId` : pièce jointe de la MEP qui prouve la\nvalidation par les utilisateurs (null si aucune, ou si la pièce a été supprimée)."
+              }
+            },
+            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé."
+          },
+          "ajoutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modifies": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inchanges": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rejetees": {
+            "type": "array",
+            "items": {
+              "required": [
+                "ligne",
+                "systeme",
+                "categorie",
+                "nom",
+                "raison",
+                "systemeCatalogueId"
+              ],
+              "type": "object",
+              "properties": {
+                "ligne": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "systeme": {
+                  "type": "string"
+                },
+                "categorie": {
+                  "type": "string"
+                },
+                "nom": {
+                  "type": "string"
+                },
+                "raison": {
+                  "type": "string"
+                },
+                "systemeCatalogueId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                }
+              },
+              "description": "Ligne du fichier Excel rejetée à l'import (objet absent de la fiche du système, système inconnu…)."
+            }
+          }
+        },
+        "description": "Résultat d'un import Excel d'objets impactés : MEP à jour, compteurs et lignes rejetées (rien n'est créé au catalogue)."
+      },
       "InsertionEtapeModeleSaisie": {
         "required": [
           "modeleId"
@@ -6566,73 +8564,42 @@
         },
         "description": "Relie le compte à `ComptePrincipalId` (même personne) ; `Desactiver` : désactive aussi le compte relié."
       },
-      "LivrableDto": {
+      "LigneRejeteeDto": {
         "required": [
-          "id",
-          "objet",
-          "version",
-          "emplacement",
-          "systemeId"
+          "ligne",
+          "systeme",
+          "categorie",
+          "nom",
+          "raison",
+          "systemeCatalogueId"
         ],
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
+          "ligne": {
+            "type": "integer",
+            "format": "int32"
           },
-          "objet": {
+          "systeme": {
             "type": "string"
           },
-          "version": {
+          "categorie": {
             "type": "string"
           },
-          "emplacement": {
+          "nom": {
             "type": "string"
           },
-          "systemeId": {
+          "raison": {
+            "type": "string"
+          },
+          "systemeCatalogueId": {
             "type": [
               "null",
               "string"
             ],
             "format": "uuid"
           }
-        }
-      },
-      "LivrableSaisie": {
-        "required": [
-          "objet",
-          "version",
-          "emplacement",
-          "systemeId"
-        ],
-        "type": "object",
-        "properties": {
-          "objet": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "version": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "emplacement": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "systemeId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          }
-        }
+        },
+        "description": "Ligne du fichier Excel rejetée à l'import (objet absent de la fiche du système, système inconnu…)."
       },
       "MepCreationSaisie": {
         "required": [
@@ -6689,12 +8656,11 @@
           "demarrageAutorise",
           "participants",
           "systemes",
-          "livrables",
+          "objetsImpactes",
           "etapes",
           "resolutions",
           "erreursPlan",
           "droits",
-          "environnement",
           "estModele",
           "approbationsMinimum",
           "approbations",
@@ -7039,7 +9005,8 @@
                 "cible",
                 "impact",
                 "catalogueId",
-                "sauvegarde"
+                "sauvegarde",
+                "environnements"
               ],
               "type": "object",
               "properties": {
@@ -7103,19 +9070,44 @@
                     }
                   },
                   "description": "`Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan)."
+                },
+                "environnements": {
+                  "type": "array",
+                  "items": {
+                    "required": [
+                      "nom",
+                      "production"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "nom": {
+                        "type": "string"
+                      },
+                      "production": {
+                        "type": "boolean"
+                      }
+                    },
+                    "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
+                  }
                 }
-              }
+              },
+              "description": "`Environnements` : environnements touchés par la MEP sur ce système."
             }
           },
-          "livrables": {
+          "objetsImpactes": {
             "type": "array",
             "items": {
               "required": [
                 "id",
-                "objet",
+                "systemeId",
+                "objetCatalogueId",
+                "categorie",
+                "type",
+                "nom",
+                "libelle",
+                "precision",
                 "version",
-                "emplacement",
-                "systemeId"
+                "repris"
               ],
               "type": "object",
               "properties": {
@@ -7123,23 +9115,43 @@
                   "type": "string",
                   "format": "uuid"
                 },
-                "objet": {
-                  "type": "string"
-                },
-                "version": {
-                  "type": "string"
-                },
-                "emplacement": {
-                  "type": "string"
-                },
                 "systemeId": {
                   "type": [
                     "null",
                     "string"
                   ],
                   "format": "uuid"
+                },
+                "objetCatalogueId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "categorie": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "nom": {
+                  "type": "string"
+                },
+                "libelle": {
+                  "type": "string"
+                },
+                "precision": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                },
+                "repris": {
+                  "type": "boolean"
                 }
-              }
+              },
+              "description": "Objet impacté : copie de l'objet du catalogue (`ObjetCatalogueId`) au moment du choix, et version ou correction livrée.\n`Repris` : ancien livrable repris par la migration ; `ObjetCatalogueId` null : livrable d'un système hors catalogue."
             }
           },
           "etapes": {
@@ -7175,7 +9187,8 @@
                 "resultatConstate",
                 "sauvegardeEmplacement",
                 "sauvegardeMethodeRecuperation",
-                "modeleEtapeId"
+                "modeleEtapeId",
+                "environnements"
               ],
               "type": "object",
               "properties": {
@@ -7372,9 +9385,29 @@
                     "string"
                   ],
                   "format": "uuid"
+                },
+                "environnements": {
+                  "type": "array",
+                  "items": {
+                    "required": [
+                      "systemeId",
+                      "nom"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "systemeId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "nom": {
+                        "type": "string"
+                      }
+                    },
+                    "description": "Environnement d'une étape sur l'un de ses systèmes."
+                  }
                 }
               },
-              "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP)."
+              "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système."
             }
           },
           "resolutions": {
@@ -7550,9 +9583,6 @@
                 "type": "boolean"
               }
             }
-          },
-          "environnement": {
-            "type": "string"
           },
           "estModele": {
             "type": "boolean"
@@ -8122,12 +10152,6 @@
             ],
             "format": "date-time"
           },
-          "environnement": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
           "bilanActive": {
             "type": [
               "null",
@@ -8141,7 +10165,7 @@
             ]
           }
         },
-        "description": "`Environnement`, `BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance."
+        "description": "`BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance. La MEP n'a plus\nd'environnement propre : ils se choisissent par système (`PUT /meps/{id}/systemes/{sid}/environnements`)."
       },
       "MepResumeDto": {
         "required": [
@@ -8156,7 +10180,7 @@
           "nbEtapes",
           "nbReussies",
           "nbEchecs",
-          "environnement",
+          "toucheProduction",
           "estModele",
           "creeLe",
           "issue",
@@ -8214,8 +10238,8 @@
             "type": "integer",
             "format": "int32"
           },
-          "environnement": {
-            "type": "string"
+          "toucheProduction": {
+            "type": "boolean"
           },
           "estModele": {
             "type": "boolean"
@@ -8251,7 +10275,7 @@
             }
           }
         },
-        "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;\n`RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).\n`EquipeIds` : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait\npartie, par l'un de ses comptes reliés). `Personnes` : noms des personnes de la MEP et, pour celles qui ont un compte,\nnoms et logins de tous leurs comptes reliés (pour la recherche)."
+        "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;\n`RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).\n`ToucheProduction` : l'un des systèmes de la MEP touche un environnement de production.\n`EquipeIds` : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait\npartie, par l'un de ses comptes reliés). `Personnes` : noms des personnes de la MEP et, pour celles qui ont un compte,\nnoms et logins de tous leurs comptes reliés (pour la recherche)."
       },
       "MiseAJourDto": {
         "required": [
@@ -8878,6 +10902,178 @@
             ]
           }
         }
+      },
+      "ObjetCatalogueDto": {
+        "required": [
+          "id",
+          "categorie",
+          "type",
+          "nom",
+          "libelle",
+          "precision"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categorie": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "libelle": {
+            "type": "string"
+          },
+          "precision": {
+            "type": "string"
+          }
+        }
+      },
+      "ObjetCatalogueSaisie": {
+        "required": [
+          "categorie",
+          "type",
+          "nom",
+          "libelle",
+          "precision"
+        ],
+        "type": "object",
+        "properties": {
+          "categorie": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "libelle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "precision": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ObjetChoisiSaisie": {
+        "required": [
+          "objetCatalogueId",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "objetCatalogueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Objet du catalogue retenu pour un système de la MEP, avec sa version ou correction."
+      },
+      "ObjetImpacteDto": {
+        "required": [
+          "id",
+          "systemeId",
+          "objetCatalogueId",
+          "categorie",
+          "type",
+          "nom",
+          "libelle",
+          "precision",
+          "version",
+          "repris"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "systemeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "objetCatalogueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "categorie": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "libelle": {
+            "type": "string"
+          },
+          "precision": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "repris": {
+            "type": "boolean"
+          }
+        },
+        "description": "Objet impacté : copie de l'objet du catalogue (`ObjetCatalogueId`) au moment du choix, et version ou correction livrée.\n`Repris` : ancien livrable repris par la migration ; `ObjetCatalogueId` null : livrable d'un système hors catalogue."
+      },
+      "ObjetsSystemeSaisie": {
+        "required": [
+          "objets"
+        ],
+        "type": "object",
+        "properties": {
+          "objets": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ObjetChoisiSaisie"
+            }
+          }
+        },
+        "description": "Objets impactés d'un système : la liste remplace les objets du catalogue déjà retenus pour ce système."
       },
       "OptionsConnexionDto": {
         "required": [
@@ -10343,7 +12539,10 @@
           "nom",
           "description",
           "cible",
-          "actif"
+          "actif",
+          "environnements",
+          "categories",
+          "nbObjets"
         ],
         "type": "object",
         "properties": {
@@ -10362,8 +12561,25 @@
           },
           "actif": {
             "type": "boolean"
+          },
+          "environnements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnvironnementCatalogueDto"
+            }
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "nbObjets": {
+            "type": "integer",
+            "format": "int32"
           }
-        }
+        },
+        "description": "Système du catalogue : `Environnements` et `Categories` (dans l'ordre de la fiche), `NbObjets` connus\n(le détail : `GET /catalogue/systemes/{id}/objets`)."
       },
       "SystemeCatalogueSaisie": {
         "required": [
@@ -10407,7 +12623,8 @@
           "cible",
           "impact",
           "catalogueId",
-          "sauvegarde"
+          "sauvegarde",
+          "environnements"
         ],
         "type": "object",
         "properties": {
@@ -10471,8 +12688,28 @@
               }
             },
             "description": "`Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan)."
+          },
+          "environnements": {
+            "type": "array",
+            "items": {
+              "required": [
+                "nom",
+                "production"
+              ],
+              "type": "object",
+              "properties": {
+                "nom": {
+                  "type": "string"
+                },
+                "production": {
+                  "type": "boolean"
+                }
+              },
+              "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
+            }
           }
-        }
+        },
+        "description": "`Environnements` : environnements touchés par la MEP sur ce système."
       },
       "SystemeSaisie": {
         "required": [

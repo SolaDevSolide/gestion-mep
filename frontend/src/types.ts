@@ -89,7 +89,18 @@ export type Participant = S['ParticipantDto'];
 /** Sauvegarde d'un système de la MEP : requise (quoi, quand) ou non requise (justification). */
 export type SauvegardeSysteme = S['SauvegardeSystemeDto'];
 export type Systeme = S['SystemeDto'];
-export type Livrable = S['LivrableDto'];
+/** Environnement touché par la MEP sur un système (nom et marque « production » repris de la fiche du catalogue). */
+export type EnvironnementSysteme = S['EnvironnementSystemeDto'];
+/** Environnement sur lequel agit une étape, pour l'un de ses systèmes. */
+export type EnvironnementEtape = S['EnvironnementEtapeDto'];
+/**
+ * Objet impacté d'un système de la MEP : copie d'un objet de la fiche du catalogue (`objetCatalogueId`) et sa version ou
+ * correction. `repris` : ancien livrable repris tel quel (hors catalogue s'il n'a pas d'objet du catalogue).
+ */
+export type ObjetImpacte = S['ObjetImpacteDto'];
+/** Résultat d'un import Excel des objets impactés : MEP à jour, bilan et lignes rejetées (inconnues du catalogue). */
+export type ImportObjets = S['ImportObjetsDto'];
+export type LigneRejetee = S['LigneRejeteeDto'];
 export type Disponibilite = S['DisponibiliteDto'];
 export type Validation = S['ValidationDto'];
 
@@ -133,6 +144,10 @@ export type PlanRepli = S['PlanRepliDto'];
 export type CorrectionExecutee = S['CorrectionExecuteeDto'];
 export type ExecutionResolution = S['ExecutionResolutionDto'];
 export type SystemeCatalogue = S['SystemeCatalogueDto'];
+/** Environnement de la fiche d'un système du catalogue (`cible` : serveur, URL…). */
+export type EnvironnementCatalogue = S['EnvironnementCatalogueDto'];
+/** Objet connu de la fiche d'un système du catalogue, rangé dans une catégorie. */
+export type ObjetCatalogue = S['ObjetCatalogueDto'];
 export type CorrectionType = S['CorrectionDto'];
 /** `systemeCatalogueIds` vide = tous les systèmes ; `modifieeParId` null : démo ou fiche antérieure au suivi. */
 export type ResolutionType = S['ResolutionTypeDto'];
@@ -191,7 +206,7 @@ export type MepIdentiteSaisie = SaisieVerifiee<
     | 'piloteId'
     | 'suppleantIds'
     | 'echeanceRepli'
-  > & { environnement?: string; bilanActive?: boolean; retourArriereActive?: boolean }
+  > & { bilanActive?: boolean; retourArriereActive?: boolean }
 >;
 
 export type CommunicationSaisie = SaisieVerifiee<S['CommunicationSaisie'], Communication & { version: number }>;
@@ -218,9 +233,10 @@ export type ParticipantSaisie = SaisieVerifiee<
   { nom: string; role: string; contact: string; utilisateurId: string | null }
 >;
 export type SystemeSaisie = SaisieVerifiee<S['SystemeSaisie'], { nom: string; cible: string; impact: string }>;
-export type LivrableSaisie = SaisieVerifiee<
-  S['LivrableSaisie'],
-  { objet: string; version: string; emplacement: string; systemeId: string | null }
+/** Objets impactés d'un système : la liste remplace les objets du catalogue déjà retenus. */
+export type ObjetsSystemeSaisie = SaisieVerifiee<
+  S['ObjetsSystemeSaisie'],
+  { objets: { objetCatalogueId: string; version: string }[] }
 >;
 
 export type EtapeSaisie = SaisieVerifiee<
@@ -243,6 +259,8 @@ export type EtapeSaisie = SaisieVerifiee<
     /** Étape de type Sauvegarde seulement (effacés par le serveur pour une étape standard). */
     sauvegardeEmplacement: string;
     sauvegardeMethodeRecuperation: string;
+    /** Environnements de l'étape, système par système ; absent : inchangés (sauf systèmes retirés de l'étape). */
+    environnements?: EnvironnementEtape[];
   }
 >;
 
@@ -287,16 +305,22 @@ export type BilanSaisie = SaisieVerifiee<
   S['ClotureSaisie'],
   { ceQuiAMarche: string; incidents: string; actions: string }
 >;
-export type DuplicationSaisie = SaisieVerifiee<
-  S['DuplicationSaisie'],
-  { environnement?: string | null; commeModele: boolean }
->;
+export type DuplicationSaisie = SaisieVerifiee<S['DuplicationSaisie'], { commeModele: boolean }>;
 
 export type CritereGoNoGoSaisie = SaisieVerifiee<
   S['CritereGoNoGoSaisie'],
   { libelle: string; ordre?: number; actif?: boolean }
 >;
-export type SystemeCatalogueSaisie = SaisieVerifiee<S['SystemeCatalogueSaisie'], Omit<SystemeCatalogue, 'id'>>;
+export type SystemeCatalogueSaisie = SaisieVerifiee<
+  S['SystemeCatalogueSaisie'],
+  Pick<SystemeCatalogue, 'nom' | 'description' | 'cible' | 'actif'>
+>;
+/** Catégorie de la fiche : `ancien` renomme une catégorie existante (ses objets la suivent). */
+export type CategorieSaisie = SaisieVerifiee<S['CategorieSaisie'], { nom: string; ancien?: string }>;
+export type ObjetCatalogueSaisie = SaisieVerifiee<
+  S['ObjetCatalogueSaisie'],
+  { categorie: string; type: string; nom: string; libelle: string; precision: string }
+>;
 export type ResolutionTypeSaisie = SaisieVerifiee<
   S['ResolutionTypeSaisie'],
   Omit<ResolutionType, 'id' | 'actif' | 'modifieeLe' | 'modifieeParId' | 'modifieeParNom' | 'utilisations' | 'creeeLe'>

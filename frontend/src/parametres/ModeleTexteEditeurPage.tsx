@@ -265,7 +265,7 @@ export default function ModeleTexteEditeurPage() {
                 <>
                   <code className="font-mono">**gras**</code> pour mettre en gras, une ligne qui commence par{' '}
                   <code className="font-mono">- </code> pour une puce. Une variable de liste seule sur sa ligne
-                  (systèmes, livrables, bénéfices…) devient une liste à puces.
+                  (systèmes, objets impactés, bénéfices…) devient une liste à puces.
                 </>
               }
             >

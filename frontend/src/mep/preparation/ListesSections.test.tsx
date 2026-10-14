@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { api } from '../../api';
 import { MepContext } from '../../mepContext';
 import { mep, utilisateur } from '../../test/fabrique';
 import { TooltipProvider } from '../../ui/Tooltip';
-import { PersonnesSection } from './ListesSections';
+import { PersonnesSection, SystemesSection } from './ListesSections';
 
 vi.mock('../../api', () => ({
   api: {
@@ -13,6 +14,7 @@ vi.mock('../../api', () => ({
     ajouterParticipant: vi.fn(),
     modifierParticipant: vi.fn(),
     catalogueSystemes: vi.fn(async () => []),
+    environnementsSysteme: vi.fn(async () => ({})),
   },
 }));
 
@@ -101,5 +103,76 @@ describe('Personnes : ajout depuis un compte', () => {
     await userEvent.selectOptions(screen.getByLabelText('Équipe'), 'e1');
     expect(screen.getByRole('option', { name: /Dana/ })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /Éric/ })).toBeNull();
+  });
+});
+
+describe('Systèmes : environnements touchés', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function rendreSystemes() {
+    vi.mocked(api.catalogueSystemes).mockResolvedValue([
+      {
+        id: 'c-bdd',
+        nom: 'BDD',
+        description: '',
+        cible: '',
+        actif: true,
+        environnements: [
+          { nom: 'Recette', cible: 'bdd-rec', production: false },
+          { nom: 'Préproduction', cible: 'bdd-pprd', production: false },
+          { nom: 'Production', cible: 'bdd-prd', production: true },
+        ],
+        categories: [],
+        nbObjets: 0,
+      },
+    ]);
+    const run = vi.fn(async (action?: () => Promise<unknown>) => {
+      await action?.();
+      return true;
+    });
+    const base = mep().systemes[0];
+    const m = mep({
+      phase: 'Preparation',
+      droits: { ...mep().droits, peutEditerContenu: true, peutModifierPlan: true },
+      systemes: [
+        {
+          ...base,
+          id: 's1',
+          nom: 'BDD',
+          catalogueId: 'c-bdd',
+          environnements: [{ nom: 'Production', production: true }],
+        },
+        { ...base, id: 's2', nom: 'ERP', catalogueId: null, environnements: [] },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <MepContext.Provider value={{ mep: m, run } as never}>
+          <TooltipProvider>
+            <SystemesSection />
+          </TooltipProvider>
+        </MepContext.Provider>
+      </MemoryRouter>,
+    );
+  }
+
+  it('un système du catalogue propose les environnements de sa fiche, dans leur ordre', async () => {
+    rendreSystemes();
+    const groupe = screen.getByRole('group', { name: 'Environnements de BDD' });
+    expect(await within(groupe).findByRole('button', { name: 'Préproduction', pressed: false })).toBeInTheDocument();
+    expect(within(groupe).getByRole('button', { name: 'Production', pressed: true })).toBeInTheDocument();
+    await userEvent.click(within(groupe).getByRole('button', { name: 'Préproduction' }));
+    await waitFor(() =>
+      expect(api.environnementsSysteme).toHaveBeenCalledWith('m1', 's1', ['Préproduction', 'Production']),
+    );
+  });
+
+  it('un système libre propose des suggestions et accepte un environnement saisi', async () => {
+    rendreSystemes();
+    const groupe = screen.getByRole('group', { name: 'Environnements de ERP' });
+    await userEvent.click(within(groupe).getByRole('button', { name: 'Recette' }));
+    await waitFor(() => expect(api.environnementsSysteme).toHaveBeenCalledWith('m1', 's2', ['Recette']));
+    await userEvent.type(within(groupe).getByLabelText('Autre environnement pour ERP'), 'Intégration{Enter}');
+    await waitFor(() => expect(api.environnementsSysteme).toHaveBeenLastCalledWith('m1', 's2', ['Intégration']));
   });
 });

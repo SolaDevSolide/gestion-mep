@@ -103,7 +103,10 @@ public class Mep
     public Guid? PiloteId { get; set; }
     /// <summary>Participants suppléants du pilote : ils ont les mêmes droits que lui.</summary>
     public List<Guid> SuppleantIds { get; set; } = [];
-    /// <summary>Environnement visé (texte libre : Recette, Préproduction, Production…).</summary>
+    /// <summary>
+    /// Obsolète : ancien environnement de la MEP (texte libre). Les environnements appartiennent désormais aux systèmes
+    /// (<see cref="Systeme.Environnements"/>) ; la valeur est gardée en base, plus affichée ni modifiable.
+    /// </summary>
     public string Environnement { get; set; } = "";
     /// <summary>Modèle de MEP : sert uniquement à être dupliqué, ne passe jamais en exécution.</summary>
     public bool EstModele { get; set; }
@@ -165,7 +168,8 @@ public class Mep
 
     public List<Participant> Participants { get; set; } = [];
     public List<Systeme> Systemes { get; set; } = [];
-    public List<Livrable> Livrables { get; set; } = [];
+    /// <summary>Objets impactés, par système et par catégorie, choisis dans la fiche du système au catalogue.</summary>
+    public List<ObjetImpacte> ObjetsImpactes { get; set; } = [];
     public List<Etape> Etapes { get; set; } = [];
     public List<ExecutionResolution> Resolutions { get; set; } = [];
 
@@ -282,6 +286,24 @@ public class Systeme
     public Guid? CatalogueId { get; set; }
     /// <summary>Faut-il sauvegarder ce système, quand et comment.</summary>
     public SauvegardeSysteme Sauvegarde { get; set; } = new();
+    /// <summary>
+    /// Environnements touchés par la MEP sur ce système (un ou plusieurs), copiés de la fiche du catalogue au moment du choix.
+    /// </summary>
+    public List<EnvironnementSysteme> Environnements { get; set; } = [];
+}
+
+/// <summary>Environnement d'un système de la MEP : nom et marque « production » (copiés du catalogue).</summary>
+public class EnvironnementSysteme
+{
+    public string Nom { get; set; } = "";
+    public bool Production { get; set; }
+}
+
+/// <summary>Environnement d'une étape sur l'un de ses systèmes (« BDD : Préproduction »).</summary>
+public class EnvironnementEtape
+{
+    public Guid SystemeId { get; set; }
+    public string Nom { get; set; } = "";
 }
 
 /// <summary>Sauvegarde d'un système de la MEP.</summary>
@@ -308,6 +330,35 @@ public class SystemeCatalogue
     public string Description { get; set; } = "";
     public string Cible { get; set; } = "";
     public bool Actif { get; set; } = true;
+    /// <summary>Environnements du système (développement, recette, production…), dans l'ordre d'affichage.</summary>
+    public List<EnvironnementCatalogue> Environnements { get; set; } = [];
+    /// <summary>Catégories d'objets qui s'appliquent au système, dans l'ordre d'affichage (une catégorie peut être vide).</summary>
+    public List<string> Categories { get; set; } = [];
+    /// <summary>Objets connus du système, chacun dans l'une de ses <see cref="Categories"/> : seuls choix possibles dans une MEP.</summary>
+    public List<ObjetCatalogue> Objets { get; set; } = [];
+    /// <summary>Compteur de révision : protège la fiche contre deux écritures simultanées.</summary>
+    public int Version { get; set; }
+}
+
+/// <summary>Environnement d'un système du catalogue : nom, cible exacte et marque « production ».</summary>
+public class EnvironnementCatalogue
+{
+    public string Nom { get; set; } = "";
+    public string Cible { get; set; } = "";
+    /// <summary>Environnement de production : une MEP qui le touche est signalée dans la liste des MEP.</summary>
+    public bool Production { get; set; }
+}
+
+/// <summary>Objet connu d'un système du catalogue (table, programme, flux…), rangé dans une catégorie.</summary>
+public class ObjetCatalogue
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Categorie { get; set; } = "";
+    public string Type { get; set; } = "";
+    public string Nom { get; set; } = "";
+    public string Libelle { get; set; } = "";
+    /// <summary>Précision libre (schéma, planification, langage…).</summary>
+    public string Precision { get; set; } = "";
 }
 
 /// <summary>
@@ -409,15 +460,27 @@ public class CorrectionExecutee
     public DateTimeOffset? Le { get; set; }
 }
 
-/// <summary>Objet livré (tableau tLivrables).</summary>
-public class Livrable
+/// <summary>
+/// Objet impacté par la MEP sur l'un de ses systèmes : copie de l'objet du catalogue au moment du choix (catégorie, type,
+/// nom, libellé, précision), plus la version ou la correction livrée.
+/// </summary>
+public class ObjetImpacte
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid MepId { get; set; }
-    public string Objet { get; set; } = "";
-    public string Version { get; set; } = "";
-    public string Emplacement { get; set; } = "";
+    /// <summary>Système de la MEP ; null seulement pour un ancien livrable repris sans système.</summary>
     public Guid? SystemeId { get; set; }
+    /// <summary>Objet de la fiche du système au catalogue ; null pour un ancien livrable d'un système hors catalogue.</summary>
+    public Guid? ObjetCatalogueId { get; set; }
+    public string Categorie { get; set; } = "";
+    public string Type { get; set; } = "";
+    public string Nom { get; set; } = "";
+    public string Libelle { get; set; } = "";
+    public string Precision { get; set; } = "";
+    /// <summary>Version ou correction livrée.</summary>
+    public string Version { get; set; } = "";
+    /// <summary>Ancien livrable repris par la migration (catégorie « Packages »).</summary>
+    public bool Repris { get; set; }
 }
 
 /// <summary>
@@ -490,6 +553,11 @@ public class Etape
     public List<Guid> ResolutionIds { get; set; } = [];
     /// <summary>Étape modèle dont l'étape est une copie (null : étape saisie dans la MEP). La copie ne suit pas le modèle.</summary>
     public Guid? ModeleEtapeId { get; set; }
+    /// <summary>
+    /// Environnements où agit l'étape, système par système (plusieurs possibles), parmi ceux choisis pour la MEP sur chaque
+    /// système. Aucun contrôle de cohérence entre systèmes : c'est à la personne qui relit de repérer une incohérence.
+    /// </summary>
+    public List<EnvironnementEtape> Environnements { get; set; } = [];
 }
 
 /// <summary>Décision attendue d'un approbateur (compte de l'application) sur la MEP en préparation.</summary>
@@ -640,6 +708,17 @@ public class ParametresGlobaux
     public int Id { get; set; } = IdUnique;
     /// <summary>Nombre d'approbations exigées avant le Go (0 : pas d'approbation).</summary>
     public int ApprobationsMinimum { get; set; } = 1;
+    /// <summary>Catégories d'objets proposées par défaut à chaque système du catalogue (gérées par les administrateurs).</summary>
+    public List<string> CategoriesObjets { get; set; } = [.. CategoriesObjetsParDefaut];
+
+    /// <summary>Liste initiale des catégories d'objets par défaut.</summary>
+    public static readonly IReadOnlyList<string> CategoriesObjetsParDefaut =
+    [
+        "Code source", "Packages", "Flux", "Services", "Base de données", "Tables", "Colonnes", "Vues", "Procédures stockées",
+        "Fonctions", "Triggers", "Index", "Référentiels", "Interfaces", "Configuration", "Infrastructure", "Sécurité", "API",
+        "Fichiers d'échange", "Ordonnancement", "Monitoring", "Sauvegarde / rollback", "Documentation technique et fonctionnelle",
+        "Tests", "Dépendances", "Certificats", "Réseau", "Exploitation", "Traçabilité",
+    ];
 }
 
 /// <summary>

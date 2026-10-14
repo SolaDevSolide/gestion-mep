@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import { nomParticipant } from '../../domaine';
+import { environnementsEtape } from '../../environnements';
+import { PastilleEnvironnement } from '../../ui/PastilleEnvironnement';
 import { LIBELLE_CRITICITE, LIBELLE_FIN } from '../../format';
 import { construireLignes, indexLignes, type Lien } from '../../graphe';
 import { useDraft, useReportDirty } from '../../hooks';
@@ -11,6 +13,7 @@ import { couleurPersonne } from '../../ui/Avatar';
 import { useMep } from '../../mepContext';
 import type {
   Criticite,
+  EnvironnementEtape,
   Etape,
   EtapeSaisie,
   FinEtape,
@@ -51,6 +54,7 @@ export function saisieDepuis(e: Etape): EtapeSaisie {
     fin: e.fin,
     sauvegardeEmplacement: e.sauvegardeEmplacement,
     sauvegardeMethodeRecuperation: e.sauvegardeMethodeRecuperation,
+    environnements: e.environnements,
   };
 }
 
@@ -68,6 +72,8 @@ export interface Fiche {
   fin: FinEtape;
   sauvegardeEmplacement: string;
   sauvegardeMethodeRecuperation: string;
+  /** Environnements de l'étape, système par système. */
+  environnements: EnvironnementEtape[];
 }
 
 const ficheDepuis = (e: Etape): Fiche => ({
@@ -83,6 +89,7 @@ const ficheDepuis = (e: Etape): Fiche => ({
   fin: e.fin,
   sauvegardeEmplacement: e.sauvegardeEmplacement,
   sauvegardeMethodeRecuperation: e.sauvegardeMethodeRecuperation,
+  environnements: e.environnements,
 });
 
 /**
@@ -291,6 +298,7 @@ export function PanneauEdition(props: Props) {
       fin: v.fin,
       sauvegardeEmplacement: v.sauvegardeEmplacement.trim(),
       sauvegardeMethodeRecuperation: v.sauvegardeMethodeRecuperation.trim(),
+      environnements: v.environnements.filter((x) => v.systemeIds.includes(x.systemeId)),
     };
     setEnvoi(true);
     const ok = await run(() => api.modifierEtape(mep.id, etape.id, saisie), `${etape.code} enregistrée.`);
@@ -503,12 +511,17 @@ function EspaceLecture({
       }
       gauche={
         <>
-          <Bloc titre="Systèmes">
-            <div className="flex flex-wrap gap-1.5">
+          <Bloc titre="Systèmes et environnements">
+            <ul className="space-y-1.5">
               {systemesDe(mep, etape.systemeIds).map((s) => (
-                <PuceSysteme key={s.id} nom={s.nom} />
+                <li key={s.id} className="flex flex-wrap items-center gap-1.5">
+                  <PuceSysteme nom={s.nom} />
+                  {environnementsEtape(etape, s).map((x) => (
+                    <PastilleEnvironnement key={x.nom} nom={x.nom} production={x.production} retire={x.retire} />
+                  ))}
+                </li>
               ))}
-            </div>
+            </ul>
           </Bloc>
           <p className="text-sm text-fg-muted">
             {etape.criticite ? LIBELLE_CRITICITE[etape.criticite] : 'Criticité non précisée'}

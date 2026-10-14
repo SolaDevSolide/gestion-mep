@@ -254,7 +254,7 @@ public static partial class DonneesDemo
         var mep = new Mep
         {
             Outil = outil, VersionActuelle = actuelle, VersionCible = cible, Objet = objet, Impacts = impacts, FuseauHoraire = "Europe/Paris",
-            Environnement = "Production", BilanActive = true, IndisponibiliteMinutes = indisponibilite,
+            BilanActive = true, IndisponibiliteMinutes = indisponibilite,
         };
         var pAlice = Participant(mep, "Alice", "Pilote / DBA", "Fictif — poste A, 01 00 00 00 01", eq.Alice.Id);
         var pBob = Participant(mep, "Bob", "Développeur API", "Fictif — poste B, 01 00 00 00 02", eq.Bob.Id);
@@ -297,7 +297,7 @@ public static partial class DonneesDemo
         {
             MepId = mep.Id, Plan = plan, Code = $"{(plan == TypePlan.Deploiement ? 'E' : 'R')}{n:0000}", Ligne = ligne,
             Ordre = mep.Etapes.Count(x => x.Plan == plan && x.Ligne == ligne), Action = action, SystemeIds = systemes.Select(s => s.Id).ToList(),
-            DureeEstimeeMinutes = duree, Criticite = criticite, Instructions = instructions, ResultatAttendu = attendu,
+            Environnements = EnvironnementsParDefaut(systemes), DureeEstimeeMinutes = duree, Criticite = criticite, Instructions = instructions, ResultatAttendu = attendu,
             Dependances = prealables.Select(p => p.Id).ToList(),
         };
         mep.Etapes.Add(e);
@@ -326,9 +326,6 @@ public static partial class DonneesDemo
         return e;
     }
 
-    private static void Livrable(Mep mep, Systeme s, string objet, string version) =>
-        mep.Livrables.Add(new Livrable { MepId = mep.Id, Objet = objet, Version = version, Emplacement = "Dépôt fictif, aucun téléchargement", SystemeId = s.Id });
-
     private static PlanRepli Repli(int duree, string version, string donnees) => new()
     {
         QuandDeclencher = "Échec d'une étape sans résolution, résolution en échec, ou échéance atteinte.",
@@ -352,7 +349,13 @@ public static partial class DonneesDemo
             "Sauvegarde des tables `factures` et `lignes_facture` (E0001).");
         var batch = Systeme(mep, c.Sys("BATCH"), "Nouvel export nocturne des factures");
         var web = Sys(mep, c.Sys("WEB"), "Téléchargement des factures PDF", StatutSauvegarde.NonRequise, ModeSauvegarde.AvantMep);
-        Livrable(mep, batch, "Export Factur-X", "3.5.0");
+        // Les tables factures sont d'abord migrées en préproduction, puis en production.
+        EnvironnementsDe(bdd, c.Sys("BDD"), "Préproduction", "Production");
+        Objets(mep, bdd, c.Sys("BDD"), "colonnes Factur-X", "factures", "lignes_facture");
+        Objets(mep, bdd, c.Sys("BDD"), "v3.5.0", "v_factures_a_envoyer");
+        Objets(mep, batch, c.Sys("BATCH"), "v3.5.0", "FACT01", "FACT03", "FACT04", "batch-facturation.jar");
+        Objets(mep, batch, c.Sys("BATCH"), "format 2026", "FACTX_AAAAMMJJ.zip");
+        Objets(mep, web, c.Sys("WEB"), "v3.5.0", "factures-pdf.tar.gz");
         Responsables(mep,
             (bob, [batch, bdd], "Export nocturne et tables factures", DisponibiliteJourJ.Joignable),
             (claire, [web], "Module de téléchargement PDF", DisponibiliteJourJ.Absent));
@@ -365,8 +368,10 @@ public static partial class DonneesDemo
         var e3 = E(mep, 3, 1, "Déploiement de l'export nocturne", [batch], 20, Criticite.Moderee, "", "Le traitement apparaît dans l'ordonnanceur.", e1);
         var e4 = E(mep, 4, 1, "Publication du module PDF", [web], 15, Criticite.Moderee,
             Sim + Code("./publier.sh factures-pdf 3.5"), "Le bouton « Télécharger (Factur-X) » s'affiche.", e1);
-        E(mep, 5, 2, "Exemple : vérifier une facture", [bdd, batch, web], 10, Criticite.Faible,
+        var e5 = E(mep, 5, 2, "Exemple : vérifier une facture", [bdd, batch, web], 10, Criticite.Faible,
             "Ouvrir une facture et vérifier son contenu.", "La facture est conforme.", e2, e3, e4);
+        // Incohérence à repérer à la relecture : la base est vérifiée en préproduction, l'export et le portail en production.
+        EnvironnementsEtape(e5, (bdd, ["Préproduction"]), (batch, ["Production"]), (web, ["Production"]));
         R(mep, 1, 0, "Restaurer les tables factures", [bdd], 20, Sim + Code("psql -h bdd-demo -U admin compta < /sauvegardes/factures.sql"),
             "Restauration sans erreur.");
         mep.PlanRepli = Repli(25, "Version 3.4 fictive.", "Tables factures restaurées depuis la sauvegarde E0001.");
@@ -407,8 +412,10 @@ public static partial class DonneesDemo
         var api = Sys(mep, c.Sys("API"), "Service annuaire 2.0", StatutSauvegarde.Requise, ModeSauvegarde.PendantMep, "Archive de `/opt/annuaire` (E0001).");
         var web = Sys(mep, c.Sys("WEB"), "Page « Trouver une agence »", StatutSauvegarde.NonRequise, ModeSauvegarde.AvantMep,
             justification: "Page statique régénérée à chaque publication : la version 1.8 reste dans le dépôt.");
-        Livrable(mep, api, "Service annuaire", "2.0.0");
-        Livrable(mep, web, "Page agences", "2.0.0");
+        Objets(mep, ldap, c.Sys("LDAP"), "nouvelle branche", "ou=agences");
+        Objets(mep, ldap, c.Sys("LDAP"), "un groupe par agence", "cn=agences-lecture");
+        Objets(mep, api, c.Sys("API"), "2.0.0", "annuaire-api.jar", "/v2/agences");
+        Objets(mep, web, c.Sys("WEB"), "2.0.0", "agences-web.tar.gz");
         Responsables(mep,
             (bob, [api, ldap], "Service annuaire et groupes LDAP", DisponibiliteJourJ.Joignable),
             (claire, [web], "Page « Trouver une agence »", DisponibiliteJourJ.Joignable));
@@ -477,7 +484,10 @@ public static partial class DonneesDemo
             justification: "Écran publié depuis le dépôt : la version 4.1 se republie en une commande.");
         var mdm = Sys(mep, c.Sys("MDM"), "Référentiel des moyens de paiement", StatutSauvegarde.NonRequise, ModeSauvegarde.AvantMep,
             justification: "Le MDM historise les versions du référentiel.");
-        Livrable(mep, api, "Service paiement", "4.2.0");
+        Objets(mep, bdd, c.Sys("BDD"), "4.2.0", "transactions", "ix_transactions_date");
+        Objets(mep, api, c.Sys("API"), "4.2.0", "paiement-api.jar", "/v1/paiements");
+        Objets(mep, web, c.Sys("WEB"), "4.2.0", "paiement-web.tar.gz");
+        Objets(mep, mdm, c.Sys("MDM"), "paiement mobile ajouté", "flux-moyens-paiement");
         Responsables(mep,
             (bob, [api, mdm], "Service paiement et flux MDM", DisponibiliteJourJ.Joignable),
             (claire, [web], "Écran de paiement", DisponibiliteJourJ.Joignable));
@@ -568,8 +578,10 @@ public static partial class DonneesDemo
             "Snapshot du volume `rh-web` pris la veille (`avant-3.0`).");
         var ldap = Sys(mep, c.Sys("LDAP"), "Groupe rh-gestionnaires", StatutSauvegarde.NonRequise, ModeSauvegarde.AvantMep,
             justification: "Annuaire seulement lu par le portail.");
-        Livrable(mep, web, "Portail RH", "3.0.0");
-        Livrable(mep, api, "Service congés", "3.0.0");
+        Objets(mep, bdd, c.Sys("BDD"), "3.0.0 : demi-journées", "conges");
+        Objets(mep, api, c.Sys("API"), "3.0.0", "conges-api.jar", "/v1/conges");
+        Objets(mep, web, c.Sys("WEB"), "3.0.0", "rh-web.tar.gz");
+        Objets(mep, ldap, c.Sys("LDAP"), "nouveau groupe", "cn=rh-gestionnaires");
         Responsables(mep,
             (bob, [api, ldap], "Service congés et droits des gestionnaires", DisponibiliteJourJ.Joignable),
             (claire, [web], "Portail RH", DisponibiliteJourJ.Joignable));
@@ -669,7 +681,9 @@ public static partial class DonneesDemo
         var api = Sys(mep, c.Sys("API"), "Service messagerie 5.1", StatutSauvegarde.Requise, ModeSauvegarde.PendantMep, "Archive de `/opt/messagerie` (E0002).");
         var web = Sys(mep, c.Sys("WEB"), "Client web de messagerie", StatutSauvegarde.NonRequise, ModeSauvegarde.AvantMep,
             justification: "Client publié depuis le dépôt : la version 5.0 se republie en une commande.");
-        Livrable(mep, api, "Service messagerie", "5.1.0");
+        Objets(mep, bdd, c.Sys("BDD"), "5.1.0", "messages", "ix_messages_texte");
+        Objets(mep, api, c.Sys("API"), "5.1.0", "messagerie-api.jar");
+        Objets(mep, web, c.Sys("WEB"), "5.1.0", "messagerie-web.tar.gz");
         Responsables(mep,
             (bob, [api], "Service messagerie", DisponibiliteJourJ.Joignable),
             (claire, [web], "Client web", DisponibiliteJourJ.Joignable));
@@ -751,8 +765,9 @@ public static partial class DonneesDemo
             "Export des paramètres de planification la veille (`planification-6.2.json`).");
         var api = Sys(mep, c.Sys("API"), "Service stocks 6.3", StatutSauvegarde.NonRequise, ModeSauvegarde.AvantMep,
             justification: "Service sans état, réinstallable depuis le dépôt d'artefacts.");
-        Livrable(mep, api, "Service stocks", "6.3.0");
-        Livrable(mep, batch, "Traitement réassorts", "6.3.0");
+        Objets(mep, bdd, c.Sys("BDD"), "6.3.0", "inventaire", "p_recalcul_stocks");
+        Objets(mep, batch, c.Sys("BATCH"), "6.3.0", "STKREA", "batch-stocks.jar");
+        Objets(mep, api, c.Sys("API"), "6.3.0", "stocks-api.jar");
         Responsables(mep,
             (bob, [api, batch], "Service stocks et calcul nocturne", DisponibiliteJourJ.Joignable),
             (claire, [], "Écrans d'inventaire (aucun changement)", DisponibiliteJourJ.Joignable));
@@ -846,7 +861,9 @@ public static partial class DonneesDemo
         var api = Sys(mep, c.Sys("API"), "Service partenaires 3.0", StatutSauvegarde.Requise, ModeSauvegarde.PendantMep, "Archive de `/opt/partenaires` (E0002).");
         var ldap = Sys(mep, c.Sys("LDAP"), "Comptes partenaires", StatutSauvegarde.NonRequise, ModeSauvegarde.AvantMep,
             justification: "Seul un attribut d'ouverture est ajouté aux comptes pilotes, retiré par le repli.");
-        Livrable(mep, web, "Extranet", "3.0.0");
+        Objets(mep, web, c.Sys("WEB"), "3.0.0", "extranet-web.tar.gz");
+        Objets(mep, api, c.Sys("API"), "3.0.0", "partenaires-api.jar");
+        Objets(mep, ldap, c.Sys("LDAP"), "partenaires pilotes", "cn=partenaires", "ou=partenaires");
         Responsables(mep,
             (claire, [web], "Extranet", DisponibiliteJourJ.Joignable),
             (alice, [ldap], "Comptes partenaires", DisponibiliteJourJ.Joignable));
