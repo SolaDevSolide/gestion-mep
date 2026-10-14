@@ -29,7 +29,7 @@ export default function ExecutionTab() {
       {mep.phase === 'RetourArriere' && (
         <Alerte ton="danger" icone={Siren} className="mb-4" titre="Le déploiement est arrêté">
           Le retour arrière est en cours.{' '}
-          <Link to="?onglet=retour" className="font-semibold underline">
+          <Link to="?onglet=plan&plan=retour" className="font-semibold underline">
             Ouvrir l’onglet Retour arrière
           </Link>
         </Alerte>

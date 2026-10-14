@@ -113,9 +113,9 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                   <Entree
                     icone={<ListChecks className="size-4" />}
                     mots={['onglet', 'étapes', 'plan']}
-                    onSelect={() => aller(`/meps/${mepCourante}?onglet=etapes`)}
+                    onSelect={() => aller(`/meps/${mepCourante}?onglet=plan&plan=etapes`)}
                   >
-                    Onglet Étapes
+                    Plan › Étapes
                   </Entree>
                   <Entree
                     icone={<Play className="size-4" />}
@@ -127,16 +127,16 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                   <Entree
                     icone={<Undo2 className="size-4" />}
                     mots={['onglet', 'retour arrière', 'repli']}
-                    onSelect={() => aller(`/meps/${mepCourante}?onglet=retour`)}
+                    onSelect={() => aller(`/meps/${mepCourante}?onglet=plan&plan=retour`)}
                   >
-                    Onglet Retour arrière
+                    Plan › Retour arrière
                   </Entree>
                   <Entree
                     icone={<ClipboardCheck className="size-4" />}
                     mots={['onglet', 'recette', 'tests']}
-                    onSelect={() => aller(`/meps/${mepCourante}?onglet=recette`)}
+                    onSelect={() => aller(`/meps/${mepCourante}?onglet=plan&plan=recette`)}
                   >
-                    Onglet Recette
+                    Plan › Recette
                   </Entree>
                   <Entree
                     icone={<NotebookText className="size-4" />}

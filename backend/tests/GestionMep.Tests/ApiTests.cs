@@ -311,8 +311,10 @@ public class ApiTests : IDisposable
 
         var apres = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/participants",
             new { nom = "Dave", role = "Testeur", contact = "", utilisateurId = (Guid?)null }));
+        // Le flux envoie aussi la présence (event: presence) : on cherche l'événement maj.
         string? ligne;
-        do { ligne = await lecteur.ReadLineAsync(delai.Token); } while (ligne is not null && !ligne.StartsWith("data:"));
+        do { ligne = await lecteur.ReadLineAsync(delai.Token); } while (ligne is not null && ligne != "event: maj");
+        ligne = await lecteur.ReadLineAsync(delai.Token);
         Assert.Equal($"data: {{\"version\":{apres.GetProperty("version").GetInt32()}}}", ligne);
     }
 }

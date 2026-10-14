@@ -51,6 +51,24 @@ describe('ouvrirFlux', () => {
     expect(surMaj).toHaveBeenCalledWith(7);
   });
 
+  it('transmet la présence et prévient à chaque ouverture, la première comprise', () => {
+    const surPresence = vi.fn();
+    const surOuverture = vi.fn();
+    ouvrirFlux('/api/meps/m1/flux?session=s1', vi.fn(), vi.fn(), { surPresence, surOuverture });
+    const flux = FauxFlux.instances[0];
+    flux.ouvrir();
+    expect(surOuverture).toHaveBeenCalledTimes(1);
+    const presences = [{ utilisateurId: 'u1', nom: 'Bob Martin', elements: ['etape:e1'] }];
+    flux.emettre('presence', new MessageEvent('presence', { data: JSON.stringify(presences) }));
+    flux.emettre('presence', new MessageEvent('presence', { data: '{"pas":"une liste"}' }));
+    flux.emettre('presence', new MessageEvent('presence', { data: 'illisible' }));
+    expect(surPresence).toHaveBeenCalledTimes(1);
+    expect(surPresence).toHaveBeenCalledWith(presences);
+    flux.echouer(false);
+    flux.ouvrir();
+    expect(surOuverture).toHaveBeenCalledTimes(2);
+  });
+
   it('recrée le flux fermé après une erreur HTTP, avec un délai croissant, puis resynchronise', () => {
     const surReconnexion = vi.fn();
     ouvrirFlux('/api/meps/m1/flux', vi.fn(), surReconnexion);

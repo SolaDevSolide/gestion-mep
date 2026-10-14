@@ -446,7 +446,7 @@ describe('EtapePanneau : fin de résolution', () => {
     expect(screen.getByText('Résolution en échec : retour arrière déclenché.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ouvrir l’onglet Retour arrière' })).toHaveAttribute(
       'href',
-      '/?onglet=retour',
+      '/?onglet=plan&plan=retour',
     );
     expect(screen.queryByText('Problème connu ?')).toBeNull();
   });

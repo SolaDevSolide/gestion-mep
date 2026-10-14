@@ -29,11 +29,14 @@ Toute modification du contenu en préparation efface les approbations : le plan 
 **Le retour arrière s'est déclenché tout seul.**
 Soit l'échéance de retour arrière était atteinte, soit une correction ou la vérification finale d'une résolution a échoué. Le bandeau rouge et le journal donnent le motif. Pour éviter le premier cas, le pilote peut repousser ou retirer l'échéance pendant l'exécution (sans échéance, pas de déclenchement automatique).
 
-**La MEP n'a pas d'onglet Retour arrière.**
-La case « Plan de retour arrière » de la section « Intervention » a été décochée : la MEP n'a pas de retour arrière (le journal indique qui l'a désactivé et quand). La recocher, en préparation, fait revenir l'onglet et les étapes déjà saisies.
+**La MEP n'a pas de sous-onglet Plan › Retour arrière.**
+La case « Plan de retour arrière » de la section « Intervention » a été décochée : la MEP n'a pas de retour arrière (le journal indique qui l'a désactivé et quand). La recocher, en préparation, fait revenir le sous-onglet et les étapes déjà saisies.
 
-**L'écran n'est plus à jour ou affiche « Des modifications ont été reçues ».**
-Quelqu'un d'autre a modifié la MEP pendant votre saisie. Recharger la récupère, mais perd la saisie en cours : la copier d'abord si besoin.
+**« Modifié pendant votre saisie » s'affiche au-dessus d'un formulaire.**
+Quelqu'un d'autre a enregistré cette section pendant que vous la modifiiez. « Abandonner ma saisie » affiche sa version ; « Garder ma saisie » permet d'enregistrer la vôtre, qui remplacera la sienne. L'encadré « Prénom modifie » signale à l'avance qui travaille sur quoi.
+
+**« Quitter sans enregistrer ? » s'ouvre quand je change d'onglet.**
+Un formulaire de la vue a des modifications non enregistrées, listées dans la fenêtre. « Rester » permet de les enregistrer d'abord ; « Quitter sans enregistrer » les abandonne.
 
 **Un bandeau propose une nouvelle version de l'application.**
 L'application a été mise à jour sur le serveur : cliquer « Recharger ».

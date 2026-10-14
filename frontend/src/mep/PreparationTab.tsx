@@ -1,6 +1,8 @@
 import { Check, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { useMep } from '../mepContext';
+import { libelleEditeurs, useEditeurs, ZonePresence } from '../presence';
+import { Avatar } from '../ui/Avatar';
 import { Alerte } from '../ui/Alerte';
 import { cn } from '../ui/cn';
 import { completude, type IdSection } from './completude';
@@ -20,6 +22,25 @@ const SECTIONS: { id: IdSection; numero: number; titre: string }[] = [
   { id: 'validation', numero: 7, titre: 'Validation' },
   { id: 'pieces', numero: 8, titre: 'Pièces jointes' },
 ];
+
+/** Dans le sommaire : avatars des autres personnes qui travaillent sur la section. */
+function EditeursSection({ id }: { id: IdSection }) {
+  const editeurs = useEditeurs(`preparation:${id}`);
+  if (editeurs.length === 0) return null;
+  return (
+    <span className="flex shrink-0 -space-x-1" role="img" aria-label={libelleEditeurs(editeurs)}>
+      {editeurs.slice(0, 3).map((p) => (
+        <Avatar
+          key={p.utilisateurId}
+          nom={p.nom}
+          taille="xs"
+          className="ring-2 ring-surface"
+          titre={`${p.nom} modifie`}
+        />
+      ))}
+    </span>
+  );
+}
 
 export default function PreparationTab() {
   const { mep } = useMep();
@@ -59,6 +80,7 @@ export default function PreparationTab() {
                     {s.numero}
                   </span>
                   <span className="min-w-0 flex-1 whitespace-nowrap leading-tight lg:whitespace-normal">{s.titre}</span>
+                  <EditeursSection id={s.id} />
                   {ok[s.id] ? (
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ok-solid text-white">
                       <Check className="size-3" strokeWidth={3} aria-hidden />
@@ -94,31 +116,32 @@ export default function PreparationTab() {
                 : ' Le pilote peut encore modifier la sauvegarde.')}
           </Alerte>
         )}
-        {/* Toutes les sections restent montées : un brouillon non enregistré survit au changement de section. */}
-        <div hidden={section !== 'intervention'}>
+        {/* Toutes les sections restent montées : un brouillon non enregistré survit au changement de section.
+            Chacune signale aux autres qui y travaille (focus ou saisie en cours). */}
+        <ZonePresence cle="preparation:intervention" className={section !== 'intervention' ? 'hidden' : undefined}>
           <IdentiteSection />
-        </div>
-        <div hidden={section !== 'personnes'}>
+        </ZonePresence>
+        <ZonePresence cle="preparation:personnes" className={section !== 'personnes' ? 'hidden' : undefined}>
           <PersonnesSection />
-        </div>
-        <div hidden={section !== 'systemes'}>
+        </ZonePresence>
+        <ZonePresence cle="preparation:systemes" className={section !== 'systemes' ? 'hidden' : undefined}>
           <SystemesSection />
-        </div>
-        <div hidden={section !== 'techniques'}>
+        </ZonePresence>
+        <ZonePresence cle="preparation:techniques" className={section !== 'techniques' ? 'hidden' : undefined}>
           <ResponsablesTechniquesSection />
-        </div>
-        <div hidden={section !== 'livrables'}>
+        </ZonePresence>
+        <ZonePresence cle="preparation:livrables" className={section !== 'livrables' ? 'hidden' : undefined}>
           <LivrablesSection />
-        </div>
-        <div hidden={section !== 'sauvegarde'}>
+        </ZonePresence>
+        <ZonePresence cle="preparation:sauvegarde" className={section !== 'sauvegarde' ? 'hidden' : undefined}>
           <SauvegardeSection />
-        </div>
-        <div hidden={section !== 'validation'}>
+        </ZonePresence>
+        <ZonePresence cle="preparation:validation" className={section !== 'validation' ? 'hidden' : undefined}>
           <ValidationSection />
-        </div>
-        <div hidden={section !== 'pieces'}>
+        </ZonePresence>
+        <ZonePresence cle="preparation:pieces" className={section !== 'pieces' ? 'hidden' : undefined}>
           <PiecesSection />
-        </div>
+        </ZonePresence>
       </div>
     </div>
   );

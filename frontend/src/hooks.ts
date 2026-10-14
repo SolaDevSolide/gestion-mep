@@ -28,19 +28,23 @@ export function useDraft<T>(source: T) {
   };
 }
 
-/** Registre des formulaires en cours de saisie (pour ne pas écraser une saisie lors d'un rechargement). */
+/**
+ * Registre des formulaires en cours de saisie : sert à prévenir avant de quitter une vue avec des modifications non
+ * enregistrées (`GardeModifications`), en nommant ce qui serait perdu (`libelle`).
+ */
 export interface DirtyRegistry {
-  set: (id: string, dirty: boolean) => void;
+  set: (id: string, dirty: boolean, libelle?: string) => void;
 }
 export const DirtyContext = createContext<DirtyRegistry>({ set: () => undefined });
 
-export function useReportDirty(dirty: boolean) {
+/** Signale une saisie non enregistrée ; `libelle` la nomme dans la fenêtre « Quitter sans enregistrer ? ». */
+export function useReportDirty(dirty: boolean, libelle?: string) {
   const registry = useContext(DirtyContext);
   const id = useId();
   useEffect(() => {
-    registry.set(id, dirty);
+    registry.set(id, dirty, libelle);
     return () => registry.set(id, false);
-  }, [registry, id, dirty]);
+  }, [registry, id, dirty, libelle]);
 }
 
 export function useLocalStorageState<T>(key: string, initial: T): [T, (v: T) => void] {

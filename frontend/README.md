@@ -16,16 +16,16 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 
 ## Organisation
 
-| Dossier               | Contenu                                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------- |
-| `src/pages`           | Pages : connexion, liste des MEP, une MEP, profil                                                 |
-| `src/mep`             | Onglets et dialogues d'une MEP (préparation, étapes, exécution, recette, retour arrière, journal) |
-| `src/mep/graphe`      | Éditeur et vue d'exécution du graphe des étapes                                                   |
-| `src/mep/preparation` | Sections de l'onglet Préparation                                                                  |
-| `src/parametres`      | Paramètres globaux : catalogue des systèmes, résolutions types, critères go / no-go               |
-| `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version »                        |
-| `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                |
-| `src/test`            | Configuration Vitest et fabrique de données de test                                               |
+| Dossier               | Contenu                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `src/pages`           | Pages : connexion, liste des MEP, une MEP, profil                                                                        |
+| `src/mep`             | Onglets et dialogues d'une MEP (préparation, plan : étapes, retour arrière, recette ; exécution, journal ; `onglets.ts`) |
+| `src/mep/graphe`      | Éditeur et vue d'exécution du graphe des étapes                                                                          |
+| `src/mep/preparation` | Sections de l'onglet Préparation                                                                                         |
+| `src/parametres`      | Paramètres globaux : catalogue des systèmes, résolutions types, critères go / no-go                                      |
+| `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version »                                               |
+| `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                                       |
+| `src/test`            | Configuration Vitest et fabrique de données de test                                                                      |
 
 Logique pure, testée sans DOM :
 
@@ -55,17 +55,18 @@ const { mep, run } = useMep();
 await run(() => api.demarrerEtape(mep.id, etape.id, etape.revision), 'Étape démarrée.');
 ```
 
-`run` applique la MEP renvoyée et affiche le message de succès. Sur un **409** (quelqu'un d'autre a modifié la MEP), il recharge et prévient. Sur une autre erreur, il affiche le message de l'API, ou le passe au rappel `surErreur` s'il est fourni. Il renvoie `true` si l'action a réussi.
+`run` applique la MEP renvoyée et affiche le message de succès. Sur un **409** (quelqu'un d'autre a modifié la MEP), il relit la MEP et prévient, sans toucher aux saisies en cours. Sur une autre erreur, il affiche le message de l'API, ou le passe au rappel `surErreur` s'il est fourni. Il renvoie `true` si l'action a réussi.
 
 ### Brouillons et saisie en cours
 
 - `useDraft(source)` (`hooks.ts`) garde la saisie d'un formulaire : tant que l'utilisateur n'a rien modifié, le formulaire suit la source ; dès qu'il tape, sa saisie prime.
 - Le brouillon mémorise aussi la source au début de la saisie. Si elle change ensuite (modification d'un collègue reçue entre-temps), `conflit` passe à vrai : `ui/AvisConflit.tsx` affiche « Modifié pendant votre saisie » et bloque l'enregistrement jusqu'à ce que l'utilisateur abandonne sa saisie ou la garde (`garderSaisie`). La source ne doit contenir que les champs du formulaire, pas la version de la MEP.
-- `useReportDirty(dirty)` signale à `MepPage` qu'une saisie est en cours (`DirtyContext`). Un rechargement venu d'ailleurs ne remplace alors pas l'écran : un bandeau propose de recharger.
+- `useReportDirty(dirty, libelle)` signale une saisie non enregistrée (`DirtyContext`) à `layout/GardeModifications.tsx`, qui entoure les pages connectées. Quitter la vue (autre page, onglet ou sous-onglet, voir `changeDeVue`) ouvre alors « Quitter sans enregistrer ? » avec la liste des libellés ; fermer ou recharger le navigateur déclenche son avertissement (`beforeunload`). La garde utilise `useBlocker` : l'application tourne dans un routeur de données (`createBrowserRouter`, `main.tsx`) et ses tests dans `createMemoryRouter`.
+- Une MEP relue (modification d'un collègue) s'affiche aussitôt : les formulaires gardent leur brouillon et `AvisConflit` signale un changement de leur section.
 
 ### Temps réel
 
-`MepPage` ouvre un flux SSE (`/api/meps/{id}/flux`). Chaque événement `maj` porte la nouvelle version de la MEP ; si elle est plus récente que celle affichée, la MEP est rechargée. Après une erreur (par exemple un 502 pendant un déploiement), le flux est recréé avec un délai croissant de 1 à 30 secondes. Un rafraîchissement toutes les 30 secondes complète le flux, car certaines disponibilités dépendent de l'heure (échéance de retour arrière).
+`MepPage` ouvre un flux SSE (`/api/meps/{id}/flux?session=…`, une session par onglet). Chaque événement `maj` porte la nouvelle version de la MEP ; si elle est plus récente que celle affichée, la MEP est rechargée. Chaque événement `presence` donne les personnes qui ont la MEP ouverte et leurs éléments en cours (`presence.tsx`) : « Sur cette MEP : » dans l'en-tête, encadré « Prénom modifie » sur l'élément (`MarquePresence`). Un composant déclare son élément par `usePresenceElement(cle, actif)` ou en s'enveloppant dans `ZonePresence` (focus ou saisie en cours) ; `MepPage` regroupe ces déclarations, les envoie (`PUT /api/meps/{id}/presence`) et les redéclare à chaque ouverture du flux. Après une erreur (par exemple un 502 pendant un déploiement), le flux est recréé avec un délai croissant de 1 à 30 secondes. Un rafraîchissement toutes les 30 secondes complète le flux, car certaines disponibilités dépendent de l'heure (échéance de retour arrière).
 
 ### Nouvelle version
 

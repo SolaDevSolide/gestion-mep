@@ -12,6 +12,17 @@ Dans « Mises en production » :
 - **Nouvelle MEP depuis un modèle** : choisir un modèle et l'environnement, puis « Créer la MEP ». Voir [Partir d'une MEP existante](#partir-dune-mep-existante).
 - **Nouveau modèle** (vue « Modèles ») : comme une nouvelle MEP, mais le résultat est un modèle. Voir [Modèles](#modèles).
 
+## Les onglets d'une MEP
+
+Une MEP s'organise en quatre onglets :
+
+- **Préparation** : la configuration de la MEP, en huit sections (ci-dessous) ;
+- **Plan** : ce qui sera déroulé, en trois sous-onglets affichés sous la barre d'onglets, chacun avec son nombre d'éléments : **Étapes** (le graphe du déploiement), **Retour arrière** (sa fiche et ses étapes) et **Recette** (les fiches de recette) ;
+- **Exécution** : le déroulé du jour J (absent pour un modèle) ;
+- **Journal** : tout ce qui a été fait, par qui et quand.
+
+La MEP s'ouvre sur l'onglet qui correspond à sa phase : Préparation, puis Exécution, puis Plan › Recette pendant la recette et Plan › Retour arrière pendant un retour arrière. Les anciens liens vers les onglets Étapes, Retour arrière ou Recette mènent au bon sous-onglet de Plan.
+
 ## L'onglet Préparation
 
 Il est découpé en huit sections. Chacune affiche son état (complète ou à compléter), et un compteur indique combien sont complètes.
@@ -27,7 +38,7 @@ Il est découpé en huit sections. Chacune affiche son état (complète ou à co
 
 ![Onglet Préparation et ses huit sections](images/preparation.png)
 
-## Le plan d'étapes (onglet Étapes)
+## Le plan d'étapes (Plan › Étapes)
 
 Le plan de déploiement se dessine comme un graphe, de haut en bas :
 
@@ -64,7 +75,7 @@ Les étapes des MEP créées avant ce choix sont des tests unitaires, sans résu
 
 Le responsable d'une étape n'est pas choisi à l'avance : c'est celui qui la démarre le jour J.
 
-## Le plan de retour arrière (onglet Retour arrière)
+## Le plan de retour arrière (Plan › Retour arrière)
 
 Exigé pour le Go tant que la case « Plan de retour arrière » est cochée (c'est le défaut). Il comprend :
 
@@ -77,7 +88,7 @@ Certains environnements (une préproduction qu'on réinstalle à volonté, par e
 
 - **Échéance facultative** : sous la case, l'échéance de retour arrière peut rester vide. Sans échéance, pas de compte à rebours ni de déclenchement automatique ; le pilote peut toujours déclencher le retour arrière à la main. Renseignée, elle doit être future pour donner le Go.
 - **Décocher la case** ouvre une fenêtre de confirmation qui en rappelle les conséquences ; la désactivation n'est prise en compte qu'après confirmation, puis « Enregistrer » :
-  - l'onglet Retour arrière est masqué ; les étapes et la fiche déjà saisies sont gardées et reviennent si on recoche la case ;
+  - le sous-onglet Plan › Retour arrière est masqué ; les étapes et la fiche déjà saisies sont gardées et reviennent si on recoche la case ;
   - « Vérifier le plan » ne réclame plus ni plan, ni échéance de retour arrière pour le Go ;
   - aucun retour arrière ne peut être déclenché : ni automatiquement (échéance, résolution en échec), ni à la main. Une résolution en échec laisse l'étape en échec, et le pilote décide de la suite (reprise).
 - **Recocher la case** se fait sans confirmation.
@@ -86,9 +97,20 @@ L'activation et la désactivation sont inscrites au journal de la MEP, avec leur
 
 Le point de non-retour reste porté par les étapes de déploiement (voir [Cycle de vie](Cycle-de-vie.md#point-de-non-retour)).
 
-## Les fiches de recette (onglet Recette)
+## Les fiches de recette (Plan › Recette)
 
 La recette vérifie, après le déploiement, que tout fonctionne. Elle est organisée par système : pour chaque système, ajouter une ou plusieurs fiches (« Ajouter une recette »), chacune faite d'étapes de test avec des instructions et un résultat attendu. Le jour J, les responsables techniques du système servent de contact.
+
+## Préparer à plusieurs
+
+Plusieurs personnes peuvent préparer la même MEP en même temps :
+
+- en haut de la MEP, **« Sur cette MEP : »** montre les avatars des autres personnes qui l'ont ouverte, chacune avec sa couleur ;
+- l'élément qu'une autre personne est en train de modifier (une étape ouverte en édition, une section de la préparation, la fiche du retour arrière, une fiche de recette) est **encadré de sa couleur**, avec l'étiquette « Prénom modifie ». Dans le sommaire de la préparation, son avatar apparaît à côté de la section. C'est une information : rien n'est verrouillé ;
+- les modifications enregistrées par les autres s'affichent aussitôt, sans recharger. Votre saisie en cours est conservée : si la section que vous modifiez a changé entre-temps, un avertissement vous laisse reprendre la version à jour ou garder votre saisie ;
+- une personne qui ferme la MEP (ou son navigateur) disparaît d'elle-même de la liste.
+
+Les formulaires s'enregistrent avec leur bouton « Enregistrer ». Quitter une vue avec des modifications non enregistrées (autre onglet ou sous-onglet, autre MEP, autre page du menu) ouvre la fenêtre **« Quitter sans enregistrer ? »**, qui liste ce qui serait perdu : « Rester » revient à la saisie, « Quitter sans enregistrer » l'abandonne. Fermer ou recharger l'onglet du navigateur affiche l'avertissement habituel du navigateur.
 
 ## Les résolutions types
 

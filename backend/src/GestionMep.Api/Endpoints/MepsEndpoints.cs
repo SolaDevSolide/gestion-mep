@@ -247,13 +247,16 @@ public static class MepsEndpoints
         api.MapGet("/meps/{id:guid}/tests-unitaires", async (Guid id, ServiceMep svc) => MepMapping.TestsUnitaires(await svc.Charger(id)));
 
         // Flux limités (par compte et pour le serveur) et renouvelés toutes les heures : le navigateur se reconnecte seul.
-        api.MapGet("/meps/{id:guid}/flux", async (Guid id, HttpContext ctx, ClaimsPrincipal user, MepDbContext db, DiffuseurMep diffuseur) =>
+        // ?session= : identifiant de l'onglet (choisi par le navigateur), pour déclarer ensuite ses éléments (PUT …/presence).
+        api.MapGet("/meps/{id:guid}/flux", async (Guid id, string? session, HttpContext ctx, ClaimsPrincipal user, MepDbContext db, DiffuseurMep diffuseur) =>
         {
             var version = await db.Meps.AsNoTracking().Where(m => m.Id == id).Select(m => (int?)m.Version).FirstOrDefaultAsync(ctx.RequestAborted);
             if (version is null) throw ErreurHttp.NonTrouve("MEP introuvable.");
+            if (session is { Length: > 64 }) throw ErreurHttp.Saisie("Identifiant de session trop long.");
 
             // Abonnement avant le premier envoi : aucune modification ne peut se perdre entre les deux.
-            using var abonnement = diffuseur.Abonner(id, Acteur.Depuis(user).Id)
+            var acteur = Acteur.Depuis(user);
+            using var abonnement = diffuseur.Abonner(id, acteur.Id, acteur.Nom, string.IsNullOrWhiteSpace(session) ? null : session)
                 ?? throw new ErreurHttp(429, "Trop de flux temps réel ouverts : fermez des onglets, puis réessayez.");
             using var duree = CancellationTokenSource.CreateLinkedTokenSource(ctx.RequestAborted);
             duree.CancelAfter(DureeFlux);
@@ -271,9 +274,12 @@ public static class MepsEndpoints
                     delai.CancelAfter(TimeSpan.FromSeconds(20));
                     try
                     {
-                        if (!await abonnement.Lecteur.WaitToReadAsync(delai.Token)) break;
-                        if (abonnement.Lecteur.TryRead(out var v))
+                        if (!await abonnement.AttendreAsync(delai.Token)) break;
+                        var envoi = abonnement.Prendre();
+                        if (envoi.Version is { } v)
                             await ctx.Response.WriteAsync($"event: maj\ndata: {JsonSerializer.Serialize(new { version = v })}\n\n", ct);
+                        if (envoi.Presence)
+                            await ctx.Response.WriteAsync($"event: presence\ndata: {JsonSerializer.Serialize(diffuseur.Presences(id), JsonSerializerOptions.Web)}\n\n", ct);
                     }
                     catch (OperationCanceledException) when (!ct.IsCancellationRequested)
                     {
@@ -283,6 +289,23 @@ public static class MepsEndpoints
                 }
             }
             catch (OperationCanceledException) { /* déconnexion du client, ou flux renouvelé (durée atteinte) */ }
+        });
+
+        // Présence : qui a la MEP ouverte, et sur quels éléments chacun travaille (informatif, rien n'est verrouillé).
+        api.MapGet("/meps/{id:guid}/presence", async (Guid id, MepDbContext db, DiffuseurMep diffuseur) =>
+        {
+            if (!await db.Meps.AnyAsync(m => m.Id == id)) throw ErreurHttp.NonTrouve("MEP introuvable.");
+            return diffuseur.Presences(id);
+        });
+
+        // Déclare les éléments de l'onglet dont le flux est ouvert ; 404 si ce flux n'existe pas (encore, ou plus).
+        api.MapPut("/meps/{id:guid}/presence", (Guid id, PresenceSaisie corps, ClaimsPrincipal user, DiffuseurMep diffuseur) =>
+        {
+            var session = ServiceMep.Texte(corps.Session);
+            if (session.Length == 0) throw ErreurHttp.Saisie("La session est obligatoire.");
+            if (!diffuseur.DefinirElements(id, Acteur.Depuis(user).Id, session, corps.Elements))
+                throw ErreurHttp.NonTrouve("Aucun flux temps réel ouvert pour cet onglet : rouvrez la MEP.");
+            return Results.NoContent();
         });
     }
 }

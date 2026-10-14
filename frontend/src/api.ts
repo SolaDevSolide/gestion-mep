@@ -14,6 +14,7 @@ import type {
   SauvegardeSystemeSaisie,
   Evenement,
   TestsUnitaires,
+  Presence,
   EtapeSaisie,
   LivrableSaisie,
   Mep,
@@ -188,6 +189,10 @@ export const api = {
   journal: (id: string) => get<Evenement[]>(`/meps/${id}/journal`),
   /** Tests unitaires faits, non faits et leurs résultats constatés. */
   testsUnitaires: (id: string) => get<TestsUnitaires>(`/meps/${id}/tests-unitaires`),
+  presences: (id: string) => get<Presence[]>(`/meps/${id}/presence`),
+  /** Éléments sur lesquels travaille cet onglet (`session` : celle passée au flux). 404 si le flux n'est pas ouvert. */
+  declarerPresence: (id: string, session: string, elements: string[]) =>
+    put<void>(`/meps/${id}/presence`, { session, elements }),
 
   ajouterParticipant: (id: string, s: ParticipantSaisie) => post<Mep>(`/meps/${id}/participants`, s),
   modifierParticipant: (id: string, pid: string, s: ParticipantSaisie) =>

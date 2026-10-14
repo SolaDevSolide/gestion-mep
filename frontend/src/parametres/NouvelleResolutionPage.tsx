@@ -52,7 +52,7 @@ export default function NouvelleResolutionPage() {
 
   const retour =
     etape && mepId
-      ? `/meps/${encodeURIComponent(mepId)}?onglet=${etape.plan === 'RetourArriere' ? 'retour' : 'etapes'}&etape=${encodeURIComponent(etape.id)}`
+      ? `/meps/${encodeURIComponent(mepId)}?onglet=plan&plan=${etape.plan === 'RetourArriere' ? 'retour' : 'etapes'}&etape=${encodeURIComponent(etape.id)}`
       : '/parametres/resolutions';
   const libelleRetour = etape
     ? `Retour à ${etape.code}${etape.action ? ` · ${etape.action}` : ''}`

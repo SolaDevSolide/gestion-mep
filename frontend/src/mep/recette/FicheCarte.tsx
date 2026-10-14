@@ -2,6 +2,7 @@ import { Check, ChevronDown, ChevronRight, FlaskConical, RotateCcw, XCircle } fr
 import { useState } from 'react';
 import { api } from '../../api';
 import { useMep } from '../../mepContext';
+import { ZonePresence } from '../../presence';
 import type { FicheRecette } from '../../types';
 import { Button } from '../../ui/Button';
 import { StatusPill } from '../../ui/StatusPill';
@@ -25,59 +26,61 @@ export function FicheCarte({ fiche, peutAgir }: { fiche: FicheRecette; peutAgir:
 
   return (
     <li className="rounded-xl border border-line bg-surface shadow-sm">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-        <button
-          type="button"
-          aria-expanded={ouvert}
-          aria-controls={corps}
-          onClick={() => setOuvert(!ouvert)}
-          className="flex min-w-0 flex-1 basis-56 items-center gap-2 rounded-md text-left"
-        >
-          {ouvert ? (
-            <ChevronDown className="size-4 shrink-0 text-fg-subtle" aria-hidden />
-          ) : (
-            <ChevronRight className="size-4 shrink-0 text-fg-subtle" aria-hidden />
-          )}
-          <span className="min-w-0">
-            <span className="block truncate text-[15px] font-semibold">
-              {fiche.titre || <em className="font-normal text-fg-subtle not-italic">Fiche sans titre</em>}
-            </span>
-            <span className="block text-xs text-fg-subtle">
-              {fiche.etapes.length} étape{fiche.etapes.length > 1 ? 's' : ''} de test
-            </span>
-          </span>
-        </button>
-        {(enRecette || mep.phase === 'Cloturee') &&
-          fiche.etapes.length > 0 &&
-          (echecs > 0 ? (
-            <StatusPill ton="danger" icone={XCircle} taille="sm">
-              {echecs} en échec
-            </StatusPill>
-          ) : terminee ? (
-            <StatusPill ton="ok" icone={Check} taille="sm">
-              Conforme
-            </StatusPill>
-          ) : (
-            <StatusPill ton="wait" icone={FlaskConical} taille="sm">
-              {conformes}/{fiche.etapes.length}
-            </StatusPill>
-          ))}
-        {enRecette && mep.droits.estPilote && dejaFait && (
-          <Button
-            taille="sm"
-            icone={<RotateCcw className="size-4" aria-hidden />}
-            aria-label={`Refaire toute la fiche ${fiche.titre}`}
-            onClick={() => void run(() => api.refaireFicheRecette(mep.id, fiche.id), 'Fiche à refaire.')}
+      <ZonePresence cle={`recette:${fiche.id}`}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+          <button
+            type="button"
+            aria-expanded={ouvert}
+            aria-controls={corps}
+            onClick={() => setOuvert(!ouvert)}
+            className="flex min-w-0 flex-1 basis-56 items-center gap-2 rounded-md text-left"
           >
-            Refaire la fiche
-          </Button>
-        )}
-      </div>
-      {ouvert && (
-        <div id={corps} className="border-t border-line px-4 py-4">
-          {edition ? <FicheEdition fiche={fiche} /> : <FicheLecture fiche={fiche} peutAgir={peutAgir} />}
+            {ouvert ? (
+              <ChevronDown className="size-4 shrink-0 text-fg-subtle" aria-hidden />
+            ) : (
+              <ChevronRight className="size-4 shrink-0 text-fg-subtle" aria-hidden />
+            )}
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-semibold">
+                {fiche.titre || <em className="font-normal text-fg-subtle not-italic">Fiche sans titre</em>}
+              </span>
+              <span className="block text-xs text-fg-subtle">
+                {fiche.etapes.length} étape{fiche.etapes.length > 1 ? 's' : ''} de test
+              </span>
+            </span>
+          </button>
+          {(enRecette || mep.phase === 'Cloturee') &&
+            fiche.etapes.length > 0 &&
+            (echecs > 0 ? (
+              <StatusPill ton="danger" icone={XCircle} taille="sm">
+                {echecs} en échec
+              </StatusPill>
+            ) : terminee ? (
+              <StatusPill ton="ok" icone={Check} taille="sm">
+                Conforme
+              </StatusPill>
+            ) : (
+              <StatusPill ton="wait" icone={FlaskConical} taille="sm">
+                {conformes}/{fiche.etapes.length}
+              </StatusPill>
+            ))}
+          {enRecette && mep.droits.estPilote && dejaFait && (
+            <Button
+              taille="sm"
+              icone={<RotateCcw className="size-4" aria-hidden />}
+              aria-label={`Refaire toute la fiche ${fiche.titre}`}
+              onClick={() => void run(() => api.refaireFicheRecette(mep.id, fiche.id), 'Fiche à refaire.')}
+            >
+              Refaire la fiche
+            </Button>
+          )}
         </div>
-      )}
+        {ouvert && (
+          <div id={corps} className="border-t border-line px-4 py-4">
+            {edition ? <FicheEdition fiche={fiche} /> : <FicheLecture fiche={fiche} peutAgir={peutAgir} />}
+          </div>
+        )}
+      </ZonePresence>
     </li>
   );
 }

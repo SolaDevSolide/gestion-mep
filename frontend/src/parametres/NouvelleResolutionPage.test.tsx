@@ -103,7 +103,7 @@ describe('NouvelleResolutionPage', () => {
       'e6',
       expect.objectContaining({ revision: 4, resolutionIds: ['r-existante', 'r-neuve'] }),
     );
-    expect(await screen.findByText('Destination : /meps/m1?onglet=etapes&etape=e6')).toBeInTheDocument();
+    expect(await screen.findByText('Destination : /meps/m1?onglet=plan&plan=etapes&etape=e6')).toBeInTheDocument();
   });
 
   it('titre obligatoire', async () => {

@@ -22,8 +22,9 @@ import {
 import { DuplicationDialog } from './DuplicationDialog';
 import { CompteARebours } from './CompteARebours';
 import { PlanCheck } from './PlanCheck';
+import { PresentsMep } from '../presence';
 
-/** En-tête collant : identité, phase, compte à rebours, progression, actions du pilote, onglets. */
+/** En-tête collant : identité, phase, personnes présentes, compte à rebours, progression, actions du pilote, onglets. */
 export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
   const meta = metaPhase(mep.phase, mep.issue);
   const pilote = nomParticipant(mep, mep.piloteId);
@@ -112,6 +113,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <PresentsMep />
             {(mep.phase === 'Execution' || mep.phase === 'Recette') &&
               mep.retourArriereActive &&
               mep.echeanceRepli !== null &&

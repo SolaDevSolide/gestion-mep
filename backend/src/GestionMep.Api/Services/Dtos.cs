@@ -102,6 +102,12 @@ public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle,
 /// <summary><c>AuteurLogin</c> : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte supprimé.</summary>
 public record EvenementDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail, string? AuteurLogin);
 
+/// <summary>
+/// Personne qui a la MEP ouverte (flux temps réel connecté) et éléments sur lesquels elle travaille, tous onglets confondus :
+/// <c>etape:{id}</c>, <c>preparation:{section}</c>, <c>recette:{idFiche}</c>, <c>retour:fiche</c>…
+/// </summary>
+public record PresenceDto(Guid UtilisateurId, string Nom, List<string> Elements);
+
 // ---------- Entrées ----------
 public record ConnexionSaisie(string? Login, string? MotDePasse);
 public record ChangementMotDePasseSaisie(string? Ancien, string? Nouveau);
@@ -271,3 +277,8 @@ public record ConnexionDemoSaisie(string? Login);
 
 /// <summary>Résultat de la réinitialisation de la démonstration : MEP recréées et fichiers de pièces jointes supprimés.</summary>
 public record ReinitialisationDemoDto(int Meps, int FichiersSupprimes);
+
+/// <summary>
+/// Éléments sur lesquels travaille un onglet (<c>Session</c> : identifiant passé au flux par <c>?session=</c>). Liste vide : plus aucun.
+/// </summary>
+public record PresenceSaisie(string? Session, List<string>? Elements);
