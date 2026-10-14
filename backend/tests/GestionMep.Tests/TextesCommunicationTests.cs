@@ -13,9 +13,15 @@ public class TextesCommunicationTests
         mep.Participants.AddRange([pilote, dev]);
         mep.PiloteId = pilote.Id;
         mep.ResponsablesTechniques.Add(new ResponsableTechnique { ParticipantId = dev.Id, Perimetre = "API" });
-        mep.Systemes.Add(new Systeme { MepId = mep.Id, Nom = "BDD", Impact = "Nouveau schéma" });
-        mep.Systemes.Add(new Systeme { MepId = mep.Id, Nom = "WEB" });
-        mep.Livrables.Add(new Livrable { MepId = mep.Id, Objet = "portail-web", Version = "2.0" });
+        var bdd = new Systeme
+        {
+            MepId = mep.Id, Nom = "BDD", Impact = "Nouveau schéma",
+            Environnements = [new EnvironnementSysteme { Nom = "Préproduction" }, new EnvironnementSysteme { Nom = "Production", Production = true }],
+        };
+        var web = new Systeme { MepId = mep.Id, Nom = "WEB", Environnements = [new EnvironnementSysteme { Nom = "Recette" }] };
+        mep.Systemes.AddRange([bdd, web]);
+        mep.ObjetsImpactes.Add(new ObjetImpacte { MepId = mep.Id, SystemeId = web.Id, Categorie = "Packages", Nom = "portail-web", Version = "2.0" });
+        mep.ObjetsImpactes.Add(new ObjetImpacte { MepId = mep.Id, SystemeId = bdd.Id, Categorie = "Tables", Nom = "clients" });
         return mep;
     }
 
@@ -50,7 +56,9 @@ public class TextesCommunicationTests
         Assert.Equal("modéré", v["niveau_risque"].Texte);
         Assert.Equal(["Plus rapide", "Plus simple"], v["benefices"].Liste!);
         Assert.Equal(["BDD : Nouveau schéma", "WEB"], v["systemes"].Liste!);
-        Assert.Equal(["portail-web 2.0"], v["livrables"].Liste!);
+        Assert.Equal(["BDD : clients (Tables)", "WEB : portail-web (Packages) 2.0"], v["objets_impactes"].Liste!);
+        Assert.Equal(["BDD : Préproduction, Production", "WEB : Recette"], v["environnements"].Liste!);
+        Assert.Equal("oui (BDD)", v["touche_production"].Texte);
         Assert.Equal(["Bob : API"], v["responsables_techniques"].Liste!);
         Assert.Equal("Alice", v["pilote"].Texte);
         Assert.Equal("poste 12", v["pilote_contact"].Texte);
@@ -61,6 +69,21 @@ public class TextesCommunicationTests
         Assert.True(v["issue"].EstManquante);
         Assert.True(v["equipe"].EstManquante);
         Assert.True(v["signature"].EstManquante);
+    }
+
+    [Fact]
+    public void Sans_environnement_production_ni_objet_les_variables_le_disent()
+    {
+        var mep = MepExemple();
+        mep.Systemes[0].Environnements = [new EnvironnementSysteme { Nom = "Recette" }];
+        mep.ObjetsImpactes.Clear();
+        var v = Valeurs(mep);
+        Assert.Equal("non", v["touche_production"].Texte);
+        Assert.True(v["objets_impactes"].EstManquante);
+        foreach (var s in mep.Systemes) s.Environnements = [];
+        v = Valeurs(mep);
+        Assert.True(v["environnements"].EstManquante);
+        Assert.True(v["touche_production"].EstManquante);
     }
 
     [Fact]
@@ -158,7 +181,7 @@ public class TextesCommunicationTests
             ArretApplicatif = true, ActionUtilisateurs = "quitter", HeureLimite = new TimeOnly(19, 0), DateAnnoncee = new DateOnly(2026, 10, 20),
             ValideeParUtilisateurs = true, ValideePar = "Claire",
         };
-        var copie = Regles.Dupliquer(source, null, false, Guid.NewGuid(), DateTimeOffset.UtcNow).Communication;
+        var copie = Regles.Dupliquer(source, false, Guid.NewGuid(), DateTimeOffset.UtcNow).Communication;
         Assert.Equal(NiveauRisque.Eleve, copie.NiveauRisque);
         Assert.Equal("Plus rapide", copie.Benefices);
         Assert.Equal("Agences", copie.UtilisateursImpactes);

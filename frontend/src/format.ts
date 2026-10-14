@@ -236,8 +236,6 @@ export function formatMinutes(min: number | null | undefined): string {
   return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, '0')}`;
 }
 
-export const ENVIRONNEMENTS = ['Recette', 'Préproduction', 'Production'] as const;
-
 /** Taille d'un fichier lisible (octets, Ko, Mo). */
 export function formatTaille(octets: number): string {
   if (octets < 1024) return `${octets} o`;

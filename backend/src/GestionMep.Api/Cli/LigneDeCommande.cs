@@ -25,7 +25,7 @@ public static partial class LigneDeCommande
     private static readonly string[] Commandes =
     [
         "aide", "--help", "-h", "version", "--version", "migrer", "config", "comptes", "sauvegarder", "importer", "sso", "reglages", "reglage",
-        "systemes", "criteres", "resolutions", "journal", "sauvegardes", "mettre-a-jour", "meps", "demo", "equipes",
+        "systemes", "categories", "criteres", "resolutions", "journal", "sauvegardes", "mettre-a-jour", "meps", "demo", "equipes",
     ];
 
     private const string Aide = """
@@ -62,10 +62,19 @@ public static partial class LigneDeCommande
           gestion-mep equipes supprimer <équipe>              Supprime l'équipe (comptes et MEP inchangés)
 
         Catalogue des systèmes, go / no-go et réglages
-          gestion-mep systemes lister
+          gestion-mep systemes lister                         Systèmes, environnements (* production) et nombre d'objets
+          gestion-mep systemes afficher <SYSTÈME>             Fiche : environnements, catégories et objets
           gestion-mep systemes ajouter <nom> [--description "…"] [--cible "…"] [--actif oui|non]
           gestion-mep systemes modifier <nom> [--nom "…"] [--description "…"] [--cible "…"] [--actif oui|non]
           gestion-mep systemes supprimer <nom>                Supprime, ou désactive s'il est utilisé (MEP, résolution type)
+          gestion-mep systemes environnement <SYSTÈME> <nom> [--cible "…"] [--production oui|non] [--retirer]
+                                                              Ajoute, modifie ou retire un environnement de la fiche
+          gestion-mep systemes categorie <SYSTÈME> "<catégorie>" [--renommer "…"] [--retirer]
+                                                              Ajoute, renomme ou retire (avec ses objets) une catégorie
+          gestion-mep systemes objet <SYSTÈME> "<catégorie>" "<nom>" [--type "…"] [--libelle "…"] [--precision "…"] [--retirer]
+                                                              Ajoute, modifie ou retire un objet de la fiche
+          gestion-mep categories lister | ajouter "<nom>" | retirer "<nom>"
+                                                              Catégories d'objets proposées par défaut à chaque système
           gestion-mep criteres lister                         Critères go / no-go, numérotés (n°)
           gestion-mep criteres ajouter "<libellé>" [--ordre n] [--actif oui|non]
           gestion-mep criteres modifier <n°|id> [--libelle "…"] [--ordre n] [--actif oui|non]
@@ -217,6 +226,13 @@ public static partial class LigneDeCommande
                 ["systemes", "ajouter", var nom, .. var options] => await SystemesAjouter(nom, options),
                 ["systemes", "modifier", var nom, .. var options] when options.Length > 0 => await SystemesModifier(nom, options),
                 ["systemes", "supprimer", var nom] => await SystemesSupprimer(nom),
+                ["systemes", "afficher", var nom] => await SystemesAfficher(nom),
+                ["systemes", "environnement", var nom, var env, .. var options] => await SystemesEnvironnement(nom, env, options),
+                ["systemes", "categorie", var nom, var categorie, .. var options] => await SystemesCategorie(nom, categorie, options),
+                ["systemes", "objet", var nom, var categorie, var objet, .. var options] => await SystemesObjet(nom, categorie, objet, options),
+                ["categories", "lister"] => await CategoriesLister(),
+                ["categories", "ajouter", var categorie] => await CategoriesModifier(categorie, ajouter: true),
+                ["categories", "retirer", var categorie] => await CategoriesModifier(categorie, ajouter: false),
                 ["criteres", "lister"] => await CriteresLister(),
                 ["criteres", "ajouter", var libelle, .. var options] => await CriteresAjouter(libelle, options),
                 ["criteres", "modifier", var critere, .. var options] when options.Length > 0 => await CriteresModifier(critere, options),

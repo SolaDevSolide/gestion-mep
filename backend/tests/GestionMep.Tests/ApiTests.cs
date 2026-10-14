@@ -105,7 +105,7 @@ public class ApiTests : IDisposable
         Assert.Equal("Bob", mep.GetProperty("procedureRelue").GetProperty("par").GetString());
 
         var resume = (await Ok(await alice.GetAsync("/api/meps?modele=false"))).EnumerateArray().Single(m => m.GetProperty("id").GetGuid() == id);
-        Assert.Equal("Production", resume.GetProperty("environnement").GetString());
+        Assert.True(resume.GetProperty("toucheProduction").GetBoolean());
         Assert.Equal("Alice", resume.GetProperty("pilote").GetString());
         Assert.Equal(9, resume.GetProperty("nbEtapes").GetInt32());
         Assert.Equal(3, resume.GetProperty("nbReussies").GetInt32());

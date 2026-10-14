@@ -36,9 +36,131 @@ public static partial class LigneDeCommande
             return 0;
         }
         var largeur = Math.Max(3, systemes.Max(s => s.Nom.Length));
-        Console.WriteLine($"{"NOM".PadRight(largeur)}  ACTIF  {"CIBLE",-20}  DESCRIPTION");
+        Console.WriteLine($"{"NOM".PadRight(largeur)}  ACTIF  {"ENVIRONNEMENTS",-40}  {"OBJETS",-6}  {"CIBLE",-20}  DESCRIPTION");
         foreach (var s in systemes)
-            Console.WriteLine($"{s.Nom.PadRight(largeur)}  {(s.Actif ? "oui" : "non"),-5}  {s.Cible,-20}  {s.Description}");
+        {
+            var envs = string.Join(", ", s.Environnements.Select(e => e.Production ? e.Nom + "*" : e.Nom));
+            Console.WriteLine($"{s.Nom.PadRight(largeur)}  {(s.Actif ? "oui" : "non"),-5}  {envs,-40}  {s.NbObjets,-6}  {s.Cible,-20}  {s.Description}");
+        }
+        Console.WriteLine("* environnement de production");
+        return 0;
+    }
+
+    private static async Task<int> SystemesAfficher(string nom)
+    {
+        await using var db = Base(Configuration());
+        var s = await TrouverSysteme(db, nom);
+        var objets = CatalogueEndpoints.Objets(s);
+        if (EnJson)
+        {
+            EcrireJson(new { Systeme = CatalogueEndpoints.Dto(s), Objets = objets });
+            return 0;
+        }
+        Console.WriteLine($"{s.Nom}{(s.Actif ? "" : " (désactivé)")} : {(s.Description.Length > 0 ? s.Description : "sans description")}");
+        Console.WriteLine();
+        Console.WriteLine("Environnements" + (s.Environnements.Count == 0 ? " : aucun" : ""));
+        foreach (var e in s.Environnements)
+            Console.WriteLine($"  {e.Nom,-20}  {(e.Production ? "production" : ""),-10}  {e.Cible}");
+        Console.WriteLine();
+        Console.WriteLine("Objets par catégorie" + (s.Categories.Count == 0 ? " : aucune catégorie" : ""));
+        foreach (var c in s.Categories)
+        {
+            var liste = objets.Where(o => o.Categorie == c).ToList();
+            Console.WriteLine($"  {c} ({liste.Count})");
+            foreach (var o in liste)
+                Console.WriteLine($"    {o.Nom,-30}  {o.Type,-14}  {o.Libelle}{(o.Precision.Length > 0 ? $" ({o.Precision})" : "")}");
+        }
+        return 0;
+    }
+
+    /// <summary>Ajoute ou modifie un environnement de la fiche (par son nom), ou le retire avec --retirer.</summary>
+    private static async Task<int> SystemesEnvironnement(string systeme, string nom, string[] arguments)
+    {
+        var o = Options.Lire(arguments, ["--cible", "--production"], "--retirer");
+        await using var db = Base(Configuration());
+        var s = await TrouverSysteme(db, systeme);
+        var liste = s.Environnements.Select(e => new EnvironnementCatalogueSaisie(e.Nom, e.Cible, e.Production)).ToList();
+        var i = liste.FindIndex(e => string.Equals(e.Nom, nom.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (o.A("--retirer"))
+        {
+            if (i < 0) throw new ErreurHttp(1, $"Environnement « {nom} » introuvable dans la fiche {s.Nom}.");
+            liste.RemoveAt(i);
+        }
+        else if (i < 0) liste.Add(new EnvironnementCatalogueSaisie(nom, o.Valeur("--cible"), o.OuiNon("--production")));
+        else liste[i] = new EnvironnementCatalogueSaisie(nom, o.Valeur("--cible") ?? liste[i].Cible, o.OuiNon("--production") ?? liste[i].Production);
+        var r = await CatalogueEndpoints.DefinirEnvironnements(db, null, s.Id, new EnvironnementsCatalogueSaisie(liste));
+        Console.WriteLine($"Environnements de {r.Nom} : {(r.Environnements.Count == 0 ? "aucun" : string.Join(", ", r.Environnements.Select(e => e.Nom)))}.");
+        return 0;
+    }
+
+    /// <summary>Ajoute une catégorie à la fiche, la renomme (--renommer) ou la retire avec ses objets (--retirer).</summary>
+    private static async Task<int> SystemesCategorie(string systeme, string categorie, string[] arguments)
+    {
+        var o = Options.Lire(arguments, ["--renommer"], "--retirer");
+        await using var db = Base(Configuration());
+        var s = await TrouverSysteme(db, systeme);
+        var liste = s.Categories.Select(c => new CategorieSaisie(c)).ToList();
+        var i = liste.FindIndex(c => string.Equals(c.Nom, categorie.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (o.A("--retirer") || o.Valeur("--renommer") is not null)
+        {
+            if (i < 0) throw new ErreurHttp(1, $"Catégorie « {categorie} » introuvable dans la fiche {s.Nom}.");
+            if (o.A("--retirer")) liste.RemoveAt(i);
+            else liste[i] = new CategorieSaisie(o.Valeur("--renommer"), liste[i].Nom);
+        }
+        else if (i < 0) liste.Add(new CategorieSaisie(categorie));
+        var r = await CatalogueEndpoints.DefinirCategories(db, null, s.Id, new CategoriesSystemeSaisie(liste));
+        Console.WriteLine($"Catégories de {r.Nom} : {(r.Categories.Count == 0 ? "aucune" : string.Join(", ", r.Categories))}.");
+        return 0;
+    }
+
+    /// <summary>Ajoute ou modifie un objet (repéré par sa catégorie et son nom), ou le retire avec --retirer.</summary>
+    private static async Task<int> SystemesObjet(string systeme, string categorie, string nom, string[] arguments)
+    {
+        var o = Options.Lire(arguments, ["--type", "--libelle", "--precision"], "--retirer");
+        await using var db = Base(Configuration());
+        var s = await TrouverSysteme(db, systeme);
+        var existant = s.Objets.FirstOrDefault(x => x.Categorie.Equals(categorie.Trim(), StringComparison.OrdinalIgnoreCase)
+            && x.Nom.Equals(nom.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (o.A("--retirer"))
+        {
+            if (existant is null) throw new ErreurHttp(1, $"Objet « {nom} » introuvable dans la catégorie {categorie} de {s.Nom}.");
+            await CatalogueEndpoints.SupprimerObjet(db, null, s.Id, existant.Id);
+            Console.WriteLine($"Objet « {existant.Nom} » retiré de la fiche {s.Nom}.");
+            return 0;
+        }
+        var r = await CatalogueEndpoints.EnregistrerObjet(db, null, s.Id, existant?.Id, new ObjetCatalogueSaisie(categorie, o.Valeur("--type") ?? existant?.Type,
+            nom, o.Valeur("--libelle") ?? existant?.Libelle, o.Valeur("--precision") ?? existant?.Precision));
+        Console.WriteLine($"Objet « {r.Nom} » {(existant is null ? "ajouté à" : "modifié dans")} la catégorie {r.Categorie} de {s.Nom}.");
+        return 0;
+    }
+
+    // ---------- Catégories d'objets par défaut ----------
+
+    private static async Task<int> CategoriesLister()
+    {
+        await using var db = Base(Configuration());
+        var liste = await CatalogueEndpoints.CategoriesDefaut(db);
+        if (EnJson)
+        {
+            EcrireJson(liste);
+            return 0;
+        }
+        if (liste.Count == 0) Console.WriteLine("Aucune catégorie par défaut : « gestion-mep categories ajouter \"<nom>\" ».");
+        foreach (var c in liste) Console.WriteLine(c);
+        return 0;
+    }
+
+    private static async Task<int> CategoriesModifier(string nom, bool ajouter)
+    {
+        await using var db = Base(Configuration());
+        var liste = await CatalogueEndpoints.CategoriesDefaut(db);
+        var existante = liste.FirstOrDefault(c => c.Equals(nom.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (ajouter && existante is not null) throw new ErreurHttp(1, $"La catégorie « {existante} » est déjà dans la liste par défaut.");
+        if (!ajouter && existante is null) throw new ErreurHttp(1, $"Catégorie « {nom} » introuvable dans la liste par défaut.");
+        var nouvelle = ajouter ? [.. liste, nom] : liste.Where(c => c != existante).ToList();
+        await CatalogueEndpoints.DefinirCategoriesDefaut(db, null, new CategoriesDefautSaisie(nouvelle));
+        Console.WriteLine(ajouter ? $"Catégorie « {nom.Trim()} » ajoutée à la liste par défaut."
+            : $"Catégorie « {existante} » retirée de la liste par défaut (les systèmes qui l'utilisent la gardent).");
         return 0;
     }
 
@@ -288,11 +410,11 @@ public static partial class LigneDeCommande
             Console.WriteLine(o.A("--modeles") ? "Aucun modèle." : "Aucune MEP.");
             return 0;
         }
-        Console.WriteLine($"{"ID",-8}  {"PHASE",-24}  {"CRÉÉE LE",-10}  {"ENV.",-10}  ÉTAPES   OUTIL ET OBJET");
+        Console.WriteLine($"{"ID",-8}  {"PHASE",-24}  {"CRÉÉE LE",-10}  {"PROD.",-5}  ÉTAPES   OUTIL ET OBJET");
         foreach (var m in meps)
         {
             var phaseTexte = Libelle(m.Phase) + (m.Issue is { } issue ? issue == IssueMep.Reussie ? ", réussie" : ", repliée" : "");
-            Console.WriteLine($"{m.Id.ToString()[..8]}  {phaseTexte,-24}  {m.CreeLe:yyyy-MM-dd}  {m.Environnement,-10}  {$"{m.NbReussies}/{m.NbEtapes}",-7}  "
+            Console.WriteLine($"{m.Id.ToString()[..8]}  {phaseTexte,-24}  {m.CreeLe:yyyy-MM-dd}  {(m.ToucheProduction ? "oui" : ""),-5}  {$"{m.NbReussies}/{m.NbEtapes}",-7}  "
                 + $"{m.Outil}{(m.VersionCible.Length > 0 ? $" {m.VersionCible}" : "")}{(m.Objet.Length > 0 ? $" : {m.Objet}" : "")}");
         }
         return 0;

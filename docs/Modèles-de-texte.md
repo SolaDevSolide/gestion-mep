@@ -25,7 +25,7 @@ Chaque équipe reçoit une copie de quatre modèles fournis, à sa création (le
 |---|---|
 | Annonce aux utilisateurs | Date, ce qui change, interruption de service, action attendue |
 | Rappel le jour J | Indisponibilité et action attendue avant l'heure limite |
-| Demande de MEP au responsable | Référence de la demande, systèmes, livrables, niveau de risque, validation par les utilisateurs |
+| Demande de MEP au responsable | Référence de la demande, systèmes, environnements, objets impactés, niveau de risque, validation par les utilisateurs |
 | Compte rendu de fin | Issue, ce qui change, bilan |
 
 Ils portent le badge « Fourni par défaut ». Ils se modifient et se dupliquent mais ne se suppriment pas ; **Rétablir le texte fourni** remet leur nom, leur usage, leur objet et leur texte d'origine. Les modèles créés par l'équipe se suppriment.
@@ -78,12 +78,16 @@ La liste est tenue à jour à chaque fonctionnalité qui ajoute une information 
 | `{{pilote_contact}}` | Contact du pilote | Contact du pilote (fiche Personnes) |
 | `{{responsables_techniques}}` | Responsables techniques | Liste : « Nom : périmètre » |
 
-### Systèmes et livrables
+### Systèmes et objets impactés
 
 | Variable | Libellé | Contenu |
 |---|---|---|
 | `{{systemes}}` | Systèmes | Liste : « Nom : impact » |
-| `{{livrables}}` | Livrables | Liste : « Objet version » |
+| `{{environnements}}` | Environnements | Liste : « Système : environnements » (Préparation › Systèmes). Ex. « BDD : Préproduction, Production » |
+| `{{touche_production}}` | Touche la production | « oui (BDD, WEB) » avec les systèmes dont un environnement de production est touché, sinon « non » |
+| `{{objets_impactes}}` | Objets impactés | Liste : « Système : nom (catégorie) version ». Ex. « BDD : clients (Tables) 2.0 » |
+
+La MEP n'a pas d'environnement à elle : il n'y a pas de variable d'environnement unique. La variable `{{livrables}}` des premiers modèles est devenue `{{objets_impactes}}`, y compris dans les modèles déjà enregistrés par les équipes.
 
 ### Communication
 

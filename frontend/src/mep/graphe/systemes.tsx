@@ -1,7 +1,9 @@
 import { X } from 'lucide-react';
 import { couleurSysteme, styleSysteme } from '../../couleursSysteme';
-import type { Mep, Systeme, SystemeCatalogue } from '../../types';
+import { environnementsEtape } from '../../environnements';
+import type { Etape, Mep, Systeme, SystemeCatalogue } from '../../types';
 import { cn } from '../../ui/cn';
+import { PastilleEnvironnement } from '../../ui/PastilleEnvironnement';
 
 /** Description affichée d'un système de la MEP : celle du catalogue, sinon la cible. */
 export function descriptionsSystemes(
@@ -56,13 +58,19 @@ export function PuceSysteme({
   );
 }
 
-/** Bandeau des systèmes en tête d'une fiche : couleur par système, partagé si plusieurs, nom + description si un seul. */
+/**
+ * Bandeau des systèmes en tête d'une fiche : couleur par système, partagé si plusieurs. Chaque système porte les
+ * environnements de l'étape (« BDD Préprod Prod ») ; un environnement retiré du système depuis est barré. Sans
+ * environnement, un système seul affiche sa description.
+ */
 export function BandeauSystemes({
   systemes,
   descriptions,
+  etape,
 }: {
   systemes: Systeme[];
   descriptions: Map<string, string>;
+  etape?: Pick<Etape, 'environnements'>;
 }) {
   if (systemes.length === 0) {
     return (
@@ -73,19 +81,32 @@ export function BandeauSystemes({
   }
   return (
     <div className="flex flex-wrap">
-      {systemes.map((s) => (
-        <span
-          key={s.id}
-          className="flex min-w-0 flex-auto items-center gap-1.5 truncate px-2 py-1 text-[11.5px] font-bold whitespace-nowrap"
-          style={{ ...styleSysteme(s.nom), borderColor: undefined }}
-        >
-          <i className="size-[7px] shrink-0 rounded-full" style={{ background: couleurSysteme(s.nom) }} aria-hidden />
-          {s.nom}
-          {systemes.length === 1 && descriptions.get(s.id) && (
-            <small className="truncate font-normal">· {descriptions.get(s.id)}</small>
-          )}
-        </span>
-      ))}
+      {systemes.map((s) => {
+        const envs = etape ? environnementsEtape(etape, s) : [];
+        return (
+          <span
+            key={s.id}
+            className="flex min-w-0 flex-auto items-center gap-1.5 truncate px-2 py-1 text-[11.5px] font-bold whitespace-nowrap"
+            style={{ ...styleSysteme(s.nom), borderColor: undefined }}
+          >
+            <i className="size-[7px] shrink-0 rounded-full" style={{ background: couleurSysteme(s.nom) }} aria-hidden />
+            {s.nom}
+            {envs.map((e) => (
+              <PastilleEnvironnement
+                key={e.nom}
+                nom={e.nom}
+                production={e.production}
+                retire={e.retire}
+                abrege
+                className="border-transparent bg-transparent px-0.5 text-[10.5px] font-semibold"
+              />
+            ))}
+            {systemes.length === 1 && envs.length === 0 && descriptions.get(s.id) && (
+              <small className="truncate font-normal">· {descriptions.get(s.id)}</small>
+            )}
+          </span>
+        );
+      })}
     </div>
   );
 }

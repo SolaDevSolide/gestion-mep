@@ -18,8 +18,8 @@ vi.mock('../api', () => ({
 }));
 
 const catalogue: SystemeCatalogue[] = [
-  { id: 'c-api', nom: 'API', description: '', cible: '', actif: true },
-  { id: 'c-bdd', nom: 'BDD', description: '', cible: '', actif: true },
+  { id: 'c-api', nom: 'API', description: '', cible: '', actif: true, environnements: [], categories: [], nbObjets: 0 },
+  { id: 'c-bdd', nom: 'BDD', description: '', cible: '', actif: true, environnements: [], categories: [], nbObjets: 0 },
 ];
 
 function rendre(u: Utilisateur, sso?: Partial<SsoProfil>, url = '/profil') {

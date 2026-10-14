@@ -73,6 +73,7 @@ public static partial class Regles
                 erreurs.Add($"{e.Code} : remplacer l'action d'exemple par une action réelle.");
         }
 
+        erreurs.AddRange(ErreursEnvironnements(mep));
         erreurs.AddRange(ErreursRecette(mep));
 
         if (!mep.EstModele && mep.ProcedureRelueParId is null) erreurs.Add("La procédure doit être relue par un opérateur.");
@@ -134,7 +135,8 @@ public static partial class Regles
     /// <summary>
     /// Avertissements non bloquants du plan (ils ne figurent pas dans <see cref="ErreursPlan"/>) : aucun responsable technique,
     /// pilote également responsable technique, responsable technique absent dont les étapes ne sont pas reprenables par un autre,
-    /// aucun système sauvegardé, système sans fiche de recette, fiche de recette sans système. Pour un modèle, ni pilote ni disponibilité le jour J.
+    /// aucun système sauvegardé, système sans environnement choisi, système sans fiche de recette, fiche de recette sans système.
+    /// Pour un modèle, ni pilote ni disponibilité le jour J.
     /// </summary>
     public static List<string> Avertissements(Mep mep)
     {
@@ -161,6 +163,8 @@ public static partial class Regles
 
         if (mep.Systemes.Count > 0 && mep.Systemes.All(s => s.Sauvegarde.Statut == StatutSauvegarde.NonRequise))
             avertissements.Add("Aucun système n'est sauvegardé.");
+        foreach (var s in mep.Systemes.Where(s => s.Environnements.Count == 0))
+            avertissements.Add($"Aucun environnement choisi pour le système {s.Nom} (Préparation › Systèmes).");
         foreach (var s in mep.Systemes.Where(s => mep.FichesRecette.All(f => f.SystemeId != s.Id)))
             avertissements.Add($"Aucune recette pour le système {s.Nom}.");
         foreach (var f in mep.FichesRecette.Where(f => f.SystemeId is null || mep.Systemes.All(s => s.Id != f.SystemeId)).OrderBy(f => f.Ordre))

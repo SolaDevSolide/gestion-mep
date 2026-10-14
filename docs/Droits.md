@@ -24,7 +24,7 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Action | Qui |
 |---|---|
 | Créer une MEP, dupliquer, créer un modèle | Tout utilisateur |
-| Modifier le contenu en préparation (intervention, personnes, systèmes, sauvegarde, étapes, retour arrière, recette, approbateurs) | Éditeur |
+| Modifier le contenu en préparation (intervention, personnes, systèmes et leurs environnements, objets impactés, sauvegarde, étapes, retour arrière, recette, approbateurs) | Éditeur |
 | Changer le pilote ou les suppléants, ou le compte auquel ils sont reliés | Pilote, suppléant ou administrateur (tout éditeur tant qu'aucun pilote n'est désigné) |
 | Compléter les informations de sauvegarde après la préparation (sauvegarde réalisée, restauration testée, preuve) | Pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée |
 | Activer ou désactiver le plan de retour arrière | Éditeur, en préparation |
@@ -53,7 +53,7 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Modifier la communication d'une MEP | Éditeur en préparation ; après le Go, pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée |
 | Copier les textes d'une MEP, consulter les modèles de texte | Tout utilisateur qui voit la MEP |
 | Créer, modifier, rétablir ou supprimer un modèle de texte d'une équipe, régler son contact support et sa signature | Membre de l'équipe (par l'un de ses comptes reliés) ou administrateur ; les modèles fournis ne se suppriment pas |
-| Catalogue des systèmes, critères go / no-go, nombre minimum d'approbations | Administrateur (lecture pour tous) |
+| Catalogue des systèmes (fiches : environnements, catégories, objets ; catégories par défaut), critères go / no-go, nombre minimum d'approbations | Administrateur (lecture pour tous) |
 | Comptes et console d'administration, équipes, comptes reliés d'une même personne | Administrateur (équipes : lecture pour tous) |
 | Modifier son propre profil et son mot de passe | Chacun |
 

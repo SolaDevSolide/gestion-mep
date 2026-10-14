@@ -96,7 +96,7 @@ public class ReglesFinEtapeTests
     {
         var m = Demo();
         E(m, "E0001").ResultatConstate = "clients.sql";
-        var copie = Regles.Dupliquer(m, null, commeModele: false, Alice, Maintenant);
+        var copie = Regles.Dupliquer(m, commeModele: false, Alice, Maintenant);
         Assert.Equal(FinEtape.Verification, E(copie, "E0003").Fin);
         Assert.Equal("", E(copie, "E0001").ResultatConstate);
         Assert.Equal(E(m, "E0001").SauvegardeEmplacement, E(copie, "E0001").SauvegardeEmplacement);

@@ -51,7 +51,7 @@ public static class RecetteEndpoints
         }).ToList();
 
     /// <summary>Contenu du fichier envoyé en multipart/form-data (champ « fichier »), 5 Mo au plus.</summary>
-    private static async Task<byte[]> LireFichier(HttpRequest req)
+    internal static async Task<byte[]> LireFichier(HttpRequest req)
     {
         if (!req.HasFormContentType) throw ErreurHttp.Saisie($"Envoyer le fichier en multipart/form-data (champ « {PiecesJointesEndpoints.ChampFichier} »).");
         if (req.ContentLength > TailleFichierMax + 64 * 1024) throw new ErreurHttp(413, "Fichier trop volumineux (5 Mo au plus).");

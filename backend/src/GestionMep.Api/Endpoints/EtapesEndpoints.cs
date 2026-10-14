@@ -21,6 +21,11 @@ public static class EtapesEndpoints
         if (c.DureeEstimeeMinutes is < 0) throw ErreurHttp.Saisie("La durée estimée ne peut pas être négative.");
         e.Action = ServiceMep.Texte(c.Action);
         e.SystemeIds = systemes;
+        // Environnements absents : inchangés, sauf ceux des systèmes que l'étape ne touche plus.
+        if (c.Environnements is { } envs)
+            Regles.DefinirEnvironnementsEtape(mep, e, envs.Select(x => (x.SystemeId ?? throw ErreurHttp.Saisie("Environnement de l'étape : le système est obligatoire."),
+                x.Nom ?? "")));
+        else Regles.NettoyerEnvironnementsEtape(e);
         // responsableId est ignoré depuis le jalon 4.2 : l'exécutant est celui qui démarre l'étape.
         e.Criticite = c.Criticite;
         e.DureeEstimeeMinutes = c.DureeEstimeeMinutes;

@@ -45,7 +45,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<Mep> Meps => Set<Mep>();
     public DbSet<Participant> Participants => Set<Participant>();
     public DbSet<Systeme> Systemes => Set<Systeme>();
-    public DbSet<Livrable> Livrables => Set<Livrable>();
+    public DbSet<ObjetImpacte> ObjetsImpactes => Set<ObjetImpacte>();
     public DbSet<Etape> Etapes => Set<Etape>();
     public DbSet<EvenementJournal> Journal => Set<EvenementJournal>();
     public DbSet<SystemeCatalogue> SystemesCatalogue => Set<SystemeCatalogue>();
@@ -115,7 +115,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.HasIndex(x => x.EstModele);
             e.HasMany(x => x.Participants).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Systemes).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
-            e.HasMany(x => x.Livrables).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.ObjetsImpactes).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Etapes).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Resolutions).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => x.CreeLe);
@@ -128,8 +128,13 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             // Colonnes Sauvegarde_Statut, Sauvegarde_Moment, Sauvegarde_Contenu, Sauvegarde_Justification, Sauvegarde_Emplacement,
             // Sauvegarde_MethodeRecuperation.
             e.OwnsOne(x => x.Sauvegarde);
+            e.Property(x => x.Environnements).AsJson();
         });
-        b.Entity<Livrable>().Property(x => x.Id).ValueGeneratedNever();
+        b.Entity<ObjetImpacte>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.HasIndex(x => x.MepId);
+        });
 
         b.Entity<Etape>(e =>
         {
@@ -137,6 +142,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Dependances).HasColumnType("uuid[]");
             e.Property(x => x.SystemeIds).HasColumnType("uuid[]");
             e.Property(x => x.ResolutionIds).HasColumnType("uuid[]");
+            e.Property(x => x.Environnements).AsJson();
             e.HasIndex(x => new { x.MepId, x.Code }).IsUnique();
         });
 
@@ -144,6 +150,11 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         {
             e.Property(x => x.Id).ValueGeneratedNever();
             e.HasIndex(x => x.Nom).IsUnique();
+            e.Property(x => x.Environnements).AsJson();
+            e.Property(x => x.Categories).AsJson();
+            e.Property(x => x.Objets).AsJson();
+            // Deux administrateurs qui modifient la même fiche en même temps : le second reçoit un conflit (409).
+            e.Property(x => x.Version).IsConcurrencyToken();
         });
 
         b.Entity<ResolutionType>(e =>
@@ -192,7 +203,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         b.Entity<ParametresGlobaux>(e =>
         {
             e.Property(x => x.Id).ValueGeneratedNever();
-            // Ligne unique créée par la migration, avec la valeur par défaut.
+            e.Property(x => x.CategoriesObjets).AsJson();
+            // Ligne unique créée par la migration, avec les valeurs par défaut.
             e.HasData(new ParametresGlobaux { Id = ParametresGlobaux.IdUnique, ApprobationsMinimum = 1 });
         });
 

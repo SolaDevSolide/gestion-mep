@@ -93,7 +93,7 @@ public class ReglesJalon42Tests
         Regles.Demarrer(m, e4, Claire, Maintenant);
         Regles.Terminer(m, e4, EtatEtape.Reussie, "OK", true, Claire, Maintenant);
         Assert.Equal("Vu", e4.Commentaire);
-        Assert.Equal("", E(Regles.Dupliquer(m, null, false, Alice, Maintenant), "E0004").Commentaire);
+        Assert.Equal("", E(Regles.Dupliquer(m, false, Alice, Maintenant), "E0004").Commentaire);
     }
 }
 

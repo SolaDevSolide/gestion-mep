@@ -32,6 +32,7 @@ export function etape(p: Partial<Etape> = {}, statut: StatutDisponibilite = 'Dis
     sauvegardeMethodeRecuperation: '',
     disponibilite: { statut, libelle: statut },
     modeleEtapeId: null,
+    environnements: [],
     ...p,
   };
 }
@@ -52,7 +53,6 @@ export function mep(p: Partial<Mep> = {}): Mep {
     indisponibiliteMinutes: 30,
     piloteId: 'p3',
     suppleantIds: [],
-    environnement: 'Production',
     estModele: false,
     approbationsMinimum: 1,
     approbations: [],
@@ -126,9 +126,10 @@ export function mep(p: Partial<Mep> = {}): Mep {
           emplacement: '',
           methodeRecuperation: '',
         },
+        environnements: [{ nom: 'Production', production: true }],
       },
     ],
-    livrables: [],
+    objetsImpactes: [],
     etapes: [],
     resolutions: [],
     erreursPlan: [],

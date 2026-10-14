@@ -1,5 +1,6 @@
-import { Layers, Lock, OctagonAlert, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { CheckCircle2, CircleOff, Layers, ListTree, Lock, OctagonAlert, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useAsync } from '../hooks';
@@ -7,119 +8,20 @@ import type { SystemeCatalogue } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Checkbox } from '../ui/Checkbox';
-import { ConfirmDialog, Dialog } from '../ui/Dialog';
+import { ConfirmDialog } from '../ui/Dialog';
 import { EmptyState } from '../ui/EmptyState';
-import { Field, Input, Textarea } from '../ui/Input';
+import { PastilleEnvironnement } from '../ui/PastilleEnvironnement';
 import { StatusPill } from '../ui/StatusPill';
 import { Tooltip } from '../ui/Tooltip';
 import { useToast } from '../ui/Toast';
-import { CheckCircle2, CircleOff } from 'lucide-react';
+import { CategoriesDefautDialog } from './CategoriesDefautDialog';
+import { SystemeDialog } from './SystemeDialog';
 
-const VIDE = { nom: '', description: '', cible: '', actif: true };
-
-function SystemeDialog({
-  existant,
-  open,
-  onOpenChange,
-  onFait,
-}: {
-  existant: SystemeCatalogue | null;
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  onFait: () => void;
-}) {
-  const toast = useToast();
-  const initial = useMemo(
-    () =>
-      existant
-        ? { nom: existant.nom, description: existant.description, cible: existant.cible, actif: existant.actif }
-        : VIDE,
-    [existant],
-  );
-  const [v, setV] = useState(initial);
-  const [erreur, setErreur] = useState('');
-  const [envoi, setEnvoi] = useState(false);
-  const [vu, setVu] = useState<unknown>(null);
-  if (open && vu !== initial) {
-    setVu(initial);
-    setV(initial);
-    setErreur('');
-  }
-  if (!open && vu !== null) setVu(null);
-
-  async function enregistrer() {
-    setEnvoi(true);
-    setErreur('');
-    const s = { nom: v.nom.trim(), description: v.description.trim(), cible: v.cible.trim(), actif: v.actif };
-    try {
-      if (existant) await api.modifierSystemeCatalogue(existant.id, s);
-      else await api.creerSystemeCatalogue(s);
-      toast.succes(existant ? 'Système modifié.' : 'Système ajouté au catalogue.');
-      onFait();
-      onOpenChange(false);
-    } catch (e) {
-      setErreur(e instanceof Error ? e.message : 'Enregistrement impossible.');
-    } finally {
-      setEnvoi(false);
-    }
-  }
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-      titre={existant ? 'Modifier le système' : 'Nouveau système'}
-      description="Les MEP peuvent ensuite l’ajouter depuis le catalogue, ce qui relie ses résolutions types."
-      pied={
-        <>
-          <Button variante="fantome" onClick={() => onOpenChange(false)}>
-            Annuler
-          </Button>
-          <Button variante="primaire" chargement={envoi} disabled={!v.nom.trim()} onClick={() => void enregistrer()}>
-            Enregistrer
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        {erreur && (
-          <Alerte ton="danger" icone={OctagonAlert} role="alert">
-            {erreur}
-          </Alerte>
-        )}
-        <Field label="Nom *">
-          {(id) => <Input id={id} value={v.nom} onChange={(e) => setV({ ...v, nom: e.target.value })} autoFocus />}
-        </Field>
-        <Field label="Cible exacte" hint="Serveur, base, URL ou chemin qui identifie le système sans ambiguïté.">
-          {(id) => (
-            <Input
-              id={id}
-              className="font-mono"
-              value={v.cible}
-              onChange={(e) => setV({ ...v, cible: e.target.value })}
-            />
-          )}
-        </Field>
-        <Field label="Description">
-          {(id) => (
-            <Textarea
-              id={id}
-              rows={3}
-              value={v.description}
-              onChange={(e) => setV({ ...v, description: e.target.value })}
-            />
-          )}
-        </Field>
-        <Checkbox
-          label="Actif"
-          description="Un système inactif n’est plus proposé pour les nouvelles MEP."
-          checked={v.actif}
-          onChange={(a) => setV({ ...v, actif: a })}
-        />
-      </div>
-    </Dialog>
-  );
+/** « 25 dans 3 catégories » : objets connus de la fiche. */
+function resumeFiche(s: Pick<SystemeCatalogue, 'nbObjets' | 'categories'>): string {
+  const c = s.categories.length;
+  if (c === 0) return 'Aucune catégorie';
+  return `${s.nbObjets} dans ${c} catégorie${c > 1 ? 's' : ''}`;
 }
 
 export default function SystemesPage() {
@@ -129,6 +31,7 @@ export default function SystemesPage() {
   const { donnees, erreur, recharger } = useAsync(() => api.catalogueSystemes(), []);
   const [edition, setEdition] = useState<{ existant: SystemeCatalogue | null } | null>(null);
   const [suppr, setSuppr] = useState<SystemeCatalogue | null>(null);
+  const [categories, setCategories] = useState(false);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
@@ -146,13 +49,18 @@ export default function SystemesPage() {
           </p>
         </div>
         {admin && (
-          <Button
-            variante="primaire"
-            icone={<Plus className="size-4" aria-hidden />}
-            onClick={() => setEdition({ existant: null })}
-          >
-            Nouveau système
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button icone={<ListTree className="size-4" aria-hidden />} onClick={() => setCategories(true)}>
+              Catégories par défaut
+            </Button>
+            <Button
+              variante="primaire"
+              icone={<Plus className="size-4" aria-hidden />}
+              onClick={() => setEdition({ existant: null })}
+            >
+              Nouveau système
+            </Button>
+          </div>
         )}
       </div>
 
@@ -195,6 +103,12 @@ export default function SystemesPage() {
                     Cible
                   </th>
                   <th scope="col" className="px-4 py-3 font-semibold">
+                    Environnements
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    Objets
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-semibold">
                     État
                   </th>
                   {admin && (
@@ -208,10 +122,28 @@ export default function SystemesPage() {
                 {(donnees ?? []).map((s) => (
                   <tr key={s.id} className="transition-colors duration-150 hover:bg-surface-2/50">
                     <th scope="row" className="px-4 py-3 font-medium">
-                      {s.nom}
+                      <Link to={`/parametres/systemes/${s.id}`} className="hover:text-accent-text hover:underline">
+                        {s.nom}
+                      </Link>
                     </th>
                     <td className="max-w-xs px-4 py-3 text-fg-muted">{s.description || '—'}</td>
                     <td className="px-4 py-3 font-mono text-[13px] text-fg-muted">{s.cible || '—'}</td>
+                    <td className="px-4 py-3">
+                      {s.environnements.length === 0 ? (
+                        <span className="text-fg-subtle">—</span>
+                      ) : (
+                        <span className="flex max-w-64 flex-wrap gap-1">
+                          {s.environnements.map((e) => (
+                            <PastilleEnvironnement key={e.nom} nom={e.nom} production={e.production} />
+                          ))}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-fg-muted">
+                      <Link to={`/parametres/systemes/${s.id}`} className="hover:text-accent-text hover:underline">
+                        {resumeFiche(s)}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3">
                       <StatusPill taille="sm" ton={s.actif ? 'ok' : 'wait'} icone={s.actif ? CheckCircle2 : CircleOff}>
                         {s.actif ? 'Actif' : 'Inactif'}
@@ -243,6 +175,7 @@ export default function SystemesPage() {
         )}
       </Card>
 
+      <CategoriesDefautDialog open={categories} onOpenChange={setCategories} />
       <SystemeDialog
         existant={edition?.existant ?? null}
         open={edition !== null}

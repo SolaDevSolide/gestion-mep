@@ -350,7 +350,7 @@ public class ReglesJalon4Tests
         var source = EnRecette();
         var f0 = source.FichesRecette[0];
         Regles.ValiderEtapeTest(source, f0, f0.Etapes[0], ResultatControle.Conforme, "OK", Alice, false, Maintenant);
-        var copie = Regles.Dupliquer(source, null, false, Alice, Maintenant);
+        var copie = Regles.Dupliquer(source, false, Alice, Maintenant);
         Assert.Equal(source.EtapesTriees().Select(e => (e.Code, e.Ligne, e.Ordre, e.SystemeIds.Count, e.DureeEstimeeMinutes)),
             copie.EtapesTriees().Select(e => (e.Code, e.Ligne, e.Ordre, e.SystemeIds.Count, e.DureeEstimeeMinutes)));
         Assert.Equal(["API", "BDD", "MDM"], E(copie, "E0007").SystemeIds.Select(id => copie.Systemes.Single(s => s.Id == id).Nom).ToArray());

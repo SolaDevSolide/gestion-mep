@@ -125,9 +125,9 @@ public class RetourArriereFacultatifTests
     public void La_duplication_garde_le_choix_du_modele()
     {
         var source = SansRetourArriere().Mep;
-        var copie = Regles.Dupliquer(source, null, commeModele: false, Dave, Maintenant);
+        var copie = Regles.Dupliquer(source, commeModele: false, Dave, Maintenant);
         Assert.False(copie.RetourArriereActive);
         Assert.Equal(source.EtapesDu(TypePlan.RetourArriere).Count(), copie.EtapesDu(TypePlan.RetourArriere).Count());
-        Assert.True(Regles.Dupliquer(DonneesDemo.Creer(Alice, Bob, Claire, Maintenant).Mep, null, commeModele: true, Dave, Maintenant).RetourArriereActive);
+        Assert.True(Regles.Dupliquer(DonneesDemo.Creer(Alice, Bob, Claire, Maintenant).Mep, commeModele: true, Dave, Maintenant).RetourArriereActive);
     }
 }

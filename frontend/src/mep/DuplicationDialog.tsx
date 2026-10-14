@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
-import { ChampEnvironnement } from '../ui/ChampEnvironnement';
 import { Checkbox } from '../ui/Checkbox';
 import { Dialog } from '../ui/Dialog';
 import { Field, Select } from '../ui/Input';
@@ -14,7 +13,6 @@ export interface SourceDuplication {
   id: string;
   outil: string;
   estModele: boolean;
-  environnement: string;
 }
 
 interface Props {
@@ -26,12 +24,14 @@ interface Props {
   modeles?: SourceDuplication[];
 }
 
-/** Duplication d'une MEP (environnement, « en faire un modèle ») ; navigue vers la nouvelle MEP. */
+/**
+ * Duplication d'une MEP (« en faire un modèle ») ; navigue vers la nouvelle MEP. Les systèmes sont copiés avec leurs
+ * environnements, et chaque étape avec les siens.
+ */
 export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props) {
   const navigate = useNavigate();
   const toast = useToast();
   const [choix, setChoix] = useState('');
-  const [environnement, setEnvironnement] = useState('');
   const [commeModele, setCommeModele] = useState(false);
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState(false);
@@ -45,7 +45,6 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
     setCommeModele(false);
     const premier = depuisModele ? null : (source ?? null);
     setChoix(premier?.id ?? '');
-    setEnvironnement(''); // vide : l'environnement de la source est repris
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -60,7 +59,7 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
     setEnvoi(true);
     setErreur('');
     try {
-      const mep = await api.dupliquer(courant.id, { environnement: environnement.trim() || null, commeModele });
+      const mep = await api.dupliquer(courant.id, { commeModele });
       toast.succes(
         commeModele ? 'Modèle créé.' : courant.estModele ? 'MEP créée depuis le modèle.' : 'MEP créée par duplication.',
       );
@@ -82,8 +81,8 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
       }
       description={
         depuisModele
-          ? 'Le plan, les personnes, les étapes et les recettes du modèle sont copiés.'
-          : 'Copie le plan, les personnes, les étapes et les recettes. Dates, résultats et bilan ne sont pas copiés.'
+          ? 'Le plan, les personnes, les systèmes et leurs environnements, les étapes et les recettes du modèle sont copiés.'
+          : 'Copie le plan, les personnes, les systèmes et leurs environnements, les étapes et les recettes. Dates, résultats et bilan ne sont pas copiés.'
       }
       pied={
         <>
@@ -132,16 +131,6 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
             Source : <strong className="font-semibold text-fg">{courant.outil || 'MEP sans nom'}</strong>
           </p>
         )}
-        <Field label="Environnement" hint="Laissez vide pour reprendre celui de la source.">
-          {(id) => (
-            <ChampEnvironnement
-              id={id}
-              valeur={environnement}
-              onChange={setEnvironnement}
-              placeholder={courant?.environnement ? `Reprend « ${courant.environnement} »` : undefined}
-            />
-          )}
-        </Field>
         {!depuisModele && (
           <Checkbox
             label="En faire un modèle"

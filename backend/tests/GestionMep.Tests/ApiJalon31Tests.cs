@@ -129,7 +129,8 @@ public class ApiJalon31Tests : IDisposable
             dave.PostAsJsonAsync($"/api/meps/{id}/etapes", new { }),
             dave.PostAsJsonAsync($"/api/meps/{id}/participants", new { nom = "X" }),
             dave.PostAsJsonAsync($"/api/meps/{id}/systemes", new { nom = "X" }),
-            dave.PostAsJsonAsync($"/api/meps/{id}/livrables", new { objet = "X" }),
+            dave.PutAsJsonAsync($"/api/meps/{id}/systemes/{mep.GetProperty("systemes")[0].GetProperty("id").GetGuid()}/environnements", new { noms = new[] { "Recette" } }),
+            dave.PutAsJsonAsync($"/api/meps/{id}/systemes/{mep.GetProperty("systemes")[0].GetProperty("id").GetGuid()}/objets", new { objets = Array.Empty<object>() }),
             dave.PostAsJsonAsync($"/api/meps/{id}/fiches-recette", new { titre = "X" }),
             dave.PostAsJsonAsync($"/api/meps/{id}/etapes/{Etape(mep, "E0004").GetProperty("id").GetGuid()}/placer", new { ligne = 0, position = 0 }),
             dave.PutAsJsonAsync($"/api/meps/{id}/systemes/{mep.GetProperty("systemes")[0].GetProperty("id").GetGuid()}/sauvegarde",
@@ -226,9 +227,9 @@ public class ApiJalon31Tests : IDisposable
     public async Task Duplication_copie_les_responsables_techniques_et_nomme_la_copie()
     {
         var (alice, id, _) = await Demo();
-        var copie = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/dupliquer", new { environnement = "", commeModele = false }));
+        var copie = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/dupliquer", new { commeModele = false }));
         Assert.Equal("Portail de démonstration (copie)", copie.GetProperty("outil").GetString());
-        Assert.Equal("Production", copie.GetProperty("environnement").GetString());
+        Assert.True(copie.GetProperty("systemes").EnumerateArray().All(s => s.GetProperty("environnements").GetArrayLength() > 0));
         Assert.Equal(2, copie.GetProperty("responsablesTechniques").GetArrayLength());
         Assert.Equal(Participant(copie, "Bob"), copie.GetProperty("responsablesTechniques")[0].GetProperty("participantId").GetGuid());
 
@@ -236,7 +237,7 @@ public class ApiJalon31Tests : IDisposable
         var modele = (await Ok(await alice.GetAsync("/api/meps?modele=true"))).EnumerateArray().Single().GetProperty("id").GetGuid();
         await alice.PostAsJsonAsync("/api/utilisateurs", new { login = "dave", nomAffiche = "Dave", motDePasse = "motdepasse", estAdmin = false });
         var dave = await _api.ClientConnecte("dave", "motdepasse");
-        var depuisModele = await Ok(await dave.PostAsJsonAsync($"/api/meps/{modele}/dupliquer", new { environnement = "Recette", commeModele = false }));
+        var depuisModele = await Ok(await dave.PostAsJsonAsync($"/api/meps/{modele}/dupliquer", new { commeModele = false }));
         Assert.Equal("déploiement API standard", depuisModele.GetProperty("outil").GetString());
         Assert.True(depuisModele.GetProperty("droits").GetProperty("estResponsableTechnique").GetBoolean());
         Assert.True(depuisModele.GetProperty("droits").GetProperty("peutEditerContenu").GetBoolean());

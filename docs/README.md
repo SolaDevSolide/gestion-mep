@@ -23,7 +23,7 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 
 ## En bref
 
-- **Préparation** : identité de l'intervention, personnes, systèmes, sauvegarde de chaque système, plan d'étapes en graphe (les étapes d'une même ligne peuvent se dérouler en parallèle), plan de retour arrière, fiches de recette, relecture et approbations.
+- **Préparation** : identité de l'intervention, personnes, systèmes et leurs environnements, objets impactés choisis dans la fiche de chaque système, sauvegarde de chaque système, plan d'étapes en graphe (les étapes d'une même ligne peuvent se dérouler en parallèle), plan de retour arrière, fiches de recette, relecture et approbations.
 - **Exécution** : chacun voit ce qui est disponible, démarre une étape, la termine avec une preuve, ou applique une résolution guidée en cas d'échec. Les écrans se mettent à jour en direct pour tous.
 - **Sécurité de l'intervention** : go / no-go sur critères, point de non-retour soumis à l'accord du pilote, échéance de retour arrière surveillée en permanence, recette avant clôture, bilan.
 - **Traçabilité** : chaque action est horodatée et attribuée, y compris quand quelqu'un prend la main sur l'étape d'un autre.

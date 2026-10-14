@@ -8,7 +8,6 @@ import { useMep } from '../../mepContext';
 import type { MepIdentiteSaisie } from '../../types';
 import { AvisConflit } from '../../ui/AvisConflit';
 import { Button } from '../../ui/Button';
-import { ChampEnvironnement } from '../../ui/ChampEnvironnement';
 import { Checkbox } from '../../ui/Checkbox';
 import { MultiSelect } from '../../ui/Combobox';
 import { ConfirmDialog } from '../../ui/Dialog';
@@ -28,7 +27,6 @@ export function IdentiteSection() {
     piloteId: mep.piloteId,
     suppleantIds: mep.suppleantIds,
     echeanceRepli: mep.echeanceRepli,
-    environnement: mep.environnement,
     bilanActive: mep.bilanActive,
     retourArriereActive: mep.retourArriereActive,
   };
@@ -202,16 +200,6 @@ export function IdentiteSection() {
             </Field>
           </>
         )}
-        <Field label="Environnement" className="md:col-span-2">
-          {(id) => (
-            <ChampEnvironnement
-              id={id}
-              valeur={v.environnement ?? ''}
-              disabled={lecture}
-              onChange={(e) => d.update({ environnement: e })}
-            />
-          )}
-        </Field>
         <div className="space-y-3 rounded-lg border border-line p-4 md:col-span-2">
           <Checkbox
             label="Plan de retour arrière"

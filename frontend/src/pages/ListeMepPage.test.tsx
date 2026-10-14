@@ -19,7 +19,7 @@ const resume = (p: Partial<MepResume>): MepResume => ({
   nbEtapes: 0,
   nbReussies: 0,
   nbEchecs: 0,
-  environnement: '',
+  toucheProduction: false,
   estModele: false,
   creeLe: '2026-10-01T08:00:00Z',
   issue: null,
@@ -80,5 +80,17 @@ describe('ListeMepPage', () => {
     await userEvent.type(screen.getByLabelText('Rechercher une MEP'), 'jean.dupont');
     expect(screen.getByText('Portail')).toBeInTheDocument();
     expect(screen.queryByText('Facturation')).not.toBeInTheDocument();
+  });
+
+  it('signale les MEP qui touchent la production', async () => {
+    vi.mocked(api.meps).mockResolvedValue([
+      resume({ id: 'a', outil: 'Portail', toucheProduction: true }),
+      resume({ id: 'b', outil: 'Recette seule' }),
+    ]);
+    rendre();
+    const portail = (await screen.findByText('Portail')).closest('li') ?? document.body;
+    expect(portail).toHaveTextContent(/Production/);
+    const recette = screen.getByText('Recette seule').closest('li') ?? document.body;
+    expect(recette).not.toHaveTextContent(/Production/);
   });
 });

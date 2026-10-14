@@ -5,7 +5,8 @@ public static partial class Regles
 {
     /// <summary>
     /// Copie profonde d'une MEP, en préparation, avec de nouveaux identifiants et toutes les références remappées
-    /// (codes d'étapes, lignes et positions conservés). Ne sont pas copiés : échéance, date et heures de MEP, responsable des étapes (obsolète), relecture, go / no-go, bilan,
+    /// (codes d'étapes, lignes et positions conservés). Les systèmes gardent leurs environnements, les étapes les leurs, et
+    /// les objets impactés sont repris avec leur version. Ne sont pas copiés : échéance, date et heures de MEP, responsable des étapes (obsolète), relecture, go / no-go, bilan,
     /// résolutions exécutées, résultats (étapes et leur résultat constaté, recettes, sauvegarde réalisée) et décisions d'approbation.
     /// </summary>
     public const string PrefixeModele = "Modèle : ";
@@ -21,14 +22,14 @@ public static partial class Regles
         return outil.EndsWith("(copie)", StringComparison.OrdinalIgnoreCase) ? outil : $"{outil} (copie)";
     }
 
-    public static Mep Dupliquer(Mep source, string? environnement, bool commeModele, Guid utilisateurId, DateTimeOffset maintenant)
+    public static Mep Dupliquer(Mep source, bool commeModele, Guid utilisateurId, DateTimeOffset maintenant)
     {
         var mep = new Mep
         {
             Outil = NomCopie(source, commeModele), VersionActuelle = source.VersionActuelle, VersionCible = source.VersionCible,
             Objet = source.Objet, Impacts = source.Impacts,
             FuseauHoraire = source.FuseauHoraire, IndisponibiliteMinutes = source.IndisponibiliteMinutes,
-            Environnement = string.IsNullOrWhiteSpace(environnement) ? source.Environnement : environnement.Trim(),
+            Environnement = source.Environnement,
             EstModele = commeModele, BilanActive = source.BilanActive, RetourArriereActive = source.RetourArriereActive,
             CreeLe = maintenant, CreeParUtilisateurId = utilisateurId,
             PlanRepli = new PlanRepli
@@ -68,6 +69,7 @@ public static partial class Regles
                     Statut = s.Sauvegarde.Statut, Moment = s.Sauvegarde.Moment, Contenu = s.Sauvegarde.Contenu, Justification = s.Sauvegarde.Justification,
                     Emplacement = s.Sauvegarde.Emplacement, MethodeRecuperation = s.Sauvegarde.MethodeRecuperation,
                 },
+                Environnements = s.Environnements.Select(e => new EnvironnementSysteme { Nom = e.Nom, Production = e.Production }).ToList(),
             };
             systemes[s.Id] = copie.Id;
             mep.Systemes.Add(copie);
@@ -81,8 +83,12 @@ public static partial class Regles
                 Perimetre = r.Perimetre, Disponibilite = r.Disponibilite, ContactJourJ = r.ContactJourJ,
             }).ToList();
 
-        foreach (var l in source.Livrables)
-            mep.Livrables.Add(new Livrable { MepId = mep.Id, Objet = l.Objet, Version = l.Version, Emplacement = l.Emplacement, SystemeId = S(l.SystemeId) });
+        foreach (var o in source.ObjetsImpactes)
+            mep.ObjetsImpactes.Add(new ObjetImpacte
+            {
+                MepId = mep.Id, SystemeId = S(o.SystemeId), ObjetCatalogueId = o.ObjetCatalogueId, Categorie = o.Categorie, Type = o.Type, Nom = o.Nom,
+                Libelle = o.Libelle, Precision = o.Precision, Version = o.Version, Repris = o.Repris,
+            });
 
         var s0 = source.Sauvegarde;
         mep.Sauvegarde = new Sauvegarde
@@ -102,6 +108,8 @@ public static partial class Regles
                 SauvegardeEmplacement = e.SauvegardeEmplacement, SauvegardeMethodeRecuperation = e.SauvegardeMethodeRecuperation,
                 Dependances = e.Dependances.Where(etapes.ContainsKey).Select(d => etapes[d]).ToList(),
                 ResolutionIds = [.. e.ResolutionIds], ModeleEtapeId = e.ModeleEtapeId,
+                Environnements = e.Environnements.Where(x => systemes.ContainsKey(x.SystemeId))
+                    .Select(x => new EnvironnementEtape { SystemeId = systemes[x.SystemeId], Nom = x.Nom }).ToList(),
             });
 
         mep.FichesRecette = source.FichesRecette.OrderBy(f => f.Ordre).Select(f => new FicheRecette

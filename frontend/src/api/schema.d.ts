@@ -1212,46 +1212,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/meps/{id}/livrables": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["LivrableSaisie"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/meps/{id}/livrables/{lid}": {
+    "/api/meps/{id}/systemes/{sid}/environnements": {
         parameters: {
             query?: never;
             header?: never;
@@ -1265,13 +1226,13 @@ export interface paths {
                 header?: never;
                 path: {
                     id: string;
-                    lid: string;
+                    sid: string;
                 };
                 cookie?: never;
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["LivrableSaisie"];
+                    "application/json": components["schemas"]["EnvironnementsSystemeSaisie"];
                 };
             };
             responses: {
@@ -1285,13 +1246,69 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/systemes/{sid}/objets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    sid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ObjetsSystemeSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/objets/{oid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
         delete: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
                     id: string;
-                    lid: string;
+                    oid: string;
                 };
                 cookie?: never;
             };
@@ -1306,6 +1323,62 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/objets/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    modele?: boolean;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2033,6 +2106,260 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalogue/systemes/{id}/objets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ObjetCatalogueDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ObjetCatalogueSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalogue/systemes/{id}/environnements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EnvironnementsCatalogueSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalogue/systemes/{id}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CategoriesSystemeSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalogue/systemes/{id}/objets/{oid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    oid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ObjetCatalogueSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    oid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalogue/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": string[];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CategoriesDefautSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4994,6 +5321,18 @@ export interface components {
             /** Format: date-time */
             le: null | string;
         };
+        /** @description `Ancien` : nom actuel d'une catégorie renommée (ses objets la suivent). */
+        CategorieSaisie: {
+            nom: null | string;
+            ancien?: null | string;
+        };
+        CategoriesDefautSaisie: {
+            categories: null | string[];
+        };
+        /** @description Catégories de la fiche, dans l'ordre ; une catégorie absente est retirée avec ses objets. */
+        CategoriesSystemeSaisie: {
+            categories: null | components["schemas"]["CategorieSaisie"][];
+        };
         ChangementMotDePasseSaisie: {
             ancien: null | string;
             nouveau: null | string;
@@ -5234,9 +5573,43 @@ export interface components {
             estResponsableTechnique: boolean;
             peutEditerContenu: boolean;
         };
+        /** @description Duplication : la copie reprend les systèmes avec leurs environnements, modifiables ensuite. */
         DuplicationSaisie: {
-            environnement: null | string;
             commeModele: boolean;
+        };
+        EnvironnementCatalogueDto: {
+            nom: string;
+            cible: string;
+            production: boolean;
+        };
+        /** @description Production absente : déduite du nom (« Production », « prod »…). */
+        EnvironnementCatalogueSaisie: {
+            nom: null | string;
+            cible: null | string;
+            production: null | boolean;
+        };
+        /** @description Environnement d'une étape sur l'un de ses systèmes. */
+        EnvironnementEtapeDto: {
+            /** Format: uuid */
+            systemeId: string;
+            nom: string;
+        };
+        EnvironnementEtapeSaisie: {
+            /** Format: uuid */
+            systemeId: null | string;
+            nom: null | string;
+        };
+        EnvironnementsCatalogueSaisie: {
+            environnements: null | components["schemas"]["EnvironnementCatalogueSaisie"][];
+        };
+        /** @description Environnements touchés par la MEP sur un système, dans l'ordre voulu (ceux de sa fiche au catalogue, ou libres hors catalogue). */
+        EnvironnementsSystemeSaisie: {
+            noms: null | string[];
+        };
+        /** @description Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue). */
+        EnvironnementSystemeDto: {
+            nom: string;
+            production: boolean;
         };
         /** @description Informations communes aux modèles de texte d'une équipe (membres de l'équipe ou administrateurs). */
         EquipeCommunicationSaisie: {
@@ -5269,6 +5642,7 @@ export interface components {
          *     (le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.
          *     `SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.
          *     `ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).
+         *     `Environnements` : environnements où agit l'étape, système par système.
          */
         EtapeDto: {
             /** Format: uuid */
@@ -5334,6 +5708,11 @@ export interface components {
             sauvegardeMethodeRecuperation: string;
             /** Format: uuid */
             modeleEtapeId: null | string;
+            environnements: {
+                /** Format: uuid */
+                systemeId: string;
+                nom: string;
+            }[];
         };
         EtapeModeleRecetteDto: {
             /** Format: int32 */
@@ -5346,8 +5725,9 @@ export interface components {
             resultatAttendu: null | string;
         };
         /**
-         * @description `Ligne` et `Position` ne servent qu'à la création (`POST /etapes`). `Fin`, `SauvegardeEmplacement` et
-         *     `SauvegardeMethodeRecuperation` absents : inchangés (test unitaire pour une nouvelle étape).
+         * @description `Ligne` et `Position` ne servent qu'à la création (`POST /etapes`). `Fin`, `SauvegardeEmplacement`,
+         *     `SauvegardeMethodeRecuperation` et `Environnements` absents : inchangés (test unitaire pour une nouvelle étape) ;
+         *     les environnements d'un système retiré de l'étape partent avec lui.
          */
         EtapeSaisie: {
             /** Format: int32 */
@@ -5374,6 +5754,7 @@ export interface components {
             fin?: null | components["schemas"]["FinEtape"];
             sauvegardeEmplacement?: null | string;
             sauvegardeMethodeRecuperation?: null | string;
+            environnements?: null | components["schemas"]["EnvironnementEtapeSaisie"][];
         };
         EtapeTestDto: {
             /** Format: uuid */
@@ -5521,6 +5902,408 @@ export interface components {
          * @enum {unknown}
          */
         FournisseurSso: "Microsoft" | "OpenIdConnect";
+        /** @description Résultat d'un import Excel d'objets impactés : MEP à jour, compteurs et lignes rejetées (rien n'est créé au catalogue). */
+        ImportObjetsDto: {
+            /**
+             * @description `RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).
+             *     `EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.
+             */
+            mep: {
+                /** Format: uuid */
+                id: string;
+                /** Format: int32 */
+                version: number;
+                outil: string;
+                versionActuelle: string;
+                versionCible: string;
+                objet: string;
+                impacts: string;
+                /** Format: date */
+                dateMep: null | string;
+                /** Format: time */
+                heureDebut: null | string;
+                /** Format: time */
+                heureFin: null | string;
+                fuseauHoraire: string;
+                /** Format: int32 */
+                indisponibiliteMinutes: null | number;
+                /** Format: uuid */
+                piloteId: null | string;
+                suppleantIds: string[];
+                /**
+                 * @description Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin.
+                 * @enum {unknown}
+                 */
+                phase: "Preparation" | "Execution" | "RetourArriere" | "Cloturee" | "Recette";
+                /** Format: date-time */
+                echeanceRepli: null | string;
+                /** @enum {unknown} */
+                issue: "Reussie" | "Repliee" | null;
+                /** @description `Par` vaut null quand le retour arrière s'est déclenché automatiquement. */
+                retourArriere: null | {
+                    /** Format: date-time */
+                    le: string;
+                    par: null | string;
+                    motif: string;
+                };
+                cloture: null | {
+                    /** Format: date-time */
+                    le: string;
+                    par: null | string;
+                };
+                planRepli: {
+                    quandDeclencher: string;
+                    /** Format: int32 */
+                    dureeTesteeMinutes: null | number;
+                    versionARestaurer: string;
+                    donneesDepuisSauvegarde: string;
+                    siRepliEchoue: string;
+                };
+                sauvegarde: {
+                    /**
+                     * @description Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée.
+                     * @enum {unknown}
+                     */
+                    mode: "AvantMep" | "PendantMep";
+                    structure: boolean;
+                    donnees: boolean;
+                    configuration: boolean;
+                    /** Format: uuid */
+                    responsableId: null | string;
+                    /** Format: date-time */
+                    realiseeLe: null | string;
+                    procedure: string;
+                    copies: string;
+                    restaurationTestee: boolean;
+                    /** Format: date */
+                    dateTestRestauration: null | string;
+                    preuveTestRestauration: string;
+                };
+                procedureRelue: null | {
+                    par: string;
+                    /** Format: date-time */
+                    le: string;
+                };
+                demarrageAutorise: null | {
+                    par: string;
+                    /** Format: date-time */
+                    le: string;
+                };
+                participants: {
+                    /** Format: uuid */
+                    id: string;
+                    nom: string;
+                    role: string;
+                    contact: string;
+                    /** Format: uuid */
+                    utilisateurId: null | string;
+                    utilisateurNom: null | string;
+                }[];
+                systemes: {
+                    /** Format: uuid */
+                    id: string;
+                    nom: string;
+                    cible: string;
+                    impact: string;
+                    /** Format: uuid */
+                    catalogueId: null | string;
+                    /** @description `Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan). */
+                    sauvegarde: {
+                        /**
+                         * @description Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu.
+                         * @enum {unknown}
+                         */
+                        statut: "ARenseigner" | "Requise" | "NonRequise";
+                        /**
+                         * @description Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée.
+                         * @enum {unknown}
+                         */
+                        moment: "AvantMep" | "PendantMep";
+                        contenu: string;
+                        justification: string;
+                        emplacement: string;
+                        methodeRecuperation: string;
+                    };
+                    environnements: {
+                        nom: string;
+                        production: boolean;
+                    }[];
+                }[];
+                objetsImpactes: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    systemeId: null | string;
+                    /** Format: uuid */
+                    objetCatalogueId: null | string;
+                    categorie: string;
+                    type: string;
+                    nom: string;
+                    libelle: string;
+                    precision: string;
+                    version: string;
+                    repris: boolean;
+                }[];
+                etapes: {
+                    /** Format: uuid */
+                    id: string;
+                    /**
+                     * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+                     * @enum {unknown}
+                     */
+                    plan: "Deploiement" | "RetourArriere";
+                    code: string;
+                    /** Format: int32 */
+                    ligne: number;
+                    /** Format: int32 */
+                    ordre: number;
+                    action: string;
+                    systemeIds: string[];
+                    /** Format: uuid */
+                    responsableId: null | string;
+                    /** Format: uuid */
+                    executantId: null | string;
+                    /** @enum {unknown} */
+                    criticite: "Faible" | "Moderee" | "Elevee" | "Bloquante" | null;
+                    /** Format: int32 */
+                    dureeEstimeeMinutes: null | number;
+                    /** @enum {unknown} */
+                    etat: "AFaire" | "EnCours" | "Reussie" | "Echec";
+                    instructions: string;
+                    resultatAttendu: string;
+                    preuve: string;
+                    commentaire: string;
+                    /** Format: date-time */
+                    debutReel: null | string;
+                    /** Format: date-time */
+                    finReelle: null | string;
+                    /** Format: int32 */
+                    revision: number;
+                    dependances: string[];
+                    resolutionIds: string[];
+                    disponibilite: {
+                        /** @enum {unknown} */
+                        statut: "PlanInvalide" | "EcheanceARenseigner" | "RetourArriere" | "FicheACompleter" | "InstructionsACompleter" | "Attend" | "Terminee" | "EnCours" | "ArretResolution" | "ResolutionEnCours" | "SiRetourArriere" | "Disponible";
+                        libelle: string;
+                    };
+                    /**
+                     * @description Nature d'une étape de déploiement : standard, ou étape qui réalise la sauvegarde.
+                     * @enum {unknown}
+                     */
+                    type: "Standard" | "Sauvegarde";
+                    pointDeNonRetour: boolean;
+                    nonRetourAutorise: null | {
+                        par: string;
+                        /** Format: date-time */
+                        le: string;
+                    };
+                    /**
+                     * @description Fin d'une étape : test unitaire (le résultat attendu est l'instruction de test, le résultat constaté se saisit en
+                     *     terminant l'étape) ou simple vérification. Stockée en entier : 0, la valeur par défaut, est le test unitaire.
+                     * @enum {unknown}
+                     */
+                    fin: "TestUnitaire" | "Verification";
+                    resultatConstate: string;
+                    sauvegardeEmplacement: string;
+                    sauvegardeMethodeRecuperation: string;
+                    /** Format: uuid */
+                    modeleEtapeId: null | string;
+                    environnements: {
+                        /** Format: uuid */
+                        systemeId: string;
+                        nom: string;
+                    }[];
+                }[];
+                resolutions: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    etapeId: string;
+                    /** Format: uuid */
+                    resolutionTypeId: string;
+                    titre: string;
+                    symptomes: string;
+                    diagnostic: string;
+                    corrections: {
+                        /** Format: int32 */
+                        ordre: number;
+                        instruction: string;
+                        resultatAttendu: string;
+                        /** @enum {unknown} */
+                        resultat: "Conforme" | "Echec" | null;
+                        observation: string;
+                        par: null | string;
+                        /** Format: date-time */
+                        le: null | string;
+                    }[];
+                    verificationInstruction: string;
+                    verificationAttendu: string;
+                    /** @enum {unknown} */
+                    verificationResultat: "Conforme" | "Echec" | null;
+                    verificationObservation: string;
+                    /** @enum {unknown} */
+                    statut: "EnCours" | "Reussie" | "Echouee";
+                    demarreePar: string;
+                    /** Format: date-time */
+                    demarreeLe: string;
+                    /** Format: date-time */
+                    termineeLe: null | string;
+                }[];
+                erreursPlan: string[];
+                droits: {
+                    estPilote: boolean;
+                    peutModifierPlan: boolean;
+                    /** Format: uuid */
+                    participantId: null | string;
+                    estApprobateur: boolean;
+                    estResponsableTechnique: boolean;
+                    peutEditerContenu: boolean;
+                };
+                estModele: boolean;
+                /** Format: int32 */
+                approbationsMinimum: number;
+                approbations: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    utilisateurId: string;
+                    nom: string;
+                    /** @enum {unknown} */
+                    decision: "Approuvee" | "Refusee" | null;
+                    commentaire: string;
+                    /** Format: date-time */
+                    le: null | string;
+                }[];
+                goNoGo: {
+                    libelle: string;
+                    par: null | string;
+                    /** Format: date-time */
+                    le: string;
+                }[];
+                fichesRecette: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: int32 */
+                    ordre: number;
+                    /** Format: uuid */
+                    systemeId: null | string;
+                    titre: string;
+                    etapes: {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: int32 */
+                        ordre: number;
+                        instructions: string;
+                        resultatAttendu: string;
+                        /** @enum {unknown} */
+                        resultat: "Conforme" | "Echec" | null;
+                        observation: string;
+                        par: null | string;
+                        /** Format: date-time */
+                        le: null | string;
+                        /** @description Validation reportée d'un fichier Excel : nom saisi par le métier (« » sinon) ; `Par` est alors le compte qui a importé. */
+                        valideePar: string;
+                        /**
+                         * Format: date
+                         * @description Validation reportée d'un fichier Excel : date indiquée dans le fichier.
+                         */
+                        valideeLe: null | string;
+                    }[];
+                }[];
+                bilanActive: boolean;
+                bilan: null | {
+                    ceQuiAMarche: string;
+                    incidents: string;
+                    actions: string;
+                    redigePar: null | string;
+                    /** Format: date-time */
+                    le: null | string;
+                };
+                nonRetourFranchi: null | string;
+                piecesJointes: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    mepId: null | string;
+                    /** Format: uuid */
+                    etapeId: null | string;
+                    /** Format: uuid */
+                    resolutionTypeId: null | string;
+                    /** Format: uuid */
+                    executionResolutionId: null | string;
+                    nomFichier: string;
+                    typeContenu: string;
+                    /** Format: int64 */
+                    taille: number;
+                    sha256: string;
+                    /** Format: uuid */
+                    deposeParId: null | string;
+                    deposePar: null | string;
+                    /** Format: date-time */
+                    deposeLe: string;
+                }[];
+                responsablesTechniques: {
+                    /** Format: uuid */
+                    participantId: string;
+                    systemeIds: string[];
+                    perimetre: string;
+                    /**
+                     * @description Disponibilité d'un responsable technique le jour de la MEP.
+                     * @enum {unknown}
+                     */
+                    disponibilite: "Joignable" | "Absent";
+                    contactJourJ: string;
+                }[];
+                avertissements: string[];
+                retourArriereActive: boolean;
+                /**
+                 * @description Section Communication de la MEP (tout est facultatif). `PreuveValidationId` : pièce jointe de la MEP qui prouve la
+                 *     validation par les utilisateurs (null si aucune, ou si la pièce a été supprimée).
+                 */
+                communication: {
+                    referenceDemande: string;
+                    /**
+                     * @description Niveau de risque retenu par l'analyse d'impact (section Communication). Stocké en entier : toute nouvelle valeur s'ajoute à la fin.
+                     * @enum {unknown}
+                     */
+                    niveauRisque: "NonEvalue" | "Faible" | "Modere" | "Eleve";
+                    benefices: string;
+                    utilisateursImpactes: string;
+                    arretApplicatif: boolean;
+                    actionUtilisateurs: string;
+                    /** Format: time */
+                    heureLimite: null | string;
+                    /** Format: date */
+                    dateAnnoncee: null | string;
+                    /** Format: time */
+                    heureDebutAnnoncee: null | string;
+                    /** Format: time */
+                    heureFinAnnoncee: null | string;
+                    valideeParUtilisateurs: boolean;
+                    valideePar: string;
+                    /** Format: date */
+                    valideeLe: null | string;
+                    /** Format: uuid */
+                    preuveValidationId: null | string;
+                };
+            };
+            /** Format: int32 */
+            ajoutes: number;
+            /** Format: int32 */
+            modifies: number;
+            /** Format: int32 */
+            inchanges: number;
+            rejetees: {
+                /** Format: int32 */
+                ligne: number;
+                systeme: string;
+                categorie: string;
+                nom: string;
+                raison: string;
+                /** Format: uuid */
+                systemeCatalogueId: null | string;
+            }[];
+        };
         /**
          * @description Insertion d'une copie d'étape modèle dans un plan de la MEP : `Ligne` absente = nouvelle ligne en bas, `Position`
          *     absente = en fin de ligne ; `Plan` absent = déploiement.
@@ -5566,21 +6349,16 @@ export interface components {
             /** @default false */
             desactiver: boolean;
         };
-        LivrableDto: {
+        /** @description Ligne du fichier Excel rejetée à l'import (objet absent de la fiche du système, système inconnu…). */
+        LigneRejeteeDto: {
+            /** Format: int32 */
+            ligne: number;
+            systeme: string;
+            categorie: string;
+            nom: string;
+            raison: string;
             /** Format: uuid */
-            id: string;
-            objet: string;
-            version: string;
-            emplacement: string;
-            /** Format: uuid */
-            systemeId: null | string;
-        };
-        LivrableSaisie: {
-            objet: null | string;
-            version: null | string;
-            emplacement: null | string;
-            /** Format: uuid */
-            systemeId: null | string;
+            systemeCatalogueId: null | string;
         };
         /** @description Création d'une MEP, ou d'un modèle si `Modele` vaut true. */
         MepCreationSaisie: {
@@ -5708,15 +6486,25 @@ export interface components {
                     emplacement: string;
                     methodeRecuperation: string;
                 };
+                environnements: {
+                    nom: string;
+                    production: boolean;
+                }[];
             }[];
-            livrables: {
+            objetsImpactes: {
                 /** Format: uuid */
                 id: string;
-                objet: string;
-                version: string;
-                emplacement: string;
                 /** Format: uuid */
                 systemeId: null | string;
+                /** Format: uuid */
+                objetCatalogueId: null | string;
+                categorie: string;
+                type: string;
+                nom: string;
+                libelle: string;
+                precision: string;
+                version: string;
+                repris: boolean;
             }[];
             etapes: {
                 /** Format: uuid */
@@ -5782,6 +6570,11 @@ export interface components {
                 sauvegardeMethodeRecuperation: string;
                 /** Format: uuid */
                 modeleEtapeId: null | string;
+                environnements: {
+                    /** Format: uuid */
+                    systemeId: string;
+                    nom: string;
+                }[];
             }[];
             resolutions: {
                 /** Format: uuid */
@@ -5828,7 +6621,6 @@ export interface components {
                 estResponsableTechnique: boolean;
                 peutEditerContenu: boolean;
             };
-            environnement: string;
             estModele: boolean;
             /** Format: int32 */
             approbationsMinimum: number;
@@ -5957,7 +6749,10 @@ export interface components {
                 preuveValidationId: null | string;
             };
         };
-        /** @description `Environnement`, `BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance. */
+        /**
+         * @description `BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance. La MEP n'a plus
+         *     d'environnement propre : ils se choisissent par système (`PUT /meps/{id}/systemes/{sid}/environnements`).
+         */
         MepIdentiteSaisie: {
             /** Format: int32 */
             version: null | number;
@@ -5980,13 +6775,13 @@ export interface components {
             suppleantIds: null | string[];
             /** Format: date-time */
             echeanceRepli: null | string;
-            environnement?: null | string;
             bilanActive?: null | boolean;
             retourArriereActive?: null | boolean;
         };
         /**
          * @description `DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;
          *     `RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).
+         *     `ToucheProduction` : l'un des systèmes de la MEP touche un environnement de production.
          *     `EquipeIds` : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait
          *     partie, par l'un de ses comptes reliés). `Personnes` : noms des personnes de la MEP et, pour celles qui ont un compte,
          *     noms et logins de tous leurs comptes reliés (pour la recherche).
@@ -6009,7 +6804,7 @@ export interface components {
             nbReussies: number;
             /** Format: int32 */
             nbEchecs: number;
-            environnement: string;
+            toucheProduction: boolean;
             estModele: boolean;
             /** Format: date-time */
             creeLe: string;
@@ -6176,6 +6971,51 @@ export interface components {
         NiveauRisque: "NonEvalue" | "Faible" | "Modere" | "Eleve" | null;
         NoGoSaisie: {
             motif: null | string;
+        };
+        ObjetCatalogueDto: {
+            /** Format: uuid */
+            id: string;
+            categorie: string;
+            type: string;
+            nom: string;
+            libelle: string;
+            precision: string;
+        };
+        ObjetCatalogueSaisie: {
+            categorie: null | string;
+            type: null | string;
+            nom: null | string;
+            libelle: null | string;
+            precision: null | string;
+        };
+        /** @description Objet du catalogue retenu pour un système de la MEP, avec sa version ou correction. */
+        ObjetChoisiSaisie: {
+            /** Format: uuid */
+            objetCatalogueId: null | string;
+            version: null | string;
+        };
+        /**
+         * @description Objet impacté : copie de l'objet du catalogue (`ObjetCatalogueId`) au moment du choix, et version ou correction livrée.
+         *     `Repris` : ancien livrable repris par la migration ; `ObjetCatalogueId` null : livrable d'un système hors catalogue.
+         */
+        ObjetImpacteDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            systemeId: null | string;
+            /** Format: uuid */
+            objetCatalogueId: null | string;
+            categorie: string;
+            type: string;
+            nom: string;
+            libelle: string;
+            precision: string;
+            version: string;
+            repris: boolean;
+        };
+        /** @description Objets impactés d'un système : la liste remplace les objets du catalogue déjà retenus pour ce système. */
+        ObjetsSystemeSaisie: {
+            objets: null | components["schemas"]["ObjetChoisiSaisie"][];
         };
         /** @description Options de la page de connexion (sans authentification) : bouton de connexion unique s'il est actif. */
         OptionsConnexionDto: {
@@ -6543,6 +7383,10 @@ export interface components {
         };
         /** @enum {unknown} */
         StatutSauvegarde: "ARenseigner" | "Requise" | "NonRequise" | null;
+        /**
+         * @description Système du catalogue : `Environnements` et `Categories` (dans l'ordre de la fiche), `NbObjets` connus
+         *     (le détail : `GET /catalogue/systemes/{id}/objets`).
+         */
         SystemeCatalogueDto: {
             /** Format: uuid */
             id: string;
@@ -6550,6 +7394,10 @@ export interface components {
             description: string;
             cible: string;
             actif: boolean;
+            environnements: components["schemas"]["EnvironnementCatalogueDto"][];
+            categories: string[];
+            /** Format: int32 */
+            nbObjets: number;
         };
         SystemeCatalogueSaisie: {
             nom: null | string;
@@ -6557,6 +7405,7 @@ export interface components {
             cible: null | string;
             actif: null | boolean;
         };
+        /** @description `Environnements` : environnements touchés par la MEP sur ce système. */
         SystemeDto: {
             /** Format: uuid */
             id: string;
@@ -6582,6 +7431,10 @@ export interface components {
                 emplacement: string;
                 methodeRecuperation: string;
             };
+            environnements: {
+                nom: string;
+                production: boolean;
+            }[];
         };
         SystemeSaisie: {
             nom: null | string;

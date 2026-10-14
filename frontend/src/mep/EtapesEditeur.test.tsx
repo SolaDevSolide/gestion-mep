@@ -272,7 +272,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(within(espace).queryByRole('tab')).toBeNull();
     expect(within(espace).queryByLabelText('Responsable')).toBeNull();
     for (const t of [
-      'Systèmes',
+      'Systèmes et environnements',
       'Instructions exactes',
       'Résultat attendu',
       'Attend (0)',
@@ -415,6 +415,68 @@ describe('EtapesEditeur : graphe en préparation', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Retirer API de la MEP' }));
     expect(screen.getByText(/API est utilisé par E0001, E0002, E0003/)).toBeInTheDocument();
     expect(api.supprimerSysteme).not.toHaveBeenCalled();
+  });
+
+  it('environnements par système : pastilles sur la fiche (barrée si retirée du système), choix dans l’édition', async () => {
+    const base = mep().systemes[0];
+    rendre(
+      planExemple({
+        systemes: [
+          { ...base, id: 's1', nom: 'API', environnements: [{ nom: 'Production', production: true }] },
+          {
+            ...base,
+            id: 's2',
+            nom: 'BDD',
+            environnements: [
+              { nom: 'Préproduction', production: false },
+              { nom: 'Production', production: true },
+            ],
+          },
+          { ...base, id: 's3', nom: 'WEB', environnements: [{ nom: 'Production', production: true }] },
+        ],
+        etapes: [
+          etape({
+            id: 'e1',
+            code: 'E0001',
+            action: 'Exemple',
+            ligne: 0,
+            ordre: 0,
+            systemeIds: ['s1'],
+            environnements: [
+              { systemeId: 's1', nom: 'Production' },
+              { systemeId: 's1', nom: 'Recette' },
+            ],
+          }),
+        ],
+      }),
+    );
+    // Sur la fiche du graphe : « Prod » en orange, « Recette » barrée (n'est plus choisie pour API).
+    const retiree = screen.getByTitle(/Recette : n’est plus choisi pour ce système/);
+    expect(retiree).toHaveClass('line-through');
+    expect(screen.getByTitle('Production')).toHaveTextContent('Prod');
+
+    await userEvent.click(carte(/^E0001/));
+    const espace = screen.getByRole('dialog');
+    // BDD a deux environnements : on choisit ; WEB n'en a qu'un : coché d'office.
+    await userEvent.click(within(espace).getAllByRole('button', { name: 'BDD', pressed: false })[0]);
+    expect(within(espace).getByRole('button', { name: 'BDD : Préproduction', pressed: false })).toBeInTheDocument();
+    await userEvent.click(within(espace).getByRole('button', { name: 'BDD : Préproduction' }));
+    await userEvent.click(within(espace).getAllByRole('button', { name: 'WEB', pressed: false })[0]);
+    expect(within(espace).getByRole('button', { name: 'WEB : Production', pressed: true })).toBeInTheDocument();
+    await userEvent.click(within(espace).getByRole('button', { name: /^API : Recette/ }));
+    await userEvent.click(within(espace).getByRole('button', { name: 'Enregistrer' }));
+    expect(api.modifierEtape).toHaveBeenCalledWith(
+      'm1',
+      'e1',
+      expect.objectContaining({
+        systemeIds: ['s1', 's2', 's3'],
+        environnements: [
+          { systemeId: 's1', nom: 'Production' },
+          { systemeId: 's2', nom: 'Préproduction' },
+          { systemeId: 's3', nom: 'Production' },
+        ],
+      }),
+    );
   });
 
   it('lecture seule : ni fantômes, ni ronds, ni liens cliquables ; panneau en lecture', async () => {

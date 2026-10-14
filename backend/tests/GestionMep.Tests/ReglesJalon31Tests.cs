@@ -166,7 +166,7 @@ public class ReglesJalon31Tests
     {
         var source = Demo();
         Rt(source, "Bob").Disponibilite = DisponibiliteJourJ.Absent;
-        var copie = Regles.Dupliquer(source, null, false, Alice, Maintenant);
+        var copie = Regles.Dupliquer(source, false, Alice, Maintenant);
         Assert.Equal(2, copie.ResponsablesTechniques.Count);
         var bob = copie.ResponsablesTechniques.Single(r => r.ParticipantId == P(copie, "Bob").Id);
         Assert.Equal(DisponibiliteJourJ.Absent, bob.Disponibilite);
@@ -180,19 +180,29 @@ public class ReglesJalon31Tests
     public void Nom_de_la_copie()
     {
         var source = Demo();
-        Assert.Equal("Portail de démonstration (copie)", Regles.Dupliquer(source, null, false, Alice, Maintenant).Outil);
-        Assert.Equal("Portail de démonstration (copie)", Regles.Dupliquer(source, null, true, Alice, Maintenant).Outil);
+        Assert.Equal("Portail de démonstration (copie)", Regles.Dupliquer(source, false, Alice, Maintenant).Outil);
+        Assert.Equal("Portail de démonstration (copie)", Regles.Dupliquer(source, true, Alice, Maintenant).Outil);
         var modele = DonneesDemo.Creer(Alice, Bob, Claire, Maintenant).Modele;
-        Assert.Equal("déploiement API standard", Regles.Dupliquer(modele, "Préproduction", false, Alice, Maintenant).Outil);
-        Assert.Equal("Modèle : déploiement API standard (copie)", Regles.Dupliquer(modele, null, true, Alice, Maintenant).Outil);
+        Assert.Equal("déploiement API standard", Regles.Dupliquer(modele, false, Alice, Maintenant).Outil);
+        Assert.Equal("Modèle : déploiement API standard (copie)", Regles.Dupliquer(modele, true, Alice, Maintenant).Outil);
     }
 
     [Fact]
-    public void Environnement_vide_a_la_duplication_reprend_celui_de_la_source()
+    public void La_duplication_reprend_les_environnements_des_systemes_et_des_etapes()
     {
         var source = Demo();
-        Assert.Equal("Production", Regles.Dupliquer(source, "", false, Alice, Maintenant).Environnement);
-        Assert.Equal("Production", Regles.Dupliquer(source, "  ", false, Alice, Maintenant).Environnement);
-        Assert.Equal("Recette", Regles.Dupliquer(source, " Recette ", false, Alice, Maintenant).Environnement);
+        var copie = Regles.Dupliquer(source, false, Alice, Maintenant);
+        Assert.Equal(source.Systemes.Select(s => string.Join(",", s.Environnements.Select(e => e.Nom))),
+            copie.Systemes.Select(s => string.Join(",", s.Environnements.Select(e => e.Nom))));
+        Assert.True(Regles.ToucheProduction(copie));
+        var nouveaux = copie.Systemes.Select(s => s.Id).ToHashSet();
+        foreach (var e in copie.Etapes)
+        {
+            var s = source.Etapes.Single(x => x.Code == e.Code);
+            Assert.Equal(s.Environnements.Count, e.Environnements.Count);
+            Assert.All(e.Environnements, x => Assert.Contains(x.SystemeId, nouveaux));
+        }
+        Assert.Equal(source.ObjetsImpactes.Count, copie.ObjetsImpactes.Count);
+        Assert.All(copie.ObjetsImpactes, o => Assert.Contains(o.SystemeId!.Value, nouveaux));
     }
 }

@@ -28,7 +28,7 @@ public static class VariablesTexte
     public const string GroupeMep = "MEP";
     public const string GroupeDates = "Date et heure";
     public const string GroupePersonnes = "Personnes";
-    public const string GroupeSystemes = "Systèmes et livrables";
+    public const string GroupeSystemes = "Systèmes et objets impactés";
     public const string GroupeCommunication = "Communication";
     public const string GroupeFin = "Fin de MEP";
     public const string GroupeEquipe = "Équipe";
@@ -53,7 +53,9 @@ public static class VariablesTexte
         new("responsables_techniques", "Responsables techniques", GroupePersonnes, "Responsables techniques et leur périmètre.", Liste: true),
 
         new("systemes", "Systèmes", GroupeSystemes, "Systèmes de la MEP et leur impact.", Liste: true),
-        new("livrables", "Livrables", GroupeSystemes, "Livrables de la MEP et leur version.", Liste: true),
+        new("environnements", "Environnements", GroupeSystemes, "Environnements touchés, système par système. Ex. « BDD : Préproduction, Production ».", Liste: true),
+        new("touche_production", "Touche la production", GroupeSystemes, "« oui (BDD, WEB) » : systèmes dont un environnement de production est touché, sinon « non »."),
+        new("objets_impactes", "Objets impactés", GroupeSystemes, "Objets impactés et leur version, système par système. Ex. « BDD : clients (Tables) 2.0 ».", Liste: true),
 
         new("reference_demande", "Référence de la demande", GroupeCommunication, "Numéro du ticket ou de la demande de changement."),
         new("niveau_risque", "Niveau de risque", GroupeCommunication, "Niveau retenu par l'analyse d'impact : faible, modéré ou élevé."),
@@ -98,6 +100,22 @@ public static class VariablesTexte
     private static string? Texte(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
     private static ValeurVariable V(string? texte) => new(Texte(texte), null);
+
+    /// <summary>« BDD : clients (Tables) 2.0 », dans l'ordre des systèmes de la MEP, puis par catégorie et par nom.</summary>
+    private static IEnumerable<string> ObjetsImpactes(Mep mep)
+    {
+        var rang = mep.Systemes.Select((s, i) => (s.Id, i)).ToDictionary(x => x.Id, x => x.i);
+        var noms = mep.Systemes.ToDictionary(s => s.Id, s => s.Nom);
+        return mep.ObjetsImpactes
+            .OrderBy(o => o.SystemeId is { } sid && rang.TryGetValue(sid, out var r) ? r : int.MaxValue)
+            .ThenBy(o => o.Categorie, StringComparer.CurrentCultureIgnoreCase).ThenBy(o => o.Nom, StringComparer.CurrentCultureIgnoreCase)
+            .Select(o =>
+            {
+                var texte = string.IsNullOrWhiteSpace(o.Categorie) ? o.Nom.Trim() : $"{o.Nom.Trim()} ({o.Categorie.Trim()})";
+                if (!string.IsNullOrWhiteSpace(o.Version)) texte += $" {o.Version.Trim()}";
+                return o.SystemeId is { } s && noms.TryGetValue(s, out var nom) ? $"{nom} : {texte}" : texte;
+            });
+    }
 
     private static ValeurVariable L(IEnumerable<string> elements)
     {
@@ -160,7 +178,12 @@ public static class VariablesTexte
                 .Select(x => string.IsNullOrWhiteSpace(x.r.Perimetre) ? x.p!.Nom : $"{x.p!.Nom} : {x.r.Perimetre.Trim()}")),
 
             ["systemes"] = L(mep.Systemes.Select(s => string.IsNullOrWhiteSpace(s.Impact) ? s.Nom : $"{s.Nom} : {UneLigne(s.Impact)}")),
-            ["livrables"] = L(mep.Livrables.Select(l => string.IsNullOrWhiteSpace(l.Version) ? l.Objet : $"{l.Objet} {l.Version.Trim()}")),
+            ["environnements"] = L(mep.Systemes.Where(s => s.Environnements.Count > 0)
+                .Select(s => $"{s.Nom} : {string.Join(", ", s.Environnements.Select(e => e.Nom))}")),
+            ["touche_production"] = V(mep.Systemes.Where(s => s.Environnements.Any(e => e.Production)).Select(s => s.Nom).ToList() is { Count: > 0 } prod
+                ? $"oui ({string.Join(", ", prod)})"
+                : mep.Systemes.Any(s => s.Environnements.Count > 0) ? "non" : null),
+            ["objets_impactes"] = L(ObjetsImpactes(mep)),
 
             ["reference_demande"] = V(c.ReferenceDemande),
             ["niveau_risque"] = V(c.NiveauRisque switch
@@ -247,8 +270,13 @@ public static class ModelesTexteFournis
             **Systèmes concernés**
             {{systemes}}
 
-            **Livrables**
-            {{livrables}}
+            **Environnements**
+            {{environnements}}
+
+            **Production touchée** : {{touche_production}}
+
+            **Objets impactés**
+            {{objets_impactes}}
 
             **Niveau de risque (analyse d'impact)** : {{niveau_risque}}
             **Validation par les utilisateurs** : {{validation_utilisateurs}}

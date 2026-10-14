@@ -53,7 +53,9 @@ public static partial class Regles
     /// Insère dans le plan (préparation) une copie d'une étape modèle : nouveau code, ligne donnée (absente : nouvelle ligne en
     /// bas), position donnée (absente : en fin de ligne), liens par défaut avec la ligne au-dessus et la ligne en dessous, jamais
     /// de point de non-retour. Les systèmes du modèle deviennent les systèmes de la MEP issus du même système du catalogue ;
-    /// ceux qui ne sont pas dans la MEP ne sont pas ajoutés et sont renvoyés (le front prévient). Seules les résolutions
+    /// ceux qui ne sont pas dans la MEP ne sont pas ajoutés et sont renvoyés (le front prévient). Un système de la MEP qui n'a
+    /// qu'un environnement le donne à la copie ; s'il en a plusieurs (ou aucun), la copie n'en a pas : à choisir dans l'étape,
+    /// comme pour une étape saisie. Les environnements ne font pas partie du modèle. Seules les résolutions
     /// <paramref name="resolutionsActives"/> sont reprises.
     /// </summary>
     public static (Etape Etape, List<Guid> SystemesAbsents) InsererEtapeModele(Mep mep, ModeleEtape modele, TypePlan plan, int? ligne, int? position,
@@ -75,6 +77,11 @@ public static partial class Regles
             ResolutionIds = modele.ResolutionIds.Where(resolutionsActives.Contains).ToList(),
             ModeleEtapeId = modele.Id,
         };
+        etape.Environnements = etape.SystemeIds
+            .Select(id => mep.Systemes.First(s => s.Id == id))
+            .Where(s => s.Environnements.Count == 1)
+            .Select(s => new EnvironnementEtape { SystemeId = s.Id, Nom = s.Environnements[0].Nom })
+            .ToList();
         DefinirType(etape, modele.Type, pointDeNonRetour: false);
         PlacerNouvelle(mep, etape, ligne, position);
         mep.Etapes.Add(etape);

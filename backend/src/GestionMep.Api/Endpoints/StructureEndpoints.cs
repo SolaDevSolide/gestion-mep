@@ -6,7 +6,8 @@ using GestionMep.Domain;
 namespace GestionMep.Api.Endpoints;
 
 /// <summary>
-/// Participants, systèmes et livrables : modifiables uniquement en préparation.
+/// Participants, responsables techniques et systèmes : modifiables uniquement en préparation (environnements et objets
+/// impactés des systèmes : <see cref="ObjetsImpactesEndpoints"/>).
 /// Chaque modification remet les approbations à zéro (<see cref="ServiceMep.EnregistrerContenu(Mep, Acteur, string, string)"/>).
 /// </summary>
 public static class StructureEndpoints
@@ -125,7 +126,8 @@ public static class StructureEndpoints
             var s = mep.Systemes.FirstOrDefault(x => x.Id == sid) ?? throw ErreurHttp.NonTrouve("Système introuvable.");
             var etape = mep.EtapesTriees().FirstOrDefault(e => e.SystemeIds.Contains(sid));
             if (etape is not null) throw new RegleMetierException($"Le système {s.Nom} est utilisé par {etape.Code} : changer le système de l'étape d'abord.");
-            foreach (var l in mep.Livrables.Where(l => l.SystemeId == sid)) l.SystemeId = null;
+            // Ses objets impactés partent avec lui (ce sont des objets de ce système).
+            foreach (var o in mep.ObjetsImpactes.Where(o => o.SystemeId == sid).ToList()) mep.ObjetsImpactes.Remove(o);
             // Ses fiches de recette sont gardées, sans système : elles restent modifiables et se rattachent à un autre système.
             if (mep.FichesRecette.Any(f => f.SystemeId == sid))
                 mep.FichesRecette = mep.FichesRecette.Select(f => { if (f.SystemeId == sid) f.SystemeId = null; return f; }).ToList();
@@ -133,39 +135,6 @@ public static class StructureEndpoints
                 mep.ResponsablesTechniques = mep.ResponsablesTechniques.Select(r => { r.SystemeIds = r.SystemeIds.Where(x => x != sid).ToList(); return r; }).ToList();
             mep.Systemes.Remove(s);
             return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.supprime", $"Système supprimé : {s.Nom}");
-        })));
-
-        // ---------- Livrables ----------
-        api.MapPost("/meps/{id:guid}/livrables", async (Guid id, LivrableSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
-        {
-            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
-            Regles.ExigerPreparation(mep);
-            var objet = Requis(c.Objet, "L'objet");
-            ServiceMep.ExigerSystemeExistant(mep, c.SystemeId);
-            mep.Livrables.Add(new Livrable { MepId = mep.Id, Objet = objet, Version = ServiceMep.Texte(c.Version), Emplacement = ServiceMep.Texte(c.Emplacement), SystemeId = c.SystemeId });
-            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "livrable.ajoute", $"Livrable ajouté : {objet}");
-        })));
-
-        api.MapPut("/meps/{id:guid}/livrables/{lid:guid}", async (Guid id, Guid lid, LivrableSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
-        {
-            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
-            Regles.ExigerPreparation(mep);
-            var l = mep.Livrables.FirstOrDefault(x => x.Id == lid) ?? throw ErreurHttp.NonTrouve("Livrable introuvable.");
-            l.Objet = Requis(c.Objet, "L'objet");
-            ServiceMep.ExigerSystemeExistant(mep, c.SystemeId);
-            l.Version = ServiceMep.Texte(c.Version);
-            l.Emplacement = ServiceMep.Texte(c.Emplacement);
-            l.SystemeId = c.SystemeId;
-            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "livrable.modifie", $"Livrable modifié : {l.Objet}");
-        })));
-
-        api.MapDelete("/meps/{id:guid}/livrables/{lid:guid}", async (Guid id, Guid lid, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
-        {
-            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
-            Regles.ExigerPreparation(mep);
-            var l = mep.Livrables.FirstOrDefault(x => x.Id == lid) ?? throw ErreurHttp.NonTrouve("Livrable introuvable.");
-            mep.Livrables.Remove(l);
-            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "livrable.supprime", $"Livrable supprimé : {l.Objet}");
         })));
     }
 }

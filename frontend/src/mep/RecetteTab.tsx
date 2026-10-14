@@ -5,6 +5,7 @@ import { api } from '../api';
 import { AuthContext } from '../auth';
 import { bilanRecette, fichesRecetteTriees } from '../domaine';
 import { useMep } from '../mepContext';
+import { telecharger } from '../telechargement';
 import type { Systeme } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
@@ -27,16 +28,6 @@ import { SectionSysteme } from './recette/SectionSysteme';
  * Sous-composants dans `./recette/`.
  */
 const INITIAL_AJOUT = { titre: '' };
-
-/** Télécharge un fichier servi par l'API (le navigateur reste sur la page). */
-function telecharger(url: string) {
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = '';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
 
 export default function RecetteTab() {
   const { mep, run } = useMep();

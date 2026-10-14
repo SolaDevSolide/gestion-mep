@@ -1,10 +1,13 @@
-import { Library, Package, Pencil, Plus, Trash2, UserRound, Users, Layers } from 'lucide-react';
-import { useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Library, Pencil, Plus, Server, Trash2, UserRound, Users, Layers } from 'lucide-react';
+import { useContext, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { AuthContext } from '../../auth';
 import { useMep } from '../../mepContext';
 import { filtrerParEquipe } from '../../personnes';
-import type { Equipe, Livrable, Participant, Systeme, SystemeCatalogue, Utilisateur } from '../../types';
+import { ENVIRONNEMENTS, memeEnvironnement, nomDeProduction } from '../../environnements';
+import type { Equipe, Participant, Systeme, SystemeCatalogue, Utilisateur } from '../../types';
+import { cn } from '../../ui/cn';
 import { Avatar } from '../../ui/Avatar';
 import { Badge } from '../../ui/StatusPill';
 import { BoutonIcone, Button } from '../../ui/Button';
@@ -16,12 +19,24 @@ import { Tooltip } from '../../ui/Tooltip';
 import { FormulaireDialog, SectionCarte, vide, type ChampForm } from './Formulaires';
 import { participantDepuisCompte } from './suggestions';
 
-function Ligne({ gauche, centre, actions }: { gauche: ReactNode; centre?: ReactNode; actions?: ReactNode }) {
+function Ligne({
+  gauche,
+  centre,
+  actions,
+  bas,
+}: {
+  gauche: ReactNode;
+  centre?: ReactNode;
+  actions?: ReactNode;
+  /** Ligne pleine largeur sous la ligne principale. */
+  bas?: ReactNode;
+}) {
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
       <div className="flex min-w-0 flex-1 basis-56 items-center gap-3">{gauche}</div>
       {centre && <div className="min-w-0 flex-1 basis-56 text-sm text-fg-muted">{centre}</div>}
       <div className="flex shrink-0 items-center gap-1">{actions}</div>
+      {bas && <div className="basis-full">{bas}</div>}
     </li>
   );
 }
@@ -298,7 +313,7 @@ export function SystemesSection() {
     <SectionCarte
       numero={3}
       titre="Systèmes"
-      description="Systèmes touchés, cible et impact."
+      description="Systèmes touchés, cible, impact et environnements touchés par la MEP sur chacun."
       action={
         edition && (
           <Button taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={() => setForme({})}>
@@ -379,6 +394,13 @@ export function SystemesSection() {
                   <Actions nom={s.nom} onModifier={() => setForme({ existant: s })} onSupprimer={() => setSuppr(s)} />
                 )
               }
+              bas={
+                <EnvironnementsSysteme
+                  systeme={s}
+                  fiche={s.catalogueId ? (catalogue.find((c) => c.id === s.catalogueId) ?? null) : null}
+                  edition={edition}
+                />
+              }
             />
           ))}
         </Liste>
@@ -411,7 +433,7 @@ export function SystemesSection() {
           if (!o) setSuppr(null);
         }}
         titre={`Retirer ${suppr?.nom ?? ''} ?`}
-        description="Impossible si une étape utilise ce système. Les livrables rattachés seront détachés."
+        description="Impossible si une étape utilise ce système. Ses objets impactés sont retirés de la MEP."
         libelleConfirmer="Retirer"
         variante="danger"
         onConfirmer={() => (suppr ? run(() => api.supprimerSysteme(mep.id, suppr.id), 'Système retiré.') : false)}
@@ -420,120 +442,120 @@ export function SystemesSection() {
   );
 }
 
-/* ------------------------------------------------------------------ Livrables */
-
-export function LivrablesSection() {
+/**
+ * Environnements touchés par la MEP sur un système : ceux de sa fiche au catalogue, ou, pour un système libre, des
+ * suggestions et une saisie libre. Un environnement déjà choisi puis retiré de la fiche reste affiché pour être décoché.
+ */
+function EnvironnementsSysteme({
+  systeme,
+  fiche,
+  edition,
+}: {
+  systeme: Systeme;
+  fiche: SystemeCatalogue | null;
+  edition: boolean;
+}) {
   const { mep, run } = useMep();
-  const edition = mep.droits.peutEditerContenu;
-  const [forme, setForme] = useState<{ existant?: Livrable } | null>(null);
-  const [suppr, setSuppr] = useState<Livrable | null>(null);
-  const initial = useMemo(
-    () => ({
-      objet: forme?.existant?.objet ?? '',
-      version: forme?.existant?.version ?? '',
-      emplacement: forme?.existant?.emplacement ?? '',
-      systemeId: forme?.existant?.systemeId ?? '',
-    }),
-    [forme],
-  );
+  const [autre, setAutre] = useState('');
+  const [envoi, setEnvoi] = useState(false);
+  const libre = !systeme.catalogueId;
+  const proposes: { nom: string; production: boolean; cible?: string }[] = libre
+    ? ENVIRONNEMENTS.map((nom) => ({ nom, production: nomDeProduction(nom) }))
+    : (fiche?.environnements ?? []);
+  const options: { nom: string; production: boolean; cible?: string }[] = [
+    ...proposes,
+    ...systeme.environnements.filter((e) => !proposes.some((p) => memeEnvironnement(p.nom, e.nom))),
+  ];
+  const choisi = (nom: string) => systeme.environnements.some((e) => memeEnvironnement(e.nom, nom));
+
+  async function definir(noms: string[]) {
+    setEnvoi(true);
+    // Ordre stable : celui des options (fiche du catalogue ou suggestions), les ajouts libres à la fin.
+    const ordre = (n: string) => {
+      const i = options.findIndex((o) => memeEnvironnement(o.nom, n));
+      return i < 0 ? options.length : i;
+    };
+    await run(
+      () =>
+        api.environnementsSysteme(
+          mep.id,
+          systeme.id,
+          [...noms].sort((a, b) => ordre(a) - ordre(b)),
+        ),
+      `Environnements de ${systeme.nom} enregistrés.`,
+    );
+    setEnvoi(false);
+  }
+  const basculer = (nom: string) =>
+    void definir(
+      choisi(nom)
+        ? systeme.environnements.filter((e) => !memeEnvironnement(e.nom, nom)).map((e) => e.nom)
+        : [...systeme.environnements.map((e) => e.nom), nom],
+    );
+  function ajouterAutre(e: FormEvent) {
+    e.preventDefault();
+    const nom = autre.trim();
+    if (!nom || choisi(nom)) return;
+    setAutre('');
+    void definir([...systeme.environnements.map((x) => x.nom), nom]);
+  }
 
   return (
-    <SectionCarte
-      numero={5}
-      titre="Livrables"
-      description="Ce qui est déployé, version et emplacement."
-      action={
-        edition && (
-          <Button
-            variante="primaire"
-            taille="sm"
-            icone={<Plus className="size-4" aria-hidden />}
-            onClick={() => setForme({})}
-          >
-            Ajouter
-          </Button>
-        )
-      }
+    <div
+      className="flex flex-wrap items-center gap-1.5 text-xs"
+      role="group"
+      aria-label={`Environnements de ${systeme.nom}`}
     >
-      {mep.livrables.length === 0 ? (
-        <EmptyState
-          icone={Package}
-          titre="Aucun livrable"
-          description="Listez ce qui sera déployé pour que tout le monde parle du même paquet."
-        />
-      ) : (
-        <Liste>
-          {mep.livrables.map((l) => (
-            <Ligne
-              key={l.id}
-              gauche={
-                <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-2 font-medium">
-                    {l.objet}
-                    {l.version && <Badge className="font-mono">{l.version}</Badge>}
-                  </p>
-                  <p className="truncate text-xs text-fg-subtle">
-                    {mep.systemes.find((s) => s.id === l.systemeId)?.nom ?? 'Aucun système rattaché'}
-                  </p>
-                </div>
-              }
-              centre={<p className="truncate font-mono text-[13px]">{l.emplacement || '—'}</p>}
-              actions={
-                edition && (
-                  <Actions nom={l.objet} onModifier={() => setForme({ existant: l })} onSupprimer={() => setSuppr(l)} />
-                )
-              }
-            />
-          ))}
-        </Liste>
+      <span className="mr-1 inline-flex items-center gap-1 text-fg-subtle">
+        <Server className="size-3.5" aria-hidden />
+        Environnements
+      </span>
+      {options.length === 0 && (
+        <span className="text-fg-subtle">
+          Aucun environnement dans la fiche du catalogue.{' '}
+          {systeme.catalogueId && (
+            <Link to={`/parametres/systemes/${systeme.catalogueId}`} className="text-accent-text underline">
+              Compléter la fiche {systeme.nom}
+            </Link>
+          )}
+        </span>
       )}
-      <FormulaireDialog
-        open={forme !== null}
-        onOpenChange={(o) => {
-          if (!o) setForme(null);
-        }}
-        titre={forme?.existant ? 'Modifier le livrable' : 'Ajouter un livrable'}
-        champs={[
-          { cle: 'objet', label: 'Objet', requis: true, placeholder: 'ex. Archive applicative' },
-          { cle: 'version', label: 'Version' },
-          { cle: 'emplacement', label: 'Emplacement', large: true, placeholder: 'chemin, dépôt ou URL interne' },
-          {
-            cle: 'systemeId',
-            label: 'Système concerné',
-            type: 'select',
-            large: true,
-            options: [
-              { valeur: '', libelle: '— aucun —' },
-              ...mep.systemes.map((s) => ({ valeur: s.id, libelle: s.nom })),
-            ],
-          },
-        ]}
-        initial={initial}
-        libelleValider={forme?.existant ? 'Enregistrer' : 'Ajouter'}
-        onValider={(v) => {
-          const s = {
-            objet: v.objet.trim(),
-            version: v.version.trim(),
-            emplacement: v.emplacement.trim(),
-            systemeId: vide(v.systemeId),
-          };
-          const ex = forme?.existant;
-          return run(
-            () => (ex ? api.modifierLivrable(mep.id, ex.id, s) : api.ajouterLivrable(mep.id, s)),
-            ex ? 'Livrable modifié.' : 'Livrable ajouté.',
-          );
-        }}
-      />
-      <ConfirmDialog
-        open={suppr !== null}
-        onOpenChange={(o) => {
-          if (!o) setSuppr(null);
-        }}
-        titre={`Supprimer ${suppr?.objet ?? ''} ?`}
-        libelleConfirmer="Supprimer"
-        variante="danger"
-        onConfirmer={() => (suppr ? run(() => api.supprimerLivrable(mep.id, suppr.id), 'Livrable supprimé.') : false)}
-      />
-    </SectionCarte>
+      {options.map((o) => {
+        const actif = choisi(o.nom);
+        return (
+          <button
+            key={o.nom}
+            type="button"
+            disabled={!edition || envoi}
+            aria-pressed={actif}
+            title={o.cible ? `${o.nom} : ${o.cible}` : o.nom}
+            onClick={() => basculer(o.nom)}
+            className={cn(
+              'rounded-full border px-2.5 py-0.5 font-medium transition-colors duration-150 disabled:cursor-default',
+              actif
+                ? o.production
+                  ? 'border-warn-bd bg-warn-bg text-warn-fg'
+                  : 'border-accent bg-accent-soft text-accent-text'
+                : 'border-line bg-surface text-fg-subtle enabled:hover:border-line-strong enabled:hover:text-fg',
+              !edition && !actif && 'hidden',
+            )}
+          >
+            {o.nom}
+          </button>
+        );
+      })}
+      {!edition && systeme.environnements.length === 0 && <span className="text-warn-solid">aucun choisi</span>}
+      {edition && libre && (
+        <form onSubmit={ajouterAutre} className="inline-flex">
+          <Input
+            value={autre}
+            onChange={(e) => setAutre(e.target.value)}
+            placeholder="Autre…"
+            aria-label={`Autre environnement pour ${systeme.nom}`}
+            className="h-6 w-28 px-2 text-xs"
+          />
+        </form>
+      )}
+    </div>
   );
 }

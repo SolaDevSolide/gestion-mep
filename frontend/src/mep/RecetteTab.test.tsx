@@ -184,8 +184,26 @@ describe('Onglet Recette', () => {
       modele('r2', 'Droits applicatifs', 'c-bdd'),
     ]);
     vi.mocked(api.catalogueSystemes).mockResolvedValue([
-      { id: 'c-web', nom: 'WEB', description: '', cible: '', actif: true },
-      { id: 'c-bdd', nom: 'BDD', description: '', cible: '', actif: true },
+      {
+        id: 'c-web',
+        nom: 'WEB',
+        description: '',
+        cible: '',
+        actif: true,
+        environnements: [],
+        categories: [],
+        nbObjets: 0,
+      },
+      {
+        id: 'c-bdd',
+        nom: 'BDD',
+        description: '',
+        cible: '',
+        actif: true,
+        environnements: [],
+        categories: [],
+        nbObjets: 0,
+      },
     ]);
     const { run } = rendre(mep({ phase: 'Preparation', systemes, droits: droitsEdition }));
     await userEvent.click(screen.getByRole('button', { name: 'Ajouter une fiche WEB depuis la bibliothèque' }));
@@ -245,7 +263,16 @@ describe('Onglet Recette', () => {
 
     it('« Enregistrer comme modèle » copie la fiche dans la bibliothèque avec le système du catalogue', async () => {
       vi.mocked(api.catalogueSystemes).mockResolvedValue([
-        { id: 'c-bdd', nom: 'BDD', description: '', cible: '', actif: true },
+        {
+          id: 'c-bdd',
+          nom: 'BDD',
+          description: '',
+          cible: '',
+          actif: true,
+          environnements: [],
+          categories: [],
+          nbObjets: 0,
+        },
       ]);
       vi.mocked(api.modeleDepuisFiche).mockResolvedValue(modele('r9', 'Tables clients', 'c-bdd'));
       rendre(
