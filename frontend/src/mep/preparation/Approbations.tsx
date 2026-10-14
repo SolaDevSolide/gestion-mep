@@ -105,7 +105,7 @@ export function ApprobationsBloc() {
   const compteDuPilote = participantPar(mep, mep.piloteId)?.utilisateurId ?? null;
   const idsDesignes = useMemo(() => mep.approbations.map((a) => a.utilisateurId), [mep.approbations]);
   const d = useDraft(idsDesignes);
-  useReportDirty(d.dirty);
+  useReportDirty(d.dirty, 'Approbateurs');
 
   const options = (utilisateurs ?? [])
     .filter((u) => u.id !== compteDuPilote)

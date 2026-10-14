@@ -50,7 +50,7 @@ function deplacer<T>(liste: T[], i: number, delta: number): T[] {
 export function FicheEdition({ fiche }: { fiche: FicheRecette }) {
   const { mep, run } = useMep();
   const d = useDraft(brouillonDe(fiche));
-  useReportDirty(d.dirty);
+  useReportDirty(d.dirty, `Fiche de recette « ${fiche.titre || 'sans titre'} »`);
   const v = d.value;
   const compteur = useRef(0);
   const [suppr, setSuppr] = useState(false);

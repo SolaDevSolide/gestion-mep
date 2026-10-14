@@ -1,4 +1,5 @@
 import type { KeyboardEvent } from 'react';
+import { MarquePresence, useEditeurs } from '../../presence';
 import type { Etape, Mep } from '../../types';
 import { cn } from '../../ui/cn';
 import { CarteEtape, libelleCarte, type ModeGraphe } from './CarteEtape';
@@ -33,6 +34,7 @@ export function NoeudEtape({
   onClavier,
   onActiver,
 }: Props) {
+  const editeurs = useEditeurs(`etape:${e.id}`);
   return (
     <div
       data-noeud={e.id}
@@ -59,7 +61,7 @@ export function NoeudEtape({
         onClick={(ev) => {
           if (ev.detail === 0) onActiver();
         }}
-        className={cn('rounded-lg', edition ? 'cursor-grab' : 'cursor-pointer')}
+        className={cn('relative rounded-lg', edition ? 'cursor-grab' : 'cursor-pointer')}
       >
         <CarteEtape
           mep={mep}
@@ -70,6 +72,7 @@ export function NoeudEtape({
           estompee={estompee}
           cible={cible}
         />
+        <MarquePresence editeurs={editeurs} />
       </div>
       {edition && (
         <span

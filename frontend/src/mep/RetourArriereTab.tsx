@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { api } from '../api';
 import { useDraft, useReportDirty } from '../hooks';
 import { useMep } from '../mepContext';
+import { ZonePresence } from '../presence';
 import type { PlanRepli } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { AvisConflit } from '../ui/AvisConflit';
@@ -16,7 +17,7 @@ import { ExecutionVue } from './ExecutionVue';
 function FichePlan() {
   const { mep, run } = useMep();
   const d = useDraft<PlanRepli>(mep.planRepli);
-  useReportDirty(d.dirty);
+  useReportDirty(d.dirty, 'Fiche du plan de retour arrière');
   const v = d.value;
   const edition = mep.droits.peutEditerContenu;
 
@@ -166,7 +167,13 @@ export default function RetourArriereTab() {
 
   return (
     <div className="mx-auto w-full max-w-[1700px] space-y-6 px-6 py-6">
-      {prep ? <FichePlan /> : <FicheLecture />}
+      {prep ? (
+        <ZonePresence cle="retour:fiche">
+          <FichePlan />
+        </ZonePresence>
+      ) : (
+        <FicheLecture />
+      )}
 
       {mep.nonRetourFranchi && mep.phase !== 'RetourArriere' && (
         <Alerte ton="warn" icone={Flag} titre="Retour arrière impossible : point de non-retour franchi" role="status">

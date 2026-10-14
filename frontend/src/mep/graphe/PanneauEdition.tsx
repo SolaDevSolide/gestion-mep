@@ -6,6 +6,8 @@ import { nomParticipant } from '../../domaine';
 import { LIBELLE_CRITICITE, LIBELLE_FIN } from '../../format';
 import { construireLignes, indexLignes, type Lien } from '../../graphe';
 import { useDraft, useReportDirty } from '../../hooks';
+import { libelleEditeurs, useEditeurs, usePresenceElement } from '../../presence';
+import { couleurPersonne } from '../../ui/Avatar';
 import { useMep } from '../../mepContext';
 import type {
   Criticite,
@@ -167,8 +169,11 @@ export function PanneauEdition(props: Props) {
   const { run } = useMep();
   const navigate = useNavigate();
   const d = useDraft<Fiche>(ficheDepuis(etape));
-  useReportDirty(d.dirty);
+  useReportDirty(d.dirty, `Étape ${etape.code}`);
   useEffect(() => onDirty?.(d.dirty), [onDirty, d.dirty]);
+  // Présence : l'étape ouverte en édition est signalée aux autres, et on voit qui d'autre la modifie.
+  usePresenceElement(`etape:${etape.id}`, modifiable);
+  const editeurs = useEditeurs(`etape:${etape.id}`);
   const v = d.value;
   const [suppr, setSuppr] = useState(false);
   const [garde, setGarde] = useState<{ cible: string | null } | null>(null);
@@ -310,6 +315,16 @@ export function PanneauEdition(props: Props) {
       {anomalies.length > 0 && (
         <p className="flex items-center gap-1.5 text-xs text-warn-fg">
           <TriangleAlert className="size-3.5" aria-hidden />À compléter : {anomalies.join(', ')}.
+        </p>
+      )}
+      {editeurs.length > 0 && (
+        <p role="status" className="flex items-center gap-1.5 text-xs font-medium text-fg-muted">
+          <span
+            className="size-2 rounded-full"
+            style={{ backgroundColor: couleurPersonne(editeurs[0].nom) }}
+            aria-hidden
+          />
+          {libelleEditeurs(editeurs)} aussi cette étape : enregistrez au fur et à mesure pour ne pas vous croiser.
         </p>
       )}
       <AvisConflit brouillon={d} />

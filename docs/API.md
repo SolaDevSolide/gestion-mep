@@ -15,7 +15,8 @@ L'interface web s'appuie entièrement sur une API HTTP JSON. Cette page en donne
 - **Protection CSRF** : toute requête qui modifie (autre que `GET`, `HEAD`, `OPTIONS`) doit porter l'en-tête `X-Requested-With` (valeur libre), sinon 403.
 - **Réponse des écritures** : une modification d'une MEP renvoie la MEP complète, recalculée pour l'utilisateur courant (états des étapes, anomalies du plan, droits).
 - **Concurrence** : chaque MEP porte une `version` et chaque étape une `revision`. Le client renvoie celle qu'il a lue ; si la ressource a changé entre-temps, la réponse est 409 et il faut relire. Une écriture qui croise seulement une autre écriture sur la même MEP (sur une autre étape, par exemple) est rejouée automatiquement par le serveur : elle n'aboutit en 409 que si ce qu'elle exige (révision de l'étape, version de la MEP) a réellement changé.
-- **Temps réel** : `GET /api/meps/{id}/flux` est un flux Server-Sent Events. Il envoie `event: maj` avec `data: {"version": n}` à chaque modification ; le client relit alors la MEP.
+- **Temps réel** : `GET /api/meps/{id}/flux?session={onglet}` est un flux Server-Sent Events. Il envoie `event: maj` avec `data: {"version": n}` à chaque modification (le client relit alors la MEP) et `event: presence` avec la liste des personnes qui ont la MEP ouverte, à l'ouverture puis à chaque changement : `[{"utilisateurId": "…", "nom": "Bob Martin", "elements": ["etape:…"]}]`. `session` (facultatif, 64 caractères au plus) identifie l'onglet du navigateur.
+- **Présence** : informative, elle ne verrouille rien et vit avec le flux (fermer l'onglet la retire). `PUT /api/meps/{id}/presence` avec `{ session, elements }` déclare les éléments sur lesquels travaille l'onglet dont le flux est ouvert (liste vide : aucun) : 204, 404 si aucun flux de ce compte n'est ouvert avec cette session, 400 si une clé est invalide (10 au plus, 100 caractères au plus, lettres, chiffres, `:`, `-`, `_`, `.`). Clés utilisées par le front : `etape:{id}`, `preparation:{section}`, `retour:fiche`, `recette:{idFiche}`. `GET /api/meps/{id}/presence` renvoie la même liste que l'événement.
 - **Journal** : toute écriture est inscrite dans le journal de la MEP (`GET /api/meps/{id}/journal`).
 
 ## Codes de réponse
@@ -39,7 +40,7 @@ Les erreurs ont pour corps `{ "message": "…" }`, une phrase en français desti
 |---|---|
 | `/api/auth` | Connexion, déconnexion, utilisateur courant, changement de mot de passe ; options de la page de connexion et connexion unique (`/api/auth/sso/…` : départ vers le fournisseur, liaison depuis le profil). |
 | `/api/utilisateurs` | Liste des comptes (pour relier une personne à un compte) et profils. |
-| `/api/meps` | MEP : création, duplication, préparation (participants, systèmes, livrables, sauvegarde, étapes, approbations, recette), exécution (démarrer, terminer, prendre la main, résolutions), phases, retour arrière, clôture, pièces jointes, journal, flux. |
+| `/api/meps` | MEP : création, duplication, préparation (participants, systèmes, livrables, sauvegarde, étapes, approbations, recette), exécution (démarrer, terminer, prendre la main, résolutions), phases, retour arrière, clôture, pièces jointes, journal, flux et présence. |
 | `/api/catalogue/systemes` | Catalogue global des systèmes. |
 | `/api/resolutions` | Résolutions types et leurs versions. |
 | `/api/parametres`, `/api/criteres-go-no-go` | Paramètres globaux. |

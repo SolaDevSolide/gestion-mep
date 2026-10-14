@@ -3,6 +3,7 @@ import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
 import { BandeauDemo } from './layout/BandeauDemo';
+import { GardeModifications } from './layout/GardeModifications';
 import { NouvelleVersion } from './layout/NouvelleVersion';
 import { Shell } from './layout/Shell';
 import ConnexionPage from './pages/ConnexionPage';
@@ -34,7 +35,11 @@ function Protege() {
   if (chargement) return <Chargement />;
   if (!utilisateur) return <Navigate to="/connexion" replace />;
   if (utilisateur.doitChangerMotDePasse) return <MotDePasseObligatoirePage />;
-  return <Shell />;
+  return (
+    <GardeModifications>
+      <Shell />
+    </GardeModifications>
+  );
 }
 
 export default function App() {

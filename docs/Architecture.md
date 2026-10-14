@@ -49,7 +49,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 | `Services/Dtos.cs` | Contrats d'entrée (`…Saisie`) et de sortie (`…Dto`). |
 | `Services/DocumentationOpenApi.cs` | Description OpenAPI servie sur `/api/openapi.json`, copiée dans `docs/openapi.json` pour générer les types du front. |
 | `Services/ErreurHttp.cs` | Erreurs HTTP explicites et middleware qui traduit les exceptions en `{ "message": "…" }`. |
-| `Services/DiffuseurMep.cs` | Diffusion en mémoire de la dernière version de chaque MEP aux abonnés du flux SSE. |
+| `Services/DiffuseurMep.cs` | Diffusion en mémoire aux abonnés du flux SSE : dernière version de chaque MEP et présence (personnes connectées au flux, éléments déclarés par chaque onglet). La présence vit avec la connexion : un onglet fermé la retire. |
 | `Services/SurveillanceEcheances.cs` | Tâche de fond : chaque minute, bascule en retour arrière les MEP dont l'échéance est atteinte (plan de retour arrière activé). |
 | `Services/StockagePiecesJointes.cs` | Écriture, lecture et suppression des fichiers joints ; fichiers sans enregistrement en base mis de côté au démarrage. |
 | `Services/MisesAJour.cs` | Version en cours, vérification des versions publiées sur GitHub et dialogue avec le service facultatif de mise à jour (fichiers dans un volume partagé). |
@@ -110,7 +110,10 @@ React 19 + TypeScript 7 + Vite, Tailwind CSS 4 et primitives Radix. Le détail d
 - Une page par route (`src/pages`, `src/parametres`), les onglets d'une MEP dans `src/mep`.
 - La logique pure (graphe, disponibilité, recherche, blocs d'instructions, formats) est isolée dans des modules testés sans DOM : `graphe.ts`, `domaine.ts`, `recherche.ts`, `blocs.ts`, `format.ts`.
 - Toute action passe par `MepContext.run`, qui appelle l'API, remplace la MEP par la réponse et gère les conflits.
-- Temps réel : un `EventSource` par MEP ouverte reçoit la nouvelle version, et le front recharge la MEP si elle est plus récente que la sienne. Une saisie en cours n'est jamais écrasée : un bandeau propose de recharger.
+- Onglets d'une MEP (`mep/onglets.ts`) : Préparation, Plan (sous-onglets Étapes, Retour arrière, Recette, dans `?onglet=plan&plan=…`), Exécution, Journal ; les anciennes adresses `?onglet=etapes|retour|recette` sont réécrites.
+- Temps réel : un `EventSource` par MEP ouverte reçoit la nouvelle version, et le front relit et affiche aussitôt la MEP si elle est plus récente que la sienne. Une saisie en cours n'est jamais écrasée : chaque formulaire garde son brouillon (`useDraft`) et signale un changement de sa section survenu pendant la saisie (`AvisConflit`).
+- Présence (`presence.tsx`) : le même flux reçoit la présence. Un composant déclare l'élément sur lequel on travaille (`usePresenceElement`, ou `ZonePresence` qui le déclare tant que le focus y est ou qu'une saisie y attend) ; `MepPage` regroupe les déclarations de l'onglet et les envoie (`PUT …/presence`), et les redéclare à chaque réouverture du flux. `MarquePresence` encadre un élément modifié par quelqu'un d'autre ; la couleur d'une personne (`couleurPersonne`) est celle de son avatar.
+- Modifications non enregistrées : les formulaires se signalent par `useReportDirty(dirty, libellé)` ; `GardeModifications` (autour des pages connectées) retient toute navigation qui change de vue (autre page, onglet ou sous-onglet) avec `useBlocker` (routeur de données `createBrowserRouter`) et ouvre « Quitter sans enregistrer ? » avec la liste des libellés ; `beforeunload` couvre la fermeture et le rechargement.
 
 ## Tests
 

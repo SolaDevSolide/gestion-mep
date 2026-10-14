@@ -134,7 +134,7 @@ export function EtapeInstructions({ mep, etape, droits, liees, enCours, actions 
           }
           action={
             mep.phase === 'RetourArriere' ? (
-              <Link to="?onglet=retour" className="font-semibold underline">
+              <Link to="?onglet=plan&plan=retour" className="font-semibold underline">
                 Ouvrir l’onglet Retour arrière
               </Link>
             ) : undefined

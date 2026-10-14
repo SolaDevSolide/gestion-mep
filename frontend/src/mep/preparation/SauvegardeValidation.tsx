@@ -25,7 +25,7 @@ function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
   const { mep, run } = useMep();
   const edition = mep.droits.peutEditerContenu;
   const d = useDraft(systeme.sauvegarde);
-  useReportDirty(d.dirty);
+  useReportDirty(d.dirty, `Sauvegarde de ${systeme.nom}`);
   const v = d.value;
   const manqueEtape = mep.erreursPlan.some((e) => e.startsWith(`Sauvegarde de ${systeme.nom} pendant la MEP`));
   const invalide = v.statut === 'ARenseigner' || (v.statut === 'NonRequise' && !v.justification.trim());
@@ -186,7 +186,7 @@ function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
 export function SauvegardeSection() {
   const { mep, run } = useMep();
   const d = useDraft(mep.sauvegarde);
-  useReportDirty(d.dirty);
+  useReportDirty(d.dirty, 'Sauvegarde');
   const v = d.value;
   // Après la préparation, seuls le pilote et ses suppléants complètent les preuves ; plus personne une fois la MEP clôturée.
   const editable = mep.droits.peutEditerContenu || (mep.droits.estPilote && mep.phase !== 'Cloturee');

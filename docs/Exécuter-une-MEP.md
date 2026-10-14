@@ -7,7 +7,7 @@ Cette page s'adresse au **pilote**, à ses **suppléants** et aux **opérateurs*
 1. Vérifier que le plan est complet (« Vérifier le plan » : aucune anomalie) et que les approbations sont données.
 2. Le pilote ou un suppléant ouvre « Go / no-go », coche les critères (équipe présente, sauvegarde disponible, utilisateurs prévenus…) et clique « Go : passer en exécution ». S'il manque quelque chose, « No-go » avec un motif laisse la MEP en préparation.
 
-À partir du Go, si la MEP a une échéance de retour arrière, l'en-tête affiche le compte à rebours « Retour arrière dans… », orange à moins d'une heure de l'échéance. À l'échéance, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi. Une MEP sans échéance n'a ni compte à rebours ni déclenchement automatique ; une MEP sans plan de retour arrière n'a ni onglet Retour arrière, ni bouton « Déclencher le retour arrière » (voir [Préparer une MEP](Préparer-une-MEP.md#retour-arrière-facultatif)).
+À partir du Go, si la MEP a une échéance de retour arrière, l'en-tête affiche le compte à rebours « Retour arrière dans… », orange à moins d'une heure de l'échéance. À l'échéance, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi. Une MEP sans échéance n'a ni compte à rebours ni déclenchement automatique ; une MEP sans plan de retour arrière n'a ni sous-onglet Plan › Retour arrière, ni bouton « Déclencher le retour arrière » (voir [Préparer une MEP](Préparer-une-MEP.md#retour-arrière-facultatif)).
 
 ## L'onglet Exécution
 
@@ -88,7 +88,7 @@ Tant que le point de non-retour n'est pas franchi et qu'aucune étape ni résolu
 ## Recette et clôture
 
 1. Quand toutes les étapes de déploiement ont réussi, le pilote clique **« Passer en recette »**.
-2. Dans l'onglet **Recette**, chaque étape de test est déclarée « Conforme » ou « Échec » avec une observation, par toute personne de la MEP reliée à un compte. Le pilote peut faire refaire un test ou une fiche.
+2. Dans **Plan › Recette** (la MEP s'y ouvre pendant la recette), chaque étape de test est déclarée « Conforme » ou « Échec » avec une observation, par toute personne de la MEP reliée à un compte. Le pilote peut faire refaire un test ou une fiche.
 3. Quand tout est conforme, le pilote clique **« Clôturer : MEP réussie »** et rédige le bilan.
 
 Si la recette révèle un problème, que la MEP a un plan de retour arrière et que le point de non-retour n'est pas franchi, le pilote peut encore déclencher le retour arrière.
@@ -96,7 +96,7 @@ Si la recette révèle un problème, que la MEP a un plan de retour arrière et 
 ## Retour arrière
 
 - **Déclencher le retour arrière** (pilote ou suppléant, motif obligatoire) arrête le déploiement. Un bandeau rouge l'indique à tous, avec son motif et son auteur (« Déclenchement automatique » s'il vient de l'échéance ou d'une résolution).
-- L'onglet **Retour arrière** déroule son propre plan, étape par étape, comme l'exécution.
+- **Plan › Retour arrière** (la MEP s'y ouvre pendant un retour arrière) déroule son propre plan, étape par étape, comme l'exécution.
 - Quand toutes ses étapes ont réussi, le pilote clique **« Service rétabli : clôturer »** et rédige le bilan. La MEP est clôturée comme repliée.
 
 ## Le journal
@@ -109,4 +109,4 @@ En tête du journal, l'encadré **Tests unitaires** compte les tests faits et no
 
 ## Travailler à plusieurs
 
-Les écrans se mettent à jour tout seuls pour tous les participants. Si une modification arrive pendant que vous saisissez quelque chose, un bandeau propose de recharger plutôt que d'écraser votre saisie. Si deux personnes modifient la même chose en même temps, la seconde est prévenue et la MEP est rechargée. Plusieurs personnes peuvent en revanche agir au même instant sur des étapes différentes (démarrer, terminer, commenter) : toutes les actions sont prises en compte, sans message ni rechargement.
+Les écrans se mettent à jour tout seuls pour tous les participants, sans recharger. En haut de la MEP, « Sur cette MEP : » montre qui d'autre l'a ouverte ; l'élément qu'une personne modifie est encadré de sa couleur avec l'étiquette « Prénom modifie » (voir [Préparer à plusieurs](Préparer-une-MEP.md#préparer-à-plusieurs)). Une saisie en cours n'est jamais écrasée : si sa section change entre-temps, un avertissement laisse choisir entre la version à jour et votre saisie. Si deux personnes modifient la même chose en même temps, la seconde est prévenue, la MEP est mise à jour et sa saisie conservée. Quitter une vue avec des modifications non enregistrées demande confirmation (« Quitter sans enregistrer ? »). Plusieurs personnes peuvent en revanche agir au même instant sur des étapes différentes (démarrer, terminer, commenter) : toutes les actions sont prises en compte, sans message ni rechargement.

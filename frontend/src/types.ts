@@ -128,6 +128,8 @@ export type ResolutionType = S['ResolutionTypeDto'];
 /** Version archivée d'une résolution type (historique, la plus récente d'abord). `action` : creee, modifiee, desactivee ou existante. */
 export type VersionResolutionType = S['VersionResolutionTypeDto'];
 export type Evenement = S['EvenementDto'];
+/** Personne qui a une MEP ouverte, et éléments sur lesquels elle travaille (`etape:{id}`, `preparation:{section}`…). */
+export type Presence = S['PresenceDto'];
 
 /** `avertissements` : avertissements non bloquants de la vérification du plan (responsables techniques). */
 export type Mep = S['MepDto'];

@@ -3,6 +3,7 @@
 Application web pour préparer et exécuter les mises en production (MEP). L'équipe de développement décrit l'intervention une fois : systèmes concernés, sauvegardes, procédure pas à pas, contrôles et retour arrière. N'importe quel opérateur peut ensuite dérouler la MEP sans avoir participé au développement, avec un journal complet de ce qui a été fait.
 
 - **Préparation** : plan d'étapes en graphe avec dépendances et étapes parallèles, responsables techniques, approbations, go / no-go.
+- **Travail à plusieurs** : on voit qui a ouvert la MEP et quel élément chacun modifie, les changements des autres arrivent sans recharger, et aucune saisie n'est perdue sans confirmation.
 - **Exécution** : étapes à suivre en temps réel, preuves, prise de main tracée, résolutions guidées en cas d'échec.
 - **Sécurité de l'intervention** : sauvegardes, point de non-retour, procédure de retour arrière et échéance surveillée (facultatives pour les environnements qui n'en ont pas besoin), recette et bilan.
 - **Connexion Microsoft (SSO)** facultative, réglée depuis la console ou en ligne de commande ; le mot de passe local reste possible.

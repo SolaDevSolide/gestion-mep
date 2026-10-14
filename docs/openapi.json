@@ -573,8 +573,79 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "session",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/presence": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PresenceDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresenceSaisie"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -6973,6 +7044,55 @@
             ]
           }
         }
+      },
+      "PresenceDto": {
+        "required": [
+          "utilisateurId",
+          "nom",
+          "elements"
+        ],
+        "type": "object",
+        "properties": {
+          "utilisateurId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "elements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Personne qui a la MEP ouverte (flux temps réel connecté) et éléments sur lesquels elle travaille, tous onglets confondus :\n`etape:{id}`, `preparation:{section}`, `recette:{idFiche}`, `retour:fiche`…"
+      },
+      "PresenceSaisie": {
+        "required": [
+          "session",
+          "elements"
+        ],
+        "type": "object",
+        "properties": {
+          "session": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "elements": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Éléments sur lesquels travaille un onglet (`Session` : identifiant passé au flux par `?session=`). Liste vide : plus aucun."
       },
       "PriseDeMainSaisie": {
         "required": [

@@ -56,14 +56,14 @@ Le « Modèle : déploiement API standard » sert à créer une MEP par duplicat
 1. **Alice** : dans « Mises en production », ouvrir « Portail de démonstration ». La fiche s'ouvre sur l'onglet Préparation : ses sections, leur état de complétude et le bouton « Vérifier le plan », qui liste ce qui manque avant de pouvoir démarrer. Il reste l'approbation de Claire.
 
    ![Liste des mises en production](images/liste-des-mep.png)
-2. Parcourir l'onglet **Étapes** : le plan de déploiement en graphe, de haut en bas. Les étapes d'une même ligne peuvent se dérouler en parallèle ; l'étape encadrée de rouge est un point de non-retour. Cliquer une étape ouvre son espace d'édition (instructions, résultat attendu, liens, résolutions).
+2. Parcourir l'onglet **Plan**, sous-onglet **Étapes** : le plan de déploiement en graphe, de haut en bas. Les étapes d'une même ligne peuvent se dérouler en parallèle ; l'étape encadrée de rouge est un point de non-retour. Cliquer une étape ouvre son espace d'édition (instructions, résultat attendu, liens, résolutions).
 
    ![Graphe des étapes de la MEP de démonstration](images/graphe-des-etapes.png)
 3. **Claire** : ouvrir la même MEP, Préparation, section « Validation », cliquer « Approuver ».
 4. **Alice** : cliquer « Go / no-go », cocher les critères, puis « Go : passer en exécution ». La MEP passe en exécution et un compte à rebours indique le temps restant avant le retour arrière automatique.
 5. Dans l'onglet **Exécution**, chacun démarre les étapes disponibles, saisit une preuve et déclare « Réussie » ou « Échec ». Une étape en échec propose les résolutions prévues pour la corriger.
 6. Pour l'étape point de non-retour, Alice doit d'abord cliquer « Autoriser le passage ».
-7. Quand toutes les étapes ont réussi : « Passer en recette », dérouler les fiches de l'onglet **Recette**, puis « Clôturer : MEP réussie » avec le bilan.
+7. Quand toutes les étapes ont réussi : « Passer en recette », dérouler les fiches de **Plan › Recette**, puis « Clôturer : MEP réussie » avec le bilan.
 8. L'onglet **Journal** retrace toute l'intervention.
 
 Pour essayer le retour arrière, ouvrir « Paiement mobile » (exécution en cours) et cliquer « Déclencher le retour arrière », ou reprendre « Messagerie interne », déjà en retour arrière.

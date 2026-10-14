@@ -42,7 +42,7 @@ export default function ProfilPage() {
     expertises: utilisateur?.expertises ?? [],
   };
   const d = useDraft(source);
-  useReportDirty(d.dirty);
+  useReportDirty(d.dirty, 'Mon profil');
   const v = d.value;
   const [envoi, setEnvoi] = useState(false);
   const [erreurSauvegarde, setErreurSauvegarde] = useState('');

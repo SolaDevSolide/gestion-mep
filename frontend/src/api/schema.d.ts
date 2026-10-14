@@ -846,7 +846,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    session?: string;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -865,6 +867,66 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/presence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PresenceDto"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PresenceSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -4775,6 +4837,21 @@ export interface components {
             versionARestaurer: null | string;
             donneesDepuisSauvegarde: null | string;
             siRepliEchoue: null | string;
+        };
+        /**
+         * @description Personne qui a la MEP ouverte (flux temps réel connecté) et éléments sur lesquels elle travaille, tous onglets confondus :
+         *     `etape:{id}`, `preparation:{section}`, `recette:{idFiche}`, `retour:fiche`…
+         */
+        PresenceDto: {
+            /** Format: uuid */
+            utilisateurId: string;
+            nom: string;
+            elements: string[];
+        };
+        /** @description Éléments sur lesquels travaille un onglet (`Session` : identifiant passé au flux par `?session=`). Liste vide : plus aucun. */
+        PresenceSaisie: {
+            session: null | string;
+            elements: null | string[];
         };
         PriseDeMainSaisie: {
             /** Format: int32 */
