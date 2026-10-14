@@ -9,6 +9,7 @@ import { PersonnesSection } from './ListesSections';
 vi.mock('../../api', () => ({
   api: {
     utilisateurs: vi.fn(),
+    equipes: vi.fn(async () => []),
     ajouterParticipant: vi.fn(),
     modifierParticipant: vi.fn(),
     catalogueSystemes: vi.fn(async () => []),
@@ -63,5 +64,34 @@ describe('Personnes : ajout depuis un compte', () => {
       contact: 'dana@x.fr',
       utilisateurId: 'u7',
     });
+  });
+
+  it('filtre les comptes par équipe et ne propose plus les comptes désactivés', async () => {
+    vi.mocked(api.equipes).mockResolvedValueOnce([
+      { id: 'e1', nom: 'Exploitation', description: '', membreIds: ['u7'], creeeLe: '2026-10-01T08:00:00Z' },
+    ]);
+    vi.mocked(api.utilisateurs).mockResolvedValue([
+      utilisateur({ id: 'u7', login: 'dana', nomAffiche: 'Dana', equipeIds: ['e1'] }),
+      utilisateur({ id: 'u8', login: 'eric', nomAffiche: 'Éric' }),
+      utilisateur({ id: 'u9', login: 'parti', nomAffiche: 'Parti', actif: false }),
+    ]);
+    const run = vi.fn(async () => true);
+    const m = mep({
+      phase: 'Preparation',
+      droits: { ...mep().droits, peutEditerContenu: true, peutModifierPlan: true },
+    });
+    render(
+      <MepContext.Provider value={{ mep: m, run } as never}>
+        <TooltipProvider>
+          <PersonnesSection />
+        </TooltipProvider>
+      </MepContext.Provider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Ajouter' }));
+    await screen.findByRole('option', { name: /Éric/ });
+    expect(screen.queryByRole('option', { name: /Parti/ })).toBeNull();
+    await userEvent.selectOptions(screen.getByLabelText('Équipe'), 'e1');
+    expect(screen.getByRole('option', { name: /Dana/ })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Éric/ })).toBeNull();
   });
 });

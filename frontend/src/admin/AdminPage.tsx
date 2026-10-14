@@ -1,16 +1,17 @@
-import { CircleArrowUp, KeyRound, NotebookText, SlidersHorizontal, Users } from 'lucide-react';
+import { CircleArrowUp, KeyRound, NotebookText, SlidersHorizontal, Users, UsersRound } from 'lucide-react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
 import ComptesTab from './ComptesTab';
+import EquipesTab from './EquipesTab';
 import JournalTab from './JournalTab';
 import ParametresTab from './ParametresTab';
 import SsoTab from './SsoTab';
 import VersionTab from './VersionTab';
 
-const ONGLETS = new Set(['comptes', 'parametres', 'sso', 'journal', 'version']);
+const ONGLETS = new Set(['comptes', 'equipes', 'parametres', 'sso', 'journal', 'version']);
 
-/** Console d'administration : comptes, paramètres globaux et journal. Réservée aux administrateurs. */
+/** Console d'administration : comptes, équipes, paramètres globaux et journal. Réservée aux administrateurs. */
 export default function AdminPage() {
   const { utilisateur } = useAuth();
   const [params, setParams] = useSearchParams();
@@ -21,13 +22,16 @@ export default function AdminPage() {
     <main className="mx-auto w-full max-w-5xl px-6 py-8">
       <h1 className="text-2xl font-semibold tracking-tight">Console d’administration</h1>
       <p className="mt-1 text-sm text-fg-subtle">
-        Gérez les comptes, les paramètres globaux et la version de l’application, et consultez le journal des actions
-        d’administration.
+        Gérez les comptes, les équipes, les paramètres globaux et la version de l’application, et consultez le journal
+        des actions d’administration.
       </p>
       <Tabs value={onglet} onValueChange={(o) => setParams({ onglet: o }, { replace: true })} className="mt-6">
         <TabsList className="border-b border-line" aria-label="Sections de la console">
           <TabsTrigger value="comptes">
             <Users className="size-4" aria-hidden /> Comptes
+          </TabsTrigger>
+          <TabsTrigger value="equipes">
+            <UsersRound className="size-4" aria-hidden /> Équipes
           </TabsTrigger>
           <TabsTrigger value="parametres">
             <SlidersHorizontal className="size-4" aria-hidden /> Paramètres
@@ -44,6 +48,9 @@ export default function AdminPage() {
         </TabsList>
         <TabsContent value="comptes" className="mt-6 outline-none">
           <ComptesTab />
+        </TabsContent>
+        <TabsContent value="equipes" className="mt-6 outline-none">
+          <EquipesTab />
         </TabsContent>
         <TabsContent value="parametres" className="mt-6 outline-none">
           <ParametresTab />

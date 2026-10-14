@@ -62,7 +62,7 @@ public class LigneDeCommandeTests : IDisposable
         var aide = await Cli("aide");
         Assert.Equal(0, aide.Code);
         foreach (var commande in new[] { "comptes modifier", "comptes expertises", "systemes ajouter", "criteres modifier", "reglages definir",
-                     "resolutions importer", "meps exporter", "journal [--depuis", "sauvegardes restaurer", "mettre-a-jour", "config afficher" })
+                     "resolutions importer", "meps exporter", "equipes ajouter", "comptes relier", "journal [--depuis", "sauvegardes restaurer", "mettre-a-jour", "config afficher" })
             Assert.Contains($"gestion-mep {commande}", aide.Sortie);
         Assert.True(LigneDeCommande.EstCommande(["--json", "comptes", "lister"]));
         Assert.False(LigneDeCommande.EstCommande(["--urls", "http://+:8080"]));
@@ -233,6 +233,52 @@ public class LigneDeCommandeTests : IDisposable
 
         await File.WriteAllTextAsync(fichierAutre, "{ pas du json");
         Assert.Contains("JSON illisible", (await Cli("resolutions", "importer", fichierAutre)).Erreur);
+    }
+
+    [Fact]
+    public async Task Les_equipes_et_les_comptes_relies_se_gerent_en_ligne_de_commande()
+    {
+        Assert.Contains("Aucune équipe", (await Cli("equipes", "lister")).Sortie);
+        Assert.Equal(0, (await Cli("equipes", "creer", "Exploitation", "--description", "Nuit")).Code);
+        Assert.Equal(1, (await Cli("equipes", "creer", "exploitation")).Code);
+        Assert.Equal(2, (await Cli("equipes", "creer", "--description")).Code);
+        Assert.Equal(0, (await Cli("equipes", "ajouter", "exploitation", "bob", "claire")).Code);
+        Assert.Contains("aucun changement", (await Cli("equipes", "ajouter", "Exploitation", "bob")).Sortie);
+        Assert.Equal(1, (await Cli("equipes", "ajouter", "Exploitation", "inconnu")).Code);
+        Assert.Equal(1, (await Cli("equipes", "ajouter", "Inconnue", "bob")).Code);
+        Assert.Equal(0, (await Cli("equipes", "retirer", "Exploitation", "claire")).Code);
+        var equipe = Assert.Single((await Cli("equipes", "lister", "--json")).Json.EnumerateArray());
+        Assert.Equal(1, equipe.GetProperty("membreIds").GetArrayLength());
+        Assert.Contains("bob : Bob", (await Cli("equipes", "afficher", "Exploitation")).Sortie);
+        Assert.True(await Journalise("equipe.modifiee", "Claire (claire) retiré"));
+
+        // Filtre des MEP par équipe : seules celles où bob figure.
+        var toutes = (await Cli("meps", "lister", "--json")).Json.GetArrayLength();
+        var deLEquipe = (await Cli("meps", "lister", "--equipe", "Exploitation", "--json")).Json.EnumerateArray().ToList();
+        Assert.NotEmpty(deLEquipe);
+        Assert.All(deLEquipe, m => Assert.Contains("Bob", m.GetProperty("personnes").EnumerateArray().Select(x => x.GetString())));
+        Assert.Equal(1, (await Cli("meps", "lister", "--equipe", "Inconnue")).Code);
+
+        // Comptes reliés : nom de la personne, désactivation facultative, liaison défaite.
+        Assert.Equal(0, (await Cli("comptes", "creer", "bob.sso", "--nom", "Robert")).Code);
+        var relier = await Cli("comptes", "relier", "bob.sso", "bob", "--desactiver");
+        Assert.Equal(0, relier.Code);
+        Assert.Contains("« Bob »", relier.Sortie);
+        var relie = (await Cli("comptes", "afficher", "bob.sso", "--json")).Json;
+        Assert.Equal("Bob", relie.GetProperty("nomPersonne").GetString());
+        Assert.False(relie.GetProperty("actif").GetBoolean());
+        Assert.Contains("Comptes reliés : bob.sso (désactivé)", (await Cli("comptes", "afficher", "bob")).Sortie);
+        Assert.Contains("(relié à bob)", (await Cli("comptes", "lister")).Sortie);
+        Assert.Equal(1, (await Cli("comptes", "relier", "bob", "bob.sso")).Code);
+        Assert.True(await Journalise("compte.relie", "Robert (bob.sso) relié à Bob (bob) (même personne) et désactivé"));
+        Assert.Equal(0, (await Cli("comptes", "delier", "bob.sso")).Code);
+        Assert.Equal(1, (await Cli("comptes", "delier", "bob.sso")).Code);
+        Assert.True(await Journalise("compte.delie", "bob.sso"));
+
+        Assert.Equal(0, (await Cli("equipes", "modifier", "Exploitation", "--nom", "Exploitation N2")).Code);
+        Assert.Equal(0, (await Cli("equipes", "supprimer", "Exploitation N2")).Code);
+        Assert.Equal(toutes, (await Cli("meps", "lister", "--json")).Json.GetArrayLength());
+        Assert.True(await Journalise("equipe.supprimee", "Exploitation N2"));
     }
 
     [Fact]

@@ -59,6 +59,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<ConfigurationSso> ConfigurationsSso => Set<ConfigurationSso>();
     public DbSet<Reglage> Reglages => Set<Reglage>();
     public DbSet<IdentiteExterne> IdentitesExternes => Set<IdentiteExterne>();
+    public DbSet<Equipe> Equipes => Set<Equipe>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -69,6 +70,15 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Id).ValueGeneratedNever();
             e.HasIndex(x => x.Login).IsUnique();
             e.Property(x => x.Expertises).AsJson();
+            // Compte principal de la même personne : la liaison se défait, rien n'est supprimé avec elle.
+            e.HasOne<Utilisateur>().WithMany().HasForeignKey(x => x.ComptePrincipalId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<Equipe>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.HasIndex(x => x.Nom).IsUnique();
+            e.Property(x => x.MembreIds).AsJson();
         });
 
         b.Entity<Mep>(e =>

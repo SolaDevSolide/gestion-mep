@@ -270,13 +270,14 @@ public static partial class LigneDeCommande
 
     private static async Task<int> MepsLister(string[] arguments)
     {
-        var o = Options.Lire(arguments, ["--phase"], "--modeles");
+        var o = Options.Lire(arguments, ["--phase", "--equipe"], "--modeles");
         Phase? phase = o.Valeur("--phase") is { } p
             ? Enum.TryParse<Phase>(p.Replace("-", "", StringComparison.Ordinal), ignoreCase: true, out var lue) && Enum.IsDefined(lue) ? lue
                 : throw ErreurHttp.Saisie("--phase attend preparation, execution, recette, retour-arriere ou cloturee.")
             : null;
         await using var db = Base(Configuration());
-        var meps = (await MepsEndpoints.Lister(db, o.A("--modeles"))).Where(m => phase is null || m.Phase == phase).ToList();
+        Guid? equipe = o.Valeur("--equipe") is { } e ? (await EquipesEndpoints.Trouver(db, e)).Id : null;
+        var meps = (await MepsEndpoints.Lister(db, o.A("--modeles"), equipe)).Where(m => phase is null || m.Phase == phase).ToList();
         if (EnJson)
         {
             EcrireJson(meps);
@@ -324,6 +325,95 @@ public static partial class LigneDeCommande
         await db.SaveChangesAsync();
         if (await EcrireFichierOuSortie(fichier, export))
             Console.WriteLine($"MEP « {mep.Outil} » exportée dans {fichier} ({journal.Count} événement(s) de journal ; les fichiers des pièces jointes sont dans les sauvegardes).");
+        return 0;
+    }
+
+    // ---------- Équipes ----------
+
+    private static async Task<int> EquipesLister()
+    {
+        await using var db = Base(Configuration());
+        var equipes = await EquipesEndpoints.Lister(db);
+        if (EnJson)
+        {
+            EcrireJson(equipes);
+            return 0;
+        }
+        if (equipes.Count == 0)
+        {
+            Console.WriteLine("Aucune équipe : « gestion-mep equipes creer \"<nom>\" ».");
+            return 0;
+        }
+        var largeur = Math.Max(3, equipes.Max(e => e.Nom.Length));
+        Console.WriteLine($"{"NOM".PadRight(largeur)}  MEMBRES  DESCRIPTION");
+        foreach (var e in equipes) Console.WriteLine($"{e.Nom.PadRight(largeur)}  {e.MembreIds.Count,7}  {e.Description}");
+        return 0;
+    }
+
+    private static async Task<int> EquipesAfficher(string nomOuId)
+    {
+        await using var db = Base(Configuration());
+        var e = await EquipesEndpoints.Trouver(db, nomOuId);
+        var annuaire = await Personnes.Charger(db);
+        var membres = await db.Utilisateurs.AsNoTracking().Where(u => e.MembreIds.Contains(u.Id)).OrderBy(u => u.Login).ToListAsync();
+        if (EnJson)
+        {
+            EcrireJson(new { Equipe = EquipesEndpoints.Dto(e), Membres = membres.Select(u => Personnes.Dto(u, annuaire)) });
+            return 0;
+        }
+        Console.WriteLine($"Équipe      : {e.Nom}");
+        Console.WriteLine($"Description : {Texte(e.Description)}");
+        Console.WriteLine($"Membres     : {(membres.Count == 0 ? "aucun" : "")}");
+        foreach (var u in membres)
+            Console.WriteLine($"  {u.Login} : {annuaire.NomPersonne(u.Id) ?? u.NomAffiche}{(u.Actif ? "" : " (désactivé)")}");
+        return 0;
+    }
+
+    private static async Task<int> EquipesCreer(string nom, string[] arguments)
+    {
+        if (nom.StartsWith('-')) throw new ErreurUsage("nom de l'équipe attendu");
+        var o = Options.Lire(arguments, ["--description"]);
+        await using var db = Base(Configuration());
+        var e = await EquipesEndpoints.Creer(db, null, new EquipeSaisie(nom, o.Valeur("--description"), null), DateTimeOffset.UtcNow);
+        Console.WriteLine($"Équipe « {e.Nom} » créée : « gestion-mep equipes ajouter \"{e.Nom}\" <login> » pour y ajouter des comptes.");
+        return 0;
+    }
+
+    private static async Task<int> EquipesModifier(string nomOuId, string[] arguments)
+    {
+        var o = Options.Lire(arguments, ["--nom", "--description"]);
+        await using var db = Base(Configuration());
+        var e = await EquipesEndpoints.Trouver(db, nomOuId);
+        var modifiee = await EquipesEndpoints.Modifier(db, null, e.Id, new EquipeSaisie(o.Valeur("--nom") ?? e.Nom, o.Valeur("--description") ?? e.Description, null));
+        Console.WriteLine($"Équipe « {modifiee.Nom} » modifiée.");
+        return 0;
+    }
+
+    private static async Task<int> EquipesMembres(string nomOuId, string[] logins, bool ajouter)
+    {
+        if (logins.Any(l => l.StartsWith('-'))) throw new ErreurUsage("logins attendus après le nom de l'équipe");
+        await using var db = Base(Configuration());
+        var e = await EquipesEndpoints.Trouver(db, nomOuId);
+        var comptes = new List<Utilisateur>();
+        foreach (var l in logins) comptes.Add(await Compte(db, l));
+        var ids = comptes.Select(c => c.Id).ToHashSet();
+        var membres = ajouter ? e.MembreIds.Concat(ids.Where(i => !e.MembreIds.Contains(i))).ToList() : e.MembreIds.Where(i => !ids.Contains(i)).ToList();
+        if (ajouter ? comptes.All(c => e.MembreIds.Contains(c.Id)) : comptes.All(c => !e.MembreIds.Contains(c.Id)))
+        {
+            Console.WriteLine($"Équipe « {e.Nom} » : aucun changement ({(ajouter ? "déjà membres" : "aucun n'en est membre")}).");
+            return 0;
+        }
+        await EquipesEndpoints.Modifier(db, null, e.Id, new EquipeSaisie(e.Nom, e.Description, membres));
+        Console.WriteLine($"Équipe « {e.Nom} » : {string.Join(", ", comptes.Select(c => c.Login))} {(ajouter ? "ajouté(s)" : "retiré(s)")} ({membres.Count} membre(s)).");
+        return 0;
+    }
+
+    private static async Task<int> EquipesSupprimer(string nomOuId)
+    {
+        await using var db = Base(Configuration());
+        var e = await EquipesEndpoints.Trouver(db, nomOuId);
+        await EquipesEndpoints.Supprimer(db, null, e.Id);
+        Console.WriteLine($"Équipe « {e.Nom} » supprimée (les comptes et les MEP ne changent pas).");
         return 0;
     }
 

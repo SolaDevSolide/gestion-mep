@@ -23,7 +23,7 @@ public static class ResolutionsEndpoints
 
     private static string? Nom(Guid? id, IReadOnlyDictionary<Guid, string> noms) => id is { } u && noms.TryGetValue(u, out var n) ? n : null;
 
-    private static Task<Dictionary<Guid, string>> Noms(MepDbContext db) => db.Utilisateurs.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
+    private static Task<Dictionary<Guid, string>> Noms(MepDbContext db) => Personnes.Noms(db);
 
     /// <summary>Date et auteur de la modification, puis archivage de la fiche dans son historique (acteur null : ligne de commande).</summary>
     private static void Tracer(MepDbContext db, ResolutionType r, string action, Acteur? acteur, DateTimeOffset maintenant)

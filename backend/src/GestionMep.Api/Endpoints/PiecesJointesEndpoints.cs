@@ -113,7 +113,7 @@ public static class PiecesJointesEndpoints
         api.MapGet("/meps/{id:guid}/pieces-jointes", async (Guid id, MepDbContext db) =>
         {
             if (!await db.Meps.AnyAsync(m => m.Id == id)) throw ErreurHttp.NonTrouve("MEP introuvable.");
-            var noms = await db.Utilisateurs.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
+            var noms = await Personnes.Noms(db);
             return (await db.PiecesJointes.AsNoTracking().Where(p => p.MepId == id).OrderBy(p => p.DeposeLe).ToListAsync())
                 .Select(p => MepMapping.VersDto(p, noms));
         });
@@ -187,7 +187,7 @@ public static class PiecesJointesEndpoints
         api.MapGet("/resolutions/{id:guid}/pieces-jointes", async (Guid id, MepDbContext db) =>
         {
             if (!await db.ResolutionsTypes.AnyAsync(r => r.Id == id)) throw ErreurHttp.NonTrouve("Résolution type introuvable.");
-            var noms = await db.Utilisateurs.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
+            var noms = await Personnes.Noms(db);
             return (await db.PiecesJointes.AsNoTracking().Where(p => p.ResolutionTypeId == id).OrderBy(p => p.DeposeLe).ToListAsync())
                 .Select(p => MepMapping.VersDto(p, noms));
         });

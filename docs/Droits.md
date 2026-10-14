@@ -14,7 +14,7 @@ Deux sortes de rôles se combinent.
 - **Pilote** : responsable de la mise en production, il décide des changements de phase.
 - **Suppléant** : mêmes droits que le pilote. Le pilote ne peut pas être son propre suppléant.
 - **Responsable technique** : développeur ou sachant, il prépare le contenu. Le créateur d'une MEP le devient automatiquement.
-- **Approbateur** : approuve ou refuse le plan. Le pilote ne peut pas l'être.
+- **Approbateur** : approuve ou refuse le plan. Le pilote ne peut pas l'être, même avec un autre compte relié au sien, et une personne n'est désignée qu'une fois. Un compte désactivé ne peut plus être désigné.
 - **Participant** : toute personne de la MEP. Reliée à un compte, elle peut exécuter des étapes.
 
 Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable technique ou un administrateur.
@@ -44,11 +44,11 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Créer ou modifier une résolution type | Tout utilisateur |
 | Supprimer une résolution type ou une de ses pièces jointes | Administrateur |
 | Catalogue des systèmes, critères go / no-go, nombre minimum d'approbations | Administrateur (lecture pour tous) |
-| Comptes et console d'administration | Administrateur |
+| Comptes et console d'administration, équipes, comptes reliés d'une même personne | Administrateur (équipes : lecture pour tous) |
 | Modifier son propre profil et son mot de passe | Chacun |
 
 Un administrateur n'a **pas** les droits du pilote : pour donner le Go ou déclencher un retour arrière, il doit être pilote ou suppléant de la MEP.
 
 ## Traçabilité
 
-Chaque action sur une MEP est inscrite dans son journal avec son auteur (nom affiché et identifiant, qui ne change jamais) et l'heure. Les modifications des informations de sauvegarde y gardent l'ancienne et la nouvelle valeur. Les actions d'administration sont dans le journal de la console d'administration.
+Chaque action sur une MEP est inscrite dans son journal avec son auteur (nom affiché et identifiant, qui ne change jamais) et l'heure. Un compte relié à un compte principal signe du nom de la personne, avec son propre identifiant. Les droits restent ceux de chaque compte : relier deux comptes ne donne pas à l'un les droits de l'autre dans une MEP. Les modifications des informations de sauvegarde y gardent l'ancienne et la nouvelle valeur. Les actions d'administration sont dans le journal de la console d'administration.

@@ -4,15 +4,26 @@ namespace GestionMep.Api.Services;
 
 // ---------- Sorties ----------
 public record ExpertiseDto(Guid SystemeCatalogueId, string Detail);
-public record UtilisateurDto(Guid Id, string Login, string NomAffiche, bool EstAdmin, string Role, string Contact, List<ExpertiseDto> Expertises, bool Actif, bool DoitChangerMotDePasse);
+/// <summary>
+/// <c>ComptePrincipalId</c> : compte principal auquel ce compte est relié (même personne), null sinon ; <c>NomPersonne</c> : nom
+/// affiché de la personne (celui du compte principal) ; <c>EquipeIds</c> : équipes dont ce compte est membre.
+/// </summary>
+public record UtilisateurDto(Guid Id, string Login, string NomAffiche, bool EstAdmin, string Role, string Contact, List<ExpertiseDto> Expertises, bool Actif,
+    bool DoitChangerMotDePasse, Guid? ComptePrincipalId, string NomPersonne, List<Guid> EquipeIds);
+
+/// <summary>Équipe : <c>MembreIds</c>, comptes membres (un compte peut appartenir à plusieurs équipes).</summary>
+public record EquipeDto(Guid Id, string Nom, string Description, List<Guid> MembreIds, DateTimeOffset CreeeLe);
 
 /// <summary>
 /// <c>DateMep</c> : date du Go (dans le fuseau de la MEP) ou null ; <c>CreeLe</c> : création de la MEP ;
 /// <c>RetourArriereActive</c> : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).
+/// <c>EquipeIds</c> : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait
+/// partie, par l'un de ses comptes reliés). <c>Personnes</c> : noms des personnes de la MEP et, pour celles qui ont un compte,
+/// noms et logins de tous leurs comptes reliés (pour la recherche).
 /// </summary>
 public record MepResumeDto(Guid Id, string Outil, string VersionCible, string Objet, DateOnly? DateMep, Phase Phase,
     DateTimeOffset? EcheanceRepli, string? Pilote, int NbEtapes, int NbReussies, int NbEchecs, string Environnement, bool EstModele,
-    DateTimeOffset CreeLe, IssueMep? Issue, bool RetourArriereActive);
+    DateTimeOffset CreeLe, IssueMep? Issue, bool RetourArriereActive, List<Guid> EquipeIds, List<string> Personnes);
 
 public record SauvegardeDto(ModeSauvegarde Mode, bool Structure, bool Donnees, bool Configuration, Guid? ResponsableId, DateTimeOffset? RealiseeLe,
     string Procedure, string Copies, bool RestaurationTestee, DateOnly? DateTestRestauration, string PreuveTestRestauration);
@@ -113,6 +124,10 @@ public record ConnexionSaisie(string? Login, string? MotDePasse);
 public record ChangementMotDePasseSaisie(string? Ancien, string? Nouveau);
 public record CompteSaisie(string? Login, string? NomAffiche, bool EstAdmin, string? Role, string? Contact);
 public record CompteModification(string? NomAffiche, bool EstAdmin, string? Role, string? Contact);
+/// <summary>Équipe créée ou modifiée ; <c>MembreIds</c> absent (null) : membres inchangés.</summary>
+public record EquipeSaisie(string? Nom, string? Description, List<Guid>? MembreIds);
+/// <summary>Relie le compte à <c>ComptePrincipalId</c> (même personne) ; <c>Desactiver</c> : désactive aussi le compte relié.</summary>
+public record LiaisonCompteSaisie(Guid? ComptePrincipalId, bool Desactiver = false);
 public record CompteEtMotDePasseDto(UtilisateurDto Utilisateur, string MotDePasseProvisoire);
 public record EvenementAdminDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail, string? AuteurLogin);
 public record UtilisateurSaisie(string? Login, string? NomAffiche, string? MotDePasse, bool EstAdmin, string? Role = null, string? Contact = null);

@@ -25,7 +25,7 @@ public static partial class LigneDeCommande
     private static readonly string[] Commandes =
     [
         "aide", "--help", "-h", "version", "--version", "migrer", "config", "comptes", "sauvegarder", "importer", "sso", "reglages", "reglage",
-        "systemes", "criteres", "resolutions", "journal", "sauvegardes", "mettre-a-jour", "meps", "demo",
+        "systemes", "criteres", "resolutions", "journal", "sauvegardes", "mettre-a-jour", "meps", "demo", "equipes",
     ];
 
     private const string Aide = """
@@ -46,6 +46,20 @@ public static partial class LigneDeCommande
           gestion-mep comptes reinitialiser-mdp <login>       Nouveau mot de passe provisoire (à changer à la connexion)
           gestion-mep comptes desactiver <login>              Désactive le compte et ferme ses sessions
           gestion-mep comptes reactiver <login>               Réactive le compte
+          gestion-mep comptes relier <login> <login-principal> [--desactiver]
+                                                              Relie deux comptes d'une même personne : elle s'affiche sous le
+                                                              nom du compte principal, rien n'est fusionné ni supprimé ;
+                                                              --desactiver : désactive aussi le compte relié
+          gestion-mep comptes delier <login>                  Défait la liaison (le compte reprend son propre nom)
+
+        Équipes (une personne peut appartenir à plusieurs équipes)
+          gestion-mep equipes lister                          Équipes et nombre de membres
+          gestion-mep equipes afficher <équipe>               Description et membres d'une équipe
+          gestion-mep equipes creer "<nom>" [--description "…"]
+          gestion-mep equipes modifier <équipe> [--nom "…"] [--description "…"]
+          gestion-mep equipes ajouter <équipe> <login> [<login>…]   Ajoute des comptes à l'équipe
+          gestion-mep equipes retirer <équipe> <login> [<login>…]   Retire des comptes de l'équipe
+          gestion-mep equipes supprimer <équipe>              Supprime l'équipe (comptes et MEP inchangés)
 
         Catalogue des systèmes, go / no-go et réglages
           gestion-mep systemes lister
@@ -72,7 +86,7 @@ public static partial class LigneDeCommande
                                                               est refusée, remplacée ou ignorée ; --essai : contrôle sans écrire
 
         MEP et journal
-          gestion-mep meps lister [--phase <phase>] [--modeles]
+          gestion-mep meps lister [--phase <phase>] [--equipe <équipe>] [--modeles]
                                                               Phases : preparation, execution, recette, retour-arriere, cloturee
           gestion-mep meps exporter <id> [fichier.json|-]     MEP complète et son journal, en JSON (archive, audit)
           gestion-mep journal [--depuis AAAA-MM-JJ] [--limite n]
@@ -114,6 +128,7 @@ public static partial class LigneDeCommande
                                                               les sessions ouvertes sont fermées. Refusée hors démonstration.
 
         Option --json : sortie JSON pour les scripts (commandes lister, afficher, expertises, journal, mettre-a-jour).
+        Une équipe se désigne par son nom (guillemets s'il contient des espaces) ou son identifiant.
         Exemples : gestion-mep reglages definir url-publique https://mep.entreprise.fr
                    gestion-mep reglages definir lien-signalement ""      (valeur vide : lien masqué)
                    gestion-mep comptes modifier jdupont --ajouter-expertise BDD --detail "Base clients"
@@ -189,6 +204,15 @@ public static partial class LigneDeCommande
                 ["comptes", "reinitialiser-mdp", var login] => await Reinitialiser(login),
                 ["comptes", "desactiver", var login] => await ChangerEtat(login, actif: false),
                 ["comptes", "reactiver", var login] => await ChangerEtat(login, actif: true),
+                ["comptes", "relier", var login, var principal, .. var options] => await Relier(login, principal, options),
+                ["comptes", "delier", var login] => await Delier(login),
+                ["equipes", "lister"] => await EquipesLister(),
+                ["equipes", "afficher", var equipe] => await EquipesAfficher(equipe),
+                ["equipes", "creer", var nom, .. var options] => await EquipesCreer(nom, options),
+                ["equipes", "modifier", var equipe, .. var options] when options.Length > 0 => await EquipesModifier(equipe, options),
+                ["equipes", "ajouter", var equipe, .. var logins] when logins.Length > 0 => await EquipesMembres(equipe, logins, ajouter: true),
+                ["equipes", "retirer", var equipe, .. var logins] when logins.Length > 0 => await EquipesMembres(equipe, logins, ajouter: false),
+                ["equipes", "supprimer", var equipe] => await EquipesSupprimer(equipe),
                 ["systemes", "lister"] => await SystemesLister(),
                 ["systemes", "ajouter", var nom, .. var options] => await SystemesAjouter(nom, options),
                 ["systemes", "modifier", var nom, .. var options] when options.Length > 0 => await SystemesModifier(nom, options),
@@ -428,17 +452,20 @@ public static partial class LigneDeCommande
     {
         await using var db = Base(Configuration());
         var comptes = await db.Utilisateurs.AsNoTracking().OrderBy(u => u.Login).ToListAsync();
+        var annuaire = await Personnes.Charger(db);
         if (EnJson)
         {
-            EcrireJson(comptes.Select(MepMapping.VersDto));
+            EcrireJson(comptes.Select(u => Personnes.Dto(u, annuaire)));
             return 0;
         }
+        var logins = comptes.ToDictionary(u => u.Id, u => u.Login);
         var largeur = Math.Max(5, comptes.Count == 0 ? 0 : comptes.Max(u => u.Login.Length));
         Console.WriteLine($"{"LOGIN".PadRight(largeur)}  ADMIN  ÉTAT        NOM");
         foreach (var u in comptes)
         {
             var etat = !u.Actif ? "désactivé" : u.DoitChangerMotDePasse ? "provisoire" : "actif";
-            Console.WriteLine($"{u.Login.PadRight(largeur)}  {(u.EstAdmin ? "oui" : "non"),-5}  {etat,-10}  {u.NomAffiche}");
+            var relie = u.ComptePrincipalId is { } p && logins.TryGetValue(p, out var lp) ? $" (relié à {lp})" : "";
+            Console.WriteLine($"{u.Login.PadRight(largeur)}  {(u.EstAdmin ? "oui" : "non"),-5}  {etat,-10}  {annuaire.NomPersonne(u.Id) ?? u.NomAffiche}{relie}");
         }
         return 0;
     }
@@ -447,13 +474,21 @@ public static partial class LigneDeCommande
     {
         await using var db = Base(Configuration());
         var u = await Compte(db, login);
+        var annuaire = await Personnes.Charger(db);
         if (EnJson)
         {
-            EcrireJson(MepMapping.VersDto(u));
+            EcrireJson(Personnes.Dto(u, annuaire));
             return 0;
         }
         Console.WriteLine($"Login          : {u.Login}");
         Console.WriteLine($"Nom affiché    : {u.NomAffiche}");
+        var autres = annuaire.ComptesDeLaPersonne(u.Id).Where(c => c.Id != u.Id).ToList();
+        if (u.ComptePrincipalId is not null && autres.Count > 0)
+            Console.WriteLine($"Relié à        : {autres[0].NomAffiche} ({autres[0].Login}), compte principal : affiché sous ce nom");
+        else if (autres.Count > 0)
+            Console.WriteLine($"Comptes reliés : {string.Join(", ", autres.Select(c => c.Login + (c.Actif ? "" : " (désactivé)")))}");
+        var equipes = (await db.Equipes.AsNoTracking().ToListAsync()).Where(e => e.MembreIds.Contains(u.Id)).Select(e => e.Nom).Order().ToList();
+        Console.WriteLine($"Équipes        : {(equipes.Count == 0 ? "aucune" : string.Join(", ", equipes))}");
         Console.WriteLine($"Administrateur : {(u.EstAdmin ? "oui" : "non")}");
         Console.WriteLine($"État           : {(!u.Actif ? "désactivé" : u.DoitChangerMotDePasse ? "actif, mot de passe provisoire à changer" : "actif")}");
         Console.WriteLine($"Rôle           : {Texte(u.Role)}");
@@ -583,6 +618,28 @@ public static partial class LigneDeCommande
         Console.WriteLine(change
             ? $"Compte « {u.Login} » {(actif ? "réactivé" : "désactivé")}."
             : $"Le compte « {u.Login} » est déjà {(actif ? "actif" : "désactivé")}.");
+        return 0;
+    }
+
+    private static async Task<int> Relier(string login, string loginPrincipal, string[] arguments)
+    {
+        var o = Options.Lire(arguments, [], "--desactiver");
+        await using var db = Base(Configuration());
+        var u = await Compte(db, login);
+        var principal = await Compte(db, loginPrincipal);
+        var etaitActif = u.Actif;
+        await AdminEndpoints.Relier(db, null, u, principal, o.A("--desactiver"));
+        Console.WriteLine($"Compte « {u.Login} » relié à « {principal.Login} » : il s'affiche désormais sous le nom « {principal.NomAffiche} »"
+            + (etaitActif && !u.Actif ? " et il est désactivé." : "."));
+        return 0;
+    }
+
+    private static async Task<int> Delier(string login)
+    {
+        await using var db = Base(Configuration());
+        var u = await Compte(db, login);
+        await AdminEndpoints.Delier(db, null, u);
+        Console.WriteLine($"Liaison du compte « {u.Login} » défaite : il s'affiche de nouveau sous le nom « {u.NomAffiche} ».");
         return 0;
     }
 

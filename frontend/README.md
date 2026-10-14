@@ -36,6 +36,7 @@ Logique pure, testée sans DOM :
 | `api/schema.d.ts` | Types générés depuis `docs/openapi.json` par `npm run api:types` ; ne jamais modifier à la main                                                             |
 | `domaine.ts`      | Règles d'affichage : plan actif, étapes à vous, bloqueurs, progression, bilan de recette                                                                    |
 | `graphe.ts`       | Lignes du graphe, liens, tracé des jonctions                                                                                                                |
+| `personnes.ts`    | Comptes reliés regroupés par personne, équipes d'une personne, filtres par équipe et recherche des comptes et des MEP                                       |
 | `recherche.ts`    | Recherche insensible aux accents, score et surlignage                                                                                                       |
 | `blocs.ts`        | Découpage des instructions en blocs Texte / Code et raccourcis de mise en forme markdown                                                                    |
 | `format.ts`       | Libellés, dates, durées, comptes à rebours                                                                                                                  |

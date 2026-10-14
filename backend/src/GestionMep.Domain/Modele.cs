@@ -55,6 +55,22 @@ public class Utilisateur
     public bool DoitChangerMotDePasse { get; set; }
     /// <summary>Renouvelé à chaque changement de mot de passe ou désactivation : les sessions ouvertes avant sont refusées.</summary>
     public Guid TamponSecurite { get; set; } = Guid.NewGuid();
+    /// <summary>
+    /// Compte principal de la même personne quand ce compte lui est relié (null : compte principal ou compte seul). Les comptes
+    /// reliés restent distincts (connexion, droits, historique) mais s'affichent sous le nom du compte principal.
+    /// </summary>
+    public Guid? ComptePrincipalId { get; set; }
+}
+
+/// <summary>Équipe gérée par les administrateurs : regroupe des comptes, sert à filtrer les personnes et les MEP.</summary>
+public class Equipe
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Nom { get; set; } = "";
+    public string Description { get; set; } = "";
+    /// <summary>Comptes membres ; un compte peut appartenir à plusieurs équipes.</summary>
+    public List<Guid> MembreIds { get; set; } = [];
+    public DateTimeOffset CreeeLe { get; set; }
 }
 
 /// <summary>Expertise d'un compte sur un système du catalogue (ex. « Expert de la zone facturation »).</summary>

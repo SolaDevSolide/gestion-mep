@@ -68,7 +68,12 @@ export type TypeEvenementAdmin =
   | 'sso.lie'
   | 'donnees.controle-reussi'
   | 'donnees.controle-echoue'
-  | 'demo.reinitialisee';
+  | 'demo.reinitialisee'
+  | 'equipe.creee'
+  | 'equipe.modifiee'
+  | 'equipe.supprimee'
+  | 'compte.relie'
+  | 'compte.delie';
 
 /** `dateMep` : date du Go si elle existe ; `creeLe` : date de création (affichée tant que la MEP n'a pas démarré). */
 export type MepResume = S['MepResumeDto'];
@@ -246,6 +251,17 @@ export type CompteSaisie = SaisieVerifiee<
   { nomAffiche: string; estAdmin: boolean; role: string; contact: string }
 >;
 export type NouveauCompteSaisie = SaisieVerifiee<S['CompteSaisie'], CompteSaisie & { login: string }>;
+/** Équipe gérée par les administrateurs ; un compte peut appartenir à plusieurs équipes. */
+export type Equipe = S['EquipeDto'];
+export type EquipeSaisie = SaisieVerifiee<
+  S['EquipeSaisie'],
+  { nom: string; description: string; membreIds?: string[] }
+>;
+/** Relie un compte à un compte principal de la même personne ; `desactiver` désactive aussi le compte relié. */
+export type LiaisonCompteSaisie = SaisieVerifiee<
+  S['LiaisonCompteSaisie'],
+  { comptePrincipalId: string; desactiver: boolean }
+>;
 
 // ---------- Connexion unique (SSO) ----------
 

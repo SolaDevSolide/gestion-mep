@@ -114,6 +114,34 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("CriteresGoNoGo");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.Equipe", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreeeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("MembreIds")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Nom")
+                        .IsUnique();
+
+                    b.ToTable("Equipes");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.Etape", b =>
                 {
                     b.Property<Guid>("Id")
@@ -813,6 +841,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<bool>("Actif")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid?>("ComptePrincipalId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Contact")
                         .IsRequired()
                         .HasColumnType("text");
@@ -847,6 +878,8 @@ namespace GestionMep.Api.Donnees.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ComptePrincipalId");
 
                     b.HasIndex("Login")
                         .IsUnique();
@@ -1127,6 +1160,14 @@ namespace GestionMep.Api.Donnees.Migrations
 
                     b.Navigation("Sauvegarde")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.Utilisateur", b =>
+                {
+                    b.HasOne("GestionMep.Domain.Utilisateur", null)
+                        .WithMany()
+                        .HasForeignKey("ComptePrincipalId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("GestionMep.Domain.VersionResolutionType", b =>

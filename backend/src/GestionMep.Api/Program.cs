@@ -141,6 +141,7 @@ api.MapResolutions();
 api.MapDeroule();
 api.MapParametres();
 api.MapAdmin();
+api.MapEquipes();
 api.MapReglages();
 api.MapPiecesJointes();
 // Une route /api inconnue ne doit jamais retomber sur index.html.

@@ -24,9 +24,17 @@ public static class MepsEndpoints
 
     /// <summary>
     /// Liste des MEP, les plus récentes d'abord (partagée avec <c>gestion-mep meps lister</c>). <paramref name="modele"/> :
-    /// true, modèles seulement ; false, MEP seulement ; null, tout.
+    /// true, modèles seulement ; false, MEP seulement ; null, tout. <paramref name="equipe"/> : MEP dont au moins une personne
+    /// fait partie de l'équipe (par l'un de ses comptes reliés).
     /// </summary>
-    public static async Task<List<MepResumeDto>> Lister(MepDbContext db, bool? modele) =>
+    public static async Task<List<MepResumeDto>> Lister(MepDbContext db, bool? modele, Guid? equipe = null)
+    {
+        var annuaire = await Personnes.Charger(db);
+        var meps = await Resumes(db, modele, annuaire);
+        return equipe is { } e ? meps.Where(m => m.EquipeIds.Contains(e)).ToList() : meps;
+    }
+
+    private static async Task<List<MepResumeDto>> Resumes(MepDbContext db, bool? modele, AnnuairePersonnes annuaire) =>
         (await db.Meps.AsNoTracking().Where(m => modele == null || m.EstModele == modele).OrderByDescending(m => m.CreeLe)
             .Select(m => new
             {
@@ -37,12 +45,16 @@ public static class MepsEndpoints
                 NbReussies = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
                 NbEchecs = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
                 m.Environnement, m.EstModele, m.CreeLe, m.RetourArriereActive,
+                Comptes = m.Participants.Where(p => p.UtilisateurId != null).Select(p => p.UtilisateurId!.Value).ToList(),
+                Noms = m.Participants.Select(p => p.Nom).ToList(),
             })
             .ToListAsync())
         // dateMep : date du Go (la date saisie n'existe plus depuis le jalon 4.2).
         .Select(m => new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, DateLocale(m.DemarrageAutoriseLe, m.FuseauHoraire), m.Phase,
             m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs, m.Environnement, m.EstModele, m.CreeLe, m.Issue,
-            m.RetourArriereActive)).ToList();
+            m.RetourArriereActive,
+            [.. m.Comptes.SelectMany(annuaire.EquipesDeLaPersonne).Distinct().Order()],
+            [.. m.Noms.Concat(m.Comptes.SelectMany(annuaire.TermesDeRecherche)).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)])).ToList();
 
     /// <summary>Journal d'une MEP, du plus récent au plus ancien (partagé avec <c>gestion-mep meps exporter</c>).</summary>
     public static async Task<List<EvenementDto>> Journal(MepDbContext db, Guid id)
@@ -55,8 +67,8 @@ public static class MepsEndpoints
 
     public static void MapMeps(this RouteGroupBuilder api)
     {
-        // ?modele=true : modèles seulement ; ?modele=false : MEP seulement ; absent : tout.
-        api.MapGet("/meps", async (bool? modele, MepDbContext db) => (await Lister(db, modele)).AsEnumerable());
+        // ?modele=true : modèles seulement ; ?modele=false : MEP seulement ; absent : tout. ?equipe=<id> : MEP de l'équipe.
+        api.MapGet("/meps", async (bool? modele, Guid? equipe, MepDbContext db) => (await Lister(db, modele, equipe)).AsEnumerable());
 
         api.MapPost("/meps", async (MepCreationSaisie corps, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) =>
         {

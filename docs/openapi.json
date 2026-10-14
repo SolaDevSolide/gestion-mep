@@ -316,6 +316,14 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "equipe",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -2514,6 +2522,28 @@
         }
       }
     },
+    "/api/equipes": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EquipeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/meps/{id}/pieces-jointes": {
       "get": {
         "tags": [
@@ -3173,6 +3203,62 @@
         }
       }
     },
+    "/api/admin/utilisateurs/{id}/relier": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiaisonCompteSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/utilisateurs/{id}/delier": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/admin/journal": {
       "get": {
         "tags": [
@@ -3201,6 +3287,82 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/admin/equipes": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EquipeSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/equipes/{id}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EquipeSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -3566,7 +3728,10 @@
               "contact",
               "expertises",
               "actif",
-              "doitChangerMotDePasse"
+              "doitChangerMotDePasse",
+              "comptePrincipalId",
+              "nomPersonne",
+              "equipeIds"
             ],
             "type": "object",
             "properties": {
@@ -3613,8 +3778,26 @@
               },
               "doitChangerMotDePasse": {
                 "type": "boolean"
+              },
+              "comptePrincipalId": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "uuid"
+              },
+              "nomPersonne": {
+                "type": "string"
+              },
+              "equipeIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                }
               }
-            }
+            },
+            "description": "`ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom\naffiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre."
           },
           "motDePasseProvisoire": {
             "type": "string"
@@ -4126,6 +4309,73 @@
             "type": "boolean"
           }
         }
+      },
+      "EquipeDto": {
+        "required": [
+          "id",
+          "nom",
+          "description",
+          "membreIds",
+          "creeeLe"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "membreIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "creeeLe": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Équipe : `MembreIds`, comptes membres (un compte peut appartenir à plusieurs équipes)."
+      },
+      "EquipeSaisie": {
+        "required": [
+          "nom",
+          "description",
+          "membreIds"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "membreIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "description": "Équipe créée ou modifiée ; `MembreIds` absent (null) : membres inchangés."
       },
       "EtapeDto": {
         "required": [
@@ -5051,6 +5301,26 @@
           "Repliee",
           null
         ]
+      },
+      "LiaisonCompteSaisie": {
+        "required": [
+          "comptePrincipalId"
+        ],
+        "type": "object",
+        "properties": {
+          "comptePrincipalId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "desactiver": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "description": "Relie le compte à `ComptePrincipalId` (même personne) ; `Desactiver` : désactive aussi le compte relié."
       },
       "LivrableDto": {
         "required": [
@@ -6529,7 +6799,9 @@
           "estModele",
           "creeLe",
           "issue",
-          "retourArriereActive"
+          "retourArriereActive",
+          "equipeIds",
+          "personnes"
         ],
         "type": "object",
         "properties": {
@@ -6603,9 +6875,22 @@
           },
           "retourArriereActive": {
             "type": "boolean"
+          },
+          "equipeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "personnes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;\n`RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas)."
+        "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;\n`RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).\n`EquipeIds` : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait\npartie, par l'un de ses comptes reliés). `Personnes` : noms des personnes de la MEP et, pour celles qui ont un compte,\nnoms et logins de tous leurs comptes reliés (pour la recherche)."
       },
       "MiseAJourDto": {
         "required": [
@@ -8477,7 +8762,10 @@
           "contact",
           "expertises",
           "actif",
-          "doitChangerMotDePasse"
+          "doitChangerMotDePasse",
+          "comptePrincipalId",
+          "nomPersonne",
+          "equipeIds"
         ],
         "type": "object",
         "properties": {
@@ -8511,8 +8799,26 @@
           },
           "doitChangerMotDePasse": {
             "type": "boolean"
+          },
+          "comptePrincipalId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "nomPersonne": {
+            "type": "string"
+          },
+          "equipeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
-        }
+        },
+        "description": "`ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom\naffiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre."
       },
       "UtilisateurSaisie": {
         "required": [

@@ -5,6 +5,7 @@ import { api } from '../api';
 import { segmentsResume } from '../domaine';
 import { calculerCompteARebours, formatDate, LIBELLE_PHASE } from '../format';
 import { useAsync, useNow } from '../hooks';
+import { mepCorrespond } from '../personnes';
 import { metaPhase } from '../statuts';
 import type { MepResume, Phase } from '../types';
 import { Alerte } from '../ui/Alerte';
@@ -155,6 +156,8 @@ export default function ListeMepPage() {
   const { donnees: meps, erreur } = useAsync(() => api.meps(vue === 'modeles'), [vue]);
   const [recherche, setRecherche] = useState('');
   const [phase, setPhase] = useState<Phase | 'toutes'>('toutes');
+  const { donnees: equipes } = useAsync(() => api.equipes(), []);
+  const [equipe, setEquipe] = useState('');
   const [creation, setCreation] = useState(false);
   const [duplication, setDuplication] = useState<SourceDuplication | null>(null);
   const [depuisModele, setDepuisModele] = useState(false);
@@ -162,14 +165,11 @@ export default function ListeMepPage() {
   const modele = vue === 'modeles';
   const now = useNow(1000);
 
-  const filtrees = useMemo(() => {
-    const q = recherche.trim().toLowerCase();
-    return (meps ?? []).filter(
-      (m) =>
-        (phase === 'toutes' || m.phase === phase) &&
-        (!q || [m.outil, m.versionCible, m.objet, m.pilote ?? ''].some((t) => t.toLowerCase().includes(q))),
-    );
-  }, [meps, recherche, phase]);
+  // Recherche aussi sur les personnes de la MEP et tous leurs comptes reliés ; équipe : une de ses personnes en fait partie.
+  const filtrees = useMemo(
+    () => (meps ?? []).filter((m) => (phase === 'toutes' || m.phase === phase) && mepCorrespond(m, recherche, equipe)),
+    [meps, recherche, phase, equipe],
+  );
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
@@ -230,7 +230,7 @@ export default function ListeMepPage() {
           />
           <Input
             aria-label="Rechercher une MEP"
-            placeholder="Rechercher (outil, version, pilote…)"
+            placeholder="Rechercher (outil, version, personne…)"
             className="pl-9"
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
@@ -264,6 +264,18 @@ export default function ListeMepPage() {
             },
           ]}
         />
+        {equipes && equipes.length > 0 && (
+          <div className="w-52">
+            <Select aria-label="Filtrer par équipe" value={equipe} onChange={(e) => setEquipe(e.target.value)}>
+              <option value="">Toutes les équipes</option>
+              {equipes.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.nom}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
         {!modele && (
           <div className="w-52">
             <Select
@@ -329,6 +341,7 @@ export default function ListeMepPage() {
                 onClick={() => {
                   setRecherche('');
                   setPhase('toutes');
+                  setEquipe('');
                 }}
               >
                 Effacer les filtres
