@@ -126,7 +126,7 @@ public static class StructureEndpoints
             var etape = mep.EtapesTriees().FirstOrDefault(e => e.SystemeIds.Contains(sid));
             if (etape is not null) throw new RegleMetierException($"Le système {s.Nom} est utilisé par {etape.Code} : changer le système de l'étape d'abord.");
             foreach (var l in mep.Livrables.Where(l => l.SystemeId == sid)) l.SystemeId = null;
-            // Ses fiches de recette passent « Sans système ».
+            // Ses fiches de recette sont gardées, sans système : elles restent modifiables et se rattachent à un autre système.
             if (mep.FichesRecette.Any(f => f.SystemeId == sid))
                 mep.FichesRecette = mep.FichesRecette.Select(f => { if (f.SystemeId == sid) f.SystemeId = null; return f; }).ToList();
             if (mep.ResponsablesTechniques.Any(r => r.SystemeIds.Contains(sid)))

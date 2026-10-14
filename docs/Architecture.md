@@ -25,7 +25,7 @@ flowchart LR
 
 ## Back-end
 
-Deux projets dans `backend/src`, testés par `backend/tests/GestionMep.Tests`.
+Trois projets dans `backend/src`, testés par `backend/tests/GestionMep.Tests`.
 
 ### `GestionMep.Domain` : modèle et règles métier
 
@@ -37,6 +37,10 @@ Aucune dépendance vers ASP.NET ni EF Core.
 - L'heure courante est toujours passée en paramètre (`maintenant`) : les règles se testent sans horloge.
 - `AnnuairePersonnes.cs` : comptes vus comme des personnes. Des comptes reliés (`Utilisateur.ComptePrincipalId`, un seul niveau) forment une personne, nommée d'après son compte principal, dont les équipes sont celles de tous ses comptes. Rien n'est fusionné : chaque compte garde ses données, ses droits et son historique. Les règles de liaison et de nom d'équipe sont dans `Regles.Comptes.cs`.
 - `DonneesDemo.cs` : jeu de démonstration (comptes `alice`, `bob`, `claire`, MEP d'exemple).
+
+### `GestionMep.Tableur` : classeurs Excel
+
+Brique commune, sans règle métier, pour écrire et relire des classeurs `.xlsx` : `ClasseurExcel` (feuilles, mises en forme de la charte, listes déroulantes, dates, liens internes, protection des feuilles avec cases à saisir déverrouillées, structure du classeur verrouillée, feuille de contrôle masquée) et `LecteurClasseur` (ouverture contrôlée d'un fichier envoyé : archive vérifiée et taille décompressée plafonnée avant lecture, puis lecture des cellules et de la feuille de contrôle). Elle s'appuie sur [ClosedXML](https://github.com/ClosedXML/ClosedXML) (licence MIT), la bibliothèque libre de référence en .NET pour produire des classeurs mis en forme sans Excel installé. EPPlus a été écarté : sa licence (Polyform) n'est pas libre pour un usage commercial. La dépendance `SixLabors.Fonts` de ClosedXML est figée en 1.0.1 (Apache-2.0), les versions 2.x passant sous une licence non permissive. Le premier usage est l'export de la recette (`Services/RecetteExcel.cs`).
 
 ### `GestionMep.Api` : API HTTP
 
@@ -56,6 +60,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 | `Services/StockagePiecesJointes.cs` | Écriture, lecture et suppression des fichiers joints ; fichiers sans enregistrement en base mis de côté au démarrage. |
 | `Services/MisesAJour.cs` | Version en cours, vérification des versions publiées sur GitHub et dialogue avec le service facultatif de mise à jour (fichiers dans un volume partagé). |
 | `Services/Sauvegardes.cs` | Archive de la base (COPY binaire par table) et des pièces jointes ; sauvegarde avant migration ou importation, contrôle qu'aucune donnée n'est perdue, puis suppression de la sauvegarde. |
+| `Services/RecetteExcel.cs` | Export de la recette d'une MEP en classeur Excel (sommaire, un onglet par système, feuille de contrôle masquée) et relecture du fichier rempli, avant l'analyse de la validation par les règles du domaine. `Services/BlocsMarkdown.cs` découpe les blocs Texte / Code d'un déroulé, comme le front. |
 | `Services/EchangeResolutions.cs` | Format JSON d'export des résolutions types et importation contrôlée fiche par fiche (`gestion-mep resolutions exporter / importer`). |
 | `Securite/` | Protections HTTP : en-têtes du proxy inverse, limite des tentatives de connexion (par IP et par compte), en-tête anti-CSRF exigé, en-têtes de sécurité (CSP…), taille maximale des requêtes, sonde `--sante` de l'image Docker. |
 | `Auth/` | Comptes locaux, cookie de session, `Acteur` (utilisateur courant), connexion unique OpenID Connect (`ConnexionUnique.cs`). |
@@ -72,7 +77,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 ### Concurrence
 
 - Chaque MEP porte un numéro de `Version`, chaque étape une `Revision`. Le client renvoie celui qu'il a lu ; un écart donne **409** et le front recharge.
-- EF Core utilise aussi la `Version` de la MEP (et celle des résolutions types) comme jeton de concurrence, ce qui protège deux écritures simultanées sur le serveur.
+- EF Core utilise aussi la `Version` de la MEP (celle des résolutions types et des modèles de recette) comme jeton de concurrence, ce qui protège deux écritures simultanées sur le serveur.
 - **Réessai automatique** : toute écriture sur une MEP passe par `ServiceMep.Modifier`. Si l'enregistrement échoue seulement parce qu'une autre écriture vient de passer sur la même MEP (`DbUpdateConcurrencyException` sur `Mep.Version`, ou clé unique prise entre-temps), le serveur vide le suivi EF (`ChangeTracker.Clear()`), relit la MEP, revérifie toutes les préconditions (droits, révision de l'étape, version envoyée par le client, règles du domaine) et rejoue l'action, jusqu'à 3 essais espacés de quelques millisecondes aléatoires, puis répond 409 comme avant. Des personnes qui agissent en même temps sur des étapes différentes d'une MEP en exécution réussissent donc toutes.
 - **Ce qui reste un vrai conflit (409)** : une étape modifiée depuis sa lecture (révision périmée, par exemple deux démarrages simultanés de la même étape : un seul aboutit), une MEP modifiée depuis sa lecture sur les routes qui exigent sa `version` (fiche de la MEP, plan de retour arrière, sauvegarde, approbateurs, approbation…), ou, rarement, plus de trois écritures simultanées sur la même MEP (essais épuisés pour la dernière).
 - Une action rejouée ne doit pas avoir d'effet hors base : le journal et les entités ajoutés sont annulés par `ChangeTracker.Clear()`, la notification SSE n'est envoyée qu'après un enregistrement réussi, le fichier d'une pièce jointe est écrit une seule fois avant l'enregistrement (et effacé s'il échoue définitivement), les fichiers supprimés ne le sont qu'après le succès.

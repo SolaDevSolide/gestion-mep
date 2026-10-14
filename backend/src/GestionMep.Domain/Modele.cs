@@ -447,20 +447,26 @@ public class CritereValide
 }
 
 /// <summary>
-/// Fiche de recette en production, préparée avec la MEP et déroulée après le déploiement. Pas de responsable :
-/// en recette, on contacte les responsables techniques du système de la fiche.
+/// Fiche de recette en production, préparée avec la MEP et déroulée après le déploiement. Elle couvre une partie d'un
+/// seul système de la MEP. Pas de responsable : en recette, on contacte les responsables techniques du système de la fiche.
 /// </summary>
 public class FicheRecette
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public int Ordre { get; set; }
-    /// <summary>Système de la MEP testé ; null : fiche « Sans système ».</summary>
+    /// <summary>
+    /// Système de la MEP testé. null seulement pour les fiches d'avant la bibliothèque de recettes, ou dont le système a
+    /// été retiré de la MEP : elles restent modifiables et peuvent être rattachées à un système.
+    /// </summary>
     public Guid? SystemeId { get; set; }
     public string Titre { get; set; } = "";
     public List<EtapeTest> Etapes { get; set; } = [];
 }
 
-/// <summary>Étape d'une fiche de recette : instructions et résultat attendu (markdown), puis résultat constaté.</summary>
+/// <summary>
+/// Étape d'une fiche de recette : déroulé du test en blocs Texte / Code (markdown) et résultat attendu (texte simple ;
+/// les recettes plus anciennes peuvent y contenir du markdown, toujours affiché), puis résultat constaté.
+/// </summary>
 public class EtapeTest
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -469,8 +475,38 @@ public class EtapeTest
     public string ResultatAttendu { get; set; } = "";
     public ResultatControle? Resultat { get; set; }
     public string Observation { get; set; } = "";
+    /// <summary>Compte qui a saisi le résultat (ou importé le fichier Excel qui le contenait).</summary>
     public Guid? ParId { get; set; }
     public DateTimeOffset? Le { get; set; }
+    /// <summary>Validation reportée d'un fichier Excel : nom saisi par la personne du métier qui a validé (« » sinon).</summary>
+    public string ValideePar { get; set; } = "";
+    /// <summary>Validation reportée d'un fichier Excel : date indiquée dans le fichier, si elle l'est.</summary>
+    public DateOnly? ValideeLe { get; set; }
+}
+
+/// <summary>
+/// Modèle de la bibliothèque de recettes : une fiche de recette type, rattachée à un système du catalogue, que l'on
+/// insère (par copie) dans les MEP.
+/// </summary>
+public class ModeleRecette
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Titre { get; set; } = "";
+    /// <summary>Système du catalogue testé par la fiche.</summary>
+    public Guid SystemeCatalogueId { get; set; }
+    public List<EtapeModeleRecette> Etapes { get; set; } = [];
+    public int Version { get; set; }
+    public DateTimeOffset ModifieLe { get; set; } = DateTimeOffset.UtcNow;
+    /// <summary>Compte auteur de la dernière modification (null : données de démo ou ligne de commande).</summary>
+    public Guid? ModifieParId { get; set; }
+}
+
+/// <summary>Étape d'un modèle de recette : déroulé en blocs Texte / Code (markdown) et résultat attendu.</summary>
+public class EtapeModeleRecette
+{
+    public int Ordre { get; set; }
+    public string Instructions { get; set; } = "";
+    public string ResultatAttendu { get; set; } = "";
 }
 
 /// <summary>Bilan rédigé à la clôture de la MEP.</summary>

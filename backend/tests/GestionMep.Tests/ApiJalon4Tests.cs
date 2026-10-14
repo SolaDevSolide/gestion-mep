@@ -183,7 +183,12 @@ public class ApiJalon4Tests : IDisposable
         var (t1, t2) = (fiche.GetProperty("etapes")[0].GetProperty("id").GetGuid(), fiche.GetProperty("etapes")[1].GetProperty("id").GetGuid());
         Assert.Contains("Recette « Vérifier les journaux », étape 2 : compléter les instructions et le résultat attendu.", Liste(mep, "erreursPlan"));
 
-        // Les identifiants connus sont gardés, l'ordre est celui reçu ; sans système, la fiche passe « Sans système ».
+        // Une fiche reste dans son système.
+        var autre = await alice.PutAsJsonAsync($"/api/meps/{id}/fiches-recette/{fid}", new { systemeId = Systeme(mep, "API"), titre = "x", etapes = Array.Empty<object>() });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, autre.StatusCode);
+        Assert.Equal("Une fiche de recette reste dans son système : créez une nouvelle fiche dans l'autre système.", await Message(autre));
+
+        // Les identifiants connus sont gardés, l'ordre est celui reçu ; sans système précisé, la fiche garde le sien.
         mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/fiches-recette/{fid}", new
         {
             systemeId = (Guid?)null, titre = "Vérifier les journaux",
@@ -192,14 +197,15 @@ public class ApiJalon4Tests : IDisposable
         fiche = Fiche(mep, "Vérifier les journaux");
         Assert.Equal([t2, t1], fiche.GetProperty("etapes").EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).ToArray());
         Assert.Equal([1, 2], fiche.GetProperty("etapes").EnumerateArray().Select(t => t.GetProperty("ordre").GetInt32()).ToArray());
-        Assert.Equal(JsonValueKind.Null, fiche.GetProperty("systemeId").ValueKind);
+        Assert.Equal(web, fiche.GetProperty("systemeId").GetGuid());
         Assert.Equal(["Il faut 1 approbation(s)."], Liste(mep, "erreursPlan"));
 
         // Suppression : les fiches restantes sont renumérotées.
         var premiere = mep.GetProperty("fichesRecette")[0].GetProperty("id").GetGuid();
         mep = await Ok(await alice.DeleteAsync($"/api/meps/{id}/fiches-recette/{premiere}"));
         Assert.Equal([1, 2, 3, 4, 5], mep.GetProperty("fichesRecette").EnumerateArray().Select(f => f.GetProperty("ordre").GetInt32()).ToArray());
-        Assert.Contains("Aucune recette pour le système WEB.", Liste(mep, "avertissements"));
+        // « Vérifier les journaux » est restée dans WEB.
+        Assert.DoesNotContain("Aucune recette pour le système WEB.", Liste(mep, "avertissements"));
         Assert.Equal(HttpStatusCode.NotFound, (await alice.DeleteAsync($"/api/meps/{id}/fiches-recette/{premiere}")).StatusCode);
 
         var journal = await Journal(alice, id);
@@ -228,6 +234,11 @@ public class ApiJalon4Tests : IDisposable
         Assert.Contains("E0005", await Message(utilise));
         mep = await Ok(await alice.DeleteAsync($"/api/meps/{id}/systemes/{sid}"));
         Assert.Equal(JsonValueKind.Null, Fiche(mep, "Traitements").GetProperty("systemeId").ValueKind);
+        Assert.Contains("Recette « Traitements » : sans système, à rattacher à un système de la MEP.", Liste(mep, "avertissements"));
+        // Elle reste modifiable et se rattache à un autre système.
+        var fid = Fiche(mep, "Traitements").GetProperty("id").GetGuid();
+        mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/fiches-recette/{fid}", new { systemeId = Systeme(mep, "API"), titre = "Traitements", etapes = Array.Empty<object>() }));
+        Assert.Equal(Systeme(mep, "API"), Fiche(mep, "Traitements").GetProperty("systemeId").GetGuid());
     }
 
     // ---------- Fiches de recette : déroulé ----------

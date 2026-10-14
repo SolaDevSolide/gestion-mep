@@ -7,6 +7,9 @@ import type {
   InfosApplication,
   MiseAJour,
   ParametresGlobaux,
+  ApercuValidation,
+  ModeleRecette,
+  ModeleRecetteSaisie,
   Reglage,
   PieceJointe,
   FicheRecetteSaisie,
@@ -54,10 +57,13 @@ import type {
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  /** Liste détaillée des anomalies renvoyée par le serveur (champ `erreurs`), vide sinon. */
+  erreurs: string[];
+  constructor(status: number, message: string, erreurs: string[] = []) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.erreurs = erreurs;
   }
 }
 
@@ -91,9 +97,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
   if (!res.ok) {
     let message = '';
+    let erreurs: string[] = [];
     try {
       const data = await res.json();
       message = typeof data?.message === 'string' ? data.message : '';
+      if (Array.isArray(data?.erreurs))
+        erreurs = data.erreurs.filter((e: unknown): e is string => typeof e === 'string');
     } catch {
       /* corps non JSON */
     }
@@ -105,7 +114,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
             ? 'Fichier trop volumineux.'
             : `Erreur ${res.status}.`;
     }
-    throw new ApiError(res.status, message);
+    throw new ApiError(res.status, message, erreurs);
   }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
@@ -280,8 +289,10 @@ export const api = {
   decider: (id: string, version: number, decision: DecisionApprobation, commentaire: string) =>
     post<Mep>(`/meps/${id}/approbation`, { version, decision, commentaire }),
 
-  ajouterFicheRecette: (id: string, systemeId: string | null, titre: string) =>
+  ajouterFicheRecette: (id: string, systemeId: string, titre: string) =>
     post<Mep>(`/meps/${id}/fiches-recette`, { systemeId, titre }),
+  insererModeleRecette: (id: string, modeleId: string, systemeId: string) =>
+    post<Mep>(`/meps/${id}/fiches-recette/depuis-modele`, { modeleId, systemeId }),
   modifierFicheRecette: (id: string, fid: string, s: FicheRecetteSaisie) =>
     put<Mep>(`/meps/${id}/fiches-recette/${fid}`, s),
   supprimerFicheRecette: (id: string, fid: string) => del<Mep>(`/meps/${id}/fiches-recette/${fid}`),
@@ -290,6 +301,20 @@ export const api = {
   refaireFicheRecette: (id: string, fid: string) => post<Mep>(`/meps/${id}/fiches-recette/${fid}/refaire`, {}),
   refaireEtapeTest: (id: string, fid: string, tid: string) =>
     post<Mep>(`/meps/${id}/fiches-recette/${fid}/etapes/${tid}/refaire`, {}),
+
+  // Recette en Excel : export (téléchargement direct), aperçu puis report de la validation des métiers.
+  urlExportRecette: (id: string) => `/api/meps/${id}/recette/excel`,
+  apercuValidation: (id: string, f: File) =>
+    post<ApercuValidation>(`/meps/${id}/recette/excel/apercu`, formulaireFichier(f)),
+  importerValidation: (id: string, f: File) => post<Mep>(`/meps/${id}/recette/excel/import`, formulaireFichier(f)),
+
+  // Bibliothèque de recettes.
+  modelesRecette: () => get<ModeleRecette[]>('/modeles-recette'),
+  creerModeleRecette: (s: Omit<ModeleRecetteSaisie, 'version'>) => post<ModeleRecette>('/modeles-recette', s),
+  modifierModeleRecette: (mid: string, s: ModeleRecetteSaisie) => put<ModeleRecette>(`/modeles-recette/${mid}`, s),
+  supprimerModeleRecette: (mid: string) => del<void>(`/modeles-recette/${mid}`),
+  modeleDepuisFiche: (mepId: string, ficheId: string, titre: string, systemeCatalogueId: string) =>
+    post<ModeleRecette>('/modeles-recette/depuis-fiche', { mepId, ficheId, titre, systemeCatalogueId }),
 
   // Pièces jointes : MEP, étape, résolution exécutée, résolution type.
   deposerPieceMep: (id: string, f: File) => post<Mep>(`/meps/${id}/pieces-jointes`, formulaireFichier(f)),

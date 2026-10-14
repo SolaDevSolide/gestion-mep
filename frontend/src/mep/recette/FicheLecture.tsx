@@ -1,7 +1,7 @@
 import { Check, FlaskConical, RotateCcw, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '../../api';
-import { formatDateHeure, LIBELLE_RESULTAT } from '../../format';
+import { formatDate, formatDateHeure, LIBELLE_RESULTAT, LIBELLE_VALIDATION } from '../../format';
 import { useMep } from '../../mepContext';
 import type { EtapeTest, FicheRecette } from '../../types';
 import { Button } from '../../ui/Button';
@@ -76,11 +76,11 @@ function EtapeTestLigne({
         )}
       </div>
       <div>
-        <p className="text-[11px] font-semibold tracking-wide text-fg-subtle uppercase">Instructions</p>
+        <p className="text-[11px] font-semibold tracking-wide text-fg-subtle uppercase">Déroulé du test</p>
         {etape.instructions.trim() ? (
           <RenduBlocs source={etape.instructions} />
         ) : (
-          <p className="text-sm text-fg-subtle">Instructions à compléter.</p>
+          <p className="text-sm text-fg-subtle">Déroulé à compléter.</p>
         )}
       </div>
       <div className="rounded-lg border border-ok-bd bg-ok-bg px-3.5 py-2.5 text-ok-fg">
@@ -95,10 +95,19 @@ function EtapeTestLigne({
       {fait && (
         <div className="rounded-lg border border-line bg-surface-2/50 px-3.5 py-2.5 text-sm">
           <p className="whitespace-pre-line">{etape.observation || 'Aucune observation.'}</p>
-          <p className="mt-1 text-xs text-fg-subtle">
-            {etape.par ?? 'Quelqu’un'}
-            {etape.le && ` · ${formatDateHeure(etape.le)}`}
-          </p>
+          {etape.valideePar ? (
+            <p className="mt-1 text-xs text-fg-subtle">
+              {LIBELLE_VALIDATION[etape.resultat!]} par {etape.valideePar}
+              {etape.valideeLe && ` le ${formatDate(etape.valideeLe)}`} · fichier Excel importé par{' '}
+              {etape.par ?? 'quelqu’un'}
+              {etape.le && ` · ${formatDateHeure(etape.le)}`}
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-fg-subtle">
+              {etape.par ?? 'Quelqu’un'}
+              {etape.le && ` · ${formatDateHeure(etape.le)}`}
+            </p>
+          )}
         </div>
       )}
 

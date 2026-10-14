@@ -265,10 +265,10 @@ public static partial class DonneesDemo
         }).ToList());
 
     /// <summary>Fiche de recette ajoutée et remplie par les règles de préparation.</summary>
-    private static void Fiche(Mep mep, Systeme? systeme, string titre, params (string Instructions, string Attendu)[] etapes)
+    private static void Fiche(Mep mep, Systeme systeme, string titre, params (string Instructions, string Attendu)[] etapes)
     {
-        var f = Regles.AjouterFicheRecette(mep, systeme?.Id, titre);
-        Regles.ModifierFicheRecette(mep, f, systeme?.Id, titre, etapes.Select(e => ((Guid?)null, e.Instructions, e.Attendu)));
+        var f = Regles.AjouterFicheRecette(mep, systeme.Id, titre);
+        Regles.ModifierFicheRecette(mep, f, systeme.Id, titre, etapes.Select(e => ((Guid?)null, e.Instructions, e.Attendu)));
     }
 
     /// <summary>Étape à faire n° <paramref name="n"/>, en fin de la ligne <paramref name="ligne"/> du plan.</summary>

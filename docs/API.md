@@ -32,7 +32,7 @@ L'interface web s'appuie entièrement sur une API HTTP JSON. Cette page en donne
 | 422 | Refus par une règle métier (par exemple démarrer une étape qui attend une autre étape). |
 | 429 | Trop de tentatives de connexion. |
 
-Les erreurs ont pour corps `{ "message": "…" }`, une phrase en français destinée à l'utilisateur.
+Les erreurs ont pour corps `{ "message": "…" }`, une phrase en français destinée à l'utilisateur. Quand un refus a plusieurs motifs (import d'un fichier de recette incohérent), le corps porte aussi `"erreurs": ["…"]`, un motif par ligne.
 
 ## Groupes de routes
 
@@ -41,9 +41,10 @@ Les erreurs ont pour corps `{ "message": "…" }`, une phrase en français desti
 | `/api/auth` | Connexion, déconnexion, utilisateur courant, changement de mot de passe ; options de la page de connexion et connexion unique (`/api/auth/sso/…` : départ vers le fournisseur, liaison depuis le profil). |
 | `/api/utilisateurs` | Liste des comptes (pour relier une personne à un compte) et profils. Chaque compte porte `comptePrincipalId` (compte principal de la même personne, ou null), `nomPersonne` (nom affiché de la personne) et `equipeIds`. |
 | `/api/equipes` | Liste des équipes et de leurs membres (`membreIds`), pour tout utilisateur connecté. |
-| `/api/meps` | Liste (`?modele=true|false`, `?equipe=<id>` : MEP dont une personne fait partie de l'équipe ; chaque résumé porte `equipeIds` et `personnes`, noms et identifiants des personnes et de leurs comptes reliés). MEP : création, duplication, préparation (participants, systèmes, livrables, sauvegarde, étapes, approbations, recette), exécution (démarrer, terminer, prendre la main, résolutions), phases, retour arrière, clôture, pièces jointes, journal, flux et présence. |
+| `/api/meps` | Liste (`?modele=true|false`, `?equipe=<id>` : MEP dont une personne fait partie de l'équipe ; chaque résumé porte `equipeIds` et `personnes`, noms et identifiants des personnes et de leurs comptes reliés). MEP : création, duplication, préparation (participants, systèmes, livrables, sauvegarde, étapes, approbations, recette : fiches, insertion d'un modèle `POST /api/meps/{id}/fiches-recette/depuis-modele`, export Excel `GET /api/meps/{id}/recette/excel`, aperçu puis import de la validation `POST /api/meps/{id}/recette/excel/apercu` et `…/import` en `multipart/form-data`, champ `fichier`, 5 Mo au plus), exécution (démarrer, terminer, prendre la main, résolutions), phases, retour arrière, clôture, pièces jointes, journal, flux et présence. |
 | `/api/catalogue/systemes` | Catalogue global des systèmes. |
 | `/api/resolutions` | Résolutions types et leurs versions. |
+| `/api/modeles-recette` | Bibliothèque de recettes : modèles de fiches par système du catalogue, création depuis une fiche (`POST /api/modeles-recette/depuis-fiche`), suppression réservée aux administrateurs. |
 | `/api/parametres`, `/api/criteres-go-no-go` | Paramètres globaux. |
 | `/api/pieces-jointes` | Téléchargement d'une pièce jointe. |
 | `/api/admin` | Console d'administration : comptes (dont `POST /api/admin/utilisateurs/{id}/relier { comptePrincipalId, desactiver }` et `POST …/{id}/delier` pour les comptes d'une même personne), équipes (`POST /api/admin/equipes`, `PUT` et `DELETE /api/admin/equipes/{id}`, saisie `{ nom, description, membreIds }`, `membreIds` absent : membres inchangés), journal d'administration, vérification des mises à jour, réglages de la connexion unique (`/api/admin/sso`) (administrateurs seulement). |

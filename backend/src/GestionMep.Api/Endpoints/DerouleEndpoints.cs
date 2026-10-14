@@ -55,8 +55,10 @@ public static class DerouleEndpoints
             var acteur = Acteur.Depuis(user);
             ServiceMep.ExigerEditeur(mep, acteur);
             Regles.ExigerPreparation(mep);
-            ServiceMep.ExigerSystemeExistant(mep, c.SystemeId);
-            var f = Regles.AjouterFicheRecette(mep, c.SystemeId, ServiceMep.Texte(c.Titre));
+            // Une fiche appartient à un seul système de la MEP.
+            if (c.SystemeId is not { } systemeId) throw ErreurHttp.Saisie("Choisir le système de la fiche de recette.");
+            ServiceMep.ExigerSystemeExistant(mep, systemeId);
+            var f = Regles.AjouterFicheRecette(mep, systemeId, ServiceMep.Texte(c.Titre));
             return await svc.EnregistrerContenu(mep, acteur, "recette.fiche-ajoutee", $"{Regles.NomRecette(f)} ajoutée");
         })));
 

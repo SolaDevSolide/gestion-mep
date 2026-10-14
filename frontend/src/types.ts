@@ -130,6 +130,10 @@ export type SystemeCatalogue = S['SystemeCatalogueDto'];
 export type CorrectionType = S['CorrectionDto'];
 /** `systemeCatalogueIds` vide = tous les systèmes ; `modifieeParId` null : démo ou fiche antérieure au suivi. */
 export type ResolutionType = S['ResolutionTypeDto'];
+export type ModeleRecette = S['ModeleRecetteDto'];
+export type EtapeModeleRecette = S['EtapeModeleRecetteDto'];
+export type ApercuValidation = S['ApercuValidationDto'];
+export type ChangementValidation = S['ChangementValidationDto'];
 /** Version archivée d'une résolution type (historique, la plus récente d'abord). `action` : creee, modifiee, desactivee ou existante. */
 export type VersionResolutionType = S['VersionResolutionTypeDto'];
 export type Evenement = S['EvenementDto'];
@@ -216,9 +220,19 @@ export type EtapeTestSaisie = SaisieVerifiee<
   S['EtapeTestSaisie'],
   { id?: string; instructions: string; resultatAttendu: string }
 >;
+/** `systemeId` : seulement pour rattacher une ancienne fiche sans système (une fiche garde son système). */
 export type FicheRecetteSaisie = SaisieVerifiee<
   S['FicheRecetteSaisie'],
-  { systemeId: string | null; titre: string; etapes: EtapeTestSaisie[] }
+  { systemeId?: string; titre: string; etapes: EtapeTestSaisie[] }
+>;
+export type ModeleRecetteSaisie = SaisieVerifiee<
+  S['ModeleRecetteSaisie'],
+  {
+    version: number;
+    titre: string;
+    systemeCatalogueId: string;
+    etapes: { instructions: string; resultatAttendu: string }[];
+  }
 >;
 /** Bilan saisi à la clôture (corps de `POST /meps/{id}/cloturer`). */
 export type BilanSaisie = SaisieVerifiee<

@@ -2,17 +2,18 @@ import {
   ClipboardCheck,
   ClipboardList,
   Layers,
-  ShieldCheck,
+  Library,
   ListChecks,
-  UserRound,
   Moon,
   NotebookText,
   Play,
   Rocket,
+  ShieldCheck,
   ShieldUser,
   Sun,
   SunMoon,
   Undo2,
+  UserRound,
   Wrench,
 } from 'lucide-react';
 import { Command } from 'cmdk';
@@ -182,6 +183,13 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                   onSelect={() => aller('/parametres/resolutions')}
                 >
                   Paramètres : Résolutions types
+                </Entree>
+                <Entree
+                  icone={<Library className="size-4" />}
+                  mots={['paramètres', 'bibliothèque', 'recettes', 'modèles', 'fiches']}
+                  onSelect={() => aller('/parametres/recettes')}
+                >
+                  Paramètres : Bibliothèque de recettes
                 </Entree>
                 <Entree
                   icone={<ShieldCheck className="size-4" />}

@@ -63,12 +63,13 @@ public static class CatalogueEndpoints
         return Dto(s);
     }
 
-    /// <summary>Supprime le système ; s'il est utilisé par une MEP ou une résolution type, le désactive (renvoie false).</summary>
+    /// <summary>Supprime le système ; s'il est utilisé par une MEP, une résolution type ou un modèle de recette, le désactive (renvoie false).</summary>
     public static async Task<bool> Supprimer(MepDbContext db, Acteur? acteur, Guid id)
     {
         var s = await db.SystemesCatalogue.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Système du catalogue introuvable.");
-        // Utilisé par une MEP ou par une résolution type : on le désactive au lieu de le supprimer.
-        var utilise = await db.Systemes.AnyAsync(x => x.CatalogueId == id) || await db.ResolutionsTypes.AnyAsync(r => r.SystemeCatalogueIds.Contains(id));
+        // Utilisé par une MEP, une résolution type ou un modèle de recette : on le désactive au lieu de le supprimer.
+        var utilise = await db.Systemes.AnyAsync(x => x.CatalogueId == id) || await db.ResolutionsTypes.AnyAsync(r => r.SystemeCatalogueIds.Contains(id))
+            || await db.ModelesRecette.AnyAsync(r => r.SystemeCatalogueId == id);
         if (utilise)
         {
             s.Actif = false;

@@ -65,8 +65,10 @@ public record TestsUnitairesDto(int Faits, int NonFaits, int Verifications, List
 
 public record ApprobationDto(Guid Id, Guid UtilisateurId, string Nom, DecisionApprobation? Decision, string Commentaire, DateTimeOffset? Le);
 public record CritereValideDto(string Libelle, string? Par, DateTimeOffset Le);
+/// <param name="ValideePar">Validation reportée d'un fichier Excel : nom saisi par le métier (« » sinon) ; <c>Par</c> est alors le compte qui a importé.</param>
+/// <param name="ValideeLe">Validation reportée d'un fichier Excel : date indiquée dans le fichier.</param>
 public record EtapeTestDto(Guid Id, int Ordre, string Instructions, string ResultatAttendu, ResultatControle? Resultat,
-    string Observation, string? Par, DateTimeOffset? Le);
+    string Observation, string? Par, DateTimeOffset? Le, string ValideePar, DateOnly? ValideeLe);
 public record FicheRecetteDto(Guid Id, int Ordre, Guid? SystemeId, string Titre, List<EtapeTestDto> Etapes);
 public record BilanDto(string CeQuiAMarche, string Incidents, string Actions, string? RedigePar, DateTimeOffset? Le);
 public record PieceJointeDto(Guid Id, Guid? MepId, Guid? EtapeId, Guid? ResolutionTypeId, Guid? ExecutionResolutionId, string NomFichier,
@@ -182,7 +184,25 @@ public record DecisionSaisie(int? Version, DecisionApprobation? Decision, string
 public record DuplicationSaisie(string? Environnement, bool CommeModele);
 public record FicheRecetteCreationSaisie(Guid? SystemeId, string? Titre);
 public record EtapeTestSaisie(Guid? Id, string? Instructions, string? ResultatAttendu);
+/// <param name="SystemeId">Facultatif : la fiche garde son système ; sert seulement à rattacher une ancienne fiche sans système.</param>
 public record FicheRecetteSaisie(Guid? SystemeId, string? Titre, List<EtapeTestSaisie>? Etapes);
+/// <summary>Insertion d'un modèle de la bibliothèque (copie) dans un système de la MEP.</summary>
+public record InsertionModeleRecetteSaisie(Guid? ModeleId, Guid? SystemeId);
+
+public record EtapeModeleRecetteDto(int Ordre, string Instructions, string ResultatAttendu);
+public record ModeleRecetteDto(Guid Id, string Titre, Guid SystemeCatalogueId, List<EtapeModeleRecetteDto> Etapes, int Version,
+    DateTimeOffset ModifieLe, Guid? ModifieParId, string? ModifiePar);
+public record EtapeModeleRecetteSaisie(string? Instructions, string? ResultatAttendu);
+/// <param name="Version">Obligatoire pour une modification (verrou optimiste).</param>
+public record ModeleRecetteSaisie(int? Version, string? Titre, Guid? SystemeCatalogueId, List<EtapeModeleRecetteSaisie>? Etapes);
+/// <summary>« Enregistrer comme modèle » : copie d'une fiche de recette d'une MEP dans la bibliothèque.</summary>
+public record ModeleDepuisFicheSaisie(Guid? MepId, Guid? FicheId, string? Titre, Guid? SystemeCatalogueId);
+
+/// <summary>Étape de test que le fichier Excel importé va renseigner.</summary>
+public record ChangementValidationDto(Guid FicheId, Guid EtapeId, string Systeme, string Fiche, int Etape, ResultatControle Resultat,
+    string Observation, string ValidePar, DateOnly? Date);
+/// <summary>Aperçu d'un import de validation : étapes à renseigner, étapes déjà à jour, lignes sans validation (ignorées).</summary>
+public record ApercuValidationDto(List<ChangementValidationDto> Changements, int Inchangees, int SansValidation);
 public record ClotureSaisie(string? CeQuiAMarche, string? Incidents, string? Actions);
 public record CritereGoNoGoSaisie(string? Libelle, int? Ordre, bool? Actif);
 public record ParametresSaisie(int? ApprobationsMinimum);

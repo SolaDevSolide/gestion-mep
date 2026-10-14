@@ -39,6 +39,8 @@ export const LIBELLE_CRITICITE: Record<Criticite, string> = {
 };
 
 export const LIBELLE_RESULTAT: Record<ResultatControle, string> = { Conforme: 'Conforme', Echec: 'Échec' };
+/** Libellés de la validation par les métiers (fichier Excel de la recette). */
+export const LIBELLE_VALIDATION: Record<ResultatControle, string> = { Conforme: 'Validé', Echec: 'Refusé' };
 
 /** Nombre suivi du mot accordé : « 1 fait », « 2 faits », « 0 non fait ». */
 export const compte = (n: number, singulier: string, pluriel = `${singulier}s`): string =>

@@ -99,7 +99,20 @@ Le point de non-retour reste porté par les étapes de déploiement (voir [Cycle
 
 ## Les fiches de recette (Plan › Recette)
 
-La recette vérifie, après le déploiement, que tout fonctionne. Elle est organisée par système : pour chaque système, ajouter une ou plusieurs fiches (« Ajouter une recette »), chacune faite d'étapes de test avec des instructions et un résultat attendu. Le jour J, les responsables techniques du système servent de contact.
+La recette vérifie, après le déploiement, que tout fonctionne. Elle est organisée par système : chaque fiche appartient à un seul système de la MEP. Dans la section de chaque système :
+
+- **« Nouvelle fiche »** crée une fiche de ce système et ouvre sa page ;
+- **« Depuis la bibliothèque »** insère une copie d'un modèle de la [bibliothèque de recettes](#la-bibliothèque-de-recettes) ; la fiche insérée se modifie ensuite librement, sans toucher au modèle.
+
+Cliquer une fiche ouvre sa page, avec un fil d'Ariane « Recette / SYSTÈME / titre » et une adresse à partager. Avant le Go, on y rédige la fiche : un titre, puis des étapes de test. Chaque étape a un **déroulé** fait de blocs Texte ou Code (commandes, requêtes, à copier telles quelles) et un **résultat attendu** en texte simple. « Enregistrer comme modèle » ajoute la fiche à la bibliothèque.
+
+Une fiche ne change pas de système : pour tester un autre système, créer une nouvelle fiche dans sa section. Les fiches créées avant cette règle sans système restent visibles et modifiables dans une section « Sans système », qui n'apparaît que si elle n'est pas vide ; leur page propose de les rattacher à un système, et « Vérifier le plan » le signale en avertissement.
+
+Le jour J, les responsables techniques du système servent de contact.
+
+## La bibliothèque de recettes
+
+« Paramètres › Bibliothèque de recettes » rassemble des fiches de recette types, chacune rattachée à un système du catalogue : titre et étapes de test (déroulé en blocs, résultat attendu). Recherche et filtre par système. Tout le monde peut créer et modifier un modèle, ici ou depuis la page d'une fiche (« Enregistrer comme modèle ») ; seuls les administrateurs suppriment. Insérer un modèle dans une MEP en fait une **copie** : modifier ou supprimer le modèle ensuite ne change pas les fiches déjà insérées. Un système du catalogue utilisé par un modèle est désactivé au lieu d'être supprimé.
 
 ## Préparer à plusieurs
 

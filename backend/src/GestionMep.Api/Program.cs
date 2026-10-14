@@ -139,6 +139,7 @@ api.MapPhase();
 api.MapCatalogue();
 api.MapResolutions();
 api.MapDeroule();
+api.MapRecette();
 api.MapParametres();
 api.MapAdmin();
 api.MapEquipes();

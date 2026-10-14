@@ -22,7 +22,7 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 | `src/mep`             | Onglets et dialogues d'une MEP (préparation, plan : étapes, retour arrière, recette ; exécution, journal ; `onglets.ts`) |
 | `src/mep/graphe`      | Éditeur et vue d'exécution du graphe des étapes                                                                          |
 | `src/mep/preparation` | Sections de l'onglet Préparation                                                                                         |
-| `src/parametres`      | Paramètres globaux : catalogue des systèmes, résolutions types, critères go / no-go                                      |
+| `src/parametres`      | Paramètres globaux : catalogue des systèmes, résolutions types, bibliothèque de recettes, critères go / no-go            |
 | `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version »                                               |
 | `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                                       |
 | `src/test`            | Configuration Vitest et fabrique de données de test                                                                      |

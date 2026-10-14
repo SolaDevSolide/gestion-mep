@@ -596,6 +596,39 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("Meps");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.ModeleRecette", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Etapes")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("ModifieLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ModifieParId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SystemeCatalogueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Titre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SystemeCatalogueId");
+
+                    b.ToTable("ModelesRecette");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.ParametresGlobaux", b =>
                 {
                     b.Property<int>("Id")
