@@ -7,7 +7,7 @@ import { SectionCarte } from './Formulaires';
 export function PiecesSection() {
   const { mep, run } = useMep();
   return (
-    <SectionCarte numero={8} titre="Pièces jointes" description="Procédure, schémas, configurations.">
+    <SectionCarte numero={9} titre="Pièces jointes" description="Procédure, schémas, configurations.">
       <PiecesJointes
         titre="Documents de la MEP"
         lectureSeule={mep.phase === 'Cloturee'}

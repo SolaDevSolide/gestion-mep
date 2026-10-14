@@ -36,7 +36,8 @@ Aucune dépendance vers ASP.NET ni EF Core.
 - Un refus lève `RegleMetierException` avec un message en français destiné à l'utilisateur. L'API le traduit en **422**.
 - L'heure courante est toujours passée en paramètre (`maintenant`) : les règles se testent sans horloge.
 - `AnnuairePersonnes.cs` : comptes vus comme des personnes. Des comptes reliés (`Utilisateur.ComptePrincipalId`, un seul niveau) forment une personne, nommée d'après son compte principal, dont les équipes sont celles de tous ses comptes. Rien n'est fusionné : chaque compte garde ses données, ses droits et son historique. Les règles de liaison et de nom d'équipe sont dans `Regles.Comptes.cs`.
-- `DonneesDemo.cs` : jeu de démonstration (comptes `alice`, `bob`, `claire`, MEP d'exemple).
+- `TextesCommunication.cs` : modèles de texte. `VariablesTexte` (catalogue des variables `{{cle}}` et leurs valeurs pour une MEP, dates et heures dans le fuseau de la MEP) et `ModelesTexteFournis` (les quatre modèles copiés dans chaque équipe, rétablissement). Le remplissage et la mise en forme (gras, puces, HTML copié) se font dans le navigateur (`frontend/src/textes`). Voir [Modèles de texte](Modèles-de-texte.md).
+- `DonneesDemo.cs` : jeu de démonstration (comptes `alice`, `bob`, `claire`, MEP d'exemple, équipes et leurs modèles de texte).
 
 ### `GestionMep.Tableur` : classeurs Excel
 

@@ -2802,6 +2802,289 @@
         }
       }
     },
+    "/api/meps/{id}/communication": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommunicationSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/variables-texte": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "equipe",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VariablesMepDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/equipes/{id}/communication": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EquipeCommunicationSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/modeles-texte/variables": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VariableTexteDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/modeles-texte": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "equipe",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ModeleTexteDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeleTexteSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/modeles-texte/{id}": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeleTexteDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeleTexteSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/modeles-texte/{id}/retablir": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/meps/{id}/pieces-jointes": {
       "get": {
         "tags": [
@@ -4071,6 +4354,218 @@
           }
         }
       },
+      "CommunicationDto": {
+        "required": [
+          "referenceDemande",
+          "niveauRisque",
+          "benefices",
+          "utilisateursImpactes",
+          "arretApplicatif",
+          "actionUtilisateurs",
+          "heureLimite",
+          "dateAnnoncee",
+          "heureDebutAnnoncee",
+          "heureFinAnnoncee",
+          "valideeParUtilisateurs",
+          "valideePar",
+          "valideeLe",
+          "preuveValidationId"
+        ],
+        "type": "object",
+        "properties": {
+          "referenceDemande": {
+            "type": "string"
+          },
+          "niveauRisque": {
+            "enum": [
+              "NonEvalue",
+              "Faible",
+              "Modere",
+              "Eleve"
+            ],
+            "description": "Niveau de risque retenu par l'analyse d'impact (section Communication). Stocké en entier : toute nouvelle valeur s'ajoute à la fin."
+          },
+          "benefices": {
+            "type": "string"
+          },
+          "utilisateursImpactes": {
+            "type": "string"
+          },
+          "arretApplicatif": {
+            "type": "boolean"
+          },
+          "actionUtilisateurs": {
+            "type": "string"
+          },
+          "heureLimite": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "time"
+          },
+          "dateAnnoncee": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "heureDebutAnnoncee": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "time"
+          },
+          "heureFinAnnoncee": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "time"
+          },
+          "valideeParUtilisateurs": {
+            "type": "boolean"
+          },
+          "valideePar": {
+            "type": "string"
+          },
+          "valideeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "preuveValidationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "Section Communication de la MEP (tout est facultatif). `PreuveValidationId` : pièce jointe de la MEP qui prouve la\nvalidation par les utilisateurs (null si aucune, ou si la pièce a été supprimée)."
+      },
+      "CommunicationSaisie": {
+        "required": [
+          "version",
+          "referenceDemande",
+          "niveauRisque",
+          "benefices",
+          "utilisateursImpactes",
+          "arretApplicatif",
+          "actionUtilisateurs",
+          "heureLimite",
+          "dateAnnoncee",
+          "heureDebutAnnoncee",
+          "heureFinAnnoncee",
+          "valideeParUtilisateurs",
+          "valideePar",
+          "valideeLe",
+          "preuveValidationId"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "referenceDemande": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "niveauRisque": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NiveauRisque"
+              }
+            ]
+          },
+          "benefices": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "utilisateursImpactes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "arretApplicatif": {
+            "type": "boolean"
+          },
+          "actionUtilisateurs": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "heureLimite": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "time"
+          },
+          "dateAnnoncee": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "heureDebutAnnoncee": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "time"
+          },
+          "heureFinAnnoncee": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "time"
+          },
+          "valideeParUtilisateurs": {
+            "type": "boolean"
+          },
+          "valideePar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "valideeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "preuveValidationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "Section Communication, remplacée en entier (champs absents : vides)."
+      },
       "CompteDemoDto": {
         "required": [
           "login",
@@ -4698,13 +5193,37 @@
           }
         }
       },
+      "EquipeCommunicationSaisie": {
+        "required": [
+          "contactSupport",
+          "signature"
+        ],
+        "type": "object",
+        "properties": {
+          "contactSupport": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "signature": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Informations communes aux modèles de texte d'une équipe (membres de l'équipe ou administrateurs)."
+      },
       "EquipeDto": {
         "required": [
           "id",
           "nom",
           "description",
           "membreIds",
-          "creeeLe"
+          "creeeLe",
+          "contactSupport",
+          "signature"
         ],
         "type": "object",
         "properties": {
@@ -4728,9 +5247,15 @@
           "creeeLe": {
             "type": "string",
             "format": "date-time"
+          },
+          "contactSupport": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
           }
         },
-        "description": "Équipe : `MembreIds`, comptes membres (un compte peut appartenir à plusieurs équipes)."
+        "description": "Équipe : `MembreIds`, comptes membres (un compte peut appartenir à plusieurs équipes) ; `ContactSupport` et\n`Signature` : informations communes aux modèles de texte de l'équipe (signature vide : « L'équipe {nom} »)."
       },
       "EquipeSaisie": {
         "required": [
@@ -5944,7 +6469,8 @@
           "piecesJointes",
           "responsablesTechniques",
           "avertissements",
-          "retourArriereActive"
+          "retourArriereActive",
+          "communication"
         ],
         "type": "object",
         "properties": {
@@ -7139,6 +7665,100 @@
           },
           "retourArriereActive": {
             "type": "boolean"
+          },
+          "communication": {
+            "required": [
+              "referenceDemande",
+              "niveauRisque",
+              "benefices",
+              "utilisateursImpactes",
+              "arretApplicatif",
+              "actionUtilisateurs",
+              "heureLimite",
+              "dateAnnoncee",
+              "heureDebutAnnoncee",
+              "heureFinAnnoncee",
+              "valideeParUtilisateurs",
+              "valideePar",
+              "valideeLe",
+              "preuveValidationId"
+            ],
+            "type": "object",
+            "properties": {
+              "referenceDemande": {
+                "type": "string"
+              },
+              "niveauRisque": {
+                "enum": [
+                  "NonEvalue",
+                  "Faible",
+                  "Modere",
+                  "Eleve"
+                ],
+                "description": "Niveau de risque retenu par l'analyse d'impact (section Communication). Stocké en entier : toute nouvelle valeur s'ajoute à la fin."
+              },
+              "benefices": {
+                "type": "string"
+              },
+              "utilisateursImpactes": {
+                "type": "string"
+              },
+              "arretApplicatif": {
+                "type": "boolean"
+              },
+              "actionUtilisateurs": {
+                "type": "string"
+              },
+              "heureLimite": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "time"
+              },
+              "dateAnnoncee": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date"
+              },
+              "heureDebutAnnoncee": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "time"
+              },
+              "heureFinAnnoncee": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "time"
+              },
+              "valideeParUtilisateurs": {
+                "type": "boolean"
+              },
+              "valideePar": {
+                "type": "string"
+              },
+              "valideeLe": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date"
+              },
+              "preuveValidationId": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "uuid"
+              }
+            },
+            "description": "Section Communication de la MEP (tout est facultatif). `PreuveValidationId` : pièce jointe de la MEP qui prouve la\nvalidation par les utilisateurs (null si aucune, ou si la pièce a été supprimée)."
           }
         },
         "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé."
@@ -7589,10 +8209,146 @@
           }
         }
       },
+      "ModeleTexteDto": {
+        "required": [
+          "id",
+          "equipeId",
+          "nom",
+          "usage",
+          "objet",
+          "corps",
+          "fourni",
+          "modifie",
+          "version",
+          "modifieLe",
+          "modifieParId",
+          "modifiePar",
+          "peutModifier"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "equipeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/UsageModeleTexte"
+          },
+          "objet": {
+            "type": "string"
+          },
+          "corps": {
+            "type": "string"
+          },
+          "fourni": {
+            "type": "boolean"
+          },
+          "modifie": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modifieLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modifieParId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "modifiePar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "peutModifier": {
+            "type": "boolean"
+          }
+        },
+        "description": "Modèle de texte d'une équipe. `Fourni` : copie d'un modèle fourni (ne se supprime pas, se rétablit) ; `Modifie` :\nson texte diffère du texte fourni. `PeutModifier` : le compte courant est membre de l'équipe ou administrateur."
+      },
+      "ModeleTexteSaisie": {
+        "required": [
+          "version",
+          "equipeId",
+          "nom",
+          "usage",
+          "objet",
+          "corps"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "equipeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "usage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UsageModeleTexte"
+              }
+            ]
+          },
+          "objet": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "corps": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Modèle de texte. `Version` : obligatoire pour une modification ; `EquipeId` : à la création seulement (l'équipe ne change pas ensuite)."
+      },
       "ModeSauvegarde": {
         "enum": [
           "AvantMep",
           "PendantMep",
+          null
+        ]
+      },
+      "NiveauRisque": {
+        "enum": [
+          "NonEvalue",
+          "Faible",
+          "Modere",
+          "Eleve",
           null
         ]
       },
@@ -9381,6 +10137,16 @@
           "Reseaux"
         ]
       },
+      "UsageModeleTexte": {
+        "enum": [
+          "Annonce",
+          "Rappel",
+          "DemandeMep",
+          "CompteRendu",
+          "Autre"
+        ],
+        "description": "Usage d'un modèle de texte. Stocké en entier : toute nouvelle valeur s'ajoute à la fin."
+      },
       "UtilisateurDto": {
         "required": [
           "id",
@@ -9493,6 +10259,35 @@
           }
         }
       },
+      "ValeurVariableDto": {
+        "required": [
+          "cle",
+          "texte",
+          "liste"
+        ],
+        "type": "object",
+        "properties": {
+          "cle": {
+            "type": "string"
+          },
+          "texte": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "liste": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Valeur d'une variable pour une MEP : `Texte` ou `Liste` ; les deux null : information manquante."
+      },
       "ValidationDto": {
         "required": [
           "par",
@@ -9508,6 +10303,65 @@
             "format": "date-time"
           }
         }
+      },
+      "VariablesMepDto": {
+        "required": [
+          "equipeId",
+          "equipeProposeeId",
+          "valeurs"
+        ],
+        "type": "object",
+        "properties": {
+          "equipeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "equipeProposeeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "valeurs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValeurVariableDto"
+            }
+          }
+        },
+        "description": "Valeurs des variables pour une MEP et une équipe. `EquipeId` : équipe utilisée (celle demandée, sinon celle proposée) ;\n`EquipeProposeeId` : équipe du pilote (à défaut, une équipe du compte courant, puis la première équipe) ; null s'il n'y a aucune équipe."
+      },
+      "VariableTexteDto": {
+        "required": [
+          "cle",
+          "libelle",
+          "groupe",
+          "description",
+          "liste"
+        ],
+        "type": "object",
+        "properties": {
+          "cle": {
+            "type": "string"
+          },
+          "libelle": {
+            "type": "string"
+          },
+          "groupe": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "liste": {
+            "type": "boolean"
+          }
+        },
+        "description": "Variable des modèles de texte (`{{cle}}`) ; `Liste` : rendue en puces quand elle est seule sur sa ligne."
       },
       "VersionResolutionTypeDto": {
         "required": [

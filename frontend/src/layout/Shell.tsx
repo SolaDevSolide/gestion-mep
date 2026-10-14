@@ -4,6 +4,7 @@ import {
   Library,
   Loader2,
   LogOut,
+  Mail,
   Megaphone,
   Moon,
   PanelLeftClose,
@@ -151,6 +152,7 @@ export function Shell() {
           <Lien to="/parametres/resolutions" icone={Wrench} libelle="Résolutions types" replie={replie} />
           <Lien to="/parametres/recettes" icone={Library} libelle="Bibliothèque de recettes" replie={replie} />
           <Lien to="/parametres/go-no-go" icone={ShieldCheck} libelle="Go / no-go" replie={replie} />
+          <Lien to="/parametres/textes" icone={Mail} libelle="Modèles de texte" replie={replie} />
           {utilisateur?.estAdmin && (
             <>
               <div

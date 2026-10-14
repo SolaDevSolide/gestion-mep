@@ -66,9 +66,9 @@ public class EquipesEtComptesTests : IDisposable
         Assert.Equal((HttpStatusCode)422, (await alice.PostAsJsonAsync("/api/admin/equipes", new { nom = "  " })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync("/api/admin/equipes", new { nom = "X", membreIds = new[] { Guid.NewGuid() } })).StatusCode);
 
-        // Lecture pour tous ; une personne appartient à plusieurs équipes.
-        Assert.Equal(2, (await Ok(await bob.GetAsync("/api/equipes"))).GetArrayLength());
-        Assert.Equal(2, (await Compte(bob, "bob")).GetProperty("equipeIds").GetArrayLength());
+        // Lecture pour tous ; une personne appartient à plusieurs équipes (bob est aussi dans l'équipe de démonstration).
+        Assert.Equal(4, (await Ok(await bob.GetAsync("/api/equipes"))).GetArrayLength());
+        Assert.Equal(3, (await Compte(bob, "bob")).GetProperty("equipeIds").GetArrayLength());
 
         // Une MEP appartient à l'équipe dès qu'une de ses personnes en fait partie.
         var mepsDeBob = await MepsAvec(alice, idBob);

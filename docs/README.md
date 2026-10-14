@@ -12,6 +12,7 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 | Comprendre les étapes de vie d'une MEP | [Cycle de vie d'une MEP](Cycle-de-vie.md) |
 | Préparer une MEP (je suis développeur ou responsable technique) | [Préparer une MEP](Préparer-une-MEP.md) |
 | Conduire ou exécuter une MEP le jour J (je suis pilote ou opérateur) | [Exécuter une MEP](Exécuter-une-MEP.md) |
+| Annoncer une MEP, faire la demande de MEP, envoyer le compte rendu (textes à copier) | [Modèles de texte](Modèles-de-texte.md) |
 | Gérer les comptes, les équipes et les paramètres (je suis administrateur) | [Administrer](Administrer.md) |
 | Installer l'application sur un serveur | [Installer](Installer.md), ou [sans Docker](Installer-sans-Docker.md) (Linux ou Windows) |
 | Mettre à jour, sauvegarder, restaurer, tout administrer en ligne de commande (comptes, équipes, systèmes, critères, résolutions types, réglages, journal, export des MEP) | [Exploiter](Exploiter.md) |

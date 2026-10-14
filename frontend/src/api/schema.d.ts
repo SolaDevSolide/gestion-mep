@@ -3186,6 +3186,330 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meps/{id}/communication": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CommunicationSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/variables-texte": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    equipe?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VariablesMepDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/equipes/{id}/communication": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EquipeCommunicationSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/modeles-texte/variables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VariableTexteDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/modeles-texte": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    equipe?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ModeleTexteDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ModeleTexteSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/modeles-texte/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ModeleTexteDto"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ModeleTexteSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/modeles-texte/{id}/retablir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meps/{id}/pieces-jointes": {
         parameters: {
             query?: never;
@@ -4493,6 +4817,61 @@ export interface components {
             revision: null | number;
             commentaire: null | string;
         };
+        /**
+         * @description Section Communication de la MEP (tout est facultatif). `PreuveValidationId` : pièce jointe de la MEP qui prouve la
+         *     validation par les utilisateurs (null si aucune, ou si la pièce a été supprimée).
+         */
+        CommunicationDto: {
+            referenceDemande: string;
+            /**
+             * @description Niveau de risque retenu par l'analyse d'impact (section Communication). Stocké en entier : toute nouvelle valeur s'ajoute à la fin.
+             * @enum {unknown}
+             */
+            niveauRisque: "NonEvalue" | "Faible" | "Modere" | "Eleve";
+            benefices: string;
+            utilisateursImpactes: string;
+            arretApplicatif: boolean;
+            actionUtilisateurs: string;
+            /** Format: time */
+            heureLimite: null | string;
+            /** Format: date */
+            dateAnnoncee: null | string;
+            /** Format: time */
+            heureDebutAnnoncee: null | string;
+            /** Format: time */
+            heureFinAnnoncee: null | string;
+            valideeParUtilisateurs: boolean;
+            valideePar: string;
+            /** Format: date */
+            valideeLe: null | string;
+            /** Format: uuid */
+            preuveValidationId: null | string;
+        };
+        /** @description Section Communication, remplacée en entier (champs absents : vides). */
+        CommunicationSaisie: {
+            /** Format: int32 */
+            version: null | number;
+            referenceDemande: null | string;
+            niveauRisque: null | components["schemas"]["NiveauRisque"];
+            benefices: null | string;
+            utilisateursImpactes: null | string;
+            arretApplicatif: boolean;
+            actionUtilisateurs: null | string;
+            /** Format: time */
+            heureLimite: null | string;
+            /** Format: date */
+            dateAnnoncee: null | string;
+            /** Format: time */
+            heureDebutAnnoncee: null | string;
+            /** Format: time */
+            heureFinAnnoncee: null | string;
+            valideeParUtilisateurs: boolean;
+            valideePar: null | string;
+            /** Format: date */
+            valideeLe: null | string;
+            /** Format: uuid */
+            preuveValidationId: null | string;
+        };
         /** @description Compte de démonstration : `Description` donne son rôle dans les MEP de démonstration. */
         CompteDemoDto: {
             login: string;
@@ -4646,7 +5025,15 @@ export interface components {
             environnement: null | string;
             commeModele: boolean;
         };
-        /** @description Équipe : `MembreIds`, comptes membres (un compte peut appartenir à plusieurs équipes). */
+        /** @description Informations communes aux modèles de texte d'une équipe (membres de l'équipe ou administrateurs). */
+        EquipeCommunicationSaisie: {
+            contactSupport: null | string;
+            signature: null | string;
+        };
+        /**
+         * @description Équipe : `MembreIds`, comptes membres (un compte peut appartenir à plusieurs équipes) ; `ContactSupport` et
+         *     `Signature` : informations communes aux modèles de texte de l'équipe (signature vide : « L'équipe {nom} »).
+         */
         EquipeDto: {
             /** Format: uuid */
             id: string;
@@ -4655,6 +5042,8 @@ export interface components {
             membreIds: string[];
             /** Format: date-time */
             creeeLe: string;
+            contactSupport: string;
+            signature: string;
         };
         /** @description Équipe créée ou modifiée ; `MembreIds` absent (null) : membres inchangés. */
         EquipeSaisie: {
@@ -5306,6 +5695,36 @@ export interface components {
             }[];
             avertissements: string[];
             retourArriereActive: boolean;
+            /**
+             * @description Section Communication de la MEP (tout est facultatif). `PreuveValidationId` : pièce jointe de la MEP qui prouve la
+             *     validation par les utilisateurs (null si aucune, ou si la pièce a été supprimée).
+             */
+            communication: {
+                referenceDemande: string;
+                /**
+                 * @description Niveau de risque retenu par l'analyse d'impact (section Communication). Stocké en entier : toute nouvelle valeur s'ajoute à la fin.
+                 * @enum {unknown}
+                 */
+                niveauRisque: "NonEvalue" | "Faible" | "Modere" | "Eleve";
+                benefices: string;
+                utilisateursImpactes: string;
+                arretApplicatif: boolean;
+                actionUtilisateurs: string;
+                /** Format: time */
+                heureLimite: null | string;
+                /** Format: date */
+                dateAnnoncee: null | string;
+                /** Format: time */
+                heureDebutAnnoncee: null | string;
+                /** Format: time */
+                heureFinAnnoncee: null | string;
+                valideeParUtilisateurs: boolean;
+                valideePar: string;
+                /** Format: date */
+                valideeLe: null | string;
+                /** Format: uuid */
+                preuveValidationId: null | string;
+            };
         };
         /** @description `Environnement`, `BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance. */
         MepIdentiteSaisie: {
@@ -5422,8 +5841,45 @@ export interface components {
             systemeCatalogueId: null | string;
             etapes: null | components["schemas"]["EtapeModeleRecetteSaisie"][];
         };
+        /**
+         * @description Modèle de texte d'une équipe. `Fourni` : copie d'un modèle fourni (ne se supprime pas, se rétablit) ; `Modifie` :
+         *     son texte diffère du texte fourni. `PeutModifier` : le compte courant est membre de l'équipe ou administrateur.
+         */
+        ModeleTexteDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            equipeId: string;
+            nom: string;
+            usage: components["schemas"]["UsageModeleTexte"];
+            objet: string;
+            corps: string;
+            fourni: boolean;
+            modifie: boolean;
+            /** Format: int32 */
+            version: number;
+            /** Format: date-time */
+            modifieLe: string;
+            /** Format: uuid */
+            modifieParId: null | string;
+            modifiePar: null | string;
+            peutModifier: boolean;
+        };
+        /** @description Modèle de texte. `Version` : obligatoire pour une modification ; `EquipeId` : à la création seulement (l'équipe ne change pas ensuite). */
+        ModeleTexteSaisie: {
+            /** Format: int32 */
+            version: null | number;
+            /** Format: uuid */
+            equipeId: null | string;
+            nom: null | string;
+            usage: null | components["schemas"]["UsageModeleTexte"];
+            objet: null | string;
+            corps: null | string;
+        };
         /** @enum {unknown} */
         ModeSauvegarde: "AvantMep" | "PendantMep" | null;
+        /** @enum {unknown} */
+        NiveauRisque: "NonEvalue" | "Faible" | "Modere" | "Eleve" | null;
         NoGoSaisie: {
             motif: null | string;
         };
@@ -5878,6 +6334,11 @@ export interface components {
         /** @enum {unknown} */
         TypeReglage: "Texte" | "Adresse" | "Entier" | "Booleen" | "Reseaux";
         /**
+         * @description Usage d'un modèle de texte. Stocké en entier : toute nouvelle valeur s'ajoute à la fin.
+         * @enum {unknown}
+         */
+        UsageModeleTexte: "Annonce" | "Rappel" | "DemandeMep" | "CompteRendu" | "Autre";
+        /**
          * @description `ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom
          *     affiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre.
          */
@@ -5905,10 +6366,35 @@ export interface components {
             role?: null | string;
             contact?: null | string;
         };
+        /** @description Valeur d'une variable pour une MEP : `Texte` ou `Liste` ; les deux null : information manquante. */
+        ValeurVariableDto: {
+            cle: string;
+            texte: null | string;
+            liste: null | string[];
+        };
         ValidationDto: {
             par: string;
             /** Format: date-time */
             le: string;
+        };
+        /**
+         * @description Valeurs des variables pour une MEP et une équipe. `EquipeId` : équipe utilisée (celle demandée, sinon celle proposée) ;
+         *     `EquipeProposeeId` : équipe du pilote (à défaut, une équipe du compte courant, puis la première équipe) ; null s'il n'y a aucune équipe.
+         */
+        VariablesMepDto: {
+            /** Format: uuid */
+            equipeId: null | string;
+            /** Format: uuid */
+            equipeProposeeId: null | string;
+            valeurs: components["schemas"]["ValeurVariableDto"][];
+        };
+        /** @description Variable des modèles de texte (`{{cle}}`) ; `Liste` : rendue en puces quand elle est seule sur sa ligne. */
+        VariableTexteDto: {
+            cle: string;
+            libelle: string;
+            groupe: string;
+            description: string;
+            liste: boolean;
         };
         VersionResolutionTypeDto: {
             /** Format: int32 */

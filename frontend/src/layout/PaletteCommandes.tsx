@@ -4,6 +4,7 @@ import {
   Layers,
   Library,
   ListChecks,
+  Mail,
   Moon,
   NotebookText,
   Play,
@@ -197,6 +198,13 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                   onSelect={() => aller('/parametres/go-no-go')}
                 >
                   Paramètres : Go / no-go et approbations
+                </Entree>
+                <Entree
+                  icone={<Mail className="size-4" />}
+                  mots={['paramètres', 'modèles', 'textes', 'courriels', 'mails', 'annonce', 'communication']}
+                  onSelect={() => aller('/parametres/textes')}
+                >
+                  Paramètres : Modèles de texte
                 </Entree>
               </Command.Group>
               {utilisateur?.estAdmin && (

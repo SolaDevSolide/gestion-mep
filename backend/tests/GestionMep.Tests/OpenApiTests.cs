@@ -47,7 +47,7 @@ public class OpenApiTests : IDisposable
             "docs/openapi.json n'est plus à jour : lancer MAJ_OPENAPI=1 dotnet test --filter OpenApi, puis npm run api:types dans frontend.");
     }
 
-    private static string RacineDepot()
+    internal static string RacineDepot()
     {
         for (var d = new DirectoryInfo(AppContext.BaseDirectory); d is not null; d = d.Parent)
             if (Directory.Exists(Path.Combine(d.FullName, "docs")) && Directory.Exists(Path.Combine(d.FullName, "backend")))

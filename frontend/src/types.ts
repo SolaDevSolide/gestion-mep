@@ -39,6 +39,8 @@ export type EtatEtape = NonNullable<S['EtatEtape']>;
 export type Criticite = NonNullable<S['Criticite']>;
 export type StatutDisponibilite = S['DisponibiliteDto']['statut'];
 export type StatutSauvegarde = NonNullable<S['StatutSauvegarde']>;
+export type NiveauRisque = NonNullable<S['NiveauRisque']>;
+export type UsageModeleTexte = NonNullable<S['UsageModeleTexte']>;
 
 // ---------- Sorties (DTO) ----------
 
@@ -73,7 +75,11 @@ export type TypeEvenementAdmin =
   | 'equipe.modifiee'
   | 'equipe.supprimee'
   | 'compte.relie'
-  | 'compte.delie';
+  | 'compte.delie'
+  | 'modele-texte.cree'
+  | 'modele-texte.modifie'
+  | 'modele-texte.retabli'
+  | 'modele-texte.supprime';
 
 /** `dateMep` : date du Go si elle existe ; `creeLe` : date de création (affichée tant que la MEP n'a pas démarré). */
 export type MepResume = S['MepResumeDto'];
@@ -143,6 +149,17 @@ export type Presence = S['PresenceDto'];
 /** `avertissements` : avertissements non bloquants de la vérification du plan (responsables techniques). */
 export type Mep = S['MepDto'];
 
+/** Section Communication de la MEP (tout est facultatif) ; heures « HH:MM:SS », dates « AAAA-MM-JJ ». */
+export type Communication = S['CommunicationDto'];
+/** Modèle de texte d'une équipe ; `fourni` : copie d'un modèle fourni (non supprimable, rétablissable). */
+export type ModeleTexte = S['ModeleTexteDto'];
+/** Variable des modèles de texte (`{{cle}}`), avec son groupe dans l'éditeur. */
+export type VariableTexte = S['VariableTexteDto'];
+/** Valeur d'une variable pour une MEP : `texte` ou `liste` ; les deux nuls : information manquante. */
+export type ValeurVariable = S['ValeurVariableDto'];
+/** Valeurs des variables d'une MEP pour une équipe (`equipeProposeeId` : équipe du pilote). */
+export type VariablesMep = S['VariablesMepDto'];
+
 // ---------- Entrées (saisies) ----------
 
 /** `nomAffiche` absent : inchangé. */
@@ -172,6 +189,17 @@ export type MepIdentiteSaisie = SaisieVerifiee<
     | 'suppleantIds'
     | 'echeanceRepli'
   > & { environnement?: string; bilanActive?: boolean; retourArriereActive?: boolean }
+>;
+
+export type CommunicationSaisie = SaisieVerifiee<S['CommunicationSaisie'], Communication & { version: number }>;
+/** `version` : obligatoire pour une modification ; `equipeId` : à la création seulement. */
+export type ModeleTexteSaisie = SaisieVerifiee<
+  S['ModeleTexteSaisie'],
+  { version?: number; equipeId?: string; nom: string; usage: UsageModeleTexte; objet: string; corps: string }
+>;
+export type EquipeCommunicationSaisie = SaisieVerifiee<
+  S['EquipeCommunicationSaisie'],
+  { contactSupport: string; signature: string }
 >;
 
 export type SauvegardeSaisie = SaisieVerifiee<S['SauvegardeSaisie'], Sauvegarde & { version: number }>;

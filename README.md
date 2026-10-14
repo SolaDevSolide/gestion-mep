@@ -4,6 +4,7 @@ Application web pour préparer et exécuter les mises en production (MEP). L'éq
 
 - **Préparation** : plan d'étapes en graphe avec dépendances et étapes parallèles, responsables techniques, approbations, go / no-go.
 - **Travail à plusieurs** : on voit qui a ouvert la MEP et quel élément chacun modifie, les changements des autres arrivent sans recharger, et aucune saisie n'est perdue sans confirmation.
+- **Communication** : référence de la demande, risque, bénéfices, créneau annoncé et validation par les utilisateurs ; modèles de texte par équipe (annonce, rappel, demande de MEP, compte rendu) remplis avec les informations de la MEP et copiés en un clic, mis en forme ou en texte simple.
 - **Exécution** : étapes à suivre en temps réel, preuves, prise de main tracée, résolutions guidées en cas d'échec.
 - **Sécurité de l'intervention** : sauvegardes, point de non-retour, procédure de retour arrière et échéance surveillée (facultatives pour les environnements qui n'en ont pas besoin), recette (par système, avec bibliothèque de fiches types et validation par les métiers dans Excel) et bilan.
 - **Connexion Microsoft (SSO)** facultative, réglée depuis la console ou en ligne de commande ; le mot de passe local reste possible.
@@ -36,7 +37,7 @@ Sans Docker, chaque version publie aussi une archive pour Linux (service systemd
 La documentation est dans [docs/](docs/README.md), recopiée dans le wiki du dépôt :
 
 - [Démarrage rapide](docs/Démarrage-rapide.md) et [cycle de vie d'une MEP](docs/Cycle-de-vie.md) ;
-- guides : [préparer](docs/Préparer-une-MEP.md) et [exécuter](docs/Exécuter-une-MEP.md) une MEP, [administrer](docs/Administrer.md) ;
+- guides : [préparer](docs/Préparer-une-MEP.md) et [exécuter](docs/Exécuter-une-MEP.md) une MEP, [modèles de texte](docs/Modèles-de-texte.md), [administrer](docs/Administrer.md) ;
 - équipe informatique : [installer](docs/Installer.md) (ou [sans Docker](docs/Installer-sans-Docker.md)), [exploiter](docs/Exploiter.md) ;
 - développeurs : [contribuer](CONTRIBUTING.md), [architecture](docs/Architecture.md), [API](docs/API.md).
 

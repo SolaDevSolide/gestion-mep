@@ -19,6 +19,8 @@ const NouvelleResolutionPage = lazy(() => import('./parametres/NouvelleResolutio
 const ResolutionsPage = lazy(() => import('./parametres/ResolutionsPage'));
 const BibliothequeRecettesPage = lazy(() => import('./parametres/BibliothequeRecettesPage'));
 const SystemesPage = lazy(() => import('./parametres/SystemesPage'));
+const ModelesTextePage = lazy(() => import('./parametres/ModelesTextePage'));
+const ModeleTexteEditeurPage = lazy(() => import('./parametres/ModeleTexteEditeurPage'));
 
 function Chargement() {
   return (
@@ -60,6 +62,8 @@ export default function App() {
           <Route path="/parametres/resolutions/nouvelle" element={<NouvelleResolutionPage />} />
           <Route path="/parametres/recettes" element={<BibliothequeRecettesPage />} />
           <Route path="/parametres/go-no-go" element={<GoNoGoPage />} />
+          <Route path="/parametres/textes" element={<ModelesTextePage />} />
+          <Route path="/parametres/textes/:id" element={<ModeleTexteEditeurPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

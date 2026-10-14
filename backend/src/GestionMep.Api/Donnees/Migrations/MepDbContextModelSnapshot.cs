@@ -119,6 +119,10 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ContactSupport")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTimeOffset>("CreeeLe")
                         .HasColumnType("timestamp with time zone");
 
@@ -131,6 +135,10 @@ namespace GestionMep.Api.Donnees.Migrations
                         .HasColumnType("jsonb");
 
                     b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Signature")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -629,6 +637,56 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("ModelesRecette");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.ModeleTexte", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CleFournie")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Corps")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EquipeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ModifieLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ModifieParId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Objet")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Usage")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EquipeId", "CleFournie")
+                        .IsUnique();
+
+                    b.ToTable("ModelesTexte");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.ParametresGlobaux", b =>
                 {
                     b.Property<int>("Id")
@@ -1028,6 +1086,66 @@ namespace GestionMep.Api.Donnees.Migrations
 
             modelBuilder.Entity("GestionMep.Domain.Mep", b =>
                 {
+                    b.OwnsOne("GestionMep.Domain.Communication", "Communication", b1 =>
+                        {
+                            b1.Property<Guid>("MepId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("ActionUtilisateurs")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<bool>("ArretApplicatif")
+                                .HasColumnType("boolean");
+
+                            b1.Property<string>("Benefices")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<DateOnly?>("DateAnnoncee")
+                                .HasColumnType("date");
+
+                            b1.Property<TimeOnly?>("HeureDebutAnnoncee")
+                                .HasColumnType("time without time zone");
+
+                            b1.Property<TimeOnly?>("HeureFinAnnoncee")
+                                .HasColumnType("time without time zone");
+
+                            b1.Property<TimeOnly?>("HeureLimite")
+                                .HasColumnType("time without time zone");
+
+                            b1.Property<int>("NiveauRisque")
+                                .HasColumnType("integer");
+
+                            b1.Property<Guid?>("PreuveValidationId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("ReferenceDemande")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("UtilisateursImpactes")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<DateOnly?>("ValideeLe")
+                                .HasColumnType("date");
+
+                            b1.Property<string>("ValideePar")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<bool>("ValideeParUtilisateurs")
+                                .HasColumnType("boolean");
+
+                            b1.HasKey("MepId");
+
+                            b1.ToTable("Meps");
+
+                            b1.WithOwner()
+                                .HasForeignKey("MepId");
+                        });
+
                     b.OwnsOne("GestionMep.Domain.PlanRepli", "PlanRepli", b1 =>
                         {
                             b1.Property<Guid>("MepId")
@@ -1109,10 +1227,22 @@ namespace GestionMep.Api.Donnees.Migrations
                                 .HasForeignKey("MepId");
                         });
 
+                    b.Navigation("Communication")
+                        .IsRequired();
+
                     b.Navigation("PlanRepli")
                         .IsRequired();
 
                     b.Navigation("Sauvegarde")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.ModeleTexte", b =>
+                {
+                    b.HasOne("GestionMep.Domain.Equipe", null)
+                        .WithMany()
+                        .HasForeignKey("EquipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

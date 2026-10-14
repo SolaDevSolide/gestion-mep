@@ -11,8 +11,11 @@ public record ExpertiseDto(Guid SystemeCatalogueId, string Detail);
 public record UtilisateurDto(Guid Id, string Login, string NomAffiche, bool EstAdmin, string Role, string Contact, List<ExpertiseDto> Expertises, bool Actif,
     bool DoitChangerMotDePasse, Guid? ComptePrincipalId, string NomPersonne, List<Guid> EquipeIds);
 
-/// <summary>Équipe : <c>MembreIds</c>, comptes membres (un compte peut appartenir à plusieurs équipes).</summary>
-public record EquipeDto(Guid Id, string Nom, string Description, List<Guid> MembreIds, DateTimeOffset CreeeLe);
+/// <summary>
+/// Équipe : <c>MembreIds</c>, comptes membres (un compte peut appartenir à plusieurs équipes) ; <c>ContactSupport</c> et
+/// <c>Signature</c> : informations communes aux modèles de texte de l'équipe (signature vide : « L'équipe {nom} »).
+/// </summary>
+public record EquipeDto(Guid Id, string Nom, string Description, List<Guid> MembreIds, DateTimeOffset CreeeLe, string ContactSupport, string Signature);
 
 /// <summary>
 /// <c>DateMep</c> : date du Go (dans le fuseau de la MEP) ou null ; <c>CreeLe</c> : création de la MEP ;
@@ -110,7 +113,34 @@ public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle,
     List<ExecutionResolutionDto> Resolutions, List<string> ErreursPlan, DroitsDto Droits,
     string Environnement, bool EstModele, int ApprobationsMinimum, List<ApprobationDto> Approbations, List<CritereValideDto> GoNoGo,
     List<FicheRecetteDto> FichesRecette, bool BilanActive, BilanDto? Bilan, string? NonRetourFranchi, List<PieceJointeDto> PiecesJointes,
-    List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements, bool RetourArriereActive);
+    List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements, bool RetourArriereActive, CommunicationDto Communication);
+
+/// <summary>
+/// Section Communication de la MEP (tout est facultatif). <c>PreuveValidationId</c> : pièce jointe de la MEP qui prouve la
+/// validation par les utilisateurs (null si aucune, ou si la pièce a été supprimée).
+/// </summary>
+public record CommunicationDto(string ReferenceDemande, NiveauRisque NiveauRisque, string Benefices, string UtilisateursImpactes,
+    bool ArretApplicatif, string ActionUtilisateurs, TimeOnly? HeureLimite, DateOnly? DateAnnoncee, TimeOnly? HeureDebutAnnoncee,
+    TimeOnly? HeureFinAnnoncee, bool ValideeParUtilisateurs, string ValideePar, DateOnly? ValideeLe, Guid? PreuveValidationId);
+
+/// <summary>
+/// Modèle de texte d'une équipe. <c>Fourni</c> : copie d'un modèle fourni (ne se supprime pas, se rétablit) ; <c>Modifie</c> :
+/// son texte diffère du texte fourni. <c>PeutModifier</c> : le compte courant est membre de l'équipe ou administrateur.
+/// </summary>
+public record ModeleTexteDto(Guid Id, Guid EquipeId, string Nom, UsageModeleTexte Usage, string Objet, string Corps, bool Fourni, bool Modifie,
+    int Version, DateTimeOffset ModifieLe, Guid? ModifieParId, string? ModifiePar, bool PeutModifier);
+
+/// <summary>Variable des modèles de texte (<c>{{cle}}</c>) ; <c>Liste</c> : rendue en puces quand elle est seule sur sa ligne.</summary>
+public record VariableTexteDto(string Cle, string Libelle, string Groupe, string Description, bool Liste);
+
+/// <summary>Valeur d'une variable pour une MEP : <c>Texte</c> ou <c>Liste</c> ; les deux null : information manquante.</summary>
+public record ValeurVariableDto(string Cle, string? Texte, List<string>? Liste);
+
+/// <summary>
+/// Valeurs des variables pour une MEP et une équipe. <c>EquipeId</c> : équipe utilisée (celle demandée, sinon celle proposée) ;
+/// <c>EquipeProposeeId</c> : équipe du pilote (à défaut, une équipe du compte courant, puis la première équipe) ; null s'il n'y a aucune équipe.
+/// </summary>
+public record VariablesMepDto(Guid? EquipeId, Guid? EquipeProposeeId, List<ValeurVariableDto> Valeurs);
 
 /// <summary><c>AuteurLogin</c> : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte supprimé.</summary>
 public record EvenementDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail, string? AuteurLogin);
@@ -128,6 +158,8 @@ public record CompteSaisie(string? Login, string? NomAffiche, bool EstAdmin, str
 public record CompteModification(string? NomAffiche, bool EstAdmin, string? Role, string? Contact);
 /// <summary>Équipe créée ou modifiée ; <c>MembreIds</c> absent (null) : membres inchangés.</summary>
 public record EquipeSaisie(string? Nom, string? Description, List<Guid>? MembreIds);
+/// <summary>Informations communes aux modèles de texte d'une équipe (membres de l'équipe ou administrateurs).</summary>
+public record EquipeCommunicationSaisie(string? ContactSupport, string? Signature);
 /// <summary>Relie le compte à <c>ComptePrincipalId</c> (même personne) ; <c>Desactiver</c> : désactive aussi le compte relié.</summary>
 public record LiaisonCompteSaisie(Guid? ComptePrincipalId, bool Desactiver = false);
 public record CompteEtMotDePasseDto(UtilisateurDto Utilisateur, string MotDePasseProvisoire);
@@ -146,6 +178,14 @@ public record MepIdentiteSaisie(int? Version, string? Outil, string? VersionActu
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string? FuseauHoraire, int? IndisponibiliteMinutes,
     Guid? PiloteId, List<Guid>? SuppleantIds, DateTimeOffset? EcheanceRepli, string? Environnement = null, bool? BilanActive = null,
     bool? RetourArriereActive = null);
+
+/// <summary>Section Communication, remplacée en entier (champs absents : vides).</summary>
+public record CommunicationSaisie(int? Version, string? ReferenceDemande, NiveauRisque? NiveauRisque, string? Benefices, string? UtilisateursImpactes,
+    bool ArretApplicatif, string? ActionUtilisateurs, TimeOnly? HeureLimite, DateOnly? DateAnnoncee, TimeOnly? HeureDebutAnnoncee,
+    TimeOnly? HeureFinAnnoncee, bool ValideeParUtilisateurs, string? ValideePar, DateOnly? ValideeLe, Guid? PreuveValidationId);
+
+/// <summary>Modèle de texte. <c>Version</c> : obligatoire pour une modification ; <c>EquipeId</c> : à la création seulement (l'équipe ne change pas ensuite).</summary>
+public record ModeleTexteSaisie(int? Version, Guid? EquipeId, string? Nom, UsageModeleTexte? Usage, string? Objet, string? Corps);
 
 public record SauvegardeSaisie(int? Version, bool Structure, bool Donnees, bool Configuration, Guid? ResponsableId, DateTimeOffset? RealiseeLe,
     string? Procedure, string? Copies, bool RestaurationTestee, DateOnly? DateTestRestauration, string? PreuveTestRestauration,

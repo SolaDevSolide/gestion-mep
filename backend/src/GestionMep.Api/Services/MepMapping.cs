@@ -23,6 +23,11 @@ public static class MepMapping
         return new TestsUnitairesDto(faits, tests.Count - faits, Regles.EtapesSuivies(m).Count(e => e.Fin == FinEtape.Verification), tests);
     }
 
+    public static CommunicationDto Communication(Communication c, IReadOnlyList<PieceJointe> pieces) =>
+        new(c.ReferenceDemande, c.NiveauRisque, c.Benefices, c.UtilisateursImpactes, c.ArretApplicatif, c.ActionUtilisateurs, c.HeureLimite,
+            c.DateAnnoncee, c.HeureDebutAnnoncee, c.HeureFinAnnoncee, c.ValideeParUtilisateurs, c.ValideePar, c.ValideeLe,
+            c.PreuveValidationId is { } p && pieces.Any(x => x.Id == p) ? p : null);
+
     public static MepDto VersDto(Mep m, Guid? utilisateurId, IReadOnlyDictionary<Guid, string> nomsUtilisateurs, DateTimeOffset maintenant,
         int approbationsMinimum, IReadOnlyList<PieceJointe> pieces, bool estAdmin = false)
     {
@@ -83,6 +88,7 @@ public static class MepMapping
             pieces.OrderBy(p => p.DeposeLe).Select(p => VersDto(p, nomsUtilisateurs)).ToList(),
             m.ResponsablesTechniques.Select(r => new ResponsableTechniqueDto(r.ParticipantId, [.. r.SystemeIds], r.Perimetre, r.Disponibilite, r.ContactJourJ)).ToList(),
             Regles.Avertissements(m),
-            m.RetourArriereActive);
+            m.RetourArriereActive,
+            Communication(m.Communication, pieces));
     }
 }

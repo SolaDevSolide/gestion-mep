@@ -7,6 +7,7 @@
 **Utiliser**
 - [Préparer une MEP](Préparer-une-MEP.md)
 - [Exécuter une MEP](Exécuter-une-MEP.md)
+- [Modèles de texte](Modèles-de-texte.md)
 - [Administrer](Administrer.md)
 
 **Installer et exploiter**
