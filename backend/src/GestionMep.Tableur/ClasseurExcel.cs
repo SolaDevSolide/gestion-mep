@@ -20,6 +20,8 @@ public sealed record Format
     public bool ASaisir { get; init; }
     /// <summary>Format de date jour/mois/année.</summary>
     public bool Date { get; init; }
+    /// <summary>Format de date et heure jour/mois/année heures:minutes.</summary>
+    public bool DateHeure { get; init; }
 
     public static readonly Format Normal = new();
 }
@@ -168,6 +170,10 @@ public sealed class FeuilleExcel
         c.Style.Font.Underline = XLFontUnderlineValues.Single;
     }
 
+    /// <summary>Filtre automatique d'Excel sur un tableau (ligne d'en-têtes comprise) : trier et filtrer sans rien modifier.</summary>
+    public void FiltreAuto(int ligne1, int colonne1, int ligne2, int colonne2) =>
+        Interne.Range(ligne1, colonne1, Math.Max(ligne1, ligne2), colonne2).SetAutoFilter();
+
     public void LargeurColonne(int colonne, double largeur) => Interne.Column(colonne).Width = largeur;
 
     public void HauteurLigne(int ligne, double hauteur) => Interne.Row(ligne).Height = hauteur;
@@ -211,6 +217,7 @@ public sealed class FeuilleExcel
         }
         if (f.ASaisir) s.Protection.Locked = false;
         if (f.Date) s.DateFormat.Format = "dd/mm/yyyy";
+        if (f.DateHeure) s.DateFormat.Format = "dd/mm/yyyy hh:mm";
     }
 }
 

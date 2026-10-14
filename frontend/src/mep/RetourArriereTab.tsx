@@ -7,6 +7,7 @@ import { ZonePresence } from '../presence';
 import type { PlanRepli } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { AvisConflit } from '../ui/AvisConflit';
+import { BoutonExportExcel } from '../ui/BoutonExportExcel';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Input, Textarea } from '../ui/Input';
@@ -196,9 +197,15 @@ export default function RetourArriereTab() {
       )}
 
       <section aria-labelledby="titre-etapes-repli">
-        <h2 id="titre-etapes-repli" className="mb-3 text-base font-semibold tracking-tight">
-          Étapes de retour arrière
-        </h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 id="titre-etapes-repli" className="text-base font-semibold tracking-tight">
+            Étapes de retour arrière
+          </h2>
+          <BoutonExportExcel
+            url={api.urlExportRetourArriere(mep.id)}
+            title="La fiche du plan, puis une ligne par étape de retour arrière."
+          />
+        </div>
         {prep ? <EtapesEditeur plan="RetourArriere" /> : <ExecutionVue plan="RetourArriere" />}
       </section>
     </div>
