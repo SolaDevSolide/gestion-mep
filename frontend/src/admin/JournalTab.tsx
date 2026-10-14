@@ -32,6 +32,11 @@ export const LIBELLE_EVENEMENT_ADMIN: Record<string, string> = {
   'donnees.controle-reussi': 'Contrôle des données réussi',
   'donnees.controle-echoue': 'Contrôle des données en échec',
   'demo.reinitialisee': 'Démonstration réinitialisée',
+  'equipe.creee': 'Équipe créée',
+  'equipe.modifiee': 'Équipe modifiée',
+  'equipe.supprimee': 'Équipe supprimée',
+  'compte.relie': 'Comptes reliés',
+  'compte.delie': 'Liaison de comptes défaite',
 };
 
 export function libelleEvenementAdmin(type: string): string {
@@ -39,7 +44,13 @@ export function libelleEvenementAdmin(type: string): string {
 }
 
 function tonEvenement(type: string): Ton | undefined {
-  if (type === 'compte.desactive' || type === 'critere.supprime' || type === 'donnees.controle-echoue') return 'danger';
+  if (
+    type === 'compte.desactive' ||
+    type === 'critere.supprime' ||
+    type === 'equipe.supprimee' ||
+    type === 'donnees.controle-echoue'
+  )
+    return 'danger';
   if (type === 'connexion.echecs' || type === 'demo.reinitialisee') return 'warn';
   if (type === 'compte.mdp-reinitialise') return 'warn';
   if (type === 'compte.cree' || type === 'compte.reactive') return 'ok';

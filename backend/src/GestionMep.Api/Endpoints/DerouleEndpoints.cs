@@ -25,9 +25,14 @@ public static class DerouleEndpoints
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             ServiceMep.ExigerVersion(mep, c.Version);
             var ids = (c.UtilisateurIds ?? []).Distinct().ToList();
-            var comptes = await db.Utilisateurs.AsNoTracking().Where(u => ids.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
+            var comptes = await db.Utilisateurs.AsNoTracking().Where(u => ids.Contains(u.Id)).ToDictionaryAsync(u => u.Id);
             if (comptes.Count != ids.Count) throw ErreurHttp.Saisie("Compte utilisateur inconnu.");
-            Regles.DefinirApprobateurs(mep, ids.Select(i => (i, comptes[i])).ToList());
+            // Un compte désactivé (personne partie) ne peut plus approuver : il n'est plus proposé, ceux déjà désignés restent.
+            if (comptes.Values.FirstOrDefault(u => !u.Actif && mep.Approbations.All(a => a.UtilisateurId != u.Id)) is { } inactif)
+                throw new RegleMetierException($"Le compte {inactif.NomAffiche} ({inactif.Login}) est désactivé : il ne peut pas être désigné approbateur.");
+            var annuaire = await Personnes.Charger(db, avecEquipes: false);
+            Regles.ExigerApprobateursDistincts(mep, ids, annuaire);
+            Regles.DefinirApprobateurs(mep, ids.Select(i => (i, annuaire.NomPersonne(i) ?? comptes[i].NomAffiche)).ToList());
             var noms = mep.Approbations.Count == 0 ? "aucun" : string.Join(", ", mep.Approbations.Select(a => a.Nom));
             return await svc.EnregistrerContenu(mep, acteur, "approbateurs.modifies", $"Approbateurs : {noms}");
         })));

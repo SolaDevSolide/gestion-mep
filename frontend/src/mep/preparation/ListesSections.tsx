@@ -3,7 +3,8 @@ import { useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api } from '../../api';
 import { AuthContext } from '../../auth';
 import { useMep } from '../../mepContext';
-import type { Livrable, Participant, Systeme, SystemeCatalogue, Utilisateur } from '../../types';
+import { filtrerParEquipe } from '../../personnes';
+import type { Equipe, Livrable, Participant, Systeme, SystemeCatalogue, Utilisateur } from '../../types';
 import { Avatar } from '../../ui/Avatar';
 import { Badge } from '../../ui/StatusPill';
 import { BoutonIcone, Button } from '../../ui/Button';
@@ -52,14 +53,28 @@ export function PersonnesSection() {
   const { mep, run } = useMep();
   const edition = mep.droits.peutEditerContenu;
   const [utilisateurs, setUtilisateurs] = useState<Utilisateur[]>([]);
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [forme, setForme] = useState<{ existant?: Participant } | null>(null);
   const [suppr, setSuppr] = useState<Participant | null>(null);
+  /** Filtre des comptes proposés par équipe, et compte choisi (toujours proposé, même hors du filtre). */
+  const [equipe, setEquipe] = useState('');
+  const [compteChoisi, setCompteChoisi] = useState('');
   useEffect(() => {
     api
       .utilisateurs()
       .then(setUtilisateurs)
       .catch(() => setUtilisateurs([]));
+    api
+      .equipes()
+      .then(setEquipes)
+      .catch(() => setEquipes([]));
   }, []);
+  const ouvrir = (f: { existant?: Participant }) => {
+    setEquipe('');
+    setCompteChoisi(f.existant?.utilisateurId ?? '');
+    setForme(f);
+  };
+  const parId = new Map(utilisateurs.map((u) => [u.id, u]));
 
   const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
   /** Le compte du pilote ou d'un suppléant porte leurs droits : seuls le pilote, un suppléant ou un administrateur le changent. */
@@ -69,8 +84,31 @@ export function PersonnesSection() {
     (existant.id === mep.piloteId || mep.suppleantIds.includes(existant.id)) &&
     !mep.droits.estPilote &&
     !admin;
-  const comptes = compteVerrouille ? utilisateurs.filter((u) => u.id === existant?.utilisateurId) : utilisateurs;
+  // Comptes désactivés (personnes parties) : plus proposés, sauf celui déjà relié à la personne.
+  const comptes = compteVerrouille
+    ? utilisateurs.filter((u) => u.id === existant?.utilisateurId)
+    : filtrerParEquipe(
+        utilisateurs.filter((u) => u.actif || u.id === compteChoisi),
+        equipe,
+      ).concat(
+        equipe && compteChoisi && !filtrerParEquipe(utilisateurs, equipe).some((u) => u.id === compteChoisi)
+          ? utilisateurs.filter((u) => u.id === compteChoisi)
+          : [],
+      );
   const champs: ChampForm[] = [
+    ...(equipes.length > 0 && !compteVerrouille
+      ? [
+          {
+            cle: 'equipe',
+            label: 'Équipe',
+            type: 'select' as const,
+            options: [
+              { valeur: '', libelle: 'Toutes les équipes' },
+              ...equipes.map((e) => ({ valeur: e.id, libelle: e.nom })),
+            ],
+          },
+        ]
+      : []),
     {
       cle: 'utilisateurId',
       label: compteVerrouille ? 'Compte (modifiable par le pilote ou un administrateur)' : 'Compte',
@@ -78,7 +116,10 @@ export function PersonnesSection() {
       large: true,
       options: [
         ...(compteVerrouille && existant?.utilisateurId ? [] : [{ valeur: '', libelle: '— aucun compte —' }]),
-        ...comptes.map((u) => ({ valeur: u.id, libelle: `${u.nomAffiche} (${u.login})` })),
+        ...comptes.map((u) => ({
+          valeur: u.id,
+          libelle: `${u.nomPersonne} (${u.login})${u.actif ? '' : ' — désactivé'}`,
+        })),
       ],
     },
     { cle: 'nom', label: 'Nom', requis: true },
@@ -87,7 +128,9 @@ export function PersonnesSection() {
   ];
   /** Choisir un compte pré-remplit nom, rôle et contact depuis son profil (modifiables ensuite). */
   const prefillerDepuisCompte = (cle: string, valeur: string) => {
+    if (cle === 'equipe') setEquipe(valeur);
     if (cle !== 'utilisateurId') return;
+    setCompteChoisi(valeur);
     const u = utilisateurs.find((x) => x.id === valeur);
     if (!u) return;
     const p = participantDepuisCompte(u);
@@ -99,6 +142,7 @@ export function PersonnesSection() {
       role: forme?.existant?.role ?? '',
       contact: forme?.existant?.contact ?? '',
       utilisateurId: forme?.existant?.utilisateurId ?? '',
+      equipe: '',
     }),
     [forme],
   );
@@ -114,7 +158,7 @@ export function PersonnesSection() {
             variante="primaire"
             taille="sm"
             icone={<Plus className="size-4" aria-hidden />}
-            onClick={() => setForme({})}
+            onClick={() => ouvrir({})}
           >
             Ajouter
           </Button>
@@ -151,12 +195,13 @@ export function PersonnesSection() {
                   <p className="flex items-center gap-1 text-xs text-fg-subtle">
                     <UserRound className="size-3" aria-hidden />
                     {p.utilisateurNom ? `Compte : ${p.utilisateurNom}` : 'Pas de compte relié'}
+                    {p.utilisateurId && parId.get(p.utilisateurId)?.actif === false && ' (désactivé)'}
                   </p>
                 </div>
               }
               actions={
                 edition && (
-                  <Actions nom={p.nom} onModifier={() => setForme({ existant: p })} onSupprimer={() => setSuppr(p)} />
+                  <Actions nom={p.nom} onModifier={() => ouvrir({ existant: p })} onSupprimer={() => setSuppr(p)} />
                 )
               }
             />

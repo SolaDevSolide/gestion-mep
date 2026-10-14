@@ -10,7 +10,7 @@ Il est créé au premier démarrage, sur une base vide, à partir des variables 
 
 ## Console d'administration
 
-Menu « Administration › Console d'administration », visible des seuls administrateurs. Cinq onglets.
+Menu « Administration › Console d'administration », visible des seuls administrateurs. Six onglets.
 
 ![Console d'administration, onglet Comptes](images/console-admin.png)
 
@@ -18,6 +18,8 @@ Menu « Administration › Console d'administration », visible des seuls admini
 
 - **Nouveau compte** : identifiant, nom affiché, rôle (par exemple « Développeur API »), contact, case « Administrateur ».
 - **Modifier**, **Réinitialiser le mot de passe**, **Désactiver**, **Réactiver**.
+- **Relier un autre compte** (icône de lien) et **Défaire la liaison** : voir [Comptes d'une même personne](#comptes-dune-même-personne).
+- Colonne **Équipes** et filtre « Toutes les équipes » à côté de la recherche (voir [Équipes](#équipes)).
 - Badges : Admin, Actif ou Désactivé, Mot de passe à changer.
 
 À la création et à la réinitialisation, l'application génère un **mot de passe provisoire**, affiché une seule fois. Le transmettre par un canal sûr, puis cliquer « J'ai transmis le mot de passe ». À sa connexion, l'utilisateur doit choisir son propre mot de passe (10 caractères au moins) avant de pouvoir faire quoi que ce soit.
@@ -29,7 +31,33 @@ Règles de sécurité :
 - le dernier administrateur actif ne peut être ni désactivé ni rétrogradé ;
 - un nom affiché ne peut pas reprendre le nom affiché ou l'identifiant d'un autre compte, pour que personne ne signe les journaux à la place d'un autre.
 
-En ligne de commande : `gestion-mep comptes lister | afficher | creer | modifier | expertises | reinitialiser-mdp | desactiver | reactiver`, avec les mêmes règles. `comptes modifier` règle aussi les expertises d'un compte (`--ajouter-expertise BDD --detail "…"`, `--retirer-expertise BDD`).
+**Personne partie** : désactiver son compte plutôt que de le supprimer (l'application ne supprime jamais un compte). Ses données et son historique restent visibles partout : liste des comptes, personnes et approbations des MEP, journaux, exports et équipes, avec son nom et son identifiant. Le compte n'est simplement plus proposé quand on ajoute une personne à une MEP, un approbateur ou un membre d'équipe, ni dans les suggestions de responsables techniques ; s'il est déjà choisi, il reste affiché avec la mention « désactivé ».
+
+#### Comptes d'une même personne
+
+Une personne peut avoir plusieurs comptes : un ancien compte local et un compte créé par la connexion unique, un compte d'administration et un compte courant… On les **relie**, sans rien fusionner ni supprimer : sur la ligne du compte principal, **Relier un autre compte**, choisir l'autre compte, et cocher au besoin « Désactiver ce compte ». Le compte principal donne le **nom affiché** de la personne.
+
+- Les comptes reliés s'affichent ensemble, le compte relié sous son compte principal (« Relié à … »). La recherche par l'identifiant ou l'ancien nom de l'un retrouve toute la personne, dans la console comme dans la liste des MEP.
+- Partout ailleurs (personnes des MEP, approbations, pièces jointes, résolutions types, exports), le compte relié apparaît sous le nom de la personne. Ses nouvelles actions sont signées de ce nom ; le journal garde l'identifiant du compte utilisé, et les événements antérieurs restent tels qu'ils ont été enregistrés.
+- Les équipes de la personne sont celles de tous ses comptes. Une même personne ne peut pas être désignée deux fois approbatrice avec deux comptes, ni approuver une MEP dont elle est pilote avec un autre compte.
+- Chaque compte garde sa connexion et ses droits propres. Le compte relié peut rester utilisable ou être désactivé (« Désactiver ce compte », ou plus tard « Désactiver »).
+- Un seul niveau : le compte principal n'est relié à aucun autre et le compte relié n'a pas lui-même de comptes reliés. **Défaire la liaison** (icône de lien barré) rend au compte son propre nom ; rien d'autre ne change.
+
+Chaque liaison et chaque liaison défaite est inscrite au journal d'administration.
+
+En ligne de commande : `gestion-mep comptes lister | afficher | creer | modifier | expertises | reinitialiser-mdp | desactiver | reactiver | relier | delier`, avec les mêmes règles. `comptes modifier` règle aussi les expertises d'un compte (`--ajouter-expertise BDD --detail "…"`, `--retirer-expertise BDD`).
+
+### Équipes
+
+Les équipes regroupent des personnes pour filtrer les listes : liste des MEP, comptes de la console, choix des personnes d'une MEP (champ « Équipe » du dialogue « Ajouter une personne ») et des approbateurs (la recherche porte aussi sur le nom des équipes). Une personne peut appartenir à plusieurs équipes. Une MEP appartient à une équipe dès qu'une de ses personnes (reliée à un compte) en fait partie, par l'un de ses comptes reliés.
+
+- **Nouvelle équipe** : nom (unique), description, membres choisis parmi les comptes actifs.
+- **Modifier** : renommer, changer la description, ajouter ou retirer des membres. Un compte désactivé reste membre tant qu'on ne le retire pas.
+- **Supprimer** : seul le regroupement disparaît ; les comptes, leurs données et les MEP ne changent pas.
+
+Toute création, modification (avec les membres ajoutés et retirés) et suppression est inscrite au journal d'administration. Les équipes se lisent par tout utilisateur connecté (pour les filtres) ; seuls les administrateurs les modifient.
+
+En ligne de commande : `gestion-mep equipes lister | afficher | creer | modifier | ajouter | retirer | supprimer`, et `gestion-mep meps lister --equipe <équipe>`.
 
 ### Connexion unique
 
@@ -48,7 +76,7 @@ En ligne de commande : `gestion-mep reglages lister | definir <nom> <valeur> | r
 
 ### Journal
 
-Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, mots de passe réinitialisés ou changés, paramètres, réglages du serveur et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, résolutions types supprimées, désactivées ou importées, MEP exportées en ligne de commande, mises à jour demandées, contrôles des données après une mise à jour ou une importation, réinitialisation de la démonstration. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
+Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, reliés à un autre compte de la même personne ou déliés, équipes créées, modifiées ou supprimées, mots de passe réinitialisés ou changés, paramètres, réglages du serveur et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, résolutions types supprimées, désactivées ou importées, MEP exportées en ligne de commande, mises à jour demandées, contrôles des données après une mise à jour ou une importation, réinitialisation de la démonstration. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
 
 L'application y signale aussi, avec l'auteur « Application », **20 échecs de connexion en moins d'une heure sur un même compte**, toutes adresses confondues : signe probable qu'on essaie de deviner son mot de passe.
 

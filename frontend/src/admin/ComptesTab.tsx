@@ -1,5 +1,7 @@
 import {
+  CornerDownRight,
   KeyRound,
+  Link2,
   Loader2,
   OctagonAlert,
   Pencil,
@@ -9,13 +11,15 @@ import {
   UserCheck,
   UserPlus,
   UserX,
+  Unlink,
   Users,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useAsync } from '../hooks';
-import type { CompteAvecMotDePasse, CompteSaisie, Utilisateur } from '../types';
+import { comptesDuGroupe, filtrerParEquipe, groupeCorrespond, grouperParPersonne } from '../personnes';
+import type { CompteAvecMotDePasse, CompteSaisie, Equipe, Utilisateur } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
@@ -23,12 +27,10 @@ import { Checkbox } from '../ui/Checkbox';
 import { CodeBlock } from '../ui/CodeBlock';
 import { ConfirmDialog, Dialog } from '../ui/Dialog';
 import { EmptyState } from '../ui/EmptyState';
-import { Field, Input } from '../ui/Input';
+import { Field, Input, Select } from '../ui/Input';
 import { Badge, StatusPill } from '../ui/StatusPill';
 import { useToast } from '../ui/Toast';
 import { Tooltip } from '../ui/Tooltip';
-
-const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /** Boîte affichant une seule fois le mot de passe provisoire. */
 function MotDePasseProvisoire({ compte }: { compte: CompteAvecMotDePasse }) {
@@ -178,22 +180,136 @@ function CompteDialog({
   );
 }
 
-type Action = { type: 'desactiver' | 'reactiver' | 'reinitialiser'; compte: Utilisateur };
+/**
+ * Relie un autre compte de la même personne au compte principal choisi dans la liste : la personne s'affiche sous le nom
+ * du compte principal ; rien n'est fusionné ni supprimé et la liaison peut être défaite.
+ */
+function RelierDialog({
+  principal,
+  comptes,
+  moiId,
+  onOpenChange,
+  onFait,
+}: {
+  principal: Utilisateur | null;
+  comptes: Utilisateur[];
+  moiId: string | undefined;
+  onOpenChange: (o: boolean) => void;
+  onFait: (u: Utilisateur) => void;
+}) {
+  const toast = useToast();
+  const [compteId, setCompteId] = useState('');
+  const [desactiver, setDesactiver] = useState(false);
+  const [erreur, setErreur] = useState('');
+  const [envoi, setEnvoi] = useState(false);
+
+  useEffect(() => {
+    if (principal) {
+      setCompteId('');
+      setDesactiver(false);
+      setErreur('');
+    }
+  }, [principal]);
+
+  // Un seul niveau de liaison : ni un compte déjà relié, ni le compte principal d'autres comptes.
+  const candidats = comptes.filter(
+    (u) => u.id !== principal?.id && u.comptePrincipalId === null && !comptes.some((x) => x.comptePrincipalId === u.id),
+  );
+  const choisi = candidats.find((u) => u.id === compteId);
+
+  async function relier() {
+    if (!principal || !choisi) return;
+    setEnvoi(true);
+    setErreur('');
+    try {
+      const u = await api.adminRelier(choisi.id, { comptePrincipalId: principal.id, desactiver });
+      toast.succes('Comptes reliés.');
+      onFait(u);
+      onOpenChange(false);
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Liaison impossible.');
+    } finally {
+      setEnvoi(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open={principal !== null}
+      onOpenChange={onOpenChange}
+      titre={`Relier un compte à ${principal?.nomAffiche ?? ''}`}
+      description={`Pour une personne qui a plusieurs comptes. Les deux comptes s’affichent sous le nom « ${principal?.nomAffiche ?? ''} » ; chacun garde son historique, rien n’est supprimé et la liaison peut être défaite.`}
+      pied={
+        <>
+          <Button variante="fantome" onClick={() => onOpenChange(false)}>
+            Annuler
+          </Button>
+          <Button variante="primaire" chargement={envoi} disabled={!choisi} onClick={() => void relier()}>
+            Relier
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {erreur && (
+          <Alerte ton="danger" icone={OctagonAlert} role="alert">
+            {erreur}
+          </Alerte>
+        )}
+        <Field label="Autre compte de la même personne">
+          {(id) => (
+            <Select id={id} value={compteId} onChange={(e) => setCompteId(e.target.value)}>
+              <option value="">— choisir un compte —</option>
+              {candidats.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.nomAffiche} ({u.login}){u.actif ? '' : ' — désactivé'}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        <Checkbox
+          label="Désactiver ce compte"
+          description={
+            choisi?.id === moiId
+              ? 'Impossible pour votre propre compte.'
+              : 'Il ne pourra plus se connecter ; son historique reste visible. Sinon, il reste utilisable.'
+          }
+          checked={desactiver}
+          disabled={!choisi || !choisi.actif || choisi.id === moiId}
+          onChange={setDesactiver}
+        />
+      </div>
+    </Dialog>
+  );
+}
+
+type Action = { type: 'desactiver' | 'reactiver' | 'reinitialiser' | 'delier'; compte: Utilisateur };
 
 export default function ComptesTab() {
   const { utilisateur: moi, majUtilisateur } = useAuth();
   const toast = useToast();
   const { donnees, erreur, recharger } = useAsync(() => api.adminUtilisateurs(), []);
+  const { donnees: equipes } = useAsync(() => api.equipes(), []);
   const [recherche, setRecherche] = useState('');
+  const [equipe, setEquipe] = useState('');
+  const [relierA, setRelierA] = useState<Utilisateur | null>(null);
   const [dialogue, setDialogue] = useState<{ existant: Utilisateur | null } | null>(null);
   const [action, setAction] = useState<Action | null>(null);
   const [erreurAction, setErreurAction] = useState('');
   const [reinit, setReinit] = useState<CompteAvecMotDePasse | null>(null);
 
-  const comptes = useMemo(() => {
-    const q = norm(recherche.trim());
-    return (donnees ?? []).filter((u) => !q || norm(`${u.nomAffiche} ${u.login} ${u.role}`).includes(q));
-  }, [donnees, recherche]);
+  // Une personne = un compte principal et ses comptes reliés, affichés ensemble ; la recherche et le filtre par équipe
+  // portent sur la personne entière.
+  const comptes = useMemo(
+    () =>
+      grouperParPersonne(filtrerParEquipe(donnees ?? [], equipe))
+        .filter((g) => groupeCorrespond(g, recherche))
+        .flatMap(comptesDuGroupe),
+    [donnees, recherche, equipe],
+  );
+  const parId = useMemo(() => new Map((donnees ?? []).map((u) => [u.id, u])), [donnees]);
+  const nomsEquipes = useMemo(() => new Map((equipes ?? []).map((e: Equipe) => [e.id, e.nom])), [equipes]);
 
   // Change l'état de session si l'administrateur modifie son propre compte.
   const synchroniserMoi = (u: Utilisateur) => {
@@ -207,6 +323,9 @@ export default function ComptesTab() {
       if (action.type === 'reinitialiser') {
         const r = await api.adminReinitialiserMotDePasse(action.compte.id);
         setReinit(r);
+      } else if (action.type === 'delier') {
+        synchroniserMoi(await api.adminDelier(action.compte.id));
+        toast.succes('Liaison défaite.');
       } else {
         const u =
           action.type === 'desactiver'
@@ -236,7 +355,7 @@ export default function ComptesTab() {
       <Card>
         <CardHeader
           titre="Comptes"
-          description="Tous les comptes, y compris les comptes désactivés."
+          description="Tous les comptes, y compris les comptes désactivés. Les comptes reliés d’une même personne sont regroupés sous son compte principal."
           action={
             <Button
               variante="primaire"
@@ -248,8 +367,8 @@ export default function ComptesTab() {
             </Button>
           }
         />
-        <div className="border-b border-line px-5 py-3">
-          <div className="relative max-w-sm">
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3">
+          <div className="relative max-w-sm min-w-60 flex-1">
             <Search
               className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-subtle"
               aria-hidden
@@ -262,6 +381,18 @@ export default function ComptesTab() {
               onChange={(e) => setRecherche(e.target.value)}
             />
           </div>
+          {equipes && equipes.length > 0 && (
+            <div className="w-56">
+              <Select aria-label="Filtrer par équipe" value={equipe} onChange={(e) => setEquipe(e.target.value)}>
+                <option value="">Toutes les équipes</option>
+                {equipes.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nom}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
         </div>
         {erreur && (
           <div className="p-5">
@@ -279,7 +410,9 @@ export default function ComptesTab() {
           <EmptyState
             icone={Users}
             titre="Aucun compte"
-            description={recherche ? 'Aucun compte ne correspond à la recherche.' : 'Créez le premier compte.'}
+            description={
+              recherche || equipe ? 'Aucun compte ne correspond à la recherche.' : 'Créez le premier compte.'
+            }
           />
         )}
         {comptes.length > 0 && (
@@ -294,6 +427,9 @@ export default function ComptesTab() {
                     Rôle
                   </th>
                   <th scope="col" className="px-3 py-2.5 font-medium">
+                    Équipes
+                  </th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">
                     Administrateur
                   </th>
                   <th scope="col" className="px-3 py-2.5 font-medium">
@@ -305,74 +441,119 @@ export default function ComptesTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {comptes.map((u) => (
-                  <tr key={u.id} className={u.actif ? undefined : 'bg-surface-2/50 text-fg-muted'}>
-                    <td className="px-5 py-3">
-                      <div className="font-medium text-fg">{u.nomAffiche}</div>
-                      <div className="font-mono text-xs text-fg-subtle">{u.login}</div>
-                    </td>
-                    <td className="px-3 py-3">{u.role || '—'}</td>
-                    <td className="px-3 py-3">
-                      {u.estAdmin ? (
-                        <StatusPill ton="run" icone={ShieldCheck} taille="sm">
-                          Admin
-                        </StatusPill>
-                      ) : (
-                        <span className="text-fg-subtle">—</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex flex-wrap gap-1.5">
-                        {u.actif ? (
-                          <StatusPill ton="ok" icone={UserCheck} taille="sm">
-                            Actif
+                {comptes.map((u) => {
+                  const principal = u.comptePrincipalId ? parId.get(u.comptePrincipalId) : undefined;
+                  return (
+                    <tr key={u.id} className={u.actif ? undefined : 'bg-surface-2/50 text-fg-muted'}>
+                      <td className={principal ? 'py-3 pr-5 pl-10' : 'px-5 py-3'}>
+                        <div className="flex items-start gap-1.5">
+                          {principal && (
+                            <CornerDownRight className="mt-0.5 size-4 shrink-0 text-fg-subtle" aria-hidden />
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-medium text-fg">{u.nomAffiche}</div>
+                            <div className="font-mono text-xs text-fg-subtle">{u.login}</div>
+                            {principal && (
+                              <div className="text-xs text-fg-subtle">
+                                Relié à {principal.nomAffiche} : affiché sous ce nom
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">{u.role || '—'}</td>
+                      <td className="px-3 py-3">
+                        {u.equipeIds.length === 0 ? (
+                          <span className="text-fg-subtle">—</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {u.equipeIds.map((id) => (
+                              <Badge key={id}>{nomsEquipes.get(id) ?? 'Équipe'}</Badge>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {u.estAdmin ? (
+                          <StatusPill ton="run" icone={ShieldCheck} taille="sm">
+                            Admin
                           </StatusPill>
                         ) : (
-                          <StatusPill ton="later" icone={UserX} taille="sm">
-                            Désactivé
-                          </StatusPill>
+                          <span className="text-fg-subtle">—</span>
                         )}
-                        {u.doitChangerMotDePasse && <Badge ton="warn">Mot de passe à changer</Badge>}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex justify-end gap-1">
-                        <Tooltip content="Modifier">
-                          <BoutonIcone label={`Modifier ${u.nomAffiche}`} onClick={() => setDialogue({ existant: u })}>
-                            <Pencil className="size-4" aria-hidden />
-                          </BoutonIcone>
-                        </Tooltip>
-                        <Tooltip content="Réinitialiser le mot de passe">
-                          <BoutonIcone
-                            label={`Réinitialiser le mot de passe de ${u.nomAffiche}`}
-                            onClick={() => setAction({ type: 'reinitialiser', compte: u })}
-                          >
-                            <KeyRound className="size-4" aria-hidden />
-                          </BoutonIcone>
-                        </Tooltip>
-                        {u.actif ? (
-                          <Tooltip content="Désactiver">
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          {u.actif ? (
+                            <StatusPill ton="ok" icone={UserCheck} taille="sm">
+                              Actif
+                            </StatusPill>
+                          ) : (
+                            <StatusPill ton="later" icone={UserX} taille="sm">
+                              Désactivé
+                            </StatusPill>
+                          )}
+                          {u.doitChangerMotDePasse && <Badge ton="warn">Mot de passe à changer</Badge>}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex justify-end gap-1">
+                          <Tooltip content="Modifier">
                             <BoutonIcone
-                              label={`Désactiver ${u.nomAffiche}`}
-                              onClick={() => setAction({ type: 'desactiver', compte: u })}
+                              label={`Modifier ${u.nomAffiche}`}
+                              onClick={() => setDialogue({ existant: u })}
                             >
-                              <UserX className="size-4" aria-hidden />
+                              <Pencil className="size-4" aria-hidden />
                             </BoutonIcone>
                           </Tooltip>
-                        ) : (
-                          <Tooltip content="Réactiver">
+                          {principal ? (
+                            <Tooltip content="Défaire la liaison">
+                              <BoutonIcone
+                                label={`Défaire la liaison de ${u.nomAffiche}`}
+                                onClick={() => setAction({ type: 'delier', compte: u })}
+                              >
+                                <Unlink className="size-4" aria-hidden />
+                              </BoutonIcone>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip content="Relier un autre compte de la même personne">
+                              <BoutonIcone label={`Relier un compte à ${u.nomAffiche}`} onClick={() => setRelierA(u)}>
+                                <Link2 className="size-4" aria-hidden />
+                              </BoutonIcone>
+                            </Tooltip>
+                          )}
+                          <Tooltip content="Réinitialiser le mot de passe">
                             <BoutonIcone
-                              label={`Réactiver ${u.nomAffiche}`}
-                              onClick={() => setAction({ type: 'reactiver', compte: u })}
+                              label={`Réinitialiser le mot de passe de ${u.nomAffiche}`}
+                              onClick={() => setAction({ type: 'reinitialiser', compte: u })}
                             >
-                              <UserCheck className="size-4" aria-hidden />
+                              <KeyRound className="size-4" aria-hidden />
                             </BoutonIcone>
                           </Tooltip>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {u.actif ? (
+                            <Tooltip content="Désactiver">
+                              <BoutonIcone
+                                label={`Désactiver ${u.nomAffiche}`}
+                                onClick={() => setAction({ type: 'desactiver', compte: u })}
+                              >
+                                <UserX className="size-4" aria-hidden />
+                              </BoutonIcone>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip content="Réactiver">
+                              <BoutonIcone
+                                label={`Réactiver ${u.nomAffiche}`}
+                                onClick={() => setAction({ type: 'reactiver', compte: u })}
+                              >
+                                <UserCheck className="size-4" aria-hidden />
+                              </BoutonIcone>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -391,6 +572,19 @@ export default function ComptesTab() {
         }}
       />
 
+      <RelierDialog
+        principal={relierA}
+        comptes={donnees ?? []}
+        moiId={moi?.id}
+        onOpenChange={(o) => {
+          if (!o) setRelierA(null);
+        }}
+        onFait={(u) => {
+          synchroniserMoi(u);
+          recharger();
+        }}
+      />
+
       <ConfirmDialog
         open={action !== null}
         onOpenChange={fermerAction}
@@ -399,19 +593,29 @@ export default function ComptesTab() {
             ? `Désactiver ${nom} ?`
             : action?.type === 'reactiver'
               ? `Réactiver ${nom} ?`
-              : `Réinitialiser le mot de passe de ${nom} ?`
+              : action?.type === 'delier'
+                ? `Défaire la liaison de ${nom} ?`
+                : `Réinitialiser le mot de passe de ${nom} ?`
         }
         description={
           action?.type === 'desactiver'
             ? 'Le compte ne pourra plus se connecter et ses sessions en cours seront coupées.'
             : action?.type === 'reactiver'
               ? 'Le compte pourra de nouveau se connecter.'
-              : 'Un nouveau mot de passe provisoire sera généré. Les sessions en cours du compte seront coupées et il devra le changer à sa prochaine connexion.'
+              : action?.type === 'delier'
+                ? `Le compte ${action.compte.login} s’affichera de nouveau sous son propre nom. Son état, ses équipes et son historique ne changent pas.`
+                : 'Un nouveau mot de passe provisoire sera généré. Les sessions en cours du compte seront coupées et il devra le changer à sa prochaine connexion.'
         }
         libelleConfirmer={
-          action?.type === 'desactiver' ? 'Désactiver' : action?.type === 'reactiver' ? 'Réactiver' : 'Réinitialiser'
+          action?.type === 'desactiver'
+            ? 'Désactiver'
+            : action?.type === 'reactiver'
+              ? 'Réactiver'
+              : action?.type === 'delier'
+                ? 'Défaire la liaison'
+                : 'Réinitialiser'
         }
-        variante={action?.type === 'reactiver' ? 'primaire' : 'danger'}
+        variante={action?.type === 'reactiver' || action?.type === 'delier' ? 'primaire' : 'danger'}
         onConfirmer={confirmer}
       >
         {erreurAction && (

@@ -2,9 +2,10 @@ import type { Mep, Participant, ParticipantSaisie, ResponsableTechnique, Systeme
 
 /** Nom, rôle et contact d'une personne pré-remplis depuis le profil de son compte (modifiables ensuite). */
 export function participantDepuisCompte(
-  u: Pick<Utilisateur, 'id' | 'nomAffiche' | 'role' | 'contact'>,
+  u: Pick<Utilisateur, 'id' | 'nomPersonne' | 'role' | 'contact'>,
 ): ParticipantSaisie {
-  return { nom: u.nomAffiche, role: u.role ?? '', contact: u.contact ?? '', utilisateurId: u.id };
+  // Nom de la personne : celui du compte principal pour un compte relié.
+  return { nom: u.nomPersonne, role: u.role ?? '', contact: u.contact ?? '', utilisateurId: u.id };
 }
 
 export interface SuggestionResponsable {
@@ -16,7 +17,8 @@ export interface SuggestionResponsable {
 }
 
 /**
- * Comptes dont une expertise porte sur un système (du catalogue) de la MEP et qui ne sont pas déjà responsables techniques.
+ * Comptes actifs dont une expertise porte sur un système (du catalogue) de la MEP et qui ne sont pas déjà responsables
+ * techniques.
  * Triés par nombre de systèmes couverts (décroissant), puis par nom.
  */
 export function suggestionsResponsablesTechniques(
@@ -26,6 +28,7 @@ export function suggestionsResponsablesTechniques(
   const dejaResponsables = new Set(mep.responsablesTechniques.map((r) => r.participantId));
   const suggestions: SuggestionResponsable[] = [];
   for (const u of utilisateurs) {
+    if (!u.actif) continue;
     const participant = mep.participants.find((p) => p.utilisateurId === u.id) ?? null;
     if (participant && dejaResponsables.has(participant.id)) continue;
     const systemes = mep.systemes.flatMap((s) => {

@@ -35,6 +35,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 - `Regles.cs` et `Regles.*.cs` : toutes les règles, en fonctions statiques pures d'une même classe partielle, un fichier par domaine (`Regles.Graphe.cs`, `Regles.Disponibilite.cs`, `Regles.Droits.cs`, `Regles.Phases.cs`, `Regles.Recette.cs`, `Regles.Resolutions.cs`…). Elles couvrent la disponibilité d'une étape, la validité du graphe, la vérification du plan, les transitions de phase, les approbations, le go / no-go, le point de non-retour, la recette, le retour arrière, les résolutions types et la duplication.
 - Un refus lève `RegleMetierException` avec un message en français destiné à l'utilisateur. L'API le traduit en **422**.
 - L'heure courante est toujours passée en paramètre (`maintenant`) : les règles se testent sans horloge.
+- `AnnuairePersonnes.cs` : comptes vus comme des personnes. Des comptes reliés (`Utilisateur.ComptePrincipalId`, un seul niveau) forment une personne, nommée d'après son compte principal, dont les équipes sont celles de tous ses comptes. Rien n'est fusionné : chaque compte garde ses données, ses droits et son historique. Les règles de liaison et de nom d'équipe sont dans `Regles.Comptes.cs`.
 - `DonneesDemo.cs` : jeu de démonstration (comptes `alice`, `bob`, `claire`, MEP d'exemple).
 
 ### `GestionMep.Api` : API HTTP
@@ -45,6 +46,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 | `Endpoints/` | Une classe statique par domaine (`MapMeps`, `MapEtapes`, `MapPhase`…), en Minimal API. Toutes les routes sont sous `/api` et exigent une session, sauf la connexion, `/api/sante` et `/api/version`. |
 | `Cli/` | Commande `gestion-mep` (`LigneDeCommande*.cs`) : administration et exploitation sans navigateur. Elle appelle les opérations publiques des classes `Endpoints/` (`AdminEndpoints.Modifier`, `CatalogueEndpoints.Supprimer`, `ResolutionsEndpoints.Appliquer`…), partagées avec les routes de la console : mêmes règles, même journal d'administration (acteur absent : auteur « Ligne de commande »). |
 | `Services/ServiceMep.cs` | Chargement d'une MEP (avec application de l'échéance de retour arrière), contrôle de version, journal d'audit, enregistrement et notification. |
+| `Services/Personnes.cs` | Chargement de l'annuaire des personnes (comptes reliés, équipes) ; noms affichés de tous les comptes (celui de la personne) pour les DTO des MEP, pièces jointes et résolutions types. La session relit aussi le nom de la personne à chaque requête : un compte relié signe les journaux de ce nom, avec son propre login. |
 | `Services/MepMapping.cs` | Seul endroit où une entité devient un DTO : calcul des disponibilités, des erreurs du plan et des droits de l'utilisateur courant. |
 | `Services/Dtos.cs` | Contrats d'entrée (`…Saisie`) et de sortie (`…Dto`). |
 | `Services/DocumentationOpenApi.cs` | Description OpenAPI servie sur `/api/openapi.json`, copiée dans `docs/openapi.json` pour générer les types du front. |

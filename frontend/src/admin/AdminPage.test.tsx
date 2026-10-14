@@ -14,6 +14,12 @@ vi.mock('../api', () => ({
     adminUtilisateurs: vi.fn(),
     adminCreerUtilisateur: vi.fn(),
     adminReinitialiserMotDePasse: vi.fn(),
+    adminRelier: vi.fn(),
+    adminDelier: vi.fn(),
+    equipes: vi.fn(),
+    adminCreerEquipe: vi.fn(),
+    adminModifierEquipe: vi.fn(),
+    adminSupprimerEquipe: vi.fn(),
     adminJournal: vi.fn(),
     parametres: vi.fn(),
     modifierParametres: vi.fn(),
@@ -49,6 +55,7 @@ describe('Console d’administration', () => {
       utilisateur({ id: 'u1', login: 'admin', nomAffiche: 'Admin', estAdmin: true }),
       utilisateur({ id: 'u2', login: 'bob', nomAffiche: 'Bob', actif: false }),
     ]);
+    vi.mocked(api.equipes).mockResolvedValue([]);
   });
 
   it('redirige un non-administrateur vers l’accueil', async () => {
@@ -97,6 +104,103 @@ describe('Console d’administration', () => {
     await userEvent.type(screen.getByLabelText(/Nom affiché/), 'Bob 2');
     await userEvent.click(screen.getByRole('button', { name: 'Créer le compte' }));
     expect(await screen.findByText('Cet identifiant est déjà pris.')).toBeInTheDocument();
+  });
+
+  it('relie un autre compte de la même personne, en le désactivant si demandé', async () => {
+    const jean = utilisateur({ id: 'j', login: 'jean', nomAffiche: 'Jean Dupont' });
+    const sso = utilisateur({ id: 's', login: 'jean.sso', nomAffiche: 'J. Dupont (SSO)' });
+    vi.mocked(api.adminUtilisateurs).mockResolvedValue([jean, sso]);
+    vi.mocked(api.adminRelier).mockResolvedValue({ ...sso, comptePrincipalId: 'j', nomPersonne: 'Jean Dupont' });
+    rendre(utilisateur({ id: 'admin', estAdmin: true }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Relier un compte à Jean Dupont' }));
+    const relier = screen.getByRole('button', { name: 'Relier' });
+    expect(relier).toBeDisabled();
+    await userEvent.selectOptions(screen.getByLabelText('Autre compte de la même personne'), 's');
+    await userEvent.click(screen.getByRole('checkbox', { name: /Désactiver ce compte/ }));
+    await userEvent.click(relier);
+    await waitFor(() =>
+      expect(api.adminRelier).toHaveBeenCalledWith('s', { comptePrincipalId: 'j', desactiver: true }),
+    );
+  });
+
+  it('regroupe les comptes reliés sous le compte principal et défait la liaison', async () => {
+    const jean = utilisateur({ id: 'j', login: 'jean', nomAffiche: 'Jean Dupont' });
+    const sso = utilisateur({
+      id: 's',
+      login: 'jean.sso',
+      nomAffiche: 'J. Dupont (SSO)',
+      nomPersonne: 'Jean Dupont',
+      comptePrincipalId: 'j',
+    });
+    const alice = utilisateur({ id: 'a', login: 'alice', nomAffiche: 'Alice' });
+    vi.mocked(api.adminUtilisateurs).mockResolvedValue([alice, sso, jean]);
+    vi.mocked(api.adminDelier).mockResolvedValue({ ...sso, comptePrincipalId: null, nomPersonne: sso.nomAffiche });
+    rendre(utilisateur({ id: 'admin', estAdmin: true }));
+    expect(await screen.findByText('Relié à Jean Dupont : affiché sous ce nom')).toBeInTheDocument();
+    const lignes = screen.getAllByRole('row').map((r) => r.textContent ?? '');
+    expect(lignes.findIndex((l) => l.includes('jean.sso'))).toBe(
+      lignes.findIndex((l) => l.startsWith('Jean Dupontjean')) + 1,
+    );
+
+    // La recherche d'un compte relié montre toute la personne.
+    await userEvent.type(screen.getByLabelText('Rechercher un compte'), 'sso');
+    expect(screen.getByText('Jean Dupont')).toBeInTheDocument();
+    expect(screen.queryByText('Alice')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Défaire la liaison de J. Dupont (SSO)' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Défaire la liaison' }));
+    await waitFor(() => expect(api.adminDelier).toHaveBeenCalledWith('s'));
+  });
+
+  it('filtre les comptes par équipe, au niveau de la personne', async () => {
+    vi.mocked(api.equipes).mockResolvedValue([
+      { id: 'e1', nom: 'Exploitation', description: '', membreIds: ['j'], creeeLe: '2026-10-01T08:00:00Z' },
+    ]);
+    vi.mocked(api.adminUtilisateurs).mockResolvedValue([
+      utilisateur({ id: 'j', login: 'jean', nomAffiche: 'Jean Dupont', equipeIds: ['e1'] }),
+      utilisateur({ id: 's', login: 'jean.sso', nomAffiche: 'J. Dupont (SSO)', comptePrincipalId: 'j' }),
+      utilisateur({ id: 'a', login: 'alice', nomAffiche: 'Alice' }),
+    ]);
+    rendre(utilisateur({ id: 'admin', estAdmin: true }));
+    await screen.findByText('Alice');
+    await userEvent.selectOptions(screen.getByLabelText('Filtrer par équipe'), 'e1');
+    expect(screen.getByText('J. Dupont (SSO)')).toBeInTheDocument();
+    expect(screen.queryByText('Alice')).toBeNull();
+  });
+
+  it('crée une équipe avec ses membres depuis l’onglet Équipes', async () => {
+    vi.mocked(api.adminCreerEquipe).mockResolvedValue({
+      id: 'e1',
+      nom: 'Exploitation',
+      description: '',
+      membreIds: [],
+      creeeLe: '2026-10-01T08:00:00Z',
+    });
+    rendre(utilisateur({ estAdmin: true }), '/admin?onglet=equipes');
+    expect(await screen.findByText('Aucune équipe')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Nouvelle équipe' }));
+    await userEvent.type(screen.getByLabelText(/Nom/), 'Exploitation');
+    await userEvent.type(screen.getByLabelText('Description'), 'Équipe de nuit');
+    await userEvent.click(screen.getByRole('button', { name: 'Créer l’équipe' }));
+    await waitFor(() =>
+      expect(api.adminCreerEquipe).toHaveBeenCalledWith({
+        nom: 'Exploitation',
+        description: 'Équipe de nuit',
+        membreIds: [],
+      }),
+    );
+  });
+
+  it('liste les équipes avec leurs membres, y compris désactivés, et supprime après confirmation', async () => {
+    vi.mocked(api.equipes).mockResolvedValue([
+      { id: 'e1', nom: 'Exploitation', description: 'Nuit', membreIds: ['u2'], creeeLe: '2026-10-01T08:00:00Z' },
+    ]);
+    vi.mocked(api.adminSupprimerEquipe).mockResolvedValue(undefined);
+    rendre(utilisateur({ estAdmin: true }), '/admin?onglet=equipes');
+    expect(await screen.findByText(/désactivé/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Supprimer Exploitation' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
+    await waitFor(() => expect(api.adminSupprimerEquipe).toHaveBeenCalledWith('e1'));
   });
 
   it('ouvre l’onglet Version depuis le lien et vérifie les mises à jour à la demande', async () => {

@@ -561,6 +561,7 @@ export interface paths {
             parameters: {
                 query?: {
                     modele?: boolean;
+                    equipe?: string;
                 };
                 header?: never;
                 path?: never;
@@ -2832,6 +2833,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/equipes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EquipeDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meps/{id}/pieces-jointes": {
         parameters: {
             query?: never;
@@ -3737,6 +3773,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/utilisateurs/{id}/relier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LiaisonCompteSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/utilisateurs/{id}/delier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/journal": {
         parameters: {
             query?: never;
@@ -3769,6 +3879,101 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/equipes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EquipeSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/equipes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EquipeSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -3939,6 +4144,10 @@ export interface components {
             description: string;
         };
         CompteEtMotDePasseDto: {
+            /**
+             * @description `ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom
+             *     affiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre.
+             */
             utilisateur: {
                 /** Format: uuid */
                 id: string;
@@ -3954,6 +4163,10 @@ export interface components {
                 }[];
                 actif: boolean;
                 doitChangerMotDePasse: boolean;
+                /** Format: uuid */
+                comptePrincipalId: null | string;
+                nomPersonne: string;
+                equipeIds: string[];
             };
             motDePasseProvisoire: string;
         };
@@ -4074,6 +4287,22 @@ export interface components {
         DuplicationSaisie: {
             environnement: null | string;
             commeModele: boolean;
+        };
+        /** @description Équipe : `MembreIds`, comptes membres (un compte peut appartenir à plusieurs équipes). */
+        EquipeDto: {
+            /** Format: uuid */
+            id: string;
+            nom: string;
+            description: string;
+            membreIds: string[];
+            /** Format: date-time */
+            creeeLe: string;
+        };
+        /** @description Équipe créée ou modifiée ; `MembreIds` absent (null) : membres inchangés. */
+        EquipeSaisie: {
+            nom: null | string;
+            description: null | string;
+            membreIds: null | string[];
         };
         /**
          * @description `Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire
@@ -4320,6 +4549,13 @@ export interface components {
         };
         /** @enum {unknown} */
         IssueMep: "Reussie" | "Repliee" | null;
+        /** @description Relie le compte à `ComptePrincipalId` (même personne) ; `Desactiver` : désactive aussi le compte relié. */
+        LiaisonCompteSaisie: {
+            /** Format: uuid */
+            comptePrincipalId: null | string;
+            /** @default false */
+            desactiver: boolean;
+        };
         LivrableDto: {
             /** Format: uuid */
             id: string;
@@ -4702,6 +4938,9 @@ export interface components {
         /**
          * @description `DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;
          *     `RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).
+         *     `EquipeIds` : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait
+         *     partie, par l'un de ses comptes reliés). `Personnes` : noms des personnes de la MEP et, pour celles qui ont un compte,
+         *     noms et logins de tous leurs comptes reliés (pour la recherche).
          */
         MepResumeDto: {
             /** Format: uuid */
@@ -4727,6 +4966,8 @@ export interface components {
             creeLe: string;
             issue: null | components["schemas"]["IssueMep"];
             retourArriereActive: boolean;
+            equipeIds: string[];
+            personnes: string[];
         };
         /**
          * @description Dernière version publiée sur GitHub. `Disponible` : elle est plus récente que la version en cours (toujours faux
@@ -5201,6 +5442,10 @@ export interface components {
         TypePlan: "Deploiement" | "RetourArriere";
         /** @enum {unknown} */
         TypeReglage: "Texte" | "Adresse" | "Entier" | "Booleen" | "Reseaux";
+        /**
+         * @description `ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom
+         *     affiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre.
+         */
         UtilisateurDto: {
             /** Format: uuid */
             id: string;
@@ -5212,6 +5457,10 @@ export interface components {
             expertises: components["schemas"]["ExpertiseDto"][];
             actif: boolean;
             doitChangerMotDePasse: boolean;
+            /** Format: uuid */
+            comptePrincipalId: null | string;
+            nomPersonne: string;
+            equipeIds: string[];
         };
         UtilisateurSaisie: {
             login: null | string;

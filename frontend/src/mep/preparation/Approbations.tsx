@@ -4,6 +4,7 @@ import { api } from '../../api';
 import { useAuth } from '../../auth';
 import { anomaliesHorsApprobation, participantPar } from '../../domaine';
 import { formatDateHeure } from '../../format';
+import { optionCompte } from '../../personnes';
 import { useAsync, useDraft, useReportDirty } from '../../hooks';
 import { useMep } from '../../mepContext';
 import type { DecisionApprobation } from '../../types';
@@ -107,9 +108,18 @@ export function ApprobationsBloc() {
   const d = useDraft(idsDesignes);
   useReportDirty(d.dirty, 'Approbateurs');
 
+  const { donnees: equipes } = useAsync(() => api.equipes(), []);
+  // Comptes désactivés : plus proposés (ceux déjà désignés restent affichés). Le détail porte l'identifiant, l'état et les
+  // équipes : la recherche du sélecteur filtre aussi par équipe.
+  const nomsEquipes = new Map((equipes ?? []).map((e) => [e.id, e.nom]));
   const options = (utilisateurs ?? [])
-    .filter((u) => u.id !== compteDuPilote)
-    .map((u) => ({ valeur: u.id, libelle: u.nomAffiche, detail: u.login }));
+    .filter((u) => u.id !== compteDuPilote && (u.actif || d.value.includes(u.id)))
+    .map((u) => {
+      const o = optionCompte(u);
+      const noms = u.equipeIds.map((id) => nomsEquipes.get(id)).filter(Boolean);
+      o.detail = [o.detail, ...noms].join(' · ');
+      return o;
+    });
   const approuvees = mep.approbations.filter((a) => a.decision === 'Approuvee').length;
   const refus = mep.approbations.filter((a) => a.decision === 'Refusee');
   const requis = mep.approbationsMinimum;

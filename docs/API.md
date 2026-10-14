@@ -39,13 +39,14 @@ Les erreurs ont pour corps `{ "message": "…" }`, une phrase en français desti
 | Préfixe | Contenu |
 |---|---|
 | `/api/auth` | Connexion, déconnexion, utilisateur courant, changement de mot de passe ; options de la page de connexion et connexion unique (`/api/auth/sso/…` : départ vers le fournisseur, liaison depuis le profil). |
-| `/api/utilisateurs` | Liste des comptes (pour relier une personne à un compte) et profils. |
-| `/api/meps` | MEP : création, duplication, préparation (participants, systèmes, livrables, sauvegarde, étapes, approbations, recette), exécution (démarrer, terminer, prendre la main, résolutions), phases, retour arrière, clôture, pièces jointes, journal, flux et présence. |
+| `/api/utilisateurs` | Liste des comptes (pour relier une personne à un compte) et profils. Chaque compte porte `comptePrincipalId` (compte principal de la même personne, ou null), `nomPersonne` (nom affiché de la personne) et `equipeIds`. |
+| `/api/equipes` | Liste des équipes et de leurs membres (`membreIds`), pour tout utilisateur connecté. |
+| `/api/meps` | Liste (`?modele=true|false`, `?equipe=<id>` : MEP dont une personne fait partie de l'équipe ; chaque résumé porte `equipeIds` et `personnes`, noms et identifiants des personnes et de leurs comptes reliés). MEP : création, duplication, préparation (participants, systèmes, livrables, sauvegarde, étapes, approbations, recette), exécution (démarrer, terminer, prendre la main, résolutions), phases, retour arrière, clôture, pièces jointes, journal, flux et présence. |
 | `/api/catalogue/systemes` | Catalogue global des systèmes. |
 | `/api/resolutions` | Résolutions types et leurs versions. |
 | `/api/parametres`, `/api/criteres-go-no-go` | Paramètres globaux. |
 | `/api/pieces-jointes` | Téléchargement d'une pièce jointe. |
-| `/api/admin` | Console d'administration : comptes, journal d'administration, vérification des mises à jour, réglages de la connexion unique (`/api/admin/sso`) (administrateurs seulement). |
+| `/api/admin` | Console d'administration : comptes (dont `POST /api/admin/utilisateurs/{id}/relier { comptePrincipalId, desactiver }` et `POST …/{id}/delier` pour les comptes d'une même personne), équipes (`POST /api/admin/equipes`, `PUT` et `DELETE /api/admin/equipes/{id}`, saisie `{ nom, description, membreIds }`, `membreIds` absent : membres inchangés), journal d'administration, vérification des mises à jour, réglages de la connexion unique (`/api/admin/sso`) (administrateurs seulement). |
 | `/api/application` | Version en cours, lien de signalement et, pour un administrateur, dernière version publiée. |
 | `/api/demo` | Mode démonstration uniquement (`DEMO=true` ; sinon 404 comme une route inconnue) : `GET /api/demo` (sans session) donne les comptes de démonstration ; `POST /api/demo/connexion { login }` ouvre la session d'un compte de démonstration, avec les mêmes protections que `/api/auth/connexion` (en-tête anti-CSRF, limite par adresse, blocage progressif), 403 pour tout autre login ; `POST /api/demo/reinitialiser` (administrateurs) remet la base dans son état initial et ferme la session. |
 | `/api/sante`, `/api/version` | Sonde de santé et empreinte du front servi (pour proposer de recharger un onglet après un déploiement). |

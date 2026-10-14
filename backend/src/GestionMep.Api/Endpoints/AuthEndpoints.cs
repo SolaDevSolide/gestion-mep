@@ -11,7 +11,7 @@ namespace GestionMep.Api.Endpoints;
 
 public static class AuthEndpoints
 {
-    private static UtilisateurDto Dto(Utilisateur u) => MepMapping.VersDto(u);
+    private static Task<UtilisateurDto> Dto(MepDbContext db, Utilisateur u) => Personnes.Dto(db, u);
 
     /// <summary>
     /// Applique un profil (nom affiché facultatif, rôle, contact, expertises) : textes rognés, systèmes du catalogue existants
@@ -82,7 +82,7 @@ public static class AuthEndpoints
         limiteur.Reussite(login, ip);
         if (!u.Actif) return Results.Json(new { message = "Ce compte est désactivé. Contactez un administrateur." }, statusCode: 403);
         await AuthentificationLocale.Ouvrir(ctx, u);
-        return Results.Ok(Dto(u));
+        return Results.Ok(await Dto(db, u));
     }
 
     public static void MapAuth(this RouteGroupBuilder api)
@@ -107,7 +107,7 @@ public static class AuthEndpoints
             JournalAdmin.Ecrire(db, acteur, "compte.mdp-change", $"{JournalAdmin.Compte(u)} a changé son mot de passe");
             await db.SaveChangesAsync();
             await AuthentificationLocale.Ouvrir(ctx, u);
-            return Results.Ok(Dto(u));
+            return Results.Ok(await Dto(db, u));
         }).RequireRateLimiting(ProtectionsHttp.PolitiqueConnexion);
 
         api.MapPost("/auth/deconnexion", async (HttpContext ctx) =>
@@ -121,11 +121,11 @@ public static class AuthEndpoints
             var acteur = Acteur.Depuis(user);
             var u = await db.Utilisateurs.AsNoTracking().FirstOrDefaultAsync(x => x.Id == acteur.Id);
             // Compte supprimé depuis l'émission du cookie : la session n'est plus valable.
-            return u is null ? Results.Json(new { message = "Session expirée." }, statusCode: 401) : Results.Ok(Dto(u));
+            return u is null ? Results.Json(new { message = "Session expirée." }, statusCode: 401) : Results.Ok(await Dto(db, u));
         });
 
         api.MapGet("/utilisateurs", async (MepDbContext db) =>
-            (await db.Utilisateurs.AsNoTracking().OrderBy(u => u.NomAffiche).ToListAsync()).Select(Dto));
+            await Personnes.Comptes(db));
 
         api.MapPost("/utilisateurs", async (UtilisateurSaisie corps, ClaimsPrincipal user, MepDbContext db, IPasswordHasher<Utilisateur> hasher) =>
         {
@@ -146,7 +146,7 @@ public static class AuthEndpoints
             db.Utilisateurs.Add(nouveau);
             JournalAdmin.Ecrire(db, acteur, "compte.cree", $"Compte {JournalAdmin.Compte(nouveau)} créé{(nouveau.EstAdmin ? ", administrateur" : "")}");
             await db.SaveChangesAsync();
-            return Results.Created($"/api/utilisateurs/{nouveau.Id}", Dto(nouveau));
+            return Results.Created($"/api/utilisateurs/{nouveau.Id}", await Dto(db, nouveau));
         });
 
         // Chacun gère son propre profil ; le nom affiché du cookie est rafraîchi.
@@ -162,7 +162,7 @@ public static class AuthEndpoints
                 JournalAdmin.Ecrire(db, acteur, "compte.renomme", $"{ancien} ({u.Login}) s'affiche désormais « {u.NomAffiche} »");
             await db.SaveChangesAsync();
             await AuthentificationLocale.Ouvrir(ctx, u);
-            return Results.Ok(Dto(u));
+            return Results.Ok(await Dto(db, u));
         });
 
         api.MapPut("/utilisateurs/{uid:guid}/profil", async (Guid uid, ProfilSaisie corps, ClaimsPrincipal user, MepDbContext db) =>
@@ -171,7 +171,7 @@ public static class AuthEndpoints
             if (!acteur.EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
             var u = await db.Utilisateurs.FirstOrDefaultAsync(x => x.Id == uid) ?? throw ErreurHttp.NonTrouve("Utilisateur introuvable.");
             await ModifierProfil(db, acteur, u, corps);
-            return Results.Ok(Dto(u));
+            return Results.Ok(await Dto(db, u));
         });
     }
 }

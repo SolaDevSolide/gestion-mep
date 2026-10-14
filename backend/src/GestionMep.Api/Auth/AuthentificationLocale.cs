@@ -67,7 +67,8 @@ public static class AuthentificationLocale
     /// <summary>
     /// À chaque requête : le compte doit exister, être actif et porter le même tampon de sécurité que le cookie
     /// (sinon la session est fermée). Nom, rôle admin et mot de passe provisoire sont relus en base : un retrait de droit
-    /// s'applique tout de suite, sans attendre l'expiration du cookie.
+    /// s'applique tout de suite, sans attendre l'expiration du cookie. Le nom est celui de la personne : un compte relié à un
+    /// compte principal signe les journaux du nom du compte principal (le login du compte reste dans le journal).
     /// </summary>
     private static async Task ValiderSession(CookieValidatePrincipalContext ctx)
     {
@@ -78,7 +79,10 @@ public static class AuthentificationLocale
             ? await db.Utilisateurs.AsNoTracking().Where(u => u.Id == id)
                 .Select(u => new Utilisateur
                 {
-                    Id = u.Id, NomAffiche = u.NomAffiche, EstAdmin = u.EstAdmin, Actif = u.Actif,
+                    Id = u.Id,
+                    NomAffiche = u.ComptePrincipalId == null ? u.NomAffiche
+                        : db.Utilisateurs.Where(p => p.Id == u.ComptePrincipalId).Select(p => p.NomAffiche).FirstOrDefault() ?? u.NomAffiche,
+                    EstAdmin = u.EstAdmin, Actif = u.Actif,
                     DoitChangerMotDePasse = u.DoitChangerMotDePasse, TamponSecurite = u.TamponSecurite,
                 })
                 .FirstOrDefaultAsync()

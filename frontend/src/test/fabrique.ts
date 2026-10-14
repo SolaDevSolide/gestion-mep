@@ -180,6 +180,9 @@ export function utilisateur(p: Partial<Utilisateur> = {}): Utilisateur {
     expertises: [],
     actif: true,
     doitChangerMotDePasse: false,
+    comptePrincipalId: null,
+    nomPersonne: p.nomAffiche ?? 'Claire',
+    equipeIds: [],
     ...p,
   };
 }

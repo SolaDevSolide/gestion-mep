@@ -28,7 +28,7 @@ La MEP s'ouvre sur l'onglet qui correspond à sa phase : Préparation, puis Exé
 Il est découpé en huit sections. Chacune affiche son état (complète ou à compléter), et un compteur indique combien sont complètes.
 
 1. **Intervention** : outil, objet, version actuelle et version cible, environnement, fuseau horaire, indisponibilité prévue, impacts attendus, pilote et suppléants, case **« Plan de retour arrière »** avec, en dessous, l'**échéance de retour arrière** (facultative), et option « Bilan de clôture ». Les dates de début et de fin ne se saisissent pas : ce sont celles du Go et de la clôture. Voir [Retour arrière facultatif](#retour-arrière-facultatif).
-2. **Personnes** : toutes les personnes de l'intervention. Relier chaque personne à son compte permet de pré-remplir son nom, son rôle et son contact, et lui donne le droit d'exécuter des étapes.
+2. **Personnes** : toutes les personnes de l'intervention. Relier chaque personne à son compte permet de pré-remplir son nom, son rôle et son contact, et lui donne le droit d'exécuter des étapes. Quand des équipes existent, le champ « Équipe » du dialogue restreint les comptes proposés. Les comptes désactivés (personnes parties) ne sont plus proposés ; une personne déjà reliée à un tel compte reste affichée, avec la mention « désactivé ».
 3. **Systèmes** : les systèmes touchés, ajoutés depuis le catalogue global ou librement.
 4. **Responsables techniques** : les développeurs et sachants, avec ce qu'ils ont développé, leur disponibilité le jour J et leur contact. L'application suggère les comptes dont le profil indique une expertise sur les systèmes de la MEP.
 5. **Livrables** : paquets, versions ou artefacts déployés.

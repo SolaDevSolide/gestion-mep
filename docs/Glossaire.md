@@ -10,6 +10,8 @@
 
 **Catalogue des systèmes** : liste globale des systèmes de l'entreprise, dans laquelle on choisit les systèmes d'une MEP.
 
+**Comptes reliés** : comptes d'une même personne reliés par un administrateur, sans rien fusionner ni supprimer. Ils apparaissent sous le nom du compte principal et chacun garde son historique.
+
 **Connexion unique (SSO)** : connexion avec son compte d'entreprise (Microsoft Entra ID ou autre fournisseur OpenID Connect) au lieu d'un mot de passe propre à l'application. Facultative : voir [Connexion Microsoft](Connexion-Microsoft.md).
 
 **Critère go / no-go** : condition à cocher avant de démarrer (par exemple « Supervision en place »).
@@ -17,6 +19,8 @@
 **Échéance de retour arrière** : date et heure limites de l'intervention. Une fois atteinte, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi.
 
 **Éditeur** : personne qui peut modifier une MEP en préparation : pilote, suppléant, responsable technique ou administrateur.
+
+**Équipe** : groupe de personnes géré par les administrateurs, qui sert à filtrer les comptes et les MEP. Une personne peut appartenir à plusieurs équipes ; une MEP appartient à une équipe dès qu'une de ses personnes en fait partie.
 
 **Étape** : action unitaire du plan, avec des instructions et un résultat attendu. Codes `E0001…` pour le déploiement, `R0001…` pour le retour arrière.
 

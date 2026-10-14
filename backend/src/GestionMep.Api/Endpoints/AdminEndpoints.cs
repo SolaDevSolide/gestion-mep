@@ -9,14 +9,14 @@ using Microsoft.EntityFrameworkCore;
 namespace GestionMep.Api.Endpoints;
 
 /// <summary>
-/// Console d'administration : comptes et journal d'administration (groupe /api/admin, administrateurs seulement).
+/// Console d'administration : comptes, comptes reliés et journal d'administration (groupe /api/admin, administrateurs seulement).
 /// Les opérations sont partagées avec la commande <c>gestion-mep comptes</c> (acteur null : « Ligne de commande »).
 /// </summary>
 public static class AdminEndpoints
 {
     public const string MessageDernierAdmin = "Impossible de désactiver le dernier administrateur actif.";
 
-    private static UtilisateurDto Dto(Utilisateur u) => MepMapping.VersDto(u);
+    private static Task<UtilisateurDto> Dto(MepDbContext db, Utilisateur u) => Personnes.Dto(db, u);
 
     private static async Task<Utilisateur> Charger(MepDbContext db, Guid id) =>
         await db.Utilisateurs.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Compte introuvable.");
@@ -109,6 +109,36 @@ public static class AdminEndpoints
         return mdp;
     }
 
+    /// <summary>
+    /// Relie <paramref name="compte"/> à <paramref name="principal"/> : deux comptes d'une même personne, qui s'affiche sous le nom
+    /// du compte principal. Rien n'est fusionné ni supprimé ; <paramref name="desactiver"/> désactive en plus le compte relié
+    /// (sauf le dernier administrateur actif).
+    /// </summary>
+    public static async Task Relier(MepDbContext db, Acteur? acteur, Utilisateur compte, Utilisateur principal, bool desactiver)
+    {
+        var desactive = desactiver && compte.Actif;
+        if (desactive) await ExigerAutreAdmin(db, compte, MessageDernierAdmin);
+        Regles.Relier(compte, principal, await db.Utilisateurs.AsNoTracking().Where(u => u.ComptePrincipalId == compte.Id).ToListAsync());
+        if (desactive)
+        {
+            compte.Actif = false;
+            compte.TamponSecurite = Guid.NewGuid();
+        }
+        JournalAdmin.Ecrire(db, acteur, "compte.relie",
+            $"Compte {JournalAdmin.Compte(compte)} relié à {JournalAdmin.Compte(principal)} (même personne){(desactive ? " et désactivé" : "")}");
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>Défait la liaison : le compte reprend son propre nom ; rien d'autre ne change (état, équipes, historique).</summary>
+    public static async Task Delier(MepDbContext db, Acteur? acteur, Utilisateur compte)
+    {
+        var principal = compte.ComptePrincipalId is { } p ? await db.Utilisateurs.AsNoTracking().FirstOrDefaultAsync(u => u.Id == p) : null;
+        Regles.Delier(compte);
+        JournalAdmin.Ecrire(db, acteur, "compte.delie",
+            $"Liaison du compte {JournalAdmin.Compte(compte)}{(principal is null ? "" : $" avec {JournalAdmin.Compte(principal)}")} défaite");
+        await db.SaveChangesAsync();
+    }
+
     /// <summary>Événements du journal d'administration, du plus récent au plus ancien, depuis une date facultative.</summary>
     public static Task<List<EvenementAdminDto>> Journal(MepDbContext db, int limite, DateTimeOffset? depuis = null) =>
         db.JournalAdmin.AsNoTracking().Where(e => depuis == null || e.Quand >= depuis).OrderByDescending(e => e.Id).Take(limite)
@@ -121,20 +151,20 @@ public static class AdminEndpoints
         var admin = api.MapGroup("/admin").RequireAuthorization(AuthentificationLocale.PolitiqueAdmin);
 
         admin.MapGet("/utilisateurs", async (MepDbContext db) =>
-            (await db.Utilisateurs.AsNoTracking().OrderBy(u => u.NomAffiche).ToListAsync()).Select(Dto));
+            await Personnes.Comptes(db));
 
         // Le mot de passe provisoire est renvoyé une seule fois : l'administrateur le transmet, la personne le change à la connexion.
         admin.MapPost("/utilisateurs", async (CompteSaisie c, ClaimsPrincipal user, MepDbContext db, IPasswordHasher<Utilisateur> hasher) =>
         {
             var (u, mdp) = await Creer(db, Acteur.Depuis(user), c, hasher);
-            return Results.Created($"/api/admin/utilisateurs/{u.Id}", new CompteEtMotDePasseDto(Dto(u), mdp));
+            return Results.Created($"/api/admin/utilisateurs/{u.Id}", new CompteEtMotDePasseDto(await Dto(db, u), mdp));
         });
 
         admin.MapPut("/utilisateurs/{id:guid}", async (Guid id, CompteModification c, ClaimsPrincipal user, MepDbContext db) =>
         {
             var u = await Charger(db, id);
             await Modifier(db, Acteur.Depuis(user), u, c);
-            return Results.Ok(Dto(u));
+            return Results.Ok(await Dto(db, u));
         });
 
         admin.MapPost("/utilisateurs/{id:guid}/desactiver", async (Guid id, ClaimsPrincipal user, MepDbContext db) =>
@@ -143,21 +173,39 @@ public static class AdminEndpoints
             var u = await Charger(db, id);
             if (u.Id == acteur.Id) throw ErreurHttp.Regle(["Vous ne pouvez pas désactiver votre propre compte."]);
             await Desactiver(db, acteur, u);
-            return Results.Ok(Dto(u));
+            return Results.Ok(await Dto(db, u));
         });
 
         admin.MapPost("/utilisateurs/{id:guid}/reactiver", async (Guid id, ClaimsPrincipal user, MepDbContext db) =>
         {
             var u = await Charger(db, id);
             await Reactiver(db, Acteur.Depuis(user), u);
-            return Results.Ok(Dto(u));
+            return Results.Ok(await Dto(db, u));
         });
 
         admin.MapPost("/utilisateurs/{id:guid}/reinitialiser-mot-de-passe", async (Guid id, ClaimsPrincipal user, MepDbContext db, IPasswordHasher<Utilisateur> hasher) =>
         {
             var u = await Charger(db, id);
             var mdp = await ReinitialiserMotDePasse(db, Acteur.Depuis(user), u, hasher);
-            return Results.Ok(new CompteEtMotDePasseDto(Dto(u), mdp));
+            return Results.Ok(new CompteEtMotDePasseDto(await Dto(db, u), mdp));
+        });
+
+        admin.MapPost("/utilisateurs/{id:guid}/relier", async (Guid id, LiaisonCompteSaisie c, ClaimsPrincipal user, MepDbContext db) =>
+        {
+            var acteur = Acteur.Depuis(user);
+            var u = await Charger(db, id);
+            if (c.ComptePrincipalId is not { } principalId) throw ErreurHttp.Saisie("Le compte principal est obligatoire.");
+            var principal = await db.Utilisateurs.FirstOrDefaultAsync(x => x.Id == principalId) ?? throw ErreurHttp.Saisie("Compte principal inconnu.");
+            if (c.Desactiver && u.Id == acteur.Id) throw ErreurHttp.Regle(["Vous ne pouvez pas désactiver votre propre compte."]);
+            await Relier(db, acteur, u, principal, c.Desactiver);
+            return Results.Ok(await Dto(db, u));
+        });
+
+        admin.MapPost("/utilisateurs/{id:guid}/delier", async (Guid id, ClaimsPrincipal user, MepDbContext db) =>
+        {
+            var u = await Charger(db, id);
+            await Delier(db, Acteur.Depuis(user), u);
+            return Results.Ok(await Dto(db, u));
         });
 
         admin.MapGet("/journal", async (int? limite, MepDbContext db) => await Journal(db, Math.Clamp(limite ?? 200, 1, 1000)));

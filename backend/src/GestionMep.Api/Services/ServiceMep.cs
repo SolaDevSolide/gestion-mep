@@ -166,7 +166,7 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
 
     public async Task<MepDto> VersDto(Mep mep, Guid? utilisateurId)
     {
-        var noms = await db.Utilisateurs.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
+        var noms = await Personnes.Noms(db);
         var pieces = await db.PiecesJointes.AsNoTracking().Where(p => p.MepId == mep.Id).ToListAsync();
         var estAdmin = utilisateurId is { } u && await db.Utilisateurs.AsNoTracking().AnyAsync(x => x.Id == u && x.EstAdmin);
         return MepMapping.VersDto(mep, utilisateurId, noms, Maintenant, await ApprobationsMinimum(), pieces, estAdmin);

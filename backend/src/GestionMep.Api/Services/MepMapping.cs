@@ -5,9 +5,10 @@ namespace GestionMep.Api.Services;
 /// <summary>Unique endroit où une entité <see cref="Mep"/> devient un <see cref="MepDto"/> (disponibilités, erreurs du plan, droits).</summary>
 public static class MepMapping
 {
-    public static UtilisateurDto VersDto(Utilisateur u) =>
+    /// <summary>Compte vu par l'API ; <paramref name="nomPersonne"/> et <paramref name="equipeIds"/> viennent de l'annuaire (voir <see cref="Personnes"/>).</summary>
+    public static UtilisateurDto VersDto(Utilisateur u, string nomPersonne, List<Guid> equipeIds) =>
         new(u.Id, u.Login, u.NomAffiche, u.EstAdmin, u.Role, u.Contact, u.Expertises.Select(x => new ExpertiseDto(x.SystemeCatalogueId, x.Detail)).ToList(),
-            u.Actif, u.DoitChangerMotDePasse);
+            u.Actif, u.DoitChangerMotDePasse, u.ComptePrincipalId, nomPersonne, equipeIds);
 
     public static PieceJointeDto VersDto(PieceJointe p, IReadOnlyDictionary<Guid, string> nomsUtilisateurs) =>
         new(p.Id, p.MepId, p.EtapeId, p.ResolutionTypeId, p.ExecutionResolutionId, p.NomFichier, p.TypeContenu, p.Taille, p.Sha256,
