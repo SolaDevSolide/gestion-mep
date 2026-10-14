@@ -16,17 +16,17 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 
 ## Organisation
 
-| Dossier               | Contenu                                                                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `src/pages`           | Pages : connexion, liste des MEP, une MEP, profil                                                                               |
-| `src/mep`             | Onglets et dialogues d'une MEP (préparation, plan : étapes, retour arrière, recette ; exécution, journal ; `onglets.ts`)        |
-| `src/mep/graphe`      | Éditeur et vue d'exécution du graphe des étapes                                                                                 |
-| `src/mep/preparation` | Sections de l'onglet Préparation                                                                                                |
-| `src/parametres`      | Paramètres globaux : catalogue des systèmes, résolutions types, bibliothèque de recettes, critères go / no-go, modèles de texte |
-| `src/textes`          | Textes à copier : remplissage des modèles de texte (`modelesTexte.ts`, logique pure), aperçu, copie mise en forme ou simple     |
-| `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version »                                                      |
-| `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                                              |
-| `src/test`            | Configuration Vitest et fabrique de données de test                                                                             |
+| Dossier               | Contenu                                                                                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/pages`           | Pages : connexion, liste des MEP, une MEP, profil                                                                                            |
+| `src/mep`             | Onglets et dialogues d'une MEP (préparation, plan : étapes, retour arrière, recette ; exécution, journal ; `onglets.ts`)                     |
+| `src/mep/graphe`      | Éditeur et vue d'exécution du graphe des étapes                                                                                              |
+| `src/mep/preparation` | Sections de l'onglet Préparation                                                                                                             |
+| `src/parametres`      | Paramètres globaux : catalogue des systèmes, résolutions types, bibliothèques d'étapes et de recettes, critères go / no-go, modèles de texte |
+| `src/textes`          | Textes à copier : remplissage des modèles de texte (`modelesTexte.ts`, logique pure), aperçu, copie mise en forme ou simple                  |
+| `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version »                                                                   |
+| `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                                                           |
+| `src/test`            | Configuration Vitest et fabrique de données de test                                                                                          |
 
 Logique pure, testée sans DOM :
 
@@ -41,6 +41,7 @@ Logique pure, testée sans DOM :
 | `recherche.ts`    | Recherche insensible aux accents, score et surlignage                                                                                                       |
 | `blocs.ts`        | Découpage des instructions en blocs Texte / Code et raccourcis de mise en forme markdown                                                                    |
 | `format.ts`       | Libellés, dates, durées, comptes à rebours                                                                                                                  |
+| `bibliotheque.ts` | Bibliothèques (étapes, recettes, résolutions) : recherche à plusieurs mots (noms de systèmes reconnus), tri par utilisations puis création, types d'étape   |
 
 ## Principes
 

@@ -52,6 +52,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<ResolutionType> ResolutionsTypes => Set<ResolutionType>();
     public DbSet<VersionResolutionType> VersionsResolutionType => Set<VersionResolutionType>();
     public DbSet<ModeleRecette> ModelesRecette => Set<ModeleRecette>();
+    public DbSet<ModeleEtape> ModelesEtape => Set<ModeleEtape>();
     public DbSet<ExecutionResolution> ExecutionsResolution => Set<ExecutionResolution>();
     public DbSet<CritereGoNoGo> CriteresGoNoGo => Set<CritereGoNoGo>();
     public DbSet<ParametresGlobaux> Parametres => Set<ParametresGlobaux>();
@@ -109,6 +110,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.GoNoGo).AsJson();
             e.Property(x => x.ResponsablesTechniques).AsJson();
             e.Property(x => x.FichesRecette).AsJson();
+            e.Property(x => x.ElementsBibliothequeComptes).HasColumnType("uuid[]");
             e.Property(x => x.Bilan).AsJsonObjet();
             e.HasIndex(x => x.EstModele);
             e.HasMany(x => x.Participants).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
@@ -168,6 +170,14 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Etapes).AsJson();
             e.Property(x => x.Version).IsConcurrencyToken();
             e.HasIndex(x => x.SystemeCatalogueId);
+        });
+
+        b.Entity<ModeleEtape>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.SystemeCatalogueIds).HasColumnType("uuid[]");
+            e.Property(x => x.ResolutionIds).HasColumnType("uuid[]");
+            e.Property(x => x.Version).IsConcurrencyToken();
         });
 
         b.Entity<ExecutionResolution>(e =>

@@ -47,6 +47,7 @@ Le plan de déploiement se dessine comme un graphe, de haut en bas :
 - par défaut, une étape attend toutes celles de la ligne au-dessus ; on peut aussi tracer un lien particulier en tirant le rond du bas d'une étape vers celle qui doit l'attendre ;
 - **glisser-déposer** une étape la déplace sur une autre ligne ou entre deux étapes ;
 - « + Étape » au bout d'une ligne et « + Nouvelle ligne » en bas ajoutent des étapes ;
+- en haut à gauche du graphe, **« Étape modèle »** propose les étapes modèles les plus utilisées pour les systèmes de la MEP, et **« Parcourir la bibliothèque »** ouvre la [bibliothèque d'étapes](#la-bibliothèque-détapes) (voir plus bas) ;
 - un lien remonte toujours vers une ligne au-dessus : le plan ne peut pas boucler.
 
 ![Graphe des étapes : lignes parallèles et barrière du point de non-retour](images/graphe-des-etapes.png)
@@ -113,7 +114,35 @@ Le jour J, les responsables techniques du système servent de contact.
 
 ## La bibliothèque de recettes
 
-« Paramètres › Bibliothèque de recettes » rassemble des fiches de recette types, chacune rattachée à un système du catalogue : titre et étapes de test (déroulé en blocs, résultat attendu). Recherche et filtre par système. Tout le monde peut créer et modifier un modèle, ici ou depuis la page d'une fiche (« Enregistrer comme modèle ») ; seuls les administrateurs suppriment. Insérer un modèle dans une MEP en fait une **copie** : modifier ou supprimer le modèle ensuite ne change pas les fiches déjà insérées. Un système du catalogue utilisé par un modèle est désactivé au lieu d'être supprimé.
+« Paramètres › Bibliothèque de recettes » rassemble des fiches de recette types, chacune rattachée à un système du catalogue : titre et étapes de test (déroulé en blocs, résultat attendu). La page s'ouvre sur le choix du système, puis la bibliothèque du système, comme la [bibliothèque d'étapes](#la-bibliothèque-détapes) ; la recherche porte sur le titre. Tout le monde peut créer et modifier un modèle, ici ou depuis la page d'une fiche (« Enregistrer comme modèle ») ; seuls les administrateurs suppriment. Insérer un modèle dans une MEP en fait une **copie** : modifier ou supprimer le modèle ensuite ne change pas les fiches déjà insérées. Un système du catalogue utilisé par un modèle est désactivé au lieu d'être supprimé.
+
+## La bibliothèque d'étapes
+
+« Paramètres › Bibliothèque d'étapes » rassemble des **étapes modèles** : des étapes types (sauvegarde d'une base, migration, redémarrage d'un service, contrôle final…) rattachées à un ou plusieurs systèmes du catalogue. Une étape modèle reprend la fiche d'une étape : action, systèmes, type (et, pour une sauvegarde, emplacement et méthode de récupération), criticité, durée estimée, instructions, résultat attendu, fin de l'étape et résolutions types. Elle n'a **jamais de point de non-retour** : on le coche dans la MEP, si besoin, après l'insertion.
+
+Les trois bibliothèques (étapes, recettes, [résolutions types](#les-résolutions-types)) se présentent de la même façon :
+
+- la page s'ouvre sur le **choix du système** : les systèmes du catalogue par ordre alphabétique, chacun avec son nombre d'éléments. Un élément qui touche plusieurs systèmes compte dans chacun. Un clic ouvre la **bibliothèque du système** (lien « tous les systèmes » pour revenir) ;
+- la **recherche accepte plusieurs mots** : un mot qui est le nom d'un système limite à ce système, les autres doivent tous figurer dans le nom ou le type de l'étape (le titre d'une recette ; le titre ou les symptômes d'une résolution). Par exemple « BDD sauvegarde » donne les étapes de BDD dont le nom ou le type contient « sauvegarde ». Une ligne rappelle ce que la recherche a compris ;
+- les étapes modèles se filtrent aussi **par type** (Normale, Sauvegarde) ;
+- les éléments sont **triés par nombre d'utilisations**, puis par ordre de création (le plus ancien d'abord). Le compteur « N MEP » de chaque carte donne le nombre de MEP où l'élément a été inséré ou lié ; une MEP ne compte qu'une fois, et un modèle de MEP ne compte pas.
+
+Sur chaque carte d'étape modèle : **Dupliquer** (nouvelle étape modèle préremplie), **Modifier** et, pour un administrateur, **Supprimer**. Tout le monde crée et modifie.
+
+### Insérer une étape modèle dans le plan
+
+Dans Plan › Étapes, deux boutons sont accolés en haut à gauche du graphe :
+
+- **« Étape modèle ▾ »** liste les 5 étapes modèles les plus utilisées pour les systèmes de la MEP ;
+- **« Parcourir la bibliothèque »** ouvre une fenêtre construite comme la page : choix du système (limité par défaut aux systèmes de la MEP, « Tous » pour voir les autres), liste triée par utilisations, aperçu de l'étape choisie, puis « Insérer une copie ».
+
+L'étape choisie arrive **flottante** au-dessus du graphe, avec la pastille « À placer » : on la **glisse** sur une ligne (entre deux étapes ou en bout de ligne), ou on clique l'un des blocs **« ↓ Poser ici »** (en bout de ligne) ou **« Poser ici, sur une nouvelle ligne »**. **Échap** annule : rien n'est écrit tant qu'elle n'est pas posée. Une fois posée, c'est une étape ordinaire : nouveau code, liens par défaut avec la ligne au-dessus et la ligne en dessous, pas de point de non-retour. La modifier ne change pas le modèle ; son espace d'édition rappelle « Copie de l'étape modèle « … » », sans marque sur la fiche du graphe.
+
+Les systèmes du modèle deviennent les systèmes de la MEP issus du même système du catalogue. Si un système du modèle n'est **pas dans la MEP**, il n'est pas ajouté : l'aperçu et le message après la pose le signalent, à vous de l'ajouter aux systèmes impactés si besoin. Le plan de retour arrière n'accepte que les étapes modèles normales.
+
+### Transformer une étape en étape modèle
+
+Dans l'espace d'une étape, **« Transformer en étape modèle »** ouvre une confirmation : nom de l'étape modèle (modifiable), systèmes, ce qui est repris (action, systèmes, criticité, durée, type et sauvegarde, instructions, résultat attendu, fin, résolutions) et ce qui ne l'est pas (point de non-retour, liens, exécutant, résultats et pièces jointes). Seuls les systèmes issus du catalogue sont repris ; une étape sans système du catalogue ne peut pas devenir une étape modèle. L'étape de la MEP ne change pas.
 
 ## Préparer à plusieurs
 
@@ -132,7 +161,7 @@ Une résolution type est une fiche de dépannage réutilisable pour un problème
 
 - Les lier aux étapes qui risquent d'échouer, depuis l'espace d'édition de l'étape. Les résolutions des mêmes systèmes sont proposées en premier.
 - « + Créer une nouvelle fiche de résolution » depuis une étape crée la fiche et la lie à l'étape.
-- Toutes les résolutions sont dans « Paramètres › Résolutions types », avec l'historique de leurs versions. Tout le monde peut en créer et en modifier.
+- Toutes les résolutions sont dans « Paramètres › Résolutions types », avec l'historique de leurs versions. Tout le monde peut en créer et en modifier. La page suit le modèle des [bibliothèques](#la-bibliothèque-détapes) : choix du système (« dont N multi-systèmes » pour les résolutions qui en touchent plusieurs), puis la bibliothèque du système, qui montre aussi les résolutions valables pour tous les systèmes ; recherche sur le titre et les symptômes ; tri par nombre d'utilisations.
 
 Le jour J, une étape en échec propose ses résolutions liées et guide l'opérateur pas à pas (voir [Exécuter une MEP](Exécuter-une-MEP.md#quand-une-étape-échoue)).
 

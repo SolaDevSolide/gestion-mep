@@ -1,5 +1,5 @@
-import { DatabaseBackup, Save, TriangleAlert } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Blocks, DatabaseBackup, Save, TriangleAlert } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import { nomParticipant } from '../../domaine';
@@ -15,6 +15,7 @@ import type {
   EtapeSaisie,
   FinEtape,
   Mep,
+  ModeleEtape,
   ResolutionType,
   SystemeCatalogue,
   TypeEtape,
@@ -22,11 +23,13 @@ import type {
 } from '../../types';
 import { AvisConflit } from '../../ui/AvisConflit';
 import { Button } from '../../ui/Button';
+import { useToast } from '../../ui/Toast';
 import { Instructions, Markdown } from '../../ui/Instructions';
 import { ColonneFiche } from './ColonneFiche';
 import { ColonneInstructions } from './ColonneInstructions';
 import { ColonneLiens, ItemLien, PiecesEtape } from './ColonneLiens';
 import { Bloc, Surcouche } from './EspaceEtape';
+import { MentionCopie, TransformerDialog } from './EtapesModeles';
 import { PuceSysteme, systemesDe } from './systemes';
 
 export { PiecesEtape };
@@ -110,6 +113,10 @@ interface Props {
   modifiable: boolean;
   resolutions: ResolutionType[];
   catalogue: SystemeCatalogue[];
+  /** Bibliothèque d'étapes modèles (null tant qu'elle n'est pas chargée) : mention « Copie de l'étape modèle… ». */
+  modeles?: ModeleEtape[] | null;
+  /** Une étape modèle vient d'être créée depuis cette étape (« Transformer en étape modèle »). */
+  onModeleCree?: (m: ModeleEtape) => void;
   /** Donne le focus au champ Action (étape tout juste créée). */
   focusAction?: boolean;
   onLier: (de: string, vers: string) => void;
@@ -148,6 +155,52 @@ function Badges({ etape, type, pnr }: { etape: Etape; type: TypeEtape; pnr: bool
   );
 }
 
+/** « Transformer en étape modèle » : bouton de la barre et fenêtre de confirmation. */
+function Transformer({
+  mep,
+  etape,
+  catalogue,
+  onModeleCree,
+}: {
+  mep: Mep;
+  etape: Etape;
+  catalogue: SystemeCatalogue[];
+  onModeleCree?: (m: ModeleEtape) => void;
+}) {
+  const toast = useToast();
+  const [ouvert, setOuvert] = useState(false);
+  return (
+    <>
+      <Button
+        variante="secondaire"
+        taille="sm"
+        icone={<Blocks className="size-4" aria-hidden />}
+        onClick={() => setOuvert(true)}
+      >
+        Transformer en étape modèle
+      </Button>
+      <TransformerDialog
+        ouvert={ouvert}
+        onFermer={() => setOuvert(false)}
+        mep={mep}
+        etape={etape}
+        catalogue={catalogue}
+        onCreer={async (nom) => {
+          try {
+            const m = await api.etapeModeleDepuisEtape(mep.id, etape.id, nom);
+            toast.succes(`« ${m.action} » ajoutée à la bibliothèque d’étapes.`);
+            onModeleCree?.(m);
+            return true;
+          } catch (e) {
+            toast.erreur(e instanceof Error ? e.message : 'Création impossible.');
+            return false;
+          }
+        }}
+      />
+    </>
+  );
+}
+
 /** Espace d'édition d'une étape (préparation) : barre du haut, colonnes Fiche / Instructions / Liens, résolutions et pièces. */
 export function PanneauEdition(props: Props) {
   const {
@@ -158,6 +211,8 @@ export function PanneauEdition(props: Props) {
     modifiable,
     resolutions,
     catalogue,
+    modeles = null,
+    onModeleCree,
     focusAction,
     onLier,
     onDelier,
@@ -209,6 +264,8 @@ export function PanneauEdition(props: Props) {
         suivants={suivants}
         resolutions={resolutions}
         onSelection={onSelection}
+        transformer={<Transformer mep={mep} etape={etape} catalogue={catalogue} onModeleCree={onModeleCree} />}
+        mention={etape.modeleEtapeId ? <MentionCopie modeleId={etape.modeleEtapeId} modeles={modeles} /> : null}
       />
     );
 
@@ -300,6 +357,7 @@ export function PanneauEdition(props: Props) {
               Annuler
             </Button>
           )}
+          <Transformer mep={mep} etape={etape} catalogue={catalogue} onModeleCree={onModeleCree} />
           <Button
             variante="primaire"
             taille="sm"
@@ -312,6 +370,7 @@ export function PanneauEdition(props: Props) {
           </Button>
         </span>
       </div>
+      {etape.modeleEtapeId && <MentionCopie modeleId={etape.modeleEtapeId} modeles={modeles} />}
       {anomalies.length > 0 && (
         <p className="flex items-center gap-1.5 text-xs text-warn-fg">
           <TriangleAlert className="size-3.5" aria-hidden />À compléter : {anomalies.join(', ')}.
@@ -402,6 +461,8 @@ function EspaceLecture({
   suivants,
   resolutions,
   onSelection,
+  transformer,
+  mention,
 }: {
   mep: Mep;
   etape: Etape;
@@ -409,6 +470,8 @@ function EspaceLecture({
   suivants: Etape[];
   resolutions: ResolutionType[];
   onSelection: (id: string | null) => void;
+  transformer: ReactNode;
+  mention: ReactNode;
 }) {
   const liees = etape.resolutionIds.map((id) => resolutions.find((r) => r.id === id)?.titre ?? 'Résolution inactive');
   const liste = (l: Etape[]) =>
@@ -427,9 +490,15 @@ function EspaceLecture({
       etiquette={`Étape ${etape.code}`}
       onDemandeFermeture={() => onSelection(null)}
       barre={
-        <div className="flex flex-wrap items-center gap-3">
-          <Badges etape={etape} type={etape.type} pnr={etape.pointDeNonRetour} />
-          <h2 className="text-lg leading-snug font-semibold tracking-tight">{etape.action || 'Étape sans libellé'}</h2>
+        <div className="grid gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badges etape={etape} type={etape.type} pnr={etape.pointDeNonRetour} />
+            <h2 className="min-w-0 flex-1 text-lg leading-snug font-semibold tracking-tight">
+              {etape.action || 'Étape sans libellé'}
+            </h2>
+            {transformer}
+          </div>
+          {mention}
         </div>
       }
       gauche={

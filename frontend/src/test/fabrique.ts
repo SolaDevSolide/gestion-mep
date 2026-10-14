@@ -31,6 +31,7 @@ export function etape(p: Partial<Etape> = {}, statut: StatutDisponibilite = 'Dis
     sauvegardeEmplacement: '',
     sauvegardeMethodeRecuperation: '',
     disponibilite: { statut, libelle: statut },
+    modeleEtapeId: null,
     ...p,
   };
 }

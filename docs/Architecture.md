@@ -32,7 +32,7 @@ Trois projets dans `backend/src`, testés par `backend/tests/GestionMep.Tests`.
 Aucune dépendance vers ASP.NET ni EF Core.
 
 - `Modele.cs` : entités (`Mep`, `Etape`, `Participant`, `Systeme`, `ResolutionType`, `FicheRecette`, `Approbation`…) et énumérations.
-- `Regles.cs` et `Regles.*.cs` : toutes les règles, en fonctions statiques pures d'une même classe partielle, un fichier par domaine (`Regles.Graphe.cs`, `Regles.Disponibilite.cs`, `Regles.Droits.cs`, `Regles.Phases.cs`, `Regles.Recette.cs`, `Regles.Resolutions.cs`…). Elles couvrent la disponibilité d'une étape, la validité du graphe, la vérification du plan, les transitions de phase, les approbations, le go / no-go, le point de non-retour, la recette, le retour arrière, les résolutions types et la duplication.
+- `Regles.cs` et `Regles.*.cs` : toutes les règles, en fonctions statiques pures d'une même classe partielle, un fichier par domaine (`Regles.Graphe.cs`, `Regles.Disponibilite.cs`, `Regles.Droits.cs`, `Regles.Phases.cs`, `Regles.Recette.cs`, `Regles.Resolutions.cs`, `Regles.Bibliotheques.cs`…). Elles couvrent la disponibilité d'une étape, la validité du graphe, la vérification du plan, les transitions de phase, les approbations, le go / no-go, le point de non-retour, la recette, le retour arrière, les résolutions types, les étapes modèles et les compteurs d'utilisations des bibliothèques, et la duplication.
 - Un refus lève `RegleMetierException` avec un message en français destiné à l'utilisateur. L'API le traduit en **422**.
 - L'heure courante est toujours passée en paramètre (`maintenant`) : les règles se testent sans horloge.
 - `AnnuairePersonnes.cs` : comptes vus comme des personnes. Des comptes reliés (`Utilisateur.ComptePrincipalId`, un seul niveau) forment une personne, nommée d'après son compte principal, dont les équipes sont celles de tous ses comptes. Rien n'est fusionné : chaque compte garde ses données, ses droits et son historique. Les règles de liaison et de nom d'équipe sont dans `Regles.Comptes.cs`.
@@ -67,6 +67,10 @@ Brique commune, sans règle métier, pour écrire et relire des classeurs `.xlsx
 | `Auth/` | Comptes locaux, cookie de session, `Acteur` (utilisateur courant), connexion unique OpenID Connect (`ConnexionUnique.cs`). |
 | `Donnees/` | `MepDbContext`, migrations EF Core, `Amorcage` (migration précédée d'une sauvegarde, démonstration ou compte administrateur initial). |
 
+### Compteurs d'utilisations des bibliothèques
+
+Étapes modèles, modèles de recette et résolutions types portent un compteur `Utilisations` (nombre de MEP qui les utilisent) stocké en base, et une date de création. Chaque MEP garde la liste des éléments déjà comptés (`Mep.ElementsBibliothequeComptes`) : à chaque enregistrement, `ServiceMep` compare les éléments utilisés par la MEP (étapes copiées d'un modèle, fiches copiées d'un modèle de recette, résolutions liées) à cette liste, note les nouveaux et, après l'enregistrement, augmente leurs compteurs d'un par une mise à jour atomique en base. Une MEP compte donc chaque élément une seule fois, même retiré puis remis, même si l'écriture est rejouée ; un modèle de MEP ne compte pas. Supprimer une copie ne décompte pas.
+
 ### Déroulé d'une requête d'écriture
 
 1. Le handler passe par `ServiceMep.Modifier`, qui charge la MEP par `ServiceMep.Charger` (celui-ci applique d'abord l'échéance de retour arrière si elle est dépassée) puis exécute les étapes 2 à 4, rejouables en cas d'écriture simultanée (voir Concurrence).
@@ -78,7 +82,7 @@ Brique commune, sans règle métier, pour écrire et relire des classeurs `.xlsx
 ### Concurrence
 
 - Chaque MEP porte un numéro de `Version`, chaque étape une `Revision`. Le client renvoie celui qu'il a lu ; un écart donne **409** et le front recharge.
-- EF Core utilise aussi la `Version` de la MEP (celle des résolutions types et des modèles de recette) comme jeton de concurrence, ce qui protège deux écritures simultanées sur le serveur.
+- EF Core utilise aussi la `Version` de la MEP (celle des résolutions types, des modèles de recette et des étapes modèles) comme jeton de concurrence, ce qui protège deux écritures simultanées sur le serveur.
 - **Réessai automatique** : toute écriture sur une MEP passe par `ServiceMep.Modifier`. Si l'enregistrement échoue seulement parce qu'une autre écriture vient de passer sur la même MEP (`DbUpdateConcurrencyException` sur `Mep.Version`, ou clé unique prise entre-temps), le serveur vide le suivi EF (`ChangeTracker.Clear()`), relit la MEP, revérifie toutes les préconditions (droits, révision de l'étape, version envoyée par le client, règles du domaine) et rejoue l'action, jusqu'à 3 essais espacés de quelques millisecondes aléatoires, puis répond 409 comme avant. Des personnes qui agissent en même temps sur des étapes différentes d'une MEP en exécution réussissent donc toutes.
 - **Ce qui reste un vrai conflit (409)** : une étape modifiée depuis sa lecture (révision périmée, par exemple deux démarrages simultanés de la même étape : un seul aboutit), une MEP modifiée depuis sa lecture sur les routes qui exigent sa `version` (fiche de la MEP, plan de retour arrière, sauvegarde, approbateurs, approbation…), ou, rarement, plus de trois écritures simultanées sur la même MEP (essais épuisés pour la dernière).
 - Une action rejouée ne doit pas avoir d'effet hors base : le journal et les entités ajoutés sont annulés par `ChangeTracker.Clear()`, la notification SSE n'est envoyée qu'après un enregistrement réussi, le fichier d'une pièce jointe est écrit une seule fois avant l'enregistrement (et effacé s'il échoue définitivement), les fichiers supprimés ne le sont qu'après le succès.

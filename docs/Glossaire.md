@@ -26,7 +26,11 @@
 
 **Étape** : action unitaire du plan, avec des instructions et un résultat attendu. Codes `E0001…` pour le déploiement, `R0001…` pour le retour arrière.
 
+**Étape modèle** : étape type de la bibliothèque d'étapes (fiche complète, sans point de non-retour). L'insérer dans une MEP en fait une copie indépendante, posée à la main dans le graphe ; on peut aussi transformer une étape d'une MEP en étape modèle.
+
 **Exécutant** : personne qui a démarré une étape, ou qui a pris la main dessus.
+
+**Bibliothèque d'étapes** : étapes modèles rattachées à un ou plusieurs systèmes du catalogue, insérées par copie dans le plan des MEP. Voir aussi *Étape modèle*.
 
 **Bibliothèque de recettes** : modèles de fiches de recette rattachés à un système du catalogue, insérés par copie dans les MEP.
 

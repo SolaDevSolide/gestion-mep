@@ -22,7 +22,7 @@ public static class RecetteEndpoints
 
     private static ModeleRecetteDto Dto(ModeleRecette m, Dictionary<Guid, string> noms) => new(m.Id, m.Titre, m.SystemeCatalogueId,
         m.Etapes.OrderBy(t => t.Ordre).Select(t => new EtapeModeleRecetteDto(t.Ordre, t.Instructions, t.ResultatAttendu)).ToList(),
-        m.Version, m.ModifieLe, m.ModifieParId, m.ModifieParId is { } u && noms.TryGetValue(u, out var n) ? n : null);
+        m.Version, m.ModifieLe, m.ModifieParId, m.ModifieParId is { } u && noms.TryGetValue(u, out var n) ? n : null, m.Utilisations, m.CreeLe);
 
     private static Task<Dictionary<Guid, string>> Noms(MepDbContext db) => db.Utilisateurs.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
 
@@ -108,7 +108,8 @@ public static class RecetteEndpoints
             var q = db.ModelesRecette.AsNoTracking();
             if (systemeCatalogueId is { } s) q = q.Where(m => m.SystemeCatalogueId == s);
             var noms = await Noms(db);
-            return (await q.OrderBy(m => m.Titre).ToListAsync()).Select(m => Dto(m, noms));
+            // Tri des bibliothèques : les plus utilisés d'abord, puis par ordre de création.
+            return (await q.OrderByDescending(m => m.Utilisations).ThenBy(m => m.CreeLe).ThenBy(m => m.Titre).ToListAsync()).Select(m => Dto(m, noms));
         });
 
         api.MapGet("/modeles-recette/{id:guid}", async (Guid id, MepDbContext db) => Dto(await TrouverModele(db, id), await Noms(db)));
@@ -120,6 +121,7 @@ public static class RecetteEndpoints
             var m = new ModeleRecette
             {
                 Titre = ServiceMep.Texte(c.Titre), SystemeCatalogueId = c.SystemeCatalogueId!.Value, Etapes = Etapes(c.Etapes), Version = 1,
+                CreeLe = temps.GetUtcNow(),
             };
             Valider(m, acteur, temps.GetUtcNow());
             db.ModelesRecette.Add(m);
@@ -139,7 +141,7 @@ public static class RecetteEndpoints
             var m = new ModeleRecette
             {
                 Titre = titre.Length > 0 ? titre : fiche.Titre, SystemeCatalogueId = c.SystemeCatalogueId!.Value,
-                Etapes = Regles.EtapesPourModele(fiche), Version = 1,
+                Etapes = Regles.EtapesPourModele(fiche), Version = 1, CreeLe = svc.Maintenant,
             };
             Valider(m, acteur, svc.Maintenant);
             db.ModelesRecette.Add(m);

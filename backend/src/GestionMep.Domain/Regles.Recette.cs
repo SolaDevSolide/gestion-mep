@@ -142,6 +142,7 @@ public static partial class Regles
     public static FicheRecette InsererModeleRecette(Mep mep, Guid systemeId, ModeleRecette modele)
     {
         var fiche = AjouterFicheRecette(mep, systemeId, modele.Titre);
+        fiche.ModeleRecetteId = modele.Id;
         fiche.Etapes = modele.Etapes.OrderBy(t => t.Ordre).Select((t, i) => new EtapeTest
         {
             Ordre = i + 1, Instructions = t.Instructions, ResultatAttendu = t.ResultatAttendu,

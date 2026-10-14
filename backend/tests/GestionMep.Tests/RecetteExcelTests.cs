@@ -242,7 +242,7 @@ public class RecetteExcelTests : IDisposable
         Guid Cat(string nom) => catalogue.Single(s => s.GetProperty("nom").GetString() == nom).GetProperty("id").GetGuid();
 
         // La démonstration en fournit quelques-uns ; filtre par système.
-        Assert.Equal(3, (await Ok(await alice.GetAsync("/api/modeles-recette"))).GetArrayLength());
+        Assert.Equal(7, (await Ok(await alice.GetAsync("/api/modeles-recette"))).GetArrayLength());
         Assert.Equal("Connexion au portail", (await Ok(await alice.GetAsync($"/api/modeles-recette?systemeCatalogueId={Cat("WEB")}")))[0].GetProperty("titre").GetString());
 
         var fiche = Fiche(mep, "Parcours de commande");

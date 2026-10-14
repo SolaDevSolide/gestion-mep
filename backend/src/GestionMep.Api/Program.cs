@@ -140,6 +140,7 @@ api.MapCatalogue();
 api.MapResolutions();
 api.MapDeroule();
 api.MapRecette();
+api.MapEtapesModeles();
 api.MapParametres();
 api.MapAdmin();
 api.MapEquipes();

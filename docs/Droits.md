@@ -46,6 +46,9 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Créer ou modifier une résolution type | Tout utilisateur |
 | Supprimer une résolution type ou une de ses pièces jointes | Administrateur |
 | Créer ou modifier un modèle de la bibliothèque de recettes | Tout utilisateur |
+| Créer, modifier ou dupliquer une étape modèle, transformer une étape en étape modèle | Tout utilisateur |
+| Supprimer une étape modèle | Administrateur |
+| Insérer une étape modèle dans le plan | Éditeur de la MEP, en préparation |
 | Supprimer un modèle de la bibliothèque de recettes | Administrateur |
 | Modifier la communication d'une MEP | Éditeur en préparation ; après le Go, pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée |
 | Copier les textes d'une MEP, consulter les modèles de texte | Tout utilisateur qui voit la MEP |

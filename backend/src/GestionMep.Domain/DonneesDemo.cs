@@ -40,31 +40,237 @@ public static partial class DonneesDemo
         new() { Ordre = 4, Libelle = "Supervision en place" },
     ];
 
-    /// <summary>Bibliothèque de recettes de démonstration : quelques fiches types rattachées aux systèmes WEB, API et BDD du catalogue.</summary>
+    /// <summary>
+    /// Bibliothèque de recettes de démonstration : fiches types rattachées aux systèmes du catalogue (aucune pour MDM), avec
+    /// leur nombre d'utilisations et leur date de création. Plusieurs fiches des MEP de démonstration en sont des copies
+    /// (<see cref="RelierAuxBibliotheques"/>).
+    /// </summary>
     public static List<ModeleRecette> ModelesRecette(IReadOnlyList<SystemeCatalogue> catalogue, DateTimeOffset maintenant)
     {
         Guid Id(string nom) => catalogue.First(s => s.Nom == nom).Id;
-        ModeleRecette Modele(string systeme, string titre, params (string Instructions, string Attendu)[] etapes) => new()
+        ModeleRecette Modele(string systeme, string titre, int utilisations, int ilYaJours, params (string Instructions, string Attendu)[] etapes) => new()
         {
-            Titre = titre, SystemeCatalogueId = Id(systeme), Version = 1, ModifieLe = maintenant,
+            Titre = titre, SystemeCatalogueId = Id(systeme), Version = 1, ModifieLe = maintenant.AddDays(-ilYaJours), CreeLe = maintenant.AddDays(-ilYaJours),
+            Utilisations = utilisations,
             Etapes = etapes.Select((t, i) => new EtapeModeleRecette { Ordre = i + 1, Instructions = t.Instructions, ResultatAttendu = t.Attendu }).ToList(),
         };
         return
         [
-            Modele("WEB", "Connexion au portail",
+            Modele("WEB", "Connexion au portail", 6, 210,
                 ("Ouvrir le portail et se connecter avec le compte de test de la recette.", "Le tableau de bord s'affiche avec le menu principal."),
                 ("Se déconnecter puis ouvrir de nouveau une page interne.", "La page de connexion s'affiche.")),
-            Modele("API", "Santé de l'API",
+            Modele("WEB", "Affichage sur mobile", 1, 35,
+                ("Ouvrir les pages principales sur un téléphone de test.", "Les pages s'affichent sans défilement horizontal.")),
+            Modele("API", TitreRecetteSanteApi, 9, 240,
                 ("SIMULATION : lire sans lancer.\n\n" + Code("curl -fsS https://commandes.exemple.invalid/sante"), "Réponse 200 avec la nouvelle version.")),
-            Modele("BDD", "Droits de l'utilisateur applicatif",
+            Modele("API", "Temps de réponse des appels clés", 3, 120,
+                (Code("curl -fsS -w '%{time_total}' https://commandes.exemple.invalid/commandes/test"), "Réponse en moins d'une seconde.")),
+            Modele("BDD", "Droits de l'utilisateur applicatif", 4, 180,
                 ("Se connecter avec l'utilisateur applicatif, puis lire une table métier.\n\n" + Code("psql -h bdd-demo -U app_user -d clients -c \"SELECT count(*) FROM clients;\""),
                     "Lecture autorisée ; le nombre de lignes est cohérent avec la veille.")),
+            Modele("LDAP", TitreRecetteGroupe, 3, 150,
+                ("Se connecter avec un compte membre du nouveau groupe.", "Le compte appartient au groupe et accède à l'application.")),
+            Modele("BATCH", TitreRecettePlanification, 2, 90,
+                ("Vérifier la planification du traitement dans l'ordonnanceur.", "Le traitement est planifié à l'heure prévue.")),
         ];
+    }
+
+    private const string TitreRecetteSanteApi = "Santé de l'API";
+    private const string TitreRecetteGroupe = "Connexion d'un compte du groupe applicatif";
+    private const string TitreRecettePlanification = "Planification dans l'ordonnanceur";
+
+    /// <summary>
+    /// Bibliothèque d'étapes de démonstration : étapes types de chaque système du catalogue (une sur plusieurs systèmes),
+    /// normales et de sauvegarde, avec leur nombre d'utilisations (MEP de la démonstration et MEP plus anciennes) et leur
+    /// date de création. Les étapes des MEP de démonstration qui en sont des copies sont reliées par <see cref="RelierAuxBibliotheques"/>.
+    /// </summary>
+    public static List<ModeleEtape> EtapesModeles(IReadOnlyList<SystemeCatalogue> catalogue, IReadOnlyList<ResolutionType> resolutions,
+        DateTimeOffset maintenant)
+    {
+        Guid Id(string nom) => catalogue.First(s => s.Nom == nom).Id;
+        const string simulation = "SIMULATION : lire sans rien lancer.\n\n";
+        ModeleEtape M(string systemes, string action, Criticite criticite, int duree, string instructions, string attendu, int utilisations,
+            int ilYaJours, FinEtape fin = FinEtape.TestUnitaire, params ResolutionType[] resolutionsLiees) => new()
+        {
+            Action = action, SystemeCatalogueIds = systemes.Split('+').Select(Id).ToList(), Criticite = criticite, DureeEstimeeMinutes = duree,
+            Instructions = instructions, ResultatAttendu = attendu, Fin = fin, ResolutionIds = resolutionsLiees.Select(r => r.Id).ToList(),
+            Utilisations = utilisations, CreeLe = maintenant.AddDays(-ilYaJours).AddHours(-(ilYaJours % 7)), Version = 1 + ilYaJours % 3,
+            ModifieLe = maintenant.AddDays(-ilYaJours / 2),
+        };
+        ModeleEtape Sauvegarde(ModeleEtape m)
+        {
+            m.Type = TypeEtape.Sauvegarde;
+            m.SauvegardeEmplacement = "Dossier fictif `/sauvegardes-demo/<MEP>` (aucun fichier réel)";
+            m.SauvegardeMethodeRecuperation = RecuperationDemo;
+            return m;
+        }
+        var (fixApi, droitsBdd, cdnWeb, disqueBdd) = (resolutions[0], resolutions[1], resolutions[2], resolutions[6]);
+        return
+        [
+            // BDD
+            Sauvegarde(M("BDD", ModeleSauvegardeBase, Criticite.Elevee, 20,
+                simulation + "Faire la sauvegarde **complète** de la base avant toute modification.\n\n" + Code("pg_dump -h bdd-demo -U admin <base> > /sauvegardes/<base>.sql"),
+                "Fichier de sauvegarde présent, taille supérieure à 0, aucune erreur.", 14, 230, FinEtape.TestUnitaire, disqueBdd)),
+            Sauvegarde(M("BDD", ModeleSauvegardeTables, Criticite.Elevee, 15,
+                simulation + Code("pg_dump -h bdd-demo -U admin -t <table> <base> > /sauvegardes/<table>.sql"), "Un fichier par table, sans erreur.", 9, 160)),
+            M("BDD", ModeleMigration, Criticite.Elevee, 20,
+                simulation + "Lancer les scripts du dossier `migrations/` dans l'ordre, avec le compte de déploiement.\n\n" + Code("psql -h bdd-demo -U admin -d <base> -f migrations/<version>.sql"),
+                "Toutes les migrations appliquées, aucune erreur ; la table de version porte le dernier numéro.", 14, 200, FinEtape.TestUnitaire, droitsBdd),
+            M("BDD", "Contrôle du nombre de lignes après migration", Criticite.Moderee, 5,
+                Code("psql -h bdd-demo -U lecture -d <base> -c \"SELECT count(*) FROM <table>;\"") + "\n\nComparer avec le relevé d'avant la migration.",
+                "Écart nul, ou égal au nombre de lignes ajoutées par le script.", 7, 140),
+            M("BDD", "Recalcul des statistiques de la base", Criticite.Faible, 10,
+                simulation + Code("psql -h bdd-demo -U admin -d <base> -c \"VACUUM ANALYZE;\""), "Commande terminée sans erreur.", 3, 60, FinEtape.Verification),
+            M("BDD", ModeleRestaurationBase, Criticite.Bloquante, 30,
+                simulation + Code("psql -h bdd-demo -U admin <base> < /sauvegardes/<base>.sql"), "Restauration sans erreur.", 11, 220),
+            M("BDD", "Ouverture d'une session de maintenance", Criticite.Faible, 2,
+                "Se connecter avec le compte de déploiement et vérifier la base cible.\n\n" + Code("SELECT current_database();"), "Session ouverte sur la bonne base.", 0, 4,
+                FinEtape.Verification),
+            // API
+            Sauvegarde(M("API", ModeleSauvegardeService, Criticite.Moderee, 10,
+                simulation + Code("tar czf /sauvegardes/<service>-<version>.tgz /opt/<service>"), "Archive créée, taille supérieure à 0.", 12, 235)),
+            M("API", ModeleDeploiementService, Criticite.Elevee, 20,
+                "Le déploiement redémarre le service : prévenir le support **avant** de lancer.\n\n" + Code("cd /opt/<service> && ./deploy.sh <version>"),
+                "`GET /sante` renvoie 200 avec la nouvelle version.", 19, 238, FinEtape.TestUnitaire, fixApi),
+            M("API", ModeleReinstallationService, Criticite.Bloquante, 15,
+                simulation + Code("cd /opt/<service> && ./deploy.sh <version précédente>"), "`GET /sante` renvoie la version précédente.", 9, 190),
+            M("API", "Vérification des journaux après redémarrage", Criticite.Faible, 10,
+                simulation + Code("journalctl -u <service> --since \"10 min ago\" | grep -i error"), "Aucune erreur depuis le redémarrage.", 6, 100,
+                FinEtape.Verification, fixApi),
+            // WEB
+            M("WEB", ModelePublicationSite, Criticite.Moderee, 20,
+                simulation + Code("npm ci && npm run build && ./publier.sh <site>"), "Build terminé, la page d'accueil affiche la nouvelle version.", 12, 205,
+                FinEtape.TestUnitaire, cdnWeb),
+            Sauvegarde(M("WEB", ModeleSnapshotWeb, Criticite.Moderee, 10,
+                simulation + "Dans la console de virtualisation :\n1. sélectionner le volume du site\n2. **Créer un snapshot** nommé `avant-<version>`",
+                "Snapshot visible dans la liste.", 6, 170, FinEtape.Verification)),
+            M("WEB", "Vidage des caches du frontal", Criticite.Moderee, 5,
+                simulation + Code("./publier.sh <site> --purge-seule"), "Les pages sont servies avec les nouveaux fichiers.", 4, 80, FinEtape.Verification, cdnWeb),
+            M("WEB+API", "Bascule du trafic vers la nouvelle version", Criticite.Bloquante, 5,
+                "Modifier le pool du répartiteur de charge et activer le nouveau nœud.", "Le trafic passe par le nouveau nœud, sans erreur 5xx.", 3, 45),
+            // LDAP
+            M("LDAP", ModeleGroupesLdap, Criticite.Elevee, 15,
+                simulation + Code("ldapadd -H ldap://annuaire-demo -D cn=admin -f <groupes>.ldif"), "Les groupes sont visibles dans l'annuaire avec leurs membres.", 4, 150,
+                FinEtape.TestUnitaire, resolutions[5]),
+            Sauvegarde(M("LDAP", "Export LDIF de la branche applicative", Criticite.Moderee, 5,
+                simulation + Code("ldapsearch -H ldap://annuaire-demo -b ou=applis,dc=demo > /sauvegardes/annuaire.ldif"), "Fichier LDIF non vide.", 3, 150)),
+            // MDM
+            M("MDM", "Publication du référentiel vers les abonnés", Criticite.Elevee, 15,
+                "Lancer la publication du référentiel vers les applications abonnées depuis la console du MDM.",
+                "Publication « terminée », aucun abonné en erreur.", 2, 70),
+            // BATCH
+            M("BATCH", "Suspension des traitements de nuit", Criticite.Elevee, 5,
+                simulation + Code("ordonnanceur suspendre <traitement>"), "Aucun traitement « en cours » ni « planifié ».", 5, 130, FinEtape.Verification),
+            M("BATCH", ModeleReactivationBatch, Criticite.Moderee, 10,
+                simulation + Code("ordonnanceur activer <traitement>"), "Le traitement est planifié à l'heure prévue.", 5, 129, FinEtape.TestUnitaire, resolutions[4]),
+            Sauvegarde(M("BATCH", "Export des paramètres de planification", Criticite.Moderee, 5,
+                simulation + Code("ordonnanceur exporter --format json > /sauvegardes/planification.json"), "Fichier présent et lisible.", 2, 95)),
+            // Plusieurs systèmes
+            M("BDD+API+WEB", ModeleControleFinal, Criticite.Elevee, 15,
+                "- [ ] Passer une commande ou une opération de test\n- [ ] Vérifier qu'elle apparaît en base\n- [ ] Vérifier les tableaux de bord",
+                "Tous les contrôles sont verts.", 16, 225, FinEtape.Verification),
+        ];
+    }
+
+    private const string ModeleSauvegardeBase = "Sauvegarde complète de la base";
+    private const string ModeleSauvegardeTables = "Sauvegarde des tables modifiées";
+    private const string ModeleMigration = "Exécution des scripts de migration";
+    private const string ModeleRestaurationBase = "Restauration de la base depuis la sauvegarde";
+    private const string ModeleSauvegardeService = "Sauvegarde du service applicatif";
+    private const string ModeleDeploiementService = "Déploiement d'une nouvelle version du service";
+    private const string ModeleReinstallationService = "Réinstallation de la version précédente du service";
+    private const string ModelePublicationSite = "Publication du site web";
+    private const string ModeleSnapshotWeb = "Snapshot du volume web";
+    private const string ModeleGroupesLdap = "Création de groupes dans l'annuaire";
+    private const string ModeleReactivationBatch = "Réactivation des traitements de nuit";
+    private const string ModeleControleFinal = "Contrôle final de bout en bout";
+
+    /// <summary>Étapes des MEP de démonstration insérées depuis la bibliothèque d'étapes, par outil (le modèle de MEP reprend celles du portail).</summary>
+    private static readonly Dictionary<string, (string Code, string Modele)[]> CopiesEtapes = new()
+    {
+        [OutilPortail] =
+        [
+            ("E0001", ModeleSauvegardeBase), ("E0002", ModeleSauvegardeService), ("E0003", ModeleSnapshotWeb), ("E0004", ModeleMigration),
+            ("E0005", ModeleDeploiementService), ("E0006", ModelePublicationSite), ("E0009", ModeleControleFinal),
+            ("R0001", ModeleReinstallationService), ("R0002", ModeleRestaurationBase),
+        ],
+        [OutilIncomplete] = [("E0001", ModeleSauvegardeTables), ("E0002", ModeleMigration)],
+        [OutilPrete] =
+        [
+            ("E0001", ModeleSauvegardeService), ("E0002", ModeleGroupesLdap), ("E0003", ModeleDeploiementService), ("E0004", ModelePublicationSite),
+            ("E0005", ModeleControleFinal), ("R0001", ModeleReinstallationService),
+        ],
+        [OutilExecution] =
+        [
+            ("E0001", ModeleSauvegardeTables), ("E0002", ModeleSauvegardeService), ("E0003", ModeleMigration), ("E0004", ModeleDeploiementService),
+            ("E0005", ModelePublicationSite), ("E0007", ModeleControleFinal), ("R0001", ModeleReinstallationService),
+        ],
+        [OutilRecette] =
+        [
+            ("E0001", ModeleSauvegardeBase), ("E0002", ModeleMigration), ("E0003", ModeleDeploiementService), ("E0004", ModelePublicationSite),
+            ("R0002", ModeleReinstallationService), ("R0003", ModeleRestaurationBase),
+        ],
+        [OutilRetourArriere] =
+        [
+            ("E0001", ModeleSauvegardeBase), ("E0002", ModeleSauvegardeService), ("E0003", ModeleMigration), ("E0004", ModeleDeploiementService),
+            ("E0006", ModeleControleFinal), ("R0001", ModeleReinstallationService), ("R0002", ModeleRestaurationBase),
+        ],
+        [OutilReussie] =
+        [
+            ("E0001", ModeleSauvegardeBase), ("E0002", ModeleMigration), ("E0003", ModeleDeploiementService), ("E0005", ModeleReactivationBatch),
+            ("R0001", ModeleRestaurationBase), ("R0002", ModeleReinstallationService),
+        ],
+        [OutilRepliee] =
+        [
+            ("E0001", ModeleSnapshotWeb), ("E0002", ModeleSauvegardeService), ("E0003", ModeleDeploiementService), ("R0002", ModeleReinstallationService),
+        ],
+    };
+
+    /// <summary>Fiches de recette des MEP de démonstration insérées depuis la bibliothèque de recettes (outil, titre de la fiche, modèle).</summary>
+    private static readonly (string Outil, string Fiche, string Modele)[] CopiesRecettes =
+    [
+        (OutilPrete, "API annuaire", TitreRecetteSanteApi), (OutilPrete, "Groupes d'agence", TitreRecetteGroupe),
+        (OutilExecution, "API paiement", TitreRecetteSanteApi), (OutilRecette, "Accès gestionnaires", TitreRecetteGroupe),
+        (OutilReussie, "API stocks", TitreRecetteSanteApi), (OutilReussie, "Calcul nocturne", TitreRecettePlanification),
+        (OutilRepliee, "API partenaires", TitreRecetteSanteApi),
+    ];
+
+    /// <summary>
+    /// Relie les MEP de démonstration aux bibliothèques : étapes copiées d'une étape modèle, fiches copiées d'un modèle de
+    /// recette. Les éléments utilisés (résolutions comprises) sont notés comme déjà comptés, leurs compteurs les incluant :
+    /// modifier ensuite une MEP de démonstration ne les compte pas une seconde fois.
+    /// </summary>
+    public static void RelierAuxBibliotheques(IEnumerable<Mep> meps, IReadOnlyList<ModeleEtape> etapes, IReadOnlyList<ModeleRecette> recettes)
+    {
+        foreach (var mep in meps)
+        {
+            var outil = mep.EstModele ? OutilPortail : mep.Outil;
+            foreach (var (code, modele) in CopiesEtapes.GetValueOrDefault(outil, []))
+                mep.Etapes.Single(e => e.Code == code).ModeleEtapeId = etapes.Single(m => m.Action == modele).Id;
+            foreach (var (_, fiche, modele) in CopiesRecettes.Where(c => c.Outil == outil))
+                mep.FichesRecette.Single(f => f.Titre == fiche).ModeleRecetteId = recettes.Single(m => m.Titre == modele).Id;
+            mep.FichesRecette = [.. mep.FichesRecette];
+            if (!mep.EstModele) mep.ElementsBibliothequeComptes = [.. Regles.ElementsBibliotheque(mep).Order()];
+        }
+    }
+
+    /// <summary>
+    /// Résolutions types de démonstration (ordre de <see cref="Catalogue"/>) : date de création et nombre d'utilisations
+    /// (MEP de la démonstration et MEP plus anciennes).
+    /// </summary>
+    public static void DaterResolutions(IReadOnlyList<ResolutionType> resolutions, DateTimeOffset maintenant)
+    {
+        (int Utilisations, int IlYaJours)[] valeurs = [(12, 250), (8, 245), (7, 215), (3, 120), (2, 85), (1, 60), (4, 110)];
+        foreach (var (r, (n, jours)) in resolutions.Zip(valeurs))
+        {
+            r.Utilisations = n;
+            r.CreeeLe = maintenant.AddDays(-jours);
+        }
     }
 
     /// <summary>
     /// Catalogue global de démonstration : systèmes (BDD, API, WEB, LDAP, MDM, BATCH, dans cet ordre)
-    /// et résolutions types (API, BDD, WEB, API + BDD, dans cet ordre).
+    /// et résolutions types (API, BDD, WEB, API + BDD, BATCH, LDAP, BDD, dans cet ordre).
     /// </summary>
     public static (List<SystemeCatalogue> Systemes, List<ResolutionType> Resolutions) Catalogue()
     {
@@ -129,7 +335,47 @@ public static partial class DonneesDemo
             VerificationInstruction = Code("curl -fsS https://commandes.exemple.invalid/sante"),
             VerificationAttendu = "Réponse 200 et base joignable.",
         };
-        return ([bdd, api, web, ldap, mdm, batch], [fixApi, droitsBdd, cdnWeb, connexionBascule]);
+        var chaineBloquee = new ResolutionType
+        {
+            Titre = "BATCH : chaîne nocturne bloquée en attente",
+            Symptomes = "Après la relance, la chaîne reste à l'état « en attente » dans l'ordonnanceur.",
+            Diagnostic = "SIMULATION : lister les dépendances non satisfaites.\n\n" + Code("ordonnanceur dependances <traitement>"),
+            SystemeCatalogueIds = [batch.Id],
+            Corrections =
+            [
+                new() { Ordre = 1, Instruction = Code("ordonnanceur liberer <traitement>"), ResultatAttendu = "La chaîne passe « planifiée »." },
+            ],
+            VerificationInstruction = "Consulter la chaîne dans l'ordonnanceur.",
+            VerificationAttendu = "Chaîne planifiée à l'heure prévue.",
+        };
+        var groupeLdap = new ResolutionType
+        {
+            Titre = "LDAP : groupe absent après import",
+            Symptomes = "`ldapsearch` ne trouve pas le nouveau groupe ; les comptes de l'agence n'ont pas accès.",
+            Diagnostic = Code("ldapsearch -H ldap://annuaire-demo -b ou=groupes,dc=demo \"(cn=<groupe>)\""),
+            SystemeCatalogueIds = [ldap.Id],
+            Corrections =
+            [
+                new() { Ordre = 1, Instruction = Code("ldapadd -H ldap://annuaire-demo -D cn=admin -f <groupe>.ldif"), ResultatAttendu = "adding new entry" },
+            ],
+            VerificationInstruction = "Se connecter avec un compte du groupe.",
+            VerificationAttendu = "Connexion acceptée.",
+        };
+        var disqueBdd = new ResolutionType
+        {
+            Titre = "BDD : espace disque insuffisant pour la sauvegarde",
+            Symptomes = "La sauvegarde échoue avec `No space left on device`.",
+            Diagnostic = Code("df -h /sauvegardes"),
+            SystemeCatalogueIds = [bdd.Id],
+            Corrections =
+            [
+                new() { Ordre = 1, Instruction = "Supprimer les sauvegardes de plus de 30 jours du dossier `/sauvegardes`.", ResultatAttendu = "Au moins 20 % d'espace libre." },
+                new() { Ordre = 2, Instruction = "Relancer la sauvegarde.", ResultatAttendu = "Fichier de sauvegarde présent, sans erreur." },
+            ],
+            VerificationInstruction = Code("ls -lh /sauvegardes"),
+            VerificationAttendu = "La sauvegarde du jour est présente.",
+        };
+        return ([bdd, api, web, ldap, mdm, batch], [fixApi, droitsBdd, cdnWeb, connexionBascule, chaineBloquee, groupeLdap, disqueBdd]);
     }
 
     /// <summary>Nom de l'équipe de démonstration d'Alice et Bob (équipe du pilote de la plupart des MEP).</summary>

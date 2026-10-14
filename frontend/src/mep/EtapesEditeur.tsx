@@ -1,10 +1,11 @@
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { etapesDuPlan } from '../domaine';
 import { construireLignes, indexLignes, pairesDuGroupe, type Lien } from '../graphe';
 import { useMep } from '../mepContext';
-import type { Mep, TypePlan } from '../types';
+import { useAsync } from '../hooks';
+import type { Mep, ModeleEtape, TypePlan } from '../types';
 import { useAstuce } from './graphe/astuce';
 import { BarreSystemes } from './graphe/BarreSystemes';
 import { GrapheEtapes, groupeDepuisCle } from './graphe/GrapheEtapes';
@@ -16,6 +17,14 @@ import { cn } from '../ui/cn';
 import { PanneauLiens } from './graphe/PanneauLiens';
 import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
 import { descriptionsSystemes } from './graphe/systemes';
+import {
+  apercuDepuisModele,
+  BoutonsEtapesModeles,
+  ID_FLOTTANTE,
+  inserables,
+  ParcourirDialog,
+  systemesAbsents,
+} from './graphe/EtapesModeles';
 
 const estSaisie = (el: EventTarget | null) => el instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
 
@@ -29,9 +38,17 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   const [cleGroupe, setCleGroupe] = useState<string | null>(null);
   const [nouvelle, setNouvelle] = useState<string | null>(null);
   const astuce = useAstuce('');
+  const afficherAstuce = astuce.afficher;
   const modeEspace = useModeEspace();
   const { catalogue, resolutions, pret } = useReferentiels();
   const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue), [mep, catalogue]);
+  // Bibliothèque d'étapes modèles : menu des plus utilisées, fenêtre « Parcourir », mention « Copie de… ».
+  const bibliotheque = useAsync(() => api.etapesModeles(), []);
+  const modeles = useMemo(() => inserables(bibliotheque.donnees ?? [], plan), [bibliotheque.donnees, plan]);
+  const [parcourir, setParcourir] = useState(false);
+  // Copie choisie, pas encore posée : elle flotte au-dessus du graphe (rien n'est écrit avant qu'on la pose).
+  const [flottante, setFlottante] = useState<ModeleEtape | null>(null);
+  const apercu = useMemo(() => (flottante ? apercuDepuisModele(mep, plan, flottante) : null), [flottante, mep, plan]);
 
   const selection = choix && etapes.some((e) => e.id === choix) ? choix : null;
   const etape = etapes.find((e) => e.id === selection) ?? null;
@@ -54,7 +71,72 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
     else ouvrir(id);
   }
 
+  function choisirModele(m: ModeleEtape) {
+    setParcourir(false);
+    setFlottante(m);
+    setChoix(null);
+    setCleGroupe(null);
+    astuce.afficher(
+      `Copie de « ${m.action} » : glissez-la sur une ligne ou cliquez « Poser ici ». Échap pour annuler.`,
+    );
+  }
+
+  function annulerFlottante() {
+    setFlottante(null);
+    astuce.afficher('Insertion annulée.');
+  }
+
+  // Échap annule l'insertion (hors fenêtres et champs de saisie).
+  useEffect(() => {
+    if (!flottante) return;
+    function touche(ev: globalThis.KeyboardEvent) {
+      if (ev.key !== 'Escape' || ev.defaultPrevented || estSaisie(ev.target)) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+      setFlottante(null);
+      afficherAstuce('Insertion annulée.');
+    }
+    document.addEventListener('keydown', touche);
+    return () => document.removeEventListener('keydown', touche);
+  }, [flottante, afficherAstuce]);
+
+  /** Pose la copie flottante : ligne affichée (null = nouvelle ligne en bas), position (absente = fin de ligne). */
+  async function poser(ligne: number | null, position?: number) {
+    const m = flottante;
+    if (!m) return;
+    const avant = new Set(mep.etapes.map((e) => e.id));
+    let apres: Mep | undefined;
+    const nbLignes = construireLignes(etapes).length;
+    const ok = await run(
+      async () =>
+        (apres = await api.insererEtapeModele(
+          mep.id,
+          m.id,
+          plan,
+          ligne === null || ligne >= nbLignes ? undefined : ligne,
+          position,
+        )),
+    );
+    if (!ok) return;
+    setFlottante(null);
+    bibliotheque.recharger();
+    const creee = apres?.etapes.find((e) => !avant.has(e.id));
+    if (!creee) return;
+    setChoix(creee.id);
+    setCleGroupe(null);
+    const absents = systemesAbsents(mep, m, catalogue);
+    astuce.afficher(
+      `${creee.code} posée, copie de « ${m.action} ».` +
+        (absents.length
+          ? ` ${absents.join(', ')} hors de la MEP : ${absents.length > 1 ? 'systèmes non repris' : 'système non repris'}.`
+          : ' Reliez-la aux autres étapes.'),
+    );
+  }
+
   async function ajouter(ligne: number | null) {
+    if (flottante) {
+      await poser(ligne);
+      return;
+    }
     const avant = new Set(mep.etapes.map((e) => e.id));
     let apres: Mep | undefined;
     const ok = await run(
@@ -70,6 +152,10 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
   }
 
   async function placer(id: string, ligne: number, position: number, auClavier = false) {
+    if (id === ID_FLOTTANTE) {
+      await poser(ligne, position);
+      return;
+    }
     const avant = indexLignes(construireLignes(etapes)).get(id);
     const ok = await run(() => api.placerEtape(mep.id, id, ligne, position), `${code(id)} déplacée.`);
     if (ok) {
@@ -126,6 +212,8 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
       (ev.target instanceof Element && ev.target.closest('[role="dialog"], [role="alertdialog"]'))
     )
       return;
+    // Échap pendant une insertion : géré par l'écouteur du document.
+    if (ev.key === 'Escape' && flottante) return;
     if (ev.key === 'Escape' && cleGroupe) {
       setChoix(null);
       setCleGroupe(null);
@@ -177,6 +265,18 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
             onLier={(de, vers) => void lier(de, vers)}
             onAjouter={(l) => void ajouter(l)}
             onMessage={astuce.afficher}
+            flottante={apercu ? { etape: apercu, onAnnuler: annulerFlottante } : null}
+            enTete={
+              modifiable && (
+                <BoutonsEtapesModeles
+                  mep={mep}
+                  modeles={modeles}
+                  catalogue={catalogue}
+                  onChoisir={choisirModele}
+                  onParcourir={() => setParcourir(true)}
+                />
+              )
+            }
           />
           {groupe && (
             <div className="absolute top-3 right-3 z-20">
@@ -189,6 +289,17 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
             </div>
           )}
         </div>
+        {modifiable && (
+          <ParcourirDialog
+            ouvert={parcourir}
+            mep={mep}
+            plan={plan}
+            modeles={modeles}
+            catalogue={catalogue}
+            onFermer={() => setParcourir(false)}
+            onInserer={choisirModele}
+          />
+        )}
         {etape && (
           <PanneauEdition
             key={etape.id}
@@ -199,6 +310,8 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
             modifiable={modifiable}
             resolutions={resolutions}
             catalogue={catalogue}
+            modeles={bibliotheque.donnees}
+            onModeleCree={() => bibliotheque.recharger()}
             focusAction={nouvelle === etape.id}
             onLier={(de, vers) => void lier(de, vers)}
             onDelier={(l) => void delier(l)}

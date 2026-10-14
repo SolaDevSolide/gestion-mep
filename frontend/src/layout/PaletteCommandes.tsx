@@ -1,4 +1,5 @@
 import {
+  Blocks,
   ClipboardCheck,
   ClipboardList,
   Layers,
@@ -184,6 +185,13 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                   onSelect={() => aller('/parametres/resolutions')}
                 >
                   Paramètres : Résolutions types
+                </Entree>
+                <Entree
+                  icone={<Blocks className="size-4" />}
+                  mots={['paramètres', 'bibliothèque', 'étapes', 'modèles']}
+                  onSelect={() => aller('/parametres/etapes')}
+                >
+                  Paramètres : Bibliothèque d’étapes
                 </Entree>
                 <Entree
                   icone={<Library className="size-4" />}

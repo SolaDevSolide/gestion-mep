@@ -159,9 +159,23 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
             db.Journal.Add(ev.Systeme
                 ? NouvelEvenement(mep, null, AuteurSysteme, ev.Type, ev.Detail)
                 : NouvelEvenement(mep, acteur.Id, acteur.Nom, ev.Type, ev.Detail));
+        var nouveaux = Regles.NouveauxElementsBibliotheque(mep);
         await db.SaveChangesAsync();
+        // Après l'enregistrement réussi seulement : une écriture rejouée (voir Modifier) ne compte pas deux fois.
+        if (nouveaux.Count > 0) await CompterUtilisations(nouveaux);
         diffuseur.Notifier(mep.Id, mep.Version);
         return await VersDto(mep, acteur.Id);
+    }
+
+    /// <summary>
+    /// Ajoute une utilisation aux éléments des bibliothèques donnés (étapes modèles, modèles de recette, résolutions types),
+    /// par une mise à jour atomique en base : deux MEP qui utilisent le même élément au même moment comptent toutes les deux.
+    /// </summary>
+    private async Task CompterUtilisations(List<Guid> ids)
+    {
+        await db.ModelesEtape.Where(m => ids.Contains(m.Id)).ExecuteUpdateAsync(s => s.SetProperty(m => m.Utilisations, m => m.Utilisations + 1));
+        await db.ModelesRecette.Where(m => ids.Contains(m.Id)).ExecuteUpdateAsync(s => s.SetProperty(m => m.Utilisations, m => m.Utilisations + 1));
+        await db.ResolutionsTypes.Where(r => ids.Contains(r.Id)).ExecuteUpdateAsync(s => s.SetProperty(r => r.Utilisations, r => r.Utilisations + 1));
     }
 
     public async Task<MepDto> VersDto(Mep mep, Guid? utilisateurId)

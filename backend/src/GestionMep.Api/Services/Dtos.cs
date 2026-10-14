@@ -48,13 +48,14 @@ public record DisponibiliteDto(StatutDisponibilite Statut, string Libelle);
 /// <c>Ligne</c> : ligne du graphe (0 en haut) ; <c>Ordre</c> : position dans la ligne (0 à gauche). <c>Fin</c> : test unitaire
 /// (le résultat attendu est l'instruction de test, <c>ResultatConstate</c> se saisit en terminant l'étape) ou simple vérification.
 /// <c>SauvegardeEmplacement</c> et <c>SauvegardeMethodeRecuperation</c> : étape de type Sauvegarde seulement.
+/// <c>ModeleEtapeId</c> : étape modèle dont l'étape est une copie (null : saisie dans la MEP).
 /// </summary>
 public record EtapeDto(Guid Id, TypePlan Plan, string Code, int Ligne, int Ordre, string Action, List<Guid> SystemeIds, Guid? ResponsableId, Guid? ExecutantId,
     Criticite? Criticite, int? DureeEstimeeMinutes,
     EtatEtape Etat, string Instructions, string ResultatAttendu, string Preuve, string Commentaire, DateTimeOffset? DebutReel, DateTimeOffset? FinReelle,
     int Revision, List<Guid> Dependances, List<Guid> ResolutionIds, DisponibiliteDto Disponibilite,
     TypeEtape Type, bool PointDeNonRetour, ValidationDto? NonRetourAutorise, FinEtape Fin, string ResultatConstate, string SauvegardeEmplacement,
-    string SauvegardeMethodeRecuperation);
+    string SauvegardeMethodeRecuperation, Guid? ModeleEtapeId);
 
 /// <summary>Test unitaire d'une étape : <c>Fait</c> si l'étape est terminée (réussie ou en échec) ; <c>Executant</c> : dernier exécutant.</summary>
 public record TestUnitaireDto(Guid EtapeId, string Code, TypePlan Plan, string Action, EtatEtape Etat, bool Fait, string ResultatAttendu,
@@ -88,9 +89,13 @@ public record ExecutionResolutionDto(Guid Id, Guid EtapeId, Guid ResolutionTypeI
     string DemarreePar, DateTimeOffset DemarreeLe, DateTimeOffset? TermineeLe);
 
 public record SystemeCatalogueDto(Guid Id, string Nom, string Description, string Cible, bool Actif);
+/// <summary>
+/// <c>Utilisations</c> : nombre de MEP où la résolution a été liée à une étape (une fois par MEP) ; <c>CreeeLe</c> : création.
+/// Les listes sont triées par nombre d'utilisations, puis par ordre de création.
+/// </summary>
 public record ResolutionTypeDto(Guid Id, string Titre, string Symptomes, string Diagnostic, List<Guid> SystemeCatalogueIds,
     List<CorrectionDto> Corrections, string VerificationInstruction, string VerificationAttendu, bool Actif, int Version, DateTimeOffset ModifieeLe,
-    Guid? ModifieeParId, string? ModifieeParNom);
+    Guid? ModifieeParId, string? ModifieeParNom, int Utilisations, DateTimeOffset CreeeLe);
 
 public record VersionResolutionTypeDto(int Version, string Action, DateTimeOffset ModifieeLe, Guid? ModifieeParId, string? ModifieeParNom,
     string Titre, string Symptomes, string Diagnostic, List<Guid> SystemeCatalogueIds, List<CorrectionDto> Corrections,
@@ -230,13 +235,34 @@ public record FicheRecetteSaisie(Guid? SystemeId, string? Titre, List<EtapeTestS
 public record InsertionModeleRecetteSaisie(Guid? ModeleId, Guid? SystemeId);
 
 public record EtapeModeleRecetteDto(int Ordre, string Instructions, string ResultatAttendu);
+/// <summary><c>Utilisations</c> : nombre de MEP où le modèle a été inséré (une fois par MEP) ; <c>CreeLe</c> : création.</summary>
 public record ModeleRecetteDto(Guid Id, string Titre, Guid SystemeCatalogueId, List<EtapeModeleRecetteDto> Etapes, int Version,
-    DateTimeOffset ModifieLe, Guid? ModifieParId, string? ModifiePar);
+    DateTimeOffset ModifieLe, Guid? ModifieParId, string? ModifiePar, int Utilisations, DateTimeOffset CreeLe);
 public record EtapeModeleRecetteSaisie(string? Instructions, string? ResultatAttendu);
 /// <param name="Version">Obligatoire pour une modification (verrou optimiste).</param>
 public record ModeleRecetteSaisie(int? Version, string? Titre, Guid? SystemeCatalogueId, List<EtapeModeleRecetteSaisie>? Etapes);
 /// <summary>« Enregistrer comme modèle » : copie d'une fiche de recette d'une MEP dans la bibliothèque.</summary>
 public record ModeleDepuisFicheSaisie(Guid? MepId, Guid? FicheId, string? Titre, Guid? SystemeCatalogueId);
+
+/// <summary>
+/// Étape modèle de la bibliothèque d'étapes. <c>Utilisations</c> : nombre de MEP où elle a été insérée (une fois par MEP) ;
+/// <c>CreeLe</c> : création (les listes sont triées par nombre d'utilisations, puis par ordre de création).
+/// </summary>
+public record ModeleEtapeDto(Guid Id, string Action, List<Guid> SystemeCatalogueIds, TypeEtape Type, Criticite? Criticite, int? DureeEstimeeMinutes,
+    string Instructions, string ResultatAttendu, FinEtape Fin, string SauvegardeEmplacement, string SauvegardeMethodeRecuperation,
+    List<Guid> ResolutionIds, int Utilisations, DateTimeOffset CreeLe, int Version, DateTimeOffset ModifieLe, Guid? ModifieParId, string? ModifiePar);
+/// <param name="Version">Obligatoire pour une modification (verrou optimiste).</param>
+/// <param name="Type">Absent : étape normale (Standard). Les champs de sauvegarde ne sont gardés que pour le type Sauvegarde.</param>
+public record ModeleEtapeSaisie(int? Version, string? Action, List<Guid>? SystemeCatalogueIds, TypeEtape? Type, Criticite? Criticite,
+    int? DureeEstimeeMinutes, string? Instructions, string? ResultatAttendu, FinEtape? Fin, string? SauvegardeEmplacement,
+    string? SauvegardeMethodeRecuperation, List<Guid>? ResolutionIds);
+/// <summary>« Transformer en étape modèle » : copie d'une étape d'une MEP dans la bibliothèque, sous le nom donné (l'action à défaut).</summary>
+public record ModeleEtapeDepuisEtapeSaisie(Guid? MepId, Guid? EtapeId, string? Action);
+/// <summary>
+/// Insertion d'une copie d'étape modèle dans un plan de la MEP : <c>Ligne</c> absente = nouvelle ligne en bas, <c>Position</c>
+/// absente = en fin de ligne ; <c>Plan</c> absent = déploiement.
+/// </summary>
+public record InsertionEtapeModeleSaisie(Guid? ModeleId, TypePlan? Plan = null, int? Ligne = null, int? Position = null);
 
 /// <summary>Étape de test que le fichier Excel importé va renseigner.</summary>
 public record ChangementValidationDto(Guid FicheId, Guid EtapeId, string Systeme, string Fiche, int Etape, ResultatControle Resultat,

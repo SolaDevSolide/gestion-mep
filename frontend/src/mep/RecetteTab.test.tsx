@@ -98,6 +98,8 @@ const modele = (id: string, titre: string, systemeCatalogueId: string): ModeleRe
   modifieLe: '2026-10-01T10:00:00Z',
   modifieParId: null,
   modifiePar: null,
+  utilisations: 0,
+  creeLe: '2026-01-01T00:00:00Z',
 });
 
 describe('Onglet Recette', () => {
