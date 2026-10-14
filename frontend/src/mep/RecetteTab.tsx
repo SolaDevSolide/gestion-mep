@@ -65,19 +65,21 @@ export default function RecetteTab() {
       )}
       {enRecette && mep.droits.estPilote && (
         <Alerte
-          ton={mep.nonRetourFranchi ? 'warn' : 'rollback'}
+          ton={mep.nonRetourFranchi || !mep.retourArriereActive ? 'warn' : 'rollback'}
           icone={ShieldAlert}
           titre="Décision du pilote"
           action={
             <div className="flex flex-wrap items-center gap-2">
-              <BoutonDeclencherRepli taille="md" />
+              {mep.retourArriereActive && <BoutonDeclencherRepli taille="md" />}
               <BoutonCloturer taille="md" />
             </div>
           }
         >
-          {mep.nonRetourFranchi
-            ? `Point de non-retour franchi (${mep.nonRetourFranchi}) : le retour arrière n’est plus possible, on corrige en avant.`
-            : 'Clôture réussie : toutes les étapes de test doivent être conformes.'}
+          {!mep.retourArriereActive
+            ? 'Cette MEP n’a pas de plan de retour arrière : tout problème se corrige en avant. Clôture réussie : toutes les étapes de test doivent être conformes.'
+            : mep.nonRetourFranchi
+              ? `Point de non-retour franchi (${mep.nonRetourFranchi}) : le retour arrière n’est plus possible, on corrige en avant.`
+              : 'Clôture réussie : toutes les étapes de test doivent être conformes.'}
         </Alerte>
       )}
 

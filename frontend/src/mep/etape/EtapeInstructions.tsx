@@ -142,7 +142,9 @@ export function EtapeInstructions({ mep, etape, droits, liees, enCours, actions 
         >
           {mep.phase === 'RetourArriere'
             ? 'Le déploiement est arrêté : suivez le plan de retour arrière.'
-            : 'Point de non-retour franchi : l’étape reste en échec, prévenez le pilote.'}
+            : mep.retourArriereActive
+              ? 'Point de non-retour franchi : l’étape reste en échec, prévenez le pilote.'
+              : 'Pas de plan de retour arrière : l’étape reste en échec, prévenez le pilote.'}
         </Alerte>
       )}
       {enEchec ? (
@@ -158,7 +160,12 @@ export function EtapeInstructions({ mep, etape, droits, liees, enCours, actions 
             </Alerte>
           )}
           {enCours ? (
-            <ResolutionDeroule resolution={enCours} peutAgir={peutAgirResolution} actions={actions} />
+            <ResolutionDeroule
+              resolution={enCours}
+              peutAgir={peutAgirResolution}
+              actions={actions}
+              repli={mep.retourArriereActive && mep.nonRetourFranchi === null}
+            />
           ) : (
             !resolutionEchouee &&
             (liees.length > 0 ? (

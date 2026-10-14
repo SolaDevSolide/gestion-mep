@@ -530,6 +530,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<bool>("RetourArriereActive")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTimeOffset?>("RetourArriereDeclencheLe")
                         .HasColumnType("timestamp with time zone");
 

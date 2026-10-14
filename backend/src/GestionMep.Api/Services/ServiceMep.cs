@@ -140,9 +140,12 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
     /// Enregistre une modification du contenu de la MEP : en préparation, les décisions d'approbation sont remises à zéro
     /// (<see cref="Regles.ReinitialiserApprobations"/>) et, s'il y en avait, le journal l'indique.
     /// </summary>
-    public Task<MepDto> EnregistrerContenu(Mep mep, Acteur acteur, string type, string detail)
+    public Task<MepDto> EnregistrerContenu(Mep mep, Acteur acteur, string type, string detail) =>
+        EnregistrerContenu(mep, acteur, [new Evenement(type, detail)]);
+
+    /// <summary>Comme ci-dessus, avec plusieurs événements de journal pour une seule version.</summary>
+    public Task<MepDto> EnregistrerContenu(Mep mep, Acteur acteur, List<Evenement> evenements)
     {
-        var evenements = new List<Evenement> { new(type, detail) };
         if (Regles.ReinitialiserApprobations(mep))
             evenements.Add(new("approbations.reinitialisees", "Approbations à refaire : la MEP a été modifiée"));
         return Enregistrer(mep, acteur, evenements);

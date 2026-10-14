@@ -6,6 +6,7 @@ public class RegleMetierException(string message) : Exception(message);
 public enum StatutDisponibilite
 {
     PlanInvalide,
+    /// <summary>Plus produit depuis que l'échéance de retour arrière est facultative ; gardé pour la compatibilité de l'API.</summary>
     EcheanceARenseigner,
     RetourArriere,
     FicheACompleter,

@@ -41,7 +41,7 @@ Chaque MEP est dans un état différent, pour essayer chaque écran sans tout d�
 | MEP | État | À quoi elle sert |
 |---|---|---|
 | Portail de démonstration | Préparation, approbation attendue | Le parcours complet ci-dessous : approbation de Claire, Go, exécution, point de non-retour, recette, clôture. |
-| Facturation électronique | Préparation incomplète | « Vérifier le plan » liste les anomalies : échéance absente, sauvegarde à renseigner ou non justifiée, étape sans instructions, action d'exemple, fiche de recette vide, procédure non relue, approbation manquante ; avertissement pour une responsable absente. |
+| Facturation électronique | Préparation incomplète | « Vérifier le plan » liste les anomalies : plan de retour arrière sans « quand le déclencher », sauvegarde à renseigner ou non justifiée, étape sans instructions, action d'exemple, fiche de recette vide, procédure non relue, approbation manquante ; avertissement pour une responsable absente. |
 | Annuaire des agences | Prête pour le Go | Plan complet, relu et approuvé : Bob (pilote) ou Alice (suppléante) peut cliquer « Go / no-go » tout de suite. |
 | Paiement mobile | Exécution en cours | Sauvegardes et index réussis ; déploiement de l'API en cours (Bob) ; publication de l'écran en échec avec une résolution type à appliquer (Claire) ; point de non-retour à venir, à autoriser par le pilote. |
 | Portail RH | Recette en cours | Déploiement terminé, dont une migration réparée par une résolution type ; fiches de recette en partie validées, une étape en échec à faire refaire, d'autres à tester avant la clôture. |

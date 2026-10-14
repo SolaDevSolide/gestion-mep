@@ -33,7 +33,7 @@ public class SurveillanceEcheances(IServiceScopeFactory scopes, TimeProvider tem
             {
                 var db = scope.ServiceProvider.GetRequiredService<MepDbContext>();
                 var maintenant = temps.GetUtcNow();
-                ids = await db.Meps.AsNoTracking().Where(m => (m.Phase == Phase.Execution || m.Phase == Phase.Recette) && m.EcheanceRepli != null && m.EcheanceRepli <= maintenant)
+                ids = await db.Meps.AsNoTracking().Where(m => (m.Phase == Phase.Execution || m.Phase == Phase.Recette) && m.RetourArriereActive && m.EcheanceRepli != null && m.EcheanceRepli <= maintenant)
                     .Select(m => m.Id).ToListAsync(arret);
             }
             foreach (var id in ids)

@@ -22,7 +22,8 @@ import { useToast } from '../ui/Toast';
 import { OctagonAlert } from 'lucide-react';
 
 function Chrono({ m, now }: { m: MepResume; now: number }) {
-  if (m.phase !== 'Execution' && m.phase !== 'Recette') return null;
+  // Sans plan de retour arrière ou sans échéance : pas de compte à rebours.
+  if ((m.phase !== 'Execution' && m.phase !== 'Recette') || !m.retourArriereActive || !m.echeanceRepli) return null;
   const c = calculerCompteARebours(m.echeanceRepli, now);
   if (c.niveau === 'aucun') return null;
   return (

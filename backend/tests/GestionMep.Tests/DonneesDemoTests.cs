@@ -98,7 +98,7 @@ public class DonneesDemoTests
         var erreurs = Regles.ErreursPlan(m, Maintenant, DonneesDemo.ApprobationsMinimum);
         foreach (var attendue in new[]
                  {
-                     "Renseigner une échéance de retour arrière future.", "Retour arrière : préciser quand le déclencher.",
+                     "Retour arrière : préciser quand le déclencher.",
                      "Sauvegarde : indiquer si BATCH doit être sauvegardé.", "Sauvegarde de WEB non requise : justifier.",
                      "E0003 : compléter Instructions exactes.", "E0005 : remplacer l'action d'exemple par une action réelle.",
                      "Recette « Export nocturne » : ajouter au moins une étape de test.", "La procédure doit être relue par un opérateur.",
@@ -106,7 +106,10 @@ public class DonneesDemoTests
                  })
             Assert.Contains(attendue, erreurs);
         Assert.Contains(Regles.Avertissements(m), a => a.Contains("Claire sera absent", StringComparison.Ordinal));
-        Assert.Equal("Échéance à renseigner", Dispo(m, "E0001"));
+        // L'échéance de retour arrière est facultative : son absence n'est ni une anomalie ni un blocage des étapes.
+        Assert.Null(m.EcheanceRepli);
+        Assert.DoesNotContain(erreurs, e => e.Contains("échéance", StringComparison.OrdinalIgnoreCase));
+        Assert.NotEqual("Échéance à renseigner", Dispo(m, "E0001"));
     }
 
     [Fact]

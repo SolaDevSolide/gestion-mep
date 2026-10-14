@@ -90,6 +90,13 @@ public class Mep
 
     // Pilotage
     public Phase Phase { get; set; } = Phase.Preparation;
+    /// <summary>
+    /// Plan de retour arrière prévu (activé par défaut, et pour les MEP existantes). Désactivé (préproduction réinstallable…) :
+    /// ni plan ni échéance réclamés pour le Go, onglet Retour arrière masqué, aucun déclenchement (ni automatique ni manuel).
+    /// Les étapes et informations déjà saisies sont gardées et reviennent si on le réactive.
+    /// </summary>
+    public bool RetourArriereActive { get; set; } = true;
+    /// <summary>Échéance de retour arrière, facultative : sans elle, ni compte à rebours ni déclenchement automatique.</summary>
     public DateTimeOffset? EcheanceRepli { get; set; }
     public IssueMep? Issue { get; set; }
     public DateTimeOffset? RetourArriereDeclencheLe { get; set; }

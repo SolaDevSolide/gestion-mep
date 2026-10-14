@@ -88,7 +88,10 @@ export default function PreparationTab() {
         {!mep.droits.peutModifierPlan && (
           <Alerte ton="wait" icone={Eye}>
             Lecture seule : la MEP n’est plus en préparation.
-            {mep.droits.estPilote && ' Le pilote peut encore modifier la sauvegarde et l’échéance de retour arrière.'}
+            {mep.droits.estPilote &&
+              (mep.retourArriereActive
+                ? ' Le pilote peut encore modifier la sauvegarde et l’échéance de retour arrière.'
+                : ' Le pilote peut encore modifier la sauvegarde.')}
           </Alerte>
         )}
         {/* Toutes les sections restent montées : un brouillon non enregistré survit au changement de section. */}

@@ -81,6 +81,7 @@ public static class MepMapping
             Regles.EtapeNonRetourFranchie(m)?.Code,
             pieces.OrderBy(p => p.DeposeLe).Select(p => VersDto(p, nomsUtilisateurs)).ToList(),
             m.ResponsablesTechniques.Select(r => new ResponsableTechniqueDto(r.ParticipantId, [.. r.SystemeIds], r.Perimetre, r.Disponibilite, r.ContactJourJ)).ToList(),
-            Regles.Avertissements(m));
+            Regles.Avertissements(m),
+            m.RetourArriereActive);
     }
 }

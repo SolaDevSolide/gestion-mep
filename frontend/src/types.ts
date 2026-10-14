@@ -160,7 +160,7 @@ export type MepIdentiteSaisie = SaisieVerifiee<
     | 'piloteId'
     | 'suppleantIds'
     | 'echeanceRepli'
-  > & { environnement?: string; bilanActive?: boolean }
+  > & { environnement?: string; bilanActive?: boolean; retourArriereActive?: boolean }
 >;
 
 export type SauvegardeSaisie = SaisieVerifiee<S['SauvegardeSaisie'], Sauvegarde & { version: number }>;

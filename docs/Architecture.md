@@ -50,7 +50,7 @@ Aucune dépendance vers ASP.NET ni EF Core.
 | `Services/DocumentationOpenApi.cs` | Description OpenAPI servie sur `/api/openapi.json`, copiée dans `docs/openapi.json` pour générer les types du front. |
 | `Services/ErreurHttp.cs` | Erreurs HTTP explicites et middleware qui traduit les exceptions en `{ "message": "…" }`. |
 | `Services/DiffuseurMep.cs` | Diffusion en mémoire de la dernière version de chaque MEP aux abonnés du flux SSE. |
-| `Services/SurveillanceEcheances.cs` | Tâche de fond : chaque minute, bascule en retour arrière les MEP dont l'échéance est atteinte. |
+| `Services/SurveillanceEcheances.cs` | Tâche de fond : chaque minute, bascule en retour arrière les MEP dont l'échéance est atteinte (plan de retour arrière activé). |
 | `Services/StockagePiecesJointes.cs` | Écriture, lecture et suppression des fichiers joints ; fichiers sans enregistrement en base mis de côté au démarrage. |
 | `Services/MisesAJour.cs` | Version en cours, vérification des versions publiées sur GitHub et dialogue avec le service facultatif de mise à jour (fichiers dans un volume partagé). |
 | `Services/Sauvegardes.cs` | Archive de la base (COPY binaire par table) et des pièces jointes ; sauvegarde avant migration ou importation, contrôle qu'aucune donnée n'est perdue, puis suppression de la sauvegarde. |

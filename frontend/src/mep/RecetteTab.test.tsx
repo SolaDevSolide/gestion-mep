@@ -173,6 +173,18 @@ describe('Onglet Recette', () => {
       expect(screen.queryByRole('button', { name: /Refaire/ })).toBeNull();
     });
 
+    it('sans plan de retour arrière, le pilote ne peut pas le déclencher', () => {
+      const f = fiche('f1');
+      rendre({ ...enRecette([f], { estPilote: true }), retourArriereActive: false });
+      expect(screen.queryByRole('button', { name: /Déclencher le retour arrière/ })).toBeNull();
+      expect(screen.getByText(/n’a pas de plan de retour arrière/)).toBeInTheDocument();
+    });
+
+    it('avec un plan de retour arrière, le pilote peut le déclencher', () => {
+      rendre(enRecette([fiche('f1')], { estPilote: true }));
+      expect(screen.getByRole('button', { name: /Déclencher le retour arrière/ })).toBeInTheDocument();
+    });
+
     it('résume la progression et signale les échecs', () => {
       const f = fiche('f1', {
         etapes: [

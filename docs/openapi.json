@@ -5120,7 +5120,8 @@
           "nonRetourFranchi",
           "piecesJointes",
           "responsablesTechniques",
-          "avertissements"
+          "avertissements",
+          "retourArriereActive"
         ],
         "type": "object",
         "properties": {
@@ -6298,8 +6299,12 @@
             "items": {
               "type": "string"
             }
+          },
+          "retourArriereActive": {
+            "type": "boolean"
           }
-        }
+        },
+        "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé."
       },
       "MepIdentiteSaisie": {
         "required": [
@@ -6426,8 +6431,15 @@
               "null",
               "boolean"
             ]
+          },
+          "retourArriereActive": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
-        }
+        },
+        "description": "`Environnement`, `BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance."
       },
       "MepResumeDto": {
         "required": [
@@ -6445,7 +6457,8 @@
           "environnement",
           "estModele",
           "creeLe",
-          "issue"
+          "issue",
+          "retourArriereActive"
         ],
         "type": "object",
         "properties": {
@@ -6516,9 +6529,12 @@
                 "$ref": "#/components/schemas/IssueMep"
               }
             ]
+          },
+          "retourArriereActive": {
+            "type": "boolean"
           }
         },
-        "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP."
+        "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;\n`RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas)."
       },
       "MiseAJourDto": {
         "required": [

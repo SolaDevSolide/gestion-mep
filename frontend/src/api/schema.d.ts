@@ -4280,6 +4280,10 @@ export interface components {
             objet: null | string;
             modele?: null | boolean;
         };
+        /**
+         * @description `RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).
+         *     `EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.
+         */
         MepDto: {
             /** Format: uuid */
             id: string;
@@ -4604,7 +4608,9 @@ export interface components {
                 contactJourJ: string;
             }[];
             avertissements: string[];
+            retourArriereActive: boolean;
         };
+        /** @description `Environnement`, `BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance. */
         MepIdentiteSaisie: {
             /** Format: int32 */
             version: null | number;
@@ -4629,8 +4635,12 @@ export interface components {
             echeanceRepli: null | string;
             environnement?: null | string;
             bilanActive?: null | boolean;
+            retourArriereActive?: null | boolean;
         };
-        /** @description `DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP. */
+        /**
+         * @description `DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;
+         *     `RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).
+         */
         MepResumeDto: {
             /** Format: uuid */
             id: string;
@@ -4654,6 +4664,7 @@ export interface components {
             /** Format: date-time */
             creeLe: string;
             issue: null | components["schemas"]["IssueMep"];
+            retourArriereActive: boolean;
         };
         /**
          * @description Dernière version publiée sur GitHub. `Disponible` : elle est plus récente que la version en cours (toujours faux

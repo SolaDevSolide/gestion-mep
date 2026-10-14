@@ -30,11 +30,21 @@ interface ControleProps {
   attendu: string;
   observationObligatoire: boolean;
   peutAgir: boolean;
+  /** Un échec déclenche le retour arrière (false : MEP sans plan de retour arrière, l'étape reste en échec). */
+  repli: boolean;
   onValider: (resultat: ResultatControle, observation: string) => Promise<boolean | void> | void;
 }
 
 /** Étape courante de la résolution : quoi faire, résultat attendu, observation, puis Conforme / Échec. */
-function Controle({ libelle, instruction, attendu, observationObligatoire, peutAgir, onValider }: ControleProps) {
+function Controle({
+  libelle,
+  instruction,
+  attendu,
+  observationObligatoire,
+  peutAgir,
+  repli,
+  onValider,
+}: ControleProps) {
   const [observation, setObservation] = useState('');
   const [echec, setEchec] = useState(false);
   const [occupe, setOccupe] = useState(false);
@@ -130,7 +140,9 @@ function Controle({ libelle, instruction, attendu, observationObligatoire, peutA
           </Button>
           <span className="flex items-center gap-1.5 text-xs text-danger-fg">
             <OctagonAlert className="size-3.5" aria-hidden />
-            Un échec déclenche le retour arrière.
+            {repli
+              ? 'Un échec déclenche le retour arrière.'
+              : 'Un échec arrête la résolution : l’étape reste en échec.'}
           </span>
         </div>
       ) : (
@@ -142,13 +154,15 @@ function Controle({ libelle, instruction, attendu, observationObligatoire, peutA
         open={echec}
         onOpenChange={setEchec}
         titre="Déclarer l’échec ?"
-        description="Cela déclenchera le retour arrière."
-        libelleConfirmer="Échec : déclencher le retour arrière"
+        description={repli ? 'Cela déclenchera le retour arrière.' : 'La résolution s’arrêtera en échec.'}
+        libelleConfirmer={repli ? 'Échec : déclencher le retour arrière' : 'Déclarer l’échec'}
         variante="danger"
         onConfirmer={() => valider('Echec')}
       >
         <Alerte ton="danger" icone={OctagonAlert}>
-          La résolution s’arrête et le plan de retour arrière démarre. Tracé au journal.
+          {repli
+            ? 'La résolution s’arrête et le plan de retour arrière démarre. Tracé au journal.'
+            : 'La résolution s’arrête et l’étape reste en échec : prévenez le pilote. Tracé au journal.'}
         </Alerte>
       </ConfirmDialog>
     </div>
@@ -217,10 +231,13 @@ export function ResolutionDeroule({
   resolution: r,
   peutAgir,
   actions,
+  repli = true,
 }: {
   resolution: ExecutionResolution;
   peutAgir: boolean;
   actions: ActionsResolution;
+  /** Un échec déclenche le retour arrière (false : MEP sans plan de retour arrière ou point de non-retour franchi). */
+  repli?: boolean;
 }) {
   const corrections = [...r.corrections].sort((a, b) => a.ordre - b.ordre);
   const n = corrections.length;
@@ -316,6 +333,7 @@ export function ResolutionDeroule({
           attendu={courante.resultatAttendu}
           observationObligatoire={false}
           peutAgir={peutAgir}
+          repli={repli}
           onValider={(res, obs) => actions.controlerCorrection(r, courante.ordre, res, obs)}
         />
       ) : verificationActive ? (
@@ -326,6 +344,7 @@ export function ResolutionDeroule({
           attendu={r.verificationAttendu}
           observationObligatoire
           peutAgir={peutAgir}
+          repli={repli}
           onValider={(res, obs) => actions.controlerVerification(r, res, obs)}
         />
       ) : null}

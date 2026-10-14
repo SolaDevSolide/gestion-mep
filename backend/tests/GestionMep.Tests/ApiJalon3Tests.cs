@@ -321,7 +321,8 @@ public class ApiJalon3Tests : IDisposable
         Assert.Equal([EtapeId(copie, "E0004"), EtapeId(copie, "E0005"), EtapeId(copie, "E0006")], Etape(copie, "E0007").GetProperty("dependances").EnumerateArray().Select(d => d.GetGuid()).ToArray());
         Assert.DoesNotContain(copie.GetProperty("participants").EnumerateArray(), p => modele.GetProperty("participants").EnumerateArray().Any(m => m.GetProperty("id").GetGuid() == p.GetProperty("id").GetGuid()));
         Assert.Equal(Participant(copie, "Alice"), copie.GetProperty("piloteId").GetGuid());
-        Assert.Contains("Renseigner une échéance de retour arrière future.", Erreurs(copie));
+        Assert.DoesNotContain(Erreurs(copie), e => e.Contains("échéance", StringComparison.OrdinalIgnoreCase)); // échéance facultative
+        Assert.True(copie.GetProperty("retourArriereActive").GetBoolean());
         Assert.Equal(("mep.creee", "Bob", "MEP créée depuis le modèle « Modèle : déploiement API standard »"), (await Journal(bob, copieId)).Single());
 
         // Dupliquer une MEP comme modèle, sans changer l'environnement.

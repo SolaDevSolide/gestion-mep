@@ -220,8 +220,9 @@ public class ReglesTests
         Assert.Equal(StatutDisponibilite.InstructionsACompleter, Dispo(m, "E0004").Statut);
         e4.SystemeIds = [];
         Assert.Equal(StatutDisponibilite.FicheACompleter, Dispo(m, "E0004").Statut);
+        // L'échéance de retour arrière est facultative : son absence ne bloque pas l'étape.
         m.EcheanceRepli = null;
-        Assert.Equal(StatutDisponibilite.EcheanceARenseigner, Dispo(m, "E0004").Statut);
+        Assert.Equal(StatutDisponibilite.FicheACompleter, Dispo(m, "E0004").Statut);
     }
 
     // ---------- Jalon 2 ----------
