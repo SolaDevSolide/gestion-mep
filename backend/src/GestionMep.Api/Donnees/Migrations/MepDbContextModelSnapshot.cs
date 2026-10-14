@@ -202,6 +202,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid>("MepId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ModeleEtapeId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset?>("NonRetourAutoriseLe")
                         .HasColumnType("timestamp with time zone");
 
@@ -507,6 +510,10 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<DateTimeOffset?>("EcheanceRepli")
                         .HasColumnType("timestamp with time zone");
 
+                    b.PrimitiveCollection<List<Guid>>("ElementsBibliothequeComptes")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
                     b.Property<string>("Environnement")
                         .IsRequired()
                         .HasColumnType("text");
@@ -604,10 +611,79 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("Meps");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.ModeleEtape", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("Criticite")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("DureeEstimeeMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Fin")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Instructions")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("ModifieLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ModifieParId")
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<List<Guid>>("ResolutionIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.Property<string>("ResultatAttendu")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SauvegardeEmplacement")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SauvegardeMethodeRecuperation")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.PrimitiveCollection<List<Guid>>("SystemeCatalogueIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Utilisations")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ModelesEtape");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.ModeleRecette", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreeLe")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Etapes")
                         .IsRequired()
@@ -625,6 +701,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<string>("Titre")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("Utilisations")
+                        .HasColumnType("integer");
 
                     b.Property<int>("Version")
                         .IsConcurrencyToken()
@@ -827,6 +906,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<DateTimeOffset>("CreeeLe")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Diagnostic")
                         .IsRequired()
                         .HasColumnType("text");
@@ -848,6 +930,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<string>("Titre")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("Utilisations")
+                        .HasColumnType("integer");
 
                     b.Property<string>("VerificationAttendu")
                         .IsRequired()

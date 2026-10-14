@@ -2981,6 +2981,219 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/etapes-modeles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    systemeCatalogueId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ModeleEtapeDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ModeleEtapeSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/etapes-modeles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ModeleEtapeDto"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ModeleEtapeSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/etapes-modeles/depuis-etape": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ModeleEtapeDepuisEtapeSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/etapes/depuis-modele": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InsertionEtapeModeleSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/parametres": {
         parameters: {
             query?: never;
@@ -5055,6 +5268,7 @@ export interface components {
          * @description `Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire
          *     (le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.
          *     `SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.
+         *     `ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).
          */
         EtapeDto: {
             /** Format: uuid */
@@ -5118,6 +5332,8 @@ export interface components {
             resultatConstate: string;
             sauvegardeEmplacement: string;
             sauvegardeMethodeRecuperation: string;
+            /** Format: uuid */
+            modeleEtapeId: null | string;
         };
         EtapeModeleRecetteDto: {
             /** Format: int32 */
@@ -5305,6 +5521,19 @@ export interface components {
          * @enum {unknown}
          */
         FournisseurSso: "Microsoft" | "OpenIdConnect";
+        /**
+         * @description Insertion d'une copie d'étape modèle dans un plan de la MEP : `Ligne` absente = nouvelle ligne en bas, `Position`
+         *     absente = en fin de ligne ; `Plan` absent = déploiement.
+         */
+        InsertionEtapeModeleSaisie: {
+            /** Format: uuid */
+            modeleId: null | string;
+            plan?: null | components["schemas"]["TypePlan"];
+            /** Format: int32 */
+            ligne?: null | number;
+            /** Format: int32 */
+            position?: null | number;
+        };
         /** @description Insertion d'un modèle de la bibliothèque (copie) dans un système de la MEP. */
         InsertionModeleRecetteSaisie: {
             /** Format: uuid */
@@ -5551,6 +5780,8 @@ export interface components {
                 resultatConstate: string;
                 sauvegardeEmplacement: string;
                 sauvegardeMethodeRecuperation: string;
+                /** Format: uuid */
+                modeleEtapeId: null | string;
             }[];
             resolutions: {
                 /** Format: uuid */
@@ -5815,6 +6046,65 @@ export interface components {
             /** Format: uuid */
             systemeCatalogueId: null | string;
         };
+        /** @description « Transformer en étape modèle » : copie d'une étape d'une MEP dans la bibliothèque, sous le nom donné (l'action à défaut). */
+        ModeleEtapeDepuisEtapeSaisie: {
+            /** Format: uuid */
+            mepId: null | string;
+            /** Format: uuid */
+            etapeId: null | string;
+            action: null | string;
+        };
+        /**
+         * @description Étape modèle de la bibliothèque d'étapes. `Utilisations` : nombre de MEP où elle a été insérée (une fois par MEP) ;
+         *     `CreeLe` : création (les listes sont triées par nombre d'utilisations, puis par ordre de création).
+         */
+        ModeleEtapeDto: {
+            /** Format: uuid */
+            id: string;
+            action: string;
+            systemeCatalogueIds: string[];
+            type: components["schemas"]["TypeEtape"];
+            criticite: null | components["schemas"]["Criticite"];
+            /** Format: int32 */
+            dureeEstimeeMinutes: null | number;
+            instructions: string;
+            resultatAttendu: string;
+            fin: components["schemas"]["FinEtape"];
+            sauvegardeEmplacement: string;
+            sauvegardeMethodeRecuperation: string;
+            resolutionIds: string[];
+            /** Format: int32 */
+            utilisations: number;
+            /** Format: date-time */
+            creeLe: string;
+            /** Format: int32 */
+            version: number;
+            /** Format: date-time */
+            modifieLe: string;
+            /** Format: uuid */
+            modifieParId: null | string;
+            modifiePar: null | string;
+        };
+        ModeleEtapeSaisie: {
+            /**
+             * Format: int32
+             * @description Obligatoire pour une modification (verrou optimiste).
+             */
+            version: null | number;
+            action: null | string;
+            systemeCatalogueIds: null | string[];
+            type: null | components["schemas"]["TypeEtape"];
+            criticite: null | components["schemas"]["Criticite"];
+            /** Format: int32 */
+            dureeEstimeeMinutes: null | number;
+            instructions: null | string;
+            resultatAttendu: null | string;
+            fin: null | components["schemas"]["FinEtape"];
+            sauvegardeEmplacement: null | string;
+            sauvegardeMethodeRecuperation: null | string;
+            resolutionIds: null | string[];
+        };
+        /** @description `Utilisations` : nombre de MEP où le modèle a été inséré (une fois par MEP) ; `CreeLe` : création. */
         ModeleRecetteDto: {
             /** Format: uuid */
             id: string;
@@ -5829,6 +6119,10 @@ export interface components {
             /** Format: uuid */
             modifieParId: null | string;
             modifiePar: null | string;
+            /** Format: int32 */
+            utilisations: number;
+            /** Format: date-time */
+            creeLe: string;
         };
         ModeleRecetteSaisie: {
             /**
@@ -6032,6 +6326,10 @@ export interface components {
             /** Format: int32 */
             fichiersSupprimes: number;
         };
+        /**
+         * @description `Utilisations` : nombre de MEP où la résolution a été liée à une étape (une fois par MEP) ; `CreeeLe` : création.
+         *     Les listes sont triées par nombre d'utilisations, puis par ordre de création.
+         */
         ResolutionTypeDto: {
             /** Format: uuid */
             id: string;
@@ -6050,6 +6348,10 @@ export interface components {
             /** Format: uuid */
             modifieeParId: null | string;
             modifieeParNom: null | string;
+            /** Format: int32 */
+            utilisations: number;
+            /** Format: date-time */
+            creeeLe: string;
         };
         ResolutionTypeSaisie: {
             /** Format: int32 */

@@ -1,4 +1,5 @@
 import {
+  Blocks,
   CircleArrowUp,
   Layers,
   Library,
@@ -150,6 +151,7 @@ export function Shell() {
           </div>
           <Lien to="/parametres/systemes" icone={Layers} libelle="Systèmes" replie={replie} />
           <Lien to="/parametres/resolutions" icone={Wrench} libelle="Résolutions types" replie={replie} />
+          <Lien to="/parametres/etapes" icone={Blocks} libelle="Bibliothèque d’étapes" replie={replie} />
           <Lien to="/parametres/recettes" icone={Library} libelle="Bibliothèque de recettes" replie={replie} />
           <Lien to="/parametres/go-no-go" icone={ShieldCheck} libelle="Go / no-go" replie={replie} />
           <Lien to="/parametres/textes" icone={Mail} libelle="Modèles de texte" replie={replie} />

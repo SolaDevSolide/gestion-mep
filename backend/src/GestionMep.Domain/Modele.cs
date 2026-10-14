@@ -169,6 +169,12 @@ public class Mep
     public List<Etape> Etapes { get; set; } = [];
     public List<ExecutionResolution> Resolutions { get; set; } = [];
 
+    /// <summary>
+    /// Éléments des bibliothèques (étapes modèles, modèles de recette, résolutions types) déjà comptés comme utilisés par
+    /// cette MEP : le compteur d'utilisations d'un élément n'augmente qu'une fois par MEP (voir <see cref="Regles.NouveauxElementsBibliotheque"/>).
+    /// </summary>
+    public List<Guid> ElementsBibliothequeComptes { get; set; } = [];
+
     /// <summary>Étapes d'un plan, de haut en bas puis de gauche à droite (ligne, puis ordre dans la ligne).</summary>
     public IEnumerable<Etape> EtapesDu(TypePlan plan) => Etapes.Where(e => e.Plan == plan).OrderBy(e => e.Ligne).ThenBy(e => e.Ordre);
 
@@ -323,6 +329,10 @@ public class ResolutionType
     public string VerificationAttendu { get; set; } = "";
     public bool Actif { get; set; } = true;
     public int Version { get; set; }
+    /// <summary>Création de la fiche : départage le tri des bibliothèques à nombre d'utilisations égal.</summary>
+    public DateTimeOffset CreeeLe { get; set; } = DateTimeOffset.UtcNow;
+    /// <summary>Nombre de MEP où la résolution a été liée à une étape (une fois par MEP, jamais décompté).</summary>
+    public int Utilisations { get; set; }
     public DateTimeOffset ModifieeLe { get; set; } = DateTimeOffset.UtcNow;
     /// <summary>Compte auteur de la dernière modification (null : données de démo ou fiche antérieure au suivi).</summary>
     public Guid? ModifieeParId { get; set; }
@@ -478,6 +488,8 @@ public class Etape
     public List<Guid> Dependances { get; set; } = [];
     /// <summary>Résolutions types applicables si l'étape échoue.</summary>
     public List<Guid> ResolutionIds { get; set; } = [];
+    /// <summary>Étape modèle dont l'étape est une copie (null : étape saisie dans la MEP). La copie ne suit pas le modèle.</summary>
+    public Guid? ModeleEtapeId { get; set; }
 }
 
 /// <summary>Décision attendue d'un approbateur (compte de l'application) sur la MEP en préparation.</summary>
@@ -525,6 +537,8 @@ public class FicheRecette
     public Guid? SystemeId { get; set; }
     public string Titre { get; set; } = "";
     public List<EtapeTest> Etapes { get; set; } = [];
+    /// <summary>Modèle de la bibliothèque de recettes dont la fiche est une copie (null : fiche saisie dans la MEP).</summary>
+    public Guid? ModeleRecetteId { get; set; }
 }
 
 /// <summary>
@@ -559,6 +573,42 @@ public class ModeleRecette
     /// <summary>Système du catalogue testé par la fiche.</summary>
     public Guid SystemeCatalogueId { get; set; }
     public List<EtapeModeleRecette> Etapes { get; set; } = [];
+    public int Version { get; set; }
+    /// <summary>Création du modèle : départage le tri de la bibliothèque à nombre d'utilisations égal.</summary>
+    public DateTimeOffset CreeLe { get; set; } = DateTimeOffset.UtcNow;
+    /// <summary>Nombre de MEP où le modèle a été inséré (une fois par MEP, jamais décompté).</summary>
+    public int Utilisations { get; set; }
+    public DateTimeOffset ModifieLe { get; set; } = DateTimeOffset.UtcNow;
+    /// <summary>Compte auteur de la dernière modification (null : données de démo ou ligne de commande).</summary>
+    public Guid? ModifieParId { get; set; }
+}
+
+/// <summary>
+/// Étape modèle de la bibliothèque d'étapes : la fiche d'une étape type (action, systèmes du catalogue, type, instructions,
+/// fin, champs de sauvegarde, résolutions), insérée par copie dans le plan d'une MEP. Jamais de point de non-retour, de liens,
+/// d'exécutant ni de pièces jointes : ils sont propres à une MEP.
+/// </summary>
+public class ModeleEtape
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    /// <summary>Nom de l'étape modèle : l'action de l'étape insérée.</summary>
+    public string Action { get; set; } = "";
+    /// <summary>Systèmes du catalogue touchés par l'étape (un ou plusieurs) : elle figure dans la bibliothèque de chacun.</summary>
+    public List<Guid> SystemeCatalogueIds { get; set; } = [];
+    public TypeEtape Type { get; set; } = TypeEtape.Standard;
+    public Criticite? Criticite { get; set; } = Domain.Criticite.Moderee;
+    public int? DureeEstimeeMinutes { get; set; }
+    public string Instructions { get; set; } = "";
+    public string ResultatAttendu { get; set; } = "";
+    public FinEtape Fin { get; set; } = FinEtape.TestUnitaire;
+    /// <summary>Type Sauvegarde : où se trouve la sauvegarde, et comment la récupérer (repris dans la copie).</summary>
+    public string SauvegardeEmplacement { get; set; } = "";
+    public string SauvegardeMethodeRecuperation { get; set; } = "";
+    /// <summary>Résolutions types applicables si l'étape échoue.</summary>
+    public List<Guid> ResolutionIds { get; set; } = [];
+    /// <summary>Nombre de MEP où l'étape modèle a été insérée (une fois par MEP, jamais décompté).</summary>
+    public int Utilisations { get; set; }
+    public DateTimeOffset CreeLe { get; set; } = DateTimeOffset.UtcNow;
     public int Version { get; set; }
     public DateTimeOffset ModifieLe { get; set; } = DateTimeOffset.UtcNow;
     /// <summary>Compte auteur de la dernière modification (null : données de démo ou ligne de commande).</summary>

@@ -1,10 +1,10 @@
-import { History, ListOrdered, OctagonAlert, Pencil, Plus, Search, Trash2, Wrench } from 'lucide-react';
+import { History, ListOrdered, OctagonAlert, Pencil, Plus, Trash2, Wrench } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
+import { analyserRecherche, correspondRecherche, nombre, rechercheVide, trierParUsage } from '../bibliotheque';
 import { useAsync } from '../hooks';
-import { correspond, termes } from '../recherche';
 import { ResolutionEditeurDialog } from '../mep/ResolutionEditeur';
 import type { ResolutionType } from '../types';
 import { Alerte } from '../ui/Alerte';
@@ -12,170 +12,258 @@ import { BoutonIcone, Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { ConfirmDialog } from '../ui/Dialog';
 import { EmptyState } from '../ui/EmptyState';
-import { Input, Select } from '../ui/Input';
 import { Badge } from '../ui/StatusPill';
 import { Markdown } from '../ui/Instructions';
 import { Tooltip } from '../ui/Tooltip';
-import { auteurModification, HistoriqueResolutionDialog } from './HistoriqueResolution';
 import { useToast } from '../ui/Toast';
+import {
+  AideRecherche,
+  CompteurUtilisations,
+  EnTeteSysteme,
+  GrilleSystemes,
+  LectureRecherche,
+  MentionTri,
+  RechercheBibliotheque,
+  type SystemeBiblio,
+} from './bibliotheque';
+import { auteurModification, HistoriqueResolutionDialog } from './HistoriqueResolution';
 
+const UNITE = ['résolution', 'résolutions'] as const;
+
+/**
+ * Résolutions types (Paramètres). Accueil : choix du système (ordre alphabétique) ou recherche dans tous les systèmes ;
+ * `?systeme=BDD` : les résolutions du système, plus celles qui ne visent aucun système précis (elles valent pour tous).
+ * Tri par nombre d'utilisations, puis ordre de création ; la recherche porte sur le titre et les symptômes.
+ */
 export default function ResolutionsPage() {
   const { utilisateur } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const admin = utilisateur?.estAdmin ?? false;
+  const [params] = useSearchParams();
+  const nomSysteme = params.get('systeme');
   const res = useAsync(() => api.resolutions(), []);
   const cat = useAsync(() => api.catalogueSystemes(), []);
   const [recherche, setRecherche] = useState('');
-  const [systeme, setSysteme] = useState('');
+  const [rechercheDe, setRechercheDe] = useState(nomSysteme);
   const [edition, setEdition] = useState<{ existant?: ResolutionType } | null>(null);
   const [suppr, setSuppr] = useState<ResolutionType | null>(null);
   const [historique, setHistorique] = useState<ResolutionType | null>(null);
 
-  const noms = useMemo(() => new Map((cat.donnees ?? []).map((s) => [s.id, s.nom])), [cat.donnees]);
-  const filtrees = useMemo(() => {
-    const ts = termes(recherche);
-    return (res.donnees ?? []).filter(
-      (r) =>
-        (!systeme ||
-          (systeme === 'aucun' ? r.systemeCatalogueIds.length === 0 : r.systemeCatalogueIds.includes(systeme))) &&
-        correspond(
-          {
-            titre: r.titre,
-            textes: [r.symptomes, r.diagnostic, ...r.systemeCatalogueIds.map((s) => noms.get(s) ?? '')],
-          },
-          ts,
+  // Changer de système (lien, retour) repart d'une recherche vide.
+  if (rechercheDe !== nomSysteme) {
+    setRechercheDe(nomSysteme);
+    setRecherche('');
+  }
+
+  const catalogue = useMemo(() => cat.donnees ?? [], [cat.donnees]);
+  const liste = useMemo(() => res.donnees ?? [], [res.donnees]);
+  const noms = useMemo(() => new Map(catalogue.map((s) => [s.id, s.nom])), [catalogue]);
+  const courant = catalogue.find((s) => s.nom === nomSysteme) ?? null;
+  const analyse = useMemo(
+    () =>
+      analyserRecherche(
+        recherche,
+        catalogue.map((s) => s.nom),
+      ),
+    [recherche, catalogue],
+  );
+  const filtrees = useMemo(
+    () =>
+      trierParUsage(
+        liste.filter(
+          (r) =>
+            (!courant || r.systemeCatalogueIds.length === 0 || r.systemeCatalogueIds.includes(courant.id)) &&
+            correspondRecherche(analyse, {
+              systemes: r.systemeCatalogueIds.map((s) => noms.get(s) ?? ''),
+              tousSystemes: r.systemeCatalogueIds.length === 0,
+              textes: [r.titre, r.symptomes],
+            }),
         ),
-    );
-  }, [res.donnees, recherche, systeme, noms]);
+        (r) => r.creeeLe,
+      ),
+    [liste, courant, analyse, noms],
+  );
+  const duSysteme = (id: string) => liste.filter((r) => r.systemeCatalogueIds.includes(id));
+  const communes = liste.filter((r) => r.systemeCatalogueIds.length === 0).length;
+  const systemes: SystemeBiblio[] = catalogue
+    .filter((s) => s.actif || duSysteme(s.id).length > 0)
+    .map((s) => ({ id: s.id, nom: s.nom, description: s.description, actif: s.actif }));
+  const accueil = !nomSysteme && rechercheVide(analyse);
+  const pret = res.donnees !== null && cat.donnees !== null;
+
+  const nouveau = (
+    <Button
+      variante="primaire"
+      icone={<Plus className="size-4" aria-hidden />}
+      onClick={() => void navigate('/parametres/resolutions/nouvelle')}
+    >
+      Nouvelle résolution
+    </Button>
+  );
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Résolutions types</h1>
+      {nomSysteme ? (
+        <EnTeteSysteme
+          bibliotheque="Résolutions types"
+          retour="/parametres/resolutions"
+          systeme={nomSysteme}
+          description={`${nombre(courant ? duSysteme(courant.id).length : 0, UNITE)}${communes ? ` · + ${nombre(communes, ['commune', 'communes'])} à tous les systèmes` : ''}`}
+          action={nouveau}
+        />
+      ) : (
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Résolutions types</h1>
+            <p className="mt-1 text-sm text-fg-muted">
+              Procédures de correction, liées aux étapes et proposées pendant l’exécution en cas d’échec.
+            </p>
+          </div>
+          {nouveau}
         </div>
-        <Button
-          variante="primaire"
-          icone={<Plus className="size-4" aria-hidden />}
-          onClick={() => void navigate('/parametres/resolutions/nouvelle')}
-        >
-          Nouvelle résolution
-        </Button>
-      </div>
+      )}
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <div className="relative min-w-60 flex-1 sm:max-w-sm">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-subtle"
-            aria-hidden
-          />
-          <Input
-            aria-label="Rechercher une résolution"
-            placeholder="Rechercher (titre, symptômes)…"
-            className="pl-9"
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
-          />
-        </div>
-        <div className="w-56">
-          <Select aria-label="Filtrer par système" value={systeme} onChange={(e) => setSysteme(e.target.value)}>
-            <option value="">Tous les systèmes</option>
-            <option value="aucun">Sans système précis</option>
-            {(cat.donnees ?? []).map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nom}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <RechercheBibliotheque
+          className={nomSysteme ? 'sm:max-w-sm' : 'sm:max-w-xl'}
+          valeur={recherche}
+          onChange={setRecherche}
+          placeholder={
+            nomSysteme
+              ? `Rechercher dans ${nomSysteme} (titre, symptômes)…`
+              : 'Rechercher dans tous les systèmes, ex. « BDD droits »…'
+          }
+        />
+        {!accueil && <MentionTri className="ml-auto" />}
       </div>
+      {!nomSysteme && <AideRecherche champs="le titre ou les symptômes" />}
 
-      {res.erreur && (
+      {(res.erreur || cat.erreur) && (
         <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">
-          {res.erreur}
+          {res.erreur || cat.erreur}
         </Alerte>
       )}
 
-      {res.donnees !== null && filtrees.length === 0 && (
+      {pret && !nomSysteme && !accueil && (
+        <div className="mt-6">
+          <LectureRecherche analyse={analyse} nb={filtrees.length} unite={UNITE} champs="le titre ou les symptômes" />
+        </div>
+      )}
+
+      {pret && accueil && liste.length === 0 && (
         <Card className="mt-6">
           <EmptyState
             icone={Wrench}
-            titre={res.donnees.length === 0 ? 'Aucune résolution type' : 'Aucun résultat'}
-            description={
-              res.donnees.length === 0
-                ? 'Écrivez une première procédure : symptômes, corrections ordonnées et vérification finale.'
-                : 'Aucune résolution ne correspond à ces critères.'
-            }
-            action={
-              res.donnees.length === 0 ? (
-                <Button
-                  variante="primaire"
-                  icone={<Plus className="size-4" aria-hidden />}
-                  onClick={() => void navigate('/parametres/resolutions/nouvelle')}
-                >
-                  Nouvelle résolution
-                </Button>
-              ) : undefined
-            }
+            titre="Aucune résolution type"
+            description="Écrivez une première procédure : symptômes, corrections ordonnées et vérification finale."
+            action={nouveau}
           />
         </Card>
       )}
 
-      <ul className="mt-6 grid gap-3 lg:grid-cols-2">
-        {filtrees.map((r) => (
-          <li key={r.id}>
-            <Card className="flex h-full flex-col p-4 transition-shadow duration-150 hover:shadow-md">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="flex items-center gap-2 font-semibold">
-                    <Wrench className="size-4 shrink-0 text-warn-solid" aria-hidden />
-                    <span className="truncate">{r.titre}</span>
-                  </h2>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    {r.systemeCatalogueIds.length ? (
-                      r.systemeCatalogueIds.map((s) => <Badge key={s}>{noms.get(s) ?? 'Système'}</Badge>)
-                    ) : (
-                      <Badge>Tous les systèmes</Badge>
-                    )}
-                    <Badge>
-                      <ListOrdered className="size-3" aria-hidden />
-                      {r.corrections.length} correction{r.corrections.length > 1 ? 's' : ''}
-                    </Badge>
+      {pret && accueil && liste.length > 0 && (
+        <>
+          <h2 className="mt-8 mb-3 text-xs font-semibold tracking-wider text-fg-subtle uppercase">
+            Choisissez un système · {nombre(systemes.length, ['système', 'systèmes'])} du catalogue
+          </h2>
+          <GrilleSystemes
+            systemes={systemes}
+            compter={(s) => duSysteme(s.id).length}
+            detail={(s) => {
+              const multi = duSysteme(s.id).filter((r) => r.systemeCatalogueIds.length > 1).length;
+              return multi ? `dont ${multi} multi-systèmes` : 'Toutes propres à ce système';
+            }}
+            unite={UNITE}
+            lien={(s) => `/parametres/resolutions?systeme=${encodeURIComponent(s.nom)}`}
+          />
+          {communes > 0 && (
+            <p className="mt-3 text-xs text-fg-subtle">
+              + {nombre(communes, ['résolution commune', 'résolutions communes'])} à tous les systèmes, proposée
+              {communes > 1 ? 's' : ''} dans chacun.
+            </p>
+          )}
+        </>
+      )}
+
+      {pret && nomSysteme && !courant && (
+        <Alerte ton="warn" icone={OctagonAlert} className="mt-6">
+          Le système « {nomSysteme} » n’est pas dans le catalogue.
+        </Alerte>
+      )}
+
+      {pret && !accueil && (!nomSysteme || courant) && filtrees.length === 0 && (
+        <Card className="mt-4">
+          <EmptyState
+            icone={Wrench}
+            titre="Aucun résultat"
+            description="Aucune résolution ne correspond à ces critères."
+          />
+        </Card>
+      )}
+
+      {pret && !accueil && (!nomSysteme || courant) && (
+        <ul className="mt-4 grid gap-3 lg:grid-cols-2">
+          {filtrees.map((r) => (
+            <li key={r.id}>
+              <Card className="flex h-full flex-col p-4 transition-shadow duration-150 hover:shadow-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="flex items-center gap-2 font-semibold">
+                      <Wrench className="size-4 shrink-0 text-warn-solid" aria-hidden />
+                      <span className="truncate">{r.titre}</span>
+                    </h2>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      {r.systemeCatalogueIds.length ? (
+                        (!nomSysteme || r.systemeCatalogueIds.length > 1) &&
+                        r.systemeCatalogueIds.map((s) => <Badge key={s}>{noms.get(s) ?? 'Système'}</Badge>)
+                      ) : (
+                        <Badge>Tous les systèmes</Badge>
+                      )}
+                      <Badge>
+                        <ListOrdered className="size-3" aria-hidden />
+                        {nombre(r.corrections.length, ['correction', 'corrections'])}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-                <div className="flex shrink-0 gap-0.5">
-                  <Tooltip content="Historique">
-                    <BoutonIcone label={`Historique de ${r.titre}`} taille="sm" onClick={() => setHistorique(r)}>
-                      <History className="size-4" aria-hidden />
-                    </BoutonIcone>
-                  </Tooltip>
-                  <Tooltip content="Modifier">
-                    <BoutonIcone label={`Modifier ${r.titre}`} taille="sm" onClick={() => setEdition({ existant: r })}>
-                      <Pencil className="size-4" aria-hidden />
-                    </BoutonIcone>
-                  </Tooltip>
-                  {admin && (
-                    <Tooltip content="Supprimer">
-                      <BoutonIcone label={`Supprimer ${r.titre}`} taille="sm" onClick={() => setSuppr(r)}>
-                        <Trash2 className="size-4" aria-hidden />
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    <CompteurUtilisations n={r.utilisations} className="mr-1.5" />
+                    <Tooltip content="Historique">
+                      <BoutonIcone label={`Historique de ${r.titre}`} taille="sm" onClick={() => setHistorique(r)}>
+                        <History className="size-4" aria-hidden />
                       </BoutonIcone>
                     </Tooltip>
-                  )}
+                    <Tooltip content="Modifier">
+                      <BoutonIcone
+                        label={`Modifier ${r.titre}`}
+                        taille="sm"
+                        onClick={() => setEdition({ existant: r })}
+                      >
+                        <Pencil className="size-4" aria-hidden />
+                      </BoutonIcone>
+                    </Tooltip>
+                    {admin && (
+                      <Tooltip content="Supprimer">
+                        <BoutonIcone label={`Supprimer ${r.titre}`} taille="sm" onClick={() => setSuppr(r)}>
+                          <Trash2 className="size-4" aria-hidden />
+                        </BoutonIcone>
+                      </Tooltip>
+                    )}
+                  </div>
                 </div>
-              </div>
-              {r.symptomes ? (
-                <Markdown className="mt-3 line-clamp-3 text-fg-muted" source={r.symptomes} />
-              ) : (
-                <p className="mt-3 text-sm text-fg-muted">Symptômes non décrits.</p>
-              )}
-              <p className="mt-auto pt-3 text-xs text-fg-subtle">
-                {auteurModification(r)} · version {r.version}
-              </p>
-            </Card>
-          </li>
-        ))}
-      </ul>
+                {r.symptomes ? (
+                  <Markdown className="mt-3 line-clamp-3 text-fg-muted" source={r.symptomes} />
+                ) : (
+                  <p className="mt-3 text-sm text-fg-muted">Symptômes non décrits.</p>
+                )}
+                <p className="mt-auto pt-3 text-xs text-fg-subtle">
+                  {auteurModification(r)} · version {r.version}
+                </p>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <ResolutionEditeurDialog
         key={edition?.existant?.id ?? 'nouvelle'}
@@ -193,7 +281,7 @@ export default function ResolutionsPage() {
           if (!o) setSuppr(null);
         }}
         titre={`Supprimer « ${suppr?.titre ?? ''} » ?`}
-        description="Si elle est liée à une étape, elle sera seulement désactivée."
+        description="Si elle est liée à une étape ou à une étape modèle, elle sera seulement désactivée."
         libelleConfirmer="Supprimer"
         variante="danger"
         onConfirmer={async () => {

@@ -215,7 +215,7 @@ public class LigneDeCommandeTests : IDisposable
         var ldap = (await Cli("resolutions", "afficher", "ldap : compte de service verrouillé", "--json")).Json;
         Assert.Equal(1, ldap.GetProperty("version").GetInt32());
         var parSysteme = (await Cli("resolutions", "lister", "--systeme", "LDAP", "--json")).Json.EnumerateArray().ToList();
-        Assert.Single(parSysteme);
+        Assert.Contains(parSysteme, r => r.GetProperty("titre").GetString() == "LDAP : compte de service verrouillé");
 
         // Remplacer : nouvelle version de la fiche existante.
         Assert.Equal(0, (await Cli("resolutions", "importer", fichier, "--remplacer")).Code);

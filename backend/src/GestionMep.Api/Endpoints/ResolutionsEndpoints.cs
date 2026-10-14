@@ -15,7 +15,7 @@ public static class ResolutionsEndpoints
 
     private static ResolutionTypeDto Dto(ResolutionType r, IReadOnlyDictionary<Guid, string> noms) => new(r.Id, r.Titre, r.Symptomes, r.Diagnostic,
         [.. r.SystemeCatalogueIds], Corrections(r.Corrections), r.VerificationInstruction, r.VerificationAttendu, r.Actif, r.Version, r.ModifieeLe,
-        r.ModifieeParId, Nom(r.ModifieeParId, noms));
+        r.ModifieeParId, Nom(r.ModifieeParId, noms), r.Utilisations, r.CreeeLe);
 
     private static VersionResolutionTypeDto Dto(VersionResolutionType v, IReadOnlyDictionary<Guid, string> noms) => new(v.Version, v.Action,
         v.ModifieeLe, v.ModifieeParId, Nom(v.ModifieeParId, noms), v.Titre, v.Symptomes, v.Diagnostic, [.. v.SystemeCatalogueIds],
@@ -60,14 +60,17 @@ public static class ResolutionsEndpoints
 
     // ---------- Opérations partagées avec « gestion-mep resolutions » (acteur null : ligne de commande) ----------
 
-    /// <summary>Résolutions types par titre ; actives seulement sauf <paramref name="inactives"/>, filtrées sur un système du catalogue.</summary>
+    /// <summary>
+    /// Résolutions types, les plus utilisées d'abord puis par ordre de création (tri des bibliothèques) ; actives seulement sauf
+    /// <paramref name="inactives"/>, filtrées sur un système du catalogue.
+    /// </summary>
     public static async Task<List<ResolutionTypeDto>> Lister(MepDbContext db, Guid? systemeCatalogueId, bool inactives = false)
     {
         var q = db.ResolutionsTypes.AsNoTracking().Where(r => inactives || r.Actif);
         // Filtre « contient » : les résolutions dont l'un des systèmes est celui demandé.
         if (systemeCatalogueId is { } s) q = q.Where(r => r.SystemeCatalogueIds.Contains(s));
         var noms = await Noms(db);
-        return (await q.OrderBy(r => r.Titre).ToListAsync()).Select(r => Dto(r, noms)).ToList();
+        return (await q.OrderByDescending(r => r.Utilisations).ThenBy(r => r.CreeeLe).ThenBy(r => r.Titre).ToListAsync()).Select(r => Dto(r, noms)).ToList();
     }
 
     public static async Task<ResolutionTypeDto> Lire(MepDbContext db, Guid id) =>
@@ -77,7 +80,7 @@ public static class ResolutionsEndpoints
     /// <summary>Crée une résolution type (version 1) après les mêmes contrôles que la saisie dans l'application.</summary>
     public static async Task<ResolutionTypeDto> Creer(MepDbContext db, Acteur? acteur, ResolutionTypeSaisie c, DateTimeOffset maintenant)
     {
-        var r = new ResolutionType { Version = 1 };
+        var r = new ResolutionType { Version = 1, CreeeLe = maintenant };
         await Appliquer(db, r, c);
         Tracer(db, r, "creee", acteur, maintenant);
         db.ResolutionsTypes.Add(r);
@@ -96,13 +99,14 @@ public static class ResolutionsEndpoints
     }
 
     /// <summary>
-    /// Supprime une résolution type et ses pièces jointes ; liée à une étape ou déjà exécutée, elle est seulement désactivée
+    /// Supprime une résolution type et ses pièces jointes ; liée à une étape ou à une étape modèle, ou déjà exécutée, elle est seulement désactivée
     /// pour garder la traçabilité (renvoie false). Inscrit dans le journal d'administration.
     /// </summary>
     public static async Task<bool> Supprimer(MepDbContext db, Acteur? acteur, Guid id, DateTimeOffset maintenant, StockagePiecesJointes stockage)
     {
         var r = await db.ResolutionsTypes.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Résolution type introuvable.");
-        if (await db.Etapes.AnyAsync(e => e.ResolutionIds.Contains(id)) || await db.ExecutionsResolution.AnyAsync(x => x.ResolutionTypeId == id))
+        if (await db.Etapes.AnyAsync(e => e.ResolutionIds.Contains(id)) || await db.ExecutionsResolution.AnyAsync(x => x.ResolutionTypeId == id)
+            || await db.ModelesEtape.AnyAsync(m => m.ResolutionIds.Contains(id)))
         {
             r.Actif = false;
             r.Version++;

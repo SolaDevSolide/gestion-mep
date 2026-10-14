@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { api } from '../api';
 import { MepContext } from '../mepContext';
 import { etape, mep } from '../test/fabrique';
-import type { Mep, ResolutionType } from '../types';
+import type { Mep, ModeleEtape, ResolutionType } from '../types';
 import { TooltipProvider } from '../ui/Tooltip';
 import { EtapesEditeur } from './EtapesEditeur';
 import { changerModeEspace } from './graphe/EspaceEtape';
@@ -23,6 +23,8 @@ const res = (id: string, titre: string, systemeCatalogueIds: string[], symptomes
   modifieeLe: '2026-10-10T10:00:00Z',
   modifieeParId: null,
   modifieeParNom: null,
+  utilisations: 0,
+  creeeLe: '2026-01-01T00:00:00Z',
 });
 
 vi.mock('../api', () => ({
@@ -42,6 +44,9 @@ vi.mock('../api', () => ({
     supprimerEtape: vi.fn(async () => ({})),
     supprimerSysteme: vi.fn(async () => ({})),
     ajouterSystemeDepuisCatalogue: vi.fn(async () => ({})),
+    etapesModeles: vi.fn(async () => []),
+    insererEtapeModele: vi.fn(async () => ({ etapes: [] })),
+    etapeModeleDepuisEtape: vi.fn(),
   },
 }));
 
@@ -420,5 +425,119 @@ describe('EtapesEditeur : graphe en préparation', () => {
     await userEvent.click(carte(/^E0003/));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Contrôle final' })).toBeInTheDocument());
     expect(screen.queryByRole('button', { name: 'Enregistrer' })).toBeNull();
+  });
+});
+
+const modeleEtape = (p: Partial<ModeleEtape> & Pick<ModeleEtape, 'id' | 'action'>): ModeleEtape => ({
+  systemeCatalogueIds: ['c-api'],
+  type: 'Standard',
+  criticite: 'Moderee',
+  dureeEstimeeMinutes: 5,
+  instructions: 'systemctl restart api',
+  resultatAttendu: 'Service actif',
+  fin: 'TestUnitaire',
+  sauvegardeEmplacement: '',
+  sauvegardeMethodeRecuperation: '',
+  resolutionIds: [],
+  utilisations: 0,
+  creeLe: '2026-01-01T00:00:00Z',
+  version: 1,
+  modifieLe: '2026-01-01T00:00:00Z',
+  modifieParId: null,
+  modifiePar: null,
+  ...p,
+});
+
+const MODELES = [
+  modeleEtape({ id: 'ma', action: 'Redémarrage de l’API', utilisations: 5 }),
+  modeleEtape({ id: 'mb', action: 'Purge du cache', systemeCatalogueIds: ['c-web'], utilisations: 9 }),
+  modeleEtape({ id: 'mc', action: 'Contrôle de santé', utilisations: 1 }),
+];
+
+describe('EtapesEditeur : étapes modèles', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+    changerModeEspace('plein');
+    vi.mocked(api.etapesModeles).mockResolvedValue(MODELES);
+  });
+
+  it('menu des plus utilisées pour les systèmes de la MEP ; la copie flotte, puis se pose sur une ligne', async () => {
+    rendre(planExemple());
+    await waitFor(() => expect(api.etapesModeles).toHaveBeenCalled());
+    await userEvent.click(screen.getByRole('button', { name: /Étape modèle/ }));
+    const menu = await screen.findByRole('menu');
+    const items = within(menu)
+      .getAllByRole('menuitem')
+      .map((i) => i.textContent);
+    // WEB n'est pas dans la MEP : « Purge du cache » n'est pas proposée.
+    expect(items[0]).toContain('Redémarrage de l’API');
+    expect(items[1]).toContain('Contrôle de santé');
+    expect(items.some((t) => t?.includes('Purge du cache'))).toBe(false);
+    await userEvent.click(within(menu).getByRole('menuitem', { name: /Redémarrage de l’API/ }));
+
+    const flottante = await screen.findByRole('group', {
+      name: /E0004, copie de l’étape modèle « Redémarrage de l’API »/,
+    });
+    expect(flottante).toHaveTextContent('À placer');
+    expect(api.insererEtapeModele).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /Poser ici, sur une nouvelle ligne/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Poser l’étape sur la ligne 1' }));
+    expect(api.insererEtapeModele).toHaveBeenCalledWith('m1', 'ma', 'Deploiement', 0, undefined);
+    expect(api.ajouterEtape).not.toHaveBeenCalled();
+  });
+
+  it('Échap annule l’insertion : rien n’est écrit', async () => {
+    rendre(planExemple());
+    await waitFor(() => expect(api.etapesModeles).toHaveBeenCalled());
+    await userEvent.click(screen.getByRole('button', { name: /Étape modèle/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Contrôle de santé/ }));
+    await screen.findByRole('group', { name: /à placer/ });
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('group', { name: /à placer/ })).toBeNull());
+    expect(screen.getByRole('button', { name: 'Ajouter une étape sur la ligne 1' })).toBeInTheDocument();
+    expect(api.insererEtapeModele).not.toHaveBeenCalled();
+  });
+
+  it('« Parcourir la bibliothèque » : systèmes de la MEP d’abord, aperçu, avertissement si un système manque', async () => {
+    rendre(planExemple());
+    await waitFor(() => expect(api.etapesModeles).toHaveBeenCalled());
+    await userEvent.click(screen.getByRole('button', { name: 'Parcourir la bibliothèque' }));
+    const dialogue = await screen.findByRole('dialog');
+    expect(within(dialogue).getByRole('button', { name: 'API : 2 étapes' })).toBeInTheDocument();
+    expect(within(dialogue).queryByRole('button', { name: /^WEB/ })).toBeNull();
+    await userEvent.click(within(dialogue).getByRole('button', { name: 'les afficher' }));
+    await userEvent.click(within(dialogue).getByRole('button', { name: 'WEB : 1 étape' }));
+    await userEvent.click(within(dialogue).getByRole('button', { name: /Purge du cache/ }));
+    expect(within(dialogue).getByText(/Le système WEB de ce modèle n’est pas dans la MEP/)).toBeInTheDocument();
+    await userEvent.click(within(dialogue).getByRole('button', { name: 'Insérer une copie' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await userEvent.click(screen.getByRole('button', { name: /Poser ici, sur une nouvelle ligne/ }));
+    expect(api.insererEtapeModele).toHaveBeenCalledWith('m1', 'mb', 'Deploiement', undefined, undefined);
+  });
+
+  it('« Transformer en étape modèle » depuis l’espace d’une étape, nom modifiable', async () => {
+    vi.mocked(api.etapeModeleDepuisEtape).mockResolvedValue(modeleEtape({ id: 'md', action: 'Contrôle type' }));
+    rendre(planExemple());
+    await userEvent.click(carte(/^E0002/));
+    await userEvent.click(await screen.findByRole('button', { name: 'Transformer en étape modèle' }));
+    const dialogue = await screen.findByRole('dialog', { name: 'Transformer E0002 en étape modèle ?' });
+    expect(within(dialogue).getByText(/E0002 est un point de non-retour dans cette MEP/)).toBeInTheDocument();
+    const nom = within(dialogue).getByLabelText('Nom de l’étape modèle *');
+    await userEvent.clear(nom);
+    await userEvent.type(nom, 'Contrôle type');
+    await userEvent.click(within(dialogue).getByRole('button', { name: 'Créer l’étape modèle' }));
+    await waitFor(() => expect(api.etapeModeleDepuisEtape).toHaveBeenCalledWith('m1', 'e2', 'Contrôle type'));
+  });
+
+  it('une copie d’étape modèle le dit dans son espace, pas sur la fiche du graphe', async () => {
+    const plan = planExemple();
+    plan.etapes[2] = { ...plan.etapes[2], modeleEtapeId: 'ma' };
+    rendre(plan);
+    await waitFor(() => expect(api.etapesModeles).toHaveBeenCalled());
+    expect(carte(/^E0003/)).not.toHaveTextContent(/modèle/i);
+    await userEvent.click(carte(/^E0003/));
+    expect(await screen.findByText(/Copie de l’étape modèle « Redémarrage de l’API »/)).toBeInTheDocument();
   });
 });

@@ -38,6 +38,8 @@ const creee: ResolutionType = {
   modifieeLe: '2026-10-10T10:00:00Z',
   modifieeParId: null,
   modifieeParNom: null,
+  utilisations: 0,
+  creeeLe: '2026-01-01T00:00:00Z',
 };
 
 vi.mock('../api', () => ({

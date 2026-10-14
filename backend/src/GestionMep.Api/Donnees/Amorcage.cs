@@ -98,7 +98,7 @@ public static class Amorcage
 
     /// <summary>
     /// Données d'une base neuve en mode démonstration, ajoutées au contexte sans les enregistrer : comptes de
-    /// <see cref="DonneesDemo.Comptes"/> (mot de passe <see cref="DonneesDemo.MotDePasse"/>), équipe et ses modèles de texte, catalogue, résolutions types, bibliothèque de recettes,
+    /// <see cref="DonneesDemo.Comptes"/> (mot de passe <see cref="DonneesDemo.MotDePasse"/>), équipe et ses modèles de texte, catalogue, résolutions types, bibliothèques de recettes et d'étapes,
     /// critères go / no-go, paramètre d'approbation, modèle, MEP « Portail de démonstration » et MEP de démonstration dans
     /// chaque état du cycle de vie (<see cref="DonneesDemo.Scenarios"/>), avec leur journal. Sert à l'amorçage et à la
     /// réinitialisation de la démonstration (<see cref="Services.Demonstration"/>).
@@ -124,11 +124,15 @@ public static class Amorcage
         modele.Version = 1;
         foreach (var r in jeu.Resolutions) r.ModifieeLe = maintenant;
         foreach (var r in jeu.Resolutions) r.Version = 1;
+        DonneesDemo.DaterResolutions(jeu.Resolutions, maintenant);
         db.SystemesCatalogue.AddRange(jeu.Systemes);
         db.ResolutionsTypes.AddRange(jeu.Resolutions);
         db.VersionsResolutionType.AddRange(jeu.Resolutions.Select(r => VersionResolutionType.De(r, "creee")));
         db.CriteresGoNoGo.AddRange(jeu.Criteres);
-        db.ModelesRecette.AddRange(DonneesDemo.ModelesRecette(jeu.Systemes, maintenant));
+        var modelesRecette = DonneesDemo.ModelesRecette(jeu.Systemes, maintenant);
+        var etapesModeles = DonneesDemo.EtapesModeles(jeu.Systemes, jeu.Resolutions, maintenant);
+        db.ModelesRecette.AddRange(modelesRecette);
+        db.ModelesEtape.AddRange(etapesModeles);
         foreach (var demo in DonneesDemo.Equipes(alice.Id, bob.Id, claire.Id, maintenant))
         {
             db.Equipes.Add(demo.Equipe);
@@ -150,7 +154,10 @@ public static class Amorcage
             Type = "mep.creee", Detail = "MEP de démonstration créée",
         });
         // Une MEP par état du cycle de vie, construite en jouant les règles du domaine (journal compris).
-        foreach (var demo in DonneesDemo.Scenarios(alice.Id, bob.Id, claire.Id, jeu.Systemes, jeu.Resolutions, jeu.Criteres, maintenant))
+        var scenarios = DonneesDemo.Scenarios(alice.Id, bob.Id, claire.Id, jeu.Systemes, jeu.Resolutions, jeu.Criteres, maintenant);
+        // Étapes et fiches copiées des bibliothèques, déjà comptées dans leurs compteurs d'utilisations.
+        DonneesDemo.RelierAuxBibliotheques([mep, modele, .. scenarios.Select(s => s.Mep)], etapesModeles, modelesRecette);
+        foreach (var demo in scenarios)
         {
             db.Meps.Add(demo.Mep);
             db.Journal.AddRange(demo.Journal);

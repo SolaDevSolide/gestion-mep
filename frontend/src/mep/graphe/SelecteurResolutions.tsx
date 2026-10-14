@@ -12,8 +12,8 @@ interface Props {
   onChange: (ids: string[]) => void;
   /** Systèmes du catalogue touchés par l'étape (présélectionnés dans les filtres, résultats en tête). */
   systemesEtape: string[];
-  /** Création d'une fiche (titre proposé : le texte cherché). */
-  onCreer: (titre: string) => void;
+  /** Création d'une fiche (titre proposé : le texte cherché) ; absent : pas de lien de création. */
+  onCreer?: (titre: string) => void;
   disabled?: boolean;
   /** Nombre de résultats affichés avant « voir plus ». */
   limite?: number;
@@ -297,14 +297,16 @@ export function SelecteurResolutions({
                 {horsFiltre} autre{horsFiltre > 1 ? 's' : ''} dans d’autres systèmes
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => onCreer(recherche.trim())}
-              className="ml-auto inline-flex items-center gap-1 font-semibold text-accent-text hover:underline"
-            >
-              <Plus className="size-3.5" aria-hidden />
-              Nouvelle fiche de résolution{recherche.trim() ? ` « ${recherche.trim()} »` : ''}
-            </button>
+            {onCreer && (
+              <button
+                type="button"
+                onClick={() => onCreer(recherche.trim())}
+                className="ml-auto inline-flex items-center gap-1 font-semibold text-accent-text hover:underline"
+              >
+                <Plus className="size-3.5" aria-hidden />
+                Nouvelle fiche de résolution{recherche.trim() ? ` « ${recherche.trim()} »` : ''}
+              </button>
+            )}
           </div>
           {detail && detail.symptomes.trim() && (
             <p aria-live="polite" className="rounded-md bg-surface-2/60 px-2 py-1 text-xs text-fg-muted">

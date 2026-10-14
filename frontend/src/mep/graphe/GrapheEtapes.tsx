@@ -1,12 +1,13 @@
 import { Maximize, ZoomIn, ZoomOut } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Fragment, useMemo, useRef } from 'react';
+import { Fragment, useMemo, useRef, type ReactNode } from 'react';
 import { construireLignes, groupesDeLiens, indexLignes, liensDuPlan, type GroupeLiens, type Lien } from '../../graphe';
 import type { Etape, Mep, TypePlan } from '../../types';
 import { BoutonIcone } from '../../ui/Button';
 import { cn } from '../../ui/cn';
 import { CarteEtape, type ModeGraphe } from './CarteEtape';
 import { CoucheLiens } from './CoucheLiens';
+import { EtapeFlottante } from './EtapesModeles';
 import { NoeudEtape } from './NoeudEtape';
 import { transformClone, useGlisserDeposer } from './useGlisserDeposer';
 import { useMesureCartes } from './useMesureCartes';
@@ -33,6 +34,13 @@ interface Props {
   onAjouter?: (ligne: number | null) => void;
   onMessage?: (message: string) => void;
   estEstompee?: (e: Etape) => boolean;
+  /**
+   * Copie d'une étape modèle pas encore posée : elle flotte au-dessus du graphe ; on la glisse sur une ligne (onPlacer
+   * reçoit son identifiant) ou on clique un bloc « Poser ici » (onAjouter). Les blocs fantômes changent de libellé.
+   */
+  flottante?: { etape: Etape; onAnnuler: () => void } | null;
+  /** Contrôles posés en haut à gauche du graphe (boutons des étapes modèles). */
+  enTete?: ReactNode;
 }
 
 /**
@@ -53,8 +61,14 @@ export function GrapheEtapes(props: Props) {
     onGroupeSelection,
     onAjouter,
     estEstompee,
+    flottante = null,
+    enTete,
   } = props;
   const edition = mode === 'edition' && modifiable;
+  const placement = edition && !!flottante;
+  const fantome = placement
+    ? 'border-accent bg-accent-soft text-accent-text shadow-[0_0_0_3px_var(--accent-soft)]'
+    : 'border-line-strong text-fg-subtle hover:border-accent hover:bg-accent-soft hover:text-accent-text';
 
   const lignes = useMemo(() => construireLignes(etapes), [etapes]);
   const ligneDe = useMemo(() => indexLignes(lignes), [lignes]);
@@ -87,6 +101,9 @@ export function GrapheEtapes(props: Props) {
 
   const glisseCarte = glisse?.t === 'carte' ? glisse : null;
   const glisseLien = glisse?.t === 'lien' ? glisse : null;
+  const carteGlissee = glisseCarte
+    ? (parId.get(glisseCarte.id) ?? (flottante?.etape.id === glisseCarte.id ? flottante.etape : undefined))
+    : undefined;
 
   const rendreLigne = (ids: Etape[]) =>
     ids.map((e) => (
@@ -176,13 +193,16 @@ export function GrapheEtapes(props: Props) {
                         <button
                           type="button"
                           onClick={() => onAjouter(r)}
-                          aria-label={`Ajouter une étape sur la ligne ${r + 1}`}
-                          className="pointer-events-auto absolute top-0 bottom-0 left-[calc(100%+22px)] grid w-28 place-content-center gap-0.5 rounded-lg border-[1.5px] border-dashed border-line-strong text-[13px] text-fg-subtle transition-colors hover:border-accent hover:bg-accent-soft hover:text-accent-text"
+                          aria-label={`${placement ? 'Poser l’étape' : 'Ajouter une étape'} sur la ligne ${r + 1}`}
+                          className={cn(
+                            'pointer-events-auto absolute top-0 bottom-0 left-[calc(100%+22px)] grid w-28 place-content-center gap-0.5 rounded-lg border-[1.5px] border-dashed text-[13px] transition-colors',
+                            fantome,
+                          )}
                         >
                           <span className="text-xl leading-none text-accent-text" aria-hidden>
-                            +
+                            {placement ? '↓' : '+'}
                           </span>
-                          Étape
+                          {placement ? 'Poser ici' : 'Étape'}
                         </button>
                       )}
                     </div>
@@ -205,12 +225,15 @@ export function GrapheEtapes(props: Props) {
                   <button
                     type="button"
                     onClick={() => onAjouter(null)}
-                    className="pointer-events-auto grid h-[58px] w-[212px] place-content-center gap-0.5 rounded-lg border-[1.5px] border-dashed border-line-strong text-[13px] text-fg-subtle transition-colors hover:border-accent hover:bg-accent-soft hover:text-accent-text"
+                    className={cn(
+                      'pointer-events-auto grid h-[58px] w-[212px] place-content-center gap-0.5 rounded-lg border-[1.5px] border-dashed text-[13px] transition-colors',
+                      fantome,
+                    )}
                   >
                     <span className="text-xl leading-none text-accent-text" aria-hidden>
-                      +
+                      {placement ? '↓' : '+'}
                     </span>
-                    Nouvelle ligne
+                    {placement ? 'Poser ici, sur une nouvelle ligne' : 'Nouvelle ligne'}
                   </button>
                 </div>
               </div>
@@ -248,9 +271,20 @@ export function GrapheEtapes(props: Props) {
         </BoutonIcone>
       </div>
       <p className="sr-only">Glissez le fond du graphe pour vous déplacer ; Ctrl + molette pour zoomer.</p>
+      {enTete}
+      {placement && flottante && (
+        <EtapeFlottante
+          mep={mep}
+          etape={flottante.etape}
+          descriptions={descriptions}
+          glissee={glisseCarte?.id === flottante.etape.id}
+          onAppuyer={appuyer}
+          onAnnuler={flottante.onAnnuler}
+        />
+      )}
 
       {glisseCarte &&
-        parId.get(glisseCarte.id) &&
+        carteGlissee &&
         createPortal(
           <div
             ref={clone}
@@ -264,7 +298,7 @@ export function GrapheEtapes(props: Props) {
               willChange: 'transform',
             }}
           >
-            <CarteEtape mep={mep} etape={parId.get(glisseCarte.id)!} mode={mode} descriptions={descriptions} />
+            <CarteEtape mep={mep} etape={carteGlissee} mode={mode} descriptions={descriptions} />
           </div>,
           document.body,
         )}

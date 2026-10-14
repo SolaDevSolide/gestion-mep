@@ -10,6 +10,8 @@ import type {
   ApercuValidation,
   ModeleRecette,
   ModeleRecetteSaisie,
+  ModeleEtape,
+  ModeleEtapeSaisie,
   Reglage,
   PieceJointe,
   FicheRecetteSaisie,
@@ -337,6 +339,23 @@ export const api = {
   supprimerModeleTexte: (mid: string) => del<void>(`/modeles-texte/${mid}`),
   modifierCommunicationEquipe: (eid: string, s: EquipeCommunicationSaisie) =>
     put<Equipe>(`/equipes/${eid}/communication`, s),
+
+  // Bibliothèque d'étapes modèles (triées par nombre d'utilisations, puis ordre de création).
+  etapesModeles: () => get<ModeleEtape[]>('/etapes-modeles'),
+  creerEtapeModele: (s: Omit<ModeleEtapeSaisie, 'version'>) => post<ModeleEtape>('/etapes-modeles', s),
+  modifierEtapeModele: (mid: string, s: ModeleEtapeSaisie) => put<ModeleEtape>(`/etapes-modeles/${mid}`, s),
+  supprimerEtapeModele: (mid: string) => del<void>(`/etapes-modeles/${mid}`),
+  /** « Transformer en étape modèle » : copie d'une étape de MEP dans la bibliothèque, sous le nom donné. */
+  etapeModeleDepuisEtape: (mepId: string, etapeId: string, action: string) =>
+    post<ModeleEtape>('/etapes-modeles/depuis-etape', { mepId, etapeId, action }),
+  /** Insère une copie dans le plan : `ligne` absente = nouvelle ligne en bas, `position` absente = en fin de ligne. */
+  insererEtapeModele: (id: string, modeleId: string, plan: TypePlan, ligne?: number, position?: number) =>
+    post<Mep>(`/meps/${id}/etapes/depuis-modele`, {
+      modeleId,
+      plan,
+      ...(ligne === undefined ? {} : { ligne }),
+      ...(position === undefined ? {} : { position }),
+    }),
 
   // Pièces jointes : MEP, étape, résolution exécutée, résolution type.
   deposerPieceMep: (id: string, f: File) => post<Mep>(`/meps/${id}/pieces-jointes`, formulaireFichier(f)),

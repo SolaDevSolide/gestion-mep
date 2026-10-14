@@ -101,12 +101,12 @@ public static partial class Regles
                 Criticite = e.Criticite, Instructions = e.Instructions, ResultatAttendu = e.ResultatAttendu, Fin = e.Fin,
                 SauvegardeEmplacement = e.SauvegardeEmplacement, SauvegardeMethodeRecuperation = e.SauvegardeMethodeRecuperation,
                 Dependances = e.Dependances.Where(etapes.ContainsKey).Select(d => etapes[d]).ToList(),
-                ResolutionIds = [.. e.ResolutionIds],
+                ResolutionIds = [.. e.ResolutionIds], ModeleEtapeId = e.ModeleEtapeId,
             });
 
         mep.FichesRecette = source.FichesRecette.OrderBy(f => f.Ordre).Select(f => new FicheRecette
         {
-            Ordre = f.Ordre, SystemeId = S(f.SystemeId), Titre = f.Titre,
+            Ordre = f.Ordre, SystemeId = S(f.SystemeId), Titre = f.Titre, ModeleRecetteId = f.ModeleRecetteId,
             Etapes = f.Etapes.OrderBy(t => t.Ordre).Select(t => new EtapeTest { Ordre = t.Ordre, Instructions = t.Instructions, ResultatAttendu = t.ResultatAttendu }).ToList(),
         }).ToList();
         mep.Approbations = source.Approbations.Select(a => new Approbation { UtilisateurId = a.UtilisateurId, Nom = a.Nom }).ToList();

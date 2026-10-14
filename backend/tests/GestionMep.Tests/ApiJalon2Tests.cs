@@ -480,7 +480,7 @@ public class ApiJalon2Tests : IDisposable
         // Filtre par système du catalogue : les résolutions dont l'un des systèmes est celui-ci (dont « API + BDD »).
         var pourApi = (await Ok(await bob.GetAsync($"/api/resolutions?systemeCatalogueId={api}"))).EnumerateArray().Select(x => x.GetProperty("titre").GetString()).ToList();
         Assert.Equal(["API + BDD : connexion refusée après bascule", "API : réponse de test absente", "Cache corrompu v2"], pourApi.Select(t => t!).Order(StringComparer.Ordinal).ToArray());
-        Assert.Equal(5, (await Ok(await bob.GetAsync("/api/resolutions"))).GetArrayLength());
+        Assert.Equal(8, (await Ok(await bob.GetAsync("/api/resolutions"))).GetArrayLength());
         Assert.Equal(HttpStatusCode.NotFound, (await bob.GetAsync($"/api/resolutions/{Guid.NewGuid()}")).StatusCode);
 
         // Suppression : admin seulement ; une résolution jamais utilisée disparaît.

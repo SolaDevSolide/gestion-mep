@@ -53,6 +53,8 @@ Les MEP ont leur section **Communication** remplie (référence de la demande, r
 
 Le « Modèle : déploiement API standard » sert à créer une MEP par duplication. Toutes les commandes affichées sont fictives : rien n'est à lancer.
 
+Les bibliothèques sont remplies elles aussi : une vingtaine d'étapes modèles réparties sur les six systèmes du catalogue (sauvegardes, migrations, déploiements, contrôles…), des modèles de fiches de recette et des résolutions types, avec des compteurs d'utilisations réalistes. Plusieurs étapes et fiches des MEP de démonstration sont des copies de ces modèles.
+
 ## Premier parcours
 
 1. **Alice** : dans « Mises en production », ouvrir « Portail de démonstration ». La fiche s'ouvre sur l'onglet Préparation : ses sections, leur état de complétude et le bouton « Vérifier le plan », qui liste ce qui manque avant de pouvoir démarrer. Il reste l'approbation de Claire.

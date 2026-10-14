@@ -63,7 +63,7 @@ public static class MepMapping
                     e.DureeEstimeeMinutes, e.Etat,
                     e.Instructions, e.ResultatAttendu, e.Preuve, e.Commentaire, e.DebutReel, e.FinReelle, e.Revision, [.. e.Dependances], [.. e.ResolutionIds],
                     new DisponibiliteDto(d.Statut, d.Libelle), e.Type, e.PointDeNonRetour, Validation(e.NonRetourAutoriseParId, e.NonRetourAutoriseLe),
-                    e.Fin, e.ResultatConstate, e.SauvegardeEmplacement, e.SauvegardeMethodeRecuperation);
+                    e.Fin, e.ResultatConstate, e.SauvegardeEmplacement, e.SauvegardeMethodeRecuperation, e.ModeleEtapeId);
             }).ToList(),
             m.Resolutions.OrderBy(r => r.DemarreeLe).Select(r => new ExecutionResolutionDto(
                 r.Id, r.EtapeId, r.ResolutionTypeId, r.Titre, r.Symptomes, r.Diagnostic,

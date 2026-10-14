@@ -136,7 +136,10 @@ export type SystemeCatalogue = S['SystemeCatalogueDto'];
 export type CorrectionType = S['CorrectionDto'];
 /** `systemeCatalogueIds` vide = tous les systèmes ; `modifieeParId` null : démo ou fiche antérieure au suivi. */
 export type ResolutionType = S['ResolutionTypeDto'];
+/** `utilisations` : nombre de MEP où le modèle a été inséré ; `creeLe` : création (tri des bibliothèques). */
 export type ModeleRecette = S['ModeleRecetteDto'];
+/** Étape modèle de la bibliothèque d'étapes (`utilisations` : nombre de MEP où elle a été insérée). */
+export type ModeleEtape = Omit<S['ModeleEtapeDto'], 'type' | 'fin'> & { type: TypeEtape; fin: FinEtape };
 export type EtapeModeleRecette = S['EtapeModeleRecetteDto'];
 export type ApercuValidation = S['ApercuValidationDto'];
 export type ChangementValidation = S['ChangementValidationDto'];
@@ -262,6 +265,23 @@ export type ModeleRecetteSaisie = SaisieVerifiee<
     etapes: { instructions: string; resultatAttendu: string }[];
   }
 >;
+export type ModeleEtapeSaisie = SaisieVerifiee<
+  S['ModeleEtapeSaisie'],
+  {
+    version: number;
+    action: string;
+    systemeCatalogueIds: string[];
+    type: TypeEtape;
+    criticite: Criticite | null;
+    dureeEstimeeMinutes: number | null;
+    instructions: string;
+    resultatAttendu: string;
+    fin: FinEtape;
+    sauvegardeEmplacement: string;
+    sauvegardeMethodeRecuperation: string;
+    resolutionIds: string[];
+  }
+>;
 /** Bilan saisi à la clôture (corps de `POST /meps/{id}/cloturer`). */
 export type BilanSaisie = SaisieVerifiee<
   S['ClotureSaisie'],
@@ -279,7 +299,7 @@ export type CritereGoNoGoSaisie = SaisieVerifiee<
 export type SystemeCatalogueSaisie = SaisieVerifiee<S['SystemeCatalogueSaisie'], Omit<SystemeCatalogue, 'id'>>;
 export type ResolutionTypeSaisie = SaisieVerifiee<
   S['ResolutionTypeSaisie'],
-  Omit<ResolutionType, 'id' | 'actif' | 'modifieeLe' | 'modifieeParId' | 'modifieeParNom'>
+  Omit<ResolutionType, 'id' | 'actif' | 'modifieeLe' | 'modifieeParId' | 'modifieeParNom' | 'utilisations' | 'creeeLe'>
 >;
 
 // ---------- Administration ----------
