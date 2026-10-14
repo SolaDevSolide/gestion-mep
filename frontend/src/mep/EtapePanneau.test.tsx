@@ -110,11 +110,34 @@ describe('EtapePanneau : démarrer et terminer', () => {
   });
 
   it('étape en cours (exécutant) : Réussie demande une confirmation, Échec exige une preuve', async () => {
-    const { actions } = rendre(etape({ etat: 'EnCours', executantId: 'p1' }, 'EnCours'));
+    const { actions } = rendre(etape({ etat: 'EnCours', executantId: 'p1', fin: 'Verification' }, 'EnCours'));
     expect(screen.getByRole('button', { name: 'Échec' })).toBeDisabled();
     await userEvent.click(screen.getByRole('button', { name: 'Réussie' }));
+    expect(screen.queryByLabelText(/Résultat constaté/)).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: /J’ai vérifié et obtenu le résultat attendu/ }));
     expect(actions.terminer).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Reussie', '', undefined);
+  });
+
+  it('test unitaire : Réussie exige le résultat constaté', async () => {
+    const { actions } = rendre(etape({ etat: 'EnCours', executantId: 'p1' }, 'EnCours'));
+    await userEvent.click(screen.getByRole('button', { name: 'Réussie' }));
+    const confirmer = screen.getByRole('button', { name: /J’ai vérifié et obtenu le résultat attendu/ });
+    expect(confirmer).toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/Résultat constaté/), ' active (running) ');
+    await userEvent.click(confirmer);
+    expect(actions.terminer).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'e1' }),
+      'Reussie',
+      '',
+      undefined,
+      'active (running)',
+    );
+  });
+
+  it('test unitaire réussi : le résultat constaté reste affiché', () => {
+    rendre(etape({ etat: 'Reussie', executantId: 'p1', resultatConstate: '12 migrations appliquées' }, 'Terminee'));
+    expect(screen.getByText('Résultat constaté')).toBeInTheDocument();
+    expect(screen.getByText('12 migrations appliquées')).toBeInTheDocument();
   });
 
   it('Échec avec preuve : confirmation puis appel', async () => {
@@ -467,8 +490,9 @@ describe('EtapePanneau : commentaire', () => {
     const { actions } = rendre(etape({ etat: 'EnCours', executantId: 'p1' }, 'EnCours'));
     await userEvent.type(screen.getByLabelText(/Commentaire/), 'RAS');
     await userEvent.click(screen.getByRole('button', { name: 'Réussie' }));
+    await userEvent.type(screen.getByLabelText(/Résultat constaté/), 'OK');
     await userEvent.click(screen.getByRole('button', { name: /J’ai vérifié/ }));
-    expect(actions.terminer).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Reussie', '', 'RAS');
+    expect(actions.terminer).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'Reussie', '', 'RAS', 'OK');
   });
 
   it('lecture seule pour les autres participants', () => {

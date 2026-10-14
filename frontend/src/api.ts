@@ -13,6 +13,7 @@ import type {
   ProfilSaisie,
   SauvegardeSystemeSaisie,
   Evenement,
+  TestsUnitaires,
   EtapeSaisie,
   LivrableSaisie,
   Mep,
@@ -185,6 +186,8 @@ export const api = {
   modifierIdentite: (id: string, s: MepIdentiteSaisie) => put<Mep>(`/meps/${id}`, s),
   modifierSauvegarde: (id: string, s: SauvegardeSaisie) => put<Mep>(`/meps/${id}/sauvegarde`, s),
   journal: (id: string) => get<Evenement[]>(`/meps/${id}/journal`),
+  /** Tests unitaires faits, non faits et leurs résultats constatés. */
+  testsUnitaires: (id: string) => get<TestsUnitaires>(`/meps/${id}/tests-unitaires`),
 
   ajouterParticipant: (id: string, s: ParticipantSaisie) => post<Mep>(`/meps/${id}/participants`, s),
   modifierParticipant: (id: string, pid: string, s: ParticipantSaisie) =>
@@ -223,6 +226,7 @@ export const api = {
     preuve: string,
     resultatVerifie: boolean,
     commentaire?: string,
+    resultatConstate?: string,
   ) =>
     post<Mep>(`/meps/${id}/etapes/${eid}/terminer`, {
       revision,
@@ -230,6 +234,7 @@ export const api = {
       preuve,
       resultatVerifie,
       ...(commentaire === undefined ? {} : { commentaire }),
+      ...(resultatConstate === undefined ? {} : { resultatConstate }),
     }),
   /** Commentaire facultatif d'une étape (exécutant, pilote / suppléant, admin ; pendant l'exécution, la recette ou le retour arrière). */
   commenterEtape: (id: string, eid: string, revision: number, commentaire: string) =>

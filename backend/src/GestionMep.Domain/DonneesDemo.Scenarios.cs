@@ -252,7 +252,8 @@ public static partial class DonneesDemo
         string justification = "")
     {
         var s = Systeme(mep, c, impact);
-        Regles.DefinirSauvegardeSysteme(mep, s, statut, moment, contenu, justification);
+        var requise = statut == StatutSauvegarde.Requise;
+        Regles.DefinirSauvegardeSysteme(mep, s, statut, moment, contenu, justification, requise ? EmplacementDemo(s.Nom) : "", requise ? RecuperationDemo : "");
         return s;
     }
 
@@ -296,6 +297,8 @@ public static partial class DonneesDemo
     private static Etape Sauvegarde(Etape e)
     {
         Regles.DefinirType(e, TypeEtape.Sauvegarde, pointDeNonRetour: false);
+        e.SauvegardeEmplacement = EmplacementDemo(e.Code);
+        e.SauvegardeMethodeRecuperation = RecuperationDemo;
         return e;
     }
 

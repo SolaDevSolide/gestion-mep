@@ -27,6 +27,8 @@ type SaisieVerifiee<Schema, F extends Souple<Schema> & Record<Exclude<keyof F, k
 export type Phase = S['Phase'];
 export type ModeSauvegarde = NonNullable<S['ModeSauvegarde']>;
 export type TypeEtape = NonNullable<S['TypeEtape']>;
+/** Fin d'une étape : test unitaire (résultat constaté saisi en la terminant) ou simple vérification. */
+export type FinEtape = NonNullable<S['FinEtape']>;
 export type DecisionApprobation = NonNullable<S['DecisionApprobation']>;
 export type DisponibiliteJourJ = NonNullable<S['DisponibiliteJourJ']>;
 export type IssueMep = NonNullable<S['MepDto']['issue']>;
@@ -82,9 +84,14 @@ export type Validation = S['ValidationDto'];
 
 /**
  * Étape du plan : `ligne` (0 = en haut) et `ordre` (position dans la ligne) placent l'étape dans le graphe ;
- * `commentaire` : commentaire facultatif de l'exécutant (modifiable pendant l'exécution).
+ * `commentaire` : commentaire facultatif de l'exécutant (modifiable pendant l'exécution) ; `fin` : test unitaire
+ * (`resultatConstate` saisi en terminant l'étape) ou simple vérification.
  */
 export type Etape = S['EtapeDto'];
+/** Test unitaire d'une étape (`fait` : étape terminée, réussie ou en échec). */
+export type TestUnitaire = S['TestUnitaireDto'];
+/** Suivi des tests unitaires d'une MEP (`GET /meps/{id}/tests-unitaires`). */
+export type TestsUnitaires = S['TestsUnitairesDto'];
 
 export type ResponsableTechnique = S['ResponsableTechniqueDto'];
 
@@ -190,6 +197,10 @@ export type EtapeSaisie = SaisieVerifiee<
     resolutionIds: string[];
     type: TypeEtape;
     pointDeNonRetour: boolean;
+    fin: FinEtape;
+    /** Étape de type Sauvegarde seulement (effacés par le serveur pour une étape standard). */
+    sauvegardeEmplacement: string;
+    sauvegardeMethodeRecuperation: string;
   }
 >;
 

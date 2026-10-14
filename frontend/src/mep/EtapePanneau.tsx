@@ -25,6 +25,8 @@ export interface ActionsEtape {
     resultat: 'Reussie' | 'Echec',
     preuve: string,
     commentaire?: string,
+    /** Résultat constaté d'un test unitaire réussi. */
+    resultatConstate?: string,
   ) => Promise<boolean | void> | void;
   commenter: (e: Etape, commentaire: string) => Promise<boolean | void> | void;
   autoriserReprise: (e: Etape) => Promise<boolean | void> | void;
@@ -83,6 +85,8 @@ export function EtapePanneau({
   };
   const [confirmation, setConfirmation] = useState<'reussie' | 'echec' | 'main' | null>(null);
   const [motifMain, setMotifMain] = useState('');
+  const [constate, setConstate] = useState('');
+  const testUnitaire = etape.fin === 'TestUnitaire';
   const commentaire = useDraft<string>(etape.commentaire ?? '');
   const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
 
@@ -171,13 +175,23 @@ export function EtapePanneau({
           if (!o) setConfirmation(null);
         }}
         titre={`${etape.code} réussie ?`}
-        description="Confirmez que vous avez contrôlé le résultat."
+        description={
+          testUnitaire
+            ? 'Test unitaire : saisissez le résultat que vous avez constaté.'
+            : 'Simple vérification : confirmez que vous avez contrôlé le résultat.'
+        }
         libelleConfirmer="J’ai vérifié et obtenu le résultat attendu"
         variante="succes"
         taille="md"
+        desactive={testUnitaire && !constate.trim()}
         onConfirmer={async () => {
-          const r = await actions.terminer(etape, 'Reussie', preuve.trim(), commentaireAEnvoyer);
-          if (r !== false) setPreuve('');
+          const r = testUnitaire
+            ? await actions.terminer(etape, 'Reussie', preuve.trim(), commentaireAEnvoyer, constate.trim())
+            : await actions.terminer(etape, 'Reussie', preuve.trim(), commentaireAEnvoyer);
+          if (r !== false) {
+            setPreuve('');
+            setConstate('');
+          }
           return r;
         }}
       >
@@ -186,6 +200,20 @@ export function EtapePanneau({
             <p className="text-[11px] font-semibold tracking-wide uppercase">Résultat attendu</p>
             <Markdown source={etape.resultatAttendu} />
           </div>
+        )}
+        {testUnitaire && (
+          <Field label="Résultat constaté *" className="mt-4">
+            {(id) => (
+              <Textarea
+                id={id}
+                rows={3}
+                value={constate}
+                onChange={(e) => setConstate(e.target.value)}
+                placeholder="ex. GET /sante renvoie 200 avec la version 2.4.0."
+                autoFocus
+              />
+            )}
+          </Field>
         )}
       </ConfirmDialog>
 

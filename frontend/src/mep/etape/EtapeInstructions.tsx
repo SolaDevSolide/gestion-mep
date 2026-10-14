@@ -1,5 +1,6 @@
 import { Check, CheckCircle2, CircleHelp, Lock, OctagonAlert, Play, RotateCcw, Wrench } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { LIBELLE_FIN } from '../../format';
 import type { Etape, ExecutionResolution, Mep, ResolutionType } from '../../types';
 import { Alerte } from '../../ui/Alerte';
 import { Button } from '../../ui/Button';
@@ -9,7 +10,7 @@ import type { ActionsEtape } from '../EtapePanneau';
 import { Bloc } from '../graphe/EspaceEtape';
 import { ResolutionDeroule } from '../ResolutionDeroule';
 
-/** Instructions exactes de l'étape et résultat attendu. */
+/** Instructions exactes de l'étape et résultat attendu, avec sa fin (test unitaire ou simple vérification). */
 function InstructionsEtape({ etape }: { etape: Etape }) {
   return (
     <>
@@ -20,7 +21,7 @@ function InstructionsEtape({ etape }: { etape: Etape }) {
         <section className="rounded-lg border border-ok-bd bg-ok-bg px-3.5 py-3 text-ok-fg">
           <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] uppercase">
             <Check className="size-3.5" aria-hidden />
-            Résultat attendu
+            Résultat attendu · {LIBELLE_FIN[etape.fin]}
           </h3>
           <Markdown source={etape.resultatAttendu} />
         </section>

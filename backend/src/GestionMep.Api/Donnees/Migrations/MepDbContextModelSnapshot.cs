@@ -150,6 +150,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid?>("ExecutantId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("Fin")
+                        .HasColumnType("integer");
+
                     b.Property<DateTimeOffset?>("FinReelle")
                         .HasColumnType("timestamp with time zone");
 
@@ -193,8 +196,20 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ResultatConstate")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("Revision")
                         .HasColumnType("integer");
+
+                    b.Property<string>("SauvegardeEmplacement")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SauvegardeMethodeRecuperation")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.PrimitiveCollection<List<Guid>>("SystemeIds")
                         .IsRequired()
@@ -1081,7 +1096,15 @@ namespace GestionMep.Api.Donnees.Migrations
                                 .IsRequired()
                                 .HasColumnType("text");
 
+                            b1.Property<string>("Emplacement")
+                                .IsRequired()
+                                .HasColumnType("text");
+
                             b1.Property<string>("Justification")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("MethodeRecuperation")
                                 .IsRequired()
                                 .HasColumnType("text");
 

@@ -800,6 +800,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meps/{id}/tests-unitaires": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestsUnitairesDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meps/{id}/flux": {
         parameters: {
             query?: never;
@@ -3976,7 +4013,11 @@ export interface components {
             environnement: null | string;
             commeModele: boolean;
         };
-        /** @description `Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). */
+        /**
+         * @description `Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire
+         *     (le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.
+         *     `SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.
+         */
         EtapeDto: {
             /** Format: uuid */
             id: string;
@@ -4030,8 +4071,20 @@ export interface components {
                 /** Format: date-time */
                 le: string;
             };
+            /**
+             * @description Fin d'une étape : test unitaire (le résultat attendu est l'instruction de test, le résultat constaté se saisit en
+             *     terminant l'étape) ou simple vérification. Stockée en entier : 0, la valeur par défaut, est le test unitaire.
+             * @enum {unknown}
+             */
+            fin: "TestUnitaire" | "Verification";
+            resultatConstate: string;
+            sauvegardeEmplacement: string;
+            sauvegardeMethodeRecuperation: string;
         };
-        /** @description `Ligne` et `Position` ne servent qu'à la création (`POST /etapes`). */
+        /**
+         * @description `Ligne` et `Position` ne servent qu'à la création (`POST /etapes`). `Fin`, `SauvegardeEmplacement` et
+         *     `SauvegardeMethodeRecuperation` absents : inchangés (test unitaire pour une nouvelle étape).
+         */
         EtapeSaisie: {
             /** Format: int32 */
             revision: null | number;
@@ -4054,6 +4107,9 @@ export interface components {
             ligne?: null | number;
             /** Format: int32 */
             position?: null | number;
+            fin?: null | components["schemas"]["FinEtape"];
+            sauvegardeEmplacement?: null | string;
+            sauvegardeMethodeRecuperation?: null | string;
         };
         EtapeTestDto: {
             /** Format: uuid */
@@ -4076,7 +4132,7 @@ export interface components {
             resultatAttendu: null | string;
         };
         /** @enum {unknown} */
-        EtatEtape: "AFaire" | "EnCours" | "Reussie" | "Echec" | null;
+        EtatEtape: "AFaire" | "EnCours" | "Reussie" | "Echec";
         EvenementAdminDto: {
             /** Format: int64 */
             id: number;
@@ -4177,6 +4233,8 @@ export interface components {
             titre: null | string;
             etapes: null | components["schemas"]["EtapeTestSaisie"][];
         };
+        /** @enum {unknown} */
+        FinEtape: "TestUnitaire" | "Verification" | null;
         /**
          * @description Fournisseur de la connexion unique : Microsoft Entra ID (préréglage) ou tout autre fournisseur OpenID Connect.
          * @enum {unknown}
@@ -4321,6 +4379,7 @@ export interface components {
                 impact: string;
                 /** Format: uuid */
                 catalogueId: null | string;
+                /** @description `Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan). */
                 sauvegarde: {
                     /**
                      * @description Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu.
@@ -4334,6 +4393,8 @@ export interface components {
                     moment: "AvantMep" | "PendantMep";
                     contenu: string;
                     justification: string;
+                    emplacement: string;
+                    methodeRecuperation: string;
                 };
             }[];
             livrables: {
@@ -4398,6 +4459,15 @@ export interface components {
                     /** Format: date-time */
                     le: string;
                 };
+                /**
+                 * @description Fin d'une étape : test unitaire (le résultat attendu est l'instruction de test, le résultat constaté se saisit en
+                 *     terminant l'étape) ou simple vérification. Stockée en entier : 0, la valeur par défaut, est le test unitaire.
+                 * @enum {unknown}
+                 */
+                fin: "TestUnitaire" | "Verification";
+                resultatConstate: string;
+                sauvegardeEmplacement: string;
+                sauvegardeMethodeRecuperation: string;
             }[];
             resolutions: {
                 /** Format: uuid */
@@ -4851,6 +4921,7 @@ export interface components {
             preuveTestRestauration: null | string;
             mode?: null | components["schemas"]["ModeSauvegarde"];
         };
+        /** @description `Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan). */
         SauvegardeSystemeDto: {
             /**
              * @description Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu.
@@ -4864,7 +4935,10 @@ export interface components {
             moment: "AvantMep" | "PendantMep";
             contenu: string;
             justification: string;
+            emplacement: string;
+            methodeRecuperation: string;
         };
+        /** @description `Emplacement` et `MethodeRecuperation` absents : inchangés. */
         SauvegardeSystemeSaisie: {
             /** Format: int32 */
             version: null | number;
@@ -4872,6 +4946,8 @@ export interface components {
             moment: null | components["schemas"]["ModeSauvegarde"];
             contenu: null | string;
             justification: null | string;
+            emplacement?: null | string;
+            methodeRecuperation?: null | string;
         };
         /** @description Compte de l'application relié à un compte du fournisseur. */
         SsoIdentiteDto: {
@@ -4967,6 +5043,7 @@ export interface components {
             impact: string;
             /** Format: uuid */
             catalogueId: null | string;
+            /** @description `Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan). */
             sauvegarde: {
                 /**
                  * @description Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu.
@@ -4980,6 +5057,8 @@ export interface components {
                 moment: "AvantMep" | "PendantMep";
                 contenu: string;
                 justification: string;
+                emplacement: string;
+                methodeRecuperation: string;
             };
         };
         SystemeSaisie: {
@@ -4987,6 +5066,7 @@ export interface components {
             cible: null | string;
             impact: null | string;
         };
+        /** @description `ResultatConstate` : résultat du test unitaire, exigé pour le réussir (à défaut, la preuve en tient lieu). */
         TerminerSaisie: {
             /** Format: int32 */
             revision: null | number;
@@ -4994,11 +5074,43 @@ export interface components {
             preuve: null | string;
             resultatVerifie: boolean;
             commentaire?: null | string;
+            resultatConstate?: null | string;
+        };
+        /**
+         * @description Suivi des tests unitaires d'une MEP, dans l'ordre du plan : le déploiement, puis le retour arrière s'il a été déclenché.
+         *     `Verifications` : nombre d'étapes suivies qui se terminent par une simple vérification (absentes de `Tests`).
+         */
+        TestsUnitairesDto: {
+            /** Format: int32 */
+            faits: number;
+            /** Format: int32 */
+            nonFaits: number;
+            /** Format: int32 */
+            verifications: number;
+            tests: components["schemas"]["TestUnitaireDto"][];
+        };
+        /** @description Test unitaire d'une étape : `Fait` si l'étape est terminée (réussie ou en échec) ; `Executant` : dernier exécutant. */
+        TestUnitaireDto: {
+            /** Format: uuid */
+            etapeId: string;
+            code: string;
+            plan: components["schemas"]["TypePlan"];
+            action: string;
+            etat: components["schemas"]["EtatEtape"];
+            fait: boolean;
+            resultatAttendu: string;
+            resultatConstate: string;
+            executant: null | string;
+            /** Format: date-time */
+            finReelle: null | string;
         };
         /** @enum {unknown} */
         TypeEtape: "Standard" | "Sauvegarde" | null;
-        /** @enum {unknown} */
-        TypePlan: "Deploiement" | "RetourArriere" | null;
+        /**
+         * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+         * @enum {unknown}
+         */
+        TypePlan: "Deploiement" | "RetourArriere";
         /** @enum {unknown} */
         TypeReglage: "Texte" | "Adresse" | "Entier" | "Booleen" | "Reseaux";
         UtilisateurDto: {

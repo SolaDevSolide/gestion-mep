@@ -52,6 +52,12 @@
 
 **Responsable technique** : développeur ou sachant qui a préparé une partie du changement et reste joignable le jour J.
 
+**Résultat constaté** : réponse d'un test unitaire, saisie par l'exécutant en terminant l'étape.
+
+**Simple vérification** : fin d'une étape où l'exécutant confirme le résultat attendu sans saisir de résultat constaté.
+
 **Suppléant** : remplaçant du pilote, avec les mêmes droits.
 
 **Système** : composant touché par la MEP (base de données, API, portail web…).
+
+**Test unitaire** : fin d'une étape par défaut. Le résultat attendu est l'instruction de test ; le résultat constaté est saisi en terminant l'étape.

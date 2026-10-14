@@ -25,13 +25,19 @@ public static partial class Regles
         etape.ExecutantId = executant.Id;
         etape.DebutReel = maintenant;
         etape.FinReelle = null;
+        // Nouvelle tentative : le résultat constaté de la précédente (en échec) reste dans le journal.
+        etape.ResultatConstate = "";
         etape.Revision++;
     }
 
     /// <param name="resultatVerifie">Confirmation « j'ai vérifié et obtenu le résultat attendu », exigée pour Réussie.</param>
     /// <param name="commentaire">Commentaire facultatif enregistré avec la preuve (null : commentaire existant inchangé).</param>
+    /// <param name="resultatConstate">
+    /// Résultat constaté d'un test unitaire (ignoré pour une simple vérification). À défaut, la preuve, qui décrit aussi ce qui a
+    /// été constaté, en tient lieu ; un test unitaire réussi sans l'un ni l'autre est refusé.
+    /// </param>
     public static void Terminer(Mep mep, Etape etape, EtatEtape resultat, string preuve, bool resultatVerifie, Guid utilisateurId, DateTimeOffset maintenant,
-        string? commentaire = null)
+        string? commentaire = null, string? resultatConstate = null)
     {
         if (resultat is not (EtatEtape.Reussie or EtatEtape.Echec))
             throw new RegleMetierException("Résultat attendu : Réussie ou Échec.");
@@ -44,6 +50,12 @@ public static partial class Regles
             throw new RegleMetierException("Décrire l'erreur constatée dans la preuve.");
         if (resultat == EtatEtape.Reussie && !resultatVerifie)
             throw new RegleMetierException("Confirmer avoir vérifié et obtenu le résultat attendu.");
+        var constate = etape.Fin == FinEtape.TestUnitaire
+            ? string.IsNullOrWhiteSpace(resultatConstate) ? preuve?.Trim() ?? "" : resultatConstate.Trim()
+            : "";
+        if (etape.Fin == FinEtape.TestUnitaire && resultat == EtatEtape.Reussie && constate.Length == 0)
+            throw new RegleMetierException("Test unitaire : saisir le résultat constaté.");
+        etape.ResultatConstate = constate;
         etape.Preuve = preuve?.Trim() ?? "";
         if (commentaire is not null) etape.Commentaire = commentaire.Trim();
         etape.FinReelle = maintenant;

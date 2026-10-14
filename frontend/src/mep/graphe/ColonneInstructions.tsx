@@ -4,11 +4,14 @@ import { Bloc } from './EspaceEtape';
 import type { Fiche } from './PanneauEdition';
 
 interface Props {
-  fiche: Pick<Fiche, 'instructions' | 'resultatAttendu'>;
+  fiche: Pick<Fiche, 'instructions' | 'resultatAttendu' | 'fin'>;
   onChange: (patch: Partial<Fiche>) => void;
 }
 
-/** Colonne centrale de l'édition d'une étape : instructions exactes et résultat attendu (avec aperçu Markdown). */
+/**
+ * Colonne centrale de l'édition d'une étape : instructions exactes et résultat attendu (avec aperçu Markdown), qui sert
+ * d'instruction de test pour un test unitaire.
+ */
 export function ColonneInstructions({ fiche: v, onChange }: Props) {
   return (
     <>
@@ -16,6 +19,11 @@ export function ColonneInstructions({ fiche: v, onChange }: Props) {
         <EditeurBlocs label="Instructions" valeur={v.instructions} onChange={(md) => onChange({ instructions: md })} />
       </Bloc>
       <Bloc titre="Résultat attendu">
+        <p className="text-xs text-fg-subtle">
+          {v.fin === 'TestUnitaire'
+            ? 'Test unitaire : l’exécutant saisira le résultat constaté en terminant l’étape.'
+            : 'Simple vérification : l’exécutant confirme le résultat, sans le saisir.'}
+        </p>
         <ZoneAuto
           aria-label="Résultat attendu"
           value={v.resultatAttendu}

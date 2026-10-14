@@ -18,6 +18,19 @@ public static partial class DonneesDemo
     /// <summary>Bloc de code markdown (format des instructions, voir le jalon 4).</summary>
     private static string Code(string commande) => $"```\n{commande}\n```";
 
+    /// <summary>Emplacement fictif d'une sauvegarde de démonstration (nom du système ou code de l'étape).</summary>
+    private static string EmplacementDemo(string nom) => $"Dossier fictif `/sauvegardes-demo/{nom}` (aucun fichier réel)";
+
+    private const string RecuperationDemo = "Restauration décrite dans le plan de retour arrière (simulation : rien à lancer).";
+
+    /// <summary>Étape de type Sauvegarde, avec son emplacement et sa méthode de récupération fictifs.</summary>
+    private static void EtapeSauvegarde(Etape e)
+    {
+        e.Type = TypeEtape.Sauvegarde;
+        e.SauvegardeEmplacement = EmplacementDemo(e.Code);
+        e.SauvegardeMethodeRecuperation = RecuperationDemo;
+    }
+
     /// <summary>Critères go / no-go de démonstration.</summary>
     public static List<CritereGoNoGo> CriteresGoNoGo() =>
     [
@@ -169,15 +182,18 @@ public static partial class DonneesDemo
         var e1 = Etape(mep, TypePlan.Deploiement, 1, 0, "Sauvegarde de la base clients", [bdd], pAlice, 20, Criticite.Elevee, EtatEtape.Reussie,
             simulation + "Faire la sauvegarde **complète** de la base `clients` avant toute modification.\n\n" + Code("pg_dump -h bdd-demo -U admin clients > /sauvegardes/clients.sql"),
             "Fichier de sauvegarde présent, taille supérieure à 0, aucune erreur.", "clients.sql (2,3 Go) — fictif");
-        e1.Type = TypeEtape.Sauvegarde;
+        EtapeSauvegarde(e1);
         e1.ResolutionIds = [droitsBdd.Id];
         var e2 = Etape(mep, TypePlan.Deploiement, 2, 0, "Sauvegarde du service commandes", [api], pBob, 15, Criticite.Moderee, EtatEtape.Reussie,
             simulation + Code("tar czf /sauvegardes/commandes.tgz /opt/commandes"), "Archive créée.", "commandes.tgz OK — fictif");
-        e2.Type = TypeEtape.Sauvegarde;
+        EtapeSauvegarde(e2);
         var e3 = Etape(mep, TypePlan.Deploiement, 3, 0, "Snapshot du portail", [web], pClaire, 15, Criticite.Moderee, EtatEtape.Reussie,
             simulation + "Dans la console de virtualisation :\n1. sélectionner le volume `web-prod`\n2. **Créer un snapshot** nommé `avant-2.0`",
             "Snapshot visible dans la liste.", "snap-0f3a — fictif");
-        e3.Type = TypeEtape.Sauvegarde;
+        EtapeSauvegarde(e3);
+        // Le snapshot se constate dans la console : simple vérification, sans résultat constaté à saisir.
+        e3.Fin = FinEtape.Verification;
+        e3.ResultatConstate = "";
         // Ligne 1 : migration, déploiement (en échec), publication.
         var e4 = Etape(mep, TypePlan.Deploiement, 4, 1, "Migration du schéma", [bdd], pAlice, 20, Criticite.Elevee, EtatEtape.AFaire,
             simulation + Code("psql -h bdd-demo -U admin -d clients -f migrations/2.0.sql"), "Toutes les migrations appliquées, aucune erreur.", "", e1, e2, e3);
@@ -257,6 +273,8 @@ public static partial class DonneesDemo
         {
             Statut = statut, Moment = statut == StatutSauvegarde.Requise ? ModeSauvegarde.PendantMep : ModeSauvegarde.AvantMep,
             Contenu = contenu, Justification = justification,
+            Emplacement = statut == StatutSauvegarde.Requise ? EmplacementDemo(s.Nom) : "",
+            MethodeRecuperation = statut == StatutSauvegarde.Requise ? RecuperationDemo : "",
         };
 
     private static void Recette(Mep mep, Systeme systeme, string titre, params (string Instructions, string Attendu)[] etapes) =>
@@ -278,7 +296,7 @@ public static partial class DonneesDemo
             MepId = mep.Id, Plan = plan, Code = $"{(plan == TypePlan.Deploiement ? 'E' : 'R')}{n:0000}", Ligne = ligne,
             Ordre = mep.Etapes.Count(x => x.Plan == plan && x.Ligne == ligne), Action = action, SystemeIds = systemes.Select(s => s.Id).ToList(),
             DureeEstimeeMinutes = duree, ExecutantId = etat == EtatEtape.AFaire ? null : qui.Id, Criticite = criticite, Etat = etat, Instructions = instructions,
-            ResultatAttendu = attendu, Preuve = preuve, Dependances = prealables.Select(p => p.Id).ToList(),
+            ResultatAttendu = attendu, Preuve = preuve, ResultatConstate = etat is EtatEtape.Reussie or EtatEtape.Echec ? preuve : "", Dependances = prealables.Select(p => p.Id).ToList(),
             Revision = etat == EtatEtape.AFaire ? 0 : 1,
         };
         mep.Etapes.Add(e);

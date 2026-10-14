@@ -16,7 +16,9 @@ public record SauvegardeDto(ModeSauvegarde Mode, bool Structure, bool Donnees, b
 
 public record ValidationDto(string Par, DateTimeOffset Le);
 public record ParticipantDto(Guid Id, string Nom, string Role, string Contact, Guid? UtilisateurId, string? UtilisateurNom);
-public record SauvegardeSystemeDto(StatutSauvegarde Statut, ModeSauvegarde Moment, string Contenu, string Justification);
+/// <summary><c>Emplacement</c> et <c>MethodeRecuperation</c> : obligatoires si la sauvegarde est requise (vérification du plan).</summary>
+public record SauvegardeSystemeDto(StatutSauvegarde Statut, ModeSauvegarde Moment, string Contenu, string Justification, string Emplacement,
+    string MethodeRecuperation);
 public record SystemeDto(Guid Id, string Nom, string Cible, string Impact, Guid? CatalogueId, SauvegardeSystemeDto Sauvegarde);
 public record PlanRepliDto(string QuandDeclencher, int? DureeTesteeMinutes, string VersionARestaurer, string DonneesDepuisSauvegarde, string SiRepliEchoue);
 /// <summary><c>Par</c> vaut null quand le retour arrière s'est déclenché automatiquement.</summary>
@@ -25,12 +27,27 @@ public record ClotureDto(DateTimeOffset Le, string? Par);
 public record LivrableDto(Guid Id, string Objet, string Version, string Emplacement, Guid? SystemeId);
 public record DisponibiliteDto(StatutDisponibilite Statut, string Libelle);
 
-/// <summary><c>Ligne</c> : ligne du graphe (0 en haut) ; <c>Ordre</c> : position dans la ligne (0 à gauche).</summary>
+/// <summary>
+/// <c>Ligne</c> : ligne du graphe (0 en haut) ; <c>Ordre</c> : position dans la ligne (0 à gauche). <c>Fin</c> : test unitaire
+/// (le résultat attendu est l'instruction de test, <c>ResultatConstate</c> se saisit en terminant l'étape) ou simple vérification.
+/// <c>SauvegardeEmplacement</c> et <c>SauvegardeMethodeRecuperation</c> : étape de type Sauvegarde seulement.
+/// </summary>
 public record EtapeDto(Guid Id, TypePlan Plan, string Code, int Ligne, int Ordre, string Action, List<Guid> SystemeIds, Guid? ResponsableId, Guid? ExecutantId,
     Criticite? Criticite, int? DureeEstimeeMinutes,
     EtatEtape Etat, string Instructions, string ResultatAttendu, string Preuve, string Commentaire, DateTimeOffset? DebutReel, DateTimeOffset? FinReelle,
     int Revision, List<Guid> Dependances, List<Guid> ResolutionIds, DisponibiliteDto Disponibilite,
-    TypeEtape Type, bool PointDeNonRetour, ValidationDto? NonRetourAutorise);
+    TypeEtape Type, bool PointDeNonRetour, ValidationDto? NonRetourAutorise, FinEtape Fin, string ResultatConstate, string SauvegardeEmplacement,
+    string SauvegardeMethodeRecuperation);
+
+/// <summary>Test unitaire d'une étape : <c>Fait</c> si l'étape est terminée (réussie ou en échec) ; <c>Executant</c> : dernier exécutant.</summary>
+public record TestUnitaireDto(Guid EtapeId, string Code, TypePlan Plan, string Action, EtatEtape Etat, bool Fait, string ResultatAttendu,
+    string ResultatConstate, string? Executant, DateTimeOffset? FinReelle);
+
+/// <summary>
+/// Suivi des tests unitaires d'une MEP, dans l'ordre du plan : le déploiement, puis le retour arrière s'il a été déclenché.
+/// <c>Verifications</c> : nombre d'étapes suivies qui se terminent par une simple vérification (absentes de <c>Tests</c>).
+/// </summary>
+public record TestsUnitairesDto(int Faits, int NonFaits, int Verifications, List<TestUnitaireDto> Tests);
 
 public record ApprobationDto(Guid Id, Guid UtilisateurId, string Nom, DecisionApprobation? Decision, string Commentaire, DateTimeOffset? Le);
 public record CritereValideDto(string Libelle, string? Par, DateTimeOffset Le);
@@ -102,20 +119,28 @@ public record SauvegardeSaisie(int? Version, bool Structure, bool Donnees, bool 
 
 public record ParticipantSaisie(string? Nom, string? Role, string? Contact, Guid? UtilisateurId);
 public record SystemeSaisie(string? Nom, string? Cible, string? Impact);
-public record SauvegardeSystemeSaisie(int? Version, StatutSauvegarde? Statut, ModeSauvegarde? Moment, string? Contenu, string? Justification);
+/// <summary><c>Emplacement</c> et <c>MethodeRecuperation</c> absents : inchangés.</summary>
+public record SauvegardeSystemeSaisie(int? Version, StatutSauvegarde? Statut, ModeSauvegarde? Moment, string? Contenu, string? Justification,
+    string? Emplacement = null, string? MethodeRecuperation = null);
 public record LivrableSaisie(string? Objet, string? Version, string? Emplacement, Guid? SystemeId);
 
-/// <summary><c>Ligne</c> et <c>Position</c> ne servent qu'à la création (<c>POST /etapes</c>).</summary>
+/// <summary>
+/// <c>Ligne</c> et <c>Position</c> ne servent qu'à la création (<c>POST /etapes</c>). <c>Fin</c>, <c>SauvegardeEmplacement</c> et
+/// <c>SauvegardeMethodeRecuperation</c> absents : inchangés (test unitaire pour une nouvelle étape).
+/// </summary>
 public record EtapeSaisie(int? Revision, string? Action, List<Guid>? SystemeIds, Guid? ResponsableId, Criticite? Criticite,
     string? Instructions, string? ResultatAttendu, List<Guid>? Dependances, TypePlan? Plan = null, List<Guid>? ResolutionIds = null,
-    TypeEtape? Type = null, bool PointDeNonRetour = false, int? DureeEstimeeMinutes = null, int? Ligne = null, int? Position = null);
+    TypeEtape? Type = null, bool PointDeNonRetour = false, int? DureeEstimeeMinutes = null, int? Ligne = null, int? Position = null,
+    FinEtape? Fin = null, string? SauvegardeEmplacement = null, string? SauvegardeMethodeRecuperation = null);
 
 public record PlacerSaisie(int? Ligne, int? Position, bool LiensParDefaut = true);
 public record RevisionSaisie(int? Revision);
 public record PriseDeMainSaisie(int? Revision, string? Motif);
 public record ResponsableTechniqueSaisie(Guid? ParticipantId, List<Guid>? SystemeIds, string? Perimetre, DisponibiliteJourJ? Disponibilite, string? ContactJourJ);
 public record ResponsablesTechniquesSaisie(int? Version, List<ResponsableTechniqueSaisie>? Responsables);
-public record TerminerSaisie(int? Revision, EtatEtape? Resultat, string? Preuve, bool ResultatVerifie, string? Commentaire = null);
+/// <summary><c>ResultatConstate</c> : résultat du test unitaire, exigé pour le réussir (à défaut, la preuve en tient lieu).</summary>
+public record TerminerSaisie(int? Revision, EtatEtape? Resultat, string? Preuve, bool ResultatVerifie, string? Commentaire = null,
+    string? ResultatConstate = null);
 public record CommentaireSaisie(int? Revision, string? Commentaire);
 public record ProcedureRelueSaisie(bool Relue);
 public record PhaseSaisie(Phase? Phase, List<Guid>? CriteresCoches = null);

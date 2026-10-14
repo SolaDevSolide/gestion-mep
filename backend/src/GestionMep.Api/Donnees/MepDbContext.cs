@@ -97,7 +97,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         b.Entity<Systeme>(e =>
         {
             e.Property(x => x.Id).ValueGeneratedNever();
-            // Colonnes Sauvegarde_Statut, Sauvegarde_Moment, Sauvegarde_Contenu, Sauvegarde_Justification.
+            // Colonnes Sauvegarde_Statut, Sauvegarde_Moment, Sauvegarde_Contenu, Sauvegarde_Justification, Sauvegarde_Emplacement,
+            // Sauvegarde_MethodeRecuperation.
             e.OwnsOne(x => x.Sauvegarde);
         });
         b.Entity<Livrable>().Property(x => x.Id).ValueGeneratedNever();

@@ -54,6 +54,12 @@ public static partial class Regles
             if (e.Criticite is null) manquants.Add("Criticité");
             if (string.IsNullOrWhiteSpace(e.Instructions)) manquants.Add("Instructions exactes");
             if (string.IsNullOrWhiteSpace(e.ResultatAttendu)) manquants.Add("Résultat attendu");
+            // Une étape de sauvegarde dit où trouver la sauvegarde et comment la récupérer.
+            if (e.Type == TypeEtape.Sauvegarde)
+            {
+                if (string.IsNullOrWhiteSpace(e.SauvegardeEmplacement)) manquants.Add("Emplacement de la sauvegarde");
+                if (string.IsNullOrWhiteSpace(e.SauvegardeMethodeRecuperation)) manquants.Add("Méthode de récupération");
+            }
             if (manquants.Count > 0) erreurs.Add($"{e.Code} : compléter {string.Join(", ", manquants)}.");
             if (e.Action.TrimStart().StartsWith("Exemple", StringComparison.OrdinalIgnoreCase))
                 erreurs.Add($"{e.Code} : remplacer l'action d'exemple par une action réelle.");
@@ -65,7 +71,10 @@ public static partial class Regles
         return erreurs;
     }
 
-    /// <summary>Sauvegarde de chaque système : statut renseigné, justification si non requise, étape de type Sauvegarde si faite pendant la MEP.</summary>
+    /// <summary>
+    /// Sauvegarde de chaque système : statut renseigné, justification si non requise ; si requise (avant ou pendant la MEP),
+    /// emplacement et méthode de récupération, et étape de type Sauvegarde si elle est faite pendant la MEP.
+    /// </summary>
     public static List<string> ErreursSauvegarde(Mep mep)
     {
         var erreurs = new List<string>();
@@ -80,9 +89,14 @@ public static partial class Regles
                 case StatutSauvegarde.NonRequise when string.IsNullOrWhiteSpace(sv.Justification):
                     erreurs.Add($"Sauvegarde de {s.Nom} non requise : justifier.");
                     break;
-                case StatutSauvegarde.Requise when sv.Moment == ModeSauvegarde.PendantMep
-                    && !mep.EtapesDu(TypePlan.Deploiement).Any(e => e.Type == TypeEtape.Sauvegarde && e.SystemeIds.Contains(s.Id)):
-                    erreurs.Add($"Sauvegarde de {s.Nom} pendant la MEP : ajouter une étape de déploiement de type Sauvegarde sur ce système.");
+                case StatutSauvegarde.Requise:
+                    var manquants = new List<string>();
+                    if (string.IsNullOrWhiteSpace(sv.Emplacement)) manquants.Add("Emplacement");
+                    if (string.IsNullOrWhiteSpace(sv.MethodeRecuperation)) manquants.Add("Méthode de récupération");
+                    if (manquants.Count > 0) erreurs.Add($"Sauvegarde de {s.Nom} : compléter {string.Join(", ", manquants)}.");
+                    if (sv.Moment == ModeSauvegarde.PendantMep
+                        && !mep.EtapesDu(TypePlan.Deploiement).Any(e => e.Type == TypeEtape.Sauvegarde && e.SystemeIds.Contains(s.Id)))
+                        erreurs.Add($"Sauvegarde de {s.Nom} pendant la MEP : ajouter une étape de déploiement de type Sauvegarde sur ce système.");
                     break;
             }
         }

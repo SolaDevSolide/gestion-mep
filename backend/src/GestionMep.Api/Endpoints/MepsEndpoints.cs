@@ -230,6 +230,9 @@ public static class MepsEndpoints
 
         api.MapGet("/meps/{id:guid}/journal", (Guid id, MepDbContext db) => Journal(db, id));
 
+        // Tests unitaires faits, non faits et leurs résultats constatés.
+        api.MapGet("/meps/{id:guid}/tests-unitaires", async (Guid id, ServiceMep svc) => MepMapping.TestsUnitaires(await svc.Charger(id)));
+
         // Flux limités (par compte et pour le serveur) et renouvelés toutes les heures : le navigateur se reconnecte seul.
         api.MapGet("/meps/{id:guid}/flux", async (Guid id, HttpContext ctx, ClaimsPrincipal user, MepDbContext db, DiffuseurMep diffuseur) =>
         {

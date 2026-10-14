@@ -1,10 +1,10 @@
 import { DatabaseBackup } from 'lucide-react';
 import { couleurSysteme, styleSysteme } from '../../couleursSysteme';
-import { LIBELLE_CRITICITE } from '../../format';
+import { LIBELLE_CRITICITE, LIBELLE_FIN } from '../../format';
 import type { Criticite, Mep, TypePlan } from '../../types';
 import { Checkbox } from '../../ui/Checkbox';
 import { cn } from '../../ui/cn';
-import { Field, Input, Select } from '../../ui/Input';
+import { Field, Input, Select, Textarea } from '../../ui/Input';
 import { Segmented } from '../../ui/Segmented';
 import { Bloc } from './EspaceEtape';
 import type { Fiche } from './PanneauEdition';
@@ -16,7 +16,10 @@ interface Props {
   onChange: (patch: Partial<Fiche>) => void;
 }
 
-/** Colonne gauche de l'édition d'une étape : systèmes, criticité, durée, et (déploiement) type et point de non-retour. */
+/**
+ * Colonne gauche de l'édition d'une étape : systèmes, criticité, durée, fin (test unitaire ou simple vérification) et,
+ * pour le déploiement, type (avec l'emplacement et la méthode de récupération d'une sauvegarde) et point de non-retour.
+ */
 export function ColonneFiche({ mep, plan, fiche: v, onChange }: Props) {
   const basculerSysteme = (id: string) =>
     onChange({
@@ -82,6 +85,17 @@ export function ColonneFiche({ mep, plan, fiche: v, onChange }: Props) {
           )}
         </Field>
       </div>
+      <Bloc titre="Fin de l’étape">
+        <Segmented
+          label="Fin de l’étape"
+          valeur={v.fin}
+          onChange={(fin) => onChange({ fin })}
+          options={[
+            { valeur: 'TestUnitaire', libelle: LIBELLE_FIN.TestUnitaire },
+            { valeur: 'Verification', libelle: LIBELLE_FIN.Verification },
+          ]}
+        />
+      </Bloc>
       {plan === 'Deploiement' && (
         <>
           <Bloc titre="Type">
@@ -103,6 +117,31 @@ export function ColonneFiche({ mep, plan, fiche: v, onChange }: Props) {
               ]}
             />
           </Bloc>
+          {v.type === 'Sauvegarde' && (
+            <div className="grid gap-3">
+              <Field label="Emplacement de la sauvegarde *">
+                {(id) => (
+                  <Input
+                    id={id}
+                    value={v.sauvegardeEmplacement}
+                    onChange={(e) => onChange({ sauvegardeEmplacement: e.target.value })}
+                    placeholder="ex. /sauvegardes/clients.sql"
+                  />
+                )}
+              </Field>
+              <Field label="Méthode de récupération *">
+                {(id) => (
+                  <Textarea
+                    id={id}
+                    rows={2}
+                    value={v.sauvegardeMethodeRecuperation}
+                    onChange={(e) => onChange({ sauvegardeMethodeRecuperation: e.target.value })}
+                    placeholder="ex. psql -d clients < clients.sql"
+                  />
+                )}
+              </Field>
+            </div>
+          )}
           <div
             className="rounded-lg border-[1.5px] border-rollback-solid bg-danger-bg/60 px-3 py-2 text-danger-fg"
             title="Démarrer cette étape exigera l’accord du pilote ; ensuite, plus de retour arrière."

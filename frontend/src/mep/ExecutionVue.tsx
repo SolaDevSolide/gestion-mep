@@ -56,10 +56,20 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
     };
     return {
       demarrer: (e) => run(() => api.demarrerEtape(mep.id, e.id, e.revision), `${e.code} démarrée.`),
-      terminer: async (e, resultat, preuve, commentaire) =>
+      terminer: async (e, resultat, preuve, commentaire, resultatConstate) =>
         suivante(
           await run(
-            () => api.terminerEtape(mep.id, e.id, e.revision, resultat, preuve, resultat === 'Reussie', commentaire),
+            () =>
+              api.terminerEtape(
+                mep.id,
+                e.id,
+                e.revision,
+                resultat,
+                preuve,
+                resultat === 'Reussie',
+                commentaire,
+                resultatConstate,
+              ),
             resultat === 'Reussie' ? `${e.code} réussie.` : `${e.code} en échec.`,
           ),
           resultat,

@@ -26,6 +26,12 @@ public enum StatutSauvegarde { ARenseigner, Requise, NonRequise }
 /// <summary>Nature d'une étape de déploiement : standard, ou étape qui réalise la sauvegarde.</summary>
 public enum TypeEtape { Standard, Sauvegarde }
 
+/// <summary>
+/// Fin d'une étape : test unitaire (le résultat attendu est l'instruction de test, le résultat constaté se saisit en
+/// terminant l'étape) ou simple vérification. Stockée en entier : 0, la valeur par défaut, est le test unitaire.
+/// </summary>
+public enum FinEtape { TestUnitaire, Verification }
+
 public enum DecisionApprobation { Approuvee, Refusee }
 
 /// <summary>Disponibilité d'un responsable technique le jour de la MEP.</summary>
@@ -195,6 +201,10 @@ public class SauvegardeSysteme
     public string Contenu { get; set; } = "";
     /// <summary>Pourquoi aucune sauvegarde n'est nécessaire : obligatoire si non requise.</summary>
     public string Justification { get; set; } = "";
+    /// <summary>Où se trouve la sauvegarde (chemin, serveur, coffre…) : obligatoire si requise.</summary>
+    public string Emplacement { get; set; } = "";
+    /// <summary>Comment récupérer (restaurer) la sauvegarde : obligatoire si requise.</summary>
+    public string MethodeRecuperation { get; set; } = "";
 }
 
 /// <summary>Système du catalogue global, saisi une fois et sélectionné ensuite dans chaque MEP.</summary>
@@ -363,6 +373,14 @@ public class Etape
     public EtatEtape Etat { get; set; } = EtatEtape.AFaire;
     public string Instructions { get; set; } = "";
     public string ResultatAttendu { get; set; } = "";
+    /// <summary>Test unitaire ou simple vérification : décide si un résultat constaté est exigé en terminant l'étape.</summary>
+    public FinEtape Fin { get; set; } = FinEtape.TestUnitaire;
+    /// <summary>Résultat constaté du test unitaire, saisi en terminant l'étape (vide pour une simple vérification).</summary>
+    public string ResultatConstate { get; set; } = "";
+    /// <summary>Étape de type Sauvegarde : où se trouve la sauvegarde réalisée (obligatoire).</summary>
+    public string SauvegardeEmplacement { get; set; } = "";
+    /// <summary>Étape de type Sauvegarde : comment récupérer la sauvegarde (obligatoire).</summary>
+    public string SauvegardeMethodeRecuperation { get; set; } = "";
     public string Preuve { get; set; } = "";
     /// <summary>Commentaire facultatif de l'exécution (en plus de la preuve) ; conservé après une reprise, non copié à la duplication.</summary>
     public string Commentaire { get; set; } = "";

@@ -17,6 +17,12 @@ Il faut être une personne de la MEP reliée à son compte (ou administrateur) e
 **Je ne peux pas terminer l'étape de quelqu'un d'autre.**
 Seuls son exécutant, le pilote et les suppléants peuvent la terminer. Si l'exécutant est injoignable, utiliser « Prendre la main » avec un motif.
 
+**« Réussie » reste grisé dans la confirmation.**
+L'étape se termine par un test unitaire : saisir le résultat constaté. Si l'étape ne demande qu'un contrôle sans résultat à noter, la préparer en « simple vérification ».
+
+**« Vérifier le plan » réclame l'emplacement ou la méthode de récupération d'une sauvegarde.**
+Toute sauvegarde requise (avant ou pendant la MEP) et toute étape de type Sauvegarde doivent dire où se trouve la sauvegarde et comment la récupérer. Sans ces deux informations, le Go est refusé.
+
 **Mes approbations ont disparu.**
 Toute modification du contenu en préparation efface les approbations : le plan approuvé n'est plus le même. Les approbateurs doivent se prononcer de nouveau.
 

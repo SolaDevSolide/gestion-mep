@@ -49,4 +49,6 @@ Les erreurs ont pour corps `{ "message": "…" }`, une phrase en français desti
 | `/api/demo` | Mode démonstration uniquement (`DEMO=true` ; sinon 404 comme une route inconnue) : `GET /api/demo` (sans session) donne les comptes de démonstration ; `POST /api/demo/connexion { login }` ouvre la session d'un compte de démonstration, avec les mêmes protections que `/api/auth/connexion` (en-tête anti-CSRF, limite par adresse, blocage progressif), 403 pour tout autre login ; `POST /api/demo/reinitialiser` (administrateurs) remet la base dans son état initial et ferme la session. |
 | `/api/sante`, `/api/version` | Sonde de santé et empreinte du front servi (pour proposer de recharger un onglet après un déploiement). |
 
+`GET /api/meps/{id}/tests-unitaires` donne le suivi des tests unitaires d'une MEP : nombre de tests faits et non faits, nombre de simples vérifications, puis pour chaque test l'étape, son état, le résultat attendu, le résultat constaté et l'exécutant. Chaque étape de la MEP porte aussi `fin` (`TestUnitaire` ou `Verification`) et `resultatConstate` ; `gestion-mep meps exporter` reprend ce suivi (`testsUnitaires`).
+
 L'API ne propose pas encore de jeton d'accès : un script doit se connecter et conserver le cookie de session.

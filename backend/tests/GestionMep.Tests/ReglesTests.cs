@@ -121,7 +121,8 @@ public class ReglesTests
         Go(m);
         var e4 = E(m, "E0004");
         Regles.Demarrer(m, e4, Alice, Maintenant);
-        Regles.Terminer(m, e4, EtatEtape.Reussie, "", true, Alice, Maintenant);
+        // Test unitaire : sans preuve, le résultat constaté suffit.
+        Regles.Terminer(m, e4, EtatEtape.Reussie, "", true, Alice, Maintenant, resultatConstate: "Migrations appliquées");
         Assert.Equal(EtatEtape.Reussie, e4.Etat);
         Assert.Equal("", e4.Preuve);
     }

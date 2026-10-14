@@ -221,6 +221,31 @@ describe('EtapesEditeur : graphe en préparation', () => {
     );
   });
 
+  it('fin de l’étape et sauvegarde : emplacement et méthode de récupération réclamés pour une étape de sauvegarde', async () => {
+    rendre(planExemple());
+    await userEvent.click(carte(/^E0001/));
+    const espace = screen.getByRole('dialog');
+    expect(
+      within(espace).getByText(/À compléter : l’emplacement de la sauvegarde, la méthode de récupération\./),
+    ).toBeInTheDocument();
+    expect(within(espace).getByRole('radio', { name: 'Test unitaire' })).toBeChecked();
+    expect(within(espace).getByText(/l’exécutant saisira le résultat constaté/)).toBeInTheDocument();
+    await userEvent.click(within(espace).getByRole('radio', { name: 'Simple vérification' }));
+    await userEvent.type(within(espace).getByLabelText(/Emplacement de la sauvegarde/), '/sauvegardes/clients.sql');
+    await userEvent.type(within(espace).getByLabelText(/Méthode de récupération/), 'psql < clients.sql');
+    expect(within(espace).queryByText(/À compléter/)).toBeNull();
+    await userEvent.click(within(espace).getByRole('button', { name: 'Enregistrer' }));
+    expect(api.modifierEtape).toHaveBeenCalledWith(
+      'm1',
+      'e1',
+      expect.objectContaining({
+        fin: 'Verification',
+        sauvegardeEmplacement: '/sauvegardes/clients.sql',
+        sauvegardeMethodeRecuperation: 'psql < clients.sql',
+      }),
+    );
+  });
+
   it('tout est visible sans onglets : fiche, instructions, liens, résolutions ; points à compléter résumés', async () => {
     rendre(
       planExemple({
