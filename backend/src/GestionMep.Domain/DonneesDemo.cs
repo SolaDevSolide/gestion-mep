@@ -40,6 +40,28 @@ public static partial class DonneesDemo
         new() { Ordre = 4, Libelle = "Supervision en place" },
     ];
 
+    /// <summary>Bibliothèque de recettes de démonstration : quelques fiches types rattachées aux systèmes WEB, API et BDD du catalogue.</summary>
+    public static List<ModeleRecette> ModelesRecette(IReadOnlyList<SystemeCatalogue> catalogue, DateTimeOffset maintenant)
+    {
+        Guid Id(string nom) => catalogue.First(s => s.Nom == nom).Id;
+        ModeleRecette Modele(string systeme, string titre, params (string Instructions, string Attendu)[] etapes) => new()
+        {
+            Titre = titre, SystemeCatalogueId = Id(systeme), Version = 1, ModifieLe = maintenant,
+            Etapes = etapes.Select((t, i) => new EtapeModeleRecette { Ordre = i + 1, Instructions = t.Instructions, ResultatAttendu = t.Attendu }).ToList(),
+        };
+        return
+        [
+            Modele("WEB", "Connexion au portail",
+                ("Ouvrir le portail et se connecter avec le compte de test de la recette.", "Le tableau de bord s'affiche avec le menu principal."),
+                ("Se déconnecter puis ouvrir de nouveau une page interne.", "La page de connexion s'affiche.")),
+            Modele("API", "Santé de l'API",
+                ("SIMULATION : lire sans lancer.\n\n" + Code("curl -fsS https://commandes.exemple.invalid/sante"), "Réponse 200 avec la nouvelle version.")),
+            Modele("BDD", "Droits de l'utilisateur applicatif",
+                ("Se connecter avec l'utilisateur applicatif, puis lire une table métier.\n\n" + Code("psql -h bdd-demo -U app_user -d clients -c \"SELECT count(*) FROM clients;\""),
+                    "Lecture autorisée ; le nombre de lignes est cohérent avec la veille.")),
+        ];
+    }
+
     /// <summary>
     /// Catalogue global de démonstration : systèmes (BDD, API, WEB, LDAP, MDM, BATCH, dans cet ordre)
     /// et résolutions types (API, BDD, WEB, API + BDD, dans cet ordre).

@@ -258,7 +258,7 @@ public class ReglesJalon4Tests
         var m = Demo();
         var web = m.FichesRecette[0];
         web.Etapes[1].ResultatAttendu = "";
-        var vide = Regles.AjouterFicheRecette(m, null, "  ");
+        var vide = Regles.AjouterFicheRecette(m, S(m, "WEB").Id, "  ");
         var erreurs = Regles.ErreursContenu(m, Maintenant);
         Assert.Contains("Recette « Parcours de commande », étape 2 : compléter les instructions et le résultat attendu.", erreurs);
         Assert.Contains("Recette 6 : indiquer un titre.", erreurs);
@@ -277,10 +277,10 @@ public class ReglesJalon4Tests
         var m = Demo();
         var fiche = m.FichesRecette[0];
         var (t1, t2) = (fiche.Etapes[0], fiche.Etapes[1]);
-        Regles.ModifierFicheRecette(m, fiche, S(m, "API").Id, " Parcours ",
+        Regles.ModifierFicheRecette(m, fiche, null, " Parcours ",
             [(t2.Id, " Commander ", "OK"), (null, "Nouvelle", "Attendu"), (Guid.NewGuid(), "Inconnue", "Attendu")]);
         Assert.Equal("Parcours", fiche.Titre);
-        Assert.Equal(S(m, "API").Id, fiche.SystemeId);
+        Assert.Equal(S(m, "WEB").Id, fiche.SystemeId); // la fiche garde son système
         Assert.Equal(3, fiche.Etapes.Count);
         Assert.Same(t2, fiche.Etapes[0]);
         Assert.Equal((1, "Commander"), (t2.Ordre, t2.Instructions));
@@ -291,7 +291,7 @@ public class ReglesJalon4Tests
         Regles.SupprimerFicheRecette(m, m.FichesRecette[1]);
         Assert.Equal([1, 2, 3, 4], m.FichesRecette.Select(f => f.Ordre).ToArray());
         m.Phase = Phase.Execution;
-        Assert.Throws<RegleMetierException>(() => Regles.AjouterFicheRecette(m, null, "x"));
+        Assert.Throws<RegleMetierException>(() => Regles.AjouterFicheRecette(m, S(m, "WEB").Id, "x"));
         Assert.Throws<RegleMetierException>(() => Regles.SupprimerFicheRecette(m, fiche));
     }
 

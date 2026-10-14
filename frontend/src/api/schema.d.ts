@@ -2663,6 +2663,324 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/modeles-recette": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    systemeCatalogueId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ModeleRecetteDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ModeleRecetteSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/modeles-recette/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ModeleRecetteDto"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ModeleRecetteSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/modeles-recette/depuis-fiche": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ModeleDepuisFicheSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/fiches-recette/depuis-modele": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InsertionModeleRecetteSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/recette/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/recette/excel/apercu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/recette/excel/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/parametres": {
         parameters: {
             query?: never;
@@ -4080,6 +4398,29 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Aperçu d'un import de validation : étapes à renseigner, étapes déjà à jour, lignes sans validation (ignorées). */
+        ApercuValidationDto: {
+            changements: {
+                /** Format: uuid */
+                ficheId: string;
+                /** Format: uuid */
+                etapeId: string;
+                systeme: string;
+                fiche: string;
+                /** Format: int32 */
+                etape: number;
+                /** @enum {unknown} */
+                resultat: "Conforme" | "Echec";
+                observation: string;
+                validePar: string;
+                /** Format: date */
+                date: null | string;
+            }[];
+            /** Format: int32 */
+            inchangees: number;
+            /** Format: int32 */
+            sansValidation: number;
+        };
         /**
          * @description Version en cours, lien « Signaler un problème ou proposer une idée » (null si désactivé par `Signalement:Lien`)
          *     et, pour un administrateur seulement, l'état des mises à jour. `Installation` : « docker », « linux » ou « windows »
@@ -4119,6 +4460,23 @@ export interface components {
         ChangementMotDePasseSaisie: {
             ancien: null | string;
             nouveau: null | string;
+        };
+        /** @description Étape de test que le fichier Excel importé va renseigner. */
+        ChangementValidationDto: {
+            /** Format: uuid */
+            ficheId: string;
+            /** Format: uuid */
+            etapeId: string;
+            systeme: string;
+            fiche: string;
+            /** Format: int32 */
+            etape: number;
+            /** @enum {unknown} */
+            resultat: "Conforme" | "Echec";
+            observation: string;
+            validePar: string;
+            /** Format: date */
+            date: null | string;
         };
         ClotureDto: {
             /** Format: date-time */
@@ -4372,6 +4730,16 @@ export interface components {
             sauvegardeEmplacement: string;
             sauvegardeMethodeRecuperation: string;
         };
+        EtapeModeleRecetteDto: {
+            /** Format: int32 */
+            ordre: number;
+            instructions: string;
+            resultatAttendu: string;
+        };
+        EtapeModeleRecetteSaisie: {
+            instructions: null | string;
+            resultatAttendu: null | string;
+        };
         /**
          * @description `Ligne` et `Position` ne servent qu'à la création (`POST /etapes`). `Fin`, `SauvegardeEmplacement` et
          *     `SauvegardeMethodeRecuperation` absents : inchangés (test unitaire pour une nouvelle étape).
@@ -4415,6 +4783,13 @@ export interface components {
             par: null | string;
             /** Format: date-time */
             le: null | string;
+            /** @description Validation reportée d'un fichier Excel : nom saisi par le métier (« » sinon) ; `Par` est alors le compte qui a importé. */
+            valideePar: string;
+            /**
+             * Format: date
+             * @description Validation reportée d'un fichier Excel : date indiquée dans le fichier.
+             */
+            valideeLe: null | string;
         };
         EtapeTestSaisie: {
             /** Format: uuid */
@@ -4516,10 +4891,20 @@ export interface components {
                 par: null | string;
                 /** Format: date-time */
                 le: null | string;
+                /** @description Validation reportée d'un fichier Excel : nom saisi par le métier (« » sinon) ; `Par` est alors le compte qui a importé. */
+                valideePar: string;
+                /**
+                 * Format: date
+                 * @description Validation reportée d'un fichier Excel : date indiquée dans le fichier.
+                 */
+                valideeLe: null | string;
             }[];
         };
         FicheRecetteSaisie: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Facultatif : la fiche garde son système ; sert seulement à rattacher une ancienne fiche sans système.
+             */
             systemeId: null | string;
             titre: null | string;
             etapes: null | components["schemas"]["EtapeTestSaisie"][];
@@ -4531,6 +4916,13 @@ export interface components {
          * @enum {unknown}
          */
         FournisseurSso: "Microsoft" | "OpenIdConnect";
+        /** @description Insertion d'un modèle de la bibliothèque (copie) dans un système de la MEP. */
+        InsertionModeleRecetteSaisie: {
+            /** Format: uuid */
+            modeleId: null | string;
+            /** Format: uuid */
+            systemeId: null | string;
+        };
         /**
          * @description Service « mise-a-jour » (facultatif) : `Present` s'il tourne ; `Statut` pret, en-cours, terminee, echec ou
          *     indisponible ; `Message` et `Version` de sa dernière action.
@@ -4859,6 +5251,13 @@ export interface components {
                     par: null | string;
                     /** Format: date-time */
                     le: null | string;
+                    /** @description Validation reportée d'un fichier Excel : nom saisi par le métier (« » sinon) ; `Par` est alors le compte qui a importé. */
+                    valideePar: string;
+                    /**
+                     * Format: date
+                     * @description Validation reportée d'un fichier Excel : date indiquée dans le fichier.
+                     */
+                    valideeLe: null | string;
                 }[];
             }[];
             bilanActive: boolean;
@@ -4986,6 +5385,42 @@ export interface components {
             erreur: null | string;
             disponible: boolean;
             installateur: components["schemas"]["InstallateurDto"];
+        };
+        /** @description « Enregistrer comme modèle » : copie d'une fiche de recette d'une MEP dans la bibliothèque. */
+        ModeleDepuisFicheSaisie: {
+            /** Format: uuid */
+            mepId: null | string;
+            /** Format: uuid */
+            ficheId: null | string;
+            titre: null | string;
+            /** Format: uuid */
+            systemeCatalogueId: null | string;
+        };
+        ModeleRecetteDto: {
+            /** Format: uuid */
+            id: string;
+            titre: string;
+            /** Format: uuid */
+            systemeCatalogueId: string;
+            etapes: components["schemas"]["EtapeModeleRecetteDto"][];
+            /** Format: int32 */
+            version: number;
+            /** Format: date-time */
+            modifieLe: string;
+            /** Format: uuid */
+            modifieParId: null | string;
+            modifiePar: null | string;
+        };
+        ModeleRecetteSaisie: {
+            /**
+             * Format: int32
+             * @description Obligatoire pour une modification (verrou optimiste).
+             */
+            version: null | number;
+            titre: null | string;
+            /** Format: uuid */
+            systemeCatalogueId: null | string;
+            etapes: null | components["schemas"]["EtapeModeleRecetteSaisie"][];
         };
         /** @enum {unknown} */
         ModeSauvegarde: "AvantMep" | "PendantMep" | null;

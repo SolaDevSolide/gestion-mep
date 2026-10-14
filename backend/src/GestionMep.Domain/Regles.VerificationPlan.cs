@@ -134,7 +134,7 @@ public static partial class Regles
     /// <summary>
     /// Avertissements non bloquants du plan (ils ne figurent pas dans <see cref="ErreursPlan"/>) : aucun responsable technique,
     /// pilote également responsable technique, responsable technique absent dont les étapes ne sont pas reprenables par un autre,
-    /// aucun système sauvegardé, système sans fiche de recette. Pour un modèle, ni pilote ni disponibilité le jour J.
+    /// aucun système sauvegardé, système sans fiche de recette, fiche de recette sans système. Pour un modèle, ni pilote ni disponibilité le jour J.
     /// </summary>
     public static List<string> Avertissements(Mep mep)
     {
@@ -163,6 +163,8 @@ public static partial class Regles
             avertissements.Add("Aucun système n'est sauvegardé.");
         foreach (var s in mep.Systemes.Where(s => mep.FichesRecette.All(f => f.SystemeId != s.Id)))
             avertissements.Add($"Aucune recette pour le système {s.Nom}.");
+        foreach (var f in mep.FichesRecette.Where(f => f.SystemeId is null || mep.Systemes.All(s => s.Id != f.SystemeId)).OrderBy(f => f.Ordre))
+            avertissements.Add($"{NomRecette(f)} : sans système, à rattacher à un système de la MEP.");
         return avertissements;
     }
 

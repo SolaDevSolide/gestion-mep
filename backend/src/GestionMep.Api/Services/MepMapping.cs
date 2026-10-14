@@ -76,7 +76,7 @@ public static class MepMapping
             m.GoNoGo.Select(c => new CritereValideDto(c.Libelle, Nom(c.ParId), c.Le)).ToList(),
             m.FichesRecette.OrderBy(f => f.Ordre).Select(f => new FicheRecetteDto(f.Id, f.Ordre, f.SystemeId, f.Titre,
                 f.Etapes.OrderBy(t => t.Ordre).Select(t => new EtapeTestDto(t.Id, t.Ordre, t.Instructions, t.ResultatAttendu,
-                    t.Resultat, t.Observation, Nom(t.ParId), t.Le)).ToList())).ToList(),
+                    t.Resultat, t.Observation, Nom(t.ParId), t.Le, t.ValideePar, t.ValideeLe)).ToList())).ToList(),
             m.BilanActive,
             m.Bilan is { } b ? new BilanDto(b.CeQuiAMarche, b.Incidents, b.Actions, Nom(b.RedigeParId), b.Le) : null,
             Regles.EtapeNonRetourFranchie(m)?.Code,

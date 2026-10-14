@@ -1,5 +1,7 @@
 import {
   CircleArrowUp,
+  Layers,
+  Library,
   Loader2,
   LogOut,
   Megaphone,
@@ -9,12 +11,11 @@ import {
   Rocket,
   Search,
   ShieldCheck,
+  ShieldUser,
   Sun,
   SunMoon,
   UserRound,
   Wrench,
-  Layers,
-  ShieldUser,
 } from 'lucide-react';
 import { Suspense, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -148,6 +149,7 @@ export function Shell() {
           </div>
           <Lien to="/parametres/systemes" icone={Layers} libelle="Systèmes" replie={replie} />
           <Lien to="/parametres/resolutions" icone={Wrench} libelle="Résolutions types" replie={replie} />
+          <Lien to="/parametres/recettes" icone={Library} libelle="Bibliothèque de recettes" replie={replie} />
           <Lien to="/parametres/go-no-go" icone={ShieldCheck} libelle="Go / no-go" replie={replie} />
           {utilisateur?.estAdmin && (
             <>

@@ -26,7 +26,9 @@
 
 **Exécutant** : personne qui a démarré une étape, ou qui a pris la main dessus.
 
-**Fiche de recette** : liste d'étapes de test qui vérifient un système après le déploiement.
+**Bibliothèque de recettes** : modèles de fiches de recette rattachés à un système du catalogue, insérés par copie dans les MEP.
+
+**Fiche de recette** : liste d'étapes de test qui vérifient un système après le déploiement. Elle appartient à un seul système ; chaque étape a un déroulé en blocs Texte ou Code et un résultat attendu.
 
 **Go / no-go** : décision du pilote de démarrer l'exécution (Go) ou de la reporter (no-go, avec un motif).
 

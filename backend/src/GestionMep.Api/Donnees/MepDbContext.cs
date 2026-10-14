@@ -51,6 +51,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<SystemeCatalogue> SystemesCatalogue => Set<SystemeCatalogue>();
     public DbSet<ResolutionType> ResolutionsTypes => Set<ResolutionType>();
     public DbSet<VersionResolutionType> VersionsResolutionType => Set<VersionResolutionType>();
+    public DbSet<ModeleRecette> ModelesRecette => Set<ModeleRecette>();
     public DbSet<ExecutionResolution> ExecutionsResolution => Set<ExecutionResolution>();
     public DbSet<CritereGoNoGo> CriteresGoNoGo => Set<CritereGoNoGo>();
     public DbSet<ParametresGlobaux> Parametres => Set<ParametresGlobaux>();
@@ -144,6 +145,14 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.SystemeCatalogueIds).HasColumnType("uuid[]");
             e.HasOne<ResolutionType>().WithMany().HasForeignKey(x => x.ResolutionTypeId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.ResolutionTypeId, x.Version });
+        });
+
+        b.Entity<ModeleRecette>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.Etapes).AsJson();
+            e.Property(x => x.Version).IsConcurrencyToken();
+            e.HasIndex(x => x.SystemeCatalogueId);
         });
 
         b.Entity<ExecutionResolution>(e =>

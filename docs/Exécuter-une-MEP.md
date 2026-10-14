@@ -88,8 +88,16 @@ Tant que le point de non-retour n'est pas franchi et qu'aucune étape ni résolu
 ## Recette et clôture
 
 1. Quand toutes les étapes de déploiement ont réussi, le pilote clique **« Passer en recette »**.
-2. Dans **Plan › Recette** (la MEP s'y ouvre pendant la recette), chaque étape de test est déclarée « Conforme » ou « Échec » avec une observation, par toute personne de la MEP reliée à un compte. Le pilote peut faire refaire un test ou une fiche.
+2. Dans **Plan › Recette** (la MEP s'y ouvre pendant la recette), ouvrir chaque fiche : chaque étape de test est déclarée « Conforme » ou « Échec » avec une observation, par toute personne de la MEP reliée à un compte. Le pilote peut faire refaire un test ou une fiche. Les équipes métier peuvent aussi valider dans Excel (voir ci-dessous).
 3. Quand tout est conforme, le pilote clique **« Clôturer : MEP réussie »** et rédige le bilan.
+
+### Valider la recette dans Excel
+
+**« Exporter en Excel »**, en haut de **Plan › Recette**, télécharge un classeur à envoyer aux équipes métier : un sommaire avec le mode d'emploi et l'avancement de chaque fiche, puis un onglet par système avec ses fiches à la suite (déroulé, code en police à chasse fixe sur fond gris, résultat attendu). Seules les cases jaunes se remplissent : résultat constaté, validation (liste « Validé » / « Refusé »), validé par et date ; le reste est protégé. Une feuille masquée « Contrôle » identifie la MEP et la version de la recette exportée.
+
+Une fois le fichier rempli, le pilote ou un suppléant clique **« Importer la validation »** (en phase de recette). L'application affiche d'abord ce qui va changer, étape par étape, puis l'applique sur confirmation : « Validé » rend l'étape conforme, « Refusé » la met en échec, avec le résultat constaté comme observation, la personne et la date indiquées dans le fichier. Les lignes sans validation sont ignorées.
+
+Le fichier est **refusé en entier**, sans rien modifier, avec la liste des motifs, s'il est incohérent : fichier d'une autre MEP, recette modifiée depuis l'export (exporter à nouveau), onglet renommé ou supprimé, étape déplacée ou inconnue, valeur de validation inconnue, « Validé par » manquant, date illisible, « Refusé » sans résultat constaté, ou validation qui contredit un résultat déjà saisi dans l'application (faire d'abord refaire l'étape). Un import n'efface jamais un résultat : pour refaire une étape, le pilote utilise « Refaire ». L'import est inscrit dans le journal de la MEP.
 
 Si la recette révèle un problème, que la MEP a un plan de retour arrière et que le point de non-retour n'est pas franchi, le pilote peut encore déclencher le retour arrière.
 

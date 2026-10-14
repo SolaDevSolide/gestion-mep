@@ -1,4 +1,4 @@
-import { Phone, Plus } from 'lucide-react';
+import { Library, Phone, Plus } from 'lucide-react';
 import { couleurSysteme, styleSysteme } from '../../couleursSysteme';
 import { responsablesDuSysteme } from '../../domaine';
 import { useMep } from '../../mepContext';
@@ -9,15 +9,18 @@ import { BadgeDisponibilite } from '../preparation/ResponsablesTechniquesSection
 import { FicheCarte } from './FicheCarte';
 
 interface Props {
-  /** Système de la section, ou `null` pour les fiches sans système. */
+  /**
+   * Système de la section, ou `null` pour les anciennes fiches sans système : section affichée seulement s'il y en a,
+   * sans bouton d'ajout (on les rattache à un système depuis leur page).
+   */
   systeme: Systeme | null;
   fiches: FicheRecette[];
-  peutAgir: boolean;
-  onAjouter: () => void;
+  onAjouter?: () => void;
+  onBibliotheque?: () => void;
 }
 
 /** Section colorée d'un système : responsables techniques à appeler et fiches de recette du système. */
-export function SectionSysteme({ systeme, fiches, peutAgir, onAjouter }: Props) {
+export function SectionSysteme({ systeme, fiches, onAjouter, onBibliotheque }: Props) {
   const { mep } = useMep();
   const edition = mep.droits.peutEditerContenu;
   const titreId = `recette-${systeme?.id ?? 'sans-systeme'}`;
@@ -56,10 +59,27 @@ export function SectionSysteme({ systeme, fiches, peutAgir, onAjouter }: Props) 
             {conformes}/{etapes.length} conforme{conformes > 1 ? 's' : ''}
           </span>
         )}
-        {edition && (
-          <Button variante="secondaire" taille="sm" icone={<Plus className="size-4" aria-hidden />} onClick={onAjouter}>
-            Ajouter une recette
-          </Button>
+        {edition && systeme && (
+          <span className="flex flex-wrap gap-2">
+            <Button
+              variante="secondaire"
+              taille="sm"
+              icone={<Library className="size-4" aria-hidden />}
+              aria-label={`Ajouter une fiche ${systeme.nom} depuis la bibliothèque`}
+              onClick={onBibliotheque}
+            >
+              Depuis la bibliothèque
+            </Button>
+            <Button
+              variante="secondaire"
+              taille="sm"
+              icone={<Plus className="size-4" aria-hidden />}
+              aria-label={`Nouvelle fiche ${systeme.nom}`}
+              onClick={onAjouter}
+            >
+              Nouvelle fiche
+            </Button>
+          </span>
         )}
       </header>
       <div className="space-y-3 px-4 py-4">
@@ -84,14 +104,20 @@ export function SectionSysteme({ systeme, fiches, peutAgir, onAjouter }: Props) 
         {systeme && responsables.length === 0 && mep.phase === 'Recette' && (
           <p className="text-xs text-fg-subtle">Aucun responsable technique désigné pour {systeme.nom}.</p>
         )}
+        {!systeme && (
+          <p className="text-xs text-fg-subtle">
+            Fiches sans système (créées avant, ou dont le système a été retiré de la MEP) : ouvrez-les pour les
+            rattacher à un système.
+          </p>
+        )}
         {fiches.length === 0 ? (
           <p className="rounded-lg border border-dashed border-line-strong px-4 py-5 text-center text-sm text-fg-subtle">
-            {systeme ? `Aucune recette pour le système ${systeme.nom}.` : 'Aucune recette sans système.'}
+            {systeme ? `Aucune fiche de recette pour le système ${systeme.nom}.` : 'Aucune fiche sans système.'}
           </p>
         ) : (
           <ul className="space-y-3">
             {fiches.map((f) => (
-              <FicheCarte key={f.id} fiche={f} peutAgir={peutAgir} />
+              <FicheCarte key={f.id} fiche={f} />
             ))}
           </ul>
         )}

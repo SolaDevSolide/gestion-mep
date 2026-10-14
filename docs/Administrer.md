@@ -76,7 +76,7 @@ En ligne de commande : `gestion-mep reglages lister | definir <nom> <valeur> | r
 
 ### Journal
 
-Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, reliés à un autre compte de la même personne ou déliés, équipes créées, modifiées ou supprimées, mots de passe réinitialisés ou changés, paramètres, réglages du serveur et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, résolutions types supprimées, désactivées ou importées, MEP exportées en ligne de commande, mises à jour demandées, contrôles des données après une mise à jour ou une importation, réinitialisation de la démonstration. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
+Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, reliés à un autre compte de la même personne ou déliés, équipes créées, modifiées ou supprimées, mots de passe réinitialisés ou changés, paramètres, réglages du serveur et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, résolutions types supprimées, désactivées ou importées, modèles de recette supprimés, MEP exportées en ligne de commande, mises à jour demandées, contrôles des données après une mise à jour ou une importation, réinitialisation de la démonstration. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
 
 L'application y signale aussi, avec l'auteur « Application », **20 échecs de connexion en moins d'une heure sur un même compte**, toutes adresses confondues : signe probable qu'on essaie de deviner son mot de passe.
 
@@ -102,12 +102,13 @@ En ligne de commande : `gestion-mep demo reinitialiser --oui` (voir [Exploiter](
 
 ## Paramètres partagés
 
-Le menu « Paramètres » est visible de tous, en lecture seule pour les non-administrateurs, sauf les résolutions types.
+Le menu « Paramètres » est visible de tous, en lecture seule pour les non-administrateurs, sauf les résolutions types et la bibliothèque de recettes.
 
 | Page | Contenu | Qui modifie |
 |---|---|---|
 | Systèmes | Catalogue des systèmes de l'entreprise (nom, description, cible). Un système déjà utilisé par une MEP est désactivé au lieu d'être supprimé. | Administrateurs |
 | Résolutions types | Fiches de dépannage réutilisables, avec l'historique de leurs versions. Une fiche déjà utilisée est désactivée au lieu d'être supprimée. | Tout le monde crée et modifie ; les administrateurs suppriment |
+| Bibliothèque de recettes | Modèles de fiches de recette par système du catalogue, insérés par copie dans les MEP (voir [Préparer une MEP](Préparer-une-MEP.md#la-bibliothèque-de-recettes)). | Tout le monde crée et modifie ; les administrateurs suppriment |
 | Go / no-go | Critères à cocher avant chaque Go, et nombre minimum d'approbations. | Administrateurs |
 
 En ligne de commande : `gestion-mep systemes lister | ajouter | modifier | supprimer`, `gestion-mep resolutions lister | afficher | supprimer | exporter | importer` (import contrôlé fiche par fiche, avec un essai à blanc possible) et `gestion-mep criteres …`. Les MEP se listent et s'exportent en JSON, avec leur journal, pour l'archive ou un audit : `gestion-mep meps lister | exporter`.

@@ -17,6 +17,7 @@ const MepPage = lazy(() => import('./pages/MepPage'));
 const GoNoGoPage = lazy(() => import('./parametres/GoNoGoPage'));
 const NouvelleResolutionPage = lazy(() => import('./parametres/NouvelleResolutionPage'));
 const ResolutionsPage = lazy(() => import('./parametres/ResolutionsPage'));
+const BibliothequeRecettesPage = lazy(() => import('./parametres/BibliothequeRecettesPage'));
 const SystemesPage = lazy(() => import('./parametres/SystemesPage'));
 
 function Chargement() {
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/parametres/systemes" element={<SystemesPage />} />
           <Route path="/parametres/resolutions" element={<ResolutionsPage />} />
           <Route path="/parametres/resolutions/nouvelle" element={<NouvelleResolutionPage />} />
+          <Route path="/parametres/recettes" element={<BibliothequeRecettesPage />} />
           <Route path="/parametres/go-no-go" element={<GoNoGoPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

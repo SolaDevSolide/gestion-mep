@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/GestionMep.Api/GestionMep.Api.csproj" />
     <Project Path="src/GestionMep.Domain/GestionMep.Domain.csproj" />
+    <Project Path="src/GestionMep.Tableur/GestionMep.Tableur.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GestionMep.Tests/GestionMep.Tests.csproj" />

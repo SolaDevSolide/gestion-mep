@@ -60,7 +60,7 @@ Une étape peut être marquée point de non-retour (par exemple une bascule de d
 
 ## Recette
 
-Les fiches de recette sont déroulées système par système : chaque étape de test est déclarée « Conforme » ou « Échec », avec une observation. Le pilote clôture la MEP comme **réussie** quand toutes les étapes de test sont conformes. Il peut faire refaire un test.
+Les fiches de recette sont déroulées système par système : chaque étape de test est déclarée « Conforme » ou « Échec », avec une observation, dans l'application ou dans le classeur Excel de la recette réimporté par le pilote. Le pilote clôture la MEP comme **réussie** quand toutes les étapes de test sont conformes. Il peut faire refaire un test.
 
 ## Retour arrière
 

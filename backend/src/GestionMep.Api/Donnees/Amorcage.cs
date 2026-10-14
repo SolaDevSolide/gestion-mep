@@ -95,7 +95,7 @@ public static class Amorcage
 
     /// <summary>
     /// Données d'une base neuve en mode démonstration, ajoutées au contexte sans les enregistrer : comptes de
-    /// <see cref="DonneesDemo.Comptes"/> (mot de passe <see cref="DonneesDemo.MotDePasse"/>), catalogue, résolutions types,
+    /// <see cref="DonneesDemo.Comptes"/> (mot de passe <see cref="DonneesDemo.MotDePasse"/>), catalogue, résolutions types, bibliothèque de recettes,
     /// critères go / no-go, paramètre d'approbation, modèle, MEP « Portail de démonstration » et MEP de démonstration dans
     /// chaque état du cycle de vie (<see cref="DonneesDemo.Scenarios"/>), avec leur journal. Sert à l'amorçage et à la
     /// réinitialisation de la démonstration (<see cref="Services.Demonstration"/>).
@@ -125,6 +125,7 @@ public static class Amorcage
         db.ResolutionsTypes.AddRange(jeu.Resolutions);
         db.VersionsResolutionType.AddRange(jeu.Resolutions.Select(r => VersionResolutionType.De(r, "creee")));
         db.CriteresGoNoGo.AddRange(jeu.Criteres);
+        db.ModelesRecette.AddRange(DonneesDemo.ModelesRecette(jeu.Systemes, maintenant));
         var parametres = await db.Parametres.FirstOrDefaultAsync(p => p.Id == ParametresGlobaux.IdUnique);
         if (parametres is null) db.Parametres.Add(parametres = new ParametresGlobaux());
         parametres.ApprobationsMinimum = DonneesDemo.ApprobationsMinimum;

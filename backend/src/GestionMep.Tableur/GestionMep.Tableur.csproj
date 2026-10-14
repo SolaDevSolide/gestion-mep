@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Brique commune de lecture et d'écriture de classeurs Excel (.xlsx), réutilisable par toutes les exportations.
+    ClosedXML (licence MIT) ; SixLabors.Fonts, dont il dépend pour mesurer le texte, est fixé à la série 1.0
+    (licence Apache 2.0) : les versions suivantes ne sont plus sous licence libre permissive.
+  -->
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <PackageReference Include="SixLabors.Fonts" Version="1.0.1" />
+  </ItemGroup>
+
+</Project>
