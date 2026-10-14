@@ -14,13 +14,15 @@
 
 **Connexion unique (SSO)** : connexion avec son compte d'entreprise (Microsoft Entra ID ou autre fournisseur OpenID Connect) au lieu d'un mot de passe propre à l'application. Facultative : voir [Connexion Microsoft](Connexion-Microsoft.md).
 
+**Communication** : section de la préparation qui rassemble ce qu'on annonce aux utilisateurs (référence de la demande, risque, bénéfices, arrêt applicatif, créneau annoncé, validation par les utilisateurs). Elle remplit les modèles de texte.
+
 **Critère go / no-go** : condition à cocher avant de démarrer (par exemple « Supervision en place »).
 
 **Échéance de retour arrière** : date et heure limites de l'intervention. Une fois atteinte, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi.
 
 **Éditeur** : personne qui peut modifier une MEP en préparation : pilote, suppléant, responsable technique ou administrateur.
 
-**Équipe** : groupe de personnes géré par les administrateurs, qui sert à filtrer les comptes et les MEP. Une personne peut appartenir à plusieurs équipes ; une MEP appartient à une équipe dès qu'une de ses personnes en fait partie.
+**Équipe** : groupe de personnes géré par les administrateurs, qui sert à filtrer les comptes et les MEP, et qui a ses modèles de texte. Une personne peut appartenir à plusieurs équipes ; une MEP appartient à une équipe dès qu'une de ses personnes en fait partie.
 
 **Étape** : action unitaire du plan, avec des instructions et un résultat attendu. Codes `E0001…` pour le déploiement, `R0001…` pour le retour arrière.
 
@@ -39,6 +41,8 @@
 **MEP** : mise en production, c'est-à-dire l'intervention qui déploie un changement sur un environnement.
 
 **Modèle** : MEP qui sert de point de départ à d'autres et qui ne s'exécute jamais.
+
+**Modèle de texte** : courriel type d'une équipe (annonce, rappel, demande de MEP, compte rendu), rempli avec les informations de la MEP puis copié dans sa messagerie. Voir [Modèles de texte](Modèles-de-texte.md).
 
 **Pilote** : responsable de la MEP, qui décide des changements de phase.
 

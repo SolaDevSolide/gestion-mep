@@ -68,7 +68,15 @@ describe('Personnes : ajout depuis un compte', () => {
 
   it('filtre les comptes par équipe et ne propose plus les comptes désactivés', async () => {
     vi.mocked(api.equipes).mockResolvedValueOnce([
-      { id: 'e1', nom: 'Exploitation', description: '', membreIds: ['u7'], creeeLe: '2026-10-01T08:00:00Z' },
+      {
+        id: 'e1',
+        nom: 'Exploitation',
+        description: '',
+        membreIds: ['u7'],
+        creeeLe: '2026-10-01T08:00:00Z',
+        contactSupport: '',
+        signature: '',
+      },
     ]);
     vi.mocked(api.utilisateurs).mockResolvedValue([
       utilisateur({ id: 'u7', login: 'dana', nomAffiche: 'Dana', equipeIds: ['e1'] }),

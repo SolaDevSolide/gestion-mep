@@ -25,7 +25,7 @@ La MEP s'ouvre sur l'onglet qui correspond à sa phase : Préparation, puis Exé
 
 ## L'onglet Préparation
 
-Il est découpé en huit sections. Chacune affiche son état (complète ou à compléter), et un compteur indique combien sont complètes.
+Il est découpé en neuf sections. Chacune affiche son état (complète ou à compléter), et un compteur indique combien sont complètes.
 
 1. **Intervention** : outil, objet, version actuelle et version cible, environnement, fuseau horaire, indisponibilité prévue, impacts attendus, pilote et suppléants, case **« Plan de retour arrière »** avec, en dessous, l'**échéance de retour arrière** (facultative), et option « Bilan de clôture ». Les dates de début et de fin ne se saisissent pas : ce sont celles du Go et de la clôture. Voir [Retour arrière facultatif](#retour-arrière-facultatif).
 2. **Personnes** : toutes les personnes de l'intervention. Relier chaque personne à son compte permet de pré-remplir son nom, son rôle et son contact, et lui donne le droit d'exécuter des étapes. Quand des équipes existent, le champ « Équipe » du dialogue restreint les comptes proposés. Les comptes désactivés (personnes parties) ne sont plus proposés ; une personne déjà reliée à un tel compte reste affichée, avec la mention « désactivé ».
@@ -34,9 +34,10 @@ Il est découpé en huit sections. Chacune affiche son état (complète ou à co
 5. **Livrables** : paquets, versions ou artefacts déployés.
 6. **Sauvegarde** : pour **chaque système**, indiquer si une sauvegarde est requise. Si oui : avant ou pendant la MEP, quoi sauvegarder, et obligatoirement l'**emplacement** de la sauvegarde et la **méthode de récupération** (comment la restaurer). Si non : une justification. Une sauvegarde faite pendant la MEP doit correspondre à une étape de type « Sauvegarde » sur ce système. S'y ajoutent les informations communes : responsable, copies, test de restauration.
 7. **Validation** : relecture de la procédure, approbations, et rappel du Go.
-8. **Pièces jointes** : documents utiles (procédures, captures, scripts).
+8. **Communication** (facultative, toujours complète) : de quoi remplir les courriels de la MEP. Référence de la demande (ticket ou demande de changement), niveau de risque (non évalué, faible, modéré, élevé), bénéfices et nouveautés (un par ligne), utilisateurs impactés, case **« Arrêt applicatif »** (sa durée est l'indisponibilité prévue de la section Intervention), action attendue des utilisateurs et heure limite, **créneau annoncé** (date, heure de début et de fin annoncées aux utilisateurs ; à défaut, les textes prennent le Go et la clôture), validation par les utilisateurs (par qui, quand, et une pièce jointe de la MEP comme preuve). En dessous, la carte **Textes à copier** remplit les modèles de texte de l'équipe avec ces informations : voir [Modèles de texte](Modèles-de-texte.md). Modifier la communication ne remet pas en cause les approbations. Après le Go, le pilote, un suppléant ou un administrateur la complète encore, jusqu'à la clôture.
+9. **Pièces jointes** : documents utiles (procédures, captures, scripts).
 
-![Onglet Préparation et ses huit sections](images/preparation.png)
+![Onglet Préparation et ses sections](images/preparation.png)
 
 ## Le plan d'étapes (Plan › Étapes)
 
@@ -158,7 +159,7 @@ Quand le plan est complet, le pilote ou un suppléant donne le Go (voir [Cycle d
 
 ## Partir d'une MEP existante
 
-- **Dupliquer** (bouton de la liste ou de l'en-tête) copie une MEP : identité, personnes, pilote et suppléants, systèmes et leur sauvegarde, responsables techniques, livrables, étapes et liens, résolutions liées, plan de retour arrière (et le choix de l'avoir ou non), fiches de recette (sans les résultats) et approbateurs (sans leurs décisions). Ne sont pas copiés : l'échéance, la relecture, le Go, les résultats d'exécution (dont les résultats constatés des tests unitaires), le bilan et les pièces jointes. L'environnement peut être changé au passage.
+- **Dupliquer** (bouton de la liste ou de l'en-tête) copie une MEP : identité, personnes, pilote et suppléants, systèmes et leur sauvegarde, responsables techniques, livrables, étapes et liens, résolutions liées, plan de retour arrière (et le choix de l'avoir ou non), fiches de recette (sans les résultats) et approbateurs (sans leurs décisions). La communication est copiée (niveau de risque, bénéfices, utilisateurs impactés, arrêt applicatif, action attendue et heure limite), sauf la référence de la demande, le créneau annoncé et la validation par les utilisateurs. Ne sont pas copiés : l'échéance, la relecture, le Go, les résultats d'exécution (dont les résultats constatés des tests unitaires), le bilan et les pièces jointes. L'environnement peut être changé au passage.
 - Cocher **« En faire un modèle »** à la duplication crée un modèle, à réutiliser avec « Nouvelle MEP depuis un modèle ».
 
 ## Modèles

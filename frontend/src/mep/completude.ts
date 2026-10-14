@@ -1,7 +1,15 @@
 import type { Mep } from '../types';
 
 export type IdSection =
-  'intervention' | 'personnes' | 'systemes' | 'techniques' | 'livrables' | 'sauvegarde' | 'validation' | 'pieces';
+  | 'intervention'
+  | 'personnes'
+  | 'systemes'
+  | 'techniques'
+  | 'livrables'
+  | 'sauvegarde'
+  | 'validation'
+  | 'communication'
+  | 'pieces';
 
 const rempli = (v: string | null | undefined) => !!v && v.trim() !== '';
 
@@ -26,6 +34,8 @@ export function completude(mep: Mep): Record<IdSection, boolean> {
     // Chaque système doit dire s'il est sauvegardé (erreurs « Sauvegarde : indiquer… », « …non requise : justifier », « …pendant la MEP : … »).
     sauvegarde: mep.systemes.every((s) => s.sauvegarde.statut !== 'ARenseigner') && aucune(/^Sauvegarde/),
     validation: aucune(/relue|approbation|a refusé :|ne peut pas approuver/),
+    // Tout y est facultatif.
+    communication: true,
     pieces: true,
   };
 }

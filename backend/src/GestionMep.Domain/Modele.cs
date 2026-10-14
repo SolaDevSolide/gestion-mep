@@ -71,6 +71,10 @@ public class Equipe
     /// <summary>Comptes membres ; un compte peut appartenir à plusieurs équipes.</summary>
     public List<Guid> MembreIds { get; set; } = [];
     public DateTimeOffset CreeeLe { get; set; }
+    /// <summary>Contact du support pour les utilisateurs (variable <c>contact_support</c> des modèles de texte).</summary>
+    public string ContactSupport { get; set; } = "";
+    /// <summary>Signature des courriels (variable <c>signature</c> ; vide : « L'équipe {Nom} »).</summary>
+    public string Signature { get; set; } = "";
 }
 
 /// <summary>Expertise d'un compte sur un système du catalogue (ex. « Expert de la zone facturation »).</summary>
@@ -144,6 +148,9 @@ public class Mep
     // 4. Sauvegarde
     public Sauvegarde Sauvegarde { get; set; } = new();
 
+    // Communication : informations facultatives reprises par les modèles de texte (annonce, rappel, demande de MEP…).
+    public Communication Communication { get; set; } = new();
+
     // 5. Validation avant intervention
     public Guid? ProcedureRelueParId { get; set; }
     public DateTimeOffset? ProcedureRelueLe { get; set; }
@@ -176,6 +183,63 @@ public class PlanRepli
     public string VersionARestaurer { get; set; } = "";
     public string DonneesDepuisSauvegarde { get; set; } = "";
     public string SiRepliEchoue { get; set; } = "";
+}
+
+/// <summary>Niveau de risque retenu par l'analyse d'impact (section Communication). Stocké en entier : toute nouvelle valeur s'ajoute à la fin.</summary>
+public enum NiveauRisque { NonEvalue, Faible, Modere, Eleve }
+
+/// <summary>
+/// Informations de communication d'une MEP, toutes facultatives : elles remplissent les textes à copier (annonce aux
+/// utilisateurs, rappel, demande de MEP, compte rendu). Modifiables par les éditeurs en préparation, puis par le pilote,
+/// ses suppléants ou un administrateur jusqu'à la clôture.
+/// </summary>
+public class Communication
+{
+    /// <summary>Numéro du ticket ou de la demande de changement.</summary>
+    public string ReferenceDemande { get; set; } = "";
+    public NiveauRisque NiveauRisque { get; set; } = NiveauRisque.NonEvalue;
+    /// <summary>Bénéfices et nouveautés, une par ligne (liste à puces dans les textes).</summary>
+    public string Benefices { get; set; } = "";
+    public string UtilisateursImpactes { get; set; } = "";
+    /// <summary>Les utilisateurs ne peuvent pas travailler pendant l'intervention ; la durée est l'indisponibilité prévue.</summary>
+    public bool ArretApplicatif { get; set; }
+    /// <summary>Action demandée aux utilisateurs (« quitter l'application ») et heure limite, le jour de la MEP.</summary>
+    public string ActionUtilisateurs { get; set; } = "";
+    public TimeOnly? HeureLimite { get; set; }
+    /// <summary>Créneau annoncé aux utilisateurs (les heures réelles restent celles du Go et de la clôture).</summary>
+    public DateOnly? DateAnnoncee { get; set; }
+    public TimeOnly? HeureDebutAnnoncee { get; set; }
+    public TimeOnly? HeureFinAnnoncee { get; set; }
+    /// <summary>Validation de la nouvelle version par les utilisateurs : par qui, quand, et la pièce jointe de la MEP qui la prouve.</summary>
+    public bool ValideeParUtilisateurs { get; set; }
+    public string ValideePar { get; set; } = "";
+    public DateOnly? ValideeLe { get; set; }
+    public Guid? PreuveValidationId { get; set; }
+}
+
+/// <summary>Usage d'un modèle de texte. Stocké en entier : toute nouvelle valeur s'ajoute à la fin.</summary>
+public enum UsageModeleTexte { Annonce, Rappel, DemandeMep, CompteRendu, Autre }
+
+/// <summary>
+/// Modèle de texte d'une équipe (courriel type) : objet et texte avec variables <c>{{variable}}</c>, <c>**gras**</c> et puces
+/// « - ». Les modèles fournis (<see cref="CleFournie"/> renseignée) sont copiés dans chaque équipe : modifiables et
+/// rétablissables, jamais supprimés.
+/// </summary>
+public class ModeleTexte
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid EquipeId { get; set; }
+    public string Nom { get; set; } = "";
+    public UsageModeleTexte Usage { get; set; } = UsageModeleTexte.Autre;
+    public string Objet { get; set; } = "";
+    public string Corps { get; set; } = "";
+    /// <summary>Modèle fourni dont celui-ci est la copie (<see cref="ModelesTexteFournis"/>) ; null : modèle créé par l'équipe.</summary>
+    public string? CleFournie { get; set; }
+    public int Version { get; set; }
+    public DateTimeOffset CreeLe { get; set; }
+    public DateTimeOffset ModifieLe { get; set; }
+    /// <summary>Compte auteur de la dernière modification (null : copie automatique d'un modèle fourni, ou ligne de commande).</summary>
+    public Guid? ModifieParId { get; set; }
 }
 
 /// <summary>Personne impliquée dans la MEP (tableau tActeurs). Peut être reliée à un compte de l'application.</summary>

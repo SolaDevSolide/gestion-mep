@@ -38,6 +38,12 @@ import type {
   Utilisateur,
   Equipe,
   EquipeSaisie,
+  EquipeCommunicationSaisie,
+  CommunicationSaisie,
+  ModeleTexte,
+  ModeleTexteSaisie,
+  VariableTexte,
+  VariablesMep,
   LiaisonCompteSaisie,
   ChangementMotDePasseSaisie,
   CompteAvecMotDePasse,
@@ -204,6 +210,10 @@ export const api = {
   mep: (id: string) => get<Mep>(`/meps/${id}`),
   modifierIdentite: (id: string, s: MepIdentiteSaisie) => put<Mep>(`/meps/${id}`, s),
   modifierSauvegarde: (id: string, s: SauvegardeSaisie) => put<Mep>(`/meps/${id}/sauvegarde`, s),
+  modifierCommunication: (id: string, s: CommunicationSaisie) => put<Mep>(`/meps/${id}/communication`, s),
+  /** Valeurs des variables des modèles de texte ; `equipe` absente : équipe proposée (celle du pilote). */
+  variablesTexte: (id: string, equipe?: string) =>
+    get<VariablesMep>(`/meps/${id}/variables-texte${equipe ? `?equipe=${encodeURIComponent(equipe)}` : ''}`),
   journal: (id: string) => get<Evenement[]>(`/meps/${id}/journal`),
   /** Tests unitaires faits, non faits et leurs résultats constatés. */
   testsUnitaires: (id: string) => get<TestsUnitaires>(`/meps/${id}/tests-unitaires`),
@@ -315,6 +325,18 @@ export const api = {
   supprimerModeleRecette: (mid: string) => del<void>(`/modeles-recette/${mid}`),
   modeleDepuisFiche: (mepId: string, ficheId: string, titre: string, systemeCatalogueId: string) =>
     post<ModeleRecette>('/modeles-recette/depuis-fiche', { mepId, ficheId, titre, systemeCatalogueId }),
+
+  // Modèles de texte des équipes et informations communes d'une équipe.
+  variablesModelesTexte: () => get<VariableTexte[]>('/modeles-texte/variables'),
+  modelesTexte: (equipe?: string) =>
+    get<ModeleTexte[]>(`/modeles-texte${equipe ? `?equipe=${encodeURIComponent(equipe)}` : ''}`),
+  modeleTexte: (mid: string) => get<ModeleTexte>(`/modeles-texte/${mid}`),
+  creerModeleTexte: (s: ModeleTexteSaisie) => post<ModeleTexte>('/modeles-texte', s),
+  modifierModeleTexte: (mid: string, s: ModeleTexteSaisie) => put<ModeleTexte>(`/modeles-texte/${mid}`, s),
+  retablirModeleTexte: (mid: string) => post<ModeleTexte>(`/modeles-texte/${mid}/retablir`),
+  supprimerModeleTexte: (mid: string) => del<void>(`/modeles-texte/${mid}`),
+  modifierCommunicationEquipe: (eid: string, s: EquipeCommunicationSaisie) =>
+    put<Equipe>(`/equipes/${eid}/communication`, s),
 
   // Pièces jointes : MEP, étape, résolution exécutée, résolution type.
   deposerPieceMep: (id: string, f: File) => post<Mep>(`/meps/${id}/pieces-jointes`, formulaireFichier(f)),

@@ -115,6 +115,7 @@ export const LIBELLE_FAMILLE_EVENEMENT: Record<string, string> = {
   recette: 'Recette',
   piece: 'Pièces jointes',
   bilan: 'Bilan',
+  communication: 'Communication',
 };
 
 export function familleEvenement(type: string): string {

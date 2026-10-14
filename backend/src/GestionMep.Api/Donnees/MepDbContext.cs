@@ -61,6 +61,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<Reglage> Reglages => Set<Reglage>();
     public DbSet<IdentiteExterne> IdentitesExternes => Set<IdentiteExterne>();
     public DbSet<Equipe> Equipes => Set<Equipe>();
+    public DbSet<ModeleTexte> ModelesTexte => Set<ModeleTexte>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -82,6 +83,18 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.MembreIds).AsJson();
         });
 
+        b.Entity<ModeleTexte>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.Nom).HasMaxLength(200);
+            e.Property(x => x.Objet).HasMaxLength(500);
+            e.Property(x => x.CleFournie).HasMaxLength(40);
+            e.Property(x => x.Version).IsConcurrencyToken();
+            // Les modèles appartiennent à l'équipe : supprimés avec elle. Une seule copie de chaque modèle fourni par équipe.
+            e.HasOne<Equipe>().WithMany().HasForeignKey(x => x.EquipeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.EquipeId, x.CleFournie }).IsUnique();
+        });
+
         b.Entity<Mep>(e =>
         {
             e.Property(x => x.Id).ValueGeneratedNever();
@@ -89,6 +102,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Version).IsConcurrencyToken();
             e.OwnsOne(x => x.Sauvegarde);
             e.OwnsOne(x => x.PlanRepli);
+            // Colonnes Communication_ReferenceDemande, Communication_NiveauRisque, Communication_Benefices…
+            e.OwnsOne(x => x.Communication);
             e.Property(x => x.SuppleantIds).HasColumnType("uuid[]");
             e.Property(x => x.Approbations).AsJson();
             e.Property(x => x.GoNoGo).AsJson();

@@ -132,6 +132,68 @@ public static partial class DonneesDemo
         return ([bdd, api, web, ldap, mdm, batch], [fixApi, droitsBdd, cdnWeb, connexionBascule]);
     }
 
+    /// <summary>Nom de l'équipe de démonstration d'Alice et Bob (équipe du pilote de la plupart des MEP).</summary>
+    public const string NomEquipe = "Exploitation applicative";
+
+    /// <summary>Nom de l'équipe de démonstration de Claire.</summary>
+    public const string NomEquipeWeb = "Développement web";
+
+    /// <summary>Nom du modèle de texte créé par l'équipe <see cref="NomEquipe"/> (en plus des quatre modèles fournis).</summary>
+    public const string NomModeleAstreinte = "Prévenir l'astreinte";
+
+    /// <summary>Équipe de démonstration et ses modèles de texte.</summary>
+    public record EquipeDemo(Domain.Equipe Equipe, List<ModeleTexte> Modeles);
+
+    /// <summary>
+    /// Équipes de démonstration, chacune avec un contact support, une signature et ses modèles de texte : « Exploitation
+    /// applicative » (Alice et Bob) a adapté l'annonce fournie (modifiée par Alice) et créé un modèle pour l'astreinte ;
+    /// « Développement web » (Claire) garde les modèles fournis tels quels.
+    /// </summary>
+    public static List<EquipeDemo> Equipes(Guid alice, Guid bob, Guid claire, DateTimeOffset maintenant)
+    {
+        var exploitation = new Domain.Equipe
+        {
+            Nom = NomEquipe, Description = "Équipe fictive de la démonstration : exploitation et pilotage des MEP.", MembreIds = [alice, bob],
+            CreeeLe = maintenant, ContactSupport = "support-exploitation@exemple.invalid (fictif)", Signature = "L'équipe Exploitation applicative",
+        };
+        var modeles = ModelesTexteFournis.Manquants(exploitation.Id, [], maintenant);
+        var annonce = modeles.Single(m => m.CleFournie == "annonce");
+        annonce.Corps = annonce.Corps.Replace("{{signature}}", "Merci de votre compréhension.\n\n{{signature}}", StringComparison.Ordinal);
+        annonce.Version = 2;
+        annonce.ModifieLe = maintenant.AddDays(-3);
+        annonce.ModifieParId = alice;
+        modeles.Add(new ModeleTexte
+        {
+            EquipeId = exploitation.Id, Nom = NomModeleAstreinte, Usage = UsageModeleTexte.Autre,
+            Objet = "[Astreinte] MEP {{application}} {{version_cible}} le {{date}}",
+            Corps = """
+                Bonjour,
+
+                Une mise en production de **{{application}}** ({{version_actuelle}} → {{version_cible}}) est prévue le **{{date}}** de {{heure_debut}} à {{heure_fin}}.
+
+                Niveau de risque : **{{niveau_risque}}**. Référence : {{reference_demande}}.
+
+                **Systèmes concernés**
+                {{systemes}}
+
+                **Responsables techniques joignables**
+                {{responsables_techniques}}
+
+                Pilote : {{pilote}} ({{pilote_contact}}). Suivi de la MEP : {{lien_mep}}
+
+                {{signature}}
+                """,
+            Version = 1, CreeLe = maintenant.AddDays(-5), ModifieLe = maintenant.AddDays(-5), ModifieParId = bob,
+        });
+
+        var web = new Domain.Equipe
+        {
+            Nom = NomEquipeWeb, Description = "Équipe fictive de la démonstration : portail et sites publics.", MembreIds = [claire],
+            CreeeLe = maintenant, ContactSupport = "assistance-web@exemple.invalid (fictif)", Signature = "Claire, pour l'équipe Développement web",
+        };
+        return [new(exploitation, modeles), new(web, ModelesTexteFournis.Manquants(web.Id, [], maintenant))];
+    }
+
     /// <summary>Profils des comptes de démonstration (rôle, contact, expertises sur le catalogue de <see cref="Catalogue"/>).</summary>
     public static void CompleterProfils(Utilisateur alice, Utilisateur bob, Utilisateur claire, IReadOnlyList<SystemeCatalogue> catalogue)
     {
@@ -191,6 +253,21 @@ public static partial class DonneesDemo
         Sauvegarde(mdm, StatutSauvegarde.NonRequise, justification: "Le MDM garde l'historique des versions : il restaure lui-même les commandes.");
 
         mep.Livrables.Add(new Livrable { MepId = mep.Id, Objet = "Package fictif", Version = "2.0-démo", Emplacement = "Aucun téléchargement à effectuer", SystemeId = api.Id });
+
+        // Communication : de quoi remplir les textes à copier ; l'indisponibilité prévue reste à saisir (information manquante signalée).
+        mep.Communication = new Communication
+        {
+            ReferenceDemande = "CHG-DEMO-0412",
+            NiveauRisque = NiveauRisque.Modere,
+            Benefices = "Suivi des commandes en temps réel dans le portail\nCommandes visibles dans le MDM dès leur validation\nRecherche d'une commande par numéro client",
+            UtilisateursImpactes = "conseillers des agences et service Commandes (fictif)",
+            ArretApplicatif = true,
+            ActionUtilisateurs = "enregistrer vos commandes en cours et quitter le portail",
+            HeureLimite = new TimeOnly(19, 30),
+            DateAnnoncee = DateOnly.FromDateTime(maintenant.UtcDateTime.Date.AddDays(1)),
+            HeureDebutAnnoncee = new TimeOnly(20, 0),
+            HeureFinAnnoncee = new TimeOnly(23, 0),
+        };
 
         // Responsables techniques : Bob (API, MDM) et Claire (WEB), joignables ; Alice reste pilote.
         mep.ResponsablesTechniques =

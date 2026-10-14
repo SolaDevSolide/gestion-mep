@@ -154,7 +154,15 @@ describe('Console d’administration', () => {
 
   it('filtre les comptes par équipe, au niveau de la personne', async () => {
     vi.mocked(api.equipes).mockResolvedValue([
-      { id: 'e1', nom: 'Exploitation', description: '', membreIds: ['j'], creeeLe: '2026-10-01T08:00:00Z' },
+      {
+        id: 'e1',
+        nom: 'Exploitation',
+        description: '',
+        membreIds: ['j'],
+        creeeLe: '2026-10-01T08:00:00Z',
+        contactSupport: '',
+        signature: '',
+      },
     ]);
     vi.mocked(api.adminUtilisateurs).mockResolvedValue([
       utilisateur({ id: 'j', login: 'jean', nomAffiche: 'Jean Dupont', equipeIds: ['e1'] }),
@@ -175,6 +183,8 @@ describe('Console d’administration', () => {
       description: '',
       membreIds: [],
       creeeLe: '2026-10-01T08:00:00Z',
+      contactSupport: '',
+      signature: '',
     });
     rendre(utilisateur({ estAdmin: true }), '/admin?onglet=equipes');
     expect(await screen.findByText('Aucune équipe')).toBeInTheDocument();
@@ -193,7 +203,15 @@ describe('Console d’administration', () => {
 
   it('liste les équipes avec leurs membres, y compris désactivés, et supprime après confirmation', async () => {
     vi.mocked(api.equipes).mockResolvedValue([
-      { id: 'e1', nom: 'Exploitation', description: 'Nuit', membreIds: ['u2'], creeeLe: '2026-10-01T08:00:00Z' },
+      {
+        id: 'e1',
+        nom: 'Exploitation',
+        description: 'Nuit',
+        membreIds: ['u2'],
+        creeeLe: '2026-10-01T08:00:00Z',
+        contactSupport: '',
+        signature: '',
+      },
     ]);
     vi.mocked(api.adminSupprimerEquipe).mockResolvedValue(undefined);
     rendre(utilisateur({ estAdmin: true }), '/admin?onglet=equipes');

@@ -47,6 +47,9 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Supprimer une résolution type ou une de ses pièces jointes | Administrateur |
 | Créer ou modifier un modèle de la bibliothèque de recettes | Tout utilisateur |
 | Supprimer un modèle de la bibliothèque de recettes | Administrateur |
+| Modifier la communication d'une MEP | Éditeur en préparation ; après le Go, pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée |
+| Copier les textes d'une MEP, consulter les modèles de texte | Tout utilisateur qui voit la MEP |
+| Créer, modifier, rétablir ou supprimer un modèle de texte d'une équipe, régler son contact support et sa signature | Membre de l'équipe (par l'un de ses comptes reliés) ou administrateur ; les modèles fournis ne se suppriment pas |
 | Catalogue des systèmes, critères go / no-go, nombre minimum d'approbations | Administrateur (lecture pour tous) |
 | Comptes et console d'administration, équipes, comptes reliés d'une même personne | Administrateur (équipes : lecture pour tous) |
 | Modifier son propre profil et son mot de passe | Chacun |

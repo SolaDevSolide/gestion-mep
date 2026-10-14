@@ -238,7 +238,8 @@ public class LigneDeCommandeTests : IDisposable
     [Fact]
     public async Task Les_equipes_et_les_comptes_relies_se_gerent_en_ligne_de_commande()
     {
-        Assert.Contains("Aucune équipe", (await Cli("equipes", "lister")).Sortie);
+        // La démonstration a déjà son équipe.
+        Assert.Contains(DonneesDemo.NomEquipe, (await Cli("equipes", "lister")).Sortie);
         Assert.Equal(0, (await Cli("equipes", "creer", "Exploitation", "--description", "Nuit")).Code);
         Assert.Equal(1, (await Cli("equipes", "creer", "exploitation")).Code);
         Assert.Equal(2, (await Cli("equipes", "creer", "--description")).Code);
@@ -247,7 +248,7 @@ public class LigneDeCommandeTests : IDisposable
         Assert.Equal(1, (await Cli("equipes", "ajouter", "Exploitation", "inconnu")).Code);
         Assert.Equal(1, (await Cli("equipes", "ajouter", "Inconnue", "bob")).Code);
         Assert.Equal(0, (await Cli("equipes", "retirer", "Exploitation", "claire")).Code);
-        var equipe = Assert.Single((await Cli("equipes", "lister", "--json")).Json.EnumerateArray());
+        var equipe = (await Cli("equipes", "lister", "--json")).Json.EnumerateArray().Single(e => e.GetProperty("nom").GetString() == "Exploitation");
         Assert.Equal(1, equipe.GetProperty("membreIds").GetArrayLength());
         Assert.Contains("bob : Bob", (await Cli("equipes", "afficher", "Exploitation")).Sortie);
         Assert.True(await Journalise("equipe.modifiee", "Claire (claire) retiré"));

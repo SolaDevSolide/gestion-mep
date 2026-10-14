@@ -28,6 +28,9 @@ public static class Amorcage
         await sauvegardes.MigrerAvecSauvegarde(db, "Mise à jour au démarrage");
         await PlacerEtapesAnciennes(db, journal);
         await IsolerPiecesOrphelines(db, sp.GetRequiredService<StockagePiecesJointes>(), temps, journal);
+        // Équipes créées avant les modèles de texte : elles reçoivent leur copie des modèles fournis.
+        if (await Endpoints.CommunicationEndpoints.CompleterModelesFournis(db, temps.GetUtcNow()) is > 0 and var ajoutes)
+            journal.LogInformation("{Nombre} modèle(s) de texte fourni(s) copié(s) dans les équipes existantes.", ajoutes);
 
         if (await db.Utilisateurs.AnyAsync())
         {
@@ -95,7 +98,7 @@ public static class Amorcage
 
     /// <summary>
     /// Données d'une base neuve en mode démonstration, ajoutées au contexte sans les enregistrer : comptes de
-    /// <see cref="DonneesDemo.Comptes"/> (mot de passe <see cref="DonneesDemo.MotDePasse"/>), catalogue, résolutions types, bibliothèque de recettes,
+    /// <see cref="DonneesDemo.Comptes"/> (mot de passe <see cref="DonneesDemo.MotDePasse"/>), équipe et ses modèles de texte, catalogue, résolutions types, bibliothèque de recettes,
     /// critères go / no-go, paramètre d'approbation, modèle, MEP « Portail de démonstration » et MEP de démonstration dans
     /// chaque état du cycle de vie (<see cref="DonneesDemo.Scenarios"/>), avec leur journal. Sert à l'amorçage et à la
     /// réinitialisation de la démonstration (<see cref="Services.Demonstration"/>).
@@ -126,6 +129,11 @@ public static class Amorcage
         db.VersionsResolutionType.AddRange(jeu.Resolutions.Select(r => VersionResolutionType.De(r, "creee")));
         db.CriteresGoNoGo.AddRange(jeu.Criteres);
         db.ModelesRecette.AddRange(DonneesDemo.ModelesRecette(jeu.Systemes, maintenant));
+        foreach (var demo in DonneesDemo.Equipes(alice.Id, bob.Id, claire.Id, maintenant))
+        {
+            db.Equipes.Add(demo.Equipe);
+            db.ModelesTexte.AddRange(demo.Modeles);
+        }
         var parametres = await db.Parametres.FirstOrDefaultAsync(p => p.Id == ParametresGlobaux.IdUnique);
         if (parametres is null) db.Parametres.Add(parametres = new ParametresGlobaux());
         parametres.ApprobationsMinimum = DonneesDemo.ApprobationsMinimum;

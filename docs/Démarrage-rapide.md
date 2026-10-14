@@ -49,6 +49,8 @@ Chaque MEP est dans un état différent, pour essayer chaque écran sans tout d�
 | Gestion des stocks | Clôturée réussie | Il y a six jours : point de non-retour franchi avec l'accord du pilote, recette conforme, bilan. |
 | Extranet partenaires | Clôturée repliée | Il y a dix jours : échec sans résolution connue, retour arrière déclenché par Bob, service rétabli, bilan. |
 
+Les MEP ont leur section **Communication** remplie (référence de la demande, risque, bénéfices, créneau annoncé ; « Gestion des stocks » est validée par les utilisateurs), sauf « Facturation électronique », commencée, et « Portail de démonstration », sans indisponibilité prévue : les textes à copier y signalent les informations manquantes. Deux équipes ont leurs [modèles de texte](Modèles-de-texte.md) : « Exploitation applicative » (Alice et Bob), qui a adapté l'annonce fournie et créé « Prévenir l'astreinte », et « Développement web » (Claire), avec les modèles fournis.
+
 Le « Modèle : déploiement API standard » sert à créer une MEP par duplication. Toutes les commandes affichées sont fictives : rien n'est à lancer.
 
 ## Premier parcours

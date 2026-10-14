@@ -225,6 +225,24 @@ public static partial class DonneesDemo
 
     // ---------- Construction commune ----------
 
+    // Créneau annoncé aux utilisateurs (section Communication) : jour et heure à Paris, fuseau des MEP de démonstration.
+    private static readonly TimeZoneInfo Paris = TrouverParis();
+
+    private static TimeZoneInfo TrouverParis()
+    {
+        try { return TimeZoneInfo.FindSystemTimeZoneById("Europe/Paris"); }
+        catch (TimeZoneNotFoundException) { return TimeZoneInfo.Utc; }
+    }
+
+    private static DateOnly Jour(DateTimeOffset t) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(t, Paris).DateTime);
+
+    /// <summary>Heure à la demi-heure inférieure, comme on l'annonce.</summary>
+    private static TimeOnly Heure(DateTimeOffset t)
+    {
+        var h = TimeOnly.FromDateTime(TimeZoneInfo.ConvertTime(t, Paris).DateTime);
+        return new TimeOnly(h.Hour, h.Minute < 30 ? 0 : 30);
+    }
+
     /// <summary>
     /// Nouvelle MEP en production avec les trois comptes comme participants (profils de démonstration), le pilote et ses
     /// suppléants. Claire est l'approbatrice, sauf si elle pilote.
@@ -358,6 +376,14 @@ public static partial class DonneesDemo
             ("Ouvrir « Mes factures » et télécharger la dernière facture.", "Le PDF s'ouvre et contient le bloc Factur-X."));
         Fiche(mep, batch, "Export nocturne");
 
+        // Communication commencée : bénéfices et utilisateurs saisis, référence et créneau annoncé encore à renseigner.
+        mep.Communication = new Communication
+        {
+            NiveauRisque = NiveauRisque.Modere,
+            Benefices = "Factures au format Factur-X, acceptées par toutes les plateformes\nEnvoi automatique chaque nuit, sans dépôt manuel",
+            UtilisateursImpactes = "service Comptabilité et clients professionnels (fictif)",
+        };
+
         var d = new Deroule(mep, c.Maintenant.AddDays(-2).AddHours(-3));
         d.Creer(c.Equipe.Alice);
         d.Plus(25).Note(c.Equipe.Alice, "etape.creee", "E0005 créée");
@@ -410,6 +436,19 @@ public static partial class DonneesDemo
         Fiche(mep, web, "Recherche d'agence", ("Rechercher « Lyon » sur le site public.", "Trois agences s'affichent sur la carte."));
         Fiche(mep, api, "API annuaire", (Code("curl -fsS https://annuaire.exemple.invalid/agences?ville=Lyon"), "Réponse 200 avec 3 agences."));
         Fiche(mep, ldap, "Groupes d'agence", ("Se connecter avec un compte de l'agence de Lyon.", "Le compte appartient au groupe `agence-lyon`."));
+
+        mep.Communication = new Communication
+        {
+            ReferenceDemande = "CHG-DEMO-0398",
+            NiveauRisque = NiveauRisque.Faible,
+            Benefices = "Recherche d'agence par ville ou code postal\nCarte des agences sur le site public\nDroits des conseillers rattachés à leur agence",
+            UtilisateursImpactes = "conseillers des agences et visiteurs du site public (fictif)",
+            ActionUtilisateurs = "enregistrer les fiches d'agence en cours de modification",
+            HeureLimite = new TimeOnly(19, 45),
+            DateAnnoncee = Jour(c.Maintenant.AddDays(1)),
+            HeureDebutAnnoncee = new TimeOnly(20, 0),
+            HeureFinAnnoncee = new TimeOnly(21, 30),
+        };
 
         var d = new Deroule(mep, c.Maintenant.AddDays(-3).AddHours(-2));
         d.Creer(c.Equipe.Bob);
@@ -477,6 +516,20 @@ public static partial class DonneesDemo
 
         var eq = c.Equipe;
         var go = c.Maintenant.AddMinutes(-80);
+        mep.Communication = new Communication
+        {
+            ReferenceDemande = "CHG-DEMO-0405",
+            NiveauRisque = NiveauRisque.Eleve,
+            Benefices = "Paiement par portefeuille électronique dans l'application\nPaiement mobile sur le site, sans saisie de carte",
+            UtilisateursImpactes = "clients de l'application mobile et du site (fictif)",
+            ArretApplicatif = true,
+            ActionUtilisateurs = "terminer les paiements en cours",
+            HeureLimite = Heure(go.AddMinutes(-15)),
+            DateAnnoncee = Jour(go),
+            HeureDebutAnnoncee = Heure(go),
+            HeureFinAnnoncee = Heure(go.AddHours(3)),
+        };
+
         var d = new Deroule(mep, c.Maintenant.AddDays(-4).AddHours(-1));
         d.Creer(eq.Alice);
         d.Plus(30).Approbateurs(eq.Alice, eq.Claire);
@@ -553,6 +606,20 @@ public static partial class DonneesDemo
 
         var eq = c.Equipe;
         var go = c.Maintenant.AddHours(-4);
+        mep.Communication = new Communication
+        {
+            ReferenceDemande = "CHG-DEMO-0407",
+            NiveauRisque = NiveauRisque.Modere,
+            Benefices = "Demandes de congés en ligne\nValidation par le gestionnaire depuis son tableau de bord\nSolde de congés à jour en temps réel",
+            UtilisateursImpactes = "tous les salariés et les gestionnaires RH (fictif)",
+            ArretApplicatif = true,
+            ActionUtilisateurs = "enregistrer vos demandes de congés en cours",
+            HeureLimite = Heure(go.AddMinutes(-30)),
+            DateAnnoncee = Jour(go),
+            HeureDebutAnnoncee = Heure(go),
+            HeureFinAnnoncee = Heure(go.AddHours(5)),
+        };
+
         var d = new Deroule(mep, c.Maintenant.AddDays(-5).AddHours(-2));
         d.Creer(eq.Alice);
         d.Plus(20).Approbateurs(eq.Alice, eq.Claire);
@@ -632,6 +699,20 @@ public static partial class DonneesDemo
 
         var eq = c.Equipe;
         var go = c.Maintenant.AddMinutes(-75);
+        mep.Communication = new Communication
+        {
+            ReferenceDemande = "CHG-DEMO-0409",
+            NiveauRisque = NiveauRisque.Modere,
+            Benefices = "Pièces jointes jusqu'à 50 Mo\nRecherche dans le texte des messages",
+            UtilisateursImpactes = "tous les utilisateurs de la messagerie interne (fictif)",
+            ArretApplicatif = true,
+            ActionUtilisateurs = "envoyer vos messages en cours et fermer la messagerie",
+            HeureLimite = Heure(go.AddMinutes(-10)),
+            DateAnnoncee = Jour(go),
+            HeureDebutAnnoncee = Heure(go),
+            HeureFinAnnoncee = Heure(go.AddHours(2)),
+        };
+
         var d = new Deroule(mep, c.Maintenant.AddDays(-6).AddHours(-1));
         d.Creer(eq.Alice);
         d.Plus(15).Approbateurs(eq.Alice, eq.Claire);
@@ -701,6 +782,24 @@ public static partial class DonneesDemo
             (Code("curl -fsS https://stocks.exemple.invalid/stocks/ENT-01/REF-42"), "Stock théorique renvoyé."));
 
         var eq = c.Equipe;
+        // Clôturée réussie : la nouvelle version a été validée par les utilisateurs le lendemain.
+        mep.Communication = new Communication
+        {
+            ReferenceDemande = "CHG-DEMO-0371",
+            NiveauRisque = NiveauRisque.Eleve,
+            Benefices = "Réassorts calculés selon les ventes réelles\nInventaire tournant sans fermer l'entrepôt",
+            UtilisateursImpactes = "responsables d'entrepôt et service Logistique (fictif)",
+            ArretApplicatif = true,
+            ActionUtilisateurs = "terminer les inventaires en cours",
+            HeureLimite = Heure(go.AddMinutes(-30)),
+            DateAnnoncee = Jour(go),
+            HeureDebutAnnoncee = Heure(go),
+            HeureFinAnnoncee = Heure(go.AddHours(3)),
+            ValideeParUtilisateurs = true,
+            ValideePar = "Service Logistique (fictif)",
+            ValideeLe = Jour(go.AddDays(1)),
+        };
+
         var d = new Deroule(mep, go.AddDays(-5));
         d.Creer(eq.Alice);
         d.Plus(30).Approbateurs(eq.Alice, eq.Claire);
@@ -775,6 +874,20 @@ public static partial class DonneesDemo
         Fiche(mep, ldap, "Accès des partenaires pilotes", ("Vérifier l'attribut `extranet3` des comptes pilotes.", "Attribut présent sur les 5 comptes."));
 
         var eq = c.Equipe;
+        mep.Communication = new Communication
+        {
+            ReferenceDemande = "CHG-DEMO-0352",
+            NiveauRisque = NiveauRisque.Modere,
+            Benefices = "Tableau de bord des partenaires\nSuivi des commandes en ligne",
+            UtilisateursImpactes = "partenaires revendeurs (fictif)",
+            ArretApplicatif = true,
+            ActionUtilisateurs = "se déconnecter de l'extranet",
+            HeureLimite = Heure(go.AddMinutes(-15)),
+            DateAnnoncee = Jour(go),
+            HeureDebutAnnoncee = Heure(go),
+            HeureFinAnnoncee = Heure(go.AddHours(2)),
+        };
+
         var d = new Deroule(mep, go.AddDays(-6));
         d.Creer(eq.Bob);
         d.Plus(20).Approbateurs(eq.Bob, eq.Claire);

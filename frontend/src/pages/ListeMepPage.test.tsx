@@ -55,7 +55,15 @@ describe('ListeMepPage', () => {
 
   it('filtre les MEP par équipe et trouve une personne par l’un de ses comptes reliés', async () => {
     vi.mocked(api.equipes).mockResolvedValue([
-      { id: 'exploit', nom: 'Exploitation', description: '', membreIds: [], creeeLe: '2026-10-01T08:00:00Z' },
+      {
+        id: 'exploit',
+        nom: 'Exploitation',
+        description: '',
+        membreIds: [],
+        creeeLe: '2026-10-01T08:00:00Z',
+        contactSupport: '',
+        signature: '',
+      },
     ]);
     vi.mocked(api.meps).mockResolvedValue([
       resume({ id: 'a', outil: 'Portail', equipeIds: ['exploit'], personnes: ['Jean Dupont', 'jean.dupont@ent.fr'] }),

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using GestionMep.Domain;
 
 namespace GestionMep.Tests;
@@ -207,5 +208,55 @@ public class DonneesDemoTests
         Assert.True(DonneesDemo.EstCompteDemo("bob"));
         Assert.False(DonneesDemo.EstCompteDemo("admin"));
         Assert.False(DonneesDemo.EstCompteDemo("Bob")); // login normalisé attendu
+    }
+
+    [Fact]
+    public void Communication_remplie_les_textes_fournis_sont_complets_sauf_pour_la_preparation_incomplete()
+    {
+        var equipe = DonneesDemo.Equipes(Alice, Bob, Claire, Maintenant)[0].Equipe;
+        var annonce = ModelesTexteFournis.Trouver("annonce")!;
+        foreach (var m in Scenarios().Select(s => s.Mep))
+        {
+            var valeurs = VariablesTexte.Valeurs(m, equipe, "https://mep.exemple.invalid/meps/1", new Dictionary<Guid, string>());
+            var manquantes = Regex.Matches(annonce.Objet + annonce.Corps, @"\{\{(\w+)\}\}")
+                .Select(x => x.Groups[1].Value).Where(c => valeurs[c].EstManquante).ToList();
+            if (m.Outil == DonneesDemo.OutilIncomplete)
+            {
+                // Communication commencée : référence et créneau encore à renseigner, signalés dans les textes.
+                Assert.True(valeurs["reference_demande"].EstManquante);
+                Assert.Contains("date", manquantes);
+                Assert.False(valeurs["benefices"].EstManquante);
+            }
+            else
+            {
+                Assert.Empty(manquantes);
+                Assert.StartsWith("CHG-DEMO-", m.Communication.ReferenceDemande, StringComparison.Ordinal);
+                Assert.NotEqual(NiveauRisque.NonEvalue, m.Communication.NiveauRisque);
+            }
+        }
+        var reussie = Mep(DonneesDemo.OutilReussie);
+        Assert.True(reussie.Communication.ValideeParUtilisateurs);
+        Assert.NotNull(reussie.Communication.ValideeLe);
+    }
+
+    [Fact]
+    public void Equipes_de_demonstration_avec_leurs_modeles_de_texte()
+    {
+        var equipes = DonneesDemo.Equipes(Alice, Bob, Claire, Maintenant);
+        Assert.Equal([DonneesDemo.NomEquipe, DonneesDemo.NomEquipeWeb], equipes.Select(e => e.Equipe.Nom).ToArray());
+        Assert.All(equipes, e =>
+        {
+            Assert.NotEmpty(e.Equipe.ContactSupport);
+            Assert.NotEmpty(e.Equipe.Signature);
+            Assert.All(e.Modeles, m => Assert.Equal(e.Equipe.Id, m.EquipeId));
+            Assert.Equal(ModelesTexteFournis.Tous.Select(f => f.Cle).Order(), e.Modeles.Select(m => m.CleFournie).OfType<string>().Order());
+        });
+        var exploitation = equipes[0].Modeles;
+        Assert.True(ModelesTexteFournis.EstModifie(exploitation.Single(m => m.CleFournie == "annonce")));
+        var astreinte = exploitation.Single(m => m.Nom == DonneesDemo.NomModeleAstreinte);
+        Assert.Null(astreinte.CleFournie);
+        var cles = VariablesTexte.Toutes.Select(v => v.Cle).ToHashSet();
+        Assert.All(Regex.Matches(astreinte.Objet + astreinte.Corps, @"\{\{(\w+)\}\}"), x => Assert.Contains(x.Groups[1].Value, cles));
+        Assert.All(equipes[1].Modeles, m => Assert.False(ModelesTexteFournis.EstModifie(m)));
     }
 }

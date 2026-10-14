@@ -37,6 +37,13 @@ public static partial class Regles
                 VersionARestaurer = source.PlanRepli.VersionARestaurer, DonneesDepuisSauvegarde = source.PlanRepli.DonneesDepuisSauvegarde,
                 SiRepliEchoue = source.PlanRepli.SiRepliEchoue,
             },
+            // Communication : ce qui décrit le changement se reprend ; la demande, le créneau annoncé et la validation sont propres à chaque MEP.
+            Communication = new Communication
+            {
+                NiveauRisque = source.Communication.NiveauRisque, Benefices = source.Communication.Benefices,
+                UtilisateursImpactes = source.Communication.UtilisateursImpactes, ArretApplicatif = source.Communication.ArretApplicatif,
+                ActionUtilisateurs = source.Communication.ActionUtilisateurs, HeureLimite = source.Communication.HeureLimite,
+            },
         };
 
         var participants = new Dictionary<Guid, Guid>();

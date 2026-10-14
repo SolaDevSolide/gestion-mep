@@ -9,6 +9,7 @@ import { completude, type IdSection } from './completude';
 import { IdentiteSection } from './preparation/IdentiteSection';
 import { ResponsablesTechniquesSection } from './preparation/ResponsablesTechniquesSection';
 import { LivrablesSection, PersonnesSection, SystemesSection } from './preparation/ListesSections';
+import { CommunicationSection } from './preparation/CommunicationSection';
 import { PiecesSection } from './preparation/PiecesSection';
 import { SauvegardeSection, ValidationSection } from './preparation/SauvegardeValidation';
 
@@ -20,7 +21,8 @@ const SECTIONS: { id: IdSection; numero: number; titre: string }[] = [
   { id: 'livrables', numero: 5, titre: 'Livrables' },
   { id: 'sauvegarde', numero: 6, titre: 'Sauvegarde' },
   { id: 'validation', numero: 7, titre: 'Validation' },
-  { id: 'pieces', numero: 8, titre: 'Pièces jointes' },
+  { id: 'communication', numero: 8, titre: 'Communication' },
+  { id: 'pieces', numero: 9, titre: 'Pièces jointes' },
 ];
 
 /** Dans le sommaire : avatars des autres personnes qui travaillent sur la section. */
@@ -112,8 +114,8 @@ export default function PreparationTab() {
             Lecture seule : la MEP n’est plus en préparation.
             {mep.droits.estPilote &&
               (mep.retourArriereActive
-                ? ' Le pilote peut encore modifier la sauvegarde et l’échéance de retour arrière.'
-                : ' Le pilote peut encore modifier la sauvegarde.')}
+                ? ' Le pilote peut encore modifier la sauvegarde, la communication et l’échéance de retour arrière.'
+                : ' Le pilote peut encore modifier la sauvegarde et la communication.')}
           </Alerte>
         )}
         {/* Toutes les sections restent montées : un brouillon non enregistré survit au changement de section.
@@ -138,6 +140,9 @@ export default function PreparationTab() {
         </ZonePresence>
         <ZonePresence cle="preparation:validation" className={section !== 'validation' ? 'hidden' : undefined}>
           <ValidationSection />
+        </ZonePresence>
+        <ZonePresence cle="preparation:communication" className={section !== 'communication' ? 'hidden' : undefined}>
+          <CommunicationSection />
         </ZonePresence>
         <ZonePresence cle="preparation:pieces" className={section !== 'pieces' ? 'hidden' : undefined}>
           <PiecesSection />

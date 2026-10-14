@@ -14,10 +14,13 @@ namespace GestionMep.Api.Endpoints;
 /// </summary>
 public static class EquipesEndpoints
 {
-    public static EquipeDto Dto(Equipe e) => new(e.Id, e.Nom, e.Description, [.. e.MembreIds], e.CreeeLe);
+    public static EquipeDto Dto(Equipe e) => new(e.Id, e.Nom, e.Description, [.. e.MembreIds], e.CreeeLe, e.ContactSupport, e.Signature);
+
+    /// <summary>Ordre alphabétique des noms d'équipe (sans tenir compte de la casse).</summary>
+    public static readonly StringComparer OrdreDesNoms = StringComparer.Create(System.Globalization.CultureInfo.GetCultureInfo("fr-FR"), true);
 
     public static async Task<List<EquipeDto>> Lister(MepDbContext db) =>
-        (await db.Equipes.AsNoTracking().ToListAsync()).OrderBy(e => e.Nom, StringComparer.Create(System.Globalization.CultureInfo.GetCultureInfo("fr-FR"), true))
+        (await db.Equipes.AsNoTracking().ToListAsync()).OrderBy(e => e.Nom, OrdreDesNoms)
             .Select(Dto).ToList();
 
     /// <summary>Équipe désignée par son nom (sans tenir compte de la casse) ou son identifiant (404 sinon).</summary>
@@ -49,6 +52,8 @@ public static class EquipesEndpoints
         var membres = await Membres(db, c.MembreIds ?? []);
         var e = new Equipe { Nom = nom, Description = ServiceMep.Texte(c.Description), MembreIds = membres.Select(m => m.Id).ToList(), CreeeLe = maintenant };
         db.Equipes.Add(e);
+        // Chaque équipe reçoit sa copie des modèles de texte fournis.
+        db.ModelesTexte.AddRange(ModelesTexteFournis.Manquants(e.Id, [], maintenant));
         JournalAdmin.Ecrire(db, acteur, "equipe.creee", $"Équipe « {nom} » créée{(membres.Count > 0 ? $" avec {Comptes(membres)}" : "")}");
         await db.SaveChangesAsync();
         return Dto(e);
@@ -81,7 +86,7 @@ public static class EquipesEndpoints
         return Dto(e);
     }
 
-    /// <summary>Supprime l'équipe : les comptes, leurs données et les MEP ne changent pas.</summary>
+    /// <summary>Supprime l'équipe et ses modèles de texte : les comptes, leurs données et les MEP ne changent pas.</summary>
     public static async Task Supprimer(MepDbContext db, Acteur? acteur, Guid id)
     {
         var e = await Charger(db, id);

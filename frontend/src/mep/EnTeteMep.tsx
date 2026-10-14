@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, ChevronLeft, Copy, LayoutTemplate } from 'lucide-react';
+import { ArrowRight, CalendarDays, ChevronLeft, Copy, LayoutTemplate, Mail } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { etapesDuPlan, nomParticipant, planActif, segmentsProgression } from '../domaine';
@@ -7,6 +7,8 @@ import { metaPhase } from '../statuts';
 import type { Mep } from '../types';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
+import { Dialog } from '../ui/Dialog';
+import { TextesACopierContenu } from '../textes/TextesACopier';
 import { cn } from '../ui/cn';
 import { nommerSegment, ProgressBar } from '../ui/ProgressBar';
 import { TON } from '../ui/tons';
@@ -33,6 +35,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
   const termine = etapes.filter((e) => e.etat === 'Reussie').length;
   const pilotes = mep.droits.estPilote;
   const [duplication, setDuplication] = useState(false);
+  const [textes, setTextes] = useState(false);
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -121,6 +124,10 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
             {(mep.phase === 'Preparation' || (mep.phase === 'Execution' && mep.erreursPlan.length > 0)) && (
               <PlanCheck mep={mep} />
             )}
+            {/* À toutes les phases : le rappel et le compte rendu servent pendant et après l'exécution. */}
+            <Button taille="sm" icone={<Mail className="size-4" aria-hidden />} onClick={() => setTextes(true)}>
+              Textes à copier
+            </Button>
             <Button
               taille="sm"
               variante={mep.estModele ? 'primaire' : undefined}
@@ -167,6 +174,15 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
         )}
       </div>
       <div className="mt-0.5 px-4">{onglets}</div>
+      <Dialog
+        open={textes}
+        onOpenChange={setTextes}
+        titre="Textes à copier"
+        description="Choisissez un modèle : le texte se remplit avec les informations de la MEP. Copiez-le dans votre messagerie."
+        taille="xl"
+      >
+        {textes && <TextesACopierContenu mep={mep} />}
+      </Dialog>
       <DuplicationDialog
         open={duplication}
         onOpenChange={setDuplication}

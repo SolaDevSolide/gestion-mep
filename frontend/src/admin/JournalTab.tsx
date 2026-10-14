@@ -37,6 +37,10 @@ export const LIBELLE_EVENEMENT_ADMIN: Record<string, string> = {
   'equipe.supprimee': 'Équipe supprimée',
   'compte.relie': 'Comptes reliés',
   'compte.delie': 'Liaison de comptes défaite',
+  'modele-texte.cree': 'Modèle de texte créé',
+  'modele-texte.modifie': 'Modèle de texte modifié',
+  'modele-texte.retabli': 'Modèle de texte rétabli',
+  'modele-texte.supprime': 'Modèle de texte supprimé',
 };
 
 export function libelleEvenementAdmin(type: string): string {
