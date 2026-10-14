@@ -56,6 +56,7 @@ La liste est tenue à jour à chaque fonctionnalité qui ajoute une information 
 |---|---|---|
 | `{{application}}` | Application | Outil concerné (Intervention) |
 | `{{objet}}` | Objet de la MEP | Objet de l'intervention |
+| `{{type_mep}}` | Type de MEP | « MEP complète » ou « MEP simplifiée » |
 | `{{version_actuelle}}` | Version actuelle | Version en production avant la MEP |
 | `{{version_cible}}` | Version cible | Version installée par la MEP |
 | `{{impacts}}` | Impacts attendus | Impacts saisis dans Intervention |

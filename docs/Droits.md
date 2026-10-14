@@ -12,7 +12,7 @@ Deux sortes de rôles se combinent.
 **Dans une MEP** :
 
 - **Pilote** : responsable de la mise en production, il décide des changements de phase.
-- **Suppléant** : mêmes droits que le pilote. Le pilote ne peut pas être son propre suppléant.
+- **Suppléant** : mêmes droits que le pilote. Le pilote ne peut pas être son propre suppléant. Dans une [MEP simplifiée](Préparer-une-MEP.md#mep-complète-ou-simplifiée), toutes les personnes de la MEP sauf le pilote sont suppléantes, sans avoir à les choisir (dès qu'un pilote est désigné).
 - **Responsable technique** : développeur ou sachant, il prépare le contenu. Le créateur d'une MEP le devient automatiquement.
 - **Approbateur** : approuve ou refuse le plan. Le pilote ne peut pas l'être, même avec un autre compte relié au sien, et une personne n'est désignée qu'une fois. Un compte désactivé ne peut plus être désigné.
 - **Participant** : toute personne de la MEP. Reliée à un compte, elle peut exécuter des étapes.
@@ -28,6 +28,7 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Changer le pilote ou les suppléants, ou le compte auquel ils sont reliés | Pilote, suppléant ou administrateur (tout éditeur tant qu'aucun pilote n'est désigné) |
 | Compléter les informations de sauvegarde après la préparation (sauvegarde réalisée, restauration testée, preuve) | Pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée |
 | Activer ou désactiver le plan de retour arrière | Éditeur, en préparation |
+| Passer une MEP simplifiée en complète, ou une MEP complète en simplifiée | Pilote, suppléant ou administrateur, en préparation (tout éditeur tant qu'aucun pilote n'est désigné) |
 | Modifier l'échéance de retour arrière, à toute phase (MEP avec plan de retour arrière) | Pilote, suppléant ou administrateur |
 | Cocher « Procédure relue » | Participant relié à un compte |
 | Approuver ou refuser | Approbateur désigné |

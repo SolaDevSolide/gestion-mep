@@ -59,7 +59,8 @@ public static partial class Regles
             var manquants = new List<string>();
             if (string.IsNullOrWhiteSpace(e.Action)) manquants.Add("Action");
             if (e.SystemeIds.Count == 0) manquants.Add("Système");
-            if (e.Criticite is null) manquants.Add("Criticité");
+            // MEP simplifiée : pas de criticité.
+            if (e.Criticite is null && !EstSimplifiee(mep)) manquants.Add("Criticité");
             if (string.IsNullOrWhiteSpace(e.Instructions)) manquants.Add("Instructions exactes");
             if (string.IsNullOrWhiteSpace(e.ResultatAttendu)) manquants.Add("Résultat attendu");
             // Une étape de sauvegarde dit où trouver la sauvegarde et comment la récupérer.
@@ -137,6 +138,7 @@ public static partial class Regles
     /// pilote également responsable technique, responsable technique absent dont les étapes ne sont pas reprenables par un autre,
     /// aucun système sauvegardé, système sans environnement choisi, système sans fiche de recette, fiche de recette sans système.
     /// Pour un modèle, ni pilote ni disponibilité le jour J.
+    /// MEP simplifiée : ni résolutions liées réclamées, ni suppléant à prévoir s'il y a d'autres personnes que le pilote.
     /// </summary>
     public static List<string> Avertissements(Mep mep)
     {
@@ -147,10 +149,12 @@ public static partial class Regles
             avertissements.Add("Aucun responsable technique renseigné.");
         else if (!mep.EstModele)
         {
-            if (mep.PiloteId is { } pilote && mep.ResponsablesTechniques.Any(r => r.ParticipantId == pilote))
+            // MEP simplifiée : toutes les autres personnes sont suppléantes, l'avertissement ne vaut que s'il n'y en a aucune.
+            if (mep.PiloteId is { } pilote && mep.ResponsablesTechniques.Any(r => r.ParticipantId == pilote) && !(EstSimplifiee(mep) && Suppleants(mep).Count > 0))
                 avertissements.Add($"{Nom(pilote)} est à la fois responsable technique et pilote : prévoir un suppléant qui connaît le plan.");
 
-            foreach (var r in mep.ResponsablesTechniques.Where(r => r.Disponibilite == DisponibiliteJourJ.Absent))
+            // MEP simplifiée : pas de résolutions liées (toutes celles des systèmes de l'étape sont proposées le jour J).
+            foreach (var r in mep.ResponsablesTechniques.Where(r => r.Disponibilite == DisponibiliteJourJ.Absent && !EstSimplifiee(mep)))
                 foreach (var e in mep.EtapesTriees())
                 {
                     var concernee = e.SystemeIds.Any(r.SystemeIds.Contains);

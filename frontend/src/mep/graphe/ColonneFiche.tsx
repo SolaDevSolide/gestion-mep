@@ -14,6 +14,7 @@ import { cn } from '../../ui/cn';
 import { Field, Input, Select, Textarea } from '../../ui/Input';
 import { Segmented } from '../../ui/Segmented';
 import { Bloc } from './EspaceEtape';
+import { estSimplifiee } from '../typeMep';
 import type { Fiche } from './PanneauEdition';
 
 interface Props {
@@ -123,37 +124,40 @@ export function ColonneFiche({ mep, plan, fiche: v, onChange }: Props) {
           </>
         )}
       </Bloc>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Criticité">
-          {(id) => (
-            <Select
-              id={id}
-              value={v.criticite}
-              onChange={(e) => onChange({ criticite: e.target.value as Criticite | '' })}
-            >
-              <option value="">—</option>
-              {(Object.keys(LIBELLE_CRITICITE) as Criticite[]).map((c) => (
-                <option key={c} value={c}>
-                  {LIBELLE_CRITICITE[c]}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-        <Field label="Durée (min)">
-          {(id) => (
-            <Input
-              id={id}
-              type="number"
-              min={0}
-              inputMode="numeric"
-              placeholder="facultatif"
-              value={v.duree}
-              onChange={(e) => onChange({ duree: e.target.value })}
-            />
-          )}
-        </Field>
-      </div>
+      {/* MEP simplifiée : ni criticité ni durée. */}
+      {!estSimplifiee(mep) && (
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Criticité">
+            {(id) => (
+              <Select
+                id={id}
+                value={v.criticite}
+                onChange={(e) => onChange({ criticite: e.target.value as Criticite | '' })}
+              >
+                <option value="">—</option>
+                {(Object.keys(LIBELLE_CRITICITE) as Criticite[]).map((c) => (
+                  <option key={c} value={c}>
+                    {LIBELLE_CRITICITE[c]}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <Field label="Durée (min)">
+            {(id) => (
+              <Input
+                id={id}
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="facultatif"
+                value={v.duree}
+                onChange={(e) => onChange({ duree: e.target.value })}
+              />
+            )}
+          </Field>
+        </div>
+      )}
       <Bloc titre="Fin de l’étape">
         <Segmented
           label="Fin de l’étape"

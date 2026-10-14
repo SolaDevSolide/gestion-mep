@@ -6,6 +6,7 @@ import { cn } from '../../ui/cn';
 import { TON } from '../../ui/tons';
 import { BORDURE_TON, etatCarte, TEXTE_TON } from './etatCarte';
 import { BandeauSystemes, systemesDe } from './systemes';
+import { estSimplifiee } from '../typeMep';
 
 export type ModeGraphe = 'edition' | 'execution';
 
@@ -64,7 +65,7 @@ export function CarteEtape({ mep, etape: e, mode, descriptions, selectionnee, es
               <etat.Icone className={cn('size-3', etat.anime && 'animate-spin')} aria-hidden />
               {etat.libelle}
             </span>
-          ) : (
+          ) : estSimplifiee(mep) ? null : (
             <span className="font-mono text-xs text-fg-subtle">
               {e.criticite ? LIBELLE_CRITICITE[e.criticite] : 'Criticité ?'}
             </span>

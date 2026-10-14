@@ -2,7 +2,7 @@
 
 Application web pour préparer et exécuter les mises en production (MEP). L'équipe de développement décrit l'intervention une fois : systèmes concernés, sauvegardes, procédure pas à pas, contrôles et retour arrière. N'importe quel opérateur peut ensuite dérouler la MEP sans avoir participé au développement, avec un journal complet de ce qui a été fait.
 
-- **Préparation** : plan d'étapes en graphe avec dépendances et étapes parallèles, bibliothèque d'étapes modèles à insérer dans le graphe, environnements par système et par étape, objets impactés choisis dans la fiche de chaque système (échange en Excel), responsables techniques, approbations, go / no-go.
+- **Préparation** : plan d'étapes en graphe avec dépendances et étapes parallèles, bibliothèque d'étapes modèles à insérer dans le graphe, environnements par système et par étape, objets impactés choisis dans la fiche de chaque système (échange en Excel), responsables techniques, approbations, go / no-go ; MEP complète, ou simplifiée pour une petite intervention (suppléants implicites, étapes sans durée ni criticité, toutes les résolutions des systèmes proposées le jour J).
 - **Travail à plusieurs** : on voit qui a ouvert la MEP et quel élément chacun modifie, les changements des autres arrivent sans recharger, et aucune saisie n'est perdue sans confirmation.
 - **Communication** : référence de la demande, risque, bénéfices, créneau annoncé et validation par les utilisateurs ; modèles de texte par équipe (annonce, rappel, demande de MEP, compte rendu) remplis avec les informations de la MEP et copiés en un clic, mis en forme ou en texte simple.
 - **Exécution** : étapes à suivre en temps réel, preuves, prise de main tracée, résolutions guidées en cas d'échec.
@@ -24,7 +24,7 @@ echo "DEMO=true" > .env
 docker compose up --build
 ```
 
-Ouvrir http://localhost:8080 et cliquer sur un compte de démonstration : `alice` (administratrice), `bob` ou `claire` (mot de passe `demo` pour le formulaire). Huit MEP de démonstration couvrent chaque état : préparation incomplète ou prête pour le Go, exécution, recette, retour arrière en cours, clôturées réussie et repliée ([Démarrage rapide](docs/Démarrage-rapide.md#mep-de-démonstration)). Le bouton « Réinitialiser la démonstration » du bandeau (ou `gestion-mep demo reinitialiser --oui`) remet la base dans son état initial ; `docker compose down -v` efface tout.
+Ouvrir http://localhost:8080 et cliquer sur un compte de démonstration : `alice` (administratrice), `bob` ou `claire` (mot de passe `demo` pour le formulaire). Neuf MEP de démonstration couvrent chaque état : préparation incomplète ou prête pour le Go, exécution, recette, retour arrière en cours, clôturées réussie et repliée, plus une MEP simplifiée en cours d'exécution ([Démarrage rapide](docs/Démarrage-rapide.md#mep-de-démonstration)). Le bouton « Réinitialiser la démonstration » du bandeau (ou `gestion-mep demo reinitialiser --oui`) remet la base dans son état initial ; `docker compose down -v` efface tout.
 
 ## Installer sur un serveur
 

@@ -56,7 +56,8 @@ public static partial class Regles
     /// ceux qui ne sont pas dans la MEP ne sont pas ajoutés et sont renvoyés (le front prévient). Un système de la MEP qui n'a
     /// qu'un environnement le donne à la copie ; s'il en a plusieurs (ou aucun), la copie n'en a pas : à choisir dans l'étape,
     /// comme pour une étape saisie. Les environnements ne font pas partie du modèle. Seules les résolutions
-    /// <paramref name="resolutionsActives"/> sont reprises.
+    /// <paramref name="resolutionsActives"/> sont reprises. Dans une MEP simplifiée, la copie n'a ni durée, ni criticité,
+    /// ni résolutions liées.
     /// </summary>
     public static (Etape Etape, List<Guid> SystemesAbsents) InsererEtapeModele(Mep mep, ModeleEtape modele, TypePlan plan, int? ligne, int? position,
         IReadOnlyCollection<Guid> resolutionsActives)
@@ -85,6 +86,7 @@ public static partial class Regles
         DefinirType(etape, modele.Type, pointDeNonRetour: false);
         PlacerNouvelle(mep, etape, ligne, position);
         mep.Etapes.Add(etape);
+        AppliquerTypeAEtape(mep, etape);
         RelierParDefaut(mep, etape);
         return (etape, systemes.Where(s => s.Systeme is null).Select(s => s.Catalogue).ToList());
     }

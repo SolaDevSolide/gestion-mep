@@ -38,6 +38,8 @@ public static class EtapesEndpoints
         // Après les champs de sauvegarde : une étape standard les efface.
         Regles.DefinirType(e, c.Type ?? TypeEtape.Standard, c.PointDeNonRetour);
         if (dependances is not null) Regles.DefinirDependances(mep, e, dependances);
+        // MEP simplifiée : ni durée, ni criticité, ni résolutions liées.
+        Regles.AppliquerTypeAEtape(mep, e);
     }
 
     public static void MapEtapes(this RouteGroupBuilder api)
@@ -63,6 +65,7 @@ public static class EtapesEndpoints
             mep.Etapes.Add(etape);
             if (c is not null)
                 Appliquer(mep, etape, c with { Criticite = c.Criticite ?? Criticite.Moderee }, await svc.ValiderResolutionIds(c.ResolutionIds, []), c.Dependances);
+            Regles.AppliquerTypeAEtape(mep, etape);
             // Sans dépendances explicites : liens par défaut avec la ligne au-dessus et la ligne en dessous.
             if (c?.Dependances is null) Regles.RelierParDefaut(mep, etape);
             var dto = await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "etape.creee", $"{etape.Code} créée");

@@ -329,6 +329,12 @@ public class LigneDeCommandeTests : IDisposable
         Assert.Equal(DonneesDemo.OutilRetourArriere,
             Assert.Single((await Cli("meps", "lister", "--phase", "retour-arriere", "--json")).Json.EnumerateArray()).GetProperty("outil").GetString());
         Assert.Equal(1, (await Cli("meps", "lister", "--phase", "demain")).Code);
+        // Une seule MEP de démonstration est simplifiée.
+        Assert.Equal(DonneesDemo.OutilSimplifiee,
+            Assert.Single((await Cli("meps", "lister", "--type", "simplifiee", "--json")).Json.EnumerateArray()).GetProperty("outil").GetString());
+        Assert.Equal(meps.Count - 1, (await Cli("meps", "lister", "--type", "complete", "--json")).Json.GetArrayLength());
+        Assert.Contains("simplifiée", (await Cli("meps", "lister")).Sortie);
+        Assert.Equal(1, (await Cli("meps", "lister", "--type", "legere")).Code);
 
         var id = meps[0].GetProperty("id").GetString()!;
         var fichier = Fichier("mep.json");

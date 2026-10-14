@@ -471,6 +471,39 @@
         }
       }
     },
+    "/api/meps/{id}/type": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TypeMepSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/meps/{id}/sauvegarde": {
       "put": {
         "tags": [
@@ -6997,7 +7030,8 @@
               "responsablesTechniques",
               "avertissements",
               "retourArriereActive",
-              "communication"
+              "communication",
+              "type"
             ],
             "type": "object",
             "properties": {
@@ -8358,9 +8392,16 @@
                   }
                 },
                 "description": "Section Communication de la MEP (tout est facultatif). `PreuveValidationId` : pièce jointe de la MEP qui prouve la\nvalidation par les utilisateurs (null si aucune, ou si la pièce a été supprimée)."
+              },
+              "type": {
+                "enum": [
+                  "Complete",
+                  "Simplifiee"
+                ],
+                "description": "Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).\nSimplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni\nrésolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la\nvaleur par défaut, est la MEP complète."
               }
             },
-            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé."
+            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées."
           },
           "ajoutes": {
             "type": "integer",
@@ -8625,9 +8666,19 @@
               "null",
               "boolean"
             ]
+          },
+          "type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TypeMep"
+              }
+            ]
           }
         },
-        "description": "Création d'une MEP, ou d'un modèle si `Modele` vaut true."
+        "description": "Création d'une MEP, ou d'un modèle si `Modele` vaut true. `Type` absent : MEP complète ; un modèle est\ntoujours complet."
       },
       "MepDto": {
         "required": [
@@ -8673,7 +8724,8 @@
           "responsablesTechniques",
           "avertissements",
           "retourArriereActive",
-          "communication"
+          "communication",
+          "type"
         ],
         "type": "object",
         "properties": {
@@ -10034,9 +10086,16 @@
               }
             },
             "description": "Section Communication de la MEP (tout est facultatif). `PreuveValidationId` : pièce jointe de la MEP qui prouve la\nvalidation par les utilisateurs (null si aucune, ou si la pièce a été supprimée)."
+          },
+          "type": {
+            "enum": [
+              "Complete",
+              "Simplifiee"
+            ],
+            "description": "Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).\nSimplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni\nrésolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la\nvaleur par défaut, est la MEP complète."
           }
         },
-        "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé."
+        "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées."
       },
       "MepIdentiteSaisie": {
         "required": [
@@ -10165,7 +10224,7 @@
             ]
           }
         },
-        "description": "`BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance. La MEP n'a plus\nd'environnement propre : ils se choisissent par système (`PUT /meps/{id}/systemes/{sid}/environnements`)."
+        "description": "`BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance. La MEP n'a plus\nd'environnement propre : ils se choisissent par système (`PUT /meps/{id}/systemes/{sid}/environnements`).\nMEP simplifiée : `VersionActuelle`, `VersionCible` et `SuppleantIds` sont ignorés (pas de versions, suppléants implicites)."
       },
       "MepResumeDto": {
         "required": [
@@ -10186,7 +10245,8 @@
           "issue",
           "retourArriereActive",
           "equipeIds",
-          "personnes"
+          "personnes",
+          "type"
         ],
         "type": "object",
         "properties": {
@@ -10273,9 +10333,12 @@
             "items": {
               "type": "string"
             }
+          },
+          "type": {
+            "$ref": "#/components/schemas/TypeMep"
           }
         },
-        "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;\n`RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).\n`ToucheProduction` : l'un des systèmes de la MEP touche un environnement de production.\n`EquipeIds` : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait\npartie, par l'un de ses comptes reliés). `Personnes` : noms des personnes de la MEP et, pour celles qui ont un compte,\nnoms et logins de tous leurs comptes reliés (pour la recherche)."
+        "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;\n`RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).\n`ToucheProduction` : l'un des systèmes de la MEP touche un environnement de production.\n`EquipeIds` : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait\npartie, par l'un de ses comptes reliés). `Personnes` : noms des personnes de la MEP et, pour celles qui ont un compte,\nnoms et logins de tous leurs comptes reliés (pour la recherche). `Type` : MEP complète ou simplifiée."
       },
       "MiseAJourDto": {
         "required": [
@@ -12881,6 +12944,40 @@
           "Sauvegarde",
           null
         ]
+      },
+      "TypeMep": {
+        "enum": [
+          "Complete",
+          "Simplifiee"
+        ],
+        "description": "Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).\nSimplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni\nrésolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la\nvaleur par défaut, est la MEP complète."
+      },
+      "TypeMepSaisie": {
+        "required": [
+          "version",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TypeMep"
+              }
+            ]
+          }
+        },
+        "description": "Changement de type d'une MEP en préparation (passer en simplifiée efface durées, criticités, résolutions liées et versions)."
       },
       "TypePlan": {
         "enum": [

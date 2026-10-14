@@ -21,13 +21,13 @@ export function dureeCumulee(etapes: Pick<Etape, 'dureeEstimeeMinutes'>[]): stri
   return `${total} min${sans ? ` (${sans} étape${sans > 1 ? 's' : ''} sans durée)` : ''}`;
 }
 
-/** Résumé d'une ligne du plan : étapes, lignes, durée cumulée. */
-export function ResumePlan({ etapes }: { etapes: Etape[] }) {
+/** Résumé d'une ligne du plan : étapes, lignes, durée cumulée (sauf <paramref name="sansDuree"/> : MEP simplifiée). */
+export function ResumePlan({ etapes, sansDuree = false }: { etapes: Etape[]; sansDuree?: boolean }) {
   const lignes = construireLignes(etapes).length;
   return (
     <p className="text-[13px] text-fg-subtle tnum">
       {etapes.length} étape{etapes.length > 1 ? 's' : ''} · {lignes} ligne{lignes > 1 ? 's' : ''}
-      {etapes.length > 0 && <> · {dureeCumulee(etapes)}</>}
+      {!sansDuree && etapes.length > 0 && <> · {dureeCumulee(etapes)}</>}
     </p>
   );
 }

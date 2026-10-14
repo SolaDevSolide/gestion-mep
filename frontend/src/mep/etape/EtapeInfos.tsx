@@ -100,6 +100,8 @@ interface Props {
   etape: Etape;
   /** Résolutions types liées à l'étape. */
   liees: ResolutionType[];
+  /** Titre du bloc des résolutions (par défaut « Résolutions prévues ») ; MEP simplifiée : celles des systèmes de l'étape. */
+  titreResolutions?: string;
   /** Résolutions déjà terminées sur l'étape. */
   historique: ExecutionResolution[];
   peutPrendreLaMain: boolean;
@@ -115,6 +117,7 @@ export function EtapeInfos({
   mep,
   etape,
   liees,
+  titreResolutions = 'Résolutions prévues',
   historique,
   peutPrendreLaMain,
   onPrendreLaMain,
@@ -214,7 +217,7 @@ export function EtapeInfos({
         <ListeEtats etapes={suivants} vide="Aucune." onSelectionner={onSelectionner} />
       </Bloc>
       {etape.etat !== 'Echec' && (
-        <Bloc titre={`Résolutions prévues (${liees.length})`}>
+        <Bloc titre={`${titreResolutions} (${liees.length})`}>
           {liees.length === 0 ? (
             <p className="text-[13px] text-fg-subtle">Aucune.</p>
           ) : (

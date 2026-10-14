@@ -38,6 +38,7 @@ public static partial class DonneesDemo
                 ("Table", "transactions", "Transactions de paiement", "schéma paiement"),
                 ("Table", "conges", "Demandes de congés", "schéma rh"),
                 ("Table", "messages", "Messages échangés", "schéma messagerie"),
+                ("Table", "parametres", "Paramètres applicatifs", "schéma messagerie"),
                 ("Table", "inventaire", "Inventaire des stocks", "schéma stocks"),
             ]),
             ("Vues",

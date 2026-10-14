@@ -9,7 +9,7 @@ public static partial class Regles
         if (etape.Plan != TypePlan.Deploiement) throw new RegleMetierException("Les résolutions s'appliquent aux étapes de déploiement.");
         ExigerExecution(mep, etape, utilisateurId);
         if (etape.Etat != EtatEtape.Echec) throw new RegleMetierException("Une résolution s'applique à une étape en échec.");
-        if (!etape.ResolutionIds.Contains(resolution.Id)) throw new RegleMetierException("Cette résolution n'est pas prévue pour cette étape.");
+        if (!EstResolutionProposee(mep, etape, resolution)) throw new RegleMetierException("Cette résolution n'est pas prévue pour cette étape.");
         if (ResolutionEnCours(mep, etape) is not null) throw new RegleMetierException("Une résolution est déjà en cours sur cette étape.");
         if (EcheanceAtteinte(mep, maintenant))
             throw new RegleMetierException("Échéance atteinte : aucune nouvelle correction, retour arrière obligatoire.");

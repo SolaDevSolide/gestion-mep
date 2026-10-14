@@ -8,6 +8,7 @@ import { Select } from '../../ui/Input';
 import { PiecesJointes } from '../../ui/PiecesJointes';
 import { Bloc } from './EspaceEtape';
 import { SelecteurResolutions } from './SelecteurResolutions';
+import { estSimplifiee } from '../typeMep';
 
 /** Pièces jointes d'une étape (dépôt possible tant que la MEP n'est pas clôturée). */
 export function PiecesEtape({ etapeId, className }: { etapeId: string; className?: string }) {
@@ -111,6 +112,8 @@ export function ColonneLiens(props: Props) {
     onSuppr,
     onSupprimer,
   } = props;
+  // MEP simplifiée : pas de résolutions liées (le jour J, toutes celles des systèmes de l'étape sont proposées).
+  const { mep } = useMep();
   return (
     <>
       <Bloc titre={`Attend (${prealables.length})`}>
@@ -178,16 +181,18 @@ export function ColonneLiens(props: Props) {
           </Select>
         )}
       </Bloc>
-      <Bloc titre={`Résolutions en cas d’échec (${resolutionIds.length})`}>
-        <SelecteurResolutions
-          resolutions={resolutions}
-          catalogue={catalogue}
-          liees={resolutionIds}
-          onChange={onResolutions}
-          systemesEtape={systemesEtape}
-          onCreer={onCreerResolution}
-        />
-      </Bloc>
+      {!estSimplifiee(mep) && (
+        <Bloc titre={`Résolutions en cas d’échec (${resolutionIds.length})`}>
+          <SelecteurResolutions
+            resolutions={resolutions}
+            catalogue={catalogue}
+            liees={resolutionIds}
+            onChange={onResolutions}
+            systemesEtape={systemesEtape}
+            onCreer={onCreerResolution}
+          />
+        </Bloc>
+      )}
       <PiecesEtape etapeId={etape.id} />
       <div className="border-t border-line pt-3">
         {suppr ? (

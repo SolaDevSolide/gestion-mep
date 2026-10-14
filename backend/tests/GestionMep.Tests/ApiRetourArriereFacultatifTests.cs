@@ -5,6 +5,7 @@ using System.Text.Json;
 namespace GestionMep.Tests;
 
 /// <summary>API du plan de retour arrière facultatif (issue #49) : activation, journal, Go sans retour arrière ni échéance.</summary>
+[Collection("Api")]
 public class ApiRetourArriereFacultatifTests : IDisposable
 {
     private readonly ApiFixture _api = new();

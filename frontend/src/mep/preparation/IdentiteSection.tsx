@@ -12,7 +12,10 @@ import { Checkbox } from '../../ui/Checkbox';
 import { MultiSelect } from '../../ui/Combobox';
 import { ConfirmDialog } from '../../ui/Dialog';
 import { Field, Input, Select, Textarea } from '../../ui/Input';
+import { Avatar } from '../../ui/Avatar';
+import { estSimplifiee } from '../typeMep';
 import { SectionCarte, vide } from './Formulaires';
+import { TypeMepEncadre } from './TypeMepEncadre';
 
 export function IdentiteSection() {
   const { mep, run } = useMep();
@@ -45,6 +48,9 @@ export function IdentiteSection() {
   // Pilote et suppléants : le pilote actuel, un suppléant ou un administrateur (tout éditeur tant qu'aucun pilote n'est désigné).
   const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
   const pilotage = edition && (mep.piloteId === null || mep.droits.estPilote || admin);
+  // MEP simplifiée : ni versions, et les suppléants sont toutes les autres personnes de la MEP.
+  const simplifiee = estSimplifiee(mep);
+  const autres = mep.participants.filter((p) => p.id !== v.piloteId);
 
   const personnes = (valeur: string | null, set: (x: string | null) => void) => (id: string) => (
     <Select id={id} value={valeur ?? ''} disabled={!pilotage} onChange={(e) => set(vide(e.target.value))}>
@@ -97,6 +103,7 @@ export function IdentiteSection() {
     >
       <AvisConflit brouillon={d} className="mb-4" />
       <div className="grid gap-4 md:grid-cols-2">
+        {!modele && <TypeMepEncadre peutChanger={pilotage} brouillonModifie={d.dirty} />}
         <Field label="Outil">
           {(id) => (
             <Input id={id} value={v.outil} disabled={lecture} onChange={(e) => d.update({ outil: e.target.value })} />
@@ -107,28 +114,32 @@ export function IdentiteSection() {
             <Input id={id} value={v.objet} disabled={lecture} onChange={(e) => d.update({ objet: e.target.value })} />
           )}
         </Field>
-        <Field label="Version actuelle">
-          {(id) => (
-            <Input
-              id={id}
-              className="font-mono"
-              value={v.versionActuelle}
-              disabled={lecture}
-              onChange={(e) => d.update({ versionActuelle: e.target.value })}
-            />
-          )}
-        </Field>
-        <Field label="Version cible">
-          {(id) => (
-            <Input
-              id={id}
-              className="font-mono"
-              value={v.versionCible}
-              disabled={lecture}
-              onChange={(e) => d.update({ versionCible: e.target.value })}
-            />
-          )}
-        </Field>
+        {!simplifiee && (
+          <>
+            <Field label="Version actuelle">
+              {(id) => (
+                <Input
+                  id={id}
+                  className="font-mono"
+                  value={v.versionActuelle}
+                  disabled={lecture}
+                  onChange={(e) => d.update({ versionActuelle: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label="Version cible">
+              {(id) => (
+                <Input
+                  id={id}
+                  className="font-mono"
+                  value={v.versionCible}
+                  disabled={lecture}
+                  onChange={(e) => d.update({ versionCible: e.target.value })}
+                />
+              )}
+            </Field>
+          </>
+        )}
         {!modele && (
           <div className="grid grid-cols-2 gap-4 text-sm" aria-label="Dates constatées">
             <p>
@@ -174,30 +185,57 @@ export function IdentiteSection() {
                 d.update({ piloteId: x, suppleantIds: v.suppleantIds.filter((s) => s !== x) }),
               )}
             </Field>
-            <Field
-              label="Suppléants"
-              hint={
-                pilotage || lecture
-                  ? 'Ils ont les mêmes droits que le pilote.'
-                  : 'Seul le pilote, un suppléant ou un administrateur peut changer le pilote et les suppléants.'
-              }
-            >
-              {(id) => (
-                <MultiSelect
-                  id={id}
-                  options={mep.participants
-                    .filter((p) => p.id !== v.piloteId)
-                    .map((p) => ({ valeur: p.id, libelle: p.nom, detail: p.role }))}
-                  valeurs={v.suppleantIds}
-                  onChange={(ids) => d.update({ suppleantIds: ids })}
-                  placeholder="Aucun suppléant"
-                  placeholderRecherche="Rechercher une personne…"
-                  vide="Aucune autre personne : ajoutez-en dans « Personnes »."
-                  disabled={!pilotage}
-                  libelleInconnu="Personne supprimée"
-                />
-              )}
-            </Field>
+            {simplifiee ? (
+              <div className="text-sm" aria-label="Suppléants">
+                <p className="mb-1.5 text-[13px] font-medium">Suppléants</p>
+                <div className="flex min-h-9 flex-wrap items-center gap-2">
+                  {v.piloteId ? (
+                    <>
+                      {autres.length > 0 && (
+                        <span className="flex -space-x-1">
+                          {autres.slice(0, 6).map((p) => (
+                            <Avatar key={p.id} nom={p.nom} taille="sm" className="ring-2 ring-surface" />
+                          ))}
+                        </span>
+                      )}
+                      <span className="text-fg-muted">Toutes les autres personnes de la MEP ({autres.length})</span>
+                    </>
+                  ) : (
+                    <span className="text-fg-muted">
+                      Toutes les personnes de la MEP sauf le pilote, dès qu’il est désigné.
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-fg-subtle">
+                  MEP simplifiée : elles ont les mêmes droits que le pilote.
+                </p>
+              </div>
+            ) : (
+              <Field
+                label="Suppléants"
+                hint={
+                  pilotage || lecture
+                    ? 'Ils ont les mêmes droits que le pilote.'
+                    : 'Seul le pilote, un suppléant ou un administrateur peut changer le pilote et les suppléants.'
+                }
+              >
+                {(id) => (
+                  <MultiSelect
+                    id={id}
+                    options={mep.participants
+                      .filter((p) => p.id !== v.piloteId)
+                      .map((p) => ({ valeur: p.id, libelle: p.nom, detail: p.role }))}
+                    valeurs={v.suppleantIds}
+                    onChange={(ids) => d.update({ suppleantIds: ids })}
+                    placeholder="Aucun suppléant"
+                    placeholderRecherche="Rechercher une personne…"
+                    vide="Aucune autre personne : ajoutez-en dans « Personnes »."
+                    disabled={!pilotage}
+                    libelleInconnu="Personne supprimée"
+                  />
+                )}
+              </Field>
+            )}
           </>
         )}
         <div className="space-y-3 rounded-lg border border-line p-4 md:col-span-2">

@@ -34,6 +34,7 @@ import { ColonneLiens, ItemLien, PiecesEtape } from './ColonneLiens';
 import { Bloc, Surcouche } from './EspaceEtape';
 import { MentionCopie, TransformerDialog } from './EtapesModeles';
 import { PuceSysteme, systemesDe } from './systemes';
+import { estSimplifiee } from '../typeMep';
 
 export { PiecesEtape };
 
@@ -94,17 +95,18 @@ const ficheDepuis = (e: Etape): Fiche => ({
 
 /**
  * Points à compléter (la durée estimée est facultative), comme « Vérifier le plan » : une étape de type Sauvegarde dit aussi
- * où se trouve la sauvegarde et comment la récupérer.
+ * où se trouve la sauvegarde et comment la récupérer. MEP simplifiée (<paramref name="simplifiee"/>) : pas de criticité.
  */
 export function anomaliesFiche(
   f: Pick<Fiche, 'action' | 'systemeIds' | 'criticite' | 'instructions' | 'resultatAttendu'> &
     Partial<Pick<Fiche, 'type' | 'sauvegardeEmplacement' | 'sauvegardeMethodeRecuperation'>>,
+  simplifiee = false,
 ): string[] {
   const sauvegarde = f.type === 'Sauvegarde';
   return [
     !f.action.trim() && 'l’action',
     f.systemeIds.length === 0 && 'au moins un système',
-    !f.criticite && 'la criticité',
+    !f.criticite && !simplifiee && 'la criticité',
     !f.instructions.trim() && 'les instructions',
     !f.resultatAttendu.trim() && 'le résultat attendu',
     sauvegarde && !f.sauvegardeEmplacement?.trim() && 'l’emplacement de la sauvegarde',
@@ -279,7 +281,7 @@ export function PanneauEdition(props: Props) {
   const catalogueIds = systemesDe(mep, v.systemeIds)
     .map((s) => s.catalogueId)
     .filter((c): c is string => !!c);
-  const anomalies = anomaliesFiche({ ...v, type: plan === 'Deploiement' ? v.type : 'Standard' });
+  const anomalies = anomaliesFiche({ ...v, type: plan === 'Deploiement' ? v.type : 'Standard' }, estSimplifiee(mep));
 
   async function enregistrer(): Promise<boolean> {
     if (d.conflit) return false;
@@ -482,6 +484,7 @@ function EspaceLecture({
   mention: ReactNode;
 }) {
   const liees = etape.resolutionIds.map((id) => resolutions.find((r) => r.id === id)?.titre ?? 'Résolution inactive');
+  const simplifiee = estSimplifiee(mep);
   const liste = (l: Etape[]) =>
     l.length === 0 ? (
       <p className="text-[13px] text-fg-subtle">Aucune.</p>
@@ -523,16 +526,23 @@ function EspaceLecture({
               ))}
             </ul>
           </Bloc>
-          <p className="text-sm text-fg-muted">
-            {etape.criticite ? LIBELLE_CRITICITE[etape.criticite] : 'Criticité non précisée'}
-            {etape.dureeEstimeeMinutes !== null && <> · {etape.dureeEstimeeMinutes} min</>}
-            {executant && (
-              <>
-                <br />
-                Exécutée par <b>{executant}</b>
-              </>
-            )}
-          </p>
+          {/* MEP simplifiée : ni criticité ni durée. */}
+          {(!simplifiee || executant) && (
+            <p className="text-sm text-fg-muted">
+              {!simplifiee && (
+                <>
+                  {etape.criticite ? LIBELLE_CRITICITE[etape.criticite] : 'Criticité non précisée'}
+                  {etape.dureeEstimeeMinutes !== null && <> · {etape.dureeEstimeeMinutes} min</>}
+                </>
+              )}
+              {executant && (
+                <>
+                  {!simplifiee && <br />}
+                  Exécutée par <b>{executant}</b>
+                </>
+              )}
+            </p>
+          )}
         </>
       }
       centre={
@@ -561,17 +571,19 @@ function EspaceLecture({
         <>
           <Bloc titre={`Attend (${prealables.length})`}>{liste(prealables)}</Bloc>
           <Bloc titre={`Débloque (${suivants.length})`}>{liste(suivants)}</Bloc>
-          <Bloc titre={`Résolutions (${liees.length})`}>
-            {liees.length ? (
-              <ul className="list-disc pl-5 text-[13px]">
-                {liees.map((t, i) => (
-                  <li key={i}>{t}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-[13px] text-fg-subtle">Aucune.</p>
-            )}
-          </Bloc>
+          {!simplifiee && (
+            <Bloc titre={`Résolutions (${liees.length})`}>
+              {liees.length ? (
+                <ul className="list-disc pl-5 text-[13px]">
+                  {liees.map((t, i) => (
+                    <li key={i}>{t}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[13px] text-fg-subtle">Aucune.</p>
+              )}
+            </Bloc>
+          )}
           <PiecesEtape etapeId={etape.id} />
         </>
       }

@@ -7,7 +7,7 @@ import type { Mep } from '../../types';
 import { TooltipProvider } from '../../ui/Tooltip';
 import { IdentiteSection } from './IdentiteSection';
 
-vi.mock('../../api', () => ({ api: { modifierIdentite: vi.fn() } }));
+vi.mock('../../api', () => ({ api: { modifierIdentite: vi.fn(), changerTypeMep: vi.fn() } }));
 
 const droitsEdition = { ...mep().droits, peutEditerContenu: true, peutModifierPlan: true, estPilote: true };
 
@@ -73,5 +73,67 @@ describe('IdentiteSection : plan de retour arrière', () => {
     rendre({ estModele: true });
     expect(caseRepli()).toBeChecked();
     expect(screen.queryByLabelText(/Échéance de retour arrière/)).not.toBeInTheDocument();
+  });
+});
+
+describe('IdentiteSection : MEP simplifiée', () => {
+  beforeEach(() => vi.mocked(api.changerTypeMep).mockReset());
+
+  const simplifiee = (p: Partial<Mep> = {}) =>
+    rendre({ type: 'Simplifiee', versionActuelle: '', versionCible: '', suppleantIds: ['p1', 'p2'], ...p });
+
+  it('masque les versions et rappelle que les suppléants sont toutes les autres personnes', () => {
+    simplifiee();
+    expect(screen.queryByLabelText('Version cible')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Version actuelle')).not.toBeInTheDocument();
+    const suppleants = screen.getByLabelText('Suppléants');
+    expect(within(suppleants).getByText('Toutes les autres personnes de la MEP (2)')).toBeInTheDocument();
+    expect(within(suppleants).queryByRole('combobox')).not.toBeInTheDocument();
+  });
+
+  it('passe en complète après confirmation', async () => {
+    simplifiee();
+    await userEvent.click(screen.getByRole('button', { name: 'Passer en MEP complète' }));
+    const dialogue = screen.getByRole('dialog', { name: 'Passer en MEP complète ?' });
+    expect(within(dialogue).getByText(/Les 2 autres personnes restent suppléantes/)).toBeInTheDocument();
+    expect(within(dialogue).getByText(/inscrit au journal/)).toBeInTheDocument();
+    await userEvent.click(within(dialogue).getByRole('button', { name: 'Passer en MEP complète' }));
+    expect(api.changerTypeMep).toHaveBeenCalledWith('m1', { version: 1, type: 'Complete' });
+  });
+
+  it('une personne sans droit de pilotage ne change pas le type', () => {
+    simplifiee({ droits: { ...droitsEdition, estPilote: false } });
+    expect(screen.getByText('MEP simplifiée')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Passer en MEP complète' })).not.toBeInTheDocument();
+  });
+});
+
+describe('IdentiteSection : passer une MEP complète en simplifiée', () => {
+  beforeEach(() => vi.mocked(api.changerTypeMep).mockReset());
+
+  it('avertit de ce qui sera supprimé et exige de cocher avant de confirmer', async () => {
+    rendre({ versionActuelle: '1.0', versionCible: '2.0' });
+    expect(screen.getByLabelText('Version cible')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Passer en MEP simplifiée' }));
+    const dialogue = screen.getByRole('dialog', { name: 'Passer en MEP simplifiée ?' });
+    expect(within(dialogue).getByText(/les versions actuelle et cible \(1\.0 → 2\.0\)/)).toBeInTheDocument();
+    expect(within(dialogue).getByText(/les criticités des étapes/)).toBeInTheDocument();
+    expect(within(dialogue).getByText(/les résolutions liées aux étapes/)).toBeInTheDocument();
+    const confirmer = within(dialogue).getByRole('button', { name: 'Supprimer et passer en simplifiée' });
+    expect(confirmer).toBeDisabled();
+    await userEvent.click(within(dialogue).getByRole('checkbox', { name: /J’ai compris/ }));
+    await userEvent.click(confirmer);
+    expect(api.changerTypeMep).toHaveBeenCalledWith('m1', { version: 1, type: 'Simplifiee' });
+  });
+
+  it('n’apparaît pas pour un modèle', () => {
+    rendre({ estModele: true });
+    expect(screen.queryByRole('button', { name: 'Passer en MEP simplifiée' })).not.toBeInTheDocument();
+  });
+
+  it('n’apparaît pas pour un responsable technique qui n’est pas pilote', () => {
+    rendre({ droits: { ...droitsEdition, estPilote: false } });
+    expect(screen.queryByText('MEP complète')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Passer en MEP simplifiée' })).not.toBeInTheDocument();
   });
 });

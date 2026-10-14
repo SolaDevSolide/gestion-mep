@@ -24,14 +24,14 @@ public class DonneesDemoTests
     private static string Dispo(Mep m, string code) => Regles.Disponibilite(m, E(m, code), Maintenant).Libelle;
 
     [Fact]
-    public void Sept_mep_une_par_etat_sans_modele()
+    public void Huit_mep_une_par_etat_sans_modele()
     {
         var meps = Scenarios().Select(s => s.Mep).ToList();
-        Assert.Equal(7, meps.Count);
-        Assert.Equal(7, meps.Select(m => m.Outil).Distinct().Count());
+        Assert.Equal(8, meps.Count);
+        Assert.Equal(8, meps.Select(m => m.Outil).Distinct().Count());
         Assert.All(meps, m => Assert.False(m.EstModele));
         Assert.Equal(
-            [Phase.Preparation, Phase.Preparation, Phase.Execution, Phase.Recette, Phase.RetourArriere, Phase.Cloturee, Phase.Cloturee],
+            [Phase.Preparation, Phase.Preparation, Phase.Execution, Phase.Recette, Phase.RetourArriere, Phase.Cloturee, Phase.Cloturee, Phase.Execution],
             meps.Select(m => m.Phase).ToArray());
     }
 
@@ -150,6 +150,39 @@ public class DonneesDemoTests
     }
 
     [Fact]
+    public void Mep_simplifiee_en_execution_avec_les_resolutions_de_ses_systemes()
+    {
+        var jeu = DonneesDemo.Creer(Alice, Bob, Claire, Maintenant);
+        var m = DonneesDemo.Scenarios(Alice, Bob, Claire, jeu.Systemes, jeu.Resolutions, jeu.Criteres, Maintenant)
+            .Single(s => s.Mep.Outil == DonneesDemo.OutilSimplifiee).Mep;
+        Assert.Equal(TypeMep.Simplifiee, m.Type);
+        Assert.Equal(Phase.Execution, m.Phase);
+        Assert.Equal("", m.VersionCible);
+        Assert.Empty(m.SuppleantIds);
+        // Environnements par système et objets impactés (avec leur version) comme dans une MEP complète.
+        Assert.All(m.Systemes, s => Assert.NotEmpty(s.Environnements));
+        Assert.All(m.Etapes, e => Assert.NotEmpty(e.Environnements));
+        Assert.Equal(["messagerie-api.jar 1.8.1", "parametres adresse du support corrigée", "portail-web.tar.gz formulaire corrigé"],
+            m.ObjetsImpactes.Select(o => $"{o.Nom} {o.Version}").Order(StringComparer.Ordinal));
+        // Claire pilote ; Alice et Bob sont suppléants sans avoir été choisis.
+        Assert.Equal(Claire, Regles.CompteDuPilote(m));
+        Assert.True(Regles.EstPilote(m, Alice) && Regles.EstPilote(m, Bob));
+        Assert.All(m.Etapes, e =>
+        {
+            Assert.Null(e.Criticite);
+            Assert.Null(e.DureeEstimeeMinutes);
+            Assert.Empty(e.ResolutionIds);
+        });
+        Assert.Equal("Arrêt / résolution", Dispo(m, "E0002"));
+        // E0002 touche API et BDD : les résolutions de ces systèmes sont proposées, pas celle du WEB.
+        var proposees = jeu.Resolutions.Where(r => Regles.EstResolutionProposee(m, E(m, "E0002"), r)).Select(r => r.Titre).ToList();
+        Assert.Equal(
+            ["API + BDD : connexion refusée après bascule", "API : réponse de test absente", "BDD : espace disque insuffisant pour la sauvegarde",
+             "BDD : utilisateur applicatif retiré des droits"],
+            proposees.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void Recette_en_cours_partiellement_validee_apres_une_resolution_reussie()
     {
         var m = Mep(DonneesDemo.OutilRecette);
@@ -229,7 +262,9 @@ public class DonneesDemoTests
             }
             else
             {
-                Assert.Empty(manquantes);
+                // Une MEP simplifiée n'a pas de versions : la version cible reste à compléter.
+                if (m.Type == TypeMep.Simplifiee) Assert.Equal(["version_cible"], manquantes.Distinct());
+                else Assert.Empty(manquantes);
                 Assert.StartsWith("CHG-DEMO-", m.Communication.ReferenceDemande, StringComparison.Ordinal);
                 Assert.NotEqual(NiveauRisque.NonEvalue, m.Communication.NiveauRisque);
             }

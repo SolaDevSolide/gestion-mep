@@ -8,9 +8,26 @@ Peuvent modifier une MEP en préparation : son pilote, ses suppléants, ses resp
 
 Dans « Mises en production » :
 
-- **Nouvelle MEP** : saisir l'outil ou l'application concerné et l'objet de l'intervention. Le créateur devient responsable technique de la MEP (pas pilote).
+- **Nouvelle MEP** : choisir le type, **MEP complète** (par défaut) ou **MEP simplifiée** (voir [MEP complète ou simplifiée](#mep-complète-ou-simplifiée)), puis saisir l'outil ou l'application concerné et l'objet de l'intervention. Le créateur devient responsable technique de la MEP (pas pilote).
 - **Nouvelle MEP depuis un modèle** : choisir un modèle, puis « Créer la MEP ». Voir [Partir d'une MEP existante](#partir-dune-mep-existante).
-- **Nouveau modèle** (vue « Modèles ») : comme une nouvelle MEP, mais le résultat est un modèle. Voir [Modèles](#modèles).
+- **Nouveau modèle** (vue « Modèles ») : comme une nouvelle MEP, mais le résultat est un modèle, toujours complet (pas de choix de type). Voir [Modèles](#modèles).
+
+## MEP complète ou simplifiée
+
+Une **MEP complète** est le plan détaillé décrit dans cette page. Une **MEP simplifiée** convient aux petites interventions : elle garde toutes les sections de la préparation, les tests unitaires, la recette et le [retour arrière](#retour-arrière-facultatif), mais :
+
+- **un pilote, et toutes les autres personnes de la MEP sont ses suppléants**, avec les mêmes droits (Go, clôture, retour arrière…). Dans « Intervention », le champ « Suppléants » devient un rappel non modifiable ; dans « Personnes », chacune porte le badge « Suppléant ». Une personne ajoutée à la MEP devient suppléante ; tant qu'aucun pilote n'est désigné, il n'y a pas de suppléant ;
+- **pas de version actuelle ni de version cible** pour la MEP ; les objets impactés gardent leur version ou correction livrée, et les environnements se choisissent par système et par étape comme dans une MEP complète ;
+- **des étapes sans durée, sans criticité et sans résolutions liées** : ces champs disparaissent de l'édition et des fiches du graphe, et « Vérifier le plan » ne les réclame pas ; une étape modèle insérée depuis la bibliothèque arrive sans eux. Le jour J, une étape en échec propose **toutes les résolutions types des systèmes de l'étape**, regroupées par système (voir [Exécuter une MEP](Exécuter-une-MEP.md#quand-une-étape-échoue)).
+
+Une pastille verte **« MEP simplifiée »** la signale dans l'en-tête de la MEP et dans la liste des MEP. Une MEP créée avant ce choix est complète.
+
+Le type se change pendant la **préparation**, en haut de la section « Intervention », par le pilote, un suppléant ou un administrateur (par tout éditeur tant qu'aucun pilote n'est désigné). Enregistrer ou annuler d'abord les modifications en cours d'« Intervention ».
+
+- **Passer en MEP complète** : tout est conservé ; les suppléants implicites deviennent des suppléants choisis (le pilote peut ensuite en retirer), les versions sont à renseigner et « Vérifier le plan » réclame la criticité de chaque étape. Le jour J, seules les résolutions liées à l'étape sont alors proposées.
+- **Passer en MEP simplifiée** (MEP complète) : ce passage est **destructif**. La fenêtre de confirmation chiffre ce qui sera supprimé définitivement : durées et criticités des étapes, résolutions liées aux étapes, versions actuelle et cible, choix des suppléants (toutes les personnes sauf le pilote deviennent suppléantes). Il faut cocher « J'ai compris » pour confirmer ; repasser ensuite en complète ne fait pas revenir ces informations.
+
+Chaque changement de type est inscrit au journal de la MEP (type `mep.type`), avec ce qui a été supprimé. Comme toute modification du contenu, il efface les approbations déjà données.
 
 ## Les onglets d'une MEP
 
@@ -27,7 +44,7 @@ La MEP s'ouvre sur l'onglet qui correspond à sa phase : Préparation, puis Exé
 
 Il est découpé en neuf sections. Chacune affiche son état (complète ou à compléter), et un compteur indique combien sont complètes.
 
-1. **Intervention** : outil, objet, version actuelle et version cible, fuseau horaire, indisponibilité prévue, impacts attendus, pilote et suppléants, case **« Plan de retour arrière »** avec, en dessous, l'**échéance de retour arrière** (facultative), et option « Bilan de clôture ». Les dates de début et de fin ne se saisissent pas : ce sont celles du Go et de la clôture. Voir [Retour arrière facultatif](#retour-arrière-facultatif).
+1. **Intervention** : type de la MEP (voir [MEP complète ou simplifiée](#mep-complète-ou-simplifiée)), outil, objet, version actuelle et version cible (MEP complète), fuseau horaire, indisponibilité prévue, impacts attendus, pilote et suppléants, case **« Plan de retour arrière »** avec, en dessous, l'**échéance de retour arrière** (facultative), et option « Bilan de clôture ». Les dates de début et de fin ne se saisissent pas : ce sont celles du Go et de la clôture. Voir [Retour arrière facultatif](#retour-arrière-facultatif).
 2. **Personnes** : toutes les personnes de l'intervention. Relier chaque personne à son compte permet de pré-remplir son nom, son rôle et son contact, et lui donne le droit d'exécuter des étapes. Quand des équipes existent, le champ « Équipe » du dialogue restreint les comptes proposés. Les comptes désactivés (personnes parties) ne sont plus proposés ; une personne déjà reliée à un tel compte reste affichée, avec la mention « désactivé ».
 3. **Systèmes** : les systèmes touchés, ajoutés depuis le catalogue global ou librement, et pour chacun les **environnements** concernés (un ou plusieurs : préproduction puis production, par exemple). Pour un système du catalogue, on les choisit parmi ceux de sa fiche ; pour un système ajouté librement, parmi les suggestions ou sous un autre nom. La section est complète quand chaque système a au moins un environnement. La MEP n'a pas d'environnement à elle : la liste des MEP signale « Production » dès qu'un système touche un environnement de production. Voir [Environnements et objets impactés](#environnements-et-objets-impactés).
 4. **Responsables techniques** : les développeurs et sachants, avec ce qu'ils ont développé, leur disponibilité le jour J et leur contact. L'application suggère les comptes dont le profil indique une expertise sur les systèmes de la MEP.
@@ -55,12 +72,12 @@ Le plan de déploiement se dessine comme un graphe, de haut en bas :
 Cliquer une étape ouvre son **espace d'édition** :
 
 - **action** (titre court), **systèmes** concernés et, pour chacun, le ou les **environnements** où l'étape s'exécute, parmi ceux choisis pour ce système dans la MEP (un système qui n'en a qu'un est coché d'office). La fiche de l'étape, dans le graphe et le jour J, affiche ces environnements à côté de chaque système, la production en orange ;
-- **criticité**, **durée estimée** (facultative), **type** (Standard ou Sauvegarde). Une étape de type Sauvegarde indique aussi, obligatoirement, l'**emplacement** de la sauvegarde et la **méthode de récupération** ;
+- **criticité**, **durée estimée** (facultative ; ni l'une ni l'autre dans une MEP simplifiée), **type** (Standard ou Sauvegarde). Une étape de type Sauvegarde indique aussi, obligatoirement, l'**emplacement** de la sauvegarde et la **méthode de récupération** ;
 - **fin de l'étape** : **test unitaire** (par défaut) ou **simple vérification** (voir ci-dessous) ;
 - **instructions** : blocs de texte et blocs de code. Les blocs de code s'affichent avec un bouton « Copier » le jour J : y mettre les commandes exactes ;
 - **résultat attendu** : ce que l'opérateur doit constater pour déclarer l'étape réussie. Pour un test unitaire, c'est l'instruction de test ;
 - **liens** : étapes préalables et étapes débloquées ;
-- **résolutions types** liées à l'étape (voir plus bas) ;
+- **résolutions types** liées à l'étape (voir plus bas ; pas dans une MEP simplifiée) ;
 - **point de non-retour** : à cocher pour l'étape après laquelle on ne peut plus revenir en arrière ;
 - pièces jointes de l'étape.
 
@@ -174,6 +191,8 @@ Une résolution type est une fiche de dépannage réutilisable pour un problème
 - « + Créer une nouvelle fiche de résolution » depuis une étape crée la fiche et la lie à l'étape.
 - Toutes les résolutions sont dans « Paramètres › Résolutions types », avec l'historique de leurs versions. Tout le monde peut en créer et en modifier. La page suit le modèle des [bibliothèques](#la-bibliothèque-détapes) : choix du système (« dont N multi-systèmes » pour les résolutions qui en touchent plusieurs), puis la bibliothèque du système, qui montre aussi les résolutions valables pour tous les systèmes ; recherche sur le titre et les symptômes ; tri par nombre d'utilisations.
 
+Une MEP simplifiée n'a pas de résolutions liées : le jour J, toutes les résolutions des systèmes de l'étape sont proposées.
+
 Le jour J, une étape en échec propose ses résolutions liées et guide l'opérateur pas à pas (voir [Exécuter une MEP](Exécuter-une-MEP.md#quand-une-étape-échoue)).
 
 ## Vérifier le plan
@@ -182,6 +201,8 @@ Le bouton « Vérifier le plan » liste :
 
 - les **anomalies**, qui bloquent le Go : échéance de retour arrière passée, pilote manquant ou non relié à un compte, plan de déploiement vide, plan de retour arrière vide ou sans « quand le déclencher » (si la case « Plan de retour arrière » est cochée), graphe invalide, étape incomplète (action, système, criticité, instructions, résultat attendu ; emplacement et méthode de récupération pour une étape de sauvegarde), sauvegarde non renseignée ou non justifiée, sauvegarde requise sans emplacement ou sans méthode de récupération, sauvegarde pendant la MEP sans étape de sauvegarde, étape qui garde un environnement qui n'est plus choisi pour son système, recette absente ou incomplète, procédure non relue, approbations manquantes ou refusées ;
 - les **avertissements**, qui ne bloquent pas : aucun responsable technique, responsable technique absent le jour J, pilote qui est aussi responsable technique, aucun système sauvegardé, système sans recette, système sans environnement choisi.
+
+Dans une MEP simplifiée, « Vérifier le plan » ne réclame ni criticité ni versions et n'avertit pas des résolutions manquantes (responsable technique absent) ; le pilote responsable technique n'est signalé que s'il n'y a aucune autre personne dans la MEP.
 
 ![« Vérifier le plan » : il manque une approbation](images/verifier-le-plan.png)
 
@@ -199,7 +220,7 @@ Quand le plan est complet, le pilote ou un suppléant donne le Go (voir [Cycle d
 
 ## Partir d'une MEP existante
 
-- **Dupliquer** (bouton de la liste ou de l'en-tête) copie une MEP : identité, personnes, pilote et suppléants, systèmes avec leurs environnements et leur sauvegarde, responsables techniques, objets impactés, étapes (avec leurs environnements) et liens, résolutions liées, plan de retour arrière (et le choix de l'avoir ou non), fiches de recette (sans les résultats) et approbateurs (sans leurs décisions). La communication est copiée (niveau de risque, bénéfices, utilisateurs impactés, arrêt applicatif, action attendue et heure limite), sauf la référence de la demande, le créneau annoncé et la validation par les utilisateurs. Ne sont pas copiés : l'échéance, la relecture, le Go, les résultats d'exécution (dont les résultats constatés des tests unitaires), le bilan et les pièces jointes.
+- **Dupliquer** (bouton de la liste ou de l'en-tête) copie une MEP : identité, personnes, pilote et suppléants, systèmes avec leurs environnements et leur sauvegarde, responsables techniques, objets impactés, étapes (avec leurs environnements) et liens, résolutions liées, plan de retour arrière (et le choix de l'avoir ou non), fiches de recette (sans les résultats) et approbateurs (sans leurs décisions). La communication est copiée (niveau de risque, bénéfices, utilisateurs impactés, arrêt applicatif, action attendue et heure limite), sauf la référence de la demande, le créneau annoncé et la validation par les utilisateurs. Ne sont pas copiés : l'échéance, la relecture, le Go, les résultats d'exécution (dont les résultats constatés des tests unitaires), le bilan et les pièces jointes. La copie garde le type (complète ou simplifiée) ; un modèle, lui, est toujours complet : copier une MEP simplifiée en modèle en fait un modèle complet, dont les suppléants implicites deviennent des suppléants choisis.
 - Cocher **« En faire un modèle »** à la duplication crée un modèle, à réutiliser avec « Nouvelle MEP depuis un modèle ».
 
 ## Modèles
@@ -215,5 +236,7 @@ Un modèle se prépare comme une MEP (intervention, personnes, systèmes, respon
 | Date de réalisation de la sauvegarde, test de restauration | Section « Sauvegarde » de la MEP |
 | Relecture de la procédure, démarrage autorisé, décisions d'approbation | Section « Validation » de la MEP (les approbateurs, eux, se choisissent dans le modèle) |
 | Bouton Go / no-go et onglet Exécution | MEP en préparation, puis en exécution |
+
+Un modèle est toujours une MEP complète, et une MEP créée depuis un modèle l'est aussi ; elle peut ensuite passer en simplifiée pendant sa préparation.
 
 « Vérifier le plan » ne réclame dans un modèle ni échéance, ni pilote, ni relecture, ni approbation. Le bouton **« Créer une MEP depuis ce modèle »**, en haut du modèle, crée la MEP et l'ouvre.

@@ -52,6 +52,8 @@
 
 **Objet impacté** : objet d'un système (table, traitement, fichier…) modifié par la MEP, choisi dans la fiche du système, avec sa version ou sa correction. « Repris » signale un ancien livrable converti.
 
+**MEP simplifiée** : MEP pour une petite intervention : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, criticité ou résolutions liées aux étapes (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Le contraire est une MEP complète, le type par défaut.
+
 **Modèle** : MEP qui sert de point de départ à d'autres et qui ne s'exécute jamais.
 
 **Modèle de texte** : courriel type d'une équipe (annonce, rappel, demande de MEP, compte rendu), rempli avec les informations de la MEP puis copié dans sa messagerie. Voir [Modèles de texte](Modèles-de-texte.md).
@@ -78,7 +80,7 @@
 
 **Simple vérification** : fin d'une étape où l'exécutant confirme le résultat attendu sans saisir de résultat constaté.
 
-**Suppléant** : remplaçant du pilote, avec les mêmes droits.
+**Suppléant** : remplaçant du pilote, avec les mêmes droits. Dans une MEP simplifiée, toutes les personnes sauf le pilote le sont.
 
 **Système** : composant touché par la MEP (base de données, API, portail web…).
 

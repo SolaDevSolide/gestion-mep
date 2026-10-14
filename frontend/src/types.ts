@@ -41,6 +41,8 @@ export type StatutDisponibilite = S['DisponibiliteDto']['statut'];
 export type StatutSauvegarde = NonNullable<S['StatutSauvegarde']>;
 export type NiveauRisque = NonNullable<S['NiveauRisque']>;
 export type UsageModeleTexte = NonNullable<S['UsageModeleTexte']>;
+/** MEP complète (plan détaillé) ou simplifiée (suppléants implicites, étapes sans durée, criticité ni résolutions liées). */
+export type TypeMep = NonNullable<S['TypeMep']>;
 
 // ---------- Sorties (DTO) ----------
 
@@ -219,6 +221,7 @@ export type EquipeCommunicationSaisie = SaisieVerifiee<
   S['EquipeCommunicationSaisie'],
   { contactSupport: string; signature: string }
 >;
+export type TypeMepSaisie = SaisieVerifiee<S['TypeMepSaisie'], { version: number; type: TypeMep }>;
 
 export type SauvegardeSaisie = SaisieVerifiee<S['SauvegardeSaisie'], Sauvegarde & { version: number }>;
 export type SauvegardeSystemeSaisie = SaisieVerifiee<

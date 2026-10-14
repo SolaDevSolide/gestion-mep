@@ -16,6 +16,7 @@ import { Apparition } from '../ui/Apparition';
 import { cn } from '../ui/cn';
 import { PanneauLiens } from './graphe/PanneauLiens';
 import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
+import { estSimplifiee } from './typeMep';
 import { descriptionsSystemes } from './graphe/systemes';
 import {
   apercuDepuisModele,
@@ -236,7 +237,7 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
           onMessage={astuce.afficher}
         />
         <div className="flex min-h-7 flex-wrap items-center gap-x-4 gap-y-1">
-          <ResumePlan etapes={etapes} />
+          <ResumePlan etapes={etapes} sansDuree={estSimplifiee(mep)} />
           <p aria-live="polite" className="min-w-0 flex-1 text-[13px] font-semibold text-rollback-solid">
             {astuce.flash ? astuce.texte : ''}
           </p>

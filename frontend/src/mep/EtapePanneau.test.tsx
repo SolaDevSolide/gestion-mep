@@ -505,3 +505,34 @@ describe('EtapePanneau : commentaire', () => {
     expect(screen.getByText('Lenteur constatée')).toBeInTheDocument();
   });
 });
+
+describe('EtapePanneau : MEP simplifiée', () => {
+  const systeme = mep().systemes[0];
+  const m: Partial<Mep> = {
+    type: 'Simplifiee',
+    systemes: [{ ...systeme, catalogueId: 'c-api' }],
+  };
+  const types: ResolutionType[] = [
+    { ...typeRes, id: 'api', titre: 'API ne répond plus', systemeCatalogueIds: ['c-api'] },
+    { ...typeRes, id: 'web', titre: 'Cache WEB', systemeCatalogueIds: ['c-web'] },
+    { ...typeRes, id: 'commune', titre: 'Redémarrer le service', systemeCatalogueIds: [] },
+  ];
+
+  it('propose toutes les résolutions des systèmes de l’étape, regroupées par système, sans résolution liée', async () => {
+    const { actions } = rendre(etape({ etat: 'Echec', executantId: 'p1', resolutionIds: [] }, 'ArretResolution'), {
+      m,
+      types,
+    });
+    expect(
+      screen.getByText(/toutes les résolutions types des systèmes de l’étape sont proposées \(2\)/),
+    ).toBeInTheDocument();
+    const api = screen.getByRole('region', { name: 'API' });
+    expect(within(api).getByText('API ne répond plus')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: 'Tous les systèmes' })).getByText('Redémarrer le service'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Cache WEB')).toBeNull();
+    await userEvent.click(within(api).getByRole('button', { name: 'Appliquer cette résolution' }));
+    expect(actions.appliquerResolution).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }), 'api');
+  });
+});
