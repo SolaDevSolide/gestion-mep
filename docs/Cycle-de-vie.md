@@ -46,7 +46,7 @@ Les critères cochés sont enregistrés avec la MEP. Un **no-go** exige un motif
 
 Les opérateurs déroulent le plan de déploiement (voir [Exécuter une MEP](Exécuter-une-MEP.md)). Pendant cette phase :
 
-- un compte à rebours affiche le temps restant avant l'**échéance de retour arrière** ;
+- un compte à rebours affiche le temps restant avant l'**échéance de retour arrière**, si la MEP en a une ;
 - le pilote peut **revenir en préparation** tant qu'aucune étape ni résolution n'est en cours et que le point de non-retour n'est pas franchi ;
 - le pilote passe **en recette** quand toutes les étapes de déploiement ont réussi.
 
@@ -69,7 +69,7 @@ Le retour arrière arrête le plan de déploiement et ouvre le plan de retour ar
 - **à la main**, par le pilote ou un suppléant, avec un motif, en exécution ou en recette ;
 - **automatiquement**, quand l'échéance de retour arrière est atteinte, ou quand une correction ou la vérification finale d'une résolution guidée échoue.
 
-Le déclenchement automatique est attribué à « Système » dans le journal. Aucun retour arrière n'est possible une fois le point de non-retour franchi.
+Le déclenchement automatique est attribué à « Système » dans le journal. Aucun retour arrière n'est possible une fois le point de non-retour franchi, ni pour une MEP sans plan de retour arrière (case « Plan de retour arrière » décochée, voir [Préparer une MEP](Préparer-une-MEP.md#retour-arrière-facultatif)) : tout problème s'y corrige en avant. Sans échéance, seul le déclenchement automatique par l'échéance disparaît.
 
 Quand toutes les étapes de retour arrière ont réussi, le pilote clôture avec « Service rétabli : clôturer » : la MEP est **repliée**.
 

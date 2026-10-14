@@ -113,9 +113,11 @@ public static partial class Regles
         etape.Revision++;
     }
 
-    /// <summary>Échéance du déploiement atteinte (ou absente) ; jamais une fois le point de non-retour franchi.</summary>
+    /// <summary>
+    /// Échéance du déploiement atteinte ; jamais sans échéance, sans plan de retour arrière ou une fois le point de non-retour franchi.
+    /// </summary>
     private static bool EcheanceAtteinte(Mep mep, DateTimeOffset maintenant) =>
-        !NonRetourFranchi(mep) && (mep.EcheanceRepli is null || maintenant >= mep.EcheanceRepli);
+        EcheanceApplicable(mep) && maintenant >= mep.EcheanceRepli;
 
     private static void ExigerPhaseDuPlan(Mep mep, Etape etape)
     {

@@ -23,18 +23,23 @@ public static partial class Regles
     /// Anomalies du contenu de la MEP : graphe, échéance, pilote, étapes, plan de retour arrière, sauvegarde de chaque
     /// système, fiches de recette, procédure relue et approbations.
     /// </summary>
+    /// <remarks>
+    /// L'échéance de retour arrière est facultative : renseignée, elle doit être future. Sans plan de retour arrière
+    /// (<see cref="Mep.RetourArriereActive"/>), ni ses étapes, ni « quand le déclencher », ni l'échéance ne sont vérifiés.
+    /// </remarks>
     public static List<string> ErreursContenu(Mep mep, DateTimeOffset maintenant)
     {
         var erreurs = new List<string>();
-        foreach (var plan in new[] { TypePlan.Deploiement, TypePlan.RetourArriere })
+        var plans = mep.RetourArriereActive ? new[] { TypePlan.Deploiement, TypePlan.RetourArriere } : [TypePlan.Deploiement];
+        foreach (var plan in plans)
         {
             var graphe = ErreurGraphe(mep, plan);
             if (graphe is not null) erreurs.Add(plan == TypePlan.Deploiement ? graphe : $"Retour arrière : {graphe}");
         }
         if (!mep.EstModele)
         {
-            if (mep.EcheanceRepli is null || mep.EcheanceRepli <= maintenant)
-                erreurs.Add("Renseigner une échéance de retour arrière future.");
+            if (mep.RetourArriereActive && mep.EcheanceRepli is { } echeance && echeance <= maintenant)
+                erreurs.Add("L'échéance de retour arrière est passée : la reporter ou la retirer.");
 
             var pilote = mep.Participants.FirstOrDefault(p => p.Id == mep.PiloteId);
             if (pilote is null) erreurs.Add("Renseigner le pilote.");
@@ -42,11 +47,14 @@ public static partial class Regles
         }
 
         if (!mep.EtapesDu(TypePlan.Deploiement).Any()) erreurs.Add("Ajouter au moins une étape de déploiement.");
-        if (!mep.EtapesDu(TypePlan.RetourArriere).Any()) erreurs.Add("Ajouter au moins une étape de retour arrière.");
-        if (string.IsNullOrWhiteSpace(mep.PlanRepli.QuandDeclencher)) erreurs.Add("Retour arrière : préciser quand le déclencher.");
+        if (mep.RetourArriereActive)
+        {
+            if (!mep.EtapesDu(TypePlan.RetourArriere).Any()) erreurs.Add("Ajouter au moins une étape de retour arrière.");
+            if (string.IsNullOrWhiteSpace(mep.PlanRepli.QuandDeclencher)) erreurs.Add("Retour arrière : préciser quand le déclencher.");
+        }
         erreurs.AddRange(ErreursSauvegarde(mep));
 
-        foreach (var e in mep.EtapesTriees())
+        foreach (var e in mep.EtapesTriees().Where(e => mep.RetourArriereActive || e.Plan == TypePlan.Deploiement))
         {
             var manquants = new List<string>();
             if (string.IsNullOrWhiteSpace(e.Action)) manquants.Add("Action");

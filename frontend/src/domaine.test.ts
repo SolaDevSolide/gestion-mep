@@ -67,9 +67,10 @@ describe('domaine', () => {
     expect(c.sauvegarde).toBe(true);
   });
   it('les anomalies du plan rendent la section concernée orange', () => {
-    expect(completude(mep({ erreursPlan: ['Renseigner une échéance de retour arrière future.'] })).intervention).toBe(
-      false,
-    );
+    expect(
+      completude(mep({ erreursPlan: ["L'échéance de retour arrière est passée : la reporter ou la retirer."] }))
+        .intervention,
+    ).toBe(false);
     expect(completude(mep({ erreursPlan: ['Renseigner le pilote.'] })).intervention).toBe(false);
     expect(
       completude(

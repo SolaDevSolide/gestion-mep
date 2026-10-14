@@ -1,5 +1,5 @@
 import { Save } from 'lucide-react';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { api } from '../../api';
 import { AuthContext } from '../../auth';
 import { depuisInputDateTime, formatDateHeure, versInputDateTime } from '../../format';
@@ -11,6 +11,7 @@ import { Button } from '../../ui/Button';
 import { ChampEnvironnement } from '../../ui/ChampEnvironnement';
 import { Checkbox } from '../../ui/Checkbox';
 import { MultiSelect } from '../../ui/Combobox';
+import { ConfirmDialog } from '../../ui/Dialog';
 import { Field, Input, Select, Textarea } from '../../ui/Input';
 import { SectionCarte, vide } from './Formulaires';
 
@@ -29,15 +30,19 @@ export function IdentiteSection() {
     echeanceRepli: mep.echeanceRepli,
     environnement: mep.environnement,
     bilanActive: mep.bilanActive,
+    retourArriereActive: mep.retourArriereActive,
   };
   const d = useDraft(source);
   useReportDirty(d.dirty);
   const v = d.value;
+  const [confirmerDesactivation, setConfirmerDesactivation] = useState(false);
+  const retourArriere = v.retourArriereActive ?? true;
 
   const edition = mep.droits.peutEditerContenu;
   // Un modèle ne s'exécute pas : ni pilote, ni échéance, ni dates (ils se choisissent dans chaque MEP créée depuis le modèle).
   const modele = mep.estModele;
-  const peutEcheance = edition || mep.droits.estPilote;
+  // Après le Go, le pilote garde la main sur l'échéance (seulement si la MEP a un plan de retour arrière).
+  const peutEcheance = edition || (mep.droits.estPilote && mep.retourArriereActive);
   const lecture = !edition;
   // Pilote et suppléants : le pilote actuel, un suppléant ou un administrateur (tout éditeur tant qu'aucun pilote n'est désigné).
   const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
@@ -207,20 +212,50 @@ export function IdentiteSection() {
             />
           )}
         </Field>
-        {!modele && (
-          <Field label="Échéance de retour arrière (obligatoire)" className="md:col-span-2">
-            {(id) => (
-              <Input
-                id={id}
-                type="datetime-local"
-                value={versInputDateTime(v.echeanceRepli)}
-                disabled={!peutEcheance}
-                className="md:max-w-xs"
-                onChange={(e) => d.update({ echeanceRepli: depuisInputDateTime(e.target.value) })}
-              />
-            )}
-          </Field>
-        )}
+        <div className="space-y-3 rounded-lg border border-line p-4 md:col-span-2">
+          <Checkbox
+            label="Plan de retour arrière"
+            description="Décochez pour une MEP sans retour arrière possible ou utile (préproduction réinstallable par exemple)."
+            checked={retourArriere}
+            disabled={lecture}
+            onChange={(c) => (c ? d.update({ retourArriereActive: true }) : setConfirmerDesactivation(true))}
+          />
+          {retourArriere && !modele && (
+            <Field
+              label="Échéance de retour arrière (facultative)"
+              hint="Sans échéance : ni compte à rebours ni déclenchement automatique du retour arrière."
+            >
+              {(id) => (
+                <Input
+                  id={id}
+                  type="datetime-local"
+                  value={versInputDateTime(v.echeanceRepli)}
+                  disabled={!peutEcheance}
+                  className="md:max-w-xs"
+                  onChange={(e) => d.update({ echeanceRepli: depuisInputDateTime(e.target.value) })}
+                />
+              )}
+            </Field>
+          )}
+        </div>
+        <ConfirmDialog
+          open={confirmerDesactivation}
+          onOpenChange={setConfirmerDesactivation}
+          titre="Désactiver le plan de retour arrière ?"
+          description="Adapté aux environnements où l’on peut revenir en arrière à tout moment, comme la préproduction."
+          libelleConfirmer="Désactiver"
+          variante="danger"
+          onConfirmer={() => d.update({ retourArriereActive: false })}
+        >
+          <ul className="list-disc space-y-1.5 pl-5 text-sm text-fg-muted">
+            <li>
+              L’onglet Retour arrière est masqué. Les étapes déjà saisies sont gardées et reviennent si vous le
+              réactivez.
+            </li>
+            <li>« Vérifier le plan » ne réclame plus de plan ni d’échéance de retour arrière pour le Go.</li>
+            <li>Aucun déclenchement automatique du retour arrière pendant l’exécution.</li>
+          </ul>
+        </ConfirmDialog>
         <Field label="Impacts attendus" className="md:col-span-2">
           {(id) => (
             <Textarea

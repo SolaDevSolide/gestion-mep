@@ -36,12 +36,13 @@ public static class MepsEndpoints
                 NbEtapes = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement),
                 NbReussies = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
                 NbEchecs = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
-                m.Environnement, m.EstModele, m.CreeLe,
+                m.Environnement, m.EstModele, m.CreeLe, m.RetourArriereActive,
             })
             .ToListAsync())
         // dateMep : date du Go (la date saisie n'existe plus depuis le jalon 4.2).
         .Select(m => new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, DateLocale(m.DemarrageAutoriseLe, m.FuseauHoraire), m.Phase,
-            m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs, m.Environnement, m.EstModele, m.CreeLe, m.Issue)).ToList();
+            m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs, m.Environnement, m.EstModele, m.CreeLe, m.Issue,
+            m.RetourArriereActive)).ToList();
 
     /// <summary>Journal d'une MEP, du plus récent au plus ancien (partagé avec <c>gestion-mep meps exporter</c>).</summary>
     public static async Task<List<EvenementDto>> Journal(MepDbContext db, Guid id)
@@ -130,6 +131,9 @@ public static class MepsEndpoints
             // Clés facultatives (absentes : inchangées).
             if (corps.Environnement is not null) Si(mep.Environnement, ServiceMep.Texte(corps.Environnement), v => mep.Environnement = v, "environnement");
             if (corps.BilanActive is { } bilan) Si(mep.BilanActive, bilan, v => mep.BilanActive = v, "bilan de clôture");
+            // Activation ou désactivation du plan de retour arrière : un événement de journal à part, pour qu'elle se repère.
+            var retourArriere = corps.RetourArriereActive is { } ra && ra != mep.RetourArriereActive ? ra : (bool?)null;
+            if (retourArriere is { } active) modifs.Add(("plan de retour arrière", () => mep.RetourArriereActive = active));
             if (modifs.Count > 0)
             {
                 // Pilote et suppléants ont le Go et la clôture : seul le pilote actuel (ou un suppléant) ou un administrateur les change.
@@ -154,7 +158,16 @@ public static class MepsEndpoints
                 noms.Add("échéance de retour arrière");
             }
             if (noms.Count == 0) return await svc.VersDto(mep, acteur.Id);
-            return await svc.EnregistrerContenu(mep, acteur, "mep.modifiee", "MEP modifiée : " + string.Join(", ", noms));
+            var evenements = new List<ServiceMep.Evenement>();
+            if (retourArriere is { } activation)
+            {
+                noms.Remove("plan de retour arrière");
+                evenements.Add(activation
+                    ? new("repli.active", "Plan de retour arrière activé")
+                    : new("repli.desactive", "Plan de retour arrière désactivé : ni plan ni échéance réclamés, aucun déclenchement"));
+            }
+            if (noms.Count > 0) evenements.Add(new("mep.modifiee", "MEP modifiée : " + string.Join(", ", noms)));
+            return await svc.EnregistrerContenu(mep, acteur, evenements);
         })));
 
         api.MapPut("/meps/{id:guid}/sauvegarde", async (Guid id, SauvegardeSaisie corps, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>

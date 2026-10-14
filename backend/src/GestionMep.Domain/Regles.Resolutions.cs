@@ -32,7 +32,7 @@ public static partial class Regles
         return execution;
     }
 
-    /// <summary>Valide la prochaine correction dans l'ordre. Un échec clôt la résolution et déclenche le retour arrière.</summary>
+    /// <summary>Valide la prochaine correction dans l'ordre. Un échec clôt la résolution et déclenche le retour arrière (s'il est possible).</summary>
     public static void ValiderCorrection(Mep mep, ExecutionResolution execution, int ordre, ResultatControle resultat, string observation, Guid utilisateurId, DateTimeOffset maintenant)
     {
         var etape = ExigerResolutionEnCours(mep, execution, utilisateurId);
@@ -86,14 +86,14 @@ public static partial class Regles
     }
 
     /// <summary>
-    /// Résolution en échec : déclenche le retour arrière, sauf point de non-retour franchi
+    /// Résolution en échec : déclenche le retour arrière, sauf point de non-retour franchi ou MEP sans plan de retour arrière
     /// (l'étape reste en échec ; le pilote peut autoriser une reprise).
     /// </summary>
     private static void EchouerResolution(Mep mep, ExecutionResolution execution, Etape etape, string cause, DateTimeOffset maintenant)
     {
         execution.Statut = StatutResolution.Echouee;
         execution.TermineeLe = maintenant;
-        if (!NonRetourFranchi(mep))
+        if (RetourArrierePossible(mep))
             DeclencherRetourArriere(mep, null, $"Résolution « {execution.Titre} » sur {etape.Code} : {cause}.", maintenant);
     }
 }

@@ -51,4 +51,6 @@ Les erreurs ont pour corps `{ "message": "…" }`, une phrase en français desti
 
 `GET /api/meps/{id}/tests-unitaires` donne le suivi des tests unitaires d'une MEP : nombre de tests faits et non faits, nombre de simples vérifications, puis pour chaque test l'étape, son état, le résultat attendu, le résultat constaté et l'exécutant. Chaque étape de la MEP porte aussi `fin` (`TestUnitaire` ou `Verification`) et `resultatConstate` ; `gestion-mep meps exporter` reprend ce suivi (`testsUnitaires`).
 
+Plan de retour arrière facultatif : `PUT /api/meps/{id}` accepte `retourArriereActive` (absent : inchangé ; modifiable seulement en préparation) et `echeanceRepli` à `null` (sans échéance). Une MEP (`GET /api/meps/{id}`) et chaque ligne de `GET /api/meps` portent `retourArriereActive`. Sans plan de retour arrière, `POST /api/meps/{id}/retour-arriere` répond 422. L'activation et la désactivation sont inscrites au journal de la MEP (types `repli.active` et `repli.desactive`).
+
 L'API ne propose pas encore de jeton d'accès : un script doit se connecter et conserver le cookie de session.

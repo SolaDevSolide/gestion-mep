@@ -112,9 +112,10 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {(mep.phase === 'Execution' || mep.phase === 'Recette') && mep.nonRetourFranchi === null && (
-              <CompteARebours echeance={mep.echeanceRepli} />
-            )}
+            {(mep.phase === 'Execution' || mep.phase === 'Recette') &&
+              mep.retourArriereActive &&
+              mep.echeanceRepli !== null &&
+              mep.nonRetourFranchi === null && <CompteARebours echeance={mep.echeanceRepli} />}
             {(mep.phase === 'Preparation' || (mep.phase === 'Execution' && mep.erreursPlan.length > 0)) && (
               <PlanCheck mep={mep} />
             )}
@@ -130,13 +131,13 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
             {pilotes && mep.phase === 'Execution' && (
               <>
                 <BoutonRevenirPreparation />
-                <BoutonDeclencherRepli />
+                {mep.retourArriereActive && <BoutonDeclencherRepli />}
                 <BoutonPasserRecette />
               </>
             )}
             {pilotes && mep.phase === 'Recette' && (
               <>
-                <BoutonDeclencherRepli />
+                {mep.retourArriereActive && <BoutonDeclencherRepli />}
                 <BoutonCloturer />
               </>
             )}

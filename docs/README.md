@@ -1,6 +1,6 @@
 # Documentation de Gestion MEP
 
-Gestion MEP est une application web pour préparer et exécuter les mises en production (MEP). L'équipe qui a développé un changement décrit l'intervention une fois : systèmes touchés, sauvegardes, étapes à suivre, contrôles et retour arrière. Le jour J, n'importe quel opérateur peut dérouler la MEP pas à pas sans avoir participé au développement. Tout est tracé dans un journal, et l'application déclenche elle-même le retour arrière si l'intervention dépasse son échéance.
+Gestion MEP est une application web pour préparer et exécuter les mises en production (MEP). L'équipe qui a développé un changement décrit l'intervention une fois : systèmes touchés, sauvegardes, étapes à suivre, contrôles et retour arrière. Le jour J, n'importe quel opérateur peut dérouler la MEP pas à pas sans avoir participé au développement. Tout est tracé dans un journal, et l'application déclenche elle-même le retour arrière si l'intervention dépasse son échéance. Retour arrière et échéance sont facultatifs pour les environnements qui n'en ont pas besoin.
 
 Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQL, fourni dans le même fichier, ou sans Docker, comme un service Linux ou Windows.
 

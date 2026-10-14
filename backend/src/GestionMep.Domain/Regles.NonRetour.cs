@@ -13,6 +13,18 @@ public static partial class Regles
     /// </summary>
     public static bool NonRetourFranchi(Mep mep) => EtapeNonRetourFranchie(mep) is not null;
 
+    /// <summary>
+    /// Un retour arrière peut encore être déclenché (manuellement ou automatiquement) : plan de retour arrière activé
+    /// et point de non-retour non franchi.
+    /// </summary>
+    public static bool RetourArrierePossible(Mep mep) => mep.RetourArriereActive && !NonRetourFranchi(mep);
+
+    /// <summary>
+    /// L'échéance de retour arrière s'applique au déploiement : plan de retour arrière activé, échéance renseignée et
+    /// point de non-retour non franchi.
+    /// </summary>
+    public static bool EcheanceApplicable(Mep mep) => mep.EcheanceRepli is not null && RetourArrierePossible(mep);
+
     /// <summary>Accord du pilote, pendant l'exécution, pour démarrer une étape point de non-retour.</summary>
     public static void AutoriserNonRetour(Mep mep, Etape etape, Guid utilisateurId, DateTimeOffset maintenant)
     {

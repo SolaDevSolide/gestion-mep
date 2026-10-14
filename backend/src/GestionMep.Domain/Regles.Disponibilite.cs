@@ -19,12 +19,9 @@ public static partial class Regles
                 return new(StatutDisponibilite.Terminee, "Terminée");
             if (mep.Phase == Phase.RetourArriere || mep.Issue == IssueMep.Repliee)
                 return new(StatutDisponibilite.RetourArriere, "Retour arrière déclenché");
-            // Point de non-retour franchi : l'échéance ne s'applique plus au déploiement.
-            if (!NonRetourFranchi(mep))
-            {
-                if (mep.EcheanceRepli is null) return new(StatutDisponibilite.EcheanceARenseigner, "Échéance à renseigner");
-                if (maintenant >= mep.EcheanceRepli && mep.Phase != Phase.Cloturee) return new(StatutDisponibilite.RetourArriere, "RETOUR ARRIÈRE");
-            }
+            // L'échéance, facultative, ne s'applique ni sans plan de retour arrière ni une fois le point de non-retour franchi.
+            if (EcheanceApplicable(mep) && maintenant >= mep.EcheanceRepli && mep.Phase != Phase.Cloturee)
+                return new(StatutDisponibilite.RetourArriere, "RETOUR ARRIÈRE");
         }
 
         if (string.IsNullOrWhiteSpace(etape.Action) || etape.SystemeIds.Count == 0 || etape.Criticite is null)

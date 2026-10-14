@@ -14,7 +14,8 @@ export function completude(mep: Mep): Record<IdSection, boolean> {
   const aucune = (motif: RegExp) => !mep.erreursPlan.some((e) => motif.test(e));
   return {
     intervention:
-      rempli(mep.outil) && aucune(/échéance de retour arrière|^Renseigner le pilote|^Le pilote .* n'est relié/),
+      rempli(mep.outil) &&
+      aucune(/échéance de retour arrière est passée|^Renseigner le pilote|^Le pilote .* n'est relié/),
     personnes: mep.participants.length > 0 && aucune(/n'est relié à aucun compte/),
     systemes: mep.systemes.length > 0,
     // Les avertissements ne bloquent rien, mais un point ouvert garde la section en orange pour inviter à le traiter.

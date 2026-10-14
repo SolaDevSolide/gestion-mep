@@ -66,7 +66,10 @@ function iconeEvenement(type: string): { Icone: LucideIcon; ton: Ton } {
     case 'repli.declenche':
       return { Icone: Siren, ton: 'rollback' };
     case 'repli.modifie':
+    case 'repli.active':
       return { Icone: Undo2, ton: 'wait' };
+    case 'repli.desactive':
+      return { Icone: Undo2, ton: 'warn' };
     case 'resolution.demarree':
     case 'resolution.correction':
       return { Icone: Wrench, ton: 'warn' };

@@ -48,7 +48,8 @@ public static partial class Regles
 
     /// <summary>
     /// Bascule sur le plan de retour arrière, pendant l'exécution ou la recette. Par le pilote (utilisateurId renseigné)
-    /// ou automatiquement (échéance atteinte, résolution en échec). Impossible une fois le point de non-retour franchi.
+    /// ou automatiquement (échéance atteinte, résolution en échec). Impossible une fois le point de non-retour franchi,
+    /// ou si la MEP n'a pas de plan de retour arrière (<see cref="Mep.RetourArriereActive"/>).
     /// </summary>
     public static void DeclencherRetourArriere(Mep mep, Guid? utilisateurId, string motif, DateTimeOffset maintenant)
     {
@@ -56,6 +57,8 @@ public static partial class Regles
             throw new RegleMetierException("Seul le pilote ou un suppléant peut déclencher le retour arrière.");
         if (mep.Phase is not (Phase.Execution or Phase.Recette))
             throw new RegleMetierException("Le retour arrière se déclenche pendant l'exécution ou la recette.");
+        if (!mep.RetourArriereActive)
+            throw new RegleMetierException("Cette MEP n'a pas de plan de retour arrière : tout problème se corrige en avant.");
         if (EtapeNonRetourFranchie(mep) is { } franchie)
             throw new RegleMetierException($"Point de non-retour franchi ({franchie.Code}) : corriger en avant.");
         if (string.IsNullOrWhiteSpace(motif)) throw new RegleMetierException("Indiquer le motif du retour arrière.");
@@ -67,12 +70,11 @@ public static partial class Regles
 
     /// <summary>
     /// Déclenche automatiquement le retour arrière si l'échéance est atteinte avant la clôture (exécution ou recette),
-    /// sauf si le point de non-retour est franchi.
+    /// sauf sans échéance, plan de retour arrière désactivé ou point de non-retour franchi.
     /// </summary>
     public static bool AppliquerEcheance(Mep mep, DateTimeOffset maintenant)
     {
-        if (mep.Phase is not (Phase.Execution or Phase.Recette) || mep.EcheanceRepli is null || maintenant < mep.EcheanceRepli) return false;
-        if (NonRetourFranchi(mep)) return false;
+        if (mep.Phase is not (Phase.Execution or Phase.Recette) || !EcheanceApplicable(mep) || maintenant < mep.EcheanceRepli) return false;
         DeclencherRetourArriere(mep, null, MotifEcheance, maintenant);
         return true;
     }

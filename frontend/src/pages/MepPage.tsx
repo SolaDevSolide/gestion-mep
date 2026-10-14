@@ -188,9 +188,13 @@ export default function MepPage() {
   }
 
   const demande = params.get('onglet');
-  // Un modèle n'a pas d'onglet Exécution.
+  // Un modèle n'a pas d'onglet Exécution ; une MEP sans plan de retour arrière n'a pas d'onglet Retour arrière
+  // (sauf s'il a déjà été déclenché).
+  const ongletRetour = mep.retourArriereActive || mep.retourArriere !== null;
   const courant: Onglet =
-    ONGLETS.includes(demande as Onglet) && !(mep.estModele && demande === 'execution')
+    ONGLETS.includes(demande as Onglet) &&
+    !(mep.estModele && demande === 'execution') &&
+    !(!ongletRetour && demande === 'retour')
       ? (demande as Onglet)
       : ongletParDefaut(mep);
   const repliActif = mep.phase === 'RetourArriere';
@@ -211,12 +215,18 @@ export default function MepPage() {
                 <TabsTrigger value="preparation">Préparation</TabsTrigger>
                 <TabsTrigger value="etapes">Étapes</TabsTrigger>
                 {!mep.estModele && <TabsTrigger value="execution">Exécution</TabsTrigger>}
-                <TabsTrigger value="retour">
-                  Retour arrière
-                  {repliActif && (
-                    <span className="size-2 rounded-full bg-rollback-bg" role="img" aria-label="Retour arrière actif" />
-                  )}
-                </TabsTrigger>
+                {ongletRetour && (
+                  <TabsTrigger value="retour">
+                    Retour arrière
+                    {repliActif && (
+                      <span
+                        className="size-2 rounded-full bg-rollback-bg"
+                        role="img"
+                        aria-label="Retour arrière actif"
+                      />
+                    )}
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="recette">
                   Recette
                   {mep.phase === 'Recette' && (

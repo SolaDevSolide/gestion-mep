@@ -16,7 +16,7 @@ Dans « Mises en production » :
 
 Il est découpé en huit sections. Chacune affiche son état (complète ou à compléter), et un compteur indique combien sont complètes.
 
-1. **Intervention** : outil, objet, version actuelle et version cible, environnement, fuseau horaire, indisponibilité prévue, impacts attendus, pilote et suppléants, **échéance de retour arrière** (obligatoire et future pour donner le Go) et option « Bilan de clôture ». Les dates de début et de fin ne se saisissent pas : ce sont celles du Go et de la clôture.
+1. **Intervention** : outil, objet, version actuelle et version cible, environnement, fuseau horaire, indisponibilité prévue, impacts attendus, pilote et suppléants, case **« Plan de retour arrière »** avec, en dessous, l'**échéance de retour arrière** (facultative), et option « Bilan de clôture ». Les dates de début et de fin ne se saisissent pas : ce sont celles du Go et de la clôture. Voir [Retour arrière facultatif](#retour-arrière-facultatif).
 2. **Personnes** : toutes les personnes de l'intervention. Relier chaque personne à son compte permet de pré-remplir son nom, son rôle et son contact, et lui donne le droit d'exécuter des étapes.
 3. **Systèmes** : les systèmes touchés, ajoutés depuis le catalogue global ou librement.
 4. **Responsables techniques** : les développeurs et sachants, avec ce qu'ils ont développé, leur disponibilité le jour J et leur contact. L'application suggère les comptes dont le profil indique une expertise sur les systèmes de la MEP.
@@ -66,10 +66,25 @@ Le responsable d'une étape n'est pas choisi à l'avance : c'est celui qui la d�
 
 ## Le plan de retour arrière (onglet Retour arrière)
 
-Obligatoire. Il comprend :
+Exigé pour le Go tant que la case « Plan de retour arrière » est cochée (c'est le défaut). Il comprend :
 
 - la **fiche du plan** : quand déclencher le retour arrière, durée testée, version ou copies à restaurer, données créées depuis la sauvegarde, que faire si le retour arrière échoue ;
 - les **étapes de retour arrière**, éditées comme celles du déploiement. Elles ne peuvent être ni point de non-retour, ni de type Sauvegarde.
+
+### Retour arrière facultatif
+
+Certains environnements (une préproduction qu'on réinstalle à volonté, par exemple) n'ont pas besoin de retour arrière. Dans la section « Intervention », la case **« Plan de retour arrière »** est cochée par défaut, y compris pour les MEP créées avant son apparition.
+
+- **Échéance facultative** : sous la case, l'échéance de retour arrière peut rester vide. Sans échéance, pas de compte à rebours ni de déclenchement automatique ; le pilote peut toujours déclencher le retour arrière à la main. Renseignée, elle doit être future pour donner le Go.
+- **Décocher la case** ouvre une fenêtre de confirmation qui en rappelle les conséquences ; la désactivation n'est prise en compte qu'après confirmation, puis « Enregistrer » :
+  - l'onglet Retour arrière est masqué ; les étapes et la fiche déjà saisies sont gardées et reviennent si on recoche la case ;
+  - « Vérifier le plan » ne réclame plus ni plan, ni échéance de retour arrière pour le Go ;
+  - aucun retour arrière ne peut être déclenché : ni automatiquement (échéance, résolution en échec), ni à la main. Une résolution en échec laisse l'étape en échec, et le pilote décide de la suite (reprise).
+- **Recocher la case** se fait sans confirmation.
+
+L'activation et la désactivation sont inscrites au journal de la MEP, avec leur auteur et leur date. Le choix ne se modifie qu'en préparation, par un éditeur ; il est repris par la duplication et par les MEP créées depuis un modèle.
+
+Le point de non-retour reste porté par les étapes de déploiement (voir [Cycle de vie](Cycle-de-vie.md#point-de-non-retour)).
 
 ## Les fiches de recette (onglet Recette)
 
@@ -89,7 +104,7 @@ Le jour J, une étape en échec propose ses résolutions liées et guide l'opér
 
 Le bouton « Vérifier le plan » liste :
 
-- les **anomalies**, qui bloquent le Go : échéance absente ou passée, pilote manquant ou non relié à un compte, plan de déploiement ou de retour arrière vide, graphe invalide, étape incomplète (action, système, criticité, instructions, résultat attendu ; emplacement et méthode de récupération pour une étape de sauvegarde), sauvegarde non renseignée ou non justifiée, sauvegarde requise sans emplacement ou sans méthode de récupération, sauvegarde pendant la MEP sans étape de sauvegarde, recette absente ou incomplète, procédure non relue, approbations manquantes ou refusées ;
+- les **anomalies**, qui bloquent le Go : échéance de retour arrière passée, pilote manquant ou non relié à un compte, plan de déploiement vide, plan de retour arrière vide ou sans « quand le déclencher » (si la case « Plan de retour arrière » est cochée), graphe invalide, étape incomplète (action, système, criticité, instructions, résultat attendu ; emplacement et méthode de récupération pour une étape de sauvegarde), sauvegarde non renseignée ou non justifiée, sauvegarde requise sans emplacement ou sans méthode de récupération, sauvegarde pendant la MEP sans étape de sauvegarde, recette absente ou incomplète, procédure non relue, approbations manquantes ou refusées ;
 - les **avertissements**, qui ne bloquent pas : aucun responsable technique, responsable technique absent le jour J, pilote qui est aussi responsable technique, aucun système sauvegardé, système sans recette.
 
 ![« Vérifier le plan » : il manque une approbation](images/verifier-le-plan.png)
@@ -108,7 +123,7 @@ Quand le plan est complet, le pilote ou un suppléant donne le Go (voir [Cycle d
 
 ## Partir d'une MEP existante
 
-- **Dupliquer** (bouton de la liste ou de l'en-tête) copie une MEP : identité, personnes, pilote et suppléants, systèmes et leur sauvegarde, responsables techniques, livrables, étapes et liens, résolutions liées, plan de retour arrière, fiches de recette (sans les résultats) et approbateurs (sans leurs décisions). Ne sont pas copiés : l'échéance, la relecture, le Go, les résultats d'exécution (dont les résultats constatés des tests unitaires), le bilan et les pièces jointes. L'environnement peut être changé au passage.
+- **Dupliquer** (bouton de la liste ou de l'en-tête) copie une MEP : identité, personnes, pilote et suppléants, systèmes et leur sauvegarde, responsables techniques, livrables, étapes et liens, résolutions liées, plan de retour arrière (et le choix de l'avoir ou non), fiches de recette (sans les résultats) et approbateurs (sans leurs décisions). Ne sont pas copiés : l'échéance, la relecture, le Go, les résultats d'exécution (dont les résultats constatés des tests unitaires), le bilan et les pièces jointes. L'environnement peut être changé au passage.
 - Cocher **« En faire un modèle »** à la duplication crée un modèle, à réutiliser avec « Nouvelle MEP depuis un modèle ».
 
 ## Modèles

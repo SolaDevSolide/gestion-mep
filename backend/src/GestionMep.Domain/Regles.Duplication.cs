@@ -29,7 +29,7 @@ public static partial class Regles
             Objet = source.Objet, Impacts = source.Impacts,
             FuseauHoraire = source.FuseauHoraire, IndisponibiliteMinutes = source.IndisponibiliteMinutes,
             Environnement = string.IsNullOrWhiteSpace(environnement) ? source.Environnement : environnement.Trim(),
-            EstModele = commeModele, BilanActive = source.BilanActive,
+            EstModele = commeModele, BilanActive = source.BilanActive, RetourArriereActive = source.RetourArriereActive,
             CreeLe = maintenant, CreeParUtilisateurId = utilisateurId,
             PlanRepli = new PlanRepli
             {

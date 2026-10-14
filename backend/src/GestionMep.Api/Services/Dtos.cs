@@ -6,10 +6,13 @@ namespace GestionMep.Api.Services;
 public record ExpertiseDto(Guid SystemeCatalogueId, string Detail);
 public record UtilisateurDto(Guid Id, string Login, string NomAffiche, bool EstAdmin, string Role, string Contact, List<ExpertiseDto> Expertises, bool Actif, bool DoitChangerMotDePasse);
 
-/// <summary><c>DateMep</c> : date du Go (dans le fuseau de la MEP) ou null ; <c>CreeLe</c> : création de la MEP.</summary>
+/// <summary>
+/// <c>DateMep</c> : date du Go (dans le fuseau de la MEP) ou null ; <c>CreeLe</c> : création de la MEP ;
+/// <c>RetourArriereActive</c> : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).
+/// </summary>
 public record MepResumeDto(Guid Id, string Outil, string VersionCible, string Objet, DateOnly? DateMep, Phase Phase,
     DateTimeOffset? EcheanceRepli, string? Pilote, int NbEtapes, int NbReussies, int NbEchecs, string Environnement, bool EstModele,
-    DateTimeOffset CreeLe, IssueMep? Issue);
+    DateTimeOffset CreeLe, IssueMep? Issue, bool RetourArriereActive);
 
 public record SauvegardeDto(ModeSauvegarde Mode, bool Structure, bool Donnees, bool Configuration, Guid? ResponsableId, DateTimeOffset? RealiseeLe,
     string Procedure, string Copies, bool RestaurationTestee, DateOnly? DateTestRestauration, string PreuveTestRestauration);
@@ -81,6 +84,10 @@ public record ResponsableTechniqueDto(Guid ParticipantId, List<Guid> SystemeIds,
 
 public record DroitsDto(bool EstPilote, bool PeutModifierPlan, Guid? ParticipantId, bool EstApprobateur, bool EstResponsableTechnique, bool PeutEditerContenu);
 
+/// <summary>
+/// <c>RetourArriereActive</c> : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).
+/// <c>EcheanceRepli</c> est facultative et ne s'applique que si le retour arrière est activé.
+/// </summary>
 public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle, string VersionCible, string Objet, string Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string FuseauHoraire, int? IndisponibiliteMinutes,
     Guid? PiloteId, List<Guid> SuppleantIds, Phase Phase, DateTimeOffset? EcheanceRepli,
@@ -90,7 +97,7 @@ public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle,
     List<ExecutionResolutionDto> Resolutions, List<string> ErreursPlan, DroitsDto Droits,
     string Environnement, bool EstModele, int ApprobationsMinimum, List<ApprobationDto> Approbations, List<CritereValideDto> GoNoGo,
     List<FicheRecetteDto> FichesRecette, bool BilanActive, BilanDto? Bilan, string? NonRetourFranchi, List<PieceJointeDto> PiecesJointes,
-    List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements);
+    List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements, bool RetourArriereActive);
 
 /// <summary><c>AuteurLogin</c> : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte supprimé.</summary>
 public record EvenementDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail, string? AuteurLogin);
@@ -109,9 +116,13 @@ public record ProfilSaisie(string? NomAffiche, string? Role, string? Contact, Li
 /// <summary>Création d'une MEP, ou d'un modèle si <c>Modele</c> vaut true.</summary>
 public record MepCreationSaisie(string? Outil, string? Objet, bool? Modele = null);
 
+/// <summary>
+/// <c>Environnement</c>, <c>BilanActive</c> et <c>RetourArriereActive</c> absents : inchangés. <c>EcheanceRepli</c> null : sans échéance.
+/// </summary>
 public record MepIdentiteSaisie(int? Version, string? Outil, string? VersionActuelle, string? VersionCible, string? Objet, string? Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string? FuseauHoraire, int? IndisponibiliteMinutes,
-    Guid? PiloteId, List<Guid>? SuppleantIds, DateTimeOffset? EcheanceRepli, string? Environnement = null, bool? BilanActive = null);
+    Guid? PiloteId, List<Guid>? SuppleantIds, DateTimeOffset? EcheanceRepli, string? Environnement = null, bool? BilanActive = null,
+    bool? RetourArriereActive = null);
 
 public record SauvegardeSaisie(int? Version, bool Structure, bool Donnees, bool Configuration, Guid? ResponsableId, DateTimeOffset? RealiseeLe,
     string? Procedure, string? Copies, bool RestaurationTestee, DateOnly? DateTestRestauration, string? PreuveTestRestauration,

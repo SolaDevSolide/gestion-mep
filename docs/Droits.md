@@ -27,7 +27,8 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Modifier le contenu en préparation (intervention, personnes, systèmes, sauvegarde, étapes, retour arrière, recette, approbateurs) | Éditeur |
 | Changer le pilote ou les suppléants, ou le compte auquel ils sont reliés | Pilote, suppléant ou administrateur (tout éditeur tant qu'aucun pilote n'est désigné) |
 | Compléter les informations de sauvegarde après la préparation (sauvegarde réalisée, restauration testée, preuve) | Pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée |
-| Modifier l'échéance de retour arrière, à toute phase | Pilote, suppléant ou administrateur |
+| Activer ou désactiver le plan de retour arrière | Éditeur, en préparation |
+| Modifier l'échéance de retour arrière, à toute phase (MEP avec plan de retour arrière) | Pilote, suppléant ou administrateur |
 | Cocher « Procédure relue » | Participant relié à un compte |
 | Approuver ou refuser | Approbateur désigné |
 | Go / no-go | Pilote ou suppléant |

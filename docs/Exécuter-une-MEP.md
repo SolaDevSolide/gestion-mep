@@ -7,7 +7,7 @@ Cette page s'adresse au **pilote**, à ses **suppléants** et aux **opérateurs*
 1. Vérifier que le plan est complet (« Vérifier le plan » : aucune anomalie) et que les approbations sont données.
 2. Le pilote ou un suppléant ouvre « Go / no-go », coche les critères (équipe présente, sauvegarde disponible, utilisateurs prévenus…) et clique « Go : passer en exécution ». S'il manque quelque chose, « No-go » avec un motif laisse la MEP en préparation.
 
-À partir du Go, l'en-tête affiche le compte à rebours « Retour arrière dans… », orange à moins d'une heure de l'échéance. À l'échéance, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi.
+À partir du Go, si la MEP a une échéance de retour arrière, l'en-tête affiche le compte à rebours « Retour arrière dans… », orange à moins d'une heure de l'échéance. À l'échéance, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi. Une MEP sans échéance n'a ni compte à rebours ni déclenchement automatique ; une MEP sans plan de retour arrière n'a ni onglet Retour arrière, ni bouton « Déclencher le retour arrière » (voir [Préparer une MEP](Préparer-une-MEP.md#retour-arrière-facultatif)).
 
 ## L'onglet Exécution
 
@@ -40,7 +40,7 @@ flowchart LR
     B -- "Échec<br/>(preuve obligatoire)" --> D[Échec]
     D -- Appliquer une résolution --> E[Résolution en cours]
     E -- tout conforme --> A
-    E -- correction ou vérification en échec --> F[[Retour arrière automatique]]
+    E -- correction ou vérification en échec --> F[[Retour arrière automatique<br/>ou étape laissée en échec]]
     D -- Autoriser la reprise --> A
 ```
 
@@ -91,7 +91,7 @@ Tant que le point de non-retour n'est pas franchi et qu'aucune étape ni résolu
 2. Dans l'onglet **Recette**, chaque étape de test est déclarée « Conforme » ou « Échec » avec une observation, par toute personne de la MEP reliée à un compte. Le pilote peut faire refaire un test ou une fiche.
 3. Quand tout est conforme, le pilote clique **« Clôturer : MEP réussie »** et rédige le bilan.
 
-Si la recette révèle un problème et que le point de non-retour n'est pas franchi, le pilote peut encore déclencher le retour arrière.
+Si la recette révèle un problème, que la MEP a un plan de retour arrière et que le point de non-retour n'est pas franchi, le pilote peut encore déclencher le retour arrière.
 
 ## Retour arrière
 

@@ -7,7 +7,7 @@ namespace GestionMep.Api.Endpoints;
 
 /// <summary>
 /// Participants, systèmes et livrables : modifiables uniquement en préparation.
-/// Chaque modification remet les approbations à zéro (<see cref="ServiceMep.EnregistrerContenu"/>).
+/// Chaque modification remet les approbations à zéro (<see cref="ServiceMep.EnregistrerContenu(Mep, Acteur, string, string)"/>).
 /// </summary>
 public static class StructureEndpoints
 {
