@@ -70,9 +70,18 @@ export function AideGraphe({ edition }: { edition: boolean }) {
               liens changent, le rangement suit.
             </li>
           )}
+          {edition && (
+            <li>
+              Ordre dans une rangée : glisser une carte ou une section à gauche ou à droite dans sa rangée (barre
+              bleue), hors des liens et des cartes. La hauteur reste donnée par les liens ; l’ordre choisi vaut pour
+              tout le monde.
+            </li>
+          )}
           {edition && <li>Tirer le rond du bas d’une carte vers celle qui doit l’attendre (ou vers un cercle).</li>}
           {edition && <li>Cliquer un lien pour le sélectionner, Suppr pour le retirer.</li>}
           <li>Cliquer une section pour la déplier ; le crayon ouvre sa vue.</li>
+          <li>Survoler un lien ou ouvrir une carte met ses liens en avant ; un petit saut marque un croisement.</li>
+          <li>Le bouton en haut à droite du plan l’affiche en plein écran (Échap pour revenir).</li>
           <li>Glisser le fond ou la molette pour se déplacer, Ctrl + molette pour zoomer ; « Aller à… » par code.</li>
           <li>Tab pour aller de carte en carte, Entrée pour ouvrir, Échap pour fermer.</li>
         </ul>

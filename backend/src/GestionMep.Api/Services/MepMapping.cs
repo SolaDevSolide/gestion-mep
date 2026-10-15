@@ -17,7 +17,7 @@ public static class MepMapping
     public static SectionDto VersDto(Section s, string? auteur) =>
         new(s.Id, s.Plan, s.Titre, s.Description, [.. s.SystemeIds], s.AuteurId, auteur, s.CreeLe, s.Placee, s.Revision,
             s.Ports.OrderBy(p => p.Sens).ThenBy(p => p.Ordre)
-                .Select(p => new PortSectionDto(p.Id, p.Sens, p.Titre, p.Description, p.Ordre, [.. p.Etapes], [.. p.Sources])).ToList());
+                .Select(p => new PortSectionDto(p.Id, p.Sens, p.Titre, p.Description, p.Ordre, [.. p.Etapes], [.. p.Sources])).ToList(), s.Rang);
 
     public static ObjetImpacteDto VersDto(ObjetImpacte o) =>
         new(o.Id, o.SystemeId, o.ObjetCatalogueId, o.Categorie, o.Type, o.Nom, o.Libelle, o.Precision, o.Version, o.Repris);
@@ -74,7 +74,7 @@ public static class MepMapping
                     new DisponibiliteDto(d.Statut, d.Libelle), e.Type, e.PointDeNonRetour, Validation(e.NonRetourAutoriseParId, e.NonRetourAutoriseLe),
                     e.Fin, e.ResultatConstate, e.SauvegardeEmplacement, e.SauvegardeMethodeRecuperation, e.ModeleEtapeId,
                     e.Environnements.Select(x => new EnvironnementEtapeDto(x.SystemeId, x.Nom)).ToList(), e.SectionId,
-                    [.. e.DependancesDerivees], [.. e.PortsAttendus]);
+                    [.. e.DependancesDerivees], [.. e.PortsAttendus], e.Rang);
             }).ToList(),
             m.Resolutions.OrderBy(r => r.DemarreeLe).Select(r => new ExecutionResolutionDto(
                 r.Id, r.EtapeId, r.ResolutionTypeId, r.Titre, r.Symptomes, r.Diagnostic,

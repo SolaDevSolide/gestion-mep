@@ -547,6 +547,11 @@ public class Etape
     public int Ligne { get; set; }
     /// <summary>Position dans la ligne (0, 1, 2… de gauche à droite), recalculée avec <see cref="Ligne"/>.</summary>
     public int Ordre { get; set; }
+    /// <summary>
+    /// Ordre gauche-droite choisi dans le graphe, commun aux étapes et aux sections d'un plan (<see cref="Regles.Ordonner"/>) :
+    /// le rangement l'impose aux éléments d'un même niveau. 0 : jamais réordonné (l'ordre suit alors Ligne, Ordre, Code).
+    /// </summary>
+    public int Rang { get; set; }
     public string Action { get; set; } = "";
     /// <summary>Systèmes de la MEP concernés par l'étape (un ou plusieurs).</summary>
     public List<Guid> SystemeIds { get; set; } = [];
@@ -621,6 +626,8 @@ public class Section
     public bool Placee { get; set; } = true;
     /// <summary>Augmente à chaque modification de la section ou de ses cercles (contrôle de concurrence de la fiche).</summary>
     public int Revision { get; set; }
+    /// <summary>Ordre gauche-droite dans le graphe, partagé avec les étapes du plan (<see cref="Etape.Rang"/>).</summary>
+    public int Rang { get; set; }
     /// <summary>Cercles d'entrée et de sortie.</summary>
     public List<PortSection> Ports { get; set; } = [];
 }

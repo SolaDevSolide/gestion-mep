@@ -107,7 +107,7 @@ public static partial class Regles
         mep.Sections = source.Sections.OrderBy(s => s.CreeLe).Select(s => new Section
         {
             Id = sections[s.Id], Plan = s.Plan, Titre = s.Titre, Description = s.Description,
-            SystemeIds = s.SystemeIds.Select(id => S(id)).OfType<Guid>().ToList(), AuteurId = s.AuteurId, CreeLe = s.CreeLe, Placee = s.Placee,
+            SystemeIds = s.SystemeIds.Select(id => S(id)).OfType<Guid>().ToList(), AuteurId = s.AuteurId, CreeLe = s.CreeLe, Placee = s.Placee, Rang = s.Rang,
             Ports = s.Ports.Select(p => new PortSection
             {
                 Id = ports[p.Id], Sens = p.Sens, Titre = p.Titre, Description = p.Description, Ordre = p.Ordre,
@@ -119,7 +119,7 @@ public static partial class Regles
             mep.Etapes.Add(new Etape
             {
                 Id = etapes[e.Id], MepId = mep.Id, Plan = e.Plan, Type = e.Type, PointDeNonRetour = e.PointDeNonRetour,
-                Code = e.Code, Ligne = e.Ligne, Ordre = e.Ordre, Action = e.Action, SystemeIds = e.SystemeIds.Select(id => S(id)).OfType<Guid>().ToList(),
+                Code = e.Code, Ligne = e.Ligne, Ordre = e.Ordre, Rang = e.Rang, Action = e.Action, SystemeIds = e.SystemeIds.Select(id => S(id)).OfType<Guid>().ToList(),
                 DureeEstimeeMinutes = e.DureeEstimeeMinutes,
                 Criticite = e.Criticite, Instructions = e.Instructions, ResultatAttendu = e.ResultatAttendu, Fin = e.Fin,
                 SauvegardeEmplacement = e.SauvegardeEmplacement, SauvegardeMethodeRecuperation = e.SauvegardeMethodeRecuperation,

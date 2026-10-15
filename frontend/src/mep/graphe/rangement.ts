@@ -1,19 +1,22 @@
 import type { ELK as MoteurElk, ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api';
-import type { LienModele, ModeleGraphe, NoeudModele } from './modeleGraphe';
+import { POIGNEE_BAS, POIGNEE_HAUT, type LienModele, type ModeleGraphe, type NoeudModele } from './modeleGraphe';
 
 /**
- * Rangement automatique du graphe libre (ELK, algorithme « layered », de haut en bas), aligné sur une grille.
+ * Rangement automatique du graphe libre (ELK, algorithme « layered », de haut en bas) et tracé des liens.
  *
- * Rangement stable (protection 3) : les nœuds et les liens entrent dans l'ordre du modèle (ligne, ordre, code) et ELK
- * le respecte (`considerModelOrder`, `forceNodeModelOrder`) ; un ajout ailleurs ne réordonne pas le reste.
+ * Rangement stable (protection 3) : les nœuds et les liens entrent dans l'ordre du modèle (rang choisi, sinon ligne, ordre,
+ * code) et ELK le respecte (`considerModelOrder`, `forceNodeModelOrder`) ; un ajout ailleurs ne réordonne pas le reste.
+ *
+ * Liens : routage orthogonal d'ELK (points de passage calculés en contournant cartes, cadres, titres et cercles, liens
+ * parallèles écartés), en coordonnées du graphe.
  */
 export const GRILLE = 24;
 export const CARTE = { largeur: 212, hauteur: 104 };
 export const CERCLE = { largeur: 132, hauteur: 32 };
 /** Largeur réservée à chaque cercle sur le bord d'une section repliée. */
 export const PAS_CERCLE = 140;
-/** En-tête d'un cadre de section déplié (titre, systèmes, boutons). */
-export const ENTETE_CADRE = 64;
+/** Titre d'un cadre de section déplié (titre, systèmes, boutons) : un nœud rangé comme les autres. */
+export const TITRE_CADRE = { largeur: 248, hauteur: 64 };
 
 export interface Taille {
   largeur: number;
@@ -28,11 +31,27 @@ export interface Place {
   hauteur: number;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
 export interface Rangement {
   places: Map<string, Place>;
   /** Abscisse (relative à la section repliée) de chaque cercle sur son bord. */
   cercles: Map<string, number>;
+  /** Tracé de chaque lien (départ, coudes, arrivée), en coordonnées absolues du graphe. */
+  routes: Map<string, Point[]>;
 }
+
+/** Écartement des liens entre eux et autour des nœuds. */
+const OPTIONS_LIENS: Record<string, string> = {
+  'elk.edgeRouting': 'ORTHOGONAL',
+  'elk.spacing.edgeEdge': '14',
+  'elk.spacing.edgeNode': '20',
+  'elk.layered.spacing.edgeEdgeBetweenLayers': '14',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '20',
+};
 
 const OPTIONS_RACINE: Record<string, string> = {
   'elk.algorithm': 'layered',
@@ -48,15 +67,18 @@ const OPTIONS_RACINE: Record<string, string> = {
   'elk.layered.spacing.nodeNodeBetweenLayers': String(GRILLE * 3),
   'elk.spacing.componentComponent': String(GRILLE * 3),
   'elk.padding': `[top=${GRILLE},left=${GRILLE},bottom=${GRILLE},right=${GRILLE}]`,
+  // Points de passage des liens en coordonnées du graphe entier (pas du cadre qui les contient).
+  'elk.json.edgeCoords': 'ROOT',
+  ...OPTIONS_LIENS,
 };
 
 const OPTIONS_CADRE: Record<string, string> = {
-  'elk.padding': `[top=${ENTETE_CADRE + GRILLE / 2},left=${GRILLE},bottom=${GRILLE},right=${GRILLE}]`,
+  'elk.padding': `[top=${GRILLE / 2},left=${GRILLE},bottom=${GRILLE},right=${GRILLE}]`,
   'elk.spacing.nodeNode': String(GRILLE * 2),
   'elk.layered.spacing.nodeNodeBetweenLayers': String(GRILLE * 2),
+  'elk.alignment': 'TOP',
+  ...OPTIONS_LIENS,
 };
-
-export const aligner = (v: number) => Math.round(v / GRILLE) * GRILLE;
 
 /** Taille d'une section repliée : assez large pour ses cercles. */
 export function tailleSectionRepliee(n: Pick<NoeudModele, 'entrees' | 'sorties'>, mesuree?: Taille): Taille {
@@ -71,6 +93,7 @@ function tailleDe(n: NoeudModele, tailles: ReadonlyMap<string, Taille>): Taille 
   const m = tailles.get(n.id);
   if (n.nature === 'section') return tailleSectionRepliee(n, m);
   if (n.nature === 'cercle') return CERCLE;
+  if (n.nature === 'titre') return TITRE_CADRE;
   return m ?? CARTE;
 }
 
@@ -92,6 +115,31 @@ export function grapheElk(modele: ModeleGraphe, tailles: ReadonlyMap<string, Tai
       // Cartes d'une même rangée alignées par le haut (hauteurs différentes).
       noeud.layoutOptions = { 'elk.alignment': 'TOP' };
     }
+    if (n.nature === 'etape' || n.nature === 'cercle') {
+      // Un port au milieu du haut et un au milieu du bas, là où sont les poignées : tous les liens d'une carte partent du
+      // même point (et y arrivent), puis se séparent à angle droit.
+      ports.set(`${n.id}|${POIGNEE_HAUT}`, `${n.id}|${POIGNEE_HAUT}`);
+      ports.set(`${n.id}|${POIGNEE_BAS}`, `${n.id}|${POIGNEE_BAS}`);
+      noeud.ports = [
+        {
+          id: `${n.id}|${POIGNEE_HAUT}`,
+          width: 0,
+          height: 0,
+          x: t.largeur / 2,
+          y: 0,
+          layoutOptions: { 'elk.port.side': 'NORTH' },
+        },
+        {
+          id: `${n.id}|${POIGNEE_BAS}`,
+          width: 0,
+          height: 0,
+          x: t.largeur / 2,
+          y: t.hauteur,
+          layoutOptions: { 'elk.port.side': 'SOUTH' },
+        },
+      ];
+      noeud.layoutOptions = { ...noeud.layoutOptions, 'elk.portConstraints': 'FIXED_POS' };
+    }
     if (n.nature === 'section') {
       const p: ElkPort[] = [];
       for (const c of n.entrees ?? []) {
@@ -106,9 +154,15 @@ export function grapheElk(modele: ModeleGraphe, tailles: ReadonlyMap<string, Tai
       noeud.layoutOptions = { 'elk.portConstraints': 'FIXED_ORDER', 'elk.alignment': 'TOP' };
     }
     if (n.nature === 'cercle' && n.parent)
-      noeud.layoutOptions = { 'elk.layered.layering.layerConstraint': n.sens === 'Entree' ? 'FIRST' : 'LAST' };
+      noeud.layoutOptions = {
+        ...noeud.layoutOptions,
+        'elk.layered.layering.layerConstraint': n.sens === 'Entree' ? 'FIRST' : 'LAST',
+      };
+    if (n.nature === 'titre')
+      noeud.layoutOptions = { 'elk.layered.layering.layerConstraint': 'FIRST', 'elk.alignment': 'TOP' };
     if (n.nature === 'cercle' && !n.parent)
       noeud.layoutOptions = {
+        ...noeud.layoutOptions,
         'elk.layered.layering.layerConstraint': n.sens === 'Entree' ? 'FIRST_SEPARATE' : 'LAST_SEPARATE',
       };
     const liste = n.parent ? enfants.get(n.parent) : racine;
@@ -137,20 +191,27 @@ export async function ranger(modele: ModeleGraphe, tailles: ReadonlyMap<string, 
   const resultat = await elk.layout(grapheElk(modele, tailles));
   const places = new Map<string, Place>();
   const cercles = new Map<string, number>();
+  const routes = new Map<string, Point[]>();
+  // Positions telles qu'ELK les donne (arrondies au pixel) : les liens arrivent exactement sur les bords.
+  const r = (v: number | undefined) => Math.round((v ?? 0) * 2) / 2;
   const parcourir = (n: ElkNode) => {
+    for (const e of n.edges ?? []) {
+      const s = e.sections?.[0];
+      if (s)
+        routes.set(
+          e.id,
+          [s.startPoint, ...(s.bendPoints ?? []), s.endPoint].map((p) => ({ x: r(p.x), y: r(p.y) })),
+        );
+    }
     for (const c of n.children ?? []) {
-      places.set(c.id, {
-        x: aligner(c.x ?? 0),
-        y: aligner(c.y ?? 0),
-        largeur: c.children ? aligner(c.width ?? 0) : (c.width ?? 0),
-        hauteur: c.children ? aligner(c.height ?? 0) : (c.height ?? 0),
-      });
-      for (const p of c.ports ?? []) cercles.set(p.id.slice(2), (p.x ?? 0) + (p.width ?? 0) / 2);
+      places.set(c.id, { x: r(c.x), y: r(c.y), largeur: r(c.width), hauteur: r(c.height) });
+      for (const p of c.ports ?? [])
+        if (p.id.startsWith('p:')) cercles.set(p.id.slice(2), (p.x ?? 0) + (p.width ?? 0) / 2);
       parcourir(c);
     }
   };
   parcourir(resultat);
-  return { places, cercles };
+  return { places, cercles, routes };
 }
 
 /**

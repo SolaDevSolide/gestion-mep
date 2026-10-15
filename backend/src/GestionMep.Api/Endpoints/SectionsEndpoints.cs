@@ -123,6 +123,18 @@ public static class SectionsEndpoints
                 : await svc.EnregistrerContenu(mep, acteur, "section.bac", $"Section « {s.Titre} » remise dans le bac");
         })));
 
+        // Ordre gauche-droite du graphe (disposition seulement : aucun lien ne change, les approbations restent).
+        api.MapPut("/meps/{id:guid}/ordre", async (Guid id, OrdreGrapheSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
+        {
+            var acteur = Acteur.Depuis(user);
+            ServiceMep.ExigerEditeur(mep, acteur);
+            if (c.Plan is not { } plan) throw ErreurHttp.Saisie("Préciser le plan.");
+            if (c.Ids is not { Count: > 0 } ids) throw ErreurHttp.Saisie("Indiquer l'ordre des éléments.");
+            Regles.Ordonner(mep, plan, ids);
+            return await svc.Enregistrer(mep, acteur, "graphe.ordre",
+                plan == TypePlan.Deploiement ? "Ordre du graphe de déploiement modifié" : "Ordre du graphe de retour arrière modifié");
+        })));
+
         // Ses étapes restent dans le plan, avec leurs préalables effectifs.
         api.MapDelete("/meps/{id:guid}/sections/{sid:guid}", async (Guid id, Guid sid, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {

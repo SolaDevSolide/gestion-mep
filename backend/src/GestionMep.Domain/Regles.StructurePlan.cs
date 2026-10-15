@@ -413,6 +413,7 @@ public static partial class Regles
     private static void Inserer(Mep mep, Etape etape, PlaceResolue place)
     {
         IndiceDePlace(etape, place);
+        RangApres(mep, etape, place.Parallele ?? place.Vers?.Etape ?? place.Apres?.Etape ?? place.De?.Etape);
         var moi = NoeudDe(etape);
         if (place.Apres is { } a) Lier(a, moi);
         else if (place.De is { } de)
@@ -489,11 +490,11 @@ public static partial class Regles
             var section = sortirDeSection ? null
                 : sectionId is { } sid ? ExigerSection(mep, etape.Plan, sid).Id
                 : place.Vide ? etape.SectionId : SectionDeduite(resolue);
-            var placeActuelle = (etape.Ligne, etape.Ordre);
+            var placeActuelle = (etape.Ligne, etape.Ordre, etape.Rang);
             Detacher(mep, etape);
             etape.SectionId = section;
             Inserer(mep, etape, resolue);
-            if (place.Vide) (etape.Ligne, etape.Ordre) = placeActuelle;
+            if (place.Vide) (etape.Ligne, etape.Ordre, etape.Rang) = placeActuelle;
             RelierAuxCercles(mep, etape);
         });
 

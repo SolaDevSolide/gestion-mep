@@ -198,6 +198,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
             onSelection={setChoix}
             deplies={deplies}
             onBasculer={basculer}
+            retraitDroit={!!ouverte && modeEspace === 'panneau'}
             estEstompee={filtreActif ? (e) => !garde(e) : undefined}
           />
         </div>

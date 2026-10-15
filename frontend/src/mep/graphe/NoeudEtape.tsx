@@ -16,6 +16,8 @@ interface Props {
   glissee: boolean;
   /** Pendant un glisser : carte visée, cible valide ou non. */
   cible: 'ok' | 'ko' | null;
+  /** Mise en avant (lien survolé qui l'atteint). */
+  enAvant?: boolean;
   onActiver: () => void;
   /** Poignées de liens et boutons de création rapide, posés autour de la carte. */
   children?: ReactNode;
@@ -32,6 +34,7 @@ export function NoeudEtape({
   estompee,
   glissee,
   cible,
+  enAvant = false,
   onActiver,
   children,
 }: Props) {
@@ -54,6 +57,7 @@ export function NoeudEtape({
         className={cn(
           'relative rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
           edition ? 'cursor-grab' : 'cursor-pointer',
+          enAvant && !selectionnee && 'ring-2 ring-accent ring-offset-2 ring-offset-surface',
         )}
       >
         <CarteEtape

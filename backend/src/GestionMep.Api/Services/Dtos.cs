@@ -66,6 +66,7 @@ public record DisponibiliteDto(StatutDisponibilite Statut, string Libelle);
 /// <c>SauvegardeEmplacement</c> et <c>SauvegardeMethodeRecuperation</c> : étape de type Sauvegarde seulement.
 /// <c>ModeleEtapeId</c> : étape modèle dont l'étape est une copie (null : saisie dans la MEP).
 /// <c>Environnements</c> : environnements où agit l'étape, système par système.
+/// <c>Rang</c> : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).
 /// </summary>
 public record EtapeDto(Guid Id, TypePlan Plan, string Code, int Ligne, int Ordre, string Action, List<Guid> SystemeIds, Guid? ResponsableId, Guid? ExecutantId,
     Criticite? Criticite, int? DureeEstimeeMinutes,
@@ -73,7 +74,7 @@ public record EtapeDto(Guid Id, TypePlan Plan, string Code, int Ligne, int Ordre
     int Revision, List<Guid> Dependances, List<Guid> ResolutionIds, DisponibiliteDto Disponibilite,
     TypeEtape Type, bool PointDeNonRetour, ValidationDto? NonRetourAutorise, FinEtape Fin, string ResultatConstate, string SauvegardeEmplacement,
     string SauvegardeMethodeRecuperation, Guid? ModeleEtapeId, List<EnvironnementEtapeDto> Environnements, Guid? SectionId,
-    List<Guid> DependancesDerivees, List<Guid> PortsAttendus);
+    List<Guid> DependancesDerivees, List<Guid> PortsAttendus, int Rang);
 
 /// <summary>
 /// Cercle d'une section. Entrée : <c>Etapes</c>, les étapes de la section qui l'attendent ; <c>Sources</c>, ce qui y arrive de
@@ -85,9 +86,10 @@ public record PortSectionDto(Guid Id, SensPort Sens, string Titre, string Descri
 /// <summary>
 /// Section d'un plan : repère qui regroupe des étapes (<c>EtapeDto.SectionId</c>). <c>Placee</c> faux : dans le bac.
 /// <c>Revision</c> : augmente à chaque modification de la section ou de ses cercles. <c>Auteur</c> : nom du compte auteur.
+/// <c>Rang</c> : ordre gauche-droite dans le graphe, partagé avec les étapes du plan (0 : jamais réordonné).
 /// </summary>
 public record SectionDto(Guid Id, TypePlan Plan, string Titre, string Description, List<Guid> SystemeIds, Guid? AuteurId, string? Auteur,
-    DateTimeOffset CreeLe, bool Placee, int Revision, List<PortSectionDto> Ports);
+    DateTimeOffset CreeLe, bool Placee, int Revision, List<PortSectionDto> Ports, int Rang);
 
 /// <summary>
 /// Verrou d'édition d'une étape (panneau d'édition ouvert) : tenu par l'onglet <c>Session</c> du compte <c>UtilisateurId</c>
@@ -312,6 +314,8 @@ public record DeplacementSaisie(Guid? Apres = null, LienSaisie? SurLien = null, 
 public record SectionSaisie(int? Revision = null, TypePlan? Plan = null, string? Titre = null, string? Description = null,
     List<Guid>? SystemeIds = null, bool? Placee = null);
 public record PlacementSectionSaisie(bool? Placee);
+/// <summary>Ordre gauche-droite du graphe : <c>Ids</c>, étapes et sections du plan de gauche à droite (les autres suivent).</summary>
+public record OrdreGrapheSaisie(TypePlan? Plan, List<Guid>? Ids);
 /// <summary>Cercle d'une section : <c>Sens</c> obligatoire à la création, ignoré ensuite ; titre absent à la création : « Entrée 2 »…</summary>
 public record PortSaisie(SensPort? Sens = null, string? Titre = null, string? Description = null);
 /// <summary>Nouvel ordre des cercles d'un bord : tous les cercles de ce sens, de gauche à droite.</summary>

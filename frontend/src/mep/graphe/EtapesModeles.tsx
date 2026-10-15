@@ -84,6 +84,7 @@ export function apercuDepuisModele(mep: Mep, plan: TypePlan, m: ModeleEtape): Et
   return {
     id: ID_FLOTTANTE,
     plan,
+    rang: 0,
     code: prochainCode(
       mep.etapes.filter((e) => e.plan === plan),
       plan,
@@ -211,7 +212,8 @@ export function AvisSystemesAbsents({ absents, className }: { absents: string[];
     <Alerte ton="warn" icone={TriangleAlert} className={className}>
       {absents.length > 1 ? 'Les systèmes' : 'Le système'} {absents.join(', ')} de ce modèle{' '}
       {absents.length > 1 ? 'ne sont pas' : 'n’est pas'} dans la MEP : la copie ne {absents.length > 1 ? 'les' : 'le'}{' '}
-      reprend pas. Ajoutez-{absents.length > 1 ? 'les' : 'le'} aux systèmes impactés si besoin.
+      reprend pas. Ajoutez-{absents.length > 1 ? 'les' : 'le'} aux systèmes de la MEP (Préparation › Systèmes) si
+      besoin.
     </Alerte>
   );
 }

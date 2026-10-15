@@ -13,7 +13,6 @@ import { Button } from '../ui/Button';
 import { cn } from '../ui/cn';
 import { apiGraphe, type Deplacement, type PlaceEtape } from './graphe/apiGraphe';
 import { useAstuce } from './graphe/astuce';
-import { BarreSystemes } from './graphe/BarreSystemes';
 import { useModeEspace } from './graphe/EspaceEtape';
 import {
   apercuDepuisModele,
@@ -24,7 +23,7 @@ import {
   systemesAbsents,
 } from './graphe/EtapesModeles';
 import { GrapheLibre, type ActionsGraphe } from './graphe/GrapheLibre';
-import type { LienModele } from './graphe/modeleGraphe';
+import { ordreGlobal, reordonner, type LienModele } from './graphe/modeleGraphe';
 import { PanneauEdition } from './graphe/PanneauEdition';
 import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
 import { BacSections, CercleDialog, EnTeteVueSection, NouvelleSectionDialog } from './graphe/SectionsPlan';
@@ -78,7 +77,7 @@ export function BoutonsRepli({ onToutes }: { onToutes: (deplier: boolean) => voi
 }
 
 /**
- * Éditeur du plan en graphe libre (préparation) : systèmes impactés, graphe rangé automatiquement, bac des sections,
+ * Éditeur du plan en graphe libre (préparation) : graphe rangé automatiquement (bac des sections dans son cadre, plein écran),
  * espace d'édition de l'étape ouverte. Avec `?section=…`, vue d'édition d'une section : ses étapes et ses cercles.
  * `actions` : boutons ajoutés au bout de la ligne de résumé du plan (export Excel…).
  */
@@ -271,6 +270,13 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
     return false;
   }
 
+  async function ordonner(avant: string[], apres: string[]) {
+    const ids = reordonner(ordreGlobal(etapesPlan, sections), avant, apres);
+    const ok = await run(() => apiGraphe.ordonner(mep.id, plan, ids));
+    if (ok) astuce.afficher('Ordre de la rangée changé pour tout le monde ; les liens restent les mêmes.');
+    return ok;
+  }
+
   async function placerSection(id: string, placee = true) {
     const s = sections.find((x) => x.id === id);
     return run(
@@ -296,6 +302,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
     ? {
         ajouter: (p) => void exclusif(() => ajouter(p)),
         deplacer: (id, d) => void exclusif(() => deplacer(id, d)),
+        ordonner: (avant, apres) => void exclusif(() => ordonner(avant, apres)),
         lier: (de, vers) => void exclusif(() => lier(de, vers)),
         supprimerLien: (l) => void exclusif(() => supprimerLien(l)),
         ouvrirCercle: sectionVue
@@ -324,6 +331,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
         selection={selection}
         onSelection={selectionner}
         sectionVue={sectionVue?.id ?? null}
+        retraitDroit={!!etape && modeEspace === 'panneau'}
         deplies={deplies}
         onBasculer={basculer}
         gel={!!etape && saisieOuverte}
@@ -347,6 +355,21 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
             )}
           </>
         }
+        lateral={
+          !sectionVue &&
+          (modifiable || enBac.length > 0) && (
+            <BacSections
+              mep={mep}
+              sections={enBac}
+              nbEtapes={nbEtapes}
+              modifiable={modifiable}
+              onPlacer={(id) => void exclusif(() => placerSection(id))}
+              onOuvrir={allerSection}
+              onNouvelle={() => setNouvelleSection(true)}
+              replieForce={!!etape && modeEspace === 'panneau'}
+            />
+          )
+        }
         enTete={
           modifiable && (
             <BoutonsEtapesModeles
@@ -363,7 +386,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
   );
 
   return (
-    // Onglet affiché en une fois, référentiels compris (systèmes impactés, résolutions) : voir Apparition.
+    // Onglet affiché en une fois, référentiels compris (systèmes, résolutions) : voir Apparition.
     <Apparition pret={pret}>
       <div className="grid gap-3">
         {sectionVue ? (
@@ -391,14 +414,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
             }}
             onCercle={setCercle}
           />
-        ) : (
-          <BarreSystemes
-            modifiable={modifiable}
-            catalogue={catalogue}
-            descriptions={descriptions}
-            onMessage={astuce.afficher}
-          />
-        )}
+        ) : null}
         <div className="flex min-h-7 flex-wrap items-center gap-x-4 gap-y-1">
           <ResumePlan etapes={etapes} sections={sectionVue ? undefined : sections} sansDuree={estSimplifiee(mep)} />
           <p aria-live="polite" className="min-w-0 flex-1 text-[13px] font-semibold text-rollback-solid">
@@ -407,24 +423,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
           <AideGraphe edition={modifiable} />
           {actions}
         </div>
-        {sectionVue ? (
-          graphe
-        ) : (
-          <div className="grid gap-3 min-[1100px]:grid-cols-[minmax(0,1fr)_auto]">
-            {graphe}
-            {(modifiable || enBac.length > 0) && (
-              <BacSections
-                mep={mep}
-                sections={enBac}
-                nbEtapes={nbEtapes}
-                modifiable={modifiable}
-                onPlacer={(id) => void exclusif(() => placerSection(id))}
-                onOuvrir={allerSection}
-                onNouvelle={() => setNouvelleSection(true)}
-              />
-            )}
-          </div>
-        )}
+        {graphe}
         {modifiable && (
           <ParcourirDialog
             ouvert={parcourir}

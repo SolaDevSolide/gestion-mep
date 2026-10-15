@@ -1,8 +1,19 @@
-import { ChevronRight, CircleDot, FolderPlus, Inbox, Pencil, Plus, Trash2, Undo2 } from 'lucide-react';
+import {
+  ChevronRight,
+  CircleDot,
+  FolderPlus,
+  Inbox,
+  PanelRightClose,
+  PanelRightOpen,
+  Pencil,
+  Plus,
+  Trash2,
+  Undo2,
+} from 'lucide-react';
 import { useEffect, useState, type PointerEvent as PointerEventReact } from 'react';
 import { createPortal } from 'react-dom';
 import type { Mep } from '../../types';
-import { Button } from '../../ui/Button';
+import { BoutonIcone, Button } from '../../ui/Button';
 import { cn } from '../../ui/cn';
 import { MultiSelect } from '../../ui/Combobox';
 import { ConfirmDialog, Dialog } from '../../ui/Dialog';
@@ -108,8 +119,11 @@ export function BacSections({
   onPlacer,
   onOuvrir,
   onNouvelle,
+  replieForce = false,
 }: {
   mep: Mep;
+  /** Replié tant que l'espace d'une étape occupe la droite de l'écran (le graphe garde sa largeur). */
+  replieForce?: boolean;
   /** Sections du plan pas encore placées. */
   sections: Section[];
   nbEtapes: (sectionId: string) => number;
@@ -119,6 +133,16 @@ export function BacSections({
   onNouvelle: () => void;
 }) {
   const [glisse, setGlisse] = useState<{ section: Section; x: number; y: number; dessus: boolean } | null>(null);
+  const [replie, setReplie] = useState(lireBacReplie);
+  const basculer = () =>
+    setReplie((v) => {
+      try {
+        window.localStorage.setItem('graphe.bacReplie', v ? 'non' : 'oui');
+      } catch {
+        /* préférence non mémorisée */
+      }
+      return !v;
+    });
 
   const appuyer = (ev: PointerEventReact<HTMLElement>, s: Section) => {
     if (!modifiable || ev.button !== 0) return;
@@ -143,87 +167,129 @@ export function BacSections({
     window.addEventListener('pointerup', lacher);
   };
 
+  if (replie || replieForce)
+    return (
+      <aside
+        aria-label="Bac des sections"
+        className="flex w-11 shrink-0 flex-col items-center border-l border-line bg-surface-2/40 py-2"
+      >
+        <BoutonIcone
+          label={
+            replieForce
+              ? `Sections à placer (${sections.length}) : fermez l’étape ouverte pour afficher le bac`
+              : `Afficher les sections à placer (${sections.length})`
+          }
+          taille="sm"
+          disabled={replieForce}
+          onClick={basculer}
+        >
+          <PanelRightOpen className="size-4" aria-hidden />
+        </BoutonIcone>
+        <span className="mt-2 flex items-center gap-1 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase [writing-mode:vertical-rl]">
+          <Inbox className="size-3.5 rotate-90" aria-hidden />
+          Sections à placer ({sections.length})
+        </span>
+      </aside>
+    );
+
   return (
-    <aside aria-label="Bac des sections" className="grid w-full content-start gap-2 min-[1100px]:w-60">
-      <div className="flex items-center justify-between gap-2">
+    // Panneau intérieur du cadre du plan : sa propre hauteur de défilement, le graphe garde la sienne.
+    <aside
+      aria-label="Bac des sections"
+      className="flex w-60 shrink-0 flex-col border-l border-line bg-surface-2/40 max-sm:w-48"
+    >
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line px-2.5 py-1.5">
         <h3 className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
           <Inbox className="size-3.5" aria-hidden />
           Sections à placer ({sections.length})
         </h3>
+        <BoutonIcone label="Replier le bac des sections" taille="sm" onClick={basculer}>
+          <PanelRightClose className="size-4" aria-hidden />
+        </BoutonIcone>
       </div>
-      {modifiable && (
-        <Button taille="sm" icone={<FolderPlus className="size-4" aria-hidden />} onClick={onNouvelle}>
-          Nouvelle section
-        </Button>
-      )}
-      {sections.length === 0 ? (
-        <p className="text-[13px] text-fg-subtle">
-          {modifiable ? 'Aucune section en attente. Une nouvelle section arrive ici.' : 'Aucune section en attente.'}
-        </p>
-      ) : (
-        <ul className="grid gap-2">
-          {sections.map((s) => (
-            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- glisser à la souris ; « Placer » au clavier
-            <li
-              key={s.id}
-              onPointerDown={(e) => appuyer(e, s)}
-              className={cn(
-                'grid gap-1.5 rounded-xl border-2 border-dashed border-accent/60 bg-surface p-2.5 shadow-sm',
-                modifiable && 'cursor-grab touch-none',
-                glisse?.section.id === s.id && 'opacity-40',
-              )}
-            >
-              <p className="truncate text-[14px] font-semibold" title={s.titre}>
-                {s.titre}
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {systemesDe(mep, s.systemeIds).map((x) => (
-                  <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-[11px]" />
-                ))}
-              </div>
-              <p className="text-xs text-fg-muted">
-                {nbEtapes(s.id)} étape{nbEtapes(s.id) > 1 ? 's' : ''}
-                {s.auteur && <> · par {s.auteur}</>}
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {modifiable && (
-                  <Button taille="sm" variante="primaire" onClick={() => onPlacer(s.id)}>
-                    Placer dans le graphe
-                  </Button>
-                )}
-                <Button
-                  taille="sm"
-                  variante="fantome"
-                  icone={<Pencil className="size-3.5" aria-hidden />}
-                  onClick={() => onOuvrir(s.id)}
-                  aria-label={`Ouvrir la section ${s.titre}`}
-                >
-                  Ouvrir
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-      {glisse &&
-        createPortal(
-          <div
-            aria-hidden
-            className={cn(
-              'pointer-events-none fixed z-50 w-56 -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 bg-surface px-3 py-2 text-sm font-semibold shadow-lg',
-              glisse.dessus ? 'border-accent' : 'border-dashed border-line-strong opacity-80',
-            )}
-            style={{ left: glisse.x, top: glisse.y }}
-          >
-            {glisse.section.titre}
-            <span className="block text-xs font-normal text-fg-muted">
-              {glisse.dessus ? 'Lâcher pour placer dans le graphe' : 'Glisser sur le graphe'}
-            </span>
-          </div>,
-          document.body,
+      <div className="grid min-h-0 flex-1 content-start gap-2 overflow-y-auto p-2.5">
+        {modifiable && (
+          <Button taille="sm" icone={<FolderPlus className="size-4" aria-hidden />} onClick={onNouvelle}>
+            Nouvelle section
+          </Button>
         )}
+        {sections.length === 0 ? (
+          <p className="text-[13px] text-fg-subtle">
+            {modifiable ? 'Aucune section en attente. Une nouvelle section arrive ici.' : 'Aucune section en attente.'}
+          </p>
+        ) : (
+          <ul className="grid gap-2">
+            {sections.map((s) => (
+              // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- glisser à la souris ; « Placer » au clavier
+              <li
+                key={s.id}
+                onPointerDown={(e) => appuyer(e, s)}
+                className={cn(
+                  'grid gap-1.5 rounded-xl border-2 border-dashed border-accent/60 bg-surface p-2.5 shadow-sm',
+                  modifiable && 'cursor-grab touch-none',
+                  glisse?.section.id === s.id && 'opacity-40',
+                )}
+              >
+                <p className="truncate text-[14px] font-semibold" title={s.titre}>
+                  {s.titre}
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {systemesDe(mep, s.systemeIds).map((x) => (
+                    <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-[11px]" />
+                  ))}
+                </div>
+                <p className="text-xs text-fg-muted">
+                  {nbEtapes(s.id)} étape{nbEtapes(s.id) > 1 ? 's' : ''}
+                  {s.auteur && <> · par {s.auteur}</>}
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {modifiable && (
+                    <Button taille="sm" variante="primaire" onClick={() => onPlacer(s.id)}>
+                      Placer dans le graphe
+                    </Button>
+                  )}
+                  <Button
+                    taille="sm"
+                    variante="fantome"
+                    icone={<Pencil className="size-3.5" aria-hidden />}
+                    onClick={() => onOuvrir(s.id)}
+                    aria-label={`Ouvrir la section ${s.titre}`}
+                  >
+                    Ouvrir
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {glisse &&
+          createPortal(
+            <div
+              aria-hidden
+              className={cn(
+                'pointer-events-none fixed z-50 w-56 -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 bg-surface px-3 py-2 text-sm font-semibold shadow-lg',
+                glisse.dessus ? 'border-accent' : 'border-dashed border-line-strong opacity-80',
+              )}
+              style={{ left: glisse.x, top: glisse.y }}
+            >
+              {glisse.section.titre}
+              <span className="block text-xs font-normal text-fg-muted">
+                {glisse.dessus ? 'Lâcher pour placer dans le graphe' : 'Glisser sur le graphe'}
+              </span>
+            </div>,
+            document.body,
+          )}
+      </div>
     </aside>
   );
+}
+
+function lireBacReplie(): boolean {
+  try {
+    return window.localStorage.getItem('graphe.bacReplie') === 'oui';
+  } catch {
+    return false;
+  }
 }
 
 /** Titre et description d'un cercle (« Validation », « Sauvegarde »…) ; suppression. */

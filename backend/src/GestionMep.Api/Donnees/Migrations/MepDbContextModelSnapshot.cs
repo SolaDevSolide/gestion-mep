@@ -236,6 +236,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("Rang")
+                        .HasColumnType("integer");
+
                     b.PrimitiveCollection<List<Guid>>("ResolutionIds")
                         .IsRequired()
                         .HasColumnType("uuid[]");

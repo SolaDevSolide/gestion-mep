@@ -68,6 +68,11 @@ export const apiGraphe = {
     json<Mep>('PUT', `/meps/${mepId}/sections/${sectionId}/ports/${cercleId}`, { titre, description }),
   supprimerCercle: (mepId: string, sectionId: string, cercleId: string) =>
     json<Mep>('DELETE', `/meps/${mepId}/sections/${sectionId}/ports/${cercleId}`),
+  /**
+   * Ordre gauche-droite du graphe, pour tout le monde : `ids`, étapes et sections du plan dans l'ordre voulu (les absents
+   * suivent). Les liens ne changent pas.
+   */
+  ordonner: (mepId: string, plan: TypePlan, ids: string[]) => json<Mep>('PUT', `/meps/${mepId}/ordre`, { plan, ids }),
   ordonnerCercles: (mepId: string, sectionId: string, sens: SensCercle, ports: string[]) =>
     json<Mep>('PUT', `/meps/${mepId}/sections/${sectionId}/ports/ordre`, { sens, ports }),
 };

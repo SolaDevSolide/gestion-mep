@@ -14,6 +14,7 @@ const e = (id: string, dependances: string[] = [], sectionId: string | null = nu
 
 const section = (id: string, entree: string, sortie: string): Section => ({
   id,
+  rang: 0,
   plan: 'Deploiement',
   titre: id,
   description: '',

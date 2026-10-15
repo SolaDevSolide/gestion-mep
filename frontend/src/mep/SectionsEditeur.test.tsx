@@ -50,6 +50,7 @@ const droits = {
 };
 
 const section = (p: Partial<Section> & { id: string; titre: string }): Section => ({
+  rang: 0,
   plan: 'Deploiement',
   description: '',
   systemeIds: ['s1'],

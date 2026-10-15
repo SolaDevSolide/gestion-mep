@@ -2019,6 +2019,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meps/{id}/ordre": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OrdreGrapheSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meps/{id}/sections/{sid}/ports": {
         parameters: {
             query?: never;
@@ -6343,6 +6382,7 @@ export interface components {
          *     `SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.
          *     `ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).
          *     `Environnements` : environnements où agit l'étape, système par système.
+         *     `Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).
          */
         EtapeDto: {
             /** Format: uuid */
@@ -6417,6 +6457,8 @@ export interface components {
             sectionId: null | string;
             dependancesDerivees: string[];
             portsAttendus: string[];
+            /** Format: int32 */
+            rang: number;
         };
         EtapeModeleRecetteDto: {
             /** Format: int32 */
@@ -6831,6 +6873,8 @@ export interface components {
                     sectionId: null | string;
                     dependancesDerivees: string[];
                     portsAttendus: string[];
+                    /** Format: int32 */
+                    rang: number;
                 }[];
                 resolutions: {
                     /** Format: uuid */
@@ -7046,6 +7090,8 @@ export interface components {
                         etapes: string[];
                         sources: string[];
                     }[];
+                    /** Format: int32 */
+                    rang: number;
                 }[];
             };
             /** Format: int32 */
@@ -7357,6 +7403,8 @@ export interface components {
                 sectionId: null | string;
                 dependancesDerivees: string[];
                 portsAttendus: string[];
+                /** Format: int32 */
+                rang: number;
             }[];
             resolutions: {
                 /** Format: uuid */
@@ -7572,6 +7620,8 @@ export interface components {
                     etapes: string[];
                     sources: string[];
                 }[];
+                /** Format: int32 */
+                rang: number;
             }[];
         };
         /**
@@ -7848,6 +7898,11 @@ export interface components {
         OptionsConnexionDto: {
             ssoActif: boolean;
             ssoLibelle: null | string;
+        };
+        /** @description Ordre gauche-droite du graphe : `Ids`, étapes et sections du plan de gauche à droite (les autres suivent). */
+        OrdreGrapheSaisie: {
+            plan: null | components["schemas"]["TypePlan"];
+            ids: null | string[];
         };
         /** @description Nouvel ordre des cercles d'un bord : tous les cercles de ce sens, de gauche à droite. */
         OrdrePortsSaisie: {
@@ -8408,6 +8463,8 @@ export interface components {
                     sectionId: null | string;
                     dependancesDerivees: string[];
                     portsAttendus: string[];
+                    /** Format: int32 */
+                    rang: number;
                 }[];
                 resolutions: {
                     /** Format: uuid */
@@ -8623,12 +8680,15 @@ export interface components {
                         etapes: string[];
                         sources: string[];
                     }[];
+                    /** Format: int32 */
+                    rang: number;
                 }[];
             };
         };
         /**
          * @description Section d'un plan : repère qui regroupe des étapes (`EtapeDto.SectionId`). `Placee` faux : dans le bac.
          *     `Revision` : augmente à chaque modification de la section ou de ses cercles. `Auteur` : nom du compte auteur.
+         *     `Rang` : ordre gauche-droite dans le graphe, partagé avec les étapes du plan (0 : jamais réordonné).
          */
         SectionDto: {
             /** Format: uuid */
@@ -8664,6 +8724,8 @@ export interface components {
                 etapes: string[];
                 sources: string[];
             }[];
+            /** Format: int32 */
+            rang: number;
         };
         /** @description Création (`Plan` absent : déploiement ; `Placee` absent : dans le bac) ou modification (`Revision` obligatoire) d'une section. */
         SectionSaisie: {

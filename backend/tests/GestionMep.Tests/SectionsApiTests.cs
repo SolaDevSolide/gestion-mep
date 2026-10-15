@@ -279,4 +279,37 @@ public class SectionsApiTests : IDisposable
         Assert.Equal(0, JsonDocument.Parse(await ProchainEvenement(lecteur, "verrous", delai.Token)).RootElement.GetArrayLength());
         Assert.Equal(HttpStatusCode.NotFound, (await alice.GetAsync($"/api/meps/{Guid.NewGuid()}/verrous")).StatusCode);
     }
+
+    [Fact]
+    public async Task L_ordre_du_graphe_se_choisit_pour_tout_le_monde_sans_toucher_aux_liens()
+    {
+        var alice = await _api.ClientConnecte("alice");
+        var id = await AidesApi.IdDemo(alice);
+        var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        Assert.All(mep.GetProperty("etapes").EnumerateArray(), e => Assert.Equal(0, e.GetProperty("rang").GetInt32()));
+        var prealables = Prealables(mep, "E0007");
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PutAsJsonAsync($"/api/meps/{id}/ordre", new { plan = "Deploiement" })).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity,
+            (await alice.PutAsJsonAsync($"/api/meps/{id}/ordre", new { plan = "Deploiement", ids = new[] { Guid.NewGuid() } })).StatusCode);
+
+        // E0003 passe à gauche de E0001 et E0002 : rangs 1, 2, 3, les autres suivent ; aucun lien ne change.
+        var ids = new[] { EtapeId(mep, "E0003"), EtapeId(mep, "E0001"), EtapeId(mep, "E0002") };
+        mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/ordre", new { plan = "Deploiement", ids }));
+        Assert.Equal((1, 2, 3), (Etape(mep, "E0003").GetProperty("rang").GetInt32(), Etape(mep, "E0001").GetProperty("rang").GetInt32(),
+            Etape(mep, "E0002").GetProperty("rang").GetInt32()));
+        Assert.All(mep.GetProperty("etapes").EnumerateArray().Where(e => e.GetProperty("plan").GetString() == "Deploiement"),
+            e => Assert.True(e.GetProperty("rang").GetInt32() > 0));
+        Assert.Equal(prealables, Prealables(mep, "E0007"));
+        var journal = await Journal(alice, id);
+        Assert.Equal(("graphe.ordre", "Ordre du graphe de déploiement modifié"), journal[0]);
+        Assert.DoesNotContain(journal, j => j.Type == "approbations.reinitialisees");
+
+        // Une étape posée en parallèle de E0003 se range juste à sa droite ; une section créée va en bout.
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { paralleleA = EtapeId(mep, "E0003") }));
+        Assert.Equal(2, Etape(mep, "E0010").GetProperty("rang").GetInt32());
+        Assert.Equal(3, Etape(mep, "E0001").GetProperty("rang").GetInt32());
+        var corps = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/sections", new { titre = "Fin de chantier", placee = true }));
+        var max = corps.GetProperty("mep").GetProperty("etapes").EnumerateArray().Max(e => e.GetProperty("rang").GetInt32());
+        Assert.Equal(max + 1, Section(corps.GetProperty("mep"), corps.GetProperty("sectionId").GetGuid()).GetProperty("rang").GetInt32());
+    }
 }

@@ -448,11 +448,12 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(screen.getByLabelText('Action')).toHaveFocus();
   });
 
-  it('retrait d’un système utilisé par des étapes : refusé avec un message', async () => {
+  it('pas de barre des systèmes au-dessus du plan (ils se gèrent en Préparation) ; bac des sections dans le cadre', () => {
     rendre(planExemple());
-    await userEvent.click(screen.getByRole('button', { name: 'Retirer API de la MEP' }));
-    expect(screen.getByText(/API est utilisé par E0001, E0002, E0003/)).toBeInTheDocument();
-    expect(api.supprimerSysteme).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Retirer API de la MEP' })).not.toBeInTheDocument();
+    const bac = screen.getByRole('complementary', { name: 'Bac des sections' });
+    expect(bac.closest('.graphe-libre')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Plan en plein écran' })).toBeInTheDocument();
   });
 
   it('environnements par système : pastilles sur la fiche (barrée si retirée du système), choix dans l’édition', async () => {

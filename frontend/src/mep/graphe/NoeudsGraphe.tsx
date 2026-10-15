@@ -5,7 +5,7 @@ import { cn } from '../../ui/cn';
 import { useGraphe } from './contexteGraphe';
 import { POIGNEE_BAS, POIGNEE_HAUT } from './modeleGraphe';
 import { NoeudEtape } from './NoeudEtape';
-import { CARTE, CERCLE } from './rangement';
+import { CARTE, CERCLE, TITRE_CADRE } from './rangement';
 import { avancementSection, cerclesTries, libelleAvancement, type CercleSection, type Section } from './sections';
 import { PuceSysteme, systemesDe } from './systemes';
 
@@ -48,6 +48,7 @@ export function NoeudCarte({ data }: NodeProps) {
       estompee={g.estEstompee?.(e)}
       glissee={g.glisse === id}
       cible={visee ? 'ok' : null}
+      enAvant={g.enAvant?.noeuds.has(id) ?? false}
       onActiver={() => g.onActiver(id)}
     >
       <Handle
@@ -186,7 +187,7 @@ export function NoeudSection({ data }: NodeProps) {
   const id = (data as DonneesNoeud).sectionId ?? '';
   const s = g.sections.get(id);
   if (!s) return null;
-  const selectionnee = g.selection === `s:${id}`;
+  const selectionnee = g.selection === `s:${id}` || (g.enAvant?.noeuds.has(`s:${id}`) ?? false);
   return (
     <div
       data-section={id}
@@ -205,7 +206,12 @@ export function NoeudSection({ data }: NodeProps) {
       <button
         type="button"
         onClick={() => g.onBasculer(id)}
-        className="nodrag nopan absolute inset-0 rounded-xl"
+        className={cn('absolute inset-0 rounded-xl', g.edition ? 'cursor-grab' : 'cursor-pointer')}
+        title={
+          g.edition
+            ? 'Cliquer pour déplier ; glisser à gauche ou à droite pour changer l’ordre'
+            : 'Cliquer pour déplier'
+        }
         aria-hidden
         tabIndex={-1}
       />
@@ -235,16 +241,14 @@ export function NoeudCadre({ data }: NodeProps) {
   );
 }
 
-/** Titre d'une section dépliée, posé sur le haut du cadre et au-dessus des liens qui y entrent. */
+/** Titre d'une section dépliée : un nœud rangé dans le cadre, à gauche des cercles d'entrée ; les liens le contournent. */
 export function NoeudTitreCadre({ data }: NodeProps) {
   const g = useGraphe();
   const s = g.sections.get((data as DonneesNoeud).sectionId ?? '');
   if (!s) return null;
   return (
-    <div className="size-full rounded-t-[14px] bg-surface">
-      <div className="size-full rounded-t-[14px] bg-accent-soft/40 px-2.5 pt-2">
-        <EnTeteSection section={s} deplie />
-      </div>
+    <div className="pt-0.5" style={{ width: TITRE_CADRE.largeur, height: TITRE_CADRE.hauteur }}>
+      <EnTeteSection section={s} deplie />
     </div>
   );
 }
@@ -316,6 +320,6 @@ export const TYPES_NOEUDS = {
   etape: NoeudCarte,
   section: NoeudSection,
   cadre: NoeudCadre,
-  titreCadre: NoeudTitreCadre,
+  titre: NoeudTitreCadre,
   cercle: NoeudCercle,
 };

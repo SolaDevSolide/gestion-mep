@@ -39,6 +39,7 @@ public static partial class Regles
                 new PortSection { Sens = SensPort.Sortie, Titre = TitreSortieParDefaut, Ordre = 0 },
             ],
         };
+        section.Rang = RangEnFin(mep, plan);
         mep.Sections.Add(section);
         return section;
     }

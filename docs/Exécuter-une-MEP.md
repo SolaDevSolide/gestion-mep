@@ -13,7 +13,7 @@ Cette page s'adresse au **pilote**, à ses **suppléants** et aux **opérateurs*
 
 ## L'onglet Exécution
 
-Le plan s'affiche en graphe ; une section s'affiche repliée avec son avancement (« 4/7, 1 en échec ») et se déplie d'un clic. Chaque étape indique son état :
+Le plan s'affiche en graphe, dans un cadre qui tient dans la hauteur de la fenêtre (le bouton en haut à droite l'affiche en plein écran, Échap pour revenir) ; une section s'affiche repliée avec son avancement (« 4/7, 1 en échec ») et se déplie d'un clic. Ouvrir une étape met ses liens en avant. Chaque étape indique son état :
 
 | État | Sens |
 |---|---|

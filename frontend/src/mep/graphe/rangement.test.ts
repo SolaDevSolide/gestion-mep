@@ -1,13 +1,14 @@
 import { etape } from '../../test/fabrique';
 import type { Etape } from '../../types';
-import { construireModele, idCercle, idSection, lienAutorise } from './modeleGraphe';
-import { decalageAncrage, GRILLE, noeudAuCentre, positionsAbsolues, ranger, type Rangement } from './rangement';
+import { construireModele, idCercle, idSection, idTitre, lienAutorise, ordreGlobal, reordonner } from './modeleGraphe';
+import { decalageAncrage, noeudAuCentre, positionsAbsolues, ranger, type Rangement } from './rangement';
 import type { Section } from './sections';
 
 const e = (id: string, ligne: number, ordre: number, dependances: string[] = [], extra: Record<string, unknown> = {}) =>
   ({ ...etape({ id, code: id.toUpperCase(), ligne, ordre, dependances }), ...extra }) as Etape;
 
 const section = (p: Partial<Section> & { id: string }): Section => ({
+  rang: 0,
   plan: 'Deploiement',
   titre: 'Section',
   description: '',
@@ -68,6 +69,7 @@ describe('modèle du graphe libre', () => {
     expect(deplie.noeuds.map((n) => [n.id, n.parent])).toEqual([
       ['a', null],
       [idSection('s1'), null],
+      [idTitre('s1'), idSection('s1')],
       [idCercle('in'), idSection('s1')],
       ['x', idSection('s1')],
       ['y', idSection('s1')],
@@ -104,15 +106,27 @@ describe('modèle du graphe libre', () => {
 });
 
 describe('rangement ELK', () => {
-  it('de haut en bas, aligné sur la grille', async () => {
-    const r = await ranger(sansSection([e('a', 0, 0), e('b', 1, 0, ['a']), e('c', 2, 0, ['b'])]), new Map());
-    const [a, b, c] = ['a', 'b', 'c'].map((id) => r.places.get(id)!);
+  it('de haut en bas ; chaque lien routé à angle droit, du bas de sa source au haut de sa cible', async () => {
+    const modele = sansSection([e('a', 0, 0), e('b', 1, 0, ['a']), e('c', 1, 1, ['a']), e('d', 2, 0, ['b', 'c'])]);
+    const r = await ranger(modele, new Map());
+    const [a, b, d] = ['a', 'b', 'd'].map((id) => r.places.get(id)!);
     expect(a.y).toBeLessThan(b.y);
-    expect(b.y).toBeLessThan(c.y);
-    for (const p of [a, b, c]) {
-      expect(p.x % GRILLE).toBe(0);
-      expect(p.y % GRILLE).toBe(0);
+    expect(b.y).toBeLessThan(d.y);
+    for (const l of modele.liens) {
+      const pts = r.routes.get(l.id)!;
+      const s = r.places.get(l.source)!;
+      const t = r.places.get(l.cible)!;
+      expect(pts[0].y).toBeCloseTo(s.y + s.hauteur, 0);
+      expect(pts.at(-1)!.y).toBeCloseTo(t.y, 0);
+      for (let i = 1; i < pts.length; i++)
+        expect(Math.abs(pts[i].x - pts[i - 1].x) < 0.6 || Math.abs(pts[i].y - pts[i - 1].y) < 0.6).toBe(true);
     }
+  });
+
+  it('ordre choisi (rang) : respecté dans la rangée, même contre l’ordre de création', async () => {
+    const plan = [e('a', 0, 0, [], { rang: 1 }), e('b', 1, 0, ['a'], { rang: 3 }), e('c', 1, 1, ['a'], { rang: 2 })];
+    const r = await ranger(sansSection(plan), new Map());
+    expect(r.places.get('c')!.x).toBeLessThan(r.places.get('b')!.x);
   });
 
   it('stable : un ajout dans une branche n’échange pas l’ordre des autres cartes', async () => {
@@ -198,5 +212,20 @@ describe('ancrage de la vue', () => {
       ['b', { x: 400, y: 400 }],
     ]);
     expect(noeudAuCentre(pos, new Map(), { x: 480, y: 450 })).toBe('b');
+  });
+});
+
+describe('ordre gauche-droite choisi', () => {
+  it('ordre global : étapes et sections ; une section se place avant sa première étape tant que rien n’est choisi', () => {
+    const s = section({ id: 's1' });
+    const etapes = [e('a', 0, 0), e('x', 1, 0, ['a'], { sectionId: 's1' }), e('b', 1, 1, ['a'])];
+    expect(ordreGlobal(etapes, [s])).toEqual(['a', 's1', 'x', 'b']);
+    const ranges = [e('a', 0, 0, [], { rang: 2 }), e('b', 1, 1, ['a'], { rang: 1 })];
+    expect(ordreGlobal(ranges, [section({ id: 's1', rang: 3 })])).toEqual(['b', 'a', 's1']);
+  });
+
+  it('réordonner une rangée ne touche qu’aux places de ses éléments', () => {
+    expect(reordonner(['a', 'b', 'c', 'd', 'e'], ['b', 'd'], ['d', 'b'])).toEqual(['a', 'd', 'c', 'b', 'e']);
+    expect(reordonner(['a', 'b', 'c'], ['a', 'b', 'c'], ['c', 'a', 'b'])).toEqual(['c', 'a', 'b']);
   });
 });

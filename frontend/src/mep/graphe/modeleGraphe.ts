@@ -13,10 +13,10 @@ import {
  * Modèle du graphe libre, sans React : ce qui est dessiné (cartes, sections repliées ou dépliées, cercles) et les liens
  * entre eux, dans un ordre stable (ligne, puis ordre, puis code des étapes) qui sert d'ordre d'entrée au rangement.
  */
-export type NatureNoeud = 'etape' | 'section' | 'cadre' | 'cercle';
+export type NatureNoeud = 'etape' | 'section' | 'cadre' | 'titre' | 'cercle';
 
 export interface NoeudModele {
-  /** Étape : son identifiant ; section : `s:{id}` ; cercle déplié : `c:{id}`. */
+  /** Étape : son identifiant ; section : `s:{id}` ; titre d'une section dépliée : `t:{id}` ; cercle déplié : `c:{id}`. */
   id: string;
   nature: NatureNoeud;
   /** Cadre d'une section dépliée qui contient ce nœud. */
@@ -51,12 +51,58 @@ export interface ModeleGraphe {
 
 export const idSection = (id: string) => `s:${id}`;
 export const idCercle = (id: string) => `c:${id}`;
+export const idTitre = (id: string) => `t:${id}`;
 export const POIGNEE_HAUT = 'haut';
 export const POIGNEE_BAS = 'bas';
+
+/** Rang gauche-droite choisi dans le graphe (0 : jamais réordonné ; lecture tolérante des données de test). */
+export const rangDe = (x: { rang?: number }) => x.rang ?? 0;
+
+/** Le plan a-t-il été réordonné à la main ? Alors l'ordre des rangs fait foi, sinon ligne, ordre, code. */
+export const planOrdonne = (etapes: Etape[], sections: Pick<Section, 'rang'>[]) =>
+  etapes.some((e) => rangDe(e) > 0) || sections.some((s) => rangDe(s) > 0);
 
 /** Ordre d'entrée stable du rangement : ligne, ordre, puis code. */
 export const ordreStable = (a: Etape, b: Etape) =>
   a.ligne - b.ligne || a.ordre - b.ordre || a.code.localeCompare(b.code);
+
+/** Ordre des étapes : par rang si le plan a été réordonné, sinon {@link ordreStable}. */
+const comparateur = (ordonne: boolean) => (a: Etape, b: Etape) =>
+  ordonne ? rangDe(a) - rangDe(b) || a.code.localeCompare(b.code) : ordreStable(a, b);
+
+/**
+ * Ordre gauche-droite de tous les éléments du plan (identifiants d'étapes et de sections, y compris celles du bac), tel que le
+ * rangement l'applique : c'est la liste qu'on renvoie au serveur après une réorganisation.
+ */
+export function ordreGlobal(etapes: Etape[], sections: Section[]): string[] {
+  const ordonne = planOrdonne(etapes, sections);
+  const triees = [...etapes].sort(comparateur(ordonne));
+  const rangDans = new Map(triees.map((e, i) => [e.id, i]));
+  const premier = new Map<string, number>();
+  for (const e of triees) {
+    const sid = infoSection(e).sectionId;
+    if (sid && !premier.has(sid)) premier.set(sid, rangDans.get(e.id) ?? 0);
+  }
+  const elements = [
+    ...triees.map((e) => ({ id: e.id, cle: ordonne ? rangDe(e) : (rangDans.get(e.id) ?? 0), code: e.code })),
+    ...sections.map((s) => ({
+      id: s.id,
+      cle: ordonne ? rangDe(s) : (premier.get(s.id) ?? Number.MAX_SAFE_INTEGER) - 0.5,
+      code: `${s.creeLe}|${s.id}`,
+    })),
+  ];
+  return elements.sort((a, b) => a.cle - b.cle || a.code.localeCompare(b.code)).map((x) => x.id);
+}
+
+/**
+ * Nouvel ordre global après une réorganisation d'un niveau : les places occupées par `avant` (éléments d'un même niveau, dans
+ * leur ordre actuel) reçoivent `apres` (les mêmes, dans le nouvel ordre) ; le reste ne bouge pas.
+ */
+export function reordonner(global: string[], avant: string[], apres: string[]): string[] {
+  const concernes = new Set(avant);
+  const file = [...apres];
+  return global.map((id) => (concernes.has(id) ? (file.shift() ?? id) : id));
+}
 
 interface Entree {
   etapes: Etape[];
@@ -71,7 +117,8 @@ interface Entree {
 type Extremite = { noeud: string; carte: boolean; section: string | null } | null;
 
 export function construireModele({ etapes, sections, deplies, sectionVue = null }: Entree): ModeleGraphe {
-  const triees = [...etapes].sort(ordreStable);
+  const ordonne = planOrdonne(etapes, sections);
+  const triees = [...etapes].sort(comparateur(ordonne));
   const parSection = new Map(sections.map((s) => [s.id, s]));
   const noeuds: NoeudModele[] = [];
   const liens: LienModele[] = [];
@@ -135,18 +182,18 @@ export function construireModele({ etapes, sections, deplies, sectionVue = null 
   };
 
   // Ordre des nœuds : étapes hors section et sections, à la place de leur première étape (les sections vides en fin).
-  const rangDe = new Map(triees.map((e, i) => [e.id, i]));
+  const rangDans = new Map(triees.map((e, i) => [e.id, i]));
   const premier = new Map<string, number>();
   for (const e of triees) {
     const sid = infoSection(e).sectionId;
-    if (sid && placeesIds.has(sid) && !premier.has(sid)) premier.set(sid, rangDe.get(e.id) ?? 0);
+    if (sid && placeesIds.has(sid) && !premier.has(sid)) premier.set(sid, rangDans.get(e.id) ?? 0);
   }
   const racine: { rang: number; cle: string; ajouter: () => void }[] = [];
   for (const e of triees) {
     const sid = infoSection(e).sectionId;
     if (sid && parSection.has(sid)) continue;
     racine.push({
-      rang: rangDe.get(e.id) ?? 0,
+      rang: ordonne ? rangDe(e) : (rangDans.get(e.id) ?? 0),
       cle: e.code,
       ajouter: () => noeuds.push({ id: e.id, nature: 'etape', parent: null, etapeId: e.id }),
     });
@@ -154,7 +201,7 @@ export function construireModele({ etapes, sections, deplies, sectionVue = null 
   for (const s of placees) {
     const id = idSection(s.id);
     racine.push({
-      rang: premier.get(s.id) ?? Number.MAX_SAFE_INTEGER,
+      rang: ordonne ? rangDe(s) : (premier.get(s.id) ?? Number.MAX_SAFE_INTEGER) - 0.5,
       cle: `${s.creeLe}|${s.id}`,
       ajouter: () => {
         if (!deplies.has(s.id)) {
@@ -169,6 +216,8 @@ export function construireModele({ etapes, sections, deplies, sectionVue = null 
           return;
         }
         noeuds.push({ id, nature: 'cadre', parent: null, sectionId: s.id });
+        // Titre du cadre : un nœud rangé comme les autres (à gauche des cercles d'entrée), que les liens contournent.
+        noeuds.push({ id: idTitre(s.id), nature: 'titre', parent: id, sectionId: s.id });
         for (const c of cerclesTries(s, 'Entree'))
           noeuds.push({
             id: idCercle(c.id),

@@ -27,6 +27,15 @@ export interface ValeurGraphe {
   cercles: ReadonlyMap<string, number>;
   /** Vue d'édition d'une section. */
   sectionVue: string | null;
+  /**
+   * Mise en avant : lien survolé (avec ses deux cartes) ou carte sélectionnée (avec ses liens) ; les autres liens s'estompent.
+   * null : rien de mis en avant.
+   */
+  enAvant: { liens: ReadonlySet<string>; noeuds: ReadonlySet<string> } | null;
+  /** Rangement animé en cours : les liens suivent leurs poignées au lieu du tracé d’ELK (de même pour la carte glissée). */
+  enMouvement: boolean;
+  /** Réorganisation en cours : le nœud glissé change de place dans son niveau (gauche-droite). */
+  reordre: string | null;
   estEstompee?: (e: Etape) => boolean;
   onActiver: (id: string) => void;
   onAjouter?: (place: PlaceEtape, ancre: string | null) => void;
