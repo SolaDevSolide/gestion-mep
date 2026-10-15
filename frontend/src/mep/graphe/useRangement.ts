@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ModeleGraphe } from './modeleGraphe';
-import { ranger, type Rangement, type Taille } from './rangement';
+import type { Rangement, Taille } from './rangement';
+import { rangerBordure } from './rangementBordure';
 
 export interface Range {
   modele: ModeleGraphe;
@@ -19,7 +20,7 @@ export function signatureRangement(modele: ModeleGraphe, tailles: ReadonlyMap<st
 }
 
 /**
- * Rangement ELK du modèle, avec gel (protection 1) : tant que `gele` est vrai (glisser, tracé de lien, saisie en cours),
+ * Rangement ELK du modèle (cercles et titres des sections dépliées sur leurs bordures, `rangerBordure`), avec gel (protection 1) : tant que `gele` est vrai (glisser, tracé de lien, saisie en cours),
  * les changements reçus attendent (`enAttente`) et le rangement affiché ne bouge pas. Un nouveau `jeton` (action de la
  * personne elle-même) force le rangement malgré le gel.
  */
@@ -39,7 +40,7 @@ export function useRangement(modele: ModeleGraphe, tailles: ReadonlyMap<string, 
       return;
     }
     let annule = false;
-    ranger(modele, tailles)
+    rangerBordure(modele, tailles)
       .then((rangement) => {
         if (annule) return;
         jetonApplique.current = jeton;

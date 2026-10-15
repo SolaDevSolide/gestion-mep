@@ -7,7 +7,8 @@ import { useGraphe } from './contexteGraphe';
 import { POIGNEE_BAS, POIGNEE_HAUT } from './modeleGraphe';
 import { NoeudEtape } from './NoeudEtape';
 import { PresentsSection } from './PresentsGraphe';
-import { CARTE, CERCLE, TITRE_CADRE } from './rangement';
+import { CARTE, CERCLE } from './rangement';
+import { CERCLE_BORD, TITRE_BORD } from './rangementBordure';
 import { avancementSection, cerclesTries, libelleAvancement, type CercleSection, type Section } from './sections';
 import { PuceSysteme, systemesDe } from './systemes';
 
@@ -190,6 +191,53 @@ function CercleBord({ cercle, x, edition }: { cercle: CercleSection; x: number |
   );
 }
 
+/**
+ * Cercle d'une section dépliée, sur sa bordure comme sur une section repliée : le point est sur le bord (8 px dans la
+ * boîte du rangement, côté extérieur) et l'étiquette à l'intérieur. Les liens extérieurs touchent le point ; les liens
+ * intérieurs partent (ou arrivent) sous l'étiquette, au bord intérieur de la boîte. Dans le plan, seul le côté extérieur
+ * se relie : l'intérieur se modifie dans la vue de la section.
+ */
+function CercleCadre({ cercle: c, edition }: { cercle: CercleSection; edition: boolean }) {
+  const entree = c.sens === 'Entree';
+  const point = entree ? CERCLE_BORD.dehors : CERCLE_BORD.hauteur - CERCLE_BORD.dehors;
+  const libelle = `${entree ? 'Entrée' : 'Sortie'} ${c.titre}`;
+  return (
+    <div
+      className="relative"
+      style={{ width: CERCLE_BORD.largeur, height: CERCLE_BORD.hauteur }}
+      title={c.description || c.titre}
+    >
+      {/* Extérieur : sur le point. Intérieur : bord intérieur de la boîte (jamais reliable depuis le plan). */}
+      <Handle
+        type={entree ? 'target' : 'source'}
+        id={entree ? POIGNEE_HAUT : POIGNEE_BAS}
+        position={entree ? Position.Top : Position.Bottom}
+        isConnectable={edition}
+        style={entree ? { top: point } : { top: point, bottom: 'auto' }}
+        aria-label={libelle}
+        className="!z-10 !size-4 !rounded-full !border-2 !border-accent !bg-surface hover:!bg-accent"
+      />
+      <Handle
+        type={entree ? 'source' : 'target'}
+        id={entree ? POIGNEE_BAS : POIGNEE_HAUT}
+        position={entree ? Position.Bottom : Position.Top}
+        isConnectable={false}
+        className="!opacity-0"
+      />
+      <span
+        role="img"
+        aria-label={libelle}
+        className={cn(
+          'pointer-events-none absolute left-1/2 max-w-[128px] -translate-x-1/2 truncate rounded-full bg-accent-soft px-1.5 text-[11px] leading-4 font-semibold text-accent-text',
+          entree ? 'top-[14px]' : 'bottom-[14px]',
+        )}
+      >
+        {c.titre}
+      </span>
+    </div>
+  );
+}
+
 /** Section repliée : un cadre (titre, systèmes, nombre d'étapes, auteur) et ses cercles sur les bords. */
 /** Délai d'un clic sur une section repliée avant de la déplier : un double-clic ouvre plutôt sa vue d'édition. */
 export const DELAI_DOUBLE_CLIC_MS = 250;
@@ -250,15 +298,17 @@ export function NoeudSection({ data }: NodeProps) {
  * « X modifie » sur une section dont quelqu'un a ouvert la vue d'édition, et les avatars de qui s'y trouve (vue de la
  * section ou fiche d'une de ses étapes ouverte).
  */
-function PresenceSection({ id }: { id: string }) {
+function PresenceSection({ id, deplie = false }: { id: string; deplie?: boolean }) {
   const g = useGraphe();
   const editeurs = useEditeurs(`section:${id}`);
   const etapes = g.etapesParSection.get(id);
   const etapeIds = useMemo(() => (etapes ?? []).map((e) => e.id), [etapes]);
   return (
     <>
-      <MarquePresence editeurs={editeurs} />
-      <PresentsSection sectionId={id} titre={g.sections.get(id)?.titre ?? ''} etapeIds={etapeIds} />
+      {/* Section dépliée : titre et cercles sont sur la bordure haute ; « X modifie » va sur la bordure basse. */}
+      <MarquePresence editeurs={editeurs} etiquette={deplie ? 'top-auto -bottom-3' : undefined} />
+      {/* Avatars de la section dépliée : dans l'étiquette du titre, sur la bordure. */}
+      {!deplie && <PresentsSection sectionId={id} titre={g.sections.get(id)?.titre ?? ''} etapeIds={etapeIds} />}
     </>
   );
 }
@@ -276,19 +326,63 @@ export function NoeudCadre({ data }: NodeProps) {
       aria-label={`Section ${s.titre}, dépliée`}
       className="relative size-full rounded-2xl border-2 border-dashed border-accent/60 bg-accent-soft/40"
     >
-      <PresenceSection id={id} />
+      <PresenceSection id={id} deplie />
     </div>
   );
 }
 
-/** Titre d'une section dépliée : un nœud rangé dans le cadre, à gauche des cercles d'entrée ; les liens le contournent. */
+/**
+ * Titre d'une section dépliée : étiquette posée sur sa bordure haute, à gauche des cercles d'entrée (port sans lien du
+ * rangement : rien ne passe dessus). Repli, titre, nombre d'étapes (ou avancement), avatars de qui s'y trouve, édition.
+ */
 export function NoeudTitreCadre({ data }: NodeProps) {
   const g = useGraphe();
-  const s = g.sections.get((data as DonneesNoeud).sectionId ?? '');
+  const id = (data as DonneesNoeud).sectionId ?? '';
+  const s = g.sections.get(id);
+  const etapes = g.etapesParSection.get(id);
+  const etapeIds = useMemo(() => (etapes ?? []).map((e) => e.id), [etapes]);
   if (!s) return null;
+  const av = avancementSection(etapes ?? []);
+  const n = etapes?.length ?? 0;
   return (
-    <div className="pt-0.5" style={{ width: TITRE_CADRE.largeur, height: TITRE_CADRE.hauteur }}>
-      <EnTeteSection section={s} deplie />
+    <div
+      className="flex items-center gap-1.5 rounded-full border-2 border-accent/60 bg-surface py-0.5 pr-0.5 pl-0.5 shadow-sm"
+      style={{ width: TITRE_BORD.largeur, height: TITRE_BORD.hauteur }}
+      title={`${s.titre}${s.auteur ? ` · par ${s.auteur}` : ''}`}
+    >
+      <button
+        type="button"
+        onClick={() => g.onBasculer(id)}
+        aria-expanded
+        aria-label={`Replier la section ${s.titre}`}
+        title="Replier la section"
+        className="nodrag nopan grid size-7 shrink-0 place-content-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg"
+      >
+        <ChevronDown className="size-5" aria-hidden />
+      </button>
+      <p className="min-w-0 flex-1 truncate text-[13px] leading-tight font-semibold">
+        {s.titre || 'Section sans titre'}
+      </p>
+      <span
+        className={cn(
+          'shrink-0 text-[11px] text-fg-muted tnum',
+          g.mode === 'execution' && av.echecs > 0 && 'font-semibold text-danger-fg',
+        )}
+      >
+        {g.mode === 'execution' ? libelleAvancement(av) : `${n} ét.`}
+      </span>
+      <PresentsSection sectionId={id} titre={s.titre} etapeIds={etapeIds} className="relative" />
+      {g.onEditerSection && (
+        <button
+          type="button"
+          onClick={() => g.onEditerSection?.(id)}
+          aria-label={`Ouvrir la section ${s.titre}`}
+          title="Éditer la section (ou double-cliquer dessus)"
+          className="nodrag nopan grid size-7 shrink-0 place-content-center rounded-full bg-accent text-accent-fg shadow-sm hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:outline-none"
+        >
+          <Pencil className="size-4" aria-hidden />
+        </button>
+      )}
     </div>
   );
 }
@@ -305,6 +399,7 @@ export function NoeudCercle({ data, parentId }: NodeProps) {
   const c = s?.ports.find((x) => x.id === id);
   if (!c) return null;
   const entree = c.sens === 'Entree';
+  if (parentId) return <CercleCadre cercle={c} edition={g.edition} />;
   const vue = g.sectionVue !== null;
   const ouvrir = g.onOuvrirCercle;
   const contenu = (

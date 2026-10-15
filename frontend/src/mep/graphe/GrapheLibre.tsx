@@ -57,7 +57,8 @@ import {
   type Rangement,
   type Taille,
 } from './rangement';
-import { liensAuPoint, sautsDesLiens } from './routage';
+import { liensAuPoint } from './routage';
+import { sautsSansJonctions } from './routageBordure';
 import { infoSection, type Section } from './sections';
 import { useRangement } from './useRangement';
 
@@ -564,7 +565,7 @@ function Graphe(props: Props) {
   // Lien sous le pointeur ou le focus dans le menu de choix (liens fusionnés) : mis en avant seul.
   const [candidat, setCandidat] = useState<string | null>(null);
   const liensParId = useMemo(() => new Map(modeleAffiche.liens.map((l) => [l.id, l])), [modeleAffiche]);
-  const sauts = useMemo(() => sautsDesLiens(range?.rangement.routes ?? new Map()), [range]);
+  const sauts = useMemo(() => sautsSansJonctions(range?.rangement.routes ?? new Map()), [range]);
   // Dans le plan, l'intérieur d'une section dépliée (ses étapes, ses cercles) se lit seulement : on le modifie dans la vue
   // de la section. Les cercles restent reliables depuis le dehors.
   const parentDe = useMemo(() => new Map(modeleAffiche.noeuds.map((n) => [n.id, n.parent ?? null])), [modeleAffiche]);
@@ -890,6 +891,17 @@ function Graphe(props: Props) {
     return index === actuel ? null : index;
   };
   const idElement = (id: string) => (id.startsWith('s:') ? id.slice(2) : id);
+  /**
+   * Dépôt d'une carte (ou d'une section) glissée : cible sous le pointeur, ou place dans sa rangée. Dans sa propre rangée,
+   * le côté d'une carte sœur change l'ordre (les liens ne bougent pas) au lieu de la placer en parallèle.
+   */
+  const depotCarte = (etape: boolean, p: { x: number; y: number }) => {
+    const c = etape ? cibleSous(p.x, p.y) : null;
+    // Côté d'une carte de sa propre rangée : ordre (ou rien, si c'est sa place actuelle), jamais « en parallèle ».
+    if (c?.type === 'carte' && c.parallele && rangee.current?.ids.includes(c.id))
+      return { c: null, index: placeDansRangee(p) };
+    return { c, index: c ? null : placeDansRangee(p) };
+  };
 
   const finGlisser = useCallback(
     (id: string, c: CibleDepot | null, index: number | null) => {
@@ -1344,9 +1356,8 @@ function Graphe(props: Props) {
                 const p = pointDe(ev);
                 const etape = n.type === 'etape';
                 parImage(p.x, p.y, (x, y) => {
-                  const c = etape ? cibleSous(x, y) : null;
+                  const { c, index } = depotCarte(etape, { x, y });
                   majCible(c);
-                  const index = c ? null : placeDansRangee({ x, y });
                   setReordre((a) => (index === null ? null : a?.index === index ? a : { index }));
                 });
               }}
@@ -1354,9 +1365,9 @@ function Graphe(props: Props) {
                 if (!GLISSABLE.has(n.type ?? '')) return;
                 const p = pointDe(ev);
                 annulerImage();
-                const c = n.type === 'etape' ? cibleSous(p.x, p.y) : null;
+                const { c, index } = depotCarte(n.type === 'etape', p);
                 geometrie.current = null;
-                finGlisser(n.id, c, c ? null : placeDansRangee(p));
+                finGlisser(n.id, c, index);
               }}
               onConnectStart={() => setTrace(true)}
               onConnectEnd={() => setTrace(false)}
