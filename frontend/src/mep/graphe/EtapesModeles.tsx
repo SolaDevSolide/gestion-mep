@@ -528,7 +528,11 @@ export function EtapeFlottante({
       {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         data-noeud={ID_FLOTTANTE}
-        onPointerDown={onAppuyer}
+        // Hors du graphe (qui interdit la sélection) : sans cela, glisser la copie sélectionnait le texte de la page.
+        onPointerDown={(ev) => {
+          ev.preventDefault();
+          onAppuyer(ev);
+        }}
         className={cn(
           'pointer-events-auto ml-3 w-fit -rotate-2 cursor-grab touch-none rounded-lg shadow-[0_18px_40px_-12px_rgba(0,0,0,0.35)] ring-2 ring-accent ring-offset-2 ring-offset-surface',
           glissee && 'opacity-30',

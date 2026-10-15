@@ -152,7 +152,7 @@ public static class EtapesModelesEndpoints
                 var nbLignes = Regles.Lignes(mep, plan).Count;
                 if (c.Ligne is { } l && (l < 0 || l > nbLignes)) throw ErreurHttp.Saisie($"Ligne invalide : entre 0 et {nbLignes} (nouvelle ligne en bas).");
                 if (c.Position is < 0) throw ErreurHttp.Saisie("La position ne peut pas être négative.");
-                var (etape, _) = Regles.InsererEtapeModele(mep, modele, plan, c.Ligne, c.Position, actives);
+                var (etape, _) = Regles.InsererEtapeModele(mep, modele, plan, c.Ligne, c.Position, actives, c.NouvelleLigne);
                 return await svc.EnregistrerContenu(mep, acteur, "etape.creee", $"{etape.Code} créée depuis l'étape modèle « {modele.Action} »");
             }));
         });

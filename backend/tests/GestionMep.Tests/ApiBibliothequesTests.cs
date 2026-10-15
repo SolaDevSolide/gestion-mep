@@ -134,9 +134,18 @@ public class ApiBibliothequesTests : IDisposable
         Assert.Equal(1, Utilisations(await Modele(alice, Id(m))));
         Assert.Equal(1, Utilisations(await Ok(await alice.GetAsync($"/api/resolutions/{Id(res)}"))));
 
-        // Deuxième copie dans la même MEP : pas de nouvelle utilisation ; dans une autre MEP : une de plus.
-        await Ok(await alice.PostAsJsonAsync($"/api/meps/{demo}/etapes/depuis-modele", new { modeleId = Id(m) }));
+        // Deuxième copie dans la même MEP, posée entre deux lignes : elle ouvre une ligne à elle ; pas de nouvelle utilisation.
+        var lignesAvant = mep.GetProperty("etapes").EnumerateArray().Where(e => e.GetProperty("plan").GetString() == "Deploiement")
+            .Select(e => e.GetProperty("ligne").GetInt32()).Distinct().Count();
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{demo}/etapes/depuis-modele", new { modeleId = Id(m), ligne = 1, nouvelleLigne = true }));
+        var deploiement = mep.GetProperty("etapes").EnumerateArray().Where(e => e.GetProperty("plan").GetString() == "Deploiement").ToList();
+        var seconde = deploiement.Single(e => e.GetProperty("modeleEtapeId").ValueKind == JsonValueKind.String
+            && e.GetProperty("modeleEtapeId").GetGuid() == Id(m) && e.GetProperty("ligne").GetInt32() != 0);
+        Assert.Equal((1, 0), (seconde.GetProperty("ligne").GetInt32(), seconde.GetProperty("ordre").GetInt32()));
+        Assert.Single(deploiement, e => e.GetProperty("ligne").GetInt32() == 1);
+        Assert.Equal(lignesAvant + 1, deploiement.Select(e => e.GetProperty("ligne").GetInt32()).Distinct().Count());
         Assert.Equal(1, Utilisations(await Modele(alice, Id(m))));
+        // Dans une autre MEP : une utilisation de plus.
         await Ok(await alice.PostAsJsonAsync($"/api/meps/{prete}/etapes/depuis-modele", new { modeleId = Id(m) }));
         Assert.Equal(2, Utilisations(await Modele(alice, Id(m))));
         Assert.Equal(2, Utilisations(await Ok(await alice.GetAsync($"/api/resolutions/{Id(res)}"))));

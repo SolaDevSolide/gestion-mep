@@ -6538,7 +6538,8 @@ export interface components {
         };
         /**
          * @description Insertion d'une copie d'étape modèle dans un plan de la MEP : `Ligne` absente = nouvelle ligne en bas, `Position`
-         *     absente = en fin de ligne ; `Plan` absent = déploiement.
+         *     absente = en fin de ligne ; `Plan` absent = déploiement. `NouvelleLigne` : la copie ouvre une ligne à elle, insérée
+         *     juste au-dessus de `Ligne`.
          */
         InsertionEtapeModeleSaisie: {
             /** Format: uuid */
@@ -6548,6 +6549,8 @@ export interface components {
             ligne?: null | number;
             /** Format: int32 */
             position?: null | number;
+            /** @default false */
+            nouvelleLigne: boolean;
         };
         /** @description Insertion d'un modèle de la bibliothèque (copie) dans un système de la MEP. */
         InsertionModeleRecetteSaisie: {
@@ -7327,6 +7330,10 @@ export interface components {
             /** Format: date-time */
             deposeLe: string;
         };
+        /**
+         * @description Déplacement d'une étape dans le graphe : `Ligne` affichée (le nombre de lignes = nouvelle ligne en bas), `Position` dans la
+         *     ligne. `NouvelleLigne` : l'étape ouvre une ligne à elle, insérée juste au-dessus de `Ligne` (glisser entre deux lignes).
+         */
         PlacerSaisie: {
             /** Format: int32 */
             ligne: null | number;
@@ -7334,6 +7341,8 @@ export interface components {
             position: null | number;
             /** @default true */
             liensParDefaut: boolean;
+            /** @default false */
+            nouvelleLigne: boolean;
         };
         PlanRepliDto: {
             quandDeclencher: string;

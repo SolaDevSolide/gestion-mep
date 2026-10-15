@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { etapesDuPlan } from '../domaine';
@@ -9,6 +9,7 @@ import type { Mep, ModeleEtape, TypePlan } from '../types';
 import { useAstuce } from './graphe/astuce';
 import { BarreSystemes } from './graphe/BarreSystemes';
 import { GrapheEtapes, groupeDepuisCle } from './graphe/GrapheEtapes';
+import type { OptionsPlacer } from './graphe/useGlisserDeposer';
 import { PanneauEdition, saisieDepuis } from './graphe/PanneauEdition';
 import { useModeEspace } from './graphe/EspaceEtape';
 import { useReferentiels } from '../referentiels';
@@ -63,20 +64,36 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
 
   function ouvrir(id: string | null) {
     setChoix(id);
-    setNouvelle(null);
+    // L'étape tout juste créée garde le focus sur son action, même ouverte après le choix enregistrer / abandonner.
+    setNouvelle((n) => (n === id ? n : null));
     setDemande(undefined);
     if (id) setCleGroupe(null);
   }
 
+  /** Ouvre une étape (null : ferme l'espace) ; une saisie non enregistrée dans l'espace ouvert demande d'abord quoi en faire. */
   function selectionner(id: string | null) {
+    if (id === ID_FLOTTANTE) return;
     if (etape && saisieOuverte && id !== etape.id) setDemande(id);
     else ouvrir(id);
+  }
+
+  // Une seule modification du graphe à la fois : un double clic sur « + Étape », une touche répétée (Alt + ↓) ou deux
+  // déplacements rapprochés partiraient sinon d'un plan périmé (étapes en double, déplacements perdus).
+  const enCours = useRef(false);
+  async function exclusif(action: () => Promise<void>) {
+    if (enCours.current) return;
+    enCours.current = true;
+    try {
+      await action();
+    } finally {
+      enCours.current = false;
+    }
   }
 
   function choisirModele(m: ModeleEtape) {
     setParcourir(false);
     setFlottante(m);
-    setChoix(null);
+    selectionner(null);
     setCleGroupe(null);
     astuce.afficher(
       `Copie de « ${m.action} » : glissez-la sur une ligne ou cliquez « Poser ici ». Échap pour annuler.`,
@@ -101,21 +118,26 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
     return () => document.removeEventListener('keydown', touche);
   }, [flottante, afficherAstuce]);
 
-  /** Pose la copie flottante : ligne affichée (null = nouvelle ligne en bas), position (absente = fin de ligne). */
-  async function poser(ligne: number | null, position?: number) {
+  /**
+   * Pose la copie flottante : ligne affichée (null = nouvelle ligne en bas), position (absente = fin de ligne), ou ligne à
+   * elle insérée au-dessus de `ligne` (`nouvelleLigne`).
+   */
+  async function poser(ligne: number | null, position?: number, nouvelleLigne = false) {
     const m = flottante;
     if (!m) return;
     const avant = new Set(mep.etapes.map((e) => e.id));
     let apres: Mep | undefined;
     const nbLignes = construireLignes(etapes).length;
+    const enBas = ligne === null || ligne >= nbLignes;
     const ok = await run(
       async () =>
         (apres = await api.insererEtapeModele(
           mep.id,
           m.id,
           plan,
-          ligne === null || ligne >= nbLignes ? undefined : ligne,
+          enBas ? undefined : ligne,
           position,
+          !enBas && nouvelleLigne,
         )),
     );
     if (!ok) return;
@@ -123,8 +145,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
     bibliotheque.recharger();
     const creee = apres?.etapes.find((e) => !avant.has(e.id));
     if (!creee) return;
-    setChoix(creee.id);
-    setCleGroupe(null);
+    selectionner(creee.id);
     const absents = systemesAbsents(mep, m, catalogue);
     astuce.afficher(
       `${creee.code} posée, copie de « ${m.action} ».` +
@@ -147,25 +168,31 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
     );
     const creee = ok && apres ? apres.etapes.find((e) => !avant.has(e.id)) : undefined;
     if (creee) {
-      setChoix(creee.id);
-      setCleGroupe(null);
       setNouvelle(creee.id);
+      // Saisie en cours dans l'espace ouvert : elle n'est pas perdue, l'espace demande d'abord quoi en faire.
+      selectionner(creee.id);
     }
   }
 
-  async function placer(id: string, ligne: number, position: number, auClavier = false) {
+  /**
+   * Déplace une fiche (ou pose la copie flottante). L'espace ouvert ne change pas : on enchaîne les déplacements sans que
+   * le graphe ne se rétrécisse sous le pointeur, et une saisie en cours reste à sa place.
+   */
+  async function placer(id: string, ligne: number, position: number, options: OptionsPlacer = {}) {
+    const nouvelleLigne = !!options.nouvelleLigne;
     if (id === ID_FLOTTANTE) {
-      await poser(ligne, position);
+      await poser(ligne, position, nouvelleLigne);
       return;
     }
     const avant = indexLignes(construireLignes(etapes)).get(id);
-    const ok = await run(() => api.placerEtape(mep.id, id, ligne, position), `${code(id)} déplacée.`);
-    if (ok) {
-      // Au clavier, la fiche garde le focus dans le graphe pour enchaîner les déplacements.
-      if (!auClavier) selectionner(id);
-      if (avant !== ligne)
-        astuce.afficher(`${code(id)} déplacée : liens recréés avec la ligne au-dessus et la ligne en dessous.`);
-    }
+    const ok = await run(
+      () => api.placerEtape(mep.id, id, ligne, position, nouvelleLigne),
+      `${code(id)} déplacée${nouvelleLigne ? ' sur une nouvelle ligne' : ''}.`,
+    );
+    if (ok && (nouvelleLigne || avant !== ligne))
+      astuce.afficher(
+        `${code(id)} ${nouvelleLigne ? 'sur une nouvelle ligne' : 'déplacée'} : liens recréés avec la ligne au-dessus et la ligne en dessous.`,
+      );
   }
 
   async function lier(de: string, vers: string) {
@@ -221,7 +248,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
       setCleGroupe(null);
     } else if ((ev.key === 'Delete' || ev.key === 'Backspace') && groupe && modifiable) {
       ev.preventDefault();
-      void delier(pairesDuGroupe(groupe));
+      void exclusif(() => delier(pairesDuGroupe(groupe)));
     }
   }
 
@@ -264,9 +291,9 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
               setCleGroupe(c);
               if (c) setChoix(null);
             }}
-            onPlacer={(id, l, p, auClavier) => void placer(id, l, p, auClavier)}
-            onLier={(de, vers) => void lier(de, vers)}
-            onAjouter={(l) => void ajouter(l)}
+            onPlacer={(id, l, p, o) => void exclusif(() => placer(id, l, p, o))}
+            onLier={(de, vers) => void exclusif(() => lier(de, vers))}
+            onAjouter={(l) => void exclusif(() => ajouter(l))}
             onMessage={astuce.afficher}
             flottante={apercu ? { etape: apercu, onAnnuler: annulerFlottante } : null}
             enTete={
@@ -286,7 +313,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
               <PanneauLiens
                 groupe={groupe}
                 etapes={etapes}
-                onSupprimer={(l) => void delier(l)}
+                onSupprimer={(l) => void exclusif(() => delier(l))}
                 onFermer={() => setCleGroupe(null)}
               />
             </div>
@@ -316,8 +343,8 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
             modeles={bibliotheque.donnees}
             onModeleCree={() => bibliotheque.recharger()}
             focusAction={nouvelle === etape.id}
-            onLier={(de, vers) => void lier(de, vers)}
-            onDelier={(l) => void delier(l)}
+            onLier={(de, vers) => void exclusif(() => lier(de, vers))}
+            onDelier={(l) => void exclusif(() => delier(l))}
             onSelection={ouvrir}
             onDirty={setSaisieOuverte}
             demande={demande}

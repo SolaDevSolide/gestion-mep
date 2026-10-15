@@ -369,6 +369,14 @@ public class ApiJalon4Tests : IDisposable
         Assert.Equal(["E0001", "E0002", "E0003", "E0007"], Prealables(mep, "E0004"));
         Assert.Equal(["E0005", "E0006"], Prealables(mep, "E0008"));
 
+        // Entre deux lignes : E0009 ouvre une ligne à elle juste au-dessus de la ligne 1.
+        var e9 = $"/api/meps/{id}/etapes/{EtapeId(mep, "E0009")}/placer";
+        mep = await Ok(await alice.PostAsJsonAsync(e9, new { ligne = 1, position = 3, nouvelleLigne = true }));
+        Assert.Equal((1, 0), (Ligne(mep, "E0009"), Etape(mep, "E0009").GetProperty("ordre").GetInt32()));
+        Assert.Equal(["E0001", "E0002", "E0003", "E0007"], Prealables(mep, "E0009").Order());
+        Assert.Equal(["E0009"], Prealables(mep, "E0005"));
+        Assert.Equal(2, Ligne(mep, "E0005"));
+
         mep = await AidesApi.Go(_api, alice, id);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync(url, new { ligne = 1, position = 0 })).StatusCode);
     }

@@ -60,7 +60,7 @@ public static partial class Regles
     /// ni résolutions liées.
     /// </summary>
     public static (Etape Etape, List<Guid> SystemesAbsents) InsererEtapeModele(Mep mep, ModeleEtape modele, TypePlan plan, int? ligne, int? position,
-        IReadOnlyCollection<Guid> resolutionsActives)
+        IReadOnlyCollection<Guid> resolutionsActives, bool nouvelleLigne = false)
     {
         ExigerPreparation(mep);
         if (plan == TypePlan.RetourArriere && modele.Type != TypeEtape.Standard)
@@ -84,10 +84,10 @@ public static partial class Regles
             .Select(s => new EnvironnementEtape { SystemeId = s.Id, Nom = s.Environnements[0].Nom })
             .ToList();
         DefinirType(etape, modele.Type, pointDeNonRetour: false);
-        PlacerNouvelle(mep, etape, ligne, position);
+        PlacerNouvelle(mep, etape, ligne, position, nouvelleLigne);
         mep.Etapes.Add(etape);
         AppliquerTypeAEtape(mep, etape);
-        RelierParDefaut(mep, etape);
+        RelierParDefaut(mep, etape, nouvelleLigne);
         return (etape, systemes.Where(s => s.Systeme is null).Select(s => s.Catalogue).ToList());
     }
 
