@@ -20,7 +20,7 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/pages`           | Pages : connexion, liste des MEP, une MEP, profil                                                                                            |
 | `src/mep`             | Onglets et dialogues d'une MEP (préparation, plan : étapes, retour arrière, recette ; exécution, journal ; `onglets.ts`)                     |
-| `src/mep/graphe`      | Éditeur et vue d'exécution du graphe des étapes                                                                                              |
+| `src/mep/graphe`      | Graphe libre des étapes (React Flow, rangement ELK), sections, verrou d'édition d'une étape ; appels de l'API du graphe dans `apiGraphe.ts`  |
 | `src/mep/preparation` | Sections de l'onglet Préparation                                                                                                             |
 | `src/parametres`      | Paramètres globaux : catalogue des systèmes, résolutions types, bibliothèques d'étapes et de recettes, critères go / no-go, modèles de texte |
 | `src/textes`          | Textes à copier : remplissage des modèles de texte (`modelesTexte.ts`, logique pure), aperçu, copie mise en forme ou simple                  |
@@ -36,7 +36,7 @@ Logique pure, testée sans DOM :
 | `types.ts`        | Noms courts des types de l'API (`Mep`, `Etape`…), alias des types générés                                                                                   |
 | `api/schema.d.ts` | Types générés depuis `docs/openapi.json` par `npm run api:types` ; ne jamais modifier à la main                                                             |
 | `domaine.ts`      | Règles d'affichage : plan actif, étapes à vous, bloqueurs, progression, bilan de recette                                                                    |
-| `graphe.ts`       | Lignes du graphe, liens, tracé des jonctions                                                                                                                |
+| `graphe.ts`       | Lignes du graphe (profondeur des étapes, ordre de l'export), liens du plan                                                                                  |
 | `personnes.ts`    | Comptes reliés regroupés par personne, équipes d'une personne, filtres par équipe et recherche des comptes et des MEP                                       |
 | `recherche.ts`    | Recherche insensible aux accents, score et surlignage                                                                                                       |
 | `blocs.ts`        | Découpage des instructions en blocs Texte / Code et raccourcis de mise en forme markdown                                                                    |

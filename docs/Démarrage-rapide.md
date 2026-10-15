@@ -61,7 +61,7 @@ Les bibliothèques sont remplies elles aussi : une vingtaine d'étapes modèles 
 1. **Alice** : dans « Mises en production », ouvrir « Portail de démonstration ». La fiche s'ouvre sur l'onglet Préparation : ses sections, leur état de complétude et le bouton « Vérifier le plan », qui liste ce qui manque avant de pouvoir démarrer. Il reste l'approbation de Claire.
 
    ![Liste des mises en production](images/liste-des-mep.png)
-2. Parcourir l'onglet **Plan**, sous-onglet **Étapes** : le plan de déploiement en graphe, de haut en bas. Les étapes d'une même ligne peuvent se dérouler en parallèle ; l'étape encadrée de rouge est un point de non-retour. Cliquer une étape ouvre son espace d'édition (instructions, résultat attendu, liens, résolutions).
+2. Parcourir l'onglet **Plan**, sous-onglet **Étapes** : le plan de déploiement en graphe, de haut en bas. Chaque flèche dit qu'une étape attend la précédente, et deux étapes sans flèche entre elles peuvent se dérouler en parallèle ; l'étape encadrée de rouge est un point de non-retour. Cliquer une étape ouvre son espace d'édition (instructions, résultat attendu, liens, résolutions).
 
    ![Graphe des étapes de la MEP de démonstration](images/graphe-des-etapes.png)
 3. **Claire** : ouvrir la même MEP, Préparation, section « Validation », cliquer « Approuver ».

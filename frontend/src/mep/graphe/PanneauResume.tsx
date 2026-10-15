@@ -1,7 +1,7 @@
 import { CircleHelp } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { construireLignes } from '../../graphe';
 import type { Etape } from '../../types';
+import type { Section } from './sections';
 import { Popover, PopoverContent, PopoverTrigger } from '../../ui/Popover';
 
 /** Intertitre de section (petites capitales). */
@@ -21,12 +21,26 @@ export function dureeCumulee(etapes: Pick<Etape, 'dureeEstimeeMinutes'>[]): stri
   return `${total} min${sans ? ` (${sans} étape${sans > 1 ? 's' : ''} sans durée)` : ''}`;
 }
 
-/** Résumé d'une ligne du plan : étapes, lignes, durée cumulée (sauf <paramref name="sansDuree"/> : MEP simplifiée). */
-export function ResumePlan({ etapes, sansDuree = false }: { etapes: Etape[]; sansDuree?: boolean }) {
-  const lignes = construireLignes(etapes).length;
+/** Résumé du plan : étapes, sections, durée cumulée (sauf <paramref name="sansDuree"/> : MEP simplifiée). */
+export function ResumePlan({
+  etapes,
+  sections,
+  sansDuree = false,
+}: {
+  etapes: Etape[];
+  sections?: Section[];
+  sansDuree?: boolean;
+}) {
+  const nb = sections?.length ?? 0;
   return (
     <p className="text-[13px] text-fg-subtle tnum">
-      {etapes.length} étape{etapes.length > 1 ? 's' : ''} · {lignes} ligne{lignes > 1 ? 's' : ''}
+      {etapes.length} étape{etapes.length > 1 ? 's' : ''}
+      {nb > 0 && (
+        <>
+          {' '}
+          · {nb} section{nb > 1 ? 's' : ''}
+        </>
+      )}
       {!sansDuree && etapes.length > 0 && <> · {dureeCumulee(etapes)}</>}
     </p>
   );
@@ -46,17 +60,21 @@ export function AideGraphe({ edition }: { edition: boolean }) {
         <ul className="grid list-disc gap-1 pl-4">
           {edition && (
             <li>
-              Glisser une fiche pour la déplacer (liens recréés avec les lignes voisines) ; entre deux lignes, elle
-              ouvre une ligne à elle.
+              « + » sous une carte : nouvelle étape qui l’attend ; à droite : en parallèle (mêmes préalables) ; sur un
+              lien (au survol) : insérée entre les deux cartes.
             </li>
           )}
           {edition && (
-            <li>Au clavier : Alt + flèches sur une fiche pour la déplacer, Alt + Maj + ↑ / ↓ pour une ligne à elle.</li>
+            <li>
+              Glisser une carte sur un lien pour l’y insérer, ou sur une autre carte pour la mettre après elle : ses
+              liens changent, le rangement suit.
+            </li>
           )}
-          {edition && <li>Tirer le rond du bas d’une fiche vers celle qui doit l’attendre : lien particulier.</li>}
+          {edition && <li>Tirer le rond du bas d’une carte vers celle qui doit l’attendre (ou vers un cercle).</li>}
           {edition && <li>Cliquer un lien pour le sélectionner, Suppr pour le retirer.</li>}
-          <li>Glisser le fond pour se déplacer, Ctrl + molette pour zoomer.</li>
-          <li>Tab pour aller de fiche en fiche, Entrée pour ouvrir, Échap pour fermer.</li>
+          <li>Cliquer une section pour la déplier ; le crayon ouvre sa vue.</li>
+          <li>Glisser le fond ou la molette pour se déplacer, Ctrl + molette pour zoomer ; « Aller à… » par code.</li>
+          <li>Tab pour aller de carte en carte, Entrée pour ouvrir, Échap pour fermer.</li>
         </ul>
       </PopoverContent>
     </Popover>

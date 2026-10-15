@@ -90,7 +90,8 @@ export function setUnauthorizedHandler(fn: () => void) {
   onUnauthorized = fn;
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+/** Requête vers l'API (`/api` + chemin) : erreurs en `ApiError`, 401 renvoie à la connexion. */
+export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const formulaire = typeof FormData !== 'undefined' && body instanceof FormData;
   let res: Response;
   try {

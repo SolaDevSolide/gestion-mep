@@ -7,13 +7,19 @@ import type { Presence } from './types';
  * `surReconnexion` est appelé à chaque réouverture, car des mises à jour ont pu passer pendant la coupure.
  * Le flux envoie aussi la présence (`event: presence`, liste des personnes qui ont la MEP ouverte) : `surPresence`.
  * `surOuverture` est appelé à chaque ouverture, la première comprise (pour redéclarer les éléments de l'onglet).
+ * Le flux envoie enfin les verrous d'édition des étapes (`event: verrous`) : `surVerrous`.
  * Renvoie la fonction qui ferme le flux.
  */
 export function ouvrirFlux(
   url: string,
   surMaj: (version: number) => void,
   surReconnexion: () => void,
-  options: { surPresence?: (presences: Presence[]) => void; surOuverture?: () => void } = {},
+  options: {
+    surPresence?: (presences: Presence[]) => void;
+    surOuverture?: () => void;
+    /** Verrous d'édition des étapes (`event: verrous`, liste complète à chaque changement). */
+    surVerrous?: (verrous: unknown) => void;
+  } = {},
 ): () => void {
   let es: EventSource | null = null;
   let relance: number | undefined;
@@ -33,6 +39,13 @@ export function ouvrirFlux(
       try {
         const presences = JSON.parse((ev as MessageEvent<string>).data) as unknown;
         if (Array.isArray(presences)) options.surPresence?.(presences as Presence[]);
+      } catch {
+        /* événement illisible */
+      }
+    });
+    courant.addEventListener('verrous', (ev) => {
+      try {
+        options.surVerrous?.(JSON.parse((ev as MessageEvent<string>).data));
       } catch {
         /* événement illisible */
       }

@@ -169,6 +169,21 @@ export type Presence = S['PresenceDto'];
 /** `avertissements` : avertissements non bloquants de la vérification du plan (responsables techniques). */
 export type Mep = S['MepDto'];
 
+/**
+ * Section du plan (#60) : groupe d'étapes sous un titre, avec ses cercles d'entrée et de sortie (`ports`, entrées puis
+ * sorties par ordre). `placee` : false tant qu'elle attend dans le bac.
+ */
+export type Section = S['SectionDto'];
+/** Cercle d'une section : `etapes`, ses étapes reliées ; `sources` (entrée seulement), ce qui y arrive du dehors. */
+export type CercleSection = S['PortSectionDto'];
+export type SensCercle = S['PortSectionDto']['sens'];
+/** Création d'une section : son identifiant et la MEP à jour. */
+export type SectionCreee = S['SectionCreeeDto'];
+/** Verrou d'édition d'une étape : tenu par l'onglet `session` jusqu'à `expireLe` sans renouvellement. */
+export type Verrou = S['VerrouEtapeDto'];
+/** `pris` : pris ou renouvelé par cet onglet ; sinon `verrou` dit qui est dessus. */
+export type PriseVerrou = S['PriseVerrouDto'];
+
 /** Section Communication de la MEP (tout est facultatif) ; heures « HH:MM:SS », dates « AAAA-MM-JJ ». */
 export type Communication = S['CommunicationDto'];
 /** Modèle de texte d'une équipe ; `fourni` : copie d'un modèle fourni (non supprimable, rétablissable). */

@@ -7,7 +7,9 @@ import { etape, mep } from '../test/fabrique';
 import type { Mep, ModeleEtape, ResolutionType } from '../types';
 import { TooltipProvider } from '../ui/Tooltip';
 import { EtapesEditeur } from './EtapesEditeur';
+import { apiGraphe } from './graphe/apiGraphe';
 import { changerModeEspace } from './graphe/EspaceEtape';
+import { simulerReactFlow } from '../test/reactFlow';
 
 const res = (id: string, titre: string, systemeCatalogueIds: string[], symptomes = ''): ResolutionType => ({
   id,
@@ -39,16 +41,28 @@ vi.mock('../api', () => ({
       res('r3', 'Procédure générale de redémarrage', []),
     ]),
     modifierEtape: vi.fn(async () => ({})),
-    ajouterEtape: vi.fn(async () => ({ etapes: [] })),
-    placerEtape: vi.fn(async () => ({})),
     supprimerEtape: vi.fn(async () => ({})),
     supprimerSysteme: vi.fn(async () => ({})),
     ajouterSystemeDepuisCatalogue: vi.fn(async () => ({})),
     etapesModeles: vi.fn(async () => []),
-    insererEtapeModele: vi.fn(async () => ({ etapes: [] })),
     etapeModeleDepuisEtape: vi.fn(),
   },
 }));
+
+vi.mock('./graphe/apiGraphe', () => ({
+  apiGraphe: {
+    creerEtape: vi.fn(async () => ({ etapes: [] })),
+    insererModele: vi.fn(async () => ({ etapes: [] })),
+    deplacerEtape: vi.fn(async () => ({})),
+    lier: vi.fn(async () => ({})),
+    delier: vi.fn(async () => ({})),
+    creerSection: vi.fn(async () => ({})),
+    placerSection: vi.fn(async () => ({})),
+  },
+  apiVerrou: { prendre: vi.fn(), relacher: vi.fn(async () => undefined), liste: vi.fn(async () => []) },
+}));
+
+beforeAll(() => simulerReactFlow());
 
 const droitsEdition = {
   estPilote: true,
@@ -114,19 +128,18 @@ describe('EtapesEditeur : graphe en préparation', () => {
     changerModeEspace('plein');
   });
 
-  it('affiche les lignes, la barrière du point de non-retour, les blocs fantômes et les contrôles de vue', async () => {
+  it('graphe libre : cartes, liens, création rapide et contrôles de vue', async () => {
     rendre(planExemple());
     await waitFor(() => expect(api.resolutions).toHaveBeenCalled());
     expect(carte(/^E0001 Sauvegarde BDD/)).toBeInTheDocument();
-    expect(screen.getByRole('note')).toHaveTextContent('⛔ E0002 : après ce point, plus de retour arrière');
-    expect(screen.getByRole('button', { name: 'Ajouter une étape sur la ligne 1' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Nouvelle ligne/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Lien E0001 vers E0003' })).toBeInTheDocument();
+    expect(await screen.findByRole('group', { name: 'Lien E0001 vers E0003' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ajouter une étape après E0001' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ajouter une étape en parallèle de E0001' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Étape$/ })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Aller à une étape (code)' })).toBeInTheDocument();
     const vue = screen.getByRole('toolbar', { name: 'Vue du graphe' });
-    await userEvent.click(within(vue).getByRole('button', { name: 'Zoomer' }));
-    expect(within(vue).getByRole('button', { name: /Zoom 120 %/ })).toBeInTheDocument();
-    await userEvent.click(within(vue).getByRole('button', { name: /revenir à 100 %/ }));
-    expect(within(vue).getByRole('button', { name: /Zoom 100 %/ })).toBeInTheDocument();
+    expect(within(vue).getByRole('button', { name: 'Ajuster à l’écran' })).toBeInTheDocument();
+    expect(within(vue).getByRole('button', { name: /Zoom \d+ %/ })).toBeInTheDocument();
   });
 
   it('Entrée sur une fiche ouvre l’espace d’édition ; un préalable s’ajoute', async () => {
@@ -137,11 +150,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
     const panneau = screen.getByRole('dialog');
     expect(within(panneau).getByRole('button', { name: 'Retirer le préalable E0001' })).toBeInTheDocument();
     await userEvent.selectOptions(within(panneau).getByLabelText('Ajouter un préalable'), 'e2');
-    expect(api.modifierEtape).toHaveBeenCalledWith(
-      'm1',
-      'e3',
-      expect.objectContaining({ dependances: ['e1', 'e2'], action: 'Contrôle final', systemeIds: ['s1'] }),
-    );
+    expect(apiGraphe.lier).toHaveBeenCalledWith('m1', 'e2', 'e3');
   });
 
   it('un lecteur d’écran ouvre une fiche (clic sans pointeur)', () => {
@@ -150,58 +159,47 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(screen.getByLabelText('Action')).toHaveValue('Contrôle final');
   });
 
-  it('Alt + flèches déplacent une fiche au clavier', async () => {
+  it('création rapide : après une carte, en parallèle, isolée', async () => {
     rendre(planExemple());
-    carte(/^E0001/).focus();
-    await userEvent.keyboard('{Alt>}{ArrowRight}{/Alt}');
-    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e1', 0, 1, false);
-    expect(screen.queryByRole('dialog')).toBeNull();
-    await userEvent.keyboard('{Alt>}{ArrowDown}{/Alt}');
-    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e1', 1, 0, false);
-    carte(/^E0003/).focus();
-    await userEvent.keyboard('{Alt>}{ArrowUp}{/Alt}');
-    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e3', 0, 0, false);
-    // Impossible (déjà en tête de ligne, ou seule sur la dernière ligne) : rien n'est envoyé.
-    vi.mocked(api.placerEtape).mockClear();
-    carte(/^E0001/).focus();
-    await userEvent.keyboard('{Alt>}{ArrowLeft}{/Alt}');
-    carte(/^E0003/).focus();
-    await userEvent.keyboard('{Alt>}{ArrowDown}{/Alt}');
-    expect(api.placerEtape).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape après E0001' }));
+    expect(apiGraphe.creerEtape).toHaveBeenLastCalledWith('m1', 'Deploiement', { apres: 'e1' }, null);
+    await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape en parallèle de E0002' }));
+    expect(apiGraphe.creerEtape).toHaveBeenLastCalledWith('m1', 'Deploiement', { paralleleA: 'e2' }, null);
+    await userEvent.click(screen.getByRole('button', { name: /^Étape$/ }));
+    expect(apiGraphe.creerEtape).toHaveBeenLastCalledWith('m1', 'Deploiement', {}, null);
   });
 
-  it('Alt + Maj + ↑ / ↓ mettent une fiche sur une ligne à elle', async () => {
+  it('insertion sur un lien : « + » au survol du lien', async () => {
     rendre(planExemple());
-    carte(/^E0002/).focus();
-    await userEvent.keyboard('{Alt>}{Shift>}{ArrowDown}{/Shift}{/Alt}');
-    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e2', 1, 0, true);
-    carte(/^E0003/).focus();
-    await userEvent.keyboard('{Alt>}{Shift>}{ArrowUp}{/Shift}{/Alt}');
-    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e3', 0, 0, true);
+    const lien = await screen.findByRole('group', { name: 'Lien E0001 vers E0003' });
+    fireEvent.mouseEnter(lien);
+    await userEvent.click(await screen.findByRole('button', { name: 'Insérer une étape sur ce lien' }));
+    expect(apiGraphe.creerEtape).toHaveBeenLastCalledWith(
+      'm1',
+      'Deploiement',
+      { entre: { de: 'e1', vers: 'e3' } },
+      null,
+    );
   });
 
-  it('un seul déplacement à la fois : une touche répétée pendant l’enregistrement est ignorée', async () => {
+  it('une seule création à la fois : un double clic sur « + » ne crée qu’une étape', async () => {
     let finir: () => void = () => undefined;
-    vi.mocked(api.placerEtape).mockImplementationOnce(
+    vi.mocked(apiGraphe.creerEtape).mockImplementationOnce(
       () => new Promise<Mep>((ok) => (finir = () => ok(planExemple()))),
     );
     rendre(planExemple());
-    carte(/^E0001/).focus();
-    await userEvent.keyboard('{Alt>}{ArrowDown}{/Alt}');
-    await userEvent.keyboard('{Alt>}{ArrowDown}{/Alt}');
-    await userEvent.keyboard('{Alt>}{ArrowRight}{/Alt}');
-    expect(api.placerEtape).toHaveBeenCalledTimes(1);
-    finir();
-    await waitFor(() => expect(screen.getByText(/E0001 déplacée : liens recréés/)).toBeInTheDocument());
-    carte(/^E0001/).focus();
-    await userEvent.keyboard('{Alt>}{ArrowRight}{/Alt}');
-    expect(api.placerEtape).toHaveBeenCalledTimes(2);
+    await userEvent.dblClick(screen.getByRole('button', { name: /^Étape$/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape après E0001' }));
+    expect(apiGraphe.creerEtape).toHaveBeenCalledTimes(1);
+    await act(async () => finir());
+    await userEvent.click(screen.getByRole('button', { name: /^Étape$/ }));
+    expect(apiGraphe.creerEtape).toHaveBeenCalledTimes(2);
   });
 
   it('fiche modifiée par ailleurs pendant la saisie : avertissement avant d’écraser', async () => {
     const m = planExemple();
     const { rerendre } = rendre(m);
-    await userEvent.click(carte(/^E0003/));
+    fireEvent.click(carte(/^E0003/));
     await userEvent.type(screen.getByLabelText('Action'), ' bis');
     // Un collègue modifie le résultat attendu ; la MEP est rechargée par une autre action.
     rerendre({
@@ -225,15 +223,15 @@ describe('EtapesEditeur : graphe en préparation', () => {
 
   it('retire un préalable', async () => {
     rendre(planExemple());
-    await userEvent.click(carte(/^E0003/));
+    fireEvent.click(carte(/^E0003/));
     await userEvent.click(screen.getByRole('button', { name: 'Retirer le préalable E0001' }));
-    expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e3', expect.objectContaining({ dependances: [] }));
+    expect(apiGraphe.delier).toHaveBeenCalledWith('m1', 'e1', 'e3');
   });
 
   it('enregistre la fiche (systèmes multiples, durée, instructions en blocs) ; indicateur de saisie', async () => {
     const base = mep().systemes[0];
     rendre(planExemple({ systemes: [base, { ...base, id: 's2', nom: 'BDD' }] }));
-    await userEvent.click(carte(/^E0001/));
+    fireEvent.click(carte(/^E0001/));
     await userEvent.click(screen.getByRole('button', { name: 'BDD', pressed: false }));
     expect(screen.getByRole('status')).toHaveTextContent('Non enregistré');
     const duree = screen.getByLabelText('Durée (min)');
@@ -256,7 +254,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
 
   it('fin de l’étape et sauvegarde : emplacement et méthode de récupération réclamés pour une étape de sauvegarde', async () => {
     rendre(planExemple());
-    await userEvent.click(carte(/^E0001/));
+    fireEvent.click(carte(/^E0001/));
     const espace = screen.getByRole('dialog');
     expect(
       within(espace).getByText(/À compléter : l’emplacement de la sauvegarde, la méthode de récupération\./),
@@ -295,7 +293,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
         ],
       }),
     );
-    await userEvent.click(carte(/^E0001/));
+    fireEvent.click(carte(/^E0001/));
     const espace = screen.getByRole('dialog');
     expect(within(espace).queryByRole('tab')).toBeNull();
     expect(within(espace).queryByLabelText('Responsable')).toBeNull();
@@ -314,12 +312,12 @@ describe('EtapesEditeur : graphe en préparation', () => {
 
   it('bascule plein écran / panneau latéral, mémorisée', async () => {
     rendre(planExemple());
-    await userEvent.click(carte(/^E0003/));
+    fireEvent.click(carte(/^E0003/));
     await userEvent.click(screen.getByRole('button', { name: 'Afficher en panneau latéral' }));
     expect(window.localStorage.getItem('mep.espace.mode')).toBe('panneau');
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     // Panneau : le graphe reste utilisable (pas de surcouche modale), une autre fiche s'ouvre d'un clic.
-    await userEvent.click(screen.getAllByRole('button', { name: /^E0001/ })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: /^E0001/ })[0]);
     expect(screen.getByLabelText('Action')).toHaveValue('Sauvegarde BDD');
     await userEvent.click(screen.getByRole('button', { name: 'Afficher en plein écran' }));
     expect(window.localStorage.getItem('mep.espace.mode')).toBe('plein');
@@ -327,7 +325,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
 
   it('fermer avec des modifications non enregistrées : garde', async () => {
     rendre(planExemple());
-    await userEvent.click(carte(/^E0003/));
+    fireEvent.click(carte(/^E0003/));
     await userEvent.type(screen.getByLabelText('Action'), ' bis');
     await userEvent.keyboard('{Escape}');
     expect(screen.getByRole('alertdialog', { name: 'Modifications non enregistrées' })).toBeInTheDocument();
@@ -341,7 +339,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
 
   it('ouvrir une autre étape avec des modifications non enregistrées : garde, puis changement', async () => {
     rendre(planExemple());
-    await userEvent.click(carte(/^E0003/));
+    fireEvent.click(carte(/^E0003/));
     await userEvent.type(screen.getByLabelText('Action'), ' bis');
     fireEvent.click(carte(/^E0001/));
     expect(screen.getByRole('alertdialog', { name: 'Modifications non enregistrées' })).toBeInTheDocument();
@@ -356,7 +354,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
 
   it('résolutions : recherche sans accents, même système en tête, Entrée pour lier', async () => {
     rendre(planExemple());
-    await userEvent.click(carte(/^E0003/));
+    fireEvent.click(carte(/^E0003/));
     const liste = await screen.findByRole('listbox', { name: 'Résolutions trouvées' });
     // Filtre présélectionné sur le système de l'étape (API) : WEB est masqué, la fiche « tous systèmes » reste.
     expect(
@@ -383,7 +381,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
 
   it('résolutions : les correspondances masquées par le filtre de systèmes sont proposées', async () => {
     rendre(planExemple());
-    await userEvent.click(carte(/^E0003/));
+    fireEvent.click(carte(/^E0003/));
     await userEvent.type(await screen.findByRole('combobox', { name: 'Ajouter une résolution' }), 'purge');
     await userEvent.click(screen.getByRole('button', { name: /1 autre dans d’autres systèmes/ }));
     expect(within(screen.getByRole('listbox')).getByRole('option')).toHaveTextContent(
@@ -393,7 +391,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
 
   it('résolutions : créer une fiche avec le texte cherché comme titre', async () => {
     rendre(planExemple());
-    await userEvent.click(carte(/^E0003/));
+    fireEvent.click(carte(/^E0003/));
     await userEvent.type(await screen.findByRole('combobox', { name: 'Ajouter une résolution' }), 'LDAP muet');
     await userEvent.click(screen.getByRole('button', { name: /Nouvelle fiche de résolution « LDAP muet »/ }));
     expect(
@@ -403,7 +401,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
 
   it('suppression : confirmation intégrée au panneau', async () => {
     rendre(planExemple());
-    await userEvent.click(carte(/^E0003/));
+    fireEvent.click(carte(/^E0003/));
     await userEvent.click(screen.getByRole('button', { name: 'Supprimer l’étape' }));
     const confirmation = screen.getByRole('alertdialog', { name: 'Supprimer E0003' });
     await userEvent.click(within(confirmation).getByRole('button', { name: 'Annuler' }));
@@ -413,57 +411,34 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(api.supprimerEtape).toHaveBeenCalledWith('m1', 'e3');
   });
 
-  it('cliquer sur un lien le sélectionne ; il se supprime depuis le panneau', async () => {
+  it('cliquer sur un lien le sélectionne ; il se supprime d’un bouton', async () => {
     rendre(planExemple());
-    await userEvent.click(screen.getByRole('button', { name: 'Lien E0001 vers E0003' }));
-    expect(screen.getByText('Lien sélectionné')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Supprimer le lien' }));
-    expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e3', expect.objectContaining({ dependances: [] }));
+    fireEvent.click(await screen.findByRole('group', { name: 'Lien E0001 vers E0003' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Supprimer ce lien' }));
+    expect(apiGraphe.delier).toHaveBeenCalledWith('m1', 'e1', 'e3');
   });
 
   it('touche Suppr sur un lien sélectionné', async () => {
     rendre(planExemple());
-    const lien = screen.getByRole('button', { name: 'Lien E0001 vers E0003' });
-    lien.focus();
-    await userEvent.keyboard('{Enter}');
-    await userEvent.keyboard('{Delete}');
-    expect(api.modifierEtape).toHaveBeenCalledWith('m1', 'e3', expect.objectContaining({ dependances: [] }));
-  });
-
-  it('les blocs fantômes créent une étape (ligne existante ou nouvelle ligne)', async () => {
-    rendre(planExemple());
-    await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape sur la ligne 2' }));
-    expect(api.ajouterEtape).toHaveBeenLastCalledWith('m1', 'Deploiement', 1);
-    await userEvent.click(screen.getByRole('button', { name: /Nouvelle ligne/ }));
-    expect(api.ajouterEtape).toHaveBeenLastCalledWith('m1', 'Deploiement', undefined);
-  });
-
-  it('double clic sur « Nouvelle ligne » : une seule étape créée', async () => {
-    let finir: () => void = () => undefined;
-    vi.mocked(api.ajouterEtape).mockImplementationOnce(
-      () => new Promise<Mep>((ok) => (finir = () => ok(planExemple()))),
-    );
-    rendre(planExemple());
-    await userEvent.dblClick(screen.getByRole('button', { name: /Nouvelle ligne/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape sur la ligne 1' }));
-    expect(api.ajouterEtape).toHaveBeenCalledTimes(1);
-    await act(async () => finir());
-    await userEvent.click(screen.getByRole('button', { name: /Nouvelle ligne/ }));
-    expect(api.ajouterEtape).toHaveBeenCalledTimes(2);
+    const lien = await screen.findByRole('group', { name: 'Lien E0001 vers E0003' });
+    fireEvent.click(lien);
+    await screen.findByRole('button', { name: 'Supprimer ce lien' });
+    fireEvent.keyDown(lien, { key: 'Delete' });
+    expect(apiGraphe.delier).toHaveBeenCalledWith('m1', 'e1', 'e3');
   });
 
   it('ajouter une étape pendant une saisie : la saisie n’est pas perdue, l’espace demande quoi en faire', async () => {
     const m = planExemple();
     const nouvelle = etape({ id: 'e4', code: 'E0004', action: '', ligne: 0, ordre: 2 });
     const apres = { ...m, etapes: [...m.etapes, nouvelle] };
-    vi.mocked(api.ajouterEtape).mockResolvedValueOnce(apres);
+    vi.mocked(apiGraphe.creerEtape).mockResolvedValueOnce(apres);
     // Panneau latéral : le graphe reste utilisable pendant la saisie.
     changerModeEspace('panneau');
     const { rerendre } = rendre(m);
-    await userEvent.click(carte(/^E0003/));
+    fireEvent.click(carte(/^E0003/));
     await userEvent.type(screen.getByLabelText('Action'), ' bis');
-    await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape sur la ligne 1' }));
-    expect(api.ajouterEtape).toHaveBeenCalledWith('m1', 'Deploiement', 0);
+    await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape après E0001' }));
+    expect(apiGraphe.creerEtape).toHaveBeenCalledWith('m1', 'Deploiement', { apres: 'e1' }, null);
     rerendre(apres);
     expect(await screen.findByRole('alertdialog', { name: 'Modifications non enregistrées' })).toBeInTheDocument();
     expect(screen.getByLabelText('Action')).toHaveValue('Contrôle final bis');
@@ -518,7 +493,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(retiree).toHaveClass('line-through');
     expect(screen.getByTitle('Production')).toHaveTextContent('Prod');
 
-    await userEvent.click(carte(/^E0001/));
+    fireEvent.click(carte(/^E0001/));
     const espace = screen.getByRole('dialog');
     // BDD a deux environnements : on choisit ; WEB n'en a qu'un : coché d'office.
     await userEvent.click(within(espace).getAllByRole('button', { name: 'BDD', pressed: false })[0]);
@@ -542,12 +517,13 @@ describe('EtapesEditeur : graphe en préparation', () => {
     );
   });
 
-  it('lecture seule : ni fantômes, ni ronds, ni liens cliquables ; panneau en lecture', async () => {
+  it('lecture seule : ni « + », ni poignées actives, ni bac modifiable ; panneau en lecture', async () => {
     rendre(planExemple({ phase: 'Execution', droits: { ...droitsEdition, peutEditerContenu: false } }));
-    expect(screen.queryByRole('button', { name: /Nouvelle ligne/ })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Lien E0001 vers E0003' })).toBeNull();
-    expect(document.querySelector('[data-port]')).toBeNull();
-    await userEvent.click(carte(/^E0003/));
+    expect(screen.queryByRole('button', { name: /^Étape$/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Ajouter une étape après/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Nouvelle section' })).toBeNull();
+    expect(document.querySelector('.react-flow__handle.connectable')).toBeNull();
+    fireEvent.click(carte(/^E0003/));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Contrôle final' })).toBeInTheDocument());
     expect(screen.queryByRole('button', { name: 'Enregistrer' })).toBeNull();
   });
@@ -587,7 +563,7 @@ describe('EtapesEditeur : étapes modèles', () => {
     vi.mocked(api.etapesModeles).mockResolvedValue(MODELES);
   });
 
-  it('menu des plus utilisées pour les systèmes de la MEP ; la copie flotte, puis se pose sur une ligne', async () => {
+  it('menu des plus utilisées pour les systèmes de la MEP ; la copie flotte, puis se pose après une carte', async () => {
     rendre(planExemple());
     await waitFor(() => expect(api.etapesModeles).toHaveBeenCalled());
     await userEvent.click(screen.getByRole('button', { name: /Étape modèle/ }));
@@ -605,11 +581,11 @@ describe('EtapesEditeur : étapes modèles', () => {
       name: /E0004, copie de l’étape modèle « Redémarrage de l’API »/,
     });
     expect(flottante).toHaveTextContent('À placer');
-    expect(api.insererEtapeModele).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: /Poser ici, sur une nouvelle ligne/ })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Poser l’étape sur la ligne 1' }));
-    expect(api.insererEtapeModele).toHaveBeenCalledWith('m1', 'ma', 'Deploiement', 0, undefined, false);
-    expect(api.ajouterEtape).not.toHaveBeenCalled();
+    expect(apiGraphe.insererModele).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Poser à part' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Poser la copie après E0001' }));
+    expect(apiGraphe.insererModele).toHaveBeenCalledWith('m1', 'ma', 'Deploiement', { apres: 'e1' }, null);
+    expect(apiGraphe.creerEtape).not.toHaveBeenCalled();
   });
 
   it('Échap annule l’insertion : rien n’est écrit', async () => {
@@ -621,8 +597,8 @@ describe('EtapesEditeur : étapes modèles', () => {
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     fireEvent.keyDown(document.body, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('group', { name: /à placer/ })).toBeNull());
-    expect(screen.getByRole('button', { name: 'Ajouter une étape sur la ligne 1' })).toBeInTheDocument();
-    expect(api.insererEtapeModele).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Ajouter une étape après E0001' })).toBeInTheDocument();
+    expect(apiGraphe.insererModele).not.toHaveBeenCalled();
   });
 
   it('« Parcourir la bibliothèque » : systèmes de la MEP d’abord, aperçu, avertissement si un système manque', async () => {
@@ -638,14 +614,14 @@ describe('EtapesEditeur : étapes modèles', () => {
     expect(within(dialogue).getByText(/Le système WEB de ce modèle n’est pas dans la MEP/)).toBeInTheDocument();
     await userEvent.click(within(dialogue).getByRole('button', { name: 'Insérer une copie' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    await userEvent.click(screen.getByRole('button', { name: /Poser ici, sur une nouvelle ligne/ }));
-    expect(api.insererEtapeModele).toHaveBeenCalledWith('m1', 'mb', 'Deploiement', undefined, undefined, false);
+    await userEvent.click(screen.getByRole('button', { name: 'Poser à part' }));
+    expect(apiGraphe.insererModele).toHaveBeenCalledWith('m1', 'mb', 'Deploiement', {}, null);
   });
 
   it('« Transformer en étape modèle » depuis l’espace d’une étape, nom modifiable', async () => {
     vi.mocked(api.etapeModeleDepuisEtape).mockResolvedValue(modeleEtape({ id: 'md', action: 'Contrôle type' }));
     rendre(planExemple());
-    await userEvent.click(carte(/^E0002/));
+    fireEvent.click(carte(/^E0002/));
     await userEvent.click(await screen.findByRole('button', { name: 'Transformer en étape modèle' }));
     const dialogue = await screen.findByRole('dialog', { name: 'Transformer E0002 en étape modèle ?' });
     expect(within(dialogue).getByText(/E0002 est un point de non-retour dans cette MEP/)).toBeInTheDocument();
@@ -662,7 +638,7 @@ describe('EtapesEditeur : étapes modèles', () => {
     rendre(plan);
     await waitFor(() => expect(api.etapesModeles).toHaveBeenCalled());
     expect(carte(/^E0003/)).not.toHaveTextContent(/modèle/i);
-    await userEvent.click(carte(/^E0003/));
+    fireEvent.click(carte(/^E0003/));
     expect(await screen.findByText(/Copie de l’étape modèle « Redémarrage de l’API »/)).toBeInTheDocument();
   });
 });
