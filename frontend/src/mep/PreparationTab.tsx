@@ -1,9 +1,11 @@
 import { Check, Eye } from 'lucide-react';
 import { useState } from 'react';
+import { api } from '../api';
 import { useMep } from '../mepContext';
 import { libelleEditeurs, useEditeurs, ZonePresence } from '../presence';
 import { Avatar } from '../ui/Avatar';
 import { Alerte } from '../ui/Alerte';
+import { BoutonExportExcel } from '../ui/BoutonExportExcel';
 import { cn } from '../ui/cn';
 import { completude, type IdSection } from './completude';
 import { IdentiteSection } from './preparation/IdentiteSection';
@@ -101,6 +103,11 @@ export default function PreparationTab() {
             );
           })}
         </ul>
+        <BoutonExportExcel
+          className="mt-3 lg:ml-2"
+          url={api.urlExportPreparation(mep.id)}
+          title="Toutes les sections de la préparation, une par onglet."
+        />
       </nav>
 
       <div className="min-w-0 space-y-4">

@@ -41,6 +41,7 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Saisir un résultat de recette | Participant relié à un compte, ou administrateur |
 | Faire refaire un test de recette | Pilote ou suppléant |
 | Exporter la recette en Excel | Tout utilisateur qui voit la MEP |
+| Exporter en Excel la liste des MEP, la préparation, les étapes, le retour arrière, les objets impactés ou le journal | Tout utilisateur qui voit la MEP |
 | Importer la validation de la recette depuis Excel | Pilote ou suppléant, en phase de recette |
 | Ajouter une pièce jointe (MEP, étape, résolution) | Tout utilisateur, sauf sur une MEP clôturée, dans la limite des [plafonds de stockage](Installer.md#configuration) |
 | Supprimer une pièce jointe d'une MEP | Celui qui l'a déposée, pilote, suppléant ou administrateur |

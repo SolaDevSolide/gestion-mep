@@ -95,9 +95,12 @@ public static partial class LigneDeCommande
                                                               est refusée, remplacée ou ignorée ; --essai : contrôle sans écrire
 
         MEP et journal
-          gestion-mep meps lister [--phase <phase>] [--equipe <équipe>] [--type complete|simplifiee] [--modeles]
-                                                              Phases : preparation, execution, recette, retour-arriere, cloturee
+          gestion-mep meps lister [--phase <phase>] [--equipe <équipe>] [--type complete|simplifiee] [--recherche "…"] [--modeles]
+                                  [--excel fichier.xlsx]      Phases : preparation, execution, recette, retour-arriere, cloturee ;
+                                                              --excel : la liste filtrée en classeur Excel
           gestion-mep meps exporter <id> [fichier.json|-]     MEP complète et son journal, en JSON (archive, audit)
+          gestion-mep meps excel <id> <vue> [fichier.xlsx]    Une vue de la MEP en classeur Excel : preparation, etapes,
+                                                              retour-arriere, recette, objets ou journal
           gestion-mep journal [--depuis AAAA-MM-JJ] [--limite n]
                                                               Journal d'administration (200 derniers événements par défaut)
 
@@ -246,6 +249,8 @@ public static partial class LigneDeCommande
                 ["meps", "lister", .. var options] => await MepsLister(options),
                 ["meps", "exporter", var mep] => await MepsExporter(mep, null),
                 ["meps", "exporter", var mep, var fichier] => await MepsExporter(mep, fichier),
+                ["meps", "excel", var mep, var vue] => await MepsExcel(mep, vue, null),
+                ["meps", "excel", var mep, var vue, var fichier] => await MepsExcel(mep, vue, fichier),
                 ["journal", .. var options] => await Journal(options),
                 ["demo", "reinitialiser", .. var options] => await DemoReinitialiser(options),
                 ["sso", "afficher"] => await SsoAfficher(),

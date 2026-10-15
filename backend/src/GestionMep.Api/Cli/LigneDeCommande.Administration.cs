@@ -392,7 +392,7 @@ public static partial class LigneDeCommande
 
     private static async Task<int> MepsLister(string[] arguments)
     {
-        var o = Options.Lire(arguments, ["--phase", "--equipe", "--type"], "--modeles");
+        var o = Options.Lire(arguments, ["--phase", "--equipe", "--type", "--recherche", "--excel"], "--modeles");
         Phase? phase = o.Valeur("--phase") is { } p
             ? Enum.TryParse<Phase>(p.Replace("-", "", StringComparison.Ordinal), ignoreCase: true, out var lue) && Enum.IsDefined(lue) ? lue
                 : throw ErreurHttp.Saisie("--phase attend preparation, execution, recette, retour-arriere ou cloturee.")
@@ -407,8 +407,14 @@ public static partial class LigneDeCommande
             : null;
         await using var db = Base(Configuration());
         Guid? equipe = o.Valeur("--equipe") is { } e ? (await EquipesEndpoints.Trouver(db, e)).Id : null;
-        var meps = (await MepsEndpoints.Lister(db, o.A("--modeles"), equipe))
-            .Where(m => (phase is null || m.Phase == phase) && (type is null || m.Type == type)).ToList();
+        if (o.Valeur("--excel") is { } classeur)
+        {
+            var f = await ExportsExcelEndpoints.Liste(db, o.A("--modeles"), equipe, phase, type, o.Valeur("--recherche"), DateTimeOffset.UtcNow);
+            await EcrireClasseur(classeur, f.Contenu);
+            Console.WriteLine($"Liste exportée dans {classeur}.");
+            return 0;
+        }
+        var meps = VuesExcel.FiltrerMeps(await MepsEndpoints.Lister(db, o.A("--modeles"), equipe), phase, type, o.Valeur("--recherche"));
         if (EnJson)
         {
             EcrireJson(meps);
@@ -456,6 +462,65 @@ public static partial class LigneDeCommande
         await db.SaveChangesAsync();
         if (await EcrireFichierOuSortie(fichier, export))
             Console.WriteLine($"MEP « {mep.Outil} » exportée dans {fichier} ({journal.Count} événement(s) de journal ; les fichiers des pièces jointes sont dans les sauvegardes).");
+        return 0;
+    }
+
+    private static async Task EcrireClasseur(string fichier, byte[] contenu)
+    {
+        if (Path.GetDirectoryName(Path.GetFullPath(fichier)) is { } dossier) Directory.CreateDirectory(dossier);
+        await File.WriteAllBytesAsync(fichier, contenu);
+    }
+
+    /// <summary>
+    /// Une vue d'une MEP en classeur Excel, comme le bouton « Exporter en Excel » de l'application (journal : sans filtre).
+    /// Sans fichier, le nom proposé par l'application, dans le dossier courant.
+    /// </summary>
+    private static async Task<int> MepsExcel(string mepTexte, string vueTexte, string? fichier)
+    {
+        var config = Configuration();
+        await using var db = Base(config);
+        var id = IdentifiantOuPrefixe(mepTexte, await db.Meps.AsNoTracking().Select(m => m.Id).ToListAsync(), "MEP")
+            ?? throw new ErreurHttp(1, $"MEP « {mepTexte} » introuvable (gestion-mep meps lister).");
+        var service = new ServiceMep(db, TimeProvider.System, new DiffuseurMep(config));
+        ExportsExcelEndpoints.Fichier export;
+        string libelle;
+        switch (vueTexte.ToLowerInvariant())
+        {
+            case "recette":
+            {
+                var mep = await service.Charger(id);
+                var noms = await db.Utilisateurs.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
+                export = new(RecetteExcel.Exporter(mep, noms, DateTimeOffset.UtcNow), RecetteExcel.NomFichier(mep));
+                libelle = "Recette";
+                break;
+            }
+            case "objets":
+            {
+                var mep = await service.Charger(id);
+                var ids = mep.Systemes.Select(s => s.CatalogueId).OfType<Guid>().Distinct().ToList();
+                var fiches = await db.SystemesCatalogue.AsNoTracking().Where(s => ids.Contains(s.Id)).ToDictionaryAsync(s => s.Id);
+                export = new(ObjetsExcel.Exporter(mep, fiches, modele: false), ObjetsExcel.NomFichier(mep, modele: false));
+                libelle = "Objets impactés";
+                break;
+            }
+            default:
+                (var vue, libelle) = vueTexte.ToLowerInvariant() switch
+                {
+                    "preparation" => (VuesExcel.Vue.Preparation, "Préparation"),
+                    "etapes" => (VuesExcel.Vue.Etapes, "Étapes"),
+                    "retour-arriere" => (VuesExcel.Vue.RetourArriere, "Retour arrière"),
+                    "journal" => (VuesExcel.Vue.Journal, "Journal"),
+                    _ => throw new ErreurUsage($"vue inconnue « {vueTexte} » : preparation, etapes, retour-arriere, recette, objets ou journal"),
+                };
+                export = await ExportsExcelEndpoints.Vue(db, service, id, vue);
+                break;
+        }
+        fichier ??= export.Nom;
+        await EcrireClasseur(fichier, export.Contenu);
+        var outil = await db.Meps.AsNoTracking().Where(m => m.Id == id).Select(m => m.Outil).FirstAsync();
+        JournalAdmin.Ecrire(db, null, "mep.exportee", $"Vue « {libelle} » de la MEP « {outil} » ({id}) exportée en Excel");
+        await db.SaveChangesAsync();
+        Console.WriteLine($"Vue « {libelle} » de la MEP « {outil} » exportée dans {fichier}.");
         return 0;
     }
 

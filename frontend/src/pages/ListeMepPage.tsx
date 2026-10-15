@@ -28,6 +28,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Field, Input, Select } from '../ui/Input';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Badge, StatusPill } from '../ui/StatusPill';
+import { BoutonExportExcel } from '../ui/BoutonExportExcel';
 import { Segmented } from '../ui/Segmented';
 import { DuplicationDialog, type SourceDuplication } from '../mep/DuplicationDialog';
 import { BadgeSimplifiee, estSimplifiee } from '../mep/typeMep';
@@ -361,6 +362,16 @@ export default function ListeMepPage() {
             </Select>
           </div>
         )}
+        <BoutonExportExcel
+          className="sm:ml-auto"
+          url={api.urlExportMeps({ modele, equipe, phase, recherche })}
+          disabled={meps === null}
+          title={
+            modele
+              ? 'Les modèles affichés, recherche et équipe comprises.'
+              : 'Les MEP affichées, filtres compris (recherche, équipe, phase).'
+          }
+        />
       </div>
 
       {erreur && (

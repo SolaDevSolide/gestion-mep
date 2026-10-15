@@ -3,9 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { api } from '../api';
 import type { MepResume } from '../types';
+import { telecharger } from '../telechargement';
 import ListeMepPage from './ListeMepPage';
 
-vi.mock('../api', () => ({ api: { meps: vi.fn(), equipes: vi.fn(), creerMep: vi.fn() } }));
+vi.mock('../api', async (importOriginal) => {
+  const { api: vraie } = await importOriginal<{ api: typeof api }>();
+  return { api: { meps: vi.fn(), equipes: vi.fn(), creerMep: vi.fn(), urlExportMeps: vraie.urlExportMeps } };
+});
+vi.mock('../telechargement', () => ({ telecharger: vi.fn() }));
 
 const resume = (p: Partial<MepResume>): MepResume => ({
   id: 'm',
@@ -81,6 +86,24 @@ describe('ListeMepPage', () => {
     await userEvent.type(screen.getByLabelText('Rechercher une MEP'), 'jean.dupont');
     expect(screen.getByText('Portail')).toBeInTheDocument();
     expect(screen.queryByText('Facturation')).not.toBeInTheDocument();
+  });
+
+  it('exporte en Excel la liste affichée, avec ses filtres', async () => {
+    vi.mocked(api.meps).mockResolvedValue([resume({ id: 'a', outil: 'Portail', phase: 'Execution' })]);
+    rendre();
+    expect(await screen.findByText('Portail')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Exporter en Excel' }));
+    expect(telecharger).toHaveBeenLastCalledWith('/api/meps/excel');
+
+    await userEvent.type(screen.getByLabelText('Rechercher une MEP'), ' paie élec ');
+    await userEvent.selectOptions(screen.getByLabelText('Filtrer par phase'), 'Execution');
+    await userEvent.click(screen.getByRole('button', { name: 'Exporter en Excel' }));
+    expect(telecharger).toHaveBeenLastCalledWith('/api/meps/excel?phase=Execution&recherche=paie+%C3%A9lec');
+
+    // Modèles : la phase ne s'applique pas.
+    await userEvent.click(screen.getByRole('radio', { name: /Modèles/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Exporter en Excel' }));
+    expect(telecharger).toHaveBeenLastCalledWith('/api/meps/excel?modele=true&recherche=paie+%C3%A9lec');
   });
 
   it('signale les MEP qui touchent la production', async () => {

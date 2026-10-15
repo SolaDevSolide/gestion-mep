@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { etapesDuPlan } from '../domaine';
@@ -30,7 +30,8 @@ import {
 const estSaisie = (el: EventTarget | null) => el instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
 
 /** Éditeur du plan en graphe (préparation) : systèmes impactés, graphe des étapes, espace d'édition de l'étape ouverte. */
-export function EtapesEditeur({ plan }: { plan: TypePlan }) {
+/** `actions` : boutons ajoutés au bout de la ligne de résumé du plan (export Excel…). */
+export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: ReactNode }) {
   const { mep, run } = useMep();
   const [params] = useSearchParams();
   const modifiable = mep.droits.peutEditerContenu;
@@ -242,6 +243,7 @@ export function EtapesEditeur({ plan }: { plan: TypePlan }) {
             {astuce.flash ? astuce.texte : ''}
           </p>
           <AideGraphe edition={modifiable} />
+          {actions}
         </div>
         <div className={cn('relative', etape && modeEspace === 'panneau' && 'min-[1100px]:pr-[608px]')}>
           <GrapheEtapes

@@ -1,11 +1,11 @@
-import { ClipboardCheck, FileSpreadsheet, ShieldAlert, Upload, XCircle } from 'lucide-react';
+import { ClipboardCheck, ShieldAlert, Upload, XCircle } from 'lucide-react';
 import { useContext, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { AuthContext } from '../auth';
 import { bilanRecette, fichesRecetteTriees } from '../domaine';
 import { useMep } from '../mepContext';
-import { telecharger } from '../telechargement';
+import { BoutonExportExcel } from '../ui/BoutonExportExcel';
 import type { Systeme } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
@@ -85,15 +85,11 @@ export default function RecetteTab() {
           </p>
         )}
         <span className="flex flex-wrap gap-2">
-          <Button
-            taille="sm"
-            icone={<FileSpreadsheet className="size-4" aria-hidden />}
+          <BoutonExportExcel
+            url={api.urlExportRecette(mep.id)}
             disabled={fiches.length === 0}
             title="Fichier à faire remplir par les métiers : résultat constaté, Validé ou Refusé, nom et date."
-            onClick={() => telecharger(api.urlExportRecette(mep.id))}
-          >
-            Exporter en Excel
-          </Button>
+          />
           {enRecette && peutAgir && (
             <Button taille="sm" icone={<Upload className="size-4" aria-hidden />} onClick={() => setImporter(true)}>
               Importer la validation

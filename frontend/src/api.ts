@@ -68,6 +68,7 @@ import type {
   SsoReglages,
   SsoSaisie,
   SsoTest,
+  Phase,
 } from './types';
 
 export class ApiError extends Error {
@@ -169,6 +170,14 @@ async function lireDemo(): Promise<EtatDemo | null> {
 }
 
 export const urlPieceJointe = (pid: string) => `/api/pieces-jointes/${pid}/contenu`;
+
+/** Paramètres d'adresse (« ?a=1&b=2 »), sans les valeurs vides ; « » s'il n'en reste aucun. */
+function requete(valeurs: Record<string, string | undefined>): string {
+  const p = new URLSearchParams();
+  for (const [cle, valeur] of Object.entries(valeurs)) if (valeur) p.set(cle, valeur);
+  const texte = p.toString();
+  return texte ? `?${texte}` : '';
+}
 
 const get = <T>(p: string) => request<T>('GET', p);
 const post = <T>(p: string, b?: unknown) => request<T>('POST', p, b ?? {});
@@ -328,6 +337,21 @@ export const api = {
   refaireFicheRecette: (id: string, fid: string) => post<Mep>(`/meps/${id}/fiches-recette/${fid}/refaire`, {}),
   refaireEtapeTest: (id: string, fid: string, tid: string) =>
     post<Mep>(`/meps/${id}/fiches-recette/${fid}/etapes/${tid}/refaire`, {}),
+
+  // Exports Excel des vues (téléchargement direct, en lecture seule) : liste des MEP avec ses filtres, préparation,
+  // étapes, retour arrière, journal avec ses filtres.
+  urlExportMeps: (f: { modele: boolean; equipe?: string; phase?: Phase | 'toutes'; recherche?: string }) =>
+    `/api/meps/excel${requete({
+      modele: f.modele ? 'true' : '',
+      equipe: f.equipe,
+      phase: f.modele || f.phase === 'toutes' ? '' : f.phase,
+      recherche: f.recherche?.trim(),
+    })}`,
+  urlExportPreparation: (id: string) => `/api/meps/${id}/preparation/excel`,
+  urlExportEtapes: (id: string) => `/api/meps/${id}/etapes/excel`,
+  urlExportRetourArriere: (id: string) => `/api/meps/${id}/retour-arriere/excel`,
+  urlExportJournal: (id: string, f: { type?: string; recherche?: string } = {}) =>
+    `/api/meps/${id}/journal/excel${requete({ type: f.type === 'tous' ? '' : f.type, recherche: f.recherche?.trim() })}`,
 
   // Recette en Excel : export (téléchargement direct), aperçu puis report de la validation des métiers.
   urlExportRecette: (id: string) => `/api/meps/${id}/recette/excel`,

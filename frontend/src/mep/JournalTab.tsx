@@ -34,6 +34,7 @@ import { useAsync } from '../hooks';
 import type { Evenement } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Avatar } from '../ui/Avatar';
+import { BoutonExportExcel } from '../ui/BoutonExportExcel';
 import { cn } from '../ui/cn';
 import { EmptyState } from '../ui/EmptyState';
 import { Input, Select } from '../ui/Input';
@@ -185,6 +186,11 @@ export default function JournalTab({ mepId, tick }: { mepId: string; tick: numbe
             ))}
           </Select>
         </div>
+        <BoutonExportExcel
+          url={api.urlExportJournal(mepId, { type, recherche })}
+          disabled={donnees === null}
+          title="Les événements affichés (filtres compris), puis le suivi des tests unitaires."
+        />
       </div>
 
       {erreur && (

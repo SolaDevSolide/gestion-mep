@@ -40,6 +40,22 @@ Une MEP s'organise en quatre onglets :
 
 La MEP s'ouvre sur l'onglet qui correspond à sa phase : Préparation, puis Exécution, puis Plan › Recette pendant la recette et Plan › Retour arrière pendant un retour arrière. Les anciens liens vers les onglets Étapes, Retour arrière ou Recette mènent au bon sous-onglet de Plan.
 
+## Exporter en Excel
+
+Chaque vue principale a son bouton **« Exporter en Excel »**, qui télécharge un classeur `.xlsx` à consulter, transmettre ou archiver. Tout utilisateur qui voit la MEP peut exporter, à toute phase. Chaque onglet du classeur porte un titre, une ligne de contexte (MEP, phase, date de l'export, filtres appliqués), des en-têtes figés et le filtre automatique d'Excel ; dates et heures sont dans le fuseau de la MEP.
+
+| Vue | Bouton | Contenu du classeur |
+|---|---|---|
+| Liste des MEP (ou des modèles) | au bout de la ligne des filtres | les MEP affichées, **filtres en cours compris** (recherche, équipe, phase) : outil, version, type, phase, production, pilote, équipes, dates, avancement des étapes, retour arrière prévu |
+| Préparation | sous le sommaire des sections | un onglet par section : Intervention, Personnes, Systèmes (environnements et sauvegarde par système), Responsables techniques, Objets impactés, Sauvegarde, Validation (relecture, approbations, critères du Go), Communication, Pièces jointes (la liste, pas les fichiers) |
+| Plan › Étapes | au bout de la ligne de résumé du plan | une ligne par étape de déploiement, dans l'ordre du graphe : définition (systèmes, environnements, dépendances, criticité, durée, instructions, résultat attendu) puis exécution (état, exécutant, début et fin, résultat constaté, preuve, commentaire) ; un onglet des résolutions exécutées s'il y en a |
+| Plan › Retour arrière | à droite du titre « Étapes de retour arrière » | la fiche du plan (dont le déclenchement éventuel), puis les étapes de retour arrière comme ci-dessus |
+| Plan › Recette | en haut de l'onglet | le classeur de validation par les métiers (voir [Valider la recette dans Excel](Exécuter-une-MEP.md#valider-la-recette-dans-excel)) |
+| Préparation › Objets impactés | en haut de la section | le classeur des objets, à compléter et réimporter (voir [Environnements et objets impactés](#environnements-et-objets-impactés)) |
+| Journal | au bout de la ligne de recherche | les événements affichés, **filtres en cours compris** (recherche, type d'événement), puis le suivi des tests unitaires |
+
+Seuls les classeurs de la **recette** et des **objets impactés** se réimportent ; les autres sont en lecture seule (les modifier dans Excel ne change rien à la MEP). En ligne de commande : `gestion-mep meps lister … --excel <fichier.xlsx>` et `gestion-mep meps excel <id> <vue>` (voir [Exploiter](Exploiter.md#mep-et-journal)).
+
 ## L'onglet Préparation
 
 Il est découpé en neuf sections. Chacune affiche son état (complète ou à compléter), et un compteur indique combien sont complètes.

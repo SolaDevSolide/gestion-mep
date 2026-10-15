@@ -141,6 +141,7 @@ api.MapCatalogue();
 api.MapResolutions();
 api.MapDeroule();
 api.MapRecette();
+api.MapExportsExcel();
 api.MapEtapesModeles();
 api.MapParametres();
 api.MapAdmin();
