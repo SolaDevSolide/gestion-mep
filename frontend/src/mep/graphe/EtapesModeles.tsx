@@ -126,6 +126,15 @@ export function apercuDepuisModele(mep: Mep, plan: TypePlan, m: ModeleEtape): Et
   };
 }
 
+/** Les 5 étapes modèles les plus utilisées pour les systèmes de la MEP (menu « Étape modèle », menus de création). */
+export function modelesFrequents(mep: Pick<Mep, 'systemes'>, modeles: ModeleEtape[]): ModeleEtape[] {
+  const parmi = catalogueDeLaMep(mep);
+  return trierParUsage(
+    modeles.filter((m) => m.systemeCatalogueIds.some((s) => parmi.includes(s))),
+    (m) => m.creeLe,
+  ).slice(0, 5);
+}
+
 const STYLE_BOUTON =
   'inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-semibold text-fg-muted hover:bg-surface-2 hover:text-fg data-[state=open]:bg-accent-soft data-[state=open]:text-accent-text';
 
@@ -148,10 +157,7 @@ export function BoutonsEtapesModeles({
 }) {
   const navigate = useNavigate();
   const parmi = catalogueDeLaMep(mep);
-  const frequentes = trierParUsage(
-    modeles.filter((m) => m.systemeCatalogueIds.some((s) => parmi.includes(s))),
-    (m) => m.creeLe,
-  ).slice(0, 5);
+  const frequentes = modelesFrequents(mep, modeles);
   const nom = (id: string) => catalogue.find((c) => c.id === id)?.nom ?? '';
   return (
     <div
@@ -220,7 +226,8 @@ export function AvisSystemesAbsents({ absents, className }: { absents: string[];
 
 /**
  * Fenêtre « Parcourir la bibliothèque » : même modèle que la page (choix du système, puis la bibliothèque du système),
- * limitée par défaut aux systèmes de la MEP. L'étape choisie arrive flottante dans le graphe.
+ * limitée par défaut aux systèmes de la MEP. L'étape choisie arrive flottante dans le graphe, ou, ouverte depuis un menu
+ * de création (`destination`), est posée tout de suite à l'endroit choisi.
  */
 export function ParcourirDialog({
   ouvert,
@@ -230,6 +237,7 @@ export function ParcourirDialog({
   catalogue,
   onFermer,
   onInserer,
+  destination,
 }: {
   ouvert: boolean;
   mep: Mep;
@@ -238,6 +246,8 @@ export function ParcourirDialog({
   catalogue: SystemeCatalogue[];
   onFermer: () => void;
   onInserer: (m: ModeleEtape) => void;
+  /** Endroit où la copie sera posée (« après E0004 », « sur le lien E0001 → E0003 »…), quand il est déjà choisi. */
+  destination?: string | null;
 }) {
   const [recherche, setRecherche] = useState('');
   const [portee, setPortee] = useState<'mep' | 'tous'>('mep');
@@ -292,7 +302,9 @@ export function ParcourirDialog({
         <>
           <p className="mr-auto flex items-center gap-1.5 text-[13px] text-fg-muted">
             <Hand className="size-4 text-fg-subtle" aria-hidden />
-            L’étape arrive flottante dans le graphe : vous la posez ensuite à la main.
+            {destination
+              ? `La copie est posée ${destination}.`
+              : 'L’étape arrive flottante dans le graphe : vous la posez ensuite à la main.'}
           </p>
           <Button variante="fantome" onClick={onFermer}>
             Annuler

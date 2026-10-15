@@ -9,7 +9,7 @@ import type { Section } from './sections';
 export interface ValeurGraphe {
   mep: Mep;
   mode: ModeGraphe;
-  /** Édition : glisser, poignées de liens, « + » de création rapide. */
+  /** Édition : glisser, poignées de liens, « + » de création rapide (hors de l'intérieur des sections dépliées du plan). */
   edition: boolean;
   descriptions: Map<string, string>;
   etapes: ReadonlyMap<string, Etape>;
@@ -38,7 +38,8 @@ export interface ValeurGraphe {
   reordre: string | null;
   estEstompee?: (e: Etape) => boolean;
   onActiver: (id: string) => void;
-  onAjouter?: (place: PlaceEtape, ancre: string | null) => void;
+  /** « + » d'une carte : création à cette place (menu « Étape vierge / Depuis un modèle » ouvert sous `element`). */
+  onAjouter?: (place: PlaceEtape, ancre: string | null, element: Element | null) => void;
   onBasculer: (sectionId: string) => void;
   onEditerSection?: (sectionId: string) => void;
   onOuvrirCercle?: (cercleId: string) => void;

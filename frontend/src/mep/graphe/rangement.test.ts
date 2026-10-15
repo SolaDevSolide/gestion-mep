@@ -1,7 +1,17 @@
 import { etape } from '../../test/fabrique';
 import type { Etape } from '../../types';
-import { construireModele, idCercle, idSection, idTitre, lienAutorise, ordreGlobal, reordonner } from './modeleGraphe';
+import {
+  construireModele,
+  idCercle,
+  idSection,
+  idTitre,
+  lienAutorise,
+  ordreGlobal,
+  reordonner,
+  trierEtapes,
+} from './modeleGraphe';
 import { decalageAncrage, noeudAuCentre, positionsAbsolues, ranger, type Rangement } from './rangement';
+import { compterCroisements } from './routage';
 import type { Section } from './sections';
 
 const e = (id: string, ligne: number, ordre: number, dependances: string[] = [], extra: Record<string, unknown> = {}) =>
@@ -121,6 +131,37 @@ describe('rangement ELK', () => {
       for (let i = 1; i < pts.length; i++)
         expect(Math.abs(pts[i].x - pts[i - 1].x) < 0.6 || Math.abs(pts[i].y - pts[i - 1].y) < 0.6).toBe(true);
     }
+  });
+
+  it('ordre d’entrée : chaque étape au barycentre de ses préalables (sans rang choisi)', () => {
+    // c attend b, d attend a : dans l'ordre de création (c avant d), leurs liens se croiseraient.
+    const plan = [e('a', 0, 0), e('b', 0, 1), e('c', 1, 0, ['b']), e('d', 1, 1, ['a'])];
+    expect(trierEtapes(plan, false).map((x) => x.id)).toEqual(['a', 'b', 'd', 'c']);
+    // Rang choisi à la main : il fait foi.
+    const ordonne = plan.map((x, i) => ({ ...x, rang: [1, 2, 3, 4][i] }));
+    expect(trierEtapes(ordonne, true).map((x) => x.id)).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  it('liens rangés sans croisement évitable ni superposition : départ commun, arrivées séparées', async () => {
+    const plan = [
+      e('a', 0, 0),
+      e('b', 0, 1),
+      e('c', 1, 0, ['b']),
+      e('d', 1, 1, ['a']),
+      e('f', 2, 0, ['c', 'd']),
+      e('g', 2, 1, ['d']),
+    ];
+    const modele = sansSection(plan);
+    const r = await ranger(modele, new Map());
+    const bouts = new Map(modele.liens.map((l) => [l.id, { source: l.source, cible: l.cible }]));
+    expect(compterCroisements(r.routes, bouts)).toEqual({ croisements: 0, superpositions: 0 });
+    // Deux liens vers f : deux arrivées distinctes sur son bord haut.
+    const versF = modele.liens.filter((l) => l.cible === 'f').map((l) => r.routes.get(l.id)!.at(-1)!.x);
+    expect(new Set(versF.map((x) => Math.round(x))).size).toBe(2);
+    // Deux liens depuis d : un seul départ, au milieu de son bord bas.
+    const d = r.places.get('d')!;
+    for (const l of modele.liens.filter((x) => x.source === 'd'))
+      expect(r.routes.get(l.id)![0].x).toBeCloseTo(d.x + d.largeur / 2, 0);
   });
 
   it('ordre choisi (rang) : respecté dans la rangée, même contre l’ordre de création', async () => {

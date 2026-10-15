@@ -120,6 +120,15 @@ function rendre(m: Mep) {
 }
 
 const carte = (nom: RegExp) => screen.getByRole('button', { name: nom });
+/** Choix « Étape vierge » du menu de création ouvert par un « + », le bouton Étape ou le menu d'un lien. */
+const vierge = async () => userEvent.click(await screen.findByRole('menuitem', { name: 'Étape vierge' }));
+/** Lien atteint au clavier : Entrée ouvre son menu (comme un clic sur son tracé). */
+const ouvrirLien = async (nom: string) => {
+  const lien = await screen.findByRole('group', { name: nom });
+  fireEvent.keyDown(lien, { key: 'Enter' });
+  await screen.findByRole('menu', { name: 'Actions du lien' });
+  return lien;
+};
 
 describe('EtapesEditeur : graphe en préparation', () => {
   beforeEach(() => {
@@ -159,21 +168,31 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(screen.getByLabelText('Action')).toHaveValue('Contrôle final');
   });
 
-  it('création rapide : après une carte, en parallèle, isolée', async () => {
+  it('création rapide : après une carte, en parallèle, isolée ; chaque fois « Étape vierge » ou « Depuis un modèle »', async () => {
     rendre(planExemple());
     await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape après E0001' }));
+    const menu = await screen.findByRole('menu', { name: 'Créer une étape' });
+    expect(within(menu).getByText('Nouvelle étape après E0001')).toBeInTheDocument();
+    expect(within(menu).getByText('Depuis un modèle')).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: 'Parcourir la bibliothèque…' })).toBeInTheDocument();
+    expect(apiGraphe.creerEtape).not.toHaveBeenCalled();
+    await vierge();
     expect(apiGraphe.creerEtape).toHaveBeenLastCalledWith('m1', 'Deploiement', { apres: 'e1' }, null);
     await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape en parallèle de E0002' }));
+    await vierge();
     expect(apiGraphe.creerEtape).toHaveBeenLastCalledWith('m1', 'Deploiement', { paralleleA: 'e2' }, null);
     await userEvent.click(screen.getByRole('button', { name: /^Étape$/ }));
+    await vierge();
     expect(apiGraphe.creerEtape).toHaveBeenLastCalledWith('m1', 'Deploiement', {}, null);
   });
 
-  it('insertion sur un lien : « + » au survol du lien', async () => {
+  it('insertion sur un lien : son menu propose « Insérer une étape » (vierge ou depuis un modèle)', async () => {
     rendre(planExemple());
-    const lien = await screen.findByRole('group', { name: 'Lien E0001 vers E0003' });
-    fireEvent.mouseEnter(lien);
-    await userEvent.click(await screen.findByRole('button', { name: 'Insérer une étape sur ce lien' }));
+    await ouvrirLien('Lien E0001 vers E0003');
+    const menu = screen.getByRole('menu', { name: 'Actions du lien' });
+    expect(within(menu).getByText('E0001 → E0003')).toBeInTheDocument();
+    expect(within(menu).getByText('Insérer une étape sur ce lien')).toBeInTheDocument();
+    await vierge();
     expect(apiGraphe.creerEtape).toHaveBeenLastCalledWith(
       'm1',
       'Deploiement',
@@ -188,11 +207,14 @@ describe('EtapesEditeur : graphe en préparation', () => {
       () => new Promise<Mep>((ok) => (finir = () => ok(planExemple()))),
     );
     rendre(planExemple());
-    await userEvent.dblClick(screen.getByRole('button', { name: /^Étape$/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Étape$/ }));
+    await userEvent.dblClick(await screen.findByRole('menuitem', { name: 'Étape vierge' }));
     await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape après E0001' }));
+    await vierge();
     expect(apiGraphe.creerEtape).toHaveBeenCalledTimes(1);
     await act(async () => finir());
     await userEvent.click(screen.getByRole('button', { name: /^Étape$/ }));
+    await vierge();
     expect(apiGraphe.creerEtape).toHaveBeenCalledTimes(2);
   });
 
@@ -411,18 +433,18 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(api.supprimerEtape).toHaveBeenCalledWith('m1', 'e3');
   });
 
-  it('cliquer sur un lien le sélectionne ; il se supprime d’un bouton', async () => {
+  it('un lien choisi ouvre son menu : « Supprimer le lien »', async () => {
     rendre(planExemple());
-    fireEvent.click(await screen.findByRole('group', { name: 'Lien E0001 vers E0003' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Supprimer ce lien' }));
+    // Plus de bouton au survol : les actions passent par le menu du lien.
+    expect(screen.queryByRole('button', { name: 'Insérer une étape sur ce lien' })).not.toBeInTheDocument();
+    await ouvrirLien('Lien E0001 vers E0003');
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Supprimer le lien' }));
     expect(apiGraphe.delier).toHaveBeenCalledWith('m1', 'e1', 'e3');
   });
 
   it('touche Suppr sur un lien sélectionné', async () => {
     rendre(planExemple());
-    const lien = await screen.findByRole('group', { name: 'Lien E0001 vers E0003' });
-    fireEvent.click(lien);
-    await screen.findByRole('button', { name: 'Supprimer ce lien' });
+    const lien = await ouvrirLien('Lien E0001 vers E0003');
     fireEvent.keyDown(lien, { key: 'Delete' });
     expect(apiGraphe.delier).toHaveBeenCalledWith('m1', 'e1', 'e3');
   });
@@ -438,6 +460,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
     fireEvent.click(carte(/^E0003/));
     await userEvent.type(screen.getByLabelText('Action'), ' bis');
     await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape après E0001' }));
+    await vierge();
     expect(apiGraphe.creerEtape).toHaveBeenCalledWith('m1', 'Deploiement', { apres: 'e1' }, null);
     rerendre(apres);
     expect(await screen.findByRole('alertdialog', { name: 'Modifications non enregistrées' })).toBeInTheDocument();

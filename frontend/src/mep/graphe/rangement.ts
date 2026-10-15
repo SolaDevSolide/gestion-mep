@@ -4,11 +4,13 @@ import { POIGNEE_BAS, POIGNEE_HAUT, type LienModele, type ModeleGraphe, type Noe
 /**
  * Rangement automatique du graphe libre (ELK, algorithme « layered », de haut en bas) et tracé des liens.
  *
- * Rangement stable (protection 3) : les nœuds et les liens entrent dans l'ordre du modèle (rang choisi, sinon ligne, ordre,
- * code) et ELK le respecte (`considerModelOrder`, `forceNodeModelOrder`) ; un ajout ailleurs ne réordonne pas le reste.
+ * Ordre de gauche à droite : les nœuds et les liens entrent dans l'ordre du modèle et ELK le respecte (`considerModelOrder`,
+ * `forceNodeModelOrder`) : rang choisi par quelqu'un, sinon ordre barycentrique calculé depuis les liens (moins de
+ * croisements, voir `trierEtapes`). Rangement stable (protection 3) : un ajout ailleurs ne réordonne pas le reste.
  *
  * Liens : routage orthogonal d'ELK (points de passage calculés en contournant cartes, cadres, titres et cercles, liens
- * parallèles écartés), en coordonnées du graphe.
+ * parallèles écartés), en coordonnées du graphe. Les liens qui partent d'une même carte partagent un tronc ; chaque lien
+ * arrive par son propre port, si bien que deux liens sans extrémité commune ne se superposent jamais.
  */
 export const GRILLE = 24;
 export const CARTE = { largeur: 212, hauteur: 104 };
@@ -63,6 +65,8 @@ const OPTIONS_RACINE: Record<string, string> = {
   'elk.layered.layering.strategy': 'LONGEST_PATH_SOURCE',
   'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
   'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+  // Plus d'essais de minimisation des croisements (graphes de quelques dizaines de cartes : coût négligeable).
+  'elk.layered.thoroughness': '30',
   'elk.spacing.nodeNode': String(GRILLE * 2),
   'elk.layered.spacing.nodeNodeBetweenLayers': String(GRILLE * 3),
   'elk.spacing.componentComponent': String(GRILLE * 3),
@@ -116,29 +120,22 @@ export function grapheElk(modele: ModeleGraphe, tailles: ReadonlyMap<string, Tai
       noeud.layoutOptions = { 'elk.alignment': 'TOP' };
     }
     if (n.nature === 'etape' || n.nature === 'cercle') {
-      // Un port au milieu du haut et un au milieu du bas, là où sont les poignées : tous les liens d'une carte partent du
-      // même point (et y arrivent), puis se séparent à angle droit.
-      ports.set(`${n.id}|${POIGNEE_HAUT}`, `${n.id}|${POIGNEE_HAUT}`);
-      ports.set(`${n.id}|${POIGNEE_BAS}`, `${n.id}|${POIGNEE_BAS}`);
-      noeud.ports = [
-        {
-          id: `${n.id}|${POIGNEE_HAUT}`,
-          width: 0,
-          height: 0,
-          x: t.largeur / 2,
-          y: 0,
-          layoutOptions: { 'elk.port.side': 'NORTH' },
-        },
-        {
-          id: `${n.id}|${POIGNEE_BAS}`,
-          width: 0,
-          height: 0,
-          x: t.largeur / 2,
-          y: t.hauteur,
-          layoutOptions: { 'elk.port.side': 'SOUTH' },
-        },
+      // Départ : un port au milieu du bas, là où est la poignée ; les liens qui partent d'une même carte font un seul tronc
+      // puis se séparent. Arrivée : un port par lien sur le haut (ELK les ordonne), pour que chaque flèche arrive à part et
+      // que des liens sans rapport ne se fondent jamais en un même trait.
+      const bas = `${n.id}|${POIGNEE_BAS}`;
+      ports.set(bas, bas);
+      const p: ElkPort[] = [
+        { id: bas, width: 0, height: 0, x: t.largeur / 2, y: t.hauteur, layoutOptions: { 'elk.port.side': 'SOUTH' } },
       ];
-      noeud.layoutOptions = { ...noeud.layoutOptions, 'elk.portConstraints': 'FIXED_POS' };
+      for (const l of modele.liens)
+        if (l.cible === n.id && l.ciblePoignee === POIGNEE_HAUT) {
+          const id = `${n.id}|${POIGNEE_HAUT}|${l.id}`;
+          ports.set(id, id);
+          p.push({ id, width: 0, height: 0, layoutOptions: { 'elk.port.side': 'NORTH' } });
+        }
+      noeud.ports = p;
+      noeud.layoutOptions = { ...noeud.layoutOptions, 'elk.portConstraints': 'FIXED_SIDE' };
     }
     if (n.nature === 'section') {
       const p: ElkPort[] = [];
@@ -168,11 +165,12 @@ export function grapheElk(modele: ModeleGraphe, tailles: ReadonlyMap<string, Tai
     const liste = n.parent ? enfants.get(n.parent) : racine;
     (liste ?? racine).push(noeud);
   }
-  const bout = (noeud: string, poignee: string) => ports.get(`${noeud}|${poignee}`) ?? noeud;
+  const bout = (noeud: string, poignee: string, lien: string) =>
+    ports.get(`${noeud}|${poignee}|${lien}`) ?? ports.get(`${noeud}|${poignee}`) ?? noeud;
   const edges: ElkExtendedEdge[] = modele.liens.map((l: LienModele) => ({
     id: l.id,
-    sources: [bout(l.source, l.sourcePoignee)],
-    targets: [bout(l.cible, l.ciblePoignee)],
+    sources: [bout(l.source, l.sourcePoignee, l.id)],
+    targets: [bout(l.cible, l.ciblePoignee, l.id)],
   }));
   return { id: 'racine', layoutOptions: OPTIONS_RACINE, children: racine, edges };
 }

@@ -1,4 +1,4 @@
-import { ChevronsDownUp, ChevronsUpDown, Plus } from 'lucide-react';
+import { ChevronsDownUp, ChevronsUpDown, PencilLine } from 'lucide-react';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
@@ -19,6 +19,7 @@ import {
   BoutonsEtapesModeles,
   ID_FLOTTANTE,
   inserables,
+  modelesFrequents,
   ParcourirDialog,
   systemesAbsents,
 } from './graphe/EtapesModeles';
@@ -101,6 +102,10 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
   const bibliotheque = useAsync(() => api.etapesModeles(), []);
   const modeles = useMemo(() => inserables(bibliotheque.donnees ?? [], plan), [bibliotheque.donnees, plan]);
   const [parcourir, setParcourir] = useState(false);
+  // « Parcourir la bibliothèque… » ouvert depuis un menu de création : l'étape modèle choisie est posée à cette place.
+  const [placeParcourir, setPlaceParcourir] = useState<PlaceEtape | null>(null);
+  // Plein écran tenu ici : il reste actif quand on entre dans une section ou qu'on revient au plan.
+  const [plein, setPlein] = useState(false);
   const [nouvelleSection, setNouvelleSection] = useState(false);
   const [cercle, setCercle] = useState<
     (Pick<CercleSection, 'titre' | 'description' | 'sens'> & { id: string | null }) | null
@@ -117,7 +122,10 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
   // Saisie non enregistrée dans l'espace ouvert : changer d'étape passe d'abord par son choix enregistrer / abandonner.
   const [saisieOuverte, setSaisieOuverte] = useState(false);
   const [demande, setDemande] = useState<string | null | undefined>(undefined);
-  const verrou = useVerrouEtape(mep.id, etape?.id ?? null, modifiable);
+  // Étape d'une section ouverte depuis le plan : sa fiche se lit, on la modifie dans la vue de la section.
+  const sectionEtape = etape ? infoSection(etape).sectionId : null;
+  const lectureDansPlan = modifiable && !sectionVue && !!sectionEtape;
+  const verrou = useVerrouEtape(mep.id, etape?.id ?? null, modifiable && !lectureDansPlan);
 
   function ouvrir(id: string | null) {
     setChoix(id);
@@ -187,12 +195,40 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
     return () => document.removeEventListener('keydown', touche);
   }, [flottante, afficherAstuce]);
 
+  // Échap dans la vue d'une section (rien d'autre d'ouvert, pas de saisie en cours) : retour au plan, plein écran gardé.
+  const sectionOuverte = sectionVue?.id ?? null;
+  useEffect(() => {
+    if (!sectionOuverte || flottante) return;
+    function touche(ev: globalThis.KeyboardEvent) {
+      if (ev.key !== 'Escape' || ev.defaultPrevented) return;
+      if (ev.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName)) return;
+      if (ev.target instanceof HTMLElement && ev.target.isContentEditable) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]')) return;
+      // Le plein écran ne se ferme pas avec : on revient au plan, toujours en plein écran.
+      ev.preventDefault();
+      setParams(
+        (p) => {
+          const q = new URLSearchParams(p);
+          q.delete('section');
+          q.delete('etape');
+          return q;
+        },
+        { replace: false },
+      );
+    }
+    document.addEventListener('keydown', touche);
+    return () => document.removeEventListener('keydown', touche);
+  }, [sectionOuverte, flottante, setParams]);
+
   const nouvelleEtape = (apres: Mep | undefined, avant: Set<string>) => apres?.etapes.find((e) => !avant.has(e.id));
 
   /** Pose la copie flottante à la place donnée (après une carte, sur un lien, en parallèle, ou à part). */
   async function poser(place: PlaceEtape) {
-    const m = flottante;
-    if (!m) return false;
+    return flottante ? poserModele(flottante, place) : false;
+  }
+
+  /** Pose une copie de l'étape modèle à la place donnée. */
+  async function poserModele(m: ModeleEtape, place: PlaceEtape) {
     const avant = new Set(mep.etapes.map((e) => e.id));
     let apres: Mep | undefined;
     const ok = await run(
@@ -239,6 +275,18 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
     if (ok) astuce.afficher(`${e.code} déplacée ${ou} : ses anciens suivants attendent maintenant ses préalables.`);
     return ok;
   }
+
+  /** Endroit d'une création, en clair : « après E0004 », « sur le lien E0001 → E0003 »… */
+  const ouPoser = (p: PlaceEtape) =>
+    'apres' in p
+      ? `après ${nom(p.apres)}`
+      : 'paralleleA' in p
+        ? `en parallèle de ${nom(p.paralleleA)}`
+        : 'entre' in p
+          ? `sur le lien ${nom(p.entre.de)} → ${nom(p.entre.vers)}`
+          : sectionVue
+            ? 'dans la section, sans lien'
+            : 'à part, sans lien';
 
   /** Code d'une étape, ou titre d'un cercle. */
   const nom = (id: string) =>
@@ -318,6 +366,46 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
   const enBac = sections.filter((s) => !s.placee);
   const nbEtapes = (sid: string) => etapesPlan.filter((e) => infoSection(e).sectionId === sid).length;
 
+  const bandeau = (
+    <>
+      {sectionVue && (
+        <EnTeteVueSection
+          mep={mep}
+          section={sectionVue}
+          libellePlan={LIBELLE_PLAN[plan]}
+          descriptions={descriptions}
+          modifiable={modifiable}
+          etapeIds={etapes.map((e) => e.id)}
+          onRetour={() => allerSection(null)}
+          onModifier={(s) =>
+            run(
+              () => apiGraphe.modifierSection(mep.id, sectionVue.id, { revision: sectionVue.revision, ...s }),
+              'Section enregistrée.',
+            )
+          }
+          onPlacer={(placee) => void placerSection(sectionVue.id, placee)}
+          onSupprimer={async () => {
+            const ok = await run(
+              () => apiGraphe.supprimerSection(mep.id, sectionVue.id),
+              'Section supprimée, ses étapes restent dans le plan.',
+            );
+            if (ok) allerSection(null);
+            return ok;
+          }}
+          onCercle={setCercle}
+        />
+      )}
+      <div className="flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1 bg-surface px-3 py-1.5">
+        <ResumePlan etapes={etapes} sections={sectionVue ? undefined : sections} sansDuree={estSimplifiee(mep)} />
+        <p aria-live="polite" className="min-w-0 flex-1 text-[13px] font-semibold text-rollback-solid">
+          {astuce.flash ? astuce.texte : ''}
+        </p>
+        <AideGraphe edition={modifiable} />
+        {actions}
+      </div>
+    </>
+  );
+
   const graphe = (
     <div className={cn('relative min-w-0', etape && modeEspace === 'panneau' && 'min-[1100px]:pr-[608px]')}>
       <GrapheLibre
@@ -339,22 +427,22 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
         actions={actionsGraphe}
         onMessage={astuce.afficher}
         flottante={apercu ? { etape: apercu, onAnnuler: annulerFlottante } : null}
-        outils={
-          <>
-            {!sectionVue && sections.some((s) => s.placee) && <BoutonsRepli onToutes={toutes} />}
-            {modifiable && (
-              <Button
-                taille="sm"
-                className="pointer-events-auto"
-                icone={<Plus className="size-4" aria-hidden />}
-                onClick={() => void exclusif(() => ajouter({}))}
-                title={flottante ? 'Poser la copie à part, sans lien' : 'Nouvelle étape, sans lien (reliez-la ensuite)'}
-              >
-                {flottante ? 'Poser à part' : 'Étape'}
-              </Button>
-            )}
-          </>
+        plein={plein}
+        onPlein={setPlein}
+        bandeau={bandeau}
+        creation={
+          modifiable
+            ? {
+                modeles: modelesFrequents(mep, modeles),
+                depuisModele: (place, m) => void exclusif(() => poserModele(m, place)),
+                parcourir: (place) => {
+                  setPlaceParcourir(place);
+                  setParcourir(true);
+                },
+              }
+            : undefined
         }
+        outils={!sectionVue && sections.some((s) => s.placee) && <BoutonsRepli onToutes={toutes} />}
         lateral={
           !sectionVue &&
           (modifiable || enBac.length > 0) && (
@@ -389,40 +477,6 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
     // Onglet affiché en une fois, référentiels compris (systèmes, résolutions) : voir Apparition.
     <Apparition pret={pret}>
       <div className="grid gap-3">
-        {sectionVue ? (
-          <EnTeteVueSection
-            mep={mep}
-            section={sectionVue}
-            libellePlan={LIBELLE_PLAN[plan]}
-            descriptions={descriptions}
-            modifiable={modifiable}
-            onRetour={() => allerSection(null)}
-            onModifier={(s) =>
-              run(
-                () => apiGraphe.modifierSection(mep.id, sectionVue.id, { revision: sectionVue.revision, ...s }),
-                'Section enregistrée.',
-              )
-            }
-            onPlacer={(placee) => void placerSection(sectionVue.id, placee)}
-            onSupprimer={async () => {
-              const ok = await run(
-                () => apiGraphe.supprimerSection(mep.id, sectionVue.id),
-                'Section supprimée, ses étapes restent dans le plan.',
-              );
-              if (ok) allerSection(null);
-              return ok;
-            }}
-            onCercle={setCercle}
-          />
-        ) : null}
-        <div className="flex min-h-7 flex-wrap items-center gap-x-4 gap-y-1">
-          <ResumePlan etapes={etapes} sections={sectionVue ? undefined : sections} sansDuree={estSimplifiee(mep)} />
-          <p aria-live="polite" className="min-w-0 flex-1 text-[13px] font-semibold text-rollback-solid">
-            {astuce.flash ? astuce.texte : ''}
-          </p>
-          <AideGraphe edition={modifiable} />
-          {actions}
-        </div>
         {graphe}
         {modifiable && (
           <ParcourirDialog
@@ -431,8 +485,18 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
             plan={plan}
             modeles={modeles}
             catalogue={catalogue}
-            onFermer={() => setParcourir(false)}
-            onInserer={choisirModele}
+            onFermer={() => {
+              setParcourir(false);
+              setPlaceParcourir(null);
+            }}
+            destination={placeParcourir ? ouPoser(placeParcourir) : null}
+            onInserer={(m) => {
+              const place = placeParcourir;
+              if (!place) return choisirModele(m);
+              setParcourir(false);
+              setPlaceParcourir(null);
+              void exclusif(() => poserModele(m, place));
+            }}
           />
         )}
         {modifiable && (
@@ -486,6 +550,24 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
             onDirty={setSaisieOuverte}
             demande={demande}
             onAnnulerDemande={() => setDemande(undefined)}
+            lecture={
+              lectureDansPlan && sectionEtape ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-[13px] text-accent-text">
+                  <span className="min-w-0 flex-1">
+                    Étape de la section « {sections.find((x) => x.id === sectionEtape)?.titre} » : on la modifie dans la
+                    vue de la section.
+                  </span>
+                  <Button
+                    taille="sm"
+                    variante="primaire"
+                    icone={<PencilLine className="size-4" aria-hidden />}
+                    onClick={() => allerSection(sectionEtape)}
+                  >
+                    Modifier dans la section
+                  </Button>
+                </div>
+              ) : undefined
+            }
             verrou={{
               lectureSeule: verrou.etat === 'autre' || verrou.etat === 'perdu',
               bandeau: <BandeauVerrou verrou={verrou} />,

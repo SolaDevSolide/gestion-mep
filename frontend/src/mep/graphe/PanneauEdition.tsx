@@ -145,6 +145,11 @@ interface Props {
    * le bandeau donné ; une saisie non enregistrée reste affichée pour être copiée.
    */
   verrou?: { lectureSeule: boolean; bandeau: ReactNode };
+  /**
+   * Fiche ouverte en lecture même avec les droits d'édition (étape d'une section, vue depuis le plan) : ce bandeau dit où
+   * la modifier. Rien n'est déclaré aux autres ni verrouillé.
+   */
+  lecture?: ReactNode;
 }
 
 /** Badges de la barre du haut : code, type, point de non-retour. */
@@ -236,14 +241,16 @@ export function PanneauEdition(props: Props) {
     demande,
     onAnnulerDemande,
     verrou,
+    lecture,
   } = props;
+  const ecriture = modifiable && !lecture;
   const { run } = useMep();
   const navigate = useNavigate();
   const d = useDraft<Fiche>(ficheDepuis(etape));
   useReportDirty(d.dirty, `Étape ${etape.code}`);
   useEffect(() => onDirty?.(d.dirty), [onDirty, d.dirty]);
   // Présence : l'étape ouverte en édition est signalée aux autres, et on voit qui d'autre la modifie.
-  usePresenceElement(`etape:${etape.id}`, modifiable);
+  usePresenceElement(`etape:${etape.id}`, ecriture);
   const editeurs = useEditeurs(`etape:${etape.id}`);
   const v = d.value;
   const [suppr, setSuppr] = useState(false);
@@ -272,10 +279,10 @@ export function PanneauEdition(props: Props) {
     .flat()
     .filter((e) => e.id !== etape.id && !e.dependances.includes(etape.id) && !avantElle.has(e.id));
 
-  if (!modifiable || verrou?.lectureSeule)
+  if (!ecriture || verrou?.lectureSeule)
     return (
       <EspaceLecture
-        bandeau={verrou?.lectureSeule ? verrou.bandeau : null}
+        bandeau={lecture ?? (verrou?.lectureSeule ? verrou.bandeau : null)}
         brouillon={verrou?.lectureSeule && d.dirty ? v : null}
         mep={mep}
         etape={etape}

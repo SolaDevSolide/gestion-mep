@@ -66,9 +66,38 @@ export const planOrdonne = (etapes: Etape[], sections: Pick<Section, 'rang'>[]) 
 export const ordreStable = (a: Etape, b: Etape) =>
   a.ligne - b.ligne || a.ordre - b.ordre || a.code.localeCompare(b.code);
 
-/** Ordre des étapes : par rang si le plan a été réordonné, sinon {@link ordreStable}. */
-const comparateur = (ordonne: boolean) => (a: Etape, b: Etape) =>
-  ordonne ? rangDe(a) - rangDe(b) || a.code.localeCompare(b.code) : ordreStable(a, b);
+/**
+ * Ordre d'entrée des étapes dans le rangement. Plan réordonné à la main : les rangs. Sinon, profondeur par profondeur, chaque
+ * étape se place au barycentre de ses préalables (moyenne de leurs places relatives), {@link ordreStable} départageant :
+ * moins de croisements de liens, et un ordre qui ne dépend que des liens (un ajout ailleurs ne le change pas).
+ */
+export function trierEtapes(etapes: Etape[], ordonne: boolean): Etape[] {
+  if (ordonne) return [...etapes].sort((a, b) => rangDe(a) - rangDe(b) || a.code.localeCompare(b.code));
+  const stables = [...etapes].sort(ordreStable);
+  const indexStable = new Map(stables.map((e, i) => [e.id, i]));
+  const place = new Map<string, number>();
+  const res: Etape[] = [];
+  const parLigne = new Map<number, Etape[]>();
+  for (const e of stables) parLigne.set(e.ligne, [...(parLigne.get(e.ligne) ?? []), e]);
+  for (const ligne of [...parLigne.keys()].sort((a, b) => a - b)) {
+    const couche = parLigne.get(ligne) ?? [];
+    const cle = (e: Etape) => {
+      const p = e.dependances.map((d) => place.get(d)).filter((x): x is number => x !== undefined);
+      return p.length ? p.reduce((a, b) => a + b, 0) / p.length : Number.POSITIVE_INFINITY;
+    };
+    const cles = new Map(couche.map((e) => [e.id, cle(e)]));
+    // Sans préalable placé : l'étape garde sa place stable parmi les autres.
+    const triee = [...couche].sort((a, b) => {
+      const ka = cles.get(a.id) ?? 0;
+      const kb = cles.get(b.id) ?? 0;
+      if (Number.isFinite(ka) && Number.isFinite(kb) && ka !== kb) return ka - kb;
+      return (indexStable.get(a.id) ?? 0) - (indexStable.get(b.id) ?? 0);
+    });
+    triee.forEach((e, i) => place.set(e.id, (i + 0.5) / triee.length));
+    res.push(...triee);
+  }
+  return res;
+}
 
 /**
  * Ordre gauche-droite de tous les éléments du plan (identifiants d'étapes et de sections, y compris celles du bac), tel que le
@@ -76,7 +105,7 @@ const comparateur = (ordonne: boolean) => (a: Etape, b: Etape) =>
  */
 export function ordreGlobal(etapes: Etape[], sections: Section[]): string[] {
   const ordonne = planOrdonne(etapes, sections);
-  const triees = [...etapes].sort(comparateur(ordonne));
+  const triees = trierEtapes(etapes, ordonne);
   const rangDans = new Map(triees.map((e, i) => [e.id, i]));
   const premier = new Map<string, number>();
   for (const e of triees) {
@@ -118,7 +147,7 @@ type Extremite = { noeud: string; carte: boolean; section: string | null } | nul
 
 export function construireModele({ etapes, sections, deplies, sectionVue = null }: Entree): ModeleGraphe {
   const ordonne = planOrdonne(etapes, sections);
-  const triees = [...etapes].sort(comparateur(ordonne));
+  const triees = trierEtapes(etapes, ordonne);
   const parSection = new Map(sections.map((s) => [s.id, s]));
   const noeuds: NoeudModele[] = [];
   const liens: LienModele[] = [];

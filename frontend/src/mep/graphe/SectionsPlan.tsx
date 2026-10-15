@@ -1,4 +1,5 @@
 import {
+  ArrowLeft,
   ChevronRight,
   CircleDot,
   FolderPlus,
@@ -12,6 +13,8 @@ import {
 } from 'lucide-react';
 import { useEffect, useState, type PointerEvent as PointerEventReact } from 'react';
 import { createPortal } from 'react-dom';
+import { couleurPersonne } from '../../ui/Avatar';
+import { libelleEditeurs, useAutresPresents, usePresenceElement } from '../../presence';
 import type { Mep } from '../../types';
 import { BoutonIcone, Button } from '../../ui/Button';
 import { cn } from '../../ui/cn';
@@ -371,13 +374,17 @@ export function CercleDialog({
   );
 }
 
+const AUCUNE: string[] = [];
+
 /**
- * En-tête de la vue d'une section : fil d'Ariane (MEP / Plan / Section), titre et description, systèmes modifiables,
- * cercles d'entrée et de sortie (« + » pour en ajouter, clic pour les nommer), bac et suppression.
+ * Bandeau de la vue d'une section, posé dans le cadre du graphe (il reste visible en plein écran) : « Retour au plan »
+ * (Échap), fil d'Ariane, qui d'autre y travaille, titre et description, systèmes, auteur, cercles d'entrée et de sortie
+ * (« + » pour en ajouter, clic pour les nommer), bac et suppression.
  */
 export function EnTeteVueSection({
   mep,
   section,
+  etapeIds = AUCUNE,
   libellePlan,
   descriptions,
   modifiable,
@@ -389,6 +396,8 @@ export function EnTeteVueSection({
 }: {
   mep: Mep;
   section: Section;
+  /** Étapes de la section : qui en modifie une travaille dans la section. */
+  etapeIds?: string[];
   libellePlan: string;
   descriptions: Map<string, string>;
   modifiable: boolean;
@@ -405,12 +414,18 @@ export function EnTeteVueSection({
     setTitre(section.titre);
     setDescription(section.description);
   }, [section.titre, section.description]);
+  // Les autres voient « X modifie » sur la section dans le plan tant que sa vue d'édition est ouverte ici.
+  usePresenceElement(`section:${section.id}`, modifiable);
+  const autres = useAutresPresents();
+  const dansSection = autres.filter((p) =>
+    p.elements.some((e) => e === `section:${section.id}` || etapeIds.some((id) => e === `etape:${id}`)),
+  );
   const enregistrer = (p: Partial<{ titre: string; description: string; systemeIds: string[] }>) =>
     void onModifier({ titre: section.titre, description: section.description, systemeIds: section.systemeIds, ...p });
 
   const rangee = (sens: SensCercle) => (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="w-16 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+      <span className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
         {sens === 'Entree' ? 'Entrées' : 'Sorties'}
       </span>
       {cerclesTries(section, sens).map((c) => (
@@ -442,66 +457,40 @@ export function EnTeteVueSection({
   );
 
   return (
-    <div className="grid gap-3 rounded-xl border border-line bg-surface p-3 shadow-sm">
-      <nav aria-label="Fil d’Ariane" className="flex flex-wrap items-center gap-1 text-[13px] text-fg-subtle">
-        <span>{mep.outil}</span>
-        <ChevronRight className="size-3.5" aria-hidden />
-        <button type="button" onClick={onRetour} className="underline-offset-2 hover:text-fg hover:underline">
-          {libellePlan}
-        </button>
-        <ChevronRight className="size-3.5" aria-hidden />
-        <span aria-current="page" className="font-semibold text-fg">
-          {section.titre}
-        </span>
-      </nav>
-      <div className="flex flex-wrap items-start gap-3">
-        <div className="grid min-w-64 flex-1 gap-1">
-          {modifiable ? (
-            <>
-              <input
-                aria-label="Titre de la section"
-                value={titre}
-                onChange={(e) => setTitre(e.target.value)}
-                onBlur={() => titre.trim() && titre.trim() !== section.titre && enregistrer({ titre: titre.trim() })}
-                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                className="rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-lg font-semibold tracking-tight hover:border-line focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none"
-              />
-              <input
-                aria-label="Description de la section"
-                value={description}
-                placeholder="Description (facultative)"
-                onChange={(e) => setDescription(e.target.value)}
-                onBlur={() =>
-                  description.trim() !== section.description && enregistrer({ description: description.trim() })
-                }
-                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                className="rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] text-fg-muted placeholder:text-fg-subtle hover:border-line focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none"
-              />
-            </>
-          ) : (
-            <>
-              <h2 className="text-lg font-semibold tracking-tight">{section.titre}</h2>
-              {section.description && <p className="text-[13px] text-fg-muted">{section.description}</p>}
-            </>
-          )}
-          <p className="px-1.5 text-xs text-fg-subtle">
-            {section.auteur && <>Créée par {section.auteur} · </>}
-            {section.placee ? 'Placée dans le plan' : 'Dans le bac : pas encore placée dans le plan'}
-          </p>
-        </div>
-        <div className="w-full min-w-56 sm:w-72">
-          <MultiSelect
-            options={optionsSystemes(mep, descriptions)}
-            valeurs={section.systemeIds}
-            onChange={(ids) => enregistrer({ systemeIds: ids })}
-            placeholder="Systèmes de la section : aucun"
-            placeholderRecherche="Rechercher un système…"
-            vide="Aucun système dans la MEP."
-            disabled={!modifiable}
-          />
-        </div>
+    <section aria-label={`Section « ${section.titre} »`} className="grid gap-2 bg-accent-soft/40 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <Button
+          taille="sm"
+          variante="primaire"
+          icone={<ArrowLeft className="size-4" aria-hidden />}
+          onClick={onRetour}
+          title="Retour au plan (Échap)"
+          aria-keyshortcuts="Escape"
+        >
+          Retour au plan
+        </Button>
+        <nav aria-label="Fil d’Ariane" className="flex min-w-0 flex-wrap items-center gap-1 text-[13px] text-fg-subtle">
+          <span>{mep.outil}</span>
+          <ChevronRight className="size-3.5" aria-hidden />
+          <button type="button" onClick={onRetour} className="underline-offset-2 hover:text-fg hover:underline">
+            {libellePlan}
+          </button>
+          <ChevronRight className="size-3.5" aria-hidden />
+          <span aria-current="page" className="font-semibold text-fg">
+            Section {section.titre}
+          </span>
+        </nav>
+        {dansSection.length > 0 && (
+          <span
+            role="status"
+            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
+            style={{ backgroundColor: couleurPersonne(dansSection[0].nom) }}
+          >
+            {libelleEditeurs(dansSection)} dans cette section
+          </span>
+        )}
         {modifiable && (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="ml-auto flex flex-wrap gap-1.5">
             <Button
               taille="sm"
               icone={
@@ -522,8 +511,57 @@ export function EnTeteVueSection({
           </div>
         )}
       </div>
-      {rangee('Entree')}
-      {rangee('Sortie')}
+      <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5">
+        <div className="grid min-w-64 flex-1 gap-0.5">
+          {modifiable ? (
+            <>
+              <input
+                aria-label="Titre de la section"
+                value={titre}
+                onChange={(e) => setTitre(e.target.value)}
+                onBlur={() => titre.trim() && titre.trim() !== section.titre && enregistrer({ titre: titre.trim() })}
+                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                className="rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-base font-semibold tracking-tight hover:border-line focus:border-accent focus:bg-surface focus:ring-2 focus:ring-accent/30 focus:outline-none"
+              />
+              <input
+                aria-label="Description de la section"
+                value={description}
+                placeholder="Description (facultative)"
+                onChange={(e) => setDescription(e.target.value)}
+                onBlur={() =>
+                  description.trim() !== section.description && enregistrer({ description: description.trim() })
+                }
+                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                className="rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] text-fg-muted placeholder:text-fg-subtle hover:border-line focus:border-accent focus:bg-surface focus:ring-2 focus:ring-accent/30 focus:outline-none"
+              />
+            </>
+          ) : (
+            <>
+              <h2 className="px-1.5 text-base font-semibold tracking-tight">{section.titre}</h2>
+              {section.description && <p className="px-1.5 text-[13px] text-fg-muted">{section.description}</p>}
+            </>
+          )}
+          <p className="px-1.5 text-xs text-fg-subtle">
+            {section.auteur && <>Créée par {section.auteur} · </>}
+            {section.placee ? 'Placée dans le plan' : 'Dans le bac : pas encore placée dans le plan'}
+          </p>
+        </div>
+        <div className="w-full min-w-56 sm:w-72">
+          <MultiSelect
+            options={optionsSystemes(mep, descriptions)}
+            valeurs={section.systemeIds}
+            onChange={(ids) => enregistrer({ systemeIds: ids })}
+            placeholder="Systèmes de la section : aucun"
+            placeholderRecherche="Rechercher un système…"
+            vide="Aucun système dans la MEP."
+            disabled={!modifiable}
+          />
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5">
+        {rangee('Entree')}
+        {rangee('Sortie')}
+      </div>
       <ConfirmDialog
         open={suppr}
         onOpenChange={setSuppr}
@@ -533,6 +571,6 @@ export function EnTeteVueSection({
         variante="danger"
         onConfirmer={onSupprimer}
       />
-    </div>
+    </section>
   );
 }

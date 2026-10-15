@@ -105,3 +105,69 @@ export function milieuLien(points: Point[]): Point {
   if (!meilleur) return points[0] ?? { x: 0, y: 0 };
   return { x: (meilleur.a.x + meilleur.b.x) / 2, y: (meilleur.a.y + meilleur.b.y) / 2 };
 }
+
+/** Distance d'un point à un segment. */
+function distanceSegment(p: Point, a: Point, b: Point): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const l2 = dx * dx + dy * dy;
+  const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+
+/**
+ * Liens qui passent à moins de `tolerance` du point (coordonnées du graphe), du plus proche au plus lointain. Sur un tronçon
+ * partagé (liens fusionnés par une même source ou une même cible), tous les liens qui l'empruntent sont rendus.
+ */
+export function liensAuPoint(routes: ReadonlyMap<string, Point[]>, p: Point, tolerance: number): string[] {
+  const res: { id: string; d: number }[] = [];
+  for (const [id, pts] of routes) {
+    let d = Infinity;
+    for (let i = 1; i < pts.length; i++) d = Math.min(d, distanceSegment(p, pts[i - 1], pts[i]));
+    if (d <= tolerance) res.push({ id, d });
+  }
+  return res.sort((a, b) => a.d - b.d || a.id.localeCompare(b.id)).map((x) => x.id);
+}
+
+/**
+ * Croisements et superpositions entre les tracés de liens distincts : deux segments qui se coupent (hors extrémités
+ * communes), et deux segments colinéaires qui se recouvrent alors que les liens n'ont ni la même source ni la même cible.
+ */
+export function compterCroisements(
+  routes: ReadonlyMap<string, Point[]>,
+  bouts: ReadonlyMap<string, { source: string; cible: string }>,
+): { croisements: number; superpositions: number } {
+  const segs: { id: string; a: Point; b: Point }[] = [];
+  for (const [id, pts] of routes) for (const s of segments(simplifier(pts))) segs.push({ id, a: s.a, b: s.b });
+  let croisements = 0;
+  let superpositions = 0;
+  const e = 0.5;
+  for (let i = 0; i < segs.length; i++)
+    for (let j = i + 1; j < segs.length; j++) {
+      const s = segs[i];
+      const t = segs[j];
+      if (s.id === t.id) continue;
+      const hs = Math.abs(s.a.y - s.b.y) < e;
+      const ht = Math.abs(t.a.y - t.b.y) < e;
+      const [sx1, sx2] = [Math.min(s.a.x, s.b.x), Math.max(s.a.x, s.b.x)];
+      const [sy1, sy2] = [Math.min(s.a.y, s.b.y), Math.max(s.a.y, s.b.y)];
+      const [tx1, tx2] = [Math.min(t.a.x, t.b.x), Math.max(t.a.x, t.b.x)];
+      const [ty1, ty2] = [Math.min(t.a.y, t.b.y), Math.max(t.a.y, t.b.y)];
+      if (hs !== ht) {
+        // Un horizontal, un vertical : croisement strict (pas à un bout).
+        const [h, v] = hs ? [s, t] : [t, s];
+        const [hx1, hx2] = [Math.min(h.a.x, h.b.x), Math.max(h.a.x, h.b.x)];
+        const [vy1, vy2] = [Math.min(v.a.y, v.b.y), Math.max(v.a.y, v.b.y)];
+        if (v.a.x > hx1 + e && v.a.x < hx2 - e && h.a.y > vy1 + e && h.a.y < vy2 - e) croisements++;
+        continue;
+      }
+      const bs = bouts.get(s.id);
+      const bt = bouts.get(t.id);
+      if (bs && bt && (bs.source === bt.source || bs.cible === bt.cible)) continue;
+      const recouvre = hs
+        ? Math.abs(s.a.y - t.a.y) < e && Math.min(sx2, tx2) - Math.max(sx1, tx1) > 2
+        : Math.abs(s.a.x - t.a.x) < e && Math.min(sy2, ty2) - Math.max(sy1, ty1) > 2;
+      if (recouvre) superpositions++;
+    }
+  return { croisements, superpositions };
+}

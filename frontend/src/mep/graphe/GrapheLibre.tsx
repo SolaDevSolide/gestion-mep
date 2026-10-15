@@ -9,10 +9,9 @@ import {
   type Node,
   type NodeChange,
   type Connection,
-  type EdgeChange,
   applyNodeChanges,
 } from '@xyflow/react';
-import { Map as IconeCarte, Maximize, Maximize2, Minimize2, Search, ZoomIn, ZoomOut } from 'lucide-react';
+import { Map as IconeCarte, Maximize, Maximize2, Minimize2, Plus, Search, ZoomIn, ZoomOut } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import {
   useCallback,
@@ -26,8 +25,9 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import type { Etape, Mep, TypePlan } from '../../types';
-import { BoutonIcone } from '../../ui/Button';
+import { PresentsMep } from '../../presence';
+import type { Etape, Mep, ModeleEtape, TypePlan } from '../../types';
+import { BoutonIcone, Button } from '../../ui/Button';
 import { cn } from '../../ui/cn';
 import type { Deplacement, PlaceEtape } from './apiGraphe';
 import { CarteEtape, type ModeGraphe } from './CarteEtape';
@@ -35,6 +35,8 @@ import { deplacementPour, interpreterConnexion, type CibleDepot } from './connex
 import { ContexteGraphe, type ValeurGraphe } from './contexteGraphe';
 import { EtapeFlottante } from './EtapesModeles';
 import { MarqueursLiens, TYPES_LIENS, type DonneesLien } from './LienGraphe';
+import { MenuLabel } from '../../ui/Menu';
+import { ContenuMenuLien, EntreesCreation, MenuAuPoint, type ChoixCreation } from './MenusGraphe';
 import { construireModele, idSection, type LienModele, type ModeleGraphe } from './modeleGraphe';
 import { TYPES_NOEUDS, type DonneesNoeud } from './NoeudsGraphe';
 import {
@@ -46,7 +48,7 @@ import {
   type Rangement,
   type Taille,
 } from './rangement';
-import { sautsDesLiens } from './routage';
+import { liensAuPoint, sautsDesLiens } from './routage';
 import { infoSection, type Section } from './sections';
 import { useRangement } from './useRangement';
 
@@ -110,9 +112,27 @@ interface Props {
   lateral?: ReactNode;
   /** Espace d'une étape ouvert en panneau à droite : le plein écran lui laisse sa place. */
   retraitDroit?: boolean;
+  /** Bandeau d'informations dans le cadre, sous la barre d'outils (résumé, messages, en-tête de la section éditée). */
+  bandeau?: ReactNode;
+  /** Plein écran tenu par l'écran (il reste actif quand on entre dans une section ou qu'on en sort). */
+  plein?: boolean;
+  onPlein?: (plein: boolean) => void;
+  /** Création depuis une étape modèle, proposée avec « Étape vierge » dans chaque menu de création. */
+  creation?: {
+    /** Les plus utilisées pour les systèmes de la MEP. */
+    modeles: ModeleEtape[];
+    depuisModele: (place: PlaceEtape, m: ModeleEtape) => void;
+    /** Ouvre la bibliothèque ; l'étape choisie sera posée à cette place. */
+    parcourir: (place: PlaceEtape) => void;
+  };
 }
 
 type NoeudRf = Node<DonneesNoeud>;
+
+/** Menu ouvert sur le graphe : celui d'un lien (choisir parmi des liens fusionnés, insérer, supprimer) ou de création. */
+type MenuOuvert =
+  | { type: 'lien'; point: { x: number; y: number }; ids: string[] }
+  | { type: 'creation'; point: { x: number; y: number }; place: PlaceEtape; ancre: string | null; titre: string };
 type LienRf = Edge<DonneesLien>;
 
 /** Point du pointeur (souris ou doigt) d'un événement de glisser. */
@@ -132,10 +152,11 @@ function placeProvisoire(e: Etape | undefined, i: number) {
 }
 
 /**
- * Superposition (React Flow en mode manuel) : cadres des sections dépliées, puis liens, puis cartes, titres et cercles (un
- * lien ne passe jamais sur une carte), et la carte glissée au-dessus de tout.
+ * Superposition (React Flow en mode manuel) : cadres des sections dépliées, puis liens (ceux mis en avant au-dessus des autres,
+ * tronçons partagés compris), puis cartes, titres et cercles (un lien ne passe jamais sur une carte), et la carte glissée
+ * au-dessus de tout.
  */
-const Z = { cadre: 0, lien: 1, noeud: 2, glisse: 10 };
+const Z = { cadre: 0, lien: 1, lienEnAvant: 2, noeud: 3, glisse: 10 };
 
 /** Nœuds qu'on peut glisser : cartes (liens ou ordre) et sections (ordre seulement). */
 const GLISSABLE = new Set(['etape', 'section', 'cadre']);
@@ -163,7 +184,8 @@ function noeudsDepuis(
       position,
       data: { etapeId: n.etapeId, sectionId: n.sectionId, cercleId: n.cercleId },
       ...(n.parent ? { parentId: n.parent } : {}),
-      draggable: edition && GLISSABLE.has(n.nature),
+      // Dans le plan, l'intérieur d'une section dépliée est en lecture seule : ses cartes ne se glissent pas.
+      draggable: edition && GLISSABLE.has(n.nature) && !n.parent,
       selectable: false,
       connectable: edition,
       focusable: false,
@@ -266,6 +288,8 @@ function Graphe(props: Props) {
     outils,
     lateral,
     retraitDroit = false,
+    bandeau,
+    creation,
   } = props;
   const edition = mode === 'edition' && modifiable;
   const placement = edition && !!flottante;
@@ -288,7 +312,10 @@ function Graphe(props: Props) {
 
   // ---------- Cadre : hauteur de la fenêtre, plein écran.
   const cadre = useRef<HTMLDivElement>(null);
-  const [plein, setPlein] = useState(false);
+  const [pleinLocal, setPleinLocal] = useState(false);
+  const plein = props.plein ?? pleinLocal;
+  const onPlein = props.onPlein;
+  const setPlein = useCallback((v: boolean) => (onPlein ? onPlein(v) : setPleinLocal(v)), [onPlein]);
   const hauteur = useHauteurDisponible(cadre, !plein);
   useEffect(() => {
     if (!plein) return undefined;
@@ -300,7 +327,7 @@ function Graphe(props: Props) {
     };
     window.addEventListener('keydown', echap);
     return () => window.removeEventListener('keydown', echap);
-  }, [plein]);
+  }, [plein, setPlein]);
   const [miniCarte, setMiniCarte] = useState(lireMiniCarte);
   const basculerMiniCarte = () =>
     setMiniCarte((v) => {
@@ -518,9 +545,22 @@ function Graphe(props: Props) {
 
   // ---------- Liens affichés : tracé d'ELK, sauts aux croisements, mise en avant.
   const [lienSelectionne, setLienSelectionne] = useState<string | null>(null);
-  const [lienActif, setLienActif] = useState<string | null>(null);
+  // Liens sous le pointeur : plusieurs quand le pointeur est sur un tronçon partagé (liens fusionnés).
+  const [survol, setSurvol] = useState<readonly string[]>([]);
+  const [menu, setMenu] = useState<MenuOuvert | null>(null);
+  // Lien sous le pointeur ou le focus dans le menu de choix (liens fusionnés) : mis en avant seul.
+  const [candidat, setCandidat] = useState<string | null>(null);
   const liensParId = useMemo(() => new Map(modeleAffiche.liens.map((l) => [l.id, l])), [modeleAffiche]);
   const sauts = useMemo(() => sautsDesLiens(range?.rangement.routes ?? new Map()), [range]);
+  // Dans le plan, l'intérieur d'une section dépliée (ses étapes, ses cercles) se lit seulement : on le modifie dans la vue
+  // de la section. Les cercles restent reliables depuis le dehors.
+  const parentDe = useMemo(() => new Map(modeleAffiche.noeuds.map((n) => [n.id, n.parent ?? null])), [modeleAffiche]);
+  const interieur = useCallback((id: string) => !!parentDe.get(id), [parentDe]);
+  const lienInterne = useCallback((l: LienModele) => interieur(l.source) && interieur(l.cible), [interieur]);
+  const lienModifiable = useCallback(
+    (l: LienModele) => edition && !!l.logique && !lienInterne(l),
+    [edition, lienInterne],
+  );
   const fait = useCallback(
     (l: LienModele) => {
       if (mode !== 'execution') return false;
@@ -531,7 +571,7 @@ function Graphe(props: Props) {
     },
     [mode, parId, etapesParSection],
   );
-  const inserer = useCallback(
+  const poser = useCallback(
     (l: LienModele) => {
       if (!l.logique) return;
       derniereAncre.current = l.cible;
@@ -553,6 +593,22 @@ function Graphe(props: Props) {
     (l: LienModele) => `Lien ${nomNoeud(l.source)} vers ${nomNoeud(l.cible)}`,
     [nomNoeud],
   );
+  const flecheLien = useCallback((l: LienModele) => `${nomNoeud(l.source)} → ${nomNoeud(l.cible)}`, [nomNoeud]);
+  const enAvant = useMemo<ValeurGraphe['enAvant']>(() => {
+    if (glisse) return null;
+    const visesMenu = menu?.type === 'lien' ? (candidat ? [candidat] : menu.ids) : [];
+    const actifs = (visesMenu.length ? visesMenu : survol.length ? survol : lienSelectionne ? [lienSelectionne] : [])
+      .map((id) => liensParId.get(id))
+      .filter((l): l is LienModele => !!l);
+    if (actifs.length)
+      return {
+        liens: new Set(actifs.map((l) => l.id)),
+        noeuds: new Set(actifs.flatMap((l) => [l.source, l.cible])),
+      };
+    if (!selection) return null;
+    const ids = modeleAffiche.liens.filter((x) => x.source === selection || x.cible === selection).map((x) => x.id);
+    return ids.length ? { liens: new Set(ids), noeuds: new Set([selection]) } : null;
+  }, [glisse, menu, candidat, survol, lienSelectionne, liensParId, selection, modeleAffiche]);
   const liens = useMemo<LienRf[]>(
     () =>
       modeleAffiche.liens.map((l) => ({
@@ -562,56 +618,181 @@ function Graphe(props: Props) {
         sourceHandle: l.sourcePoignee,
         target: l.cible,
         targetHandle: l.ciblePoignee,
-        selectable: edition,
-        focusable: edition,
+        // Survol et sélection sont calculés sur les tracés (tronçons partagés compris), pas par React Flow.
+        selectable: false,
+        // Atteignable au clavier (Tab puis Entrée ouvre son menu).
+        focusable: true,
         selected: lienSelectionne === l.id,
         ariaLabel: libelleLien(l),
-        zIndex: Z.lien,
+        zIndex: enAvant?.liens.has(l.id) ? Z.lienEnAvant : Z.lien,
         data: {
           lien: l,
           route: range?.rangement.routes.get(l.id),
           sauts: sauts.get(l.id),
           fait: fait(l),
-          actif: lienActif === l.id,
-          onInserer: actions.ajouter ? inserer : undefined,
-          onSupprimer: actions.supprimerLien,
+          onPoser: placement && lienModifiable(l) ? poser : undefined,
         },
       })),
-    [modeleAffiche, range, sauts, edition, lienSelectionne, lienActif, fait, actions, inserer, libelleLien],
+    [modeleAffiche, range, sauts, lienSelectionne, enAvant, fait, placement, lienModifiable, poser, libelleLien],
   );
-  const onEdgesChange = useCallback((changes: EdgeChange<LienRf>[]) => {
-    for (const c of changes)
-      if (c.type === 'select') setLienSelectionne((s) => (c.selected ? c.id : s === c.id ? null : s));
-  }, []);
-  const enAvant = useMemo<ValeurGraphe['enAvant']>(() => {
-    if (glisse) return null;
-    const actif = lienActif ?? lienSelectionne;
-    const l = actif ? liensParId.get(actif) : undefined;
-    if (l) return { liens: new Set([l.id]), noeuds: new Set([l.source, l.cible]) };
-    if (!selection) return null;
-    const ids = modeleAffiche.liens.filter((x) => x.source === selection || x.cible === selection).map((x) => x.id);
-    return ids.length ? { liens: new Set(ids), noeuds: new Set([selection]) } : null;
-  }, [glisse, lienActif, lienSelectionne, liensParId, selection, modeleAffiche]);
+
+  /** Liens dont le tracé passe sous ce point de l'écran (tolérance de quelques pixels, quel que soit le zoom). */
+  const liensSous = useCallback(
+    (x: number, y: number): string[] => {
+      const routes = rangeRef.current?.rangement.routes;
+      if (!routes) return [];
+      const p = rf.screenToFlowPosition({ x, y });
+      return liensAuPoint(routes, p, 7 / rf.getViewport().zoom).filter((id) => liensParId.has(id));
+    },
+    [rf, liensParId],
+  );
+  /** Le pointeur est-il sur le fond (ou le fond d'un cadre déplié), là où un lien peut être visé ? */
+  const surLeFond = (el: EventTarget | null) => {
+    if (!(el instanceof Element)) return false;
+    const noeud = el.closest('.react-flow__node');
+    if (noeud) return noeud.classList.contains('react-flow__node-cadre');
+    return !!el.closest('.react-flow__pane, .react-flow__edges');
+  };
+  const survoler = (ev: PointerEventReact<HTMLDivElement>) => {
+    if (glisse || trace || menu || ev.buttons) return;
+    const ids = surLeFond(ev.target) ? liensSous(ev.clientX, ev.clientY) : [];
+    setSurvol((a) => (a.length === ids.length && a.every((x, i) => x === ids[i]) ? a : ids));
+  };
+
+  // ---------- Menus : celui d'un lien et ceux de création (« Étape vierge » ou « Depuis un modèle »).
+  const choixCreation = (place: PlaceEtape, ancre: string | null): ChoixCreation | undefined =>
+    creation && actions.ajouter
+      ? {
+          modeles: creation.modeles,
+          onVierge: () => {
+            derniereAncre.current = ancre;
+            actions.ajouter?.(place);
+          },
+          onModele: (m) => {
+            derniereAncre.current = ancre;
+            creation.depuisModele(place, m);
+          },
+          onParcourir: () => creation.parcourir(place),
+        }
+      : undefined;
+  /** Création à une place : menu « Étape vierge / Depuis un modèle », sauf quand une copie attend d'être posée. */
+  const demanderCreation = (place: PlaceEtape, ancre: string | null, el: Element | null, titre: string) => {
+    if (!actions.ajouter) return;
+    if (placement || !creation) {
+      derniereAncre.current = ancre;
+      actions.ajouter(place);
+      return;
+    }
+    const r = el?.getBoundingClientRect();
+    setMenu({ type: 'creation', point: r ? { x: r.left, y: r.bottom } : { x: 0, y: 0 }, place, ancre, titre });
+  };
+  const demanderCreationRef = useRef(demanderCreation);
+  demanderCreationRef.current = demanderCreation;
+  /** Clic sur le fond : sélectionne le lien visé (ou propose de choisir parmi ceux qui passent là) et ouvre son menu. */
+  const cliquerFond = (ev: { clientX: number; clientY: number; target: EventTarget | null }) => {
+    const ids = surLeFond(ev.target) ? liensSous(ev.clientX, ev.clientY) : [];
+    if (ids.length === 0) {
+      setLienSelectionne(null);
+      return;
+    }
+    if (placement) {
+      const l = ids.map((id) => liensParId.get(id)).find((x): x is LienModele => !!x && lienModifiable(x));
+      if (l) poser(l);
+      return;
+    }
+    setSurvol([]);
+    setCandidat(null);
+    if (ids.length === 1) setLienSelectionne(ids[0]);
+    // En exécution ou en lecture, un clic met le lien en avant ; le menu sert seulement à choisir parmi des liens fusionnés.
+    if (edition || ids.length > 1) setMenu({ type: 'lien', point: { x: ev.clientX, y: ev.clientY }, ids });
+  };
+  /** Contenu du menu ouvert. */
+  const contenuMenu = (m: MenuOuvert): ReactNode => {
+    if (m.type === 'creation') {
+      const choix = choixCreation(m.place, m.ancre);
+      return (
+        choix && (
+          <>
+            <MenuLabel>{m.titre}</MenuLabel>
+            <EntreesCreation choix={choix} />
+          </>
+        )
+      );
+    }
+    const choisis = m.ids.map((id) => liensParId.get(id)).filter((l): l is LienModele => !!l);
+    if (choisis.length > 1)
+      return (
+        <ContenuMenuLien
+          titre={`${choisis.length} liens passent ici : lequel ?`}
+          candidats={choisis.map((l) => ({ id: l.id, libelle: flecheLien(l) }))}
+          onCandidat={setCandidat}
+          onChoisirLien={(id) => {
+            setLienSelectionne(id);
+            setCandidat(null);
+            if (edition) setMenu({ ...m, ids: [id] });
+            else setMenu(null);
+          }}
+        />
+      );
+    const l = choisis[0];
+    if (!l) return null;
+    const sectionInterne = lienInterne(l) ? parentDe.get(l.source) : null;
+    const note = !edition
+      ? undefined
+      : sectionInterne
+        ? 'Lien à l’intérieur d’une section : il se modifie dans la vue de la section.'
+        : !l.logique
+          ? 'Lien d’une section repliée : dépliez-la ou ouvrez-la pour agir sur un lien précis.'
+          : undefined;
+    return (
+      <ContenuMenuLien
+        titre={flecheLien(l)}
+        note={note}
+        onOuvrirSection={
+          sectionInterne && actions.editerSection
+            ? () => actions.editerSection?.(sectionInterne.replace(/^s:/, ''))
+            : undefined
+        }
+        creation={lienModifiable(l) && l.logique ? choixCreation({ entre: l.logique }, l.cible) : undefined}
+        onSupprimer={
+          lienModifiable(l) && actions.supprimerLien
+            ? () => {
+                actions.supprimerLien?.(l);
+                setLienSelectionne(null);
+              }
+            : undefined
+        }
+      />
+    );
+  };
 
   // ---------- Glisser une carte : cible sous le pointeur (lien, carte, ou place dans sa rangée), indicateur, dépôt.
   const cibleSous = useCallback(
     (x: number, y: number, exclu: string | null): CibleDepot | null => {
       for (const el of document.elementsFromPoint(x, y)) {
         const n = el.closest('.react-flow__node');
-        if (n) {
-          const id = n.getAttribute('data-id');
-          if (id && id !== exclu && parId.has(id)) return { type: 'carte', id };
-          continue;
-        }
-        const lien = el.closest('.react-flow__edge');
-        if (lien) {
-          const l = liensParId.get(lien.getAttribute('data-id') ?? '');
-          if (l?.logique) return { type: 'lien', lien: l };
-        }
+        if (!n) continue;
+        if (n.classList.contains('react-flow__node-cadre')) break;
+        const id = n.getAttribute('data-id');
+        // L'intérieur d'une section dépliée ne se modifie que dans sa vue.
+        if (id && id !== exclu && parId.has(id) && !interieur(id)) return { type: 'carte', id };
+        if (id !== exclu) return null;
       }
-      return null;
+      const routes = rangeRef.current?.rangement.routes;
+      const p = rf.screenToFlowPosition({ x, y });
+      const candidats = liensSous(x, y)
+        .map((id) => liensParId.get(id))
+        .filter((l): l is LienModele => !!l && lienModifiable(l) && l.source !== exclu && l.cible !== exclu);
+      if (candidats.length === 0) return null;
+      // Sur un tronçon partagé, le lien dont la flèche est la plus proche du pointeur (la pastille dit lequel).
+      const fin = (l: LienModele) => {
+        const pt = routes?.get(l.id)?.at(-1);
+        return pt ? Math.hypot(pt.x - p.x, pt.y - p.y) : Infinity;
+      };
+      const lien = [...candidats].sort((a, b) => fin(a) - fin(b))[0];
+      return { type: 'lien', lien };
     },
-    [parId, liensParId],
+    [parId, interieur, rf, liensSous, liensParId, lienModifiable],
   );
   const cleCible = (c: CibleDepot | null) => (c === null ? '' : c.type === 'carte' ? `c|${c.id}` : `l|${c.lien.id}`);
   const memeCible = (a: CibleDepot | null, b: CibleDepot | null) => cleCible(a) === cleCible(b);
@@ -684,15 +865,15 @@ function Graphe(props: Props) {
   const [clone, setClone] = useState<{ x: number; y: number } | null>(null);
   const appuyerFlottante = (ev: PointerEventReact<HTMLDivElement>) => {
     if (!flottante) return;
-    const fin = (e: PointerEvent, poser: boolean) => {
+    const fin = (e: PointerEvent, deposer: boolean) => {
       window.removeEventListener('pointermove', bouger);
       window.removeEventListener('pointerup', lacher);
       window.removeEventListener('pointercancel', annuler);
       setClone(null);
       setGlisse(null);
-      const c = poser ? cibleSous(e.clientX, e.clientY, null) : null;
+      const c = deposer ? cibleSous(e.clientX, e.clientY, null) : null;
       setCible(null);
-      if (!poser) return;
+      if (!deposer) return;
       const dansGraphe = document
         .elementsFromPoint(e.clientX, e.clientY)
         .some((el) => el.closest('[data-graphe-libre]'));
@@ -730,9 +911,11 @@ function Graphe(props: Props) {
         etapes,
         sections,
       );
+      // Deux bouts à l'intérieur de sections dépliées : ce lien se trace dans la vue de la section.
+      if (interieur(c.source) && interieur(c.target) && parentDe.get(c.source) === parentDe.get(c.target)) return false;
       return !!a && a.type !== 'refus';
     },
-    [etapes, sections],
+    [etapes, sections, interieur, parentDe],
   );
 
   // ---------- Navigation : zoom, ajuster, aller à une étape par son code.
@@ -770,13 +953,30 @@ function Graphe(props: Props) {
 
   function clavier(ev: KeyboardEvent<HTMLDivElement>) {
     if (ev.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName)) return;
+    // Lien atteint au clavier (Tab) : Entrée ouvre son menu, comme un clic.
+    const g = ev.target instanceof Element ? ev.target.closest('.react-flow__edge') : null;
+    const idFocus = g?.getAttribute('data-id');
+    if ((ev.key === 'Enter' || ev.key === ' ') && g && idFocus && liensParId.has(idFocus)) {
+      ev.preventDefault();
+      const r = g.getBoundingClientRect();
+      setLienSelectionne(idFocus);
+      if (edition)
+        setMenu({ type: 'lien', point: { x: r.left + r.width / 2, y: r.top + r.height / 2 }, ids: [idFocus] });
+      return;
+    }
     if ((ev.key === 'Delete' || ev.key === 'Backspace') && lienSelectionne && edition) {
       const l = liensParId.get(lienSelectionne);
-      if (l) {
-        ev.preventDefault();
+      if (!l) return;
+      ev.preventDefault();
+      if (lienModifiable(l)) {
         actions.supprimerLien?.(l);
         setLienSelectionne(null);
-      }
+      } else
+        onMessage?.(
+          lienInterne(l)
+            ? 'Ce lien est à l’intérieur d’une section : supprimez-le dans la vue de la section.'
+            : 'Ce lien représente une section repliée : dépliez-la pour agir sur un lien précis.',
+        );
     } else if (ev.key === 'Escape' && lienSelectionne) {
       ev.preventDefault();
       setLienSelectionne(null);
@@ -808,10 +1008,15 @@ function Graphe(props: Props) {
         onSelection(id);
       },
       onAjouter: actions.ajouter
-        ? (place, ancre) => {
-            derniereAncre.current = ancre;
-            actions.ajouter?.(place);
-          }
+        ? (place, ancre, el) =>
+            demanderCreationRef.current(
+              place,
+              ancre,
+              el,
+              'apres' in place
+                ? `Nouvelle étape après ${code(ancre ?? '')}`
+                : `Nouvelle étape en parallèle de ${code(ancre ?? '')}`,
+            )
         : undefined,
       onBasculer: (id) => {
         derniereAncre.current = idSection(id);
@@ -843,6 +1048,7 @@ function Graphe(props: Props) {
       actions,
       onBasculer,
       deplies,
+      code,
     ],
   );
 
@@ -907,7 +1113,29 @@ function Graphe(props: Props) {
             <div className="shrink-0 [&>div]:!static [&>div]:!shadow-none [&_button]:whitespace-nowrap">{enTete}</div>
           )}
           <div className="ml-auto flex shrink-0 items-center gap-2">
+            {/* Plein écran : qui est sur la MEP reste visible (la page en dessous est masquée). */}
+            {plein && <PresentsMep />}
             {outils}
+            {edition && actions.ajouter && (
+              <Button
+                taille="sm"
+                icone={<Plus className="size-4" aria-hidden />}
+                aria-haspopup={placement || !creation ? undefined : 'menu'}
+                onClick={(e) =>
+                  placement
+                    ? actions.ajouter?.({})
+                    : demanderCreation(
+                        {},
+                        null,
+                        e.currentTarget,
+                        sectionVue ? 'Nouvelle étape dans la section' : 'Nouvelle étape à part',
+                      )
+                }
+                title={placement ? 'Poser la copie à part, sans lien' : 'Créer une étape à part, sans lien'}
+              >
+                {placement ? 'Poser à part' : 'Étape'}
+              </Button>
+            )}
             <form
               role="search"
               className="relative"
@@ -941,17 +1169,28 @@ function Graphe(props: Props) {
               label={plein ? 'Quitter le plein écran (Échap)' : 'Plan en plein écran'}
               taille="sm"
               aria-pressed={plein}
-              onClick={() => setPlein((v) => !v)}
+              onClick={() => setPlein(!plein)}
             >
               {plein ? <Minimize2 className="size-4" aria-hidden /> : <Maximize2 className="size-4" aria-hidden />}
             </BoutonIcone>
           </div>
         </div>
 
+        {bandeau && <div className="shrink-0 border-b border-line">{bandeau}</div>}
+
         <div className="flex min-h-0 flex-1">
-          {/* Raccourcis délégués (Suppr, Échap) : les touches viennent des liens focusables du graphe. */}
+          {/* Raccourcis délégués (Entrée, Suppr, Échap) : les touches viennent des liens focusables du graphe. Survol des
+              liens calculé sur leurs tracés (un tronçon partagé désigne tous les liens qui y passent). */}
           {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-          <div ref={zone} data-graphe-libre onKeyDown={clavier} className="relative min-w-0 flex-1">
+          <div
+            ref={zone}
+            data-graphe-libre
+            data-survol-lien={survol.length > 0 || undefined}
+            onKeyDown={clavier}
+            onPointerMove={survoler}
+            onPointerLeave={() => setSurvol([])}
+            className="relative min-w-0 flex-1"
+          >
             <MarqueursLiens />
             <ReactFlow<NoeudRf, LienRf>
               nodes={noeudsAffiches}
@@ -960,17 +1199,17 @@ function Graphe(props: Props) {
               nodeTypes={TYPES_NOEUDS}
               edgeTypes={TYPES_LIENS}
               onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onEdgeMouseEnter={(_, e) => setLienActif(e.id)}
-              onEdgeMouseLeave={(_, e) => setLienActif((a) => (a === e.id ? null : a))}
-              onPaneClick={() => setLienSelectionne(null)}
+              onPaneClick={cliquerFond}
               // Sans gestionnaire de clic, React Flow rend les nœuds non glissables « transparents » au pointeur
-              // (exécution, lecture seule) : la carte gère elle-même son clic.
-              onNodeClick={() => undefined}
+              // (exécution, lecture seule) : la carte gère elle-même son clic. Le fond d'un cadre déplié vise les liens.
+              onNodeClick={(ev, n) => {
+                if (n.type === 'cadre') cliquerFond(ev);
+              }}
               onNodeDragStart={(_, n) => {
                 if (!GLISSABLE.has(n.type ?? '')) return;
                 setLienSelectionne(null);
-                setLienActif(null);
+                setSurvol([]);
+                setMenu(null);
                 rangee.current = actions.ordonner ? releverRangee(n.id) : null;
                 setGlisse(n.id);
               }}
@@ -996,8 +1235,8 @@ function Graphe(props: Props) {
               nodesDraggable={edition}
               nodesConnectable={edition}
               nodesFocusable={false}
-              edgesFocusable={edition}
-              elementsSelectable={edition}
+              edgesFocusable
+              elementsSelectable={false}
               deleteKeyCode={null}
               selectionKeyCode={null}
               multiSelectionKeyCode={null}
@@ -1120,6 +1359,18 @@ function Graphe(props: Props) {
           {lateral}
         </div>
       </div>
+      {menu && (
+        <MenuAuPoint
+          point={menu.point}
+          label={menu.type === 'lien' ? 'Actions du lien' : 'Créer une étape'}
+          onFermer={() => {
+            setMenu(null);
+            setCandidat(null);
+          }}
+        >
+          {contenuMenu(menu)}
+        </MenuAuPoint>
+      )}
       {carteGlissee &&
         clone &&
         createPortal(

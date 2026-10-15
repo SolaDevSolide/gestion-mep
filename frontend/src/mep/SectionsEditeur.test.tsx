@@ -205,6 +205,7 @@ describe('Sections du plan', () => {
     expect(apiGraphe.creerCercle).toHaveBeenCalledWith('m1', 'sb', 'Entree', 'Validation', '');
 
     await userEvent.click(screen.getByRole('button', { name: /^Étape$/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Étape vierge' }));
     expect(apiGraphe.creerEtape).toHaveBeenCalledWith('m1', 'Deploiement', {}, 'sb');
 
     // Le titre s'enregistre en quittant le champ.
@@ -216,6 +217,58 @@ describe('Sections du plan', () => {
       'sb',
       expect.objectContaining({ revision: 1, titre: 'Bascule base' }),
     );
+  });
+
+  it('dans le plan, l’intérieur d’une section dépliée se lit seulement ; on le modifie dans la vue de la section', async () => {
+    window.localStorage.setItem('mep.m1.sections.depliees', JSON.stringify({ sb: true }));
+    rendre(planAvecSections());
+    expect(await screen.findByRole('group', { name: 'Section Bascule BDD, dépliée' })).toBeInTheDocument();
+    // Ni « + » sur les cartes de la section, ni poignée active ; les cartes du plan gardent les leurs.
+    expect(screen.getByRole('button', { name: 'Ajouter une étape après E0001' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ajouter une étape après E0002' })).toBeNull();
+    const carte = screen.getByRole('button', { name: /^E0002 Arrêt/ });
+    const noeud = carte.closest('.react-flow__node') as HTMLElement;
+    expect(noeud.querySelector('.react-flow__handle.connectable')).toBeNull();
+    // Le cercle d'entrée reste reliable depuis le plan, par son côté extérieur seulement.
+    const entree = screen.getByRole('img', { name: 'Entrée Début' }).closest('.react-flow__node') as HTMLElement;
+    expect(entree.querySelector('.react-flow__handle-top.connectable')).not.toBeNull();
+    expect(entree.querySelector('.react-flow__handle-bottom.connectable')).toBeNull();
+
+    // La fiche s'ouvre en lecture, sans verrou ; un bouton mène à la vue de la section.
+    fireEvent.click(carte);
+    expect(await screen.findByText(/Étape de la section « Bascule BDD »/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Action')).toBeNull();
+    expect(apiVerrou.prendre).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Modifier dans la section' }));
+    // La même fiche, maintenant modifiable, au-dessus de la vue de la section (masquée aux lecteurs d'écran tant qu'elle
+    // est ouverte en plein).
+    expect(await screen.findByLabelText('Action')).toHaveValue('Arrêt');
+    expect(screen.getByRole('button', { name: 'Retour au plan', hidden: true })).toBeInTheDocument();
+  });
+
+  it('vue d’une section dans le cadre du plan (plein écran compris) : « Retour au plan », Échap', async () => {
+    rendre(planAvecSections(), '/meps/m1?section=sb');
+    const bandeau = screen.getByRole('region', { name: 'Section « Bascule BDD »' });
+    expect(bandeau.closest('.graphe-libre')).not.toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Plan en plein écran' }));
+    const plein = screen.getByRole('region', { name: 'Plan en plein écran' });
+    expect(within(plein).getByRole('region', { name: 'Section « Bascule BDD »' })).toBeInTheDocument();
+    expect(within(plein).getByRole('navigation', { name: 'Fil d’Ariane' })).toBeInTheDocument();
+    // Échap : retour au plan, toujours en plein écran.
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Section « Bascule BDD »' })).toBeNull());
+    expect(screen.getByRole('region', { name: 'Plan en plein écran' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /^E0001/ })).toBeInTheDocument();
+    // Échap encore : sortie du plein écran.
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Plan en plein écran' })).toBeNull());
+  });
+
+  it('« Retour au plan » depuis la vue d’une section', async () => {
+    rendre(planAvecSections(), '/meps/m1?section=sb');
+    await userEvent.click(screen.getByRole('button', { name: 'Retour au plan' }));
+    expect(await screen.findByRole('button', { name: /^E0001/ })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Fil d’Ariane' })).toBeNull();
   });
 
   it('vue d’une section : remettre dans le bac, supprimer (ses étapes restent)', async () => {

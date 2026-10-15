@@ -1,6 +1,5 @@
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
-import { ArrowDown, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowDown } from 'lucide-react';
 import { useGraphe } from './contexteGraphe';
 import type { LienModele } from './modeleGraphe';
 import type { Point } from './rangement';
@@ -14,10 +13,8 @@ export interface DonneesLien extends Record<string, unknown> {
   sauts?: ReadonlyMap<number, number[]>;
   /** Exécution : tout ce qui part de la source est réussi (lien vert). */
   fait?: boolean;
-  /** Survol du pointeur ou focus clavier (affiche le « + » d'insertion). */
-  actif?: boolean;
-  onInserer?: (l: LienModele) => void;
-  onSupprimer?: (l: LienModele) => void;
+  /** Une copie d'étape modèle attend d'être posée et ce lien peut la recevoir. */
+  onPoser?: (l: LienModele) => void;
 }
 
 type Ton = 'neutre' | 'ok' | 'accent';
@@ -30,13 +27,13 @@ const COULEUR: Record<Ton, string> = {
 
 /**
  * Lien du graphe libre : tracé orthogonal d'ELK (il contourne cartes, cadres et cercles), coudes arrondis, sauts aux
- * croisements, liseré clair qui le détache des liens qu'il croise ; « + » au survol pour insérer une étape, cible d'un dépôt.
+ * croisements, liseré clair qui le détache des liens qu'il croise. Le tracé ne capte pas le pointeur : survol et clic sont
+ * calculés par le graphe sur les tracés, pour viser un lien précis même là où plusieurs liens partagent un tronçon.
  */
 export function LienGraphe(props: EdgeProps) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, selected } = props;
   const d = props.data as DonneesLien;
   const g = useGraphe();
-  const [survol, setSurvol] = useState(false);
   // Tracé d'ELK tant que ses deux bouts sont à leur place ; pendant une animation ou le glisser d'un de ses bouts (ou d'une
   // section, qui emporte ses étapes), un tracé provisoire qui suit les poignées.
   const bouge =
@@ -65,9 +62,7 @@ export function LienGraphe(props: EdgeProps) {
   const enAvant = g.enAvant?.liens.has(id) ?? false;
   const estompe = !!g.enAvant && !enAvant && !vise && !selected;
   const ton: Ton = vise || selected || enAvant ? 'accent' : d.fait ? 'ok' : 'neutre';
-  const montre = g.edition && (d.actif || survol || selected || (g.placement && !!d.lien.logique));
-  const insertion = g.edition && !!d.lien.logique && !!d.onInserer;
-  const epaisseur = vise ? 3.5 : selected || enAvant ? 2.6 : 1.75;
+  const epaisseur = vise ? 3.5 : selected ? 3 : enAvant ? 2.6 : 1.75;
   return (
     <>
       {/* Liseré de la couleur du fond : un lien qui en croise un autre s'en détache nettement. */}
@@ -82,8 +77,9 @@ export function LienGraphe(props: EdgeProps) {
         id={id}
         path={chemin}
         markerEnd={`url(#fleche-${ton})`}
-        interactionWidth={18}
+        interactionWidth={0}
         style={{
+          pointerEvents: 'none',
           stroke: COULEUR[ton],
           strokeWidth: epaisseur,
           strokeDasharray: vise ? '7 5' : undefined,
@@ -102,41 +98,18 @@ export function LienGraphe(props: EdgeProps) {
           </span>
         </EdgeLabelRenderer>
       )}
-      {montre && !vise && (insertion || (selected && d.onSupprimer)) && (
+      {d.onPoser && !vise && (
         <EdgeLabelRenderer>
-          <div
-            className="nodrag nopan pointer-events-auto absolute z-20 flex items-center gap-1"
+          <button
+            type="button"
+            onClick={() => d.onPoser?.(d.lien)}
+            aria-label="Poser la copie sur ce lien"
+            title="Poser la copie sur ce lien"
+            className="nodrag nopan pointer-events-auto absolute z-20 grid size-6 place-content-center rounded-full border-[1.5px] border-accent bg-surface text-accent-text shadow-sm hover:bg-accent hover:text-accent-fg"
             style={{ transform: `translate(${x}px, ${y}px) translate(-50%, -50%)`, left: 0, top: 0 }}
-            onMouseEnter={() => setSurvol(true)}
-            onMouseLeave={() => setSurvol(false)}
           >
-            {insertion && (
-              <button
-                type="button"
-                onClick={() => d.onInserer?.(d.lien)}
-                aria-label={g.placement ? 'Poser la copie sur ce lien' : 'Insérer une étape sur ce lien'}
-                title={g.placement ? 'Poser la copie sur ce lien' : 'Insérer une étape entre ces deux cartes'}
-                className="grid size-6 place-content-center rounded-full border-[1.5px] border-accent bg-surface text-accent-text shadow-sm hover:bg-accent hover:text-accent-fg"
-              >
-                {g.placement ? (
-                  <ArrowDown className="size-3.5" aria-hidden />
-                ) : (
-                  <Plus className="size-3.5" aria-hidden />
-                )}
-              </button>
-            )}
-            {selected && d.onSupprimer && (
-              <button
-                type="button"
-                onClick={() => d.onSupprimer?.(d.lien)}
-                aria-label="Supprimer ce lien"
-                title="Supprimer ce lien (Suppr)"
-                className="grid size-6 place-content-center rounded-full border-[1.5px] border-danger-bd bg-surface text-danger-fg shadow-sm hover:bg-danger-bg"
-              >
-                <Trash2 className="size-3.5" aria-hidden />
-              </button>
-            )}
-          </div>
+            <ArrowDown className="size-3.5" aria-hidden />
+          </button>
         </EdgeLabelRenderer>
       )}
     </>

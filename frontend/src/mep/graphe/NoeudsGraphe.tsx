@@ -1,6 +1,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { ChevronDown, ChevronRight, Pencil, Plus } from 'lucide-react';
 import type { CSSProperties } from 'react';
+import { MarquePresence, useEditeurs } from '../../presence';
 import { cn } from '../../ui/cn';
 import { useGraphe } from './contexteGraphe';
 import { POIGNEE_BAS, POIGNEE_HAUT } from './modeleGraphe';
@@ -27,9 +28,13 @@ function poignee(edition: boolean, extra?: string) {
 const bouton =
   'nodrag nopan absolute grid size-7 place-content-center rounded-full border-[1.5px] border-dashed bg-surface text-accent-text shadow-sm transition-opacity duration-150 hover:border-solid hover:bg-accent hover:text-accent-fg focus-visible:opacity-100';
 
-/** Carte d'une étape : poignées en haut (attend) et en bas (débloque), « + » dessous (après) et à droite (en parallèle). */
-export function NoeudCarte({ data }: NodeProps) {
+/**
+ * Carte d'une étape : poignées en haut (attend) et en bas (débloque), « + » dessous (après) et à droite (en parallèle).
+ * Dans une section dépliée du plan, la carte se lit seulement (ni poignée, ni « + ») : on la modifie dans la vue de la section.
+ */
+export function NoeudCarte({ data, parentId }: NodeProps) {
   const g = useGraphe();
+  const edition = g.edition && !parentId;
   const id = (data as DonneesNoeud).etapeId ?? '';
   const e = g.etapes.get(id);
   if (!e) return <div style={{ width: CARTE.largeur, height: CARTE.hauteur }} aria-hidden />;
@@ -42,7 +47,7 @@ export function NoeudCarte({ data }: NodeProps) {
       mep={g.mep}
       etape={e}
       mode={g.mode}
-      edition={g.edition}
+      edition={edition}
       descriptions={g.descriptions}
       selectionnee={selectionnee}
       estompee={g.estEstompee?.(e)}
@@ -55,24 +60,25 @@ export function NoeudCarte({ data }: NodeProps) {
         type="target"
         id={POIGNEE_HAUT}
         position={Position.Top}
-        isConnectable={g.edition}
-        className={poignee(g.edition)}
+        isConnectable={edition}
+        className={poignee(edition)}
       />
       <Handle
         type="source"
         id={POIGNEE_BAS}
         position={Position.Bottom}
-        isConnectable={g.edition}
-        title="Tirer vers l’étape qui doit attendre celle-ci"
-        className={poignee(g.edition)}
+        isConnectable={edition}
+        title={edition ? 'Tirer vers l’étape qui doit attendre celle-ci' : undefined}
+        className={poignee(edition)}
       />
-      {g.edition && g.onAjouter && (
+      {edition && g.onAjouter && (
         <>
           <button
             type="button"
             aria-label={`${ajout} après ${e.code}`}
             title={`${ajout} après ${e.code} (elle l’attendra)`}
-            onClick={() => g.onAjouter?.({ apres: id }, id)}
+            aria-haspopup={g.placement ? undefined : 'menu'}
+            onClick={(ev) => g.onAjouter?.({ apres: id }, id, ev.currentTarget)}
             className={cn(bouton, 'top-[calc(100%+16px)] left-1/2 -ml-3.5', visible)}
           >
             <Plus className="size-4" aria-hidden />
@@ -81,7 +87,8 @@ export function NoeudCarte({ data }: NodeProps) {
             type="button"
             aria-label={`${ajout} en parallèle de ${e.code}`}
             title={`${ajout} en parallèle de ${e.code} (mêmes préalables, mêmes suivants)`}
-            onClick={() => g.onAjouter?.({ paralleleA: id }, id)}
+            aria-haspopup={g.placement ? undefined : 'menu'}
+            onClick={(ev) => g.onAjouter?.({ paralleleA: id }, id, ev.currentTarget)}
             className={cn(bouton, 'top-1/2 left-[calc(100%+10px)] -mt-3.5', visible)}
           >
             <Plus className="size-4" aria-hidden />
@@ -221,8 +228,15 @@ export function NoeudSection({ data }: NodeProps) {
       {cerclesTries(s, 'Sortie').map((c) => (
         <CercleBord key={c.id} cercle={c} x={g.cercles.get(c.id)} edition={g.edition} />
       ))}
+      <PresenceSection id={id} />
     </div>
   );
+}
+
+/** « X modifie » sur une section dont quelqu'un a ouvert la vue d'édition. */
+function PresenceSection({ id }: { id: string }) {
+  const editeurs = useEditeurs(`section:${id}`);
+  return <MarquePresence editeurs={editeurs} />;
 }
 
 /** Section dépliée : cadre qui contient ses étapes et ses cercles (rendus par React Flow comme nœuds enfants). */
@@ -236,8 +250,10 @@ export function NoeudCadre({ data }: NodeProps) {
       data-section={id}
       role="group"
       aria-label={`Section ${s.titre}, dépliée`}
-      className="size-full rounded-2xl border-2 border-dashed border-accent/60 bg-accent-soft/40"
-    />
+      className="relative size-full rounded-2xl border-2 border-dashed border-accent/60 bg-accent-soft/40"
+    >
+      <PresenceSection id={id} />
+    </div>
   );
 }
 
@@ -253,8 +269,11 @@ export function NoeudTitreCadre({ data }: NodeProps) {
   );
 }
 
-/** Cercle d'une section dépliée ou de la vue de la section : un repère nommé, pas une étape. */
-export function NoeudCercle({ data }: NodeProps) {
+/**
+ * Cercle d'une section dépliée ou de la vue de la section : un repère nommé, pas une étape. Dans le plan, seul son côté
+ * extérieur se relie (le haut d'une entrée, le bas d'une sortie) : ses liens vers l'intérieur se tracent dans la vue.
+ */
+export function NoeudCercle({ data, parentId }: NodeProps) {
   const g = useGraphe();
   const id = (data as DonneesNoeud).cercleId ?? '';
   const sectionId = (data as DonneesNoeud).sectionId ?? '';
@@ -281,8 +300,8 @@ export function NoeudCercle({ data }: NodeProps) {
           type="target"
           id={POIGNEE_HAUT}
           position={Position.Top}
-          isConnectable={g.edition}
-          className={poignee(g.edition)}
+          isConnectable={g.edition && !(parentId && !entree)}
+          className={poignee(g.edition && !(parentId && !entree))}
         />
       )}
       {ouvrir ? (
@@ -308,8 +327,8 @@ export function NoeudCercle({ data }: NodeProps) {
           type="source"
           id={POIGNEE_BAS}
           position={Position.Bottom}
-          isConnectable={g.edition}
-          className={poignee(g.edition)}
+          isConnectable={g.edition && !(parentId && entree)}
+          className={poignee(g.edition && !(parentId && entree))}
         />
       )}
     </div>
