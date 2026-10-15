@@ -254,7 +254,11 @@ public record EtapeSaisie(int? Revision, string? Action, List<Guid>? SystemeIds,
     FinEtape? Fin = null, string? SauvegardeEmplacement = null, string? SauvegardeMethodeRecuperation = null,
     List<EnvironnementEtapeSaisie>? Environnements = null);
 
-public record PlacerSaisie(int? Ligne, int? Position, bool LiensParDefaut = true);
+/// <summary>
+/// Déplacement d'une étape dans le graphe : <c>Ligne</c> affichée (le nombre de lignes = nouvelle ligne en bas), <c>Position</c> dans la
+/// ligne. <c>NouvelleLigne</c> : l'étape ouvre une ligne à elle, insérée juste au-dessus de <c>Ligne</c> (glisser entre deux lignes).
+/// </summary>
+public record PlacerSaisie(int? Ligne, int? Position, bool LiensParDefaut = true, bool NouvelleLigne = false);
 public record RevisionSaisie(int? Revision);
 public record PriseDeMainSaisie(int? Revision, string? Motif);
 public record ResponsableTechniqueSaisie(Guid? ParticipantId, List<Guid>? SystemeIds, string? Perimetre, DisponibiliteJourJ? Disponibilite, string? ContactJourJ);
@@ -303,9 +307,10 @@ public record ModeleEtapeSaisie(int? Version, string? Action, List<Guid>? System
 public record ModeleEtapeDepuisEtapeSaisie(Guid? MepId, Guid? EtapeId, string? Action);
 /// <summary>
 /// Insertion d'une copie d'étape modèle dans un plan de la MEP : <c>Ligne</c> absente = nouvelle ligne en bas, <c>Position</c>
-/// absente = en fin de ligne ; <c>Plan</c> absent = déploiement.
+/// absente = en fin de ligne ; <c>Plan</c> absent = déploiement. <c>NouvelleLigne</c> : la copie ouvre une ligne à elle, insérée
+/// juste au-dessus de <c>Ligne</c>.
 /// </summary>
-public record InsertionEtapeModeleSaisie(Guid? ModeleId, TypePlan? Plan = null, int? Ligne = null, int? Position = null);
+public record InsertionEtapeModeleSaisie(Guid? ModeleId, TypePlan? Plan = null, int? Ligne = null, int? Position = null, bool NouvelleLigne = false);
 
 /// <summary>Étape de test que le fichier Excel importé va renseigner.</summary>
 public record ChangementValidationDto(Guid FicheId, Guid EtapeId, string Systeme, string Fiche, int Etape, ResultatControle Resultat,

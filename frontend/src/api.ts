@@ -268,9 +268,17 @@ export const api = {
       ...(ligne === undefined ? {} : { ligne }),
       ...(position === undefined ? {} : { position }),
     }),
-  /** Place une étape (ligne, position dans la ligne) ; `ligne` = nombre de lignes pour une nouvelle ligne en bas. */
-  placerEtape: (id: string, eid: string, ligne: number, position: number, liensParDefaut = true) =>
-    post<Mep>(`/meps/${id}/etapes/${eid}/placer`, { ligne, position, liensParDefaut }),
+  /**
+   * Place une étape (ligne, position dans la ligne) ; `ligne` = nombre de lignes pour une nouvelle ligne en bas.
+   * `nouvelleLigne` : l'étape ouvre une ligne à elle, insérée juste au-dessus de `ligne` (glisser entre deux lignes).
+   */
+  placerEtape: (id: string, eid: string, ligne: number, position: number, nouvelleLigne = false) =>
+    post<Mep>(`/meps/${id}/etapes/${eid}/placer`, {
+      ligne,
+      position,
+      liensParDefaut: true,
+      ...(nouvelleLigne ? { nouvelleLigne } : {}),
+    }),
   autoriserNonRetour: (id: string, eid: string, revision: number) =>
     post<Mep>(`/meps/${id}/etapes/${eid}/autoriser-non-retour`, { revision }),
   modifierEtape: (id: string, eid: string, s: EtapeSaisie) => put<Mep>(`/meps/${id}/etapes/${eid}`, s),
@@ -387,13 +395,24 @@ export const api = {
   /** « Transformer en étape modèle » : copie d'une étape de MEP dans la bibliothèque, sous le nom donné. */
   etapeModeleDepuisEtape: (mepId: string, etapeId: string, action: string) =>
     post<ModeleEtape>('/etapes-modeles/depuis-etape', { mepId, etapeId, action }),
-  /** Insère une copie dans le plan : `ligne` absente = nouvelle ligne en bas, `position` absente = en fin de ligne. */
-  insererEtapeModele: (id: string, modeleId: string, plan: TypePlan, ligne?: number, position?: number) =>
+  /**
+   * Insère une copie dans le plan : `ligne` absente = nouvelle ligne en bas, `position` absente = en fin de ligne ;
+   * `nouvelleLigne` : la copie ouvre une ligne à elle, insérée juste au-dessus de `ligne`.
+   */
+  insererEtapeModele: (
+    id: string,
+    modeleId: string,
+    plan: TypePlan,
+    ligne?: number,
+    position?: number,
+    nouvelleLigne = false,
+  ) =>
     post<Mep>(`/meps/${id}/etapes/depuis-modele`, {
       modeleId,
       plan,
       ...(ligne === undefined ? {} : { ligne }),
       ...(position === undefined ? {} : { position }),
+      ...(nouvelleLigne ? { nouvelleLigne } : {}),
     }),
 
   // Pièces jointes : MEP, étape, résolution exécutée, résolution type.

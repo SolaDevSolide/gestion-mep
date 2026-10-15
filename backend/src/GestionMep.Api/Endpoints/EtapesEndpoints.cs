@@ -121,7 +121,7 @@ public static class EtapesEndpoints
             if (c.Ligne is not { } ligne || ligne < 0 || ligne > nbLignes)
                 throw ErreurHttp.Saisie($"Ligne obligatoire : entre 0 et {nbLignes} (nouvelle ligne en bas).");
             if (c.Position is not { } position || position < 0) throw ErreurHttp.Saisie("Position obligatoire, positive ou nulle.");
-            Regles.Placer(mep, e, ligne, position, c.LiensParDefaut);
+            Regles.Placer(mep, e, ligne, position, c.LiensParDefaut, c.NouvelleLigne);
             return await svc.EnregistrerContenu(mep, acteur, "etape.deplacee", $"{e.Code} placée ligne {e.Ligne + 1}");
         })));
 

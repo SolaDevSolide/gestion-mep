@@ -150,6 +150,59 @@ public class ReglesJalon4Tests
     }
 
     [Fact]
+    public void Placer_entre_deux_lignes_ouvre_une_ligne_a_elle_avec_les_liens_par_defaut()
+    {
+        var m = Demo();
+        // E0001 (ligne 0) glissée entre la ligne 1 (E0004-E0006) et la ligne 2 (E0007).
+        Regles.Placer(m, E(m, "E0001"), 2, 5, liensParDefaut: true, nouvelleLigne: true);
+        Assert.Equal(["E0002", "E0003"], Ligne(m, 0));
+        Assert.Equal(["E0004", "E0005", "E0006"], Ligne(m, 1));
+        Assert.Equal(["E0001"], Ligne(m, 2));
+        Assert.Equal(["E0007"], Ligne(m, 3));
+        Assert.Equal(0, E(m, "E0001").Ordre);
+        Assert.Equal(["E0004", "E0005", "E0006"], Prealables(m, "E0001"));
+        // E0007 attend la ligne 1 à travers E0001 : ses liens directs vers la ligne 1 sont retirés.
+        Assert.Equal(["E0001"], Prealables(m, "E0007"));
+        Assert.Equal(["E0002", "E0003"], Prealables(m, "E0004"));
+        Assert.Equal(["E0007"], Prealables(m, "E0008"));
+        Assert.Null(Regles.ErreurGraphe(m, TypePlan.Deploiement));
+
+        // Tout en haut : nouvelle première ligne.
+        Regles.Placer(m, E(m, "E0009"), 0, 0, liensParDefaut: true, nouvelleLigne: true);
+        Assert.Equal(["E0009"], Ligne(m, 0));
+        Assert.Equal(["E0002", "E0003"], Ligne(m, 1));
+        Assert.Empty(Prealables(m, "E0009"));
+        Assert.Equal(["E0009"], Prealables(m, "E0002"));
+        Assert.Null(Regles.ErreurGraphe(m, TypePlan.Deploiement));
+    }
+
+    [Fact]
+    public void Une_etape_seule_inseree_juste_au_dessus_ou_en_dessous_d_elle_meme_ne_bouge_pas()
+    {
+        var m = Demo();
+        Regles.DefinirDependances(m, E(m, "E0008"), [E(m, "E0005").Id]); // lien particulier, à garder
+        var avant = m.Etapes.ToDictionary(e => e.Code, e => (e.Ligne, e.Ordre, string.Join(",", e.Dependances), e.Revision));
+        Regles.Placer(m, E(m, "E0008"), 3, 0, liensParDefaut: true, nouvelleLigne: true);
+        Regles.Placer(m, E(m, "E0008"), 4, 0, liensParDefaut: true, nouvelleLigne: true);
+        foreach (var e in m.Etapes) Assert.Equal(avant[e.Code], (e.Ligne, e.Ordre, string.Join(",", e.Dependances), e.Revision));
+    }
+
+    [Fact]
+    public void Une_nouvelle_etape_peut_ouvrir_une_ligne_entre_deux_lignes()
+    {
+        var m = Demo();
+        var nouvelle = new Etape { MepId = m.Id, Code = "E0010" };
+        Regles.PlacerNouvelle(m, nouvelle, 1, null, nouvelleLigne: true);
+        m.Etapes.Add(nouvelle);
+        Regles.RelierParDefaut(m, nouvelle, lignePropre: true);
+        Assert.Equal(["E0010"], Ligne(m, 1));
+        Assert.Equal(["E0004", "E0005", "E0006"], Ligne(m, 2));
+        Assert.Equal(["E0001", "E0002", "E0003"], Prealables(m, "E0010"));
+        Assert.Equal(["E0010"], Prealables(m, "E0004"));
+        Assert.Throws<RegleMetierException>(() => Regles.PlacerNouvelle(m, new Etape(), 7, null, nouvelleLigne: true));
+    }
+
+    [Fact]
     public void Placer_refuse_une_ligne_inexistante_et_hors_preparation()
     {
         var m = Demo();

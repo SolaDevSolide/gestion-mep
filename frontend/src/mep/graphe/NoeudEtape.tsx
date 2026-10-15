@@ -55,7 +55,11 @@ export function NoeudEtape({
         tabIndex={0}
         aria-pressed={selectionnee}
         aria-label={libelleCarte(mep, e, mode)}
-        aria-keyshortcuts={edition ? 'Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight' : undefined}
+        aria-keyshortcuts={
+          edition
+            ? 'Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight Alt+Shift+ArrowUp Alt+Shift+ArrowDown'
+            : undefined
+        }
         onKeyDown={onClavier}
         // La souris passe par le pointeur (appuyer / relâcher) ; un clic sans pointeur (detail 0) vient d'un lecteur d'écran.
         onClick={(ev) => {

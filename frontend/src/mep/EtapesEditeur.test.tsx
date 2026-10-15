@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { api } from '../api';
@@ -154,13 +154,13 @@ describe('EtapesEditeur : graphe en préparation', () => {
     rendre(planExemple());
     carte(/^E0001/).focus();
     await userEvent.keyboard('{Alt>}{ArrowRight}{/Alt}');
-    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e1', 0, 1);
+    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e1', 0, 1, false);
     expect(screen.queryByRole('dialog')).toBeNull();
     await userEvent.keyboard('{Alt>}{ArrowDown}{/Alt}');
-    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e1', 1, 0);
+    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e1', 1, 0, false);
     carte(/^E0003/).focus();
     await userEvent.keyboard('{Alt>}{ArrowUp}{/Alt}');
-    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e3', 0, 0);
+    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e3', 0, 0, false);
     // Impossible (déjà en tête de ligne, ou seule sur la dernière ligne) : rien n'est envoyé.
     vi.mocked(api.placerEtape).mockClear();
     carte(/^E0001/).focus();
@@ -168,6 +168,34 @@ describe('EtapesEditeur : graphe en préparation', () => {
     carte(/^E0003/).focus();
     await userEvent.keyboard('{Alt>}{ArrowDown}{/Alt}');
     expect(api.placerEtape).not.toHaveBeenCalled();
+  });
+
+  it('Alt + Maj + ↑ / ↓ mettent une fiche sur une ligne à elle', async () => {
+    rendre(planExemple());
+    carte(/^E0002/).focus();
+    await userEvent.keyboard('{Alt>}{Shift>}{ArrowDown}{/Shift}{/Alt}');
+    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e2', 1, 0, true);
+    carte(/^E0003/).focus();
+    await userEvent.keyboard('{Alt>}{Shift>}{ArrowUp}{/Shift}{/Alt}');
+    expect(api.placerEtape).toHaveBeenLastCalledWith('m1', 'e3', 0, 0, true);
+  });
+
+  it('un seul déplacement à la fois : une touche répétée pendant l’enregistrement est ignorée', async () => {
+    let finir: () => void = () => undefined;
+    vi.mocked(api.placerEtape).mockImplementationOnce(
+      () => new Promise<Mep>((ok) => (finir = () => ok(planExemple()))),
+    );
+    rendre(planExemple());
+    carte(/^E0001/).focus();
+    await userEvent.keyboard('{Alt>}{ArrowDown}{/Alt}');
+    await userEvent.keyboard('{Alt>}{ArrowDown}{/Alt}');
+    await userEvent.keyboard('{Alt>}{ArrowRight}{/Alt}');
+    expect(api.placerEtape).toHaveBeenCalledTimes(1);
+    finir();
+    await waitFor(() => expect(screen.getByText(/E0001 déplacée : liens recréés/)).toBeInTheDocument());
+    carte(/^E0001/).focus();
+    await userEvent.keyboard('{Alt>}{ArrowRight}{/Alt}');
+    expect(api.placerEtape).toHaveBeenCalledTimes(2);
   });
 
   it('fiche modifiée par ailleurs pendant la saisie : avertissement avant d’écraser', async () => {
@@ -410,6 +438,41 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(api.ajouterEtape).toHaveBeenLastCalledWith('m1', 'Deploiement', undefined);
   });
 
+  it('double clic sur « Nouvelle ligne » : une seule étape créée', async () => {
+    let finir: () => void = () => undefined;
+    vi.mocked(api.ajouterEtape).mockImplementationOnce(
+      () => new Promise<Mep>((ok) => (finir = () => ok(planExemple()))),
+    );
+    rendre(planExemple());
+    await userEvent.dblClick(screen.getByRole('button', { name: /Nouvelle ligne/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape sur la ligne 1' }));
+    expect(api.ajouterEtape).toHaveBeenCalledTimes(1);
+    await act(async () => finir());
+    await userEvent.click(screen.getByRole('button', { name: /Nouvelle ligne/ }));
+    expect(api.ajouterEtape).toHaveBeenCalledTimes(2);
+  });
+
+  it('ajouter une étape pendant une saisie : la saisie n’est pas perdue, l’espace demande quoi en faire', async () => {
+    const m = planExemple();
+    const nouvelle = etape({ id: 'e4', code: 'E0004', action: '', ligne: 0, ordre: 2 });
+    const apres = { ...m, etapes: [...m.etapes, nouvelle] };
+    vi.mocked(api.ajouterEtape).mockResolvedValueOnce(apres);
+    // Panneau latéral : le graphe reste utilisable pendant la saisie.
+    changerModeEspace('panneau');
+    const { rerendre } = rendre(m);
+    await userEvent.click(carte(/^E0003/));
+    await userEvent.type(screen.getByLabelText('Action'), ' bis');
+    await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape sur la ligne 1' }));
+    expect(api.ajouterEtape).toHaveBeenCalledWith('m1', 'Deploiement', 0);
+    rerendre(apres);
+    expect(await screen.findByRole('alertdialog', { name: 'Modifications non enregistrées' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Action')).toHaveValue('Contrôle final bis');
+    await userEvent.click(screen.getByRole('button', { name: 'Changer d’étape sans enregistrer' }));
+    // La nouvelle étape s'ouvre, le focus sur son action.
+    expect(screen.getByLabelText('Action')).toHaveValue('');
+    expect(screen.getByLabelText('Action')).toHaveFocus();
+  });
+
   it('retrait d’un système utilisé par des étapes : refusé avec un message', async () => {
     rendre(planExemple());
     await userEvent.click(screen.getByRole('button', { name: 'Retirer API de la MEP' }));
@@ -545,7 +608,7 @@ describe('EtapesEditeur : étapes modèles', () => {
     expect(api.insererEtapeModele).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: /Poser ici, sur une nouvelle ligne/ })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Poser l’étape sur la ligne 1' }));
-    expect(api.insererEtapeModele).toHaveBeenCalledWith('m1', 'ma', 'Deploiement', 0, undefined);
+    expect(api.insererEtapeModele).toHaveBeenCalledWith('m1', 'ma', 'Deploiement', 0, undefined, false);
     expect(api.ajouterEtape).not.toHaveBeenCalled();
   });
 
@@ -576,7 +639,7 @@ describe('EtapesEditeur : étapes modèles', () => {
     await userEvent.click(within(dialogue).getByRole('button', { name: 'Insérer une copie' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await userEvent.click(screen.getByRole('button', { name: /Poser ici, sur une nouvelle ligne/ }));
-    expect(api.insererEtapeModele).toHaveBeenCalledWith('m1', 'mb', 'Deploiement', undefined, undefined);
+    expect(api.insererEtapeModele).toHaveBeenCalledWith('m1', 'mb', 'Deploiement', undefined, undefined, false);
   });
 
   it('« Transformer en étape modèle » depuis l’espace d’une étape, nom modifiable', async () => {

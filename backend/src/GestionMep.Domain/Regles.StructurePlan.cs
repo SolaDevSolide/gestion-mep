@@ -45,22 +45,28 @@ public static partial class Regles
     /// <summary>
     /// Liens par défaut : l'étape attend toutes les étapes de la ligne au-dessus et est attendue par toutes celles de la ligne
     /// en dessous ; ses autres liens sont retirés. Les étapes voisines modifiées voient leur révision augmenter.
+    /// <paramref name="lignePropre"/> : l'étape vient d'ouvrir une ligne à elle entre deux lignes (voir <see cref="Relier(Mep, Etape, bool)"/>).
     /// </summary>
-    public static void RelierParDefaut(Mep mep, Etape etape)
+    public static void RelierParDefaut(Mep mep, Etape etape, bool lignePropre = false)
     {
         var avant = Instantane(mep, etape.Plan);
-        Relier(mep, etape);
+        Relier(mep, etape, lignePropre);
         IncrementerRevisions(avant, sauf: etape);
     }
 
-    private static void Relier(Mep mep, Etape etape)
+    /// <summary>
+    /// Liens par défaut de l'étape. Si elle vient d'ouvrir une ligne à elle entre deux lignes (<paramref name="lignePropre"/>), la
+    /// ligne en dessous ne garde pas ses liens directs vers la ligne au-dessus : elle l'attend désormais à travers l'étape insérée.
+    /// </summary>
+    private static void Relier(Mep mep, Etape etape, bool lignePropre = false)
     {
         var plan = mep.EtapesDu(etape.Plan).Where(e => e != etape).ToList();
         foreach (var e in plan.Where(e => e.Dependances.Contains(etape.Id)))
             PoserDependances(e, e.Dependances.Where(d => d != etape.Id).ToList());
         etape.Dependances = plan.Where(e => e.Ligne == etape.Ligne - 1).Select(e => e.Id).ToList();
+        var dessus = lignePropre ? etape.Dependances.ToHashSet() : new HashSet<Guid>();
         foreach (var e in plan.Where(e => e.Ligne == etape.Ligne + 1))
-            PoserDependances(e, [.. e.Dependances, etape.Id]);
+            PoserDependances(e, [.. e.Dependances.Where(d => !dessus.Contains(d)), etape.Id]);
     }
 
     /// <summary>Les étapes données qui n'ont plus aucun préalable (hors première ligne) attendent toute la ligne au-dessus d'elles.</summary>
@@ -82,14 +88,17 @@ public static partial class Regles
     /// <summary>
     /// Place une nouvelle étape (pas encore dans <see cref="Mep.Etapes"/> ou ignorée si elle y est) : <paramref name="ligne"/> absente
     /// ou égale au nombre de lignes = nouvelle ligne en bas ; <paramref name="position"/> absente = en fin de ligne (bornée sinon).
+    /// Avec <paramref name="nouvelleLigne"/>, l'étape ouvre une ligne à elle, insérée juste au-dessus de la ligne <paramref name="ligne"/>
+    /// (0 : tout en haut ; le nombre de lignes : en bas).
     /// </summary>
-    public static void PlacerNouvelle(Mep mep, Etape etape, int? ligne, int? position)
+    public static void PlacerNouvelle(Mep mep, Etape etape, int? ligne, int? position, bool nouvelleLigne = false)
     {
         ExigerPreparation(mep);
         var lignes = Lignes(mep, etape.Plan).Select(l => l.Where(e => e != etape).ToList()).Where(l => l.Count > 0).ToList();
         var l = ligne ?? lignes.Count;
         if (l < 0 || l > lignes.Count) throw new RegleMetierException($"Ligne inexistante : choisir une ligne entre 0 et {lignes.Count}.");
-        if (l == lignes.Count) lignes.Add([]);
+        if (nouvelleLigne) lignes.Insert(l, []);
+        else if (l == lignes.Count) lignes.Add([]);
         lignes[l].Insert(Math.Clamp(position ?? lignes[l].Count, 0, lignes[l].Count), etape);
         Renumeroter(lignes);
     }
@@ -98,26 +107,32 @@ public static partial class Regles
     /// Déplace une étape (préparation). Même ligne : simple réordonnancement, liens inchangés. Autre ligne (<paramref name="ligne"/> égale
     /// au nombre de lignes = nouvelle ligne en bas) : liens par défaut si demandé, et ses anciens suivants restés sans préalable attendent
     /// la ligne au-dessus d'eux ; sinon seuls les liens devenus invalides sont retirés. Les lignes vides disparaissent.
+    /// Avec <paramref name="nouvelleLigne"/>, l'étape ouvre une ligne à elle, insérée juste au-dessus de la ligne <paramref name="ligne"/>
+    /// (0 : tout en haut ; le nombre de lignes : en bas) ; une étape déjà seule sur sa ligne, insérée juste au-dessus ou juste en
+    /// dessous d'elle-même, ne bouge pas.
     /// </summary>
-    public static void Placer(Mep mep, Etape etape, int ligne, int position, bool liensParDefaut)
+    public static void Placer(Mep mep, Etape etape, int ligne, int position, bool liensParDefaut, bool nouvelleLigne = false)
     {
         ExigerPreparation(mep);
         var lignes = Lignes(mep, etape.Plan);
         if (ligne < 0 || ligne > lignes.Count) throw new RegleMetierException($"Ligne inexistante : choisir une ligne entre 0 et {lignes.Count}.");
         var depart = lignes.FindIndex(l => l.Contains(etape));
-        var memeLigne = ligne == depart;
+        if (nouvelleLigne && lignes[depart].Count == 1 && (ligne == depart || ligne == depart + 1)) return;
+        var memeLigne = !nouvelleLigne && ligne == depart;
         var anciensSuivants = mep.EtapesDu(etape.Plan).Where(e => e.Dependances.Contains(etape.Id)).ToList();
         var avant = Instantane(mep, etape.Plan);
 
+        // La ligne de départ reste dans la liste (vide si l'étape y était seule) : les indices demandés restent ceux affichés.
         lignes[depart].Remove(etape);
-        if (ligne == lignes.Count) lignes.Add([]);
+        if (nouvelleLigne) lignes.Insert(ligne, []);
+        else if (ligne == lignes.Count) lignes.Add([]);
         lignes[ligne].Insert(Math.Clamp(position, 0, lignes[ligne].Count), etape);
         Renumeroter(lignes);
         if (memeLigne) return;
 
         if (liensParDefaut)
         {
-            Relier(mep, etape);
+            Relier(mep, etape, nouvelleLigne);
             RattacherOrphelins(mep, anciensSuivants);
         }
         NettoyerLiens(mep, etape.Plan);

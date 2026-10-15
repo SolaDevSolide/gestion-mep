@@ -9,7 +9,7 @@ import { CarteEtape, type ModeGraphe } from './CarteEtape';
 import { CoucheLiens } from './CoucheLiens';
 import { EtapeFlottante } from './EtapesModeles';
 import { NoeudEtape } from './NoeudEtape';
-import { transformClone, useGlisserDeposer } from './useGlisserDeposer';
+import { transformClone, useGlisserDeposer, type OptionsPlacer } from './useGlisserDeposer';
 import { useMesureCartes } from './useMesureCartes';
 import { PAS_ZOOM, ZOOM_MAX, ZOOM_MIN, useRecentrerSelection, useZoomVue } from './useZoomVue';
 
@@ -26,8 +26,8 @@ interface Props {
   onSelection: (id: string | null) => void;
   groupeSelection?: string | null;
   onGroupeSelection?: (cle: string | null) => void;
-  /** Déplacement d'une fiche (ligne affichée, position dans la ligne). */
-  onPlacer?: (id: string, ligne: number, position: number, auClavier?: boolean) => void;
+  /** Déplacement d'une fiche (ligne affichée, position dans la ligne ; ou ligne à elle insérée au-dessus de `ligne`). */
+  onPlacer?: (id: string, ligne: number, position: number, options?: OptionsPlacer) => void;
   /** Lien particulier : `vers` attendra `de` (validité déjà vérifiée). */
   onLier?: (de: string, vers: string) => void;
   /** Bloc fantôme : ligne existante, ou null pour une nouvelle ligne en bas. */
@@ -151,7 +151,12 @@ export function GrapheEtapes(props: Props) {
         >
           <div
             ref={graphe}
-            className="absolute top-0 left-0 flex flex-col gap-[46px] px-[150px] pt-7 pb-14 select-none"
+            // En édition, la première ligne commence sous les boutons des étapes modèles (en haut à gauche) : une fiche ne
+            // passe pas dessous tant que la vue n'a pas défilé.
+            className={cn(
+              'absolute top-0 left-0 flex flex-col gap-[46px] px-[150px] pb-14 select-none',
+              enTete ? 'pt-[68px]' : 'pt-7',
+            )}
             style={{
               transform: zoom !== 1 ? `scale(${zoom})` : undefined,
               transformOrigin: '0 0',
@@ -170,7 +175,7 @@ export function GrapheEtapes(props: Props) {
               tirage={!!glisseLien}
               trace={trace}
             />
-            {glisseCarte?.cible && (
+            {glisseCarte?.cible && !glisseCarte.cible.nouvelle && (
               <div
                 aria-hidden
                 className="pointer-events-none absolute z-[3] w-2 rounded bg-accent shadow-[0_0_0_3px_var(--accent-soft)]"
@@ -180,6 +185,19 @@ export function GrapheEtapes(props: Props) {
                   height: Math.max(40, glisseCarte.cible.bas - glisseCarte.cible.haut),
                 }}
               />
+            )}
+            {/* Entre deux lignes : la fiche ouvrira une ligne à elle à cet endroit. */}
+            {glisseCarte?.cible?.nouvelle && (
+              <div
+                data-repere="nouvelle-ligne"
+                aria-hidden
+                className="pointer-events-none absolute z-[3] h-2 -translate-x-1/2 rounded bg-accent shadow-[0_0_0_3px_var(--accent-soft)]"
+                style={{ left: glisseCarte.cible.x, top: glisseCarte.cible.y - 4, width: glisseCarte.cible.largeur }}
+              >
+                <span className="absolute top-1/2 right-[calc(100%+8px)] -translate-y-1/2 rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-accent-fg">
+                  Nouvelle ligne ici
+                </span>
+              </div>
             )}
 
             {lignes.map((ids, r) => {

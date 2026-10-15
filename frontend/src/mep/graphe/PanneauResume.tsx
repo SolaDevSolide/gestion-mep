@@ -44,8 +44,15 @@ export function AideGraphe({ edition }: { edition: boolean }) {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-3 text-[13px]">
         <ul className="grid list-disc gap-1 pl-4">
-          {edition && <li>Glisser une fiche pour la déplacer (liens recréés avec les lignes voisines).</li>}
-          {edition && <li>Au clavier : Alt + flèches sur une fiche pour la déplacer.</li>}
+          {edition && (
+            <li>
+              Glisser une fiche pour la déplacer (liens recréés avec les lignes voisines) ; entre deux lignes, elle
+              ouvre une ligne à elle.
+            </li>
+          )}
+          {edition && (
+            <li>Au clavier : Alt + flèches sur une fiche pour la déplacer, Alt + Maj + ↑ / ↓ pour une ligne à elle.</li>
+          )}
           {edition && <li>Tirer le rond du bas d’une fiche vers celle qui doit l’attendre : lien particulier.</li>}
           {edition && <li>Cliquer un lien pour le sélectionner, Suppr pour le retirer.</li>}
           <li>Glisser le fond pour se déplacer, Ctrl + molette pour zoomer.</li>

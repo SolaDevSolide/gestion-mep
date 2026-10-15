@@ -8650,9 +8650,13 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "nouvelleLigne": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "description": "Insertion d'une copie d'étape modèle dans un plan de la MEP : `Ligne` absente = nouvelle ligne en bas, `Position`\nabsente = en fin de ligne ; `Plan` absent = déploiement."
+        "description": "Insertion d'une copie d'étape modèle dans un plan de la MEP : `Ligne` absente = nouvelle ligne en bas, `Position`\nabsente = en fin de ligne ; `Plan` absent = déploiement. `NouvelleLigne` : la copie ouvre une ligne à elle, insérée\njuste au-dessus de `Ligne`."
       },
       "InsertionModeleRecetteSaisie": {
         "required": [
@@ -11558,8 +11562,13 @@
           "liensParDefaut": {
             "type": "boolean",
             "default": true
+          },
+          "nouvelleLigne": {
+            "type": "boolean",
+            "default": false
           }
-        }
+        },
+        "description": "Déplacement d'une étape dans le graphe : `Ligne` affichée (le nombre de lignes = nouvelle ligne en bas), `Position` dans la\nligne. `NouvelleLigne` : l'étape ouvre une ligne à elle, insérée juste au-dessus de `Ligne` (glisser entre deux lignes)."
       },
       "PlanRepliDto": {
         "required": [

@@ -78,8 +78,9 @@ Le plan de déploiement se dessine comme un graphe, de haut en bas :
 
 - chaque **ligne** contient des étapes qui peuvent se dérouler **en parallèle** ;
 - par défaut, une étape attend toutes celles de la ligne au-dessus ; on peut aussi tracer un lien particulier en tirant le rond du bas d'une étape vers celle qui doit l'attendre ;
-- **glisser-déposer** une étape la déplace sur une autre ligne ou entre deux étapes ;
-- « + Étape » au bout d'une ligne et « + Nouvelle ligne » en bas ajoutent des étapes ;
+- **glisser-déposer** une étape la déplace sur une autre ligne ou entre deux étapes ; lâchée **entre deux lignes** (repère « Nouvelle ligne ici »), elle ouvre une ligne à elle à cet endroit : elle attend la ligne au-dessus et la ligne en dessous l'attend. Près du bord de la zone, la vue défile toute seule ; lâchée hors du graphe (sur l'espace d'une étape ouvert à droite, par exemple), elle ne bouge pas. Déplacer une étape n'ouvre pas son espace d'édition ;
+- au clavier, **Alt + flèches** sur une fiche la déplacent (dans la ligne, ou vers la ligne voisine) et **Alt + Maj + ↑ / ↓** la mettent sur une ligne à elle, juste au-dessus ou en dessous ; la fiche garde le focus pour enchaîner ;
+- « + Étape » au bout d'une ligne et « + Nouvelle ligne » en bas ajoutent des étapes, et l'étape créée s'ouvre. Si l'étape ouverte a une saisie non enregistrée, on choisit d'abord de l'enregistrer ou non : rien n'est perdu. Un double clic ne crée qu'une étape ;
 - en haut à gauche du graphe, **« Étape modèle »** propose les étapes modèles les plus utilisées pour les systèmes de la MEP, et **« Parcourir la bibliothèque »** ouvre la [bibliothèque d'étapes](#la-bibliothèque-détapes) (voir plus bas) ;
 - un lien remonte toujours vers une ligne au-dessus : le plan ne peut pas boucler.
 
@@ -180,7 +181,7 @@ Dans Plan › Étapes, deux boutons sont accolés en haut à gauche du graphe :
 - **« Étape modèle ▾ »** liste les 5 étapes modèles les plus utilisées pour les systèmes de la MEP ;
 - **« Parcourir la bibliothèque »** ouvre une fenêtre construite comme la page : choix du système (limité par défaut aux systèmes de la MEP, « Tous » pour voir les autres), liste triée par utilisations, aperçu de l'étape choisie, puis « Insérer une copie ».
 
-L'étape choisie arrive **flottante** au-dessus du graphe, avec la pastille « À placer » : on la **glisse** sur une ligne (entre deux étapes ou en bout de ligne), ou on clique l'un des blocs **« ↓ Poser ici »** (en bout de ligne) ou **« Poser ici, sur une nouvelle ligne »**. **Échap** annule : rien n'est écrit tant qu'elle n'est pas posée. Une fois posée, c'est une étape ordinaire : nouveau code, liens par défaut avec la ligne au-dessus et la ligne en dessous, pas de point de non-retour. La modifier ne change pas le modèle ; son espace d'édition rappelle « Copie de l'étape modèle « … » », sans marque sur la fiche du graphe.
+L'étape choisie arrive **flottante** au-dessus du graphe, avec la pastille « À placer » : on la **glisse** sur une ligne (entre deux étapes ou en bout de ligne) ou entre deux lignes (elle ouvre alors une ligne à elle), ou on clique l'un des blocs **« ↓ Poser ici »** (en bout de ligne) ou **« Poser ici, sur une nouvelle ligne »**. **Échap** annule : rien n'est écrit tant qu'elle n'est pas posée. Une fois posée, c'est une étape ordinaire : nouveau code, liens par défaut avec la ligne au-dessus et la ligne en dessous, pas de point de non-retour. La modifier ne change pas le modèle ; son espace d'édition rappelle « Copie de l'étape modèle « … » », sans marque sur la fiche du graphe.
 
 Les systèmes du modèle deviennent les systèmes de la MEP issus du même système du catalogue. Si un système du modèle n'est **pas dans la MEP**, il n'est pas ajouté : l'aperçu et le message après la pose le signalent, à vous de l'ajouter aux systèmes impactés si besoin. Les environnements ne font pas partie du modèle : un système qui n'a qu'un environnement dans la MEP le donne à la copie ; s'il en a plusieurs, la copie arrive sans environnement pour ce système, à choisir dans son espace d'édition. Le plan de retour arrière n'accepte que les étapes modèles normales.
 
