@@ -3,6 +3,7 @@ import { MarquePresence, useEditeurs } from '../../presence';
 import type { Etape, Mep } from '../../types';
 import { cn } from '../../ui/cn';
 import { CarteEtape, libelleCarte, type ModeGraphe } from './CarteEtape';
+import { PresentsEtape } from './PresentsGraphe';
 
 interface Props {
   mep: Mep;
@@ -71,6 +72,7 @@ export function NoeudEtape({
         />
         <MarquePresence editeurs={editeurs} />
       </div>
+      <PresentsEtape etapeId={e.id} code={e.code} />
       {children}
     </div>
   );

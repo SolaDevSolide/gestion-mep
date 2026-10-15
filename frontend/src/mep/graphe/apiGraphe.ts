@@ -1,5 +1,5 @@
 import { request } from '../../api';
-import type { Mep, PriseVerrou, SectionCreee, SensCercle, TypePlan, Verrou } from '../../types';
+import type { LienRedondant, Mep, PriseVerrou, SectionCreee, SensCercle, TypePlan, Verrou } from '../../types';
 
 /**
  * Opérations du graphe libre et des sections : appels serveur isolés ici. Chaque écriture renvoie la MEP à jour (le
@@ -17,8 +17,11 @@ export type PlaceEtape =
   /** Étape isolée. */
   | Record<string, never>;
 
-/** Où déplacer une carte : sur un lien (insertion) ou après une carte ; le serveur en déduit la section d'arrivée. */
-export type Deplacement = { surLien: { de: string; vers: string } } | { apres: string };
+/**
+ * Où déplacer une carte : sur un lien (insertion), après une carte ou un cercle, en parallèle d'une carte ; le serveur en
+ * déduit la section d'arrivée.
+ */
+export type Deplacement = { surLien: { de: string; vers: string } } | { apres: string } | { paralleleA: string };
 
 const json = <T>(methode: string, chemin: string, corps?: unknown) =>
   request<T>(methode, chemin, corps ?? (methode === 'GET' || methode === 'DELETE' ? undefined : {}));
@@ -47,6 +50,18 @@ export const apiGraphe = {
   /** `vers` attendra `de` : étapes, ou cercles de section (source d'une entrée, étape d'une section, sortie attendue). */
   lier: (mepId: string, de: string, vers: string) => json<Mep>('POST', `/meps/${mepId}/liens`, { de, vers }),
   delier: (mepId: string, de: string, vers: string) => json<Mep>('POST', `/meps/${mepId}/liens/retirer`, { de, vers }),
+  /** Liens inutiles du plan : « B attend A » alors que B attend déjà A par un autre chemin (cercles compris). */
+  liensRedondants: (mepId: string, plan: TypePlan) =>
+    json<LienRedondant[]>('GET', `/meps/${mepId}/liens/redondants?plan=${plan}`),
+  /**
+   * Retire en une opération les liens montrés (refusé si le plan a changé depuis le calcul) ; ce que chaque étape attend,
+   * directement ou non, ne change pas.
+   */
+  optimiserLiens: (mepId: string, plan: TypePlan, liens: { de: string; vers: string }[]) =>
+    json<Mep>('POST', `/meps/${mepId}/liens/optimiser`, {
+      plan,
+      liens: liens.map(({ de, vers }) => ({ de, vers })),
+    }),
 
   /** Nouvelle section (dans le bac sauf `placee`), avec ses cercles « Début » et « Fin ». */
   creerSection: (mepId: string, plan: TypePlan, titre: string, systemeIds: string[], placee = false) =>

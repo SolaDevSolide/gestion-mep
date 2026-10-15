@@ -31,7 +31,16 @@ import { BoutonIcone, Button } from '../../ui/Button';
 import { cn } from '../../ui/cn';
 import type { Deplacement, PlaceEtape } from './apiGraphe';
 import { CarteEtape, type ModeGraphe } from './CarteEtape';
-import { deplacementPour, interpreterConnexion, type CibleDepot } from './connexions';
+import {
+  chercherCible,
+  fantomePour,
+  type Boite,
+  type CarteDepot,
+  type CercleDepot,
+  type Fantome,
+  type Geometrie,
+} from './cibleDepot';
+import { deplacementPour, interpreterConnexion, placePour, type CibleDepot } from './connexions';
 import { ContexteGraphe, type ValeurGraphe } from './contexteGraphe';
 import { EtapeFlottante } from './EtapesModeles';
 import { MarqueursLiens, TYPES_LIENS, type DonneesLien } from './LienGraphe';
@@ -75,7 +84,8 @@ export interface ActionsGraphe {
   lier?: (de: string, vers: string) => void;
   supprimerLien?: (l: LienModele) => void;
   ouvrirCercle?: (cercleId: string) => void;
-  editerSection?: (sectionId: string) => void;
+  /** Ouvre la vue d'édition d'une section (et, si donnée, la fiche d'une de ses étapes). */
+  editerSection?: (sectionId: string, etapeId?: string) => void;
 }
 
 interface Props {
@@ -117,6 +127,8 @@ interface Props {
   /** Plein écran tenu par l'écran (il reste actif quand on entre dans une section ou qu'on en sort). */
   plein?: boolean;
   onPlein?: (plein: boolean) => void;
+  /** « Optimiser les liens » : liens (tels que le serveur les connaît) qui seront retirés, en rouge en attendant la confirmation. */
+  retraits?: ReadonlyArray<{ de: string; vers: string }> | null;
   /** Création depuis une étape modèle, proposée avec « Étape vierge » dans chaque menu de création. */
   creation?: {
     /** Les plus utilisées pour les systèmes de la MEP. */
@@ -290,6 +302,7 @@ function Graphe(props: Props) {
     retraitDroit = false,
     bandeau,
     creation,
+    retraits = null,
   } = props;
   const edition = mode === 'edition' && modifiable;
   const placement = edition && !!flottante;
@@ -609,6 +622,7 @@ function Graphe(props: Props) {
     const ids = modeleAffiche.liens.filter((x) => x.source === selection || x.cible === selection).map((x) => x.id);
     return ids.length ? { liens: new Set(ids), noeuds: new Set([selection]) } : null;
   }, [glisse, menu, candidat, survol, lienSelectionne, liensParId, selection, modeleAffiche]);
+  const aRetirer = useMemo(() => new Set((retraits ?? []).map((r) => `${r.de}>${r.vers}`)), [retraits]);
   const liens = useMemo<LienRf[]>(
     () =>
       modeleAffiche.liens.map((l) => ({
@@ -624,16 +638,32 @@ function Graphe(props: Props) {
         focusable: true,
         selected: lienSelectionne === l.id,
         ariaLabel: libelleLien(l),
-        zIndex: enAvant?.liens.has(l.id) ? Z.lienEnAvant : Z.lien,
+        zIndex:
+          enAvant?.liens.has(l.id) || (l.logique && aRetirer.has(`${l.logique.de}>${l.logique.vers}`))
+            ? Z.lienEnAvant
+            : Z.lien,
         data: {
           lien: l,
           route: range?.rangement.routes.get(l.id),
           sauts: sauts.get(l.id),
           fait: fait(l),
           onPoser: placement && lienModifiable(l) ? poser : undefined,
+          retire: !!l.logique && aRetirer.has(`${l.logique.de}>${l.logique.vers}`),
         },
       })),
-    [modeleAffiche, range, sauts, lienSelectionne, enAvant, fait, placement, lienModifiable, poser, libelleLien],
+    [
+      modeleAffiche,
+      range,
+      sauts,
+      lienSelectionne,
+      enAvant,
+      fait,
+      placement,
+      lienModifiable,
+      poser,
+      libelleLien,
+      aRetirer,
+    ],
   );
 
   /** Liens dont le tracé passe sous ce point de l'écran (tolérance de quelques pixels, quel que soit le zoom). */
@@ -766,35 +796,63 @@ function Graphe(props: Props) {
     );
   };
 
-  // ---------- Glisser une carte : cible sous le pointeur (lien, carte, ou place dans sa rangée), indicateur, dépôt.
-  const cibleSous = useCallback(
-    (x: number, y: number, exclu: string | null): CibleDepot | null => {
-      for (const el of document.elementsFromPoint(x, y)) {
-        const n = el.closest('.react-flow__node');
-        if (!n) continue;
-        if (n.classList.contains('react-flow__node-cadre')) break;
-        const id = n.getAttribute('data-id');
-        // L'intérieur d'une section dépliée ne se modifie que dans sa vue.
-        if (id && id !== exclu && parId.has(id) && !interieur(id)) return { type: 'carte', id };
-        if (id !== exclu) return null;
+  // ---------- Glisser une carte : cible sous le pointeur (lien, carte, cercle, ou place dans sa rangée), aperçu, dépôt.
+  // La géométrie (cartes, cercles, tracés) est relevée au début du geste : rien n'est lu dans le DOM pendant le mouvement.
+  const geometrie = useRef<{ geo: Geometrie; boites: Map<string, Boite> } | null>(null);
+  const releverGeometrie = useCallback(
+    (exclu: string | null) => {
+      const boites = new Map<string, Boite>();
+      const cartes: CarteDepot[] = [];
+      const cercles: CercleDepot[] = [];
+      const parNoeud = new Map(modeleAffiche.noeuds.map((n) => [n.id, n]));
+      for (const n of rf.getNodes()) {
+        const i = rf.getInternalNode(n.id);
+        if (!i) continue;
+        const b: Boite = {
+          x: i.internals.positionAbsolute.x,
+          y: i.internals.positionAbsolute.y,
+          largeur: i.measured.width ?? 0,
+          hauteur: i.measured.height ?? 0,
+        };
+        boites.set(n.id, b);
+        if (n.id === exclu) continue;
+        const m = parNoeud.get(n.id);
+        // L'intérieur d'une section dépliée ne se modifie que dans sa vue ; après un cercle de sortie, on est dehors.
+        if (n.type === 'etape' && parId.has(n.id) && !interieur(n.id)) cartes.push({ id: n.id, ...b });
+        else if (n.type === 'cercle' && m?.cercleId && (!interieur(n.id) || m.sens === 'Sortie'))
+          cercles.push({ id: m.cercleId, noeud: n.id, ...b });
+        else if (n.type === 'section' && m && !interieur(n.id))
+          // Section repliée : ses cercles de sortie sur le bord bas.
+          for (const c of m.sorties ?? []) {
+            const x = range?.rangement.cercles.get(c.id) ?? b.largeur / 2;
+            cercles.push({ id: c.id, noeud: n.id, x: b.x + x - 10, y: b.y + b.hauteur - 10, largeur: 20, hauteur: 20 });
+          }
       }
       const routes = rangeRef.current?.rangement.routes;
-      const p = rf.screenToFlowPosition({ x, y });
-      const candidats = liensSous(x, y)
-        .map((id) => liensParId.get(id))
-        .filter((l): l is LienModele => !!l && lienModifiable(l) && l.source !== exclu && l.cible !== exclu);
-      if (candidats.length === 0) return null;
-      // Sur un tronçon partagé, le lien dont la flèche est la plus proche du pointeur (la pastille dit lequel).
-      const fin = (l: LienModele) => {
-        const pt = routes?.get(l.id)?.at(-1);
-        return pt ? Math.hypot(pt.x - p.x, pt.y - p.y) : Infinity;
-      };
-      const lien = [...candidats].sort((a, b) => fin(a) - fin(b))[0];
-      return { type: 'lien', lien };
+      const liensVisables = modeleAffiche.liens
+        .filter((l) => lienModifiable(l) && l.source !== exclu && l.cible !== exclu)
+        .map((l) => ({ lien: l, route: routes?.get(l.id) ?? [] }))
+        .filter((l) => l.route.length > 1);
+      geometrie.current = { geo: { cartes, cercles, liens: liensVisables }, boites };
     },
-    [parId, interieur, rf, liensSous, liensParId, lienModifiable],
+    [rf, modeleAffiche, parId, interieur, lienModifiable, range],
   );
-  const cleCible = (c: CibleDepot | null) => (c === null ? '' : c.type === 'carte' ? `c|${c.id}` : `l|${c.lien.id}`);
+  const cibleSous = useCallback(
+    (x: number, y: number): CibleDepot | null => {
+      const g = geometrie.current;
+      if (!g) return null;
+      return chercherCible(rf.screenToFlowPosition({ x, y }), g.geo, rf.getViewport().zoom);
+    },
+    [rf],
+  );
+  const cleCible = (c: CibleDepot | null) =>
+    c === null
+      ? ''
+      : c.type === 'carte'
+        ? `c|${c.id}|${c.parallele ? 'p' : 'a'}`
+        : c.type === 'cercle'
+          ? `o|${c.noeud}|${c.id}`
+          : `l|${c.lien.id}`;
   const memeCible = (a: CibleDepot | null, b: CibleDepot | null) => cleCible(a) === cleCible(b);
   const majCible = useCallback((c: CibleDepot | null) => setCible((avant) => (memeCible(avant, c) ? avant : c)), []);
 
@@ -850,7 +908,7 @@ function Graphe(props: Props) {
       }
       const d = c ? deplacementPour(id, c) : null;
       if (d && actions.deplacer) {
-        derniereAncre.current = c?.type === 'carte' ? c.id : (c?.lien.cible ?? null);
+        derniereAncre.current = c?.type === 'carte' ? c.id : c?.type === 'lien' ? c.lien.cible : (c?.noeud ?? null);
         actions.deplacer(id, d);
         return;
       }
@@ -861,38 +919,90 @@ function Graphe(props: Props) {
     [actions, onMessage, modeleAffiche, range, parId, edition],
   );
 
-  // Copie flottante d'une étape modèle : glisser au pointeur, même cible qu'une carte.
-  const [clone, setClone] = useState<{ x: number; y: number } | null>(null);
+  // Un seul calcul de cible par image, quel que soit le nombre d'événements du pointeur (glisser fluide).
+  const image = useRef<{ id: number; x: number; y: number; suite: (x: number, y: number) => void } | null>(null);
+  const parImage = useCallback((x: number, y: number, suite: (x: number, y: number) => void) => {
+    const en = image.current;
+    if (en) {
+      en.x = x;
+      en.y = y;
+      en.suite = suite;
+      return;
+    }
+    const nouvelle = {
+      id: window.requestAnimationFrame(() => {
+        image.current = null;
+        nouvelle.suite(nouvelle.x, nouvelle.y);
+      }),
+      x,
+      y,
+      suite,
+    };
+    image.current = nouvelle;
+  }, []);
+  const annulerImage = useCallback(() => {
+    if (image.current) window.cancelAnimationFrame(image.current.id);
+    image.current = null;
+  }, []);
+  useEffect(() => annulerImage, [annulerImage]);
+
+  // Copie flottante d'une étape modèle : glisser au pointeur, même cible qu'une carte. La copie suit le pointeur sans
+  // rendu React (transformation posée directement) ; seul un changement de cible rend le graphe.
+  const [clone, setClone] = useState(false);
+  const cloneRef = useRef<HTMLDivElement>(null);
+  const positionClone = useRef({ x: 0, y: 0 });
+  const placerClone = useCallback(() => {
+    const el = cloneRef.current;
+    const { x, y } = positionClone.current;
+    if (el) el.style.transform = `translate(${x - 40}px, ${y - 20}px) scale(${rf.getViewport().zoom})`;
+  }, [rf]);
+  useLayoutEffect(() => {
+    if (clone) placerClone();
+  }, [clone, placerClone]);
   const appuyerFlottante = (ev: PointerEventReact<HTMLDivElement>) => {
     if (!flottante) return;
     const fin = (e: PointerEvent, deposer: boolean) => {
       window.removeEventListener('pointermove', bouger);
       window.removeEventListener('pointerup', lacher);
       window.removeEventListener('pointercancel', annuler);
-      setClone(null);
+      annulerImage();
+      setClone(false);
       setGlisse(null);
-      const c = deposer ? cibleSous(e.clientX, e.clientY, null) : null;
+      const c = deposer ? cibleSous(e.clientX, e.clientY) : null;
+      geometrie.current = null;
       setCible(null);
       if (!deposer) return;
       const dansGraphe = document
         .elementsFromPoint(e.clientX, e.clientY)
         .some((el) => el.closest('[data-graphe-libre]'));
-      if (c?.type === 'carte') actions.ajouter?.({ apres: c.id });
-      else if (c?.type === 'lien' && c.lien.logique) actions.ajouter?.({ entre: c.lien.logique });
+      const place = c ? placePour(c) : null;
+      if (place) actions.ajouter?.(place);
       else if (dansGraphe) actions.ajouter?.({});
     };
     const bouger = (e: PointerEvent) => {
-      setClone({ x: e.clientX, y: e.clientY });
-      majCible(cibleSous(e.clientX, e.clientY, null));
+      positionClone.current = { x: e.clientX, y: e.clientY };
+      placerClone();
+      parImage(e.clientX, e.clientY, (x, y) => majCible(cibleSous(x, y)));
     };
     const lacher = (e: PointerEvent) => fin(e, true);
     const annuler = (e: PointerEvent) => fin(e, false);
+    releverGeometrie(null);
     setGlisse(flottante.etape.id);
-    setClone({ x: ev.clientX, y: ev.clientY });
+    positionClone.current = { x: ev.clientX, y: ev.clientY };
+    setClone(true);
     window.addEventListener('pointermove', bouger);
     window.addEventListener('pointerup', lacher);
     window.addEventListener('pointercancel', annuler);
   };
+
+  // Aperçu du dépôt : la carte à venir (en pointillé) et les liens qui seront créés.
+  const fantome = useMemo(() => {
+    const g = geometrie.current;
+    if (!cible || !glisse || !g) return null;
+    return fantomePour(cible, g.boites, g.geo.cercles, modeleAffiche.liens, range?.rangement.routes ?? new Map(), code);
+    // La géométrie est relevée au début du geste ; l'aperçu suit la cible.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cible, glisse]);
 
   // ---------- Tracer un lien.
   const onConnect = useCallback(
@@ -1083,10 +1193,14 @@ function Graphe(props: Props) {
         : cible?.type === 'lien'
           ? `Lâcher : insérer sur le ${libelleLien(cible.lien).toLowerCase()}`
           : cible?.type === 'carte'
-            ? `Lâcher : placer après ${code(cible.id)} (ses liens changent)`
-            : parId.has(glisse)
-              ? 'Sur un lien : insérer · sur une carte : placer après · à gauche ou à droite dans sa rangée : changer l’ordre'
-              : 'À gauche ou à droite dans sa rangée : changer l’ordre'
+            ? cible.parallele
+              ? `Lâcher : placer en parallèle de ${code(cible.id)} (mêmes préalables, mêmes suivants)`
+              : `Lâcher : placer après ${code(cible.id)} (ses liens changent)`
+            : cible?.type === 'cercle'
+              ? 'Lâcher : placer après ce cercle'
+              : parId.has(glisse)
+                ? 'Sur un lien : insérer · sur une carte : placer après · à gauche ou à droite dans sa rangée : changer l’ordre'
+                : 'À gauche ou à droite dans sa rangée : changer l’ordre'
       : null;
 
   return (
@@ -1205,26 +1319,43 @@ function Graphe(props: Props) {
               onNodeClick={(ev, n) => {
                 if (n.type === 'cadre') cliquerFond(ev);
               }}
+              // Double-clic sur une section (repliée, dépliée ou son titre), ou sur une étape d'une section : sa vue d'édition.
+              onNodeDoubleClick={(_, n) => {
+                if (!actions.editerSection) return;
+                const d = n.data as DonneesNoeud;
+                if (d.sectionId && (n.type === 'section' || n.type === 'cadre' || n.type === 'titre'))
+                  actions.editerSection(d.sectionId);
+                else if (!sectionVue && d.etapeId) {
+                  const sid = parId.get(d.etapeId)?.sectionId;
+                  if (sid) actions.editerSection(sid, d.etapeId);
+                }
+              }}
               onNodeDragStart={(_, n) => {
                 if (!GLISSABLE.has(n.type ?? '')) return;
                 setLienSelectionne(null);
                 setSurvol([]);
                 setMenu(null);
                 rangee.current = actions.ordonner ? releverRangee(n.id) : null;
+                if (n.type === 'etape') releverGeometrie(n.id);
                 setGlisse(n.id);
               }}
               onNodeDrag={(ev, n) => {
                 if (!GLISSABLE.has(n.type ?? '')) return;
                 const p = pointDe(ev);
-                const c = n.type === 'etape' ? cibleSous(p.x, p.y, n.id) : null;
-                majCible(c);
-                const index = c ? null : placeDansRangee(p);
-                setReordre((a) => (index === null ? null : a?.index === index ? a : { index }));
+                const etape = n.type === 'etape';
+                parImage(p.x, p.y, (x, y) => {
+                  const c = etape ? cibleSous(x, y) : null;
+                  majCible(c);
+                  const index = c ? null : placeDansRangee({ x, y });
+                  setReordre((a) => (index === null ? null : a?.index === index ? a : { index }));
+                });
               }}
               onNodeDragStop={(ev, n) => {
                 if (!GLISSABLE.has(n.type ?? '')) return;
                 const p = pointDe(ev);
-                const c = n.type === 'etape' ? cibleSous(p.x, p.y, n.id) : null;
+                annulerImage();
+                const c = n.type === 'etape' ? cibleSous(p.x, p.y) : null;
+                geometrie.current = null;
                 finGlisser(n.id, c, c ? null : placeDansRangee(p));
               }}
               onConnectStart={() => setTrace(true)}
@@ -1252,6 +1383,7 @@ function Graphe(props: Props) {
               proOptions={{ hideAttribution: true }}
               aria-label={sectionVue ? 'Graphe de la section' : 'Graphe des étapes'}
             >
+              {fantome && <ApercuDepot fantome={fantome} />}
               {barre && (
                 <ViewportPortal>
                   <div
@@ -1375,14 +1507,64 @@ function Graphe(props: Props) {
         clone &&
         createPortal(
           <div
+            ref={cloneRef}
             aria-hidden
-            className="pointer-events-none fixed z-50 rounded-lg opacity-90 shadow-lg"
-            style={{ left: clone.x - 40, top: clone.y - 20, transform: `scale(${zoom})`, transformOrigin: '40px 20px' }}
+            data-copie-glissee
+            className={cn(
+              'pointer-events-none fixed top-0 left-0 z-50 rounded-lg shadow-lg transition-opacity duration-100 will-change-transform',
+              // Une cible visée : la copie s'efface pour laisser voir l'aperçu de sa place.
+              cible ? 'opacity-35' : 'opacity-90',
+            )}
+            style={{ transformOrigin: '40px 20px' }}
           >
             <CarteEtape mep={mep} etape={carteGlissee} mode={mode} descriptions={descriptions} />
           </div>,
           document.body,
         )}
     </ContexteGraphe.Provider>
+  );
+}
+
+/** Aperçu du dépôt, dans le repère du graphe : la carte à venir en pointillé et les liens qui seront créés. */
+function ApercuDepot({ fantome }: { fantome: Fantome }) {
+  const { boite: b, liens } = fantome;
+  const xs = [b.x, b.x + b.largeur, ...liens.flatMap((l) => [l.de.x, l.vers.x])];
+  const ys = [b.y, b.y + b.hauteur, ...liens.flatMap((l) => [l.de.y, l.vers.y])];
+  const x0 = Math.min(...xs) - 8;
+  const y0 = Math.min(...ys) - 8;
+  return (
+    <ViewportPortal>
+      <svg
+        aria-hidden
+        data-apercu-depot
+        className="pointer-events-none absolute z-30 overflow-visible"
+        style={{ left: x0, top: y0, width: Math.max(...xs) - x0 + 8, height: Math.max(...ys) - y0 + 8 }}
+      >
+        {liens.map((l) => {
+          const de = { x: l.de.x - x0, y: l.de.y - y0 };
+          const vers = { x: l.vers.x - x0, y: l.vers.y - y0 };
+          // Coude juste au-dessus de la carte visée (lien vers le fantôme) ou juste sous le fantôme (lien qui en part).
+          const milieu = l.vers.y === b.y ? Math.max(de.y + 12, vers.y - 22) : Math.min(de.y + 22, vers.y - 12);
+          return (
+            <path
+              key={`${l.de.x},${l.de.y}>${l.vers.x},${l.vers.y}`}
+              d={`M${de.x},${de.y} V${milieu} H${vers.x} V${vers.y}`}
+              fill="none"
+              strokeDasharray="6 4"
+              strokeWidth={2.5}
+              style={{ stroke: 'var(--accent)' }}
+              markerEnd="url(#fleche-accent)"
+            />
+          );
+        })}
+      </svg>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute z-30 grid place-content-center rounded-lg border-2 border-dashed border-accent bg-accent-soft/70 text-[12px] font-semibold text-accent-text"
+        style={{ left: b.x, top: b.y, width: b.largeur, height: b.hauteur }}
+      >
+        {fantome.libelle}
+      </div>
+    </ViewportPortal>
   );
 }

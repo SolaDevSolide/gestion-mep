@@ -15,14 +15,17 @@ export interface DonneesLien extends Record<string, unknown> {
   fait?: boolean;
   /** Une copie d'étape modèle attend d'être posée et ce lien peut la recevoir. */
   onPoser?: (l: LienModele) => void;
+  /** « Optimiser les liens » : ce lien inutile sera retiré si la personne confirme (rouge, pointillé). */
+  retire?: boolean;
 }
 
-type Ton = 'neutre' | 'ok' | 'accent';
+type Ton = 'neutre' | 'ok' | 'accent' | 'danger';
 
 const COULEUR: Record<Ton, string> = {
   neutre: 'var(--fg-subtle)',
   ok: 'var(--ok-solid)',
   accent: 'var(--accent)',
+  danger: 'var(--danger-solid)',
 };
 
 /**
@@ -60,9 +63,9 @@ export function LienGraphe(props: EdgeProps) {
   }
   const vise = g.cible?.type === 'lien' && g.cible.lien.id === id;
   const enAvant = g.enAvant?.liens.has(id) ?? false;
-  const estompe = !!g.enAvant && !enAvant && !vise && !selected;
-  const ton: Ton = vise || selected || enAvant ? 'accent' : d.fait ? 'ok' : 'neutre';
-  const epaisseur = vise ? 3.5 : selected ? 3 : enAvant ? 2.6 : 1.75;
+  const estompe = !!g.enAvant && !enAvant && !vise && !selected && !d.retire;
+  const ton: Ton = d.retire ? 'danger' : vise || selected || enAvant ? 'accent' : d.fait ? 'ok' : 'neutre';
+  const epaisseur = d.retire ? 3 : vise ? 3.5 : selected ? 3 : enAvant ? 2.6 : 1.75;
   return (
     <>
       {/* Liseré de la couleur du fond : un lien qui en croise un autre s'en détache nettement. */}
@@ -78,11 +81,12 @@ export function LienGraphe(props: EdgeProps) {
         path={chemin}
         markerEnd={`url(#fleche-${ton})`}
         interactionWidth={0}
+        className={d.retire ? 'lien-retire' : undefined}
         style={{
           pointerEvents: 'none',
           stroke: COULEUR[ton],
           strokeWidth: epaisseur,
-          strokeDasharray: vise ? '7 5' : undefined,
+          strokeDasharray: vise ? '7 5' : d.retire ? '6 4' : undefined,
           strokeLinejoin: 'round',
           opacity: estompe ? 0.18 : 1,
           transition: 'opacity 120ms, stroke-width 120ms',

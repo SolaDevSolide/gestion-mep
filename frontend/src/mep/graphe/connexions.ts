@@ -1,5 +1,5 @@
 import type { Etape } from '../../types';
-import type { Deplacement } from './apiGraphe';
+import type { Deplacement, PlaceEtape } from './apiGraphe';
 import { lienAutorise, POIGNEE_BAS, POIGNEE_HAUT, type LienModele } from './modeleGraphe';
 import { infoSection, trouverCercle, type Section } from './sections';
 
@@ -87,15 +87,30 @@ export function interpreterConnexion(c: Connexion, etapes: Etape[], sections: Se
   return null;
 }
 
-/** Cible survolée pendant le glisser d'une carte : une carte (après elle) ou un lien direct (insertion). */
-export type CibleDepot = { type: 'carte'; id: string } | { type: 'lien'; lien: LienModele };
+/**
+ * Cible survolée pendant le glisser d'une carte (ou de la copie d'une étape modèle) : une carte (après elle, ou en parallèle
+ * quand on vise son côté), un cercle (après lui) ou un lien direct (insertion).
+ */
+export type CibleDepot =
+  | { type: 'carte'; id: string; parallele?: boolean }
+  | { type: 'cercle'; id: string; noeud: string }
+  | { type: 'lien'; lien: LienModele };
+
+/** Place de création d'une étape (copie d'une étape modèle) pour un dépôt. */
+export function placePour(cible: CibleDepot): PlaceEtape | null {
+  if (cible.type === 'carte') return cible.parallele ? { paralleleA: cible.id } : { apres: cible.id };
+  if (cible.type === 'cercle') return { apres: cible.id };
+  return cible.lien.logique ? { entre: cible.lien.logique } : null;
+}
 
 /**
  * Déplacement demandé au serveur pour un dépôt, ou null s'il n'aurait aucun effet. La section d'arrivée est déduite de
  * la place par le serveur (après une carte d'une section, sur un lien intérieur à une section…).
  */
 export function deplacementPour(id: string, cible: CibleDepot): Deplacement | null {
-  if (cible.type === 'carte') return cible.id === id ? null : { apres: cible.id };
+  if (cible.type === 'carte')
+    return cible.id === id ? null : cible.parallele ? { paralleleA: cible.id } : { apres: cible.id };
+  if (cible.type === 'cercle') return { apres: cible.id };
   const l = cible.lien.logique;
   if (!l || l.de === id || l.vers === id) return null;
   return { surLien: l };

@@ -1617,6 +1617,79 @@
         }
       }
     },
+    "/api/meps/{id}/liens/redondants": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "plan",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/TypePlan"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LienRedondantDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/liens/optimiser": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptimisationLiensSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/meps/{id}/sections": {
       "post": {
         "tags": [
@@ -4749,6 +4822,52 @@
         }
       }
     },
+    "/api/demo/simulation": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EtatSimulationDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EtatSimulationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/demo/reinitialiser": {
       "post": {
         "tags": [
@@ -7342,6 +7461,52 @@
           "Echec"
         ]
       },
+      "EtatSimulationDto": {
+        "required": [
+          "actif",
+          "jusqua",
+          "mepId",
+          "outil",
+          "collegues",
+          "lanceePar"
+        ],
+        "type": "object",
+        "properties": {
+          "actif": {
+            "type": "boolean"
+          },
+          "jusqua": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "mepId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "outil": {
+            "type": "string"
+          },
+          "collegues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "lanceePar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Simulation de collègues (démonstration) : en cours ou non, jusqu'à quand, sur quelle MEP, quels collègues, lancée par qui."
+      },
       "EvenementAdminDto": {
         "required": [
           "id",
@@ -9554,6 +9719,28 @@
           }
         },
         "description": "Relie le compte à `ComptePrincipalId` (même personne) ; `Desactiver` : désactive aussi le compte relié."
+      },
+      "LienRedondantDto": {
+        "required": [
+          "de",
+          "vers",
+          "libelle"
+        ],
+        "type": "object",
+        "properties": {
+          "de": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vers": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "libelle": {
+            "type": "string"
+          }
+        },
+        "description": "Lien redondant : `Vers` attend déjà `De` par un autre chemin ; `Libelle` : « E0007 → Fin (Export) »."
       },
       "LienSaisie": {
         "required": [
@@ -12272,6 +12459,35 @@
           }
         },
         "description": "Objets impactés d'un système : la liste remplace les objets du catalogue déjà retenus pour ce système."
+      },
+      "OptimisationLiensSaisie": {
+        "required": [
+          "plan",
+          "liens"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TypePlan"
+              }
+            ]
+          },
+          "liens": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/LienSaisie"
+            }
+          }
+        },
+        "description": "Optimisation des liens d'un plan : la liste des liens redondants montrée à la personne (voir `liens/redondants`)."
       },
       "OptionsConnexionDto": {
         "required": [
@@ -15420,6 +15636,18 @@
           "Sortie",
           null
         ]
+      },
+      "SimulationSaisie": {
+        "required": [
+          "actif"
+        ],
+        "type": "object",
+        "properties": {
+          "actif": {
+            "type": "boolean"
+          }
+        },
+        "description": "Lancer (`actif` vrai) ou arrêter la simulation de collègues."
       },
       "SsoIdentiteDto": {
         "required": [

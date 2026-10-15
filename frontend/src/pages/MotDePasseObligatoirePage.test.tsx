@@ -9,7 +9,12 @@ import { utilisateur } from '../test/fabrique';
 import type { Utilisateur } from '../types';
 
 vi.mock('../api', () => ({
-  api: { changerMotDePasse: vi.fn(), meps: vi.fn(), demo: vi.fn().mockResolvedValue(null) },
+  api: {
+    changerMotDePasse: vi.fn(),
+    meps: vi.fn(),
+    demo: vi.fn().mockResolvedValue(null),
+    simulationDemo: vi.fn().mockRejectedValue(new Error('absente')),
+  },
 }));
 
 function rendre(u: Utilisateur) {

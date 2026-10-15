@@ -15,6 +15,7 @@ import { useEffect, useState, type PointerEvent as PointerEventReact } from 'rea
 import { createPortal } from 'react-dom';
 import { couleurPersonne } from '../../ui/Avatar';
 import { libelleEditeurs, useAutresPresents, usePresenceElement } from '../../presence';
+import { cleIciSection, PresentsSection } from './PresentsGraphe';
 import type { Mep } from '../../types';
 import { BoutonIcone, Button } from '../../ui/Button';
 import { cn } from '../../ui/cn';
@@ -416,6 +417,8 @@ export function EnTeteVueSection({
   }, [section.titre, section.description]);
   // Les autres voient « X modifie » sur la section dans le plan tant que sa vue d'édition est ouverte ici.
   usePresenceElement(`section:${section.id}`, modifiable);
+  // Où l'on est (même en lecture) : les autres voient votre avatar sur la section.
+  usePresenceElement(cleIciSection(section.id), true);
   const autres = useAutresPresents();
   const dansSection = autres.filter((p) =>
     p.elements.some((e) => e === `section:${section.id}` || etapeIds.some((id) => e === `etape:${id}`)),
@@ -489,6 +492,7 @@ export function EnTeteVueSection({
             {libelleEditeurs(dansSection)} dans cette section
           </span>
         )}
+        <PresentsSection sectionId={section.id} titre={section.titre} etapeIds={etapeIds} className="relative" />
         {modifiable && (
           <div className="ml-auto flex flex-wrap gap-1.5">
             <Button

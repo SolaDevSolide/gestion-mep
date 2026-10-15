@@ -4,7 +4,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { MepContext } from '../mepContext';
 import { etape, mep } from '../test/fabrique';
 import { simulerReactFlow } from '../test/reactFlow';
-import type { Etape, Mep, Verrou } from '../types';
+import { PresenceProvider } from '../presence';
+import type { Etape, Mep, Presence, Verrou } from '../types';
 import { TooltipProvider } from '../ui/Tooltip';
 import { EtapesEditeur } from './EtapesEditeur';
 import { ExecutionVue } from './ExecutionVue';
@@ -34,6 +35,8 @@ vi.mock('./graphe/apiGraphe', () => ({
     supprimerCercle: vi.fn(async () => ({})),
     lier: vi.fn(async () => ({})),
     delier: vi.fn(async () => ({})),
+    liensRedondants: vi.fn(async () => []),
+    optimiserLiens: vi.fn(async () => ({})),
   },
   apiVerrou: { prendre: vi.fn(), relacher: vi.fn(async () => undefined), liste: vi.fn(async () => []) },
 }));
@@ -92,11 +95,14 @@ function planAvecSections(p: Partial<Mep> = {}): Mep {
   } as Mep;
 }
 
+const declarer = vi.fn();
+
 function rendre(
   m: Mep,
   adresse = '/meps/m1',
   verrous: Verrou[] | null = null,
   Vue = () => <EtapesEditeur plan="Deploiement" />,
+  autres: Presence[] = [],
 ) {
   const run = vi.fn(async (action: () => Promise<unknown>) => {
     await action();
@@ -105,13 +111,15 @@ function rendre(
   const arbre = (mm: Mep, vv: Verrou[] | null) => (
     <MemoryRouter initialEntries={[adresse]}>
       <TooltipProvider>
-        <VerrousContext.Provider value={{ session: 'onglet-a', verrous: vv }}>
-          <MepContext.Provider value={{ mep: mm, run }}>
-            <Routes>
-              <Route path="/meps/:id" element={<Vue />} />
-            </Routes>
-          </MepContext.Provider>
-        </VerrousContext.Provider>
+        <PresenceProvider value={{ autres, declarer }}>
+          <VerrousContext.Provider value={{ session: 'onglet-a', verrous: vv }}>
+            <MepContext.Provider value={{ mep: mm, run }}>
+              <Routes>
+                <Route path="/meps/:id" element={<Vue />} />
+              </Routes>
+            </MepContext.Provider>
+          </VerrousContext.Provider>
+        </PresenceProvider>
       </TooltipProvider>
     </MemoryRouter>
   );
@@ -308,6 +316,59 @@ describe('Sections du plan', () => {
     expect(screen.queryByLabelText('Action')).toBeNull();
     const brouillon = screen.getByRole('region', { name: 'Votre saisie non enregistrée' });
     expect(brouillon).toHaveTextContent('Sauvegarde complète');
+  });
+  it('présence localisée : avatars sur la section et sur la carte où chacun se trouve, prise de main marquée', async () => {
+    const autres: Presence[] = [
+      { utilisateurId: 'u-bob', nom: 'Bob', elements: ['ici:section:sb'] },
+      { utilisateurId: 'u-claire', nom: 'Claire', elements: ['ici:etape:e1', 'etape:e1'] },
+    ];
+    const prise = { ...verrou('onglet-claire', 'Claire', 'e1'), utilisateurId: 'u-claire', reprisDeNom: 'Alice' };
+    rendre(planAvecSections(), '/meps/m1', [prise], undefined, autres);
+    const section = await screen.findByRole('group', { name: 'Section Bascule BDD, repliée' });
+    expect(within(section).getByRole('group', { name: 'Bob est dans la section « Bascule BDD »' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Claire a pris la main sur E0001 à Alice' })).toBeInTheDocument();
+  });
+
+  it('les étapes ouvertes et la vue d’une section déclarent où l’on est (même en lecture)', async () => {
+    rendre(planAvecSections(), '/meps/m1?section=sb&etape=e2');
+    await screen.findByRole('button', { name: 'Retour au plan', hidden: true });
+    await waitFor(() => {
+      const cles = declarer.mock.calls.map((c) => c[1]);
+      expect(cles).toContain('ici:section:sb');
+      expect(cles).toContain('ici:etape:e2');
+    });
+  });
+
+  it('double-clic sur une section repliée : sa vue d’édition (sans la déplier)', async () => {
+    rendre(planAvecSections());
+    const section = await screen.findByRole('group', { name: 'Section Bascule BDD, repliée' });
+    const noeud = section.closest('.react-flow__node') ?? section;
+    fireEvent.click(noeud, { detail: 1 });
+    fireEvent.click(noeud, { detail: 2 });
+    fireEvent.doubleClick(noeud);
+    expect(await screen.findByRole('button', { name: 'Retour au plan' })).toBeInTheDocument();
+    expect(window.localStorage.getItem('mep.m1.sections.depliees')).toBeNull();
+  });
+
+  it('« Optimiser les liens » : liste des liens inutiles, puis une seule opération à la confirmation', async () => {
+    vi.mocked(apiGraphe.liensRedondants).mockResolvedValueOnce([{ de: 'e1', vers: 'e3', libelle: 'E0001 → E0003' }]);
+    rendre(planAvecSections());
+    await userEvent.click(await screen.findByRole('button', { name: 'Optimiser les liens' }));
+    const panneau = await screen.findByRole('region', { name: 'Optimiser les liens' });
+    expect(panneau).toHaveTextContent('1 lien inutile');
+    expect(within(panneau).getByRole('list', { name: 'Liens qui seront retirés' })).toHaveTextContent('E0001 → E0003');
+    await userEvent.click(within(panneau).getByRole('button', { name: 'Confirmer' }));
+    expect(apiGraphe.optimiserLiens).toHaveBeenCalledWith('m1', 'Deploiement', [
+      { de: 'e1', vers: 'e3', libelle: 'E0001 → E0003' },
+    ]);
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Optimiser les liens' })).toBeNull());
+  });
+
+  it('« Optimiser les liens » sans lien inutile : rien à confirmer', async () => {
+    rendre(planAvecSections());
+    await userEvent.click(await screen.findByRole('button', { name: 'Optimiser les liens' }));
+    expect(await screen.findByText(/Aucun lien inutile/)).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Optimiser les liens' })).toBeNull();
   });
 });
 

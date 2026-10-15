@@ -6,7 +6,7 @@ import { AuthContext } from '../auth';
 import { etapesDuPlan } from '../domaine';
 import { useAsync, useLocalStorageState } from '../hooks';
 import { useMep } from '../mepContext';
-import type { Mep, ModeleEtape, TypePlan } from '../types';
+import type { LienRedondant, Mep, ModeleEtape, TypePlan } from '../types';
 import { useReferentiels } from '../referentiels';
 import { Apparition } from '../ui/Apparition';
 import { Button } from '../ui/Button';
@@ -25,6 +25,7 @@ import {
 } from './graphe/EtapesModeles';
 import { GrapheLibre, type ActionsGraphe } from './graphe/GrapheLibre';
 import { ordreGlobal, reordonner, type LienModele } from './graphe/modeleGraphe';
+import { BoutonOptimiserLiens, PanneauOptimisation } from './graphe/OptimisationLiens';
 import { PanneauEdition } from './graphe/PanneauEdition';
 import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
 import { BacSections, CercleDialog, EnTeteVueSection, NouvelleSectionDialog } from './graphe/SectionsPlan';
@@ -141,13 +142,14 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
     else ouvrir(id);
   }
 
-  const allerSection = (id: string | null) =>
+  const allerSection = (id: string | null, etapeId?: string) =>
     setParams(
       (p) => {
         const q = new URLSearchParams(p);
         if (id) q.set('section', id);
         else q.delete('section');
-        q.delete('etape');
+        if (etapeId) q.set('etape', etapeId);
+        else q.delete('etape');
         return q;
       },
       { replace: false },
@@ -270,7 +272,12 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
   async function deplacer(id: string, d: Deplacement) {
     const e = mep.etapes.find((x) => x.id === id);
     if (!e) return false;
-    const ou = 'apres' in d ? `après ${nom(d.apres)}` : `entre ${nom(d.surLien.de)} et ${nom(d.surLien.vers)}`;
+    const ou =
+      'apres' in d
+        ? `après ${nom(d.apres)}`
+        : 'paralleleA' in d
+          ? `en parallèle de ${nom(d.paralleleA)}`
+          : `entre ${nom(d.surLien.de)} et ${nom(d.surLien.vers)}`;
     const ok = await run(() => apiGraphe.deplacerEtape(mep.id, id, d), `${e.code} déplacée ${ou}.`);
     if (ok) astuce.afficher(`${e.code} déplacée ${ou} : ses anciens suivants attendent maintenant ses préalables.`);
     return ok;
@@ -359,15 +366,50 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
               if (c) setCercle({ ...c });
             }
           : undefined,
-        editerSection: (id) => allerSection(id),
+        editerSection: (id, etapeId) => allerSection(id, etapeId),
       }
-    : { editerSection: (id) => allerSection(id) };
+    : { editerSection: (id, etapeId) => allerSection(id, etapeId) };
+
+  // « Optimiser les liens » : aperçu (liens inutiles en rouge et listés), puis une seule opération au serveur.
+  const [optimisation, setOptimisation] = useState<LienRedondant[] | null>(null);
+  const [optimisationEnCours, setOptimisationEnCours] = useState(false);
+  async function calculerOptimisation() {
+    if (optimisation) return setOptimisation(null);
+    try {
+      const liens = await apiGraphe.liensRedondants(mep.id, plan);
+      if (liens.length === 0) astuce.afficher('Aucun lien inutile : chaque lien compte pour l’ordre d’exécution.');
+      else setOptimisation(liens);
+    } catch (e) {
+      astuce.afficher(e instanceof Error ? e.message : 'Calcul impossible.');
+    }
+  }
+  async function confirmerOptimisation() {
+    if (!optimisation) return;
+    const n = optimisation.length;
+    setOptimisationEnCours(true);
+    await exclusif(() =>
+      run(
+        () => apiGraphe.optimiserLiens(mep.id, plan, optimisation),
+        `${n} lien${n > 1 ? 's' : ''} inutile${n > 1 ? 's' : ''} retiré${n > 1 ? 's' : ''}.`,
+      ),
+    );
+    setOptimisationEnCours(false);
+    setOptimisation(null);
+  }
 
   const enBac = sections.filter((s) => !s.placee);
   const nbEtapes = (sid: string) => etapesPlan.filter((e) => infoSection(e).sectionId === sid).length;
 
   const bandeau = (
     <>
+      {optimisation && (
+        <PanneauOptimisation
+          liens={optimisation}
+          enCours={optimisationEnCours}
+          onConfirmer={() => void confirmerOptimisation()}
+          onAnnuler={() => setOptimisation(null)}
+        />
+      )}
       {sectionVue && (
         <EnTeteVueSection
           mep={mep}
@@ -442,7 +484,17 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
               }
             : undefined
         }
-        outils={!sectionVue && sections.some((s) => s.placee) && <BoutonsRepli onToutes={toutes} />}
+        retraits={optimisation}
+        outils={
+          !sectionVue && (
+            <>
+              {modifiable && (
+                <BoutonOptimiserLiens actif={!!optimisation} onClick={() => void calculerOptimisation()} />
+              )}
+              {sections.some((s) => s.placee) && <BoutonsRepli onToutes={toutes} />}
+            </>
+          )
+        }
         lateral={
           !sectionVue &&
           (modifiable || enBac.length > 0) && (

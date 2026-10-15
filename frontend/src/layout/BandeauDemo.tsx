@@ -1,10 +1,16 @@
-import { FlaskConical, OctagonAlert, RotateCcw } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { FlaskConical, OctagonAlert, RotateCcw, Square, Users } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useAsync } from '../hooks';
 import { Alerte } from '../ui/Alerte';
 import { ConfirmDialog } from '../ui/Dialog';
+import { useToast } from '../ui/Toast';
+import type { EtatSimulation } from '../types';
+
+/** Rafraîchissement de l'état de la simulation pendant qu'elle tourne (elle s'arrête seule au bout de quelques minutes). */
+const SONDAGE_SIMULATION_MS = 5000;
 
 /** Hauteur du bandeau, réservée en haut de page par la variable CSS --bandeau-demo (menu et en-têtes collants). */
 const HAUTEUR = '2.25rem';
@@ -32,6 +38,7 @@ export function BandeauDemo({
   const [confirmation, setConfirmation] = useState(false);
   const [erreur, setErreur] = useState('');
   const actif = Boolean(demo?.actif);
+  const simulation = useSimulation(actif && Boolean(utilisateur));
 
   useEffect(() => {
     if (!actif) return;
@@ -66,6 +73,13 @@ export function BandeauDemo({
           <strong className="font-semibold">Mode démonstration</strong>
           <span className="hidden sm:inline"> — données fictives, réinitialisables</span>
         </p>
+        {utilisateur && simulation.etat && (
+          <BoutonSimulation
+            etat={simulation.etat}
+            enCours={simulation.enCours}
+            basculer={() => void simulation.basculer()}
+          />
+        )}
         {utilisateur?.estAdmin && (
           <button
             type="button"
@@ -104,6 +118,93 @@ export function BandeauDemo({
           </Alerte>
         )}
       </ConfirmDialog>
+    </>
+  );
+}
+
+/** État de la simulation de collègues, relu régulièrement pendant qu'elle tourne. */
+function useSimulation(active: boolean) {
+  const [etat, setEtat] = useState<EtatSimulation | null>(null);
+  const [enCours, setEnCours] = useState(false);
+  const toast = useToast();
+  const lire = useCallback(() => {
+    // Lecture tolérante : sans simulation possible (serveur plus ancien…), pas de bouton.
+    Promise.resolve()
+      .then(() => api.simulationDemo())
+      .then(setEtat, () => setEtat(null));
+  }, []);
+  useEffect(() => {
+    if (active) lire();
+  }, [active, lire]);
+  useEffect(() => {
+    if (!active || !etat?.actif) return;
+    const t = window.setInterval(lire, SONDAGE_SIMULATION_MS);
+    return () => window.clearInterval(t);
+  }, [active, etat?.actif, lire]);
+  async function basculer() {
+    if (!etat) return;
+    setEnCours(true);
+    try {
+      setEtat(await api.simulerCollegues(!etat.actif));
+    } catch (e) {
+      toast.erreur(e instanceof Error ? e.message : 'Simulation impossible.');
+    } finally {
+      setEnCours(false);
+    }
+  }
+  return { etat, enCours, basculer };
+}
+
+/**
+ * « Simuler des collègues » : Bob et Claire se connectent pour de vrai à la MEP « Facturation électronique » (présence,
+ * verrous, modifications au journal, prise de main) ; un second clic, ou le délai écoulé, les fait partir.
+ */
+function BoutonSimulation({
+  etat,
+  enCours,
+  basculer,
+}: {
+  etat: EtatSimulation;
+  enCours: boolean;
+  basculer: () => void;
+}) {
+  const classe =
+    'ml-1 inline-flex shrink-0 items-center gap-1.5 rounded-md border border-warn-bd px-2 py-0.5 text-xs font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-warn-solid focus-visible:outline-none disabled:opacity-60';
+  if (!etat.actif)
+    return (
+      <button
+        type="button"
+        onClick={basculer}
+        disabled={enCours}
+        title={`${etat.collegues.join(' et ')} travaillent quelques minutes sur « ${etat.outil} » : présence, verrous, modifications, prise de main.`}
+        className={`${classe} bg-surface/60 hover:bg-surface`}
+      >
+        <Users className="size-3.5" aria-hidden />
+        <span className="hidden md:inline">Simuler des collègues</span>
+        <span className="md:hidden">Simuler</span>
+      </button>
+    );
+  return (
+    <>
+      <span className="hidden min-w-0 truncate lg:inline">
+        {etat.collegues.join(' et ')} travaillent sur{' '}
+        {etat.mepId ? (
+          <Link to={`/meps/${etat.mepId}?onglet=etapes`} className="font-medium underline underline-offset-2">
+            {etat.outil}
+          </Link>
+        ) : (
+          etat.outil
+        )}
+      </span>
+      <button
+        type="button"
+        onClick={basculer}
+        disabled={enCours}
+        className={`${classe} bg-warn-solid text-white hover:opacity-90`}
+      >
+        <Square className="size-3 fill-current" aria-hidden />
+        Arrêter la simulation
+      </button>
     </>
   );
 }

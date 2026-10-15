@@ -24,7 +24,13 @@ import {
 import PreparationTab from '../mep/PreparationTab';
 import RecetteTab from '../mep/RecetteTab';
 import RetourArriereTab from '../mep/RetourArriereTab';
-import { lireVerrous, VerrousContext, type ValeurVerrous } from '../mep/graphe/verrouEtape';
+import {
+  libellePriseDeMain,
+  lireVerrous,
+  nouvellesPrisesDeMain,
+  VerrousContext,
+  type ValeurVerrous,
+} from '../mep/graphe/verrouEtape';
 import { MepContext, type MepContextValue } from '../mepContext';
 import { nouvelleSession, PresenceProvider, type PresenceValeur } from '../presence';
 import type { Mep, Phase, Presence, Verrou } from '../types';
@@ -241,6 +247,22 @@ export default function MepPage() {
   );
 
   const valeurVerrous = useMemo<ValeurVerrous>(() => ({ session, verrous }), [session, verrous]);
+
+  // Prise de main sur une étape (par n'importe qui, y compris sur la vôtre) : annoncée à toutes les personnes présentes.
+  const verrousAvantRef = useRef<Verrou[] | null>(null);
+  const mepRef = useRef(mep);
+  useEffect(() => {
+    mepRef.current = mep;
+  }, [mep]);
+  useEffect(() => {
+    const prises = nouvellesPrisesDeMain(verrousAvantRef.current, verrous);
+    verrousAvantRef.current = verrous;
+    for (const v of prises) {
+      if (v.session === session) continue; // c'est cet onglet qui l'a prise
+      const code = mepRef.current?.etapes.find((e) => e.id === v.etapeId)?.code ?? 'une étape';
+      toast.succes(libellePriseDeMain(v, code));
+    }
+  }, [verrous, session, toast]);
 
   const presence = useMemo<PresenceValeur>(
     () => ({ autres: presences.filter((p) => p.utilisateurId !== moi), declarer }),

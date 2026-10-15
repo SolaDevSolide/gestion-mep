@@ -1880,6 +1880,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meps/{id}/liens/redondants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    plan?: components["schemas"]["TypePlan"];
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LienRedondantDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/liens/optimiser": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OptimisationLiensSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meps/{id}/sections": {
         parameters: {
             query?: never;
@@ -5364,6 +5442,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/demo/simulation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EtatSimulationDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SimulationSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EtatSimulationDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/demo/reinitialiser": {
         parameters: {
             query?: never;
@@ -6538,6 +6674,17 @@ export interface components {
         };
         /** @enum {unknown} */
         EtatEtape: "AFaire" | "EnCours" | "Reussie" | "Echec";
+        /** @description Simulation de collègues (démonstration) : en cours ou non, jusqu'à quand, sur quelle MEP, quels collègues, lancée par qui. */
+        EtatSimulationDto: {
+            actif: boolean;
+            /** Format: date-time */
+            jusqua: null | string;
+            /** Format: uuid */
+            mepId: null | string;
+            outil: string;
+            collegues: string[];
+            lanceePar: null | string;
+        };
         EvenementAdminDto: {
             /** Format: int64 */
             id: number;
@@ -7158,6 +7305,14 @@ export interface components {
             comptePrincipalId: null | string;
             /** @default false */
             desactiver: boolean;
+        };
+        /** @description Lien redondant : `Vers` attend déjà `De` par un autre chemin ; `Libelle` : « E0007 → Fin (Export) ». */
+        LienRedondantDto: {
+            /** Format: uuid */
+            de: string;
+            /** Format: uuid */
+            vers: string;
+            libelle: string;
         };
         /** @description Lien du graphe : `Vers` attend `De` (Id d'étapes ou de cercles de section). */
         LienSaisie: null | {
@@ -7893,6 +8048,11 @@ export interface components {
         /** @description Objets impactés d'un système : la liste remplace les objets du catalogue déjà retenus pour ce système. */
         ObjetsSystemeSaisie: {
             objets: null | components["schemas"]["ObjetChoisiSaisie"][];
+        };
+        /** @description Optimisation des liens d'un plan : la liste des liens redondants montrée à la personne (voir `liens/redondants`). */
+        OptimisationLiensSaisie: {
+            plan: null | components["schemas"]["TypePlan"];
+            liens: null | components["schemas"]["LienSaisie"][];
         };
         /** @description Options de la page de connexion (sans authentification) : bouton de connexion unique s'il est actif. */
         OptionsConnexionDto: {
@@ -8739,6 +8899,10 @@ export interface components {
         };
         /** @enum {unknown} */
         SensPort: "Entree" | "Sortie" | null;
+        /** @description Lancer (`actif` vrai) ou arrêter la simulation de collègues. */
+        SimulationSaisie: {
+            actif: boolean;
+        };
         /** @description Compte de l'application relié à un compte du fournisseur. */
         SsoIdentiteDto: {
             /** Format: uuid */

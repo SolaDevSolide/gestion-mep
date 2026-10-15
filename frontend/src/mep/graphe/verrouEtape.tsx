@@ -143,3 +143,21 @@ export function BandeauVerrou({ verrou }: { verrou: VerrouEtape }) {
     </div>
   );
 }
+
+/** Clé d'une prise de main (qui l'a prise, à quel onglet) : une même prise n'est annoncée qu'une fois. */
+const clePrise = (v: Verrou) => `${v.etapeId}|${v.session}|${v.reprisDeSession ?? ''}`;
+
+/**
+ * Prises de main apparues entre deux listes de verrous diffusées par le flux : verrous qui viennent d'être pris à
+ * quelqu'un d'autre (`reprisDeNom`). La première liste reçue (`avant` null) ne compte pas : ce sont des prises anciennes.
+ */
+export function nouvellesPrisesDeMain(avant: Verrou[] | null, apres: Verrou[] | null): Verrou[] {
+  if (!avant || !apres) return [];
+  const connues = new Set(avant.filter((v) => v.reprisDeNom).map(clePrise));
+  return apres.filter((v) => v.reprisDeNom && !connues.has(clePrise(v)));
+}
+
+/** « Claire a pris la main sur E0005 à Alice ». */
+export function libellePriseDeMain(v: Verrou, code: string): string {
+  return `${prenom(v.nom)} a pris la main sur ${code} à ${prenom(v.reprisDeNom ?? 'quelqu’un')}`;
+}

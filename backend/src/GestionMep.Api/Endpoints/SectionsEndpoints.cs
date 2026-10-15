@@ -41,6 +41,15 @@ public static class SectionsEndpoints
         return (planDe, de, vers);
     }
 
+    /// <summary>Nom court d'un nœud : code de l'étape, ou « Fin (Export et téléchargement) » pour un cercle.</summary>
+    private static string Court(Regles.Noeud n) => n.Etape is { } e ? e.Code : $"{n.Port!.Titre} ({n.Section!.Titre})";
+
+    private static LienRedondantDto VersDto(Mep mep, TypePlan plan, Regles.LienPlan l)
+    {
+        string Nom(Guid id) => Regles.TrouverNoeud(mep, plan, id) is { } n ? Court(n) : "?";
+        return new LienRedondantDto(l.De, l.Vers, $"{Nom(l.De)} → {Nom(l.Vers)}");
+    }
+
     public static void MapSections(this RouteGroupBuilder api)
     {
         // ---------- Liens du graphe ----------
@@ -64,6 +73,33 @@ public static class SectionsEndpoints
             var (plan, deId, versId) = Lien(mep, c);
             var (de, vers) = Regles.Delier(mep, plan, deId, versId);
             return await svc.EnregistrerContenu(mep, acteur, "plan.lien-retire", $"Lien retiré : {vers} n'attend plus {de}");
+        })));
+
+        // Liens inutiles du plan : « B attend A » alors que B attend déjà A par un autre chemin (étapes ou cercles de section).
+        api.MapGet("/meps/{id:guid}/liens/redondants", async (Guid id, TypePlan? plan, ServiceMep svc) =>
+        {
+            var mep = await svc.Charger(id);
+            var p = plan ?? TypePlan.Deploiement;
+            return Regles.LiensRedondants(mep, p).Select(l => VersDto(mep, p, l)).ToList();
+        });
+
+        // Retire en une opération les liens redondants montrés à la personne (409 si le plan a changé entre-temps).
+        api.MapPost("/meps/{id:guid}/liens/optimiser", async (Guid id, OptimisationLiensSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
+        {
+            var acteur = Acteur.Depuis(user);
+            ServiceMep.ExigerEditeur(mep, acteur);
+            Regles.ExigerPreparation(mep);
+            var plan = c.Plan ?? TypePlan.Deploiement;
+            if (c.Liens is null) throw ErreurHttp.Saisie("Indiquer les liens à retirer (ceux du calcul).");
+            if (c.Liens.Any(l => l.De is null || l.Vers is null)) throw ErreurHttp.Saisie("Un lien se désigne par « de » et « vers ».");
+            var attendus = c.Liens.Select(l => new Regles.LienPlan(l.De!.Value, l.Vers!.Value)).ToList();
+            if (!Regles.LiensRedondants(mep, plan).ToHashSet().SetEquals(attendus))
+                throw ErreurHttp.Conflit("Le plan a changé depuis le calcul : relancez « Optimiser les liens ».");
+            var retires = Regles.OptimiserLiens(mep, plan, attendus);
+            if (retires.Count == 0) return await svc.VersDto(mep, acteur.Id);
+            var liste = string.Join(", ", retires.Select(r => $"{Court(r.De)} → {Court(r.Vers)}"));
+            return await svc.EnregistrerContenu(mep, acteur, "plan.liens-optimises",
+                $"Liens optimisés : {retires.Count} lien{(retires.Count > 1 ? "s" : "")} redondant{(retires.Count > 1 ? "s" : "")} retiré{(retires.Count > 1 ? "s" : "")} ({liste})");
         })));
 
         // ---------- Sections ----------

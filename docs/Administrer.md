@@ -100,6 +100,8 @@ Avec `DEMO=true` dans `.env` (jamais sur un serveur partagé), l'application l'i
 
 Un administrateur voit dans le bandeau le bouton **« Réinitialiser la démonstration »**. Après confirmation, la base revient exactement à son état initial : comptes, MEP, catalogue, résolutions types, critères, paramètres, réglages du serveur et journaux sont recréés, les pièces jointes supprimées. Tout le monde est déconnecté ; l'auteur revient à l'écran de connexion. Le journal d'administration repart de la seule ligne « Démonstration réinitialisée par … ».
 
+Toute personne connectée voit aussi **« Simuler des collègues »** : Bob et Claire se connectent pour de vrai à la MEP « Facturation électronique » (en préparation) et y travaillent quelques minutes à un rythme lisible : ils entrent dans une section, ouvrent une étape (verrou), modifient un texte, ajoutent puis déplacent une étape, et prennent la main sur une étape que quelqu'un d'autre a ouverte. Tout passe par les règles, le temps réel et le journal habituels ; aucune autre MEP n'est touchée. **« Arrêter la simulation »**, ou la fin du délai, les fait partir (verrous relâchés, étapes de passage retirées). La réinitialisation arrête d'abord la simulation.
+
 En ligne de commande : `gestion-mep demo reinitialiser --oui` (voir [Exploiter](Exploiter.md#mode-démonstration)). Sans `DEMO=true`, ni le bandeau, ni la connexion rapide, ni la réinitialisation n'existent.
 
 ## Paramètres partagés

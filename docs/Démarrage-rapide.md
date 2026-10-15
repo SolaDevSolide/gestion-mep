@@ -73,6 +73,10 @@ Les bibliothèques sont remplies elles aussi : une vingtaine d'étapes modèles 
 
 Pour essayer le retour arrière, ouvrir « Paiement mobile » (exécution en cours) et cliquer « Déclencher le retour arrière », ou reprendre « Messagerie interne », déjà en retour arrière.
 
+## Voir travailler des collègues
+
+Dans le bandeau de démonstration, **« Simuler des collègues »** fait travailler Bob et Claire, pour de vrai, sur « Facturation électronique » pendant quelques minutes. Ouvrir son plan (Plan › Étapes, « Tout déplier ») : leurs avatars apparaissent sur les sections et les cartes où ils se trouvent, leurs modifications arrivent en direct et, si vous avez ouvert une étape, Claire finit par y prendre la main (« Claire a pris la main sur E0005 à Alice »). « Arrêter la simulation » les fait partir.
+
 ## Repartir de zéro
 
 Avec le compte d'Alice (administratrice), cliquer **« Réinitialiser la démonstration »** dans le bandeau, puis confirmer. La base revient exactement à son état initial : comptes, MEP, catalogue, résolutions types, critères, paramètres, réglages et journaux sont recréés, les pièces jointes supprimées. Tout le monde est déconnecté et revient à l'écran de connexion.

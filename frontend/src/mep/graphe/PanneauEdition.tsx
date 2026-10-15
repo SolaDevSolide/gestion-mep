@@ -10,6 +10,7 @@ import { construireLignes, indexLignes, type Lien } from '../../graphe';
 import { ascendants, descendants } from './modeleGraphe';
 import { useDraft, useReportDirty } from '../../hooks';
 import { libelleEditeurs, useEditeurs, usePresenceElement } from '../../presence';
+import { cleIciEtape } from './PresentsGraphe';
 import { couleurPersonne } from '../../ui/Avatar';
 import { useMep } from '../../mepContext';
 import type {
@@ -251,6 +252,8 @@ export function PanneauEdition(props: Props) {
   useEffect(() => onDirty?.(d.dirty), [onDirty, d.dirty]);
   // Présence : l'étape ouverte en édition est signalée aux autres, et on voit qui d'autre la modifie.
   usePresenceElement(`etape:${etape.id}`, ecriture);
+  // Où l'on est, même en lecture : votre avatar apparaît sur la carte (et sur sa section) chez les autres.
+  usePresenceElement(cleIciEtape(etape.id), true);
   const editeurs = useEditeurs(`etape:${etape.id}`);
   const v = d.value;
   const [suppr, setSuppr] = useState(false);

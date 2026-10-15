@@ -1,11 +1,12 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { ChevronDown, ChevronRight, Pencil, Plus } from 'lucide-react';
-import type { CSSProperties } from 'react';
+import { memo, useEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { MarquePresence, useEditeurs } from '../../presence';
 import { cn } from '../../ui/cn';
 import { useGraphe } from './contexteGraphe';
 import { POIGNEE_BAS, POIGNEE_HAUT } from './modeleGraphe';
 import { NoeudEtape } from './NoeudEtape';
+import { PresentsSection } from './PresentsGraphe';
 import { CARTE, CERCLE, TITRE_CADRE } from './rangement';
 import { avancementSection, cerclesTries, libelleAvancement, type CercleSection, type Section } from './sections';
 import { PuceSysteme, systemesDe } from './systemes';
@@ -113,9 +114,10 @@ function EnTeteSection({ section, deplie }: { section: Section; deplie: boolean 
         onClick={() => g.onBasculer(section.id)}
         aria-expanded={deplie}
         aria-label={`${deplie ? 'Replier' : 'Déplier'} la section ${section.titre}`}
-        className="nodrag nopan -ml-1 grid size-7 shrink-0 place-content-center rounded-md text-fg-muted hover:bg-surface-2 hover:text-fg"
+        title={deplie ? 'Replier la section' : 'Déplier la section'}
+        className="nodrag nopan -mt-0.5 -ml-1.5 grid size-9 shrink-0 place-content-center rounded-lg border border-line bg-surface text-fg-muted shadow-sm hover:bg-surface-2 hover:text-fg"
       >
-        <Chevron className="size-4" aria-hidden />
+        <Chevron className="size-5" aria-hidden />
       </button>
       <div className="grid min-w-0 flex-1 gap-1">
         <p className="truncate text-[14px] leading-tight font-semibold" title={section.titre}>
@@ -149,10 +151,10 @@ function EnTeteSection({ section, deplie }: { section: Section; deplie: boolean 
           type="button"
           onClick={() => g.onEditerSection?.(section.id)}
           aria-label={`Ouvrir la section ${section.titre}`}
-          title="Ouvrir la vue de la section"
-          className="nodrag nopan grid size-7 shrink-0 place-content-center rounded-md text-fg-muted hover:bg-surface-2 hover:text-fg"
+          title="Éditer la section (ou double-cliquer dessus)"
+          className="nodrag nopan -mt-0.5 grid size-9 shrink-0 place-content-center rounded-lg bg-accent text-accent-fg shadow-sm hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:outline-none"
         >
-          <Pencil className="size-3.5" aria-hidden />
+          <Pencil className="size-4" aria-hidden />
         </button>
       )}
     </div>
@@ -189,11 +191,22 @@ function CercleBord({ cercle, x, edition }: { cercle: CercleSection; x: number |
 }
 
 /** Section repliée : un cadre (titre, systèmes, nombre d'étapes, auteur) et ses cercles sur les bords. */
+/** Délai d'un clic sur une section repliée avant de la déplier : un double-clic ouvre plutôt sa vue d'édition. */
+export const DELAI_DOUBLE_CLIC_MS = 250;
+
 export function NoeudSection({ data }: NodeProps) {
   const g = useGraphe();
   const id = (data as DonneesNoeud).sectionId ?? '';
   const s = g.sections.get(id);
+  const minuterie = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(minuterie.current), []);
   if (!s) return null;
+  // Sans vue d'édition, rien à attendre ; sinon le second clic d'un double-clic annule le dépliage.
+  const cliquer = (detail: number) => {
+    window.clearTimeout(minuterie.current);
+    if (!g.onEditerSection) g.onBasculer(id);
+    else if (detail <= 1) minuterie.current = window.setTimeout(() => g.onBasculer(id), DELAI_DOUBLE_CLIC_MS);
+  };
   const selectionnee = g.selection === `s:${id}` || (g.enAvant?.noeuds.has(`s:${id}`) ?? false);
   return (
     <div
@@ -212,12 +225,12 @@ export function NoeudSection({ data }: NodeProps) {
       ))}
       <button
         type="button"
-        onClick={() => g.onBasculer(id)}
+        onClick={(ev) => cliquer(ev.detail)}
         className={cn('absolute inset-0 rounded-xl', g.edition ? 'cursor-grab' : 'cursor-pointer')}
         title={
-          g.edition
+          (g.edition
             ? 'Cliquer pour déplier ; glisser à gauche ou à droite pour changer l’ordre'
-            : 'Cliquer pour déplier'
+            : 'Cliquer pour déplier') + (g.onEditerSection ? ' ; double-cliquer pour ouvrir la section' : '')
         }
         aria-hidden
         tabIndex={-1}
@@ -233,10 +246,21 @@ export function NoeudSection({ data }: NodeProps) {
   );
 }
 
-/** « X modifie » sur une section dont quelqu'un a ouvert la vue d'édition. */
+/**
+ * « X modifie » sur une section dont quelqu'un a ouvert la vue d'édition, et les avatars de qui s'y trouve (vue de la
+ * section ou fiche d'une de ses étapes ouverte).
+ */
 function PresenceSection({ id }: { id: string }) {
+  const g = useGraphe();
   const editeurs = useEditeurs(`section:${id}`);
-  return <MarquePresence editeurs={editeurs} />;
+  const etapes = g.etapesParSection.get(id);
+  const etapeIds = useMemo(() => (etapes ?? []).map((e) => e.id), [etapes]);
+  return (
+    <>
+      <MarquePresence editeurs={editeurs} />
+      <PresentsSection sectionId={id} titre={g.sections.get(id)?.titre ?? ''} etapeIds={etapeIds} />
+    </>
+  );
 }
 
 /** Section dépliée : cadre qui contient ses étapes et ses cercles (rendus par React Flow comme nœuds enfants). */
@@ -335,10 +359,23 @@ export function NoeudCercle({ data, parentId }: NodeProps) {
   );
 }
 
+/**
+ * Pendant un glisser, React Flow rend le nœud glissé (et les nœuds d'une section déplacée) à chaque mouvement, avec sa
+ * nouvelle position absolue. Le contenu n'en dépend pas : on ne le rend à nouveau que si autre chose change (données,
+ * contexte du graphe, état de glisser), pour un glisser fluide.
+ */
+function horsPosition(a: NodeProps, b: NodeProps): boolean {
+  for (const k of Object.keys(a) as (keyof NodeProps)[]) {
+    if (k === 'positionAbsoluteX' || k === 'positionAbsoluteY') continue;
+    if (a[k] !== b[k]) return false;
+  }
+  return Object.keys(a).length === Object.keys(b).length;
+}
+
 export const TYPES_NOEUDS = {
-  etape: NoeudCarte,
-  section: NoeudSection,
-  cadre: NoeudCadre,
-  titre: NoeudTitreCadre,
-  cercle: NoeudCercle,
+  etape: memo(NoeudCarte, horsPosition),
+  section: memo(NoeudSection, horsPosition),
+  cadre: memo(NoeudCadre, horsPosition),
+  titre: memo(NoeudTitreCadre, horsPosition),
+  cercle: memo(NoeudCercle, horsPosition),
 };

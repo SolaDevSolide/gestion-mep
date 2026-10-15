@@ -281,6 +281,12 @@ public record EnvironnementEtapeSaisie(Guid? SystemeId, string? Nom);
 /// <summary>Lien du graphe : <c>Vers</c> attend <c>De</c> (Id d'étapes ou de cercles de section).</summary>
 public record LienSaisie(Guid? De, Guid? Vers);
 
+/// <summary>Optimisation des liens d'un plan : la liste des liens redondants montrée à la personne (voir <c>liens/redondants</c>).</summary>
+public record OptimisationLiensSaisie(TypePlan? Plan, List<LienSaisie>? Liens);
+
+/// <summary>Lien redondant : <c>Vers</c> attend déjà <c>De</c> par un autre chemin ; <c>Libelle</c> : « E0007 → Fin (Export) ».</summary>
+public record LienRedondantDto(Guid De, Guid Vers, string Libelle);
+
 /// <summary>
 /// Champs de la fiche d'une étape. <c>Fin</c>, <c>SauvegardeEmplacement</c>, <c>SauvegardeMethodeRecuperation</c> et
 /// <c>Environnements</c> absents : inchangés (test unitaire pour une nouvelle étape) ; les environnements d'un système retiré de
@@ -498,6 +504,14 @@ public record ConnexionDemoSaisie(string? Login);
 
 /// <summary>Résultat de la réinitialisation de la démonstration : MEP recréées et fichiers de pièces jointes supprimés.</summary>
 public record ReinitialisationDemoDto(int Meps, int FichiersSupprimes);
+
+/// <summary>
+/// Simulation de collègues (démonstration) : en cours ou non, jusqu'à quand, sur quelle MEP, quels collègues, lancée par qui.
+/// </summary>
+public record EtatSimulationDto(bool Actif, DateTimeOffset? Jusqua, Guid? MepId, string Outil, List<string> Collegues, string? LanceePar);
+
+/// <summary>Lancer (<c>actif</c> vrai) ou arrêter la simulation de collègues.</summary>
+public record SimulationSaisie(bool Actif);
 
 /// <summary>
 /// Éléments sur lesquels travaille un onglet (<c>Session</c> : identifiant passé au flux par <c>?session=</c>). Liste vide : plus aucun.
