@@ -57,7 +57,11 @@ public record EnvironnementEtapeDto(Guid SystemeId, string Nom);
 public record DisponibiliteDto(StatutDisponibilite Statut, string Libelle);
 
 /// <summary>
-/// <c>Ligne</c> : ligne du graphe (0 en haut) ; <c>Ordre</c> : position dans la ligne (0 à gauche). <c>Fin</c> : test unitaire
+/// <c>Ligne</c> : profondeur dans le graphe (0 en haut) ; <c>Ordre</c> : position dans la ligne (0 à gauche). Lecture seule :
+/// recalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. <c>Dependances</c> : préalables
+/// effectifs (seuls utilisés par l'exécution) ; <c>DependancesDerivees</c> : ceux qui viennent des cercles de section (les autres
+/// sont directs). <c>SectionId</c> : section de l'étape (null : hors section) ; <c>PortsAttendus</c> : cercles de sortie d'autres
+/// sections que l'étape attend. <c>Fin</c> : test unitaire
 /// (le résultat attendu est l'instruction de test, <c>ResultatConstate</c> se saisit en terminant l'étape) ou simple vérification.
 /// <c>SauvegardeEmplacement</c> et <c>SauvegardeMethodeRecuperation</c> : étape de type Sauvegarde seulement.
 /// <c>ModeleEtapeId</c> : étape modèle dont l'étape est une copie (null : saisie dans la MEP).
@@ -68,7 +72,35 @@ public record EtapeDto(Guid Id, TypePlan Plan, string Code, int Ligne, int Ordre
     EtatEtape Etat, string Instructions, string ResultatAttendu, string Preuve, string Commentaire, DateTimeOffset? DebutReel, DateTimeOffset? FinReelle,
     int Revision, List<Guid> Dependances, List<Guid> ResolutionIds, DisponibiliteDto Disponibilite,
     TypeEtape Type, bool PointDeNonRetour, ValidationDto? NonRetourAutorise, FinEtape Fin, string ResultatConstate, string SauvegardeEmplacement,
-    string SauvegardeMethodeRecuperation, Guid? ModeleEtapeId, List<EnvironnementEtapeDto> Environnements);
+    string SauvegardeMethodeRecuperation, Guid? ModeleEtapeId, List<EnvironnementEtapeDto> Environnements, Guid? SectionId,
+    List<Guid> DependancesDerivees, List<Guid> PortsAttendus);
+
+/// <summary>
+/// Cercle d'une section. Entrée : <c>Etapes</c>, les étapes de la section qui l'attendent ; <c>Sources</c>, ce qui y arrive de
+/// l'extérieur (Id d'étapes hors de la section ou de cercles de sortie d'autres sections). Sortie : <c>Etapes</c>, les étapes de
+/// la section qu'il attend ; <c>Sources</c> toujours vide (les étapes qui l'attendent le portent dans <c>PortsAttendus</c>).
+/// </summary>
+public record PortSectionDto(Guid Id, SensPort Sens, string Titre, string Description, int Ordre, List<Guid> Etapes, List<Guid> Sources);
+
+/// <summary>
+/// Section d'un plan : repère qui regroupe des étapes (<c>EtapeDto.SectionId</c>). <c>Placee</c> faux : dans le bac.
+/// <c>Revision</c> : augmente à chaque modification de la section ou de ses cercles. <c>Auteur</c> : nom du compte auteur.
+/// </summary>
+public record SectionDto(Guid Id, TypePlan Plan, string Titre, string Description, List<Guid> SystemeIds, Guid? AuteurId, string? Auteur,
+    DateTimeOffset CreeLe, bool Placee, int Revision, List<PortSectionDto> Ports);
+
+/// <summary>
+/// Verrou d'édition d'une étape (panneau d'édition ouvert) : tenu par l'onglet <c>Session</c> du compte <c>UtilisateurId</c>
+/// jusqu'à <c>ExpireLe</c> sans renouvellement. <c>ReprisDe…</c> : qui le tenait quand il a été pris en main (null sinon).
+/// </summary>
+public record VerrouEtapeDto(Guid EtapeId, Guid UtilisateurId, string Nom, string Session, DateTimeOffset PrisLe, DateTimeOffset ExpireLe,
+    Guid? ReprisDeUtilisateurId, string? ReprisDeNom, string? ReprisDeSession);
+
+/// <summary>Section créée (<c>SectionId</c>) et MEP à jour.</summary>
+public record SectionCreeeDto(Guid SectionId, MepDto Mep);
+
+/// <summary>Résultat d'une demande de verrou : <c>Pris</c>, cet onglet le tient ; sinon <c>Verrou</c> dit qui est dessus.</summary>
+public record PriseVerrouDto(bool Pris, VerrouEtapeDto Verrou);
 
 /// <summary>Test unitaire d'une étape : <c>Fait</c> si l'étape est terminée (réussie ou en échec) ; <c>Executant</c> : dernier exécutant.</summary>
 public record TestUnitaireDto(Guid EtapeId, string Code, TypePlan Plan, string Action, EtatEtape Etat, bool Fait, string ResultatAttendu,
@@ -141,7 +173,8 @@ public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle,
     List<ExecutionResolutionDto> Resolutions, List<string> ErreursPlan, DroitsDto Droits,
     bool EstModele, int ApprobationsMinimum, List<ApprobationDto> Approbations, List<CritereValideDto> GoNoGo,
     List<FicheRecetteDto> FichesRecette, bool BilanActive, BilanDto? Bilan, string? NonRetourFranchi, List<PieceJointeDto> PiecesJointes,
-    List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements, bool RetourArriereActive, CommunicationDto Communication, TypeMep Type);
+    List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements, bool RetourArriereActive, CommunicationDto Communication, TypeMep Type,
+    List<SectionDto> Sections);
 
 /// <summary>
 /// Section Communication de la MEP (tout est facultatif). <c>PreuveValidationId</c> : pièce jointe de la MEP qui prouve la
@@ -243,22 +276,48 @@ public record LigneRejeteeDto(int Ligne, string Systeme, string Categorie, strin
 public record ImportObjetsDto(MepDto Mep, int Ajoutes, int Modifies, int Inchanges, List<LigneRejeteeDto> Rejetees);
 public record EnvironnementEtapeSaisie(Guid? SystemeId, string? Nom);
 
+/// <summary>Lien du graphe : <c>Vers</c> attend <c>De</c> (Id d'étapes ou de cercles de section).</summary>
+public record LienSaisie(Guid? De, Guid? Vers);
+
 /// <summary>
-/// <c>Ligne</c> et <c>Position</c> ne servent qu'à la création (<c>POST /etapes</c>). <c>Fin</c>, <c>SauvegardeEmplacement</c>,
-/// <c>SauvegardeMethodeRecuperation</c> et <c>Environnements</c> absents : inchangés (test unitaire pour une nouvelle étape) ;
-/// les environnements d'un système retiré de l'étape partent avec lui.
+/// Champs de la fiche d'une étape. <c>Fin</c>, <c>SauvegardeEmplacement</c>, <c>SauvegardeMethodeRecuperation</c> et
+/// <c>Environnements</c> absents : inchangés (test unitaire pour une nouvelle étape) ; les environnements d'un système retiré de
+/// l'étape partent avec lui. <c>Dependances</c> : préalables directs (ceux qui viennent des cercles restent, on peut renvoyer
+/// les préalables effectifs).
+/// <para>
+/// Création seulement (<c>POST /etapes</c>), au plus une place : <c>Apres</c> (la nouvelle étape attend cette étape ou ce
+/// cercle), <c>Entre</c> (insertion sur ce lien), <c>ParalleleA</c> (mêmes préalables et mêmes suivants que cette étape) ; rien :
+/// étape isolée. <c>SectionId</c> : section de la nouvelle étape (absente : celle de la place, sinon aucune).
+/// </para>
 /// </summary>
 public record EtapeSaisie(int? Revision, string? Action, List<Guid>? SystemeIds, Guid? ResponsableId, Criticite? Criticite,
     string? Instructions, string? ResultatAttendu, List<Guid>? Dependances, TypePlan? Plan = null, List<Guid>? ResolutionIds = null,
-    TypeEtape? Type = null, bool PointDeNonRetour = false, int? DureeEstimeeMinutes = null, int? Ligne = null, int? Position = null,
+    TypeEtape? Type = null, bool PointDeNonRetour = false, int? DureeEstimeeMinutes = null,
     FinEtape? Fin = null, string? SauvegardeEmplacement = null, string? SauvegardeMethodeRecuperation = null,
-    List<EnvironnementEtapeSaisie>? Environnements = null);
+    List<EnvironnementEtapeSaisie>? Environnements = null, Guid? Apres = null, LienSaisie? Entre = null, Guid? ParalleleA = null,
+    Guid? SectionId = null);
 
 /// <summary>
-/// Déplacement d'une étape dans le graphe : <c>Ligne</c> affichée (le nombre de lignes = nouvelle ligne en bas), <c>Position</c> dans la
-/// ligne. <c>NouvelleLigne</c> : l'étape ouvre une ligne à elle, insérée juste au-dessus de <c>Ligne</c> (glisser entre deux lignes).
+/// Déplacement d'une carte : au plus une place, <c>SurLien</c> (elle quitte sa place, ses suivants attendent ses préalables, puis
+/// elle s'insère sur ce lien), <c>Apres</c> (elle attend cette étape ou ce cercle) ou <c>ParalleleA</c>. <c>SectionId</c> : elle
+/// entre dans cette section ; <c>SortirDeSection</c> : elle sort de la sienne ; ni l'un ni l'autre : la section de sa nouvelle
+/// place (inchangée sans nouvelle place).
 /// </summary>
-public record PlacerSaisie(int? Ligne, int? Position, bool LiensParDefaut = true, bool NouvelleLigne = false);
+public record DeplacementSaisie(Guid? Apres = null, LienSaisie? SurLien = null, Guid? ParalleleA = null, Guid? SectionId = null,
+    bool SortirDeSection = false);
+
+/// <summary>
+/// Création (<c>Plan</c> absent : déploiement ; <c>Placee</c> absent : dans le bac) ou modification (<c>Revision</c> obligatoire) d'une section.
+/// </summary>
+public record SectionSaisie(int? Revision = null, TypePlan? Plan = null, string? Titre = null, string? Description = null,
+    List<Guid>? SystemeIds = null, bool? Placee = null);
+public record PlacementSectionSaisie(bool? Placee);
+/// <summary>Cercle d'une section : <c>Sens</c> obligatoire à la création, ignoré ensuite ; titre absent à la création : « Entrée 2 »…</summary>
+public record PortSaisie(SensPort? Sens = null, string? Titre = null, string? Description = null);
+/// <summary>Nouvel ordre des cercles d'un bord : tous les cercles de ce sens, de gauche à droite.</summary>
+public record OrdrePortsSaisie(SensPort? Sens, List<Guid>? Ports);
+/// <summary>Verrou d'édition : <c>Session</c>, l'onglet (celui du flux temps réel) ; <c>PrendreLaMain</c>, le prendre même s'il est tenu.</summary>
+public record VerrouSaisie(string? Session, bool PrendreLaMain = false);
 public record RevisionSaisie(int? Revision);
 public record PriseDeMainSaisie(int? Revision, string? Motif);
 public record ResponsableTechniqueSaisie(Guid? ParticipantId, List<Guid>? SystemeIds, string? Perimetre, DisponibiliteJourJ? Disponibilite, string? ContactJourJ);
@@ -306,11 +365,11 @@ public record ModeleEtapeSaisie(int? Version, string? Action, List<Guid>? System
 /// <summary>« Transformer en étape modèle » : copie d'une étape d'une MEP dans la bibliothèque, sous le nom donné (l'action à défaut).</summary>
 public record ModeleEtapeDepuisEtapeSaisie(Guid? MepId, Guid? EtapeId, string? Action);
 /// <summary>
-/// Insertion d'une copie d'étape modèle dans un plan de la MEP : <c>Ligne</c> absente = nouvelle ligne en bas, <c>Position</c>
-/// absente = en fin de ligne ; <c>Plan</c> absent = déploiement. <c>NouvelleLigne</c> : la copie ouvre une ligne à elle, insérée
-/// juste au-dessus de <c>Ligne</c>.
+/// Insertion d'une copie d'étape modèle dans un plan de la MEP (<c>Plan</c> absent : déploiement), à la même place qu'une étape
+/// créée (voir <see cref="EtapeSaisie"/>) : <c>Apres</c>, <c>Entre</c>, <c>ParalleleA</c> ou rien, et <c>SectionId</c>.
 /// </summary>
-public record InsertionEtapeModeleSaisie(Guid? ModeleId, TypePlan? Plan = null, int? Ligne = null, int? Position = null, bool NouvelleLigne = false);
+public record InsertionEtapeModeleSaisie(Guid? ModeleId, TypePlan? Plan = null, Guid? Apres = null, LienSaisie? Entre = null, Guid? ParalleleA = null,
+    Guid? SectionId = null);
 
 /// <summary>Étape de test que le fichier Excel importé va renseigner.</summary>
 public record ChangementValidationDto(Guid FicheId, Guid EtapeId, string Systeme, string Fiche, int Etape, ResultatControle Resultat,

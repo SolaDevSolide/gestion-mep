@@ -21,7 +21,7 @@ public static partial class Regles
 
     /// <summary>
     /// Anomalies du contenu de la MEP : graphe, échéance, pilote, étapes, plan de retour arrière, sauvegarde de chaque
-    /// système, fiches de recette, procédure relue et approbations.
+    /// système, sections restées dans le bac, fiches de recette, procédure relue et approbations.
     /// </summary>
     /// <remarks>
     /// L'échéance de retour arrière est facultative : renseignée, elle doit être future. Sans plan de retour arrière
@@ -74,6 +74,7 @@ public static partial class Regles
                 erreurs.Add($"{e.Code} : remplacer l'action d'exemple par une action réelle.");
         }
 
+        erreurs.AddRange(ErreursSections(mep));
         erreurs.AddRange(ErreursEnvironnements(mep));
         erreurs.AddRange(ErreursRecette(mep));
 
@@ -136,7 +137,8 @@ public static partial class Regles
     /// <summary>
     /// Avertissements non bloquants du plan (ils ne figurent pas dans <see cref="ErreursPlan"/>) : aucun responsable technique,
     /// pilote également responsable technique, responsable technique absent dont les étapes ne sont pas reprenables par un autre,
-    /// aucun système sauvegardé, système sans environnement choisi, système sans fiche de recette, fiche de recette sans système.
+    /// aucun système sauvegardé, cercle de section sans étape ou (entrée) sans source, système sans environnement choisi, système
+    /// sans fiche de recette, fiche de recette sans système.
     /// Pour un modèle, ni pilote ni disponibilité le jour J.
     /// MEP simplifiée : ni résolutions liées réclamées, ni suppléant à prévoir s'il y a d'autres personnes que le pilote.
     /// </summary>
@@ -167,6 +169,7 @@ public static partial class Regles
 
         if (mep.Systemes.Count > 0 && mep.Systemes.All(s => s.Sauvegarde.Statut == StatutSauvegarde.NonRequise))
             avertissements.Add("Aucun système n'est sauvegardé.");
+        avertissements.AddRange(AvertissementsSections(mep));
         foreach (var s in mep.Systemes.Where(s => s.Environnements.Count == 0))
             avertissements.Add($"Aucun environnement choisi pour le système {s.Nom} (Préparation › Systèmes).");
         foreach (var s in mep.Systemes.Where(s => mep.FichesRecette.All(f => f.SystemeId != s.Id)))

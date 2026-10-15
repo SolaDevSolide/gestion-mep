@@ -325,10 +325,14 @@ public static class MepsEndpoints
                             await ctx.Response.WriteAsync($"event: maj\ndata: {JsonSerializer.Serialize(new { version = v })}\n\n", ct);
                         if (envoi.Presence)
                             await ctx.Response.WriteAsync($"event: presence\ndata: {JsonSerializer.Serialize(diffuseur.Presences(id), JsonSerializerOptions.Web)}\n\n", ct);
+                        if (envoi.Verrous)
+                            await ctx.Response.WriteAsync($"event: verrous\ndata: {JsonSerializer.Serialize(diffuseur.Verrous(id), JsonSerializerOptions.Web)}\n\n", ct);
                     }
                     catch (OperationCanceledException) when (!ct.IsCancellationRequested)
                     {
                         await ctx.Response.WriteAsync(": ping\n\n", ct);
+                        // Verrous d'édition expirés (panneau fermé sans le dire) : retirés et diffusés au prochain réveil.
+                        diffuseur.Verrous(id);
                     }
                     await ctx.Response.Body.FlushAsync(ct);
                 }
@@ -336,7 +340,8 @@ public static class MepsEndpoints
             catch (OperationCanceledException) { /* déconnexion du client, ou flux renouvelé (durée atteinte) */ }
         });
 
-        // Présence : qui a la MEP ouverte, et sur quels éléments chacun travaille (informatif, rien n'est verrouillé).
+        // Présence : qui a la MEP ouverte, et sur quels éléments chacun travaille (informatif ; les verrous d'édition des étapes
+        // sont à part, voir SectionsEndpoints).
         api.MapGet("/meps/{id:guid}/presence", async (Guid id, MepDbContext db, DiffuseurMep diffuseur) =>
         {
             if (!await db.Meps.AnyAsync(m => m.Id == id)) throw ErreurHttp.NonTrouve("MEP introuvable.");

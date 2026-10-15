@@ -1522,7 +1522,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/meps/{id}/etapes/{eid}/placer": {
+    "/api/meps/{id}/etapes/{eid}/deplacer": {
         parameters: {
             query?: never;
             header?: never;
@@ -1543,7 +1543,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["PlacerSaisie"];
+                    "application/json": components["schemas"]["DeplacementSaisie"];
                 };
             };
             responses: {
@@ -1796,6 +1796,464 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/liens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LienSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/liens/retirer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LienSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/sections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SectionSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/sections/{sid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    sid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SectionSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    sid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/sections/{sid}/placement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    sid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PlacementSectionSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/sections/{sid}/ports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    sid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PortSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/sections/{sid}/ports/ordre": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    sid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OrdrePortsSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/sections/{sid}/ports/{pid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    sid: string;
+                    pid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PortSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    sid: string;
+                    pid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/etapes/{eid}/verrou": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    eid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["VerrouSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: {
+                    session?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                    eid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/verrous": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VerrouEtapeDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5773,6 +6231,23 @@ export interface components {
             actif: boolean;
             comptes: components["schemas"]["CompteDemoDto"][];
         };
+        /**
+         * @description Déplacement d'une carte : au plus une place, `SurLien` (elle quitte sa place, ses suivants attendent ses préalables, puis
+         *     elle s'insère sur ce lien), `Apres` (elle attend cette étape ou ce cercle) ou `ParalleleA`. `SectionId` : elle
+         *     entre dans cette section ; `SortirDeSection` : elle sort de la sienne ; ni l'un ni l'autre : la section de sa nouvelle
+         *     place (inchangée sans nouvelle place).
+         */
+        DeplacementSaisie: {
+            /** Format: uuid */
+            apres?: null | string;
+            surLien?: null | components["schemas"]["LienSaisie"];
+            /** Format: uuid */
+            paralleleA?: null | string;
+            /** Format: uuid */
+            sectionId?: null | string;
+            /** @default false */
+            sortirDeSection: boolean;
+        };
         DepuisCatalogueSaisie: {
             /** Format: uuid */
             catalogueId: null | string;
@@ -5859,7 +6334,11 @@ export interface components {
             membreIds: null | string[];
         };
         /**
-         * @description `Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire
+         * @description `Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :
+         *     recalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables
+         *     effectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres
+         *     sont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres
+         *     sections que l'étape attend. `Fin` : test unitaire
          *     (le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.
          *     `SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.
          *     `ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).
@@ -5934,6 +6413,10 @@ export interface components {
                 systemeId: string;
                 nom: string;
             }[];
+            /** Format: uuid */
+            sectionId: null | string;
+            dependancesDerivees: string[];
+            portsAttendus: string[];
         };
         EtapeModeleRecetteDto: {
             /** Format: int32 */
@@ -5946,9 +6429,13 @@ export interface components {
             resultatAttendu: null | string;
         };
         /**
-         * @description `Ligne` et `Position` ne servent qu'à la création (`POST /etapes`). `Fin`, `SauvegardeEmplacement`,
-         *     `SauvegardeMethodeRecuperation` et `Environnements` absents : inchangés (test unitaire pour une nouvelle étape) ;
-         *     les environnements d'un système retiré de l'étape partent avec lui.
+         * @description Champs de la fiche d'une étape. `Fin`, `SauvegardeEmplacement`, `SauvegardeMethodeRecuperation` et
+         *         `Environnements` absents : inchangés (test unitaire pour une nouvelle étape) ; les environnements d'un système retiré de
+         *         l'étape partent avec lui. `Dependances` : préalables directs (ceux qui viennent des cercles restent, on peut renvoyer
+         *         les préalables effectifs).
+         *         Création seulement (POST /etapes), au plus une place : Apres (la nouvelle étape attend cette étape ou ce
+         *     cercle), Entre (insertion sur ce lien), ParalleleA (mêmes préalables et mêmes suivants que cette étape) ; rien :
+         *     étape isolée. SectionId : section de la nouvelle étape (absente : celle de la place, sinon aucune).
          */
         EtapeSaisie: {
             /** Format: int32 */
@@ -5968,14 +6455,17 @@ export interface components {
             pointDeNonRetour: boolean;
             /** Format: int32 */
             dureeEstimeeMinutes?: null | number;
-            /** Format: int32 */
-            ligne?: null | number;
-            /** Format: int32 */
-            position?: null | number;
             fin?: null | components["schemas"]["FinEtape"];
             sauvegardeEmplacement?: null | string;
             sauvegardeMethodeRecuperation?: null | string;
             environnements?: null | components["schemas"]["EnvironnementEtapeSaisie"][];
+            /** Format: uuid */
+            apres?: null | string;
+            entre?: null | components["schemas"]["LienSaisie"];
+            /** Format: uuid */
+            paralleleA?: null | string;
+            /** Format: uuid */
+            sectionId?: null | string;
         };
         EtapeTestDto: {
             /** Format: uuid */
@@ -6337,6 +6827,10 @@ export interface components {
                         systemeId: string;
                         nom: string;
                     }[];
+                    /** Format: uuid */
+                    sectionId: null | string;
+                    dependancesDerivees: string[];
+                    portsAttendus: string[];
                 }[];
                 resolutions: {
                     /** Format: uuid */
@@ -6518,6 +7012,41 @@ export interface components {
                  * @enum {unknown}
                  */
                 type: "Complete" | "Simplifiee";
+                sections: {
+                    /** Format: uuid */
+                    id: string;
+                    /**
+                     * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+                     * @enum {unknown}
+                     */
+                    plan: "Deploiement" | "RetourArriere";
+                    titre: string;
+                    description: string;
+                    systemeIds: string[];
+                    /** Format: uuid */
+                    auteurId: null | string;
+                    auteur: null | string;
+                    /** Format: date-time */
+                    creeLe: string;
+                    placee: boolean;
+                    /** Format: int32 */
+                    revision: number;
+                    ports: {
+                        /** Format: uuid */
+                        id: string;
+                        /**
+                         * @description Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne).
+                         * @enum {unknown}
+                         */
+                        sens: "Entree" | "Sortie";
+                        titre: string;
+                        description: string;
+                        /** Format: int32 */
+                        ordre: number;
+                        etapes: string[];
+                        sources: string[];
+                    }[];
+                }[];
             };
             /** Format: int32 */
             ajoutes: number;
@@ -6537,20 +7066,20 @@ export interface components {
             }[];
         };
         /**
-         * @description Insertion d'une copie d'étape modèle dans un plan de la MEP : `Ligne` absente = nouvelle ligne en bas, `Position`
-         *     absente = en fin de ligne ; `Plan` absent = déploiement. `NouvelleLigne` : la copie ouvre une ligne à elle, insérée
-         *     juste au-dessus de `Ligne`.
+         * @description Insertion d'une copie d'étape modèle dans un plan de la MEP (`Plan` absent : déploiement), à la même place qu'une étape
+         *     créée (voir EtapeSaisie) : `Apres`, `Entre`, `ParalleleA` ou rien, et `SectionId`.
          */
         InsertionEtapeModeleSaisie: {
             /** Format: uuid */
             modeleId: null | string;
             plan?: null | components["schemas"]["TypePlan"];
-            /** Format: int32 */
-            ligne?: null | number;
-            /** Format: int32 */
-            position?: null | number;
-            /** @default false */
-            nouvelleLigne: boolean;
+            /** Format: uuid */
+            apres?: null | string;
+            entre?: null | components["schemas"]["LienSaisie"];
+            /** Format: uuid */
+            paralleleA?: null | string;
+            /** Format: uuid */
+            sectionId?: null | string;
         };
         /** @description Insertion d'un modèle de la bibliothèque (copie) dans un système de la MEP. */
         InsertionModeleRecetteSaisie: {
@@ -6583,6 +7112,13 @@ export interface components {
             comptePrincipalId: null | string;
             /** @default false */
             desactiver: boolean;
+        };
+        /** @description Lien du graphe : `Vers` attend `De` (Id d'étapes ou de cercles de section). */
+        LienSaisie: null | {
+            /** Format: uuid */
+            de: null | string;
+            /** Format: uuid */
+            vers: null | string;
         };
         /** @description Ligne du fichier Excel rejetée à l'import (objet absent de la fiche du système, système inconnu…). */
         LigneRejeteeDto: {
@@ -6817,6 +7353,10 @@ export interface components {
                     systemeId: string;
                     nom: string;
                 }[];
+                /** Format: uuid */
+                sectionId: null | string;
+                dependancesDerivees: string[];
+                portsAttendus: string[];
             }[];
             resolutions: {
                 /** Format: uuid */
@@ -6998,6 +7538,41 @@ export interface components {
              * @enum {unknown}
              */
             type: "Complete" | "Simplifiee";
+            sections: {
+                /** Format: uuid */
+                id: string;
+                /**
+                 * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+                 * @enum {unknown}
+                 */
+                plan: "Deploiement" | "RetourArriere";
+                titre: string;
+                description: string;
+                systemeIds: string[];
+                /** Format: uuid */
+                auteurId: null | string;
+                auteur: null | string;
+                /** Format: date-time */
+                creeLe: string;
+                placee: boolean;
+                /** Format: int32 */
+                revision: number;
+                ports: {
+                    /** Format: uuid */
+                    id: string;
+                    /**
+                     * @description Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne).
+                     * @enum {unknown}
+                     */
+                    sens: "Entree" | "Sortie";
+                    titre: string;
+                    description: string;
+                    /** Format: int32 */
+                    ordre: number;
+                    etapes: string[];
+                    sources: string[];
+                }[];
+            }[];
         };
         /**
          * @description `BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance. La MEP n'a plus
@@ -7274,6 +7849,11 @@ export interface components {
             ssoActif: boolean;
             ssoLibelle: null | string;
         };
+        /** @description Nouvel ordre des cercles d'un bord : tous les cercles de ce sens, de gauche à droite. */
+        OrdrePortsSaisie: {
+            sens: null | components["schemas"]["SensPort"];
+            ports: null | string[];
+        };
         ParametresDto: {
             /** Format: int32 */
             approbationsMinimum: number;
@@ -7330,19 +7910,8 @@ export interface components {
             /** Format: date-time */
             deposeLe: string;
         };
-        /**
-         * @description Déplacement d'une étape dans le graphe : `Ligne` affichée (le nombre de lignes = nouvelle ligne en bas), `Position` dans la
-         *     ligne. `NouvelleLigne` : l'étape ouvre une ligne à elle, insérée juste au-dessus de `Ligne` (glisser entre deux lignes).
-         */
-        PlacerSaisie: {
-            /** Format: int32 */
-            ligne: null | number;
-            /** Format: int32 */
-            position: null | number;
-            /** @default true */
-            liensParDefaut: boolean;
-            /** @default false */
-            nouvelleLigne: boolean;
+        PlacementSectionSaisie: {
+            placee: null | boolean;
         };
         PlanRepliDto: {
             quandDeclencher: string;
@@ -7361,6 +7930,32 @@ export interface components {
             versionARestaurer: null | string;
             donneesDepuisSauvegarde: null | string;
             siRepliEchoue: null | string;
+        };
+        /** @description Cercle d'une section : `Sens` obligatoire à la création, ignoré ensuite ; titre absent à la création : « Entrée 2 »… */
+        PortSaisie: {
+            sens?: null | components["schemas"]["SensPort"];
+            titre?: null | string;
+            description?: null | string;
+        };
+        /**
+         * @description Cercle d'une section. Entrée : `Etapes`, les étapes de la section qui l'attendent ; `Sources`, ce qui y arrive de
+         *     l'extérieur (Id d'étapes hors de la section ou de cercles de sortie d'autres sections). Sortie : `Etapes`, les étapes de
+         *     la section qu'il attend ; `Sources` toujours vide (les étapes qui l'attendent le portent dans `PortsAttendus`).
+         */
+        PortSectionDto: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne).
+             * @enum {unknown}
+             */
+            sens: "Entree" | "Sortie";
+            titre: string;
+            description: string;
+            /** Format: int32 */
+            ordre: number;
+            etapes: string[];
+            sources: string[];
         };
         /**
          * @description Personne qui a la MEP ouverte (flux temps réel connecté) et éléments sur lesquels elle travaille, tous onglets confondus :
@@ -7381,6 +7976,30 @@ export interface components {
             /** Format: int32 */
             revision: null | number;
             motif: null | string;
+        };
+        /** @description Résultat d'une demande de verrou : `Pris`, cet onglet le tient ; sinon `Verrou` dit qui est dessus. */
+        PriseVerrouDto: {
+            pris: boolean;
+            /**
+             * @description Verrou d'édition d'une étape (panneau d'édition ouvert) : tenu par l'onglet `Session` du compte `UtilisateurId`
+             *     jusqu'à `ExpireLe` sans renouvellement. `ReprisDe…` : qui le tenait quand il a été pris en main (null sinon).
+             */
+            verrou: {
+                /** Format: uuid */
+                etapeId: string;
+                /** Format: uuid */
+                utilisateurId: string;
+                nom: string;
+                session: string;
+                /** Format: date-time */
+                prisLe: string;
+                /** Format: date-time */
+                expireLe: string;
+                /** Format: uuid */
+                reprisDeUtilisateurId: null | string;
+                reprisDeNom: null | string;
+                reprisDeSession: null | string;
+            };
         };
         ProcedureRelueSaisie: {
             relue: boolean;
@@ -7569,6 +8188,495 @@ export interface components {
             emplacement?: null | string;
             methodeRecuperation?: null | string;
         };
+        /** @description Section créée (`SectionId`) et MEP à jour. */
+        SectionCreeeDto: {
+            /** Format: uuid */
+            sectionId: string;
+            /**
+             * @description `RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).
+             *     `EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.
+             *     `Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les
+             *     personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
+             *     résolutions liées.
+             */
+            mep: {
+                /** Format: uuid */
+                id: string;
+                /** Format: int32 */
+                version: number;
+                outil: string;
+                versionActuelle: string;
+                versionCible: string;
+                objet: string;
+                impacts: string;
+                /** Format: date */
+                dateMep: null | string;
+                /** Format: time */
+                heureDebut: null | string;
+                /** Format: time */
+                heureFin: null | string;
+                fuseauHoraire: string;
+                /** Format: int32 */
+                indisponibiliteMinutes: null | number;
+                /** Format: uuid */
+                piloteId: null | string;
+                suppleantIds: string[];
+                /**
+                 * @description Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin.
+                 * @enum {unknown}
+                 */
+                phase: "Preparation" | "Execution" | "RetourArriere" | "Cloturee" | "Recette";
+                /** Format: date-time */
+                echeanceRepli: null | string;
+                /** @enum {unknown} */
+                issue: "Reussie" | "Repliee" | null;
+                /** @description `Par` vaut null quand le retour arrière s'est déclenché automatiquement. */
+                retourArriere: null | {
+                    /** Format: date-time */
+                    le: string;
+                    par: null | string;
+                    motif: string;
+                };
+                cloture: null | {
+                    /** Format: date-time */
+                    le: string;
+                    par: null | string;
+                };
+                planRepli: {
+                    quandDeclencher: string;
+                    /** Format: int32 */
+                    dureeTesteeMinutes: null | number;
+                    versionARestaurer: string;
+                    donneesDepuisSauvegarde: string;
+                    siRepliEchoue: string;
+                };
+                sauvegarde: {
+                    /**
+                     * @description Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée.
+                     * @enum {unknown}
+                     */
+                    mode: "AvantMep" | "PendantMep";
+                    structure: boolean;
+                    donnees: boolean;
+                    configuration: boolean;
+                    /** Format: uuid */
+                    responsableId: null | string;
+                    /** Format: date-time */
+                    realiseeLe: null | string;
+                    procedure: string;
+                    copies: string;
+                    restaurationTestee: boolean;
+                    /** Format: date */
+                    dateTestRestauration: null | string;
+                    preuveTestRestauration: string;
+                };
+                procedureRelue: null | {
+                    par: string;
+                    /** Format: date-time */
+                    le: string;
+                };
+                demarrageAutorise: null | {
+                    par: string;
+                    /** Format: date-time */
+                    le: string;
+                };
+                participants: {
+                    /** Format: uuid */
+                    id: string;
+                    nom: string;
+                    role: string;
+                    contact: string;
+                    /** Format: uuid */
+                    utilisateurId: null | string;
+                    utilisateurNom: null | string;
+                }[];
+                systemes: {
+                    /** Format: uuid */
+                    id: string;
+                    nom: string;
+                    cible: string;
+                    impact: string;
+                    /** Format: uuid */
+                    catalogueId: null | string;
+                    /** @description `Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan). */
+                    sauvegarde: {
+                        /**
+                         * @description Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu.
+                         * @enum {unknown}
+                         */
+                        statut: "ARenseigner" | "Requise" | "NonRequise";
+                        /**
+                         * @description Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée.
+                         * @enum {unknown}
+                         */
+                        moment: "AvantMep" | "PendantMep";
+                        contenu: string;
+                        justification: string;
+                        emplacement: string;
+                        methodeRecuperation: string;
+                    };
+                    environnements: {
+                        nom: string;
+                        production: boolean;
+                    }[];
+                }[];
+                objetsImpactes: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    systemeId: null | string;
+                    /** Format: uuid */
+                    objetCatalogueId: null | string;
+                    categorie: string;
+                    type: string;
+                    nom: string;
+                    libelle: string;
+                    precision: string;
+                    version: string;
+                    repris: boolean;
+                }[];
+                etapes: {
+                    /** Format: uuid */
+                    id: string;
+                    /**
+                     * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+                     * @enum {unknown}
+                     */
+                    plan: "Deploiement" | "RetourArriere";
+                    code: string;
+                    /** Format: int32 */
+                    ligne: number;
+                    /** Format: int32 */
+                    ordre: number;
+                    action: string;
+                    systemeIds: string[];
+                    /** Format: uuid */
+                    responsableId: null | string;
+                    /** Format: uuid */
+                    executantId: null | string;
+                    /** @enum {unknown} */
+                    criticite: "Faible" | "Moderee" | "Elevee" | "Bloquante" | null;
+                    /** Format: int32 */
+                    dureeEstimeeMinutes: null | number;
+                    /** @enum {unknown} */
+                    etat: "AFaire" | "EnCours" | "Reussie" | "Echec";
+                    instructions: string;
+                    resultatAttendu: string;
+                    preuve: string;
+                    commentaire: string;
+                    /** Format: date-time */
+                    debutReel: null | string;
+                    /** Format: date-time */
+                    finReelle: null | string;
+                    /** Format: int32 */
+                    revision: number;
+                    dependances: string[];
+                    resolutionIds: string[];
+                    disponibilite: {
+                        /** @enum {unknown} */
+                        statut: "PlanInvalide" | "EcheanceARenseigner" | "RetourArriere" | "FicheACompleter" | "InstructionsACompleter" | "Attend" | "Terminee" | "EnCours" | "ArretResolution" | "ResolutionEnCours" | "SiRetourArriere" | "Disponible";
+                        libelle: string;
+                    };
+                    /**
+                     * @description Nature d'une étape de déploiement : standard, ou étape qui réalise la sauvegarde.
+                     * @enum {unknown}
+                     */
+                    type: "Standard" | "Sauvegarde";
+                    pointDeNonRetour: boolean;
+                    nonRetourAutorise: null | {
+                        par: string;
+                        /** Format: date-time */
+                        le: string;
+                    };
+                    /**
+                     * @description Fin d'une étape : test unitaire (le résultat attendu est l'instruction de test, le résultat constaté se saisit en
+                     *     terminant l'étape) ou simple vérification. Stockée en entier : 0, la valeur par défaut, est le test unitaire.
+                     * @enum {unknown}
+                     */
+                    fin: "TestUnitaire" | "Verification";
+                    resultatConstate: string;
+                    sauvegardeEmplacement: string;
+                    sauvegardeMethodeRecuperation: string;
+                    /** Format: uuid */
+                    modeleEtapeId: null | string;
+                    environnements: {
+                        /** Format: uuid */
+                        systemeId: string;
+                        nom: string;
+                    }[];
+                    /** Format: uuid */
+                    sectionId: null | string;
+                    dependancesDerivees: string[];
+                    portsAttendus: string[];
+                }[];
+                resolutions: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    etapeId: string;
+                    /** Format: uuid */
+                    resolutionTypeId: string;
+                    titre: string;
+                    symptomes: string;
+                    diagnostic: string;
+                    corrections: {
+                        /** Format: int32 */
+                        ordre: number;
+                        instruction: string;
+                        resultatAttendu: string;
+                        /** @enum {unknown} */
+                        resultat: "Conforme" | "Echec" | null;
+                        observation: string;
+                        par: null | string;
+                        /** Format: date-time */
+                        le: null | string;
+                    }[];
+                    verificationInstruction: string;
+                    verificationAttendu: string;
+                    /** @enum {unknown} */
+                    verificationResultat: "Conforme" | "Echec" | null;
+                    verificationObservation: string;
+                    /** @enum {unknown} */
+                    statut: "EnCours" | "Reussie" | "Echouee";
+                    demarreePar: string;
+                    /** Format: date-time */
+                    demarreeLe: string;
+                    /** Format: date-time */
+                    termineeLe: null | string;
+                }[];
+                erreursPlan: string[];
+                droits: {
+                    estPilote: boolean;
+                    peutModifierPlan: boolean;
+                    /** Format: uuid */
+                    participantId: null | string;
+                    estApprobateur: boolean;
+                    estResponsableTechnique: boolean;
+                    peutEditerContenu: boolean;
+                };
+                estModele: boolean;
+                /** Format: int32 */
+                approbationsMinimum: number;
+                approbations: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    utilisateurId: string;
+                    nom: string;
+                    /** @enum {unknown} */
+                    decision: "Approuvee" | "Refusee" | null;
+                    commentaire: string;
+                    /** Format: date-time */
+                    le: null | string;
+                }[];
+                goNoGo: {
+                    libelle: string;
+                    par: null | string;
+                    /** Format: date-time */
+                    le: string;
+                }[];
+                fichesRecette: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: int32 */
+                    ordre: number;
+                    /** Format: uuid */
+                    systemeId: null | string;
+                    titre: string;
+                    etapes: {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: int32 */
+                        ordre: number;
+                        instructions: string;
+                        resultatAttendu: string;
+                        /** @enum {unknown} */
+                        resultat: "Conforme" | "Echec" | null;
+                        observation: string;
+                        par: null | string;
+                        /** Format: date-time */
+                        le: null | string;
+                        /** @description Validation reportée d'un fichier Excel : nom saisi par le métier (« » sinon) ; `Par` est alors le compte qui a importé. */
+                        valideePar: string;
+                        /**
+                         * Format: date
+                         * @description Validation reportée d'un fichier Excel : date indiquée dans le fichier.
+                         */
+                        valideeLe: null | string;
+                    }[];
+                }[];
+                bilanActive: boolean;
+                bilan: null | {
+                    ceQuiAMarche: string;
+                    incidents: string;
+                    actions: string;
+                    redigePar: null | string;
+                    /** Format: date-time */
+                    le: null | string;
+                };
+                nonRetourFranchi: null | string;
+                piecesJointes: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    mepId: null | string;
+                    /** Format: uuid */
+                    etapeId: null | string;
+                    /** Format: uuid */
+                    resolutionTypeId: null | string;
+                    /** Format: uuid */
+                    executionResolutionId: null | string;
+                    nomFichier: string;
+                    typeContenu: string;
+                    /** Format: int64 */
+                    taille: number;
+                    sha256: string;
+                    /** Format: uuid */
+                    deposeParId: null | string;
+                    deposePar: null | string;
+                    /** Format: date-time */
+                    deposeLe: string;
+                }[];
+                responsablesTechniques: {
+                    /** Format: uuid */
+                    participantId: string;
+                    systemeIds: string[];
+                    perimetre: string;
+                    /**
+                     * @description Disponibilité d'un responsable technique le jour de la MEP.
+                     * @enum {unknown}
+                     */
+                    disponibilite: "Joignable" | "Absent";
+                    contactJourJ: string;
+                }[];
+                avertissements: string[];
+                retourArriereActive: boolean;
+                /**
+                 * @description Section Communication de la MEP (tout est facultatif). `PreuveValidationId` : pièce jointe de la MEP qui prouve la
+                 *     validation par les utilisateurs (null si aucune, ou si la pièce a été supprimée).
+                 */
+                communication: {
+                    referenceDemande: string;
+                    /**
+                     * @description Niveau de risque retenu par l'analyse d'impact (section Communication). Stocké en entier : toute nouvelle valeur s'ajoute à la fin.
+                     * @enum {unknown}
+                     */
+                    niveauRisque: "NonEvalue" | "Faible" | "Modere" | "Eleve";
+                    benefices: string;
+                    utilisateursImpactes: string;
+                    arretApplicatif: boolean;
+                    actionUtilisateurs: string;
+                    /** Format: time */
+                    heureLimite: null | string;
+                    /** Format: date */
+                    dateAnnoncee: null | string;
+                    /** Format: time */
+                    heureDebutAnnoncee: null | string;
+                    /** Format: time */
+                    heureFinAnnoncee: null | string;
+                    valideeParUtilisateurs: boolean;
+                    valideePar: string;
+                    /** Format: date */
+                    valideeLe: null | string;
+                    /** Format: uuid */
+                    preuveValidationId: null | string;
+                };
+                /**
+                 * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+                 *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+                 *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+                 *     valeur par défaut, est la MEP complète.
+                 * @enum {unknown}
+                 */
+                type: "Complete" | "Simplifiee";
+                sections: {
+                    /** Format: uuid */
+                    id: string;
+                    /**
+                     * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+                     * @enum {unknown}
+                     */
+                    plan: "Deploiement" | "RetourArriere";
+                    titre: string;
+                    description: string;
+                    systemeIds: string[];
+                    /** Format: uuid */
+                    auteurId: null | string;
+                    auteur: null | string;
+                    /** Format: date-time */
+                    creeLe: string;
+                    placee: boolean;
+                    /** Format: int32 */
+                    revision: number;
+                    ports: {
+                        /** Format: uuid */
+                        id: string;
+                        /**
+                         * @description Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne).
+                         * @enum {unknown}
+                         */
+                        sens: "Entree" | "Sortie";
+                        titre: string;
+                        description: string;
+                        /** Format: int32 */
+                        ordre: number;
+                        etapes: string[];
+                        sources: string[];
+                    }[];
+                }[];
+            };
+        };
+        /**
+         * @description Section d'un plan : repère qui regroupe des étapes (`EtapeDto.SectionId`). `Placee` faux : dans le bac.
+         *     `Revision` : augmente à chaque modification de la section ou de ses cercles. `Auteur` : nom du compte auteur.
+         */
+        SectionDto: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+             * @enum {unknown}
+             */
+            plan: "Deploiement" | "RetourArriere";
+            titre: string;
+            description: string;
+            systemeIds: string[];
+            /** Format: uuid */
+            auteurId: null | string;
+            auteur: null | string;
+            /** Format: date-time */
+            creeLe: string;
+            placee: boolean;
+            /** Format: int32 */
+            revision: number;
+            ports: {
+                /** Format: uuid */
+                id: string;
+                /**
+                 * @description Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne).
+                 * @enum {unknown}
+                 */
+                sens: "Entree" | "Sortie";
+                titre: string;
+                description: string;
+                /** Format: int32 */
+                ordre: number;
+                etapes: string[];
+                sources: string[];
+            }[];
+        };
+        /** @description Création (`Plan` absent : déploiement ; `Placee` absent : dans le bac) ou modification (`Revision` obligatoire) d'une section. */
+        SectionSaisie: {
+            /** Format: int32 */
+            revision?: null | number;
+            plan?: null | components["schemas"]["TypePlan"];
+            titre?: null | string;
+            description?: null | string;
+            systemeIds?: null | string[];
+            placee?: null | boolean;
+        };
+        /** @enum {unknown} */
+        SensPort: "Entree" | "Sortie" | null;
         /** @description Compte de l'application relié à un compte du fournisseur. */
         SsoIdentiteDto: {
             /** Format: uuid */
@@ -7822,6 +8930,32 @@ export interface components {
             groupe: string;
             description: string;
             liste: boolean;
+        };
+        /**
+         * @description Verrou d'édition d'une étape (panneau d'édition ouvert) : tenu par l'onglet `Session` du compte `UtilisateurId`
+         *     jusqu'à `ExpireLe` sans renouvellement. `ReprisDe…` : qui le tenait quand il a été pris en main (null sinon).
+         */
+        VerrouEtapeDto: {
+            /** Format: uuid */
+            etapeId: string;
+            /** Format: uuid */
+            utilisateurId: string;
+            nom: string;
+            session: string;
+            /** Format: date-time */
+            prisLe: string;
+            /** Format: date-time */
+            expireLe: string;
+            /** Format: uuid */
+            reprisDeUtilisateurId: null | string;
+            reprisDeNom: null | string;
+            reprisDeSession: null | string;
+        };
+        /** @description Verrou d'édition : `Session`, l'onglet (celui du flux temps réel) ; `PrendreLaMain`, le prendre même s'il est tenu. */
+        VerrouSaisie: {
+            session: null | string;
+            /** @default false */
+            prendreLaMain: boolean;
         };
         VersionResolutionTypeDto: {
             /** Format: int32 */

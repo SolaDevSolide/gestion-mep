@@ -34,7 +34,7 @@ public class MepSimplifieeTests
             Action = "Purge du cache", Criticite = Criticite.Elevee, DureeEstimeeMinutes = 10, ResolutionIds = [Guid.NewGuid()],
             SystemeCatalogueIds = [m.Systemes[0].CatalogueId!.Value],
         };
-        var (etape, _) = Regles.InsererEtapeModele(m, modele, TypePlan.Deploiement, null, null, modele.ResolutionIds);
+        var (etape, _) = Regles.InsererEtapeModele(m, modele, TypePlan.Deploiement, new(), null, modele.ResolutionIds);
         Assert.Null(etape.Criticite);
         Assert.Null(etape.DureeEstimeeMinutes);
         Assert.Empty(etape.ResolutionIds);

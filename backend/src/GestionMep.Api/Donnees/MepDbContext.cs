@@ -110,6 +110,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.GoNoGo).AsJson();
             e.Property(x => x.ResponsablesTechniques).AsJson();
             e.Property(x => x.FichesRecette).AsJson();
+            // Sections du plan et leurs cercles (repères sans effet sur l'exécution).
+            e.Property(x => x.Sections).AsJson();
             e.Property(x => x.ElementsBibliothequeComptes).HasColumnType("uuid[]");
             e.Property(x => x.Bilan).AsJsonObjet();
             e.HasIndex(x => x.EstModele);
@@ -140,6 +142,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         {
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.Dependances).HasColumnType("uuid[]");
+            e.Property(x => x.DependancesDerivees).HasColumnType("uuid[]");
+            e.Property(x => x.PortsAttendus).HasColumnType("uuid[]");
             e.Property(x => x.SystemeIds).HasColumnType("uuid[]");
             e.Property(x => x.ResolutionIds).HasColumnType("uuid[]");
             e.Property(x => x.Environnements).AsJson();

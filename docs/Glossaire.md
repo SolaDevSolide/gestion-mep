@@ -6,7 +6,11 @@
 
 **Avertissement** : point signalé par « Vérifier le plan » qui n'empêche pas le Go (par exemple un système sans recette).
 
+**Bac** : colonne à droite du graphe des étapes qui reçoit les sections pas encore placées dans le plan. Une section restée dans le bac bloque le Go.
+
 **Bilan** : retour d'expérience rédigé à la clôture : ce qui a marché, incidents, actions.
+
+**Cercle** : point d'entrée (en haut) ou de sortie (en bas) d'une section, nommé. Les étapes reliées à un cercle d'entrée attendent ce qui y arrive ; ce qui est relié à un cercle de sortie attend les étapes qui y sont reliées.
 
 **Catalogue des systèmes** : liste globale des systèmes de l'entreprise, dans laquelle on choisit les systèmes d'une MEP. Chaque système y a sa fiche.
 
@@ -46,7 +50,7 @@
 
 **Journal** : historique horodaté et attribué de toutes les actions sur une MEP.
 
-**Ligne** : rangée du graphe des étapes. Les étapes d'une même ligne peuvent se dérouler en parallèle.
+**Lien** : dans le graphe des étapes, « B attend A ». Seuls les liens règlent le déroulement : deux étapes qui ne s'attendent pas peuvent se dérouler en parallèle. Le rangement du graphe est automatique.
 
 **MEP** : mise en production, c'est-à-dire l'intervention qui déploie un changement sur un ou plusieurs environnements de ses systèmes.
 
@@ -66,7 +70,7 @@
 
 **Point de non-retour** : étape après laquelle on ne peut plus revenir en arrière. Son démarrage exige l'accord du pilote.
 
-**Prendre la main** : reprendre une étape démarrée par quelqu'un d'autre, avec un motif tracé.
+**Prendre la main** : le jour J, reprendre une étape démarrée par quelqu'un d'autre, avec un motif tracé. En préparation, reprendre l'édition d'une étape ouverte par quelqu'un d'autre (verrou d'édition), sans confirmation.
 
 **Preuve** : ce que l'exécutant a constaté en terminant une étape.
 
@@ -77,6 +81,8 @@
 **Responsable technique** : développeur ou sachant qui a préparé une partie du changement et reste joignable le jour J.
 
 **Résultat constaté** : réponse d'un test unitaire, saisie par l'exécutant en terminant l'étape.
+
+**Section** : groupe d'étapes du plan sous un titre, avec des systèmes et des cercles. C'est un repère : elle ne s'exécute pas, seuls ses cercles donnent des préalables à ses étapes.
 
 **Simple vérification** : fin d'une étape où l'exécutant confirme le résultat attendu sans saisir de résultat constaté.
 

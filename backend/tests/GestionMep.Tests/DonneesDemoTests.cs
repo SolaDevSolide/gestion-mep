@@ -104,8 +104,19 @@ public class DonneesDemoTests
                      "E0003 : compléter Instructions exactes.", "E0005 : remplacer l'action d'exemple par une action réelle.",
                      "Recette « Export nocturne » : ajouter au moins une étape de test.", "La procédure doit être relue par un opérateur.",
                      "Il faut 1 approbation(s).",
+                     "Section « Contrôles de bout en bout » dans le bac : la placer dans le plan ou la supprimer.",
                  })
             Assert.Contains(attendue, erreurs);
+        // Sections : deux placées et reliées par leurs cercles, une dans le bac ; les préalables effectifs sont ceux du plan.
+        Assert.Equal(["Tables factures", "Export et téléchargement", "Contrôles de bout en bout"], m.Sections.Select(s => s.Titre).ToArray());
+        string[] Prealables(string code) => m.Etapes.Single(e => e.Code == code).Dependances
+            .Select(id => m.Etapes.Single(e => e.Id == id).Code).Order().ToArray();
+        Assert.Equal(["E0001"], Prealables("E0002"));
+        Assert.Equal(["E0001"], Prealables("E0003"));
+        Assert.Equal(["E0001"], Prealables("E0004"));
+        Assert.Equal(["E0002", "E0003", "E0004"], Prealables("E0005"));
+        Assert.Equal(["E0001"], m.Etapes.Single(e => e.Code == "E0004").DependancesDerivees.Select(id => m.Etapes.Single(e => e.Id == id).Code));
+        Assert.Contains(Regles.Avertissements(m), a => a.StartsWith("Section « Contrôles de bout en bout », cercle d'entrée « Début »", StringComparison.Ordinal));
         Assert.Contains(Regles.Avertissements(m), a => a.Contains("Claire sera absent", StringComparison.Ordinal));
         // L'échéance de retour arrière est facultative : son absence n'est ni une anomalie ni un blocage des étapes.
         Assert.Null(m.EcheanceRepli);

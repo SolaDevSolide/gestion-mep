@@ -61,6 +61,7 @@ La liste est tenue à jour à chaque fonctionnalité qui ajoute une information 
 | `{{version_cible}}` | Version cible | Version installée par la MEP |
 | `{{impacts}}` | Impacts attendus | Impacts saisis dans Intervention |
 | `{{lien_mep}}` | Lien vers la MEP | Adresse de la MEP dans l'application (réglage « Adresse publique », sinon l'adresse utilisée) |
+| `{{sections}}` | Sections du plan | Titres des sections du plan de déploiement, dans l'ordre de création (liste) |
 
 ### Date et heure
 

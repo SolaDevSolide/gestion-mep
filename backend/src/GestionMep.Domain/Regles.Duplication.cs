@@ -5,7 +5,7 @@ public static partial class Regles
 {
     /// <summary>
     /// Copie profonde d'une MEP, en préparation, avec de nouveaux identifiants et toutes les références remappées
-    /// (codes d'étapes, lignes et positions conservés). Les systèmes gardent leurs environnements, les étapes les leurs, et
+    /// (codes d'étapes, lignes et positions, sections et leurs cercles conservés). Les systèmes gardent leurs environnements, les étapes les leurs, et
     /// les objets impactés sont repris avec leur version. Ne sont pas copiés : échéance, date et heures de MEP, responsable des étapes (obsolète), relecture, go / no-go, bilan,
     /// résolutions exécutées, résultats (étapes et leur résultat constaté, recettes, sauvegarde réalisée) et décisions d'approbation.
     /// </summary>
@@ -100,6 +100,21 @@ public static partial class Regles
         };
 
         var etapes = source.Etapes.ToDictionary(e => e.Id, _ => Guid.NewGuid());
+        // Sections et cercles : nouveaux Id, mêmes liens (une source est une étape ou un cercle de sortie).
+        var sections = source.Sections.ToDictionary(s => s.Id, _ => Guid.NewGuid());
+        var ports = source.Sections.SelectMany(s => s.Ports).ToDictionary(p => p.Id, _ => Guid.NewGuid());
+        Guid? Lien(Guid id) => etapes.TryGetValue(id, out var e) ? e : ports.TryGetValue(id, out var p) ? p : null;
+        mep.Sections = source.Sections.OrderBy(s => s.CreeLe).Select(s => new Section
+        {
+            Id = sections[s.Id], Plan = s.Plan, Titre = s.Titre, Description = s.Description,
+            SystemeIds = s.SystemeIds.Select(id => S(id)).OfType<Guid>().ToList(), AuteurId = s.AuteurId, CreeLe = s.CreeLe, Placee = s.Placee,
+            Ports = s.Ports.Select(p => new PortSection
+            {
+                Id = ports[p.Id], Sens = p.Sens, Titre = p.Titre, Description = p.Description, Ordre = p.Ordre,
+                Etapes = p.Etapes.Where(etapes.ContainsKey).Select(id => etapes[id]).ToList(),
+                Sources = p.Sources.Select(Lien).OfType<Guid>().ToList(),
+            }).ToList(),
+        }).ToList();
         foreach (var e in source.EtapesTriees())
             mep.Etapes.Add(new Etape
             {
@@ -109,6 +124,9 @@ public static partial class Regles
                 Criticite = e.Criticite, Instructions = e.Instructions, ResultatAttendu = e.ResultatAttendu, Fin = e.Fin,
                 SauvegardeEmplacement = e.SauvegardeEmplacement, SauvegardeMethodeRecuperation = e.SauvegardeMethodeRecuperation,
                 Dependances = e.Dependances.Where(etapes.ContainsKey).Select(d => etapes[d]).ToList(),
+                DependancesDerivees = e.DependancesDerivees.Where(etapes.ContainsKey).Select(d => etapes[d]).ToList(),
+                SectionId = e.SectionId is { } sid && sections.TryGetValue(sid, out var ns) ? ns : null,
+                PortsAttendus = e.PortsAttendus.Where(ports.ContainsKey).Select(p => ports[p]).ToList(),
                 ResolutionIds = [.. e.ResolutionIds], ModeleEtapeId = e.ModeleEtapeId,
                 Environnements = e.Environnements.Where(x => systemes.ContainsKey(x.SystemeId))
                     .Select(x => new EnvironnementEtape { SystemeId = systemes[x.SystemeId], Nom = x.Nom }).ToList(),

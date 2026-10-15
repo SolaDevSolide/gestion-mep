@@ -136,6 +136,7 @@ api.MapMeps();
 api.MapStructure();
 api.MapObjetsImpactes();
 api.MapEtapes();
+api.MapSections();
 api.MapPhase();
 api.MapCatalogue();
 api.MapResolutions();

@@ -4,13 +4,20 @@ using System.Threading.Channels;
 namespace GestionMep.Api.Services;
 
 /// <summary>
-/// Diffuse en mémoire, par MEP, aux connexions SSE ouvertes : la dernière version modifiée et la présence (qui a la MEP
-/// ouverte, et sur quel élément chacun travaille). Un abonné lent ne reçoit que l'état le plus récent.
-/// La présence vit avec la connexion : fermer l'onglet (ou perdre le réseau) ferme le flux et retire la personne.
+/// Diffuse en mémoire, par MEP, aux connexions SSE ouvertes : la dernière version modifiée, la présence (qui a la MEP
+/// ouverte, et sur quel élément chacun travaille) et les verrous d'édition des étapes. Un abonné lent ne reçoit que l'état le
+/// plus récent. La présence vit avec la connexion : fermer l'onglet (ou perdre le réseau) ferme le flux, retire la personne et
+/// relâche les verrous de cet onglet.
 /// (Une seule instance du serveur : pour plusieurs instances, remplacer par LISTEN/NOTIFY PostgreSQL.)
 /// </summary>
-public sealed partial class DiffuseurMep(IConfiguration config)
+public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? temps = null)
 {
+    /// <summary>Durée d'un verrou d'édition sans signe de vie : le panneau ouvert le renouvelle (toutes les 20 s environ).</summary>
+    public static readonly TimeSpan DureeVerrou = TimeSpan.FromMinutes(1);
+    private readonly TimeProvider _temps = temps ?? TimeProvider.System;
+    /// <summary>Verrous d'édition par MEP, puis par étape.</summary>
+    private readonly Dictionary<Guid, Dictionary<Guid, VerrouEtapeDto>> _verrous = [];
+
     /// <summary>Flux ouverts en même temps par un compte (plusieurs onglets) et pour tout le serveur : au-delà, 429.</summary>
     public const int MaxParCompte = 20;
     /// <summary>Éléments qu'un onglet peut déclarer en même temps.</summary>
@@ -120,15 +127,106 @@ public sealed partial class DiffuseurMep(IConfiguration config)
 
     private void Desabonner(Guid mepId, Abonne abonne)
     {
+        var verrous = false;
         lock (_verrou)
         {
             if (!_abonnes.TryGetValue(mepId, out var liste) || !liste.Remove(abonne)) return;
             if (liste.Count == 0) _abonnes.Remove(mepId);
             _total--;
             if (--_parCompte[abonne.UtilisateurId] == 0) _parCompte.Remove(abonne.UtilisateurId);
+            // Dernier flux de cet onglet fermé : ses verrous d'édition sont relâchés.
+            if (!liste.Any(a => a.UtilisateurId == abonne.UtilisateurId && a.Session == abonne.Session)
+                && _verrous.TryGetValue(mepId, out var parEtape))
+            {
+                foreach (var (etape, v) in parEtape.Where(x => x.Value.UtilisateurId == abonne.UtilisateurId && x.Value.Session == abonne.Session).ToList())
+                    verrous |= parEtape.Remove(etape);
+                if (parEtape.Count == 0) _verrous.Remove(mepId);
+            }
         }
         abonne.Signal.Writer.TryComplete();
         NotifierPresence(mepId);
+        if (verrous) NotifierVerrous(mepId);
+    }
+
+    // ---------- Verrous d'édition des étapes ----------
+
+    /// <summary>
+    /// Prend ou renouvelle le verrou d'édition d'une étape pour cet onglet. Libre, expiré ou déjà à cet onglet : pris (ou
+    /// renouvelé). Tenu par quelqu'un d'autre : pris seulement avec <paramref name="prendreLaMain"/> (sans confirmation), le verrou
+    /// garde alors qui l'avait. Renvoie le verrou de l'étape après l'opération et si cet onglet le tient.
+    /// </summary>
+    public (bool Pris, VerrouEtapeDto Verrou) PrendreVerrou(Guid mepId, Guid etapeId, Guid utilisateurId, string nom, string session, bool prendreLaMain)
+    {
+        var maintenant = _temps.GetUtcNow();
+        bool change, pris;
+        VerrouEtapeDto verrou;
+        lock (_verrou)
+        {
+            change = Purger(mepId, maintenant);
+            if (!_verrous.TryGetValue(mepId, out var parEtape)) _verrous[mepId] = parEtape = [];
+            parEtape.TryGetValue(etapeId, out var actuel);
+            var aMoi = actuel is not null && actuel.UtilisateurId == utilisateurId && actuel.Session == session;
+            pris = actuel is null || aMoi || prendreLaMain;
+            if (pris)
+            {
+                verrou = aMoi
+                    ? actuel! with { ExpireLe = maintenant + DureeVerrou }
+                    : new VerrouEtapeDto(etapeId, utilisateurId, nom, session, maintenant, maintenant + DureeVerrou,
+                        actuel?.UtilisateurId, actuel?.Nom, actuel?.Session);
+                parEtape[etapeId] = verrou;
+                change |= !aMoi;
+            }
+            else verrou = actuel!;
+        }
+        if (change) NotifierVerrous(mepId);
+        return (pris, verrou);
+    }
+
+    /// <summary>Relâche le verrou d'une étape s'il est tenu par cet onglet (fermeture du panneau). Renvoie faux sinon.</summary>
+    public bool RelacherVerrou(Guid mepId, Guid etapeId, Guid utilisateurId, string session)
+    {
+        bool relache;
+        lock (_verrou)
+        {
+            relache = _verrous.TryGetValue(mepId, out var parEtape) && parEtape.TryGetValue(etapeId, out var v)
+                && v.UtilisateurId == utilisateurId && v.Session == session && parEtape.Remove(etapeId);
+            if (relache && parEtape!.Count == 0) _verrous.Remove(mepId);
+        }
+        if (relache) NotifierVerrous(mepId);
+        return relache;
+    }
+
+    /// <summary>Verrous d'édition en cours sur la MEP (les verrous expirés sont retirés et diffusés).</summary>
+    public List<VerrouEtapeDto> Verrous(Guid mepId)
+    {
+        List<VerrouEtapeDto> liste;
+        bool change;
+        lock (_verrou)
+        {
+            change = Purger(mepId, _temps.GetUtcNow());
+            liste = _verrous.TryGetValue(mepId, out var parEtape) ? [.. parEtape.Values.OrderBy(v => v.PrisLe)] : [];
+        }
+        if (change) NotifierVerrous(mepId);
+        return liste;
+    }
+
+    /// <summary>Retire les verrous expirés de la MEP (sous <see cref="_verrou"/>). Renvoie vrai si un verrou a été retiré.</summary>
+    private bool Purger(Guid mepId, DateTimeOffset maintenant)
+    {
+        if (!_verrous.TryGetValue(mepId, out var parEtape)) return false;
+        var expires = parEtape.Where(x => x.Value.ExpireLe <= maintenant).Select(x => x.Key).ToList();
+        foreach (var e in expires) parEtape.Remove(e);
+        if (parEtape.Count == 0) _verrous.Remove(mepId);
+        return expires.Count > 0;
+    }
+
+    private void NotifierVerrous(Guid mepId)
+    {
+        foreach (var a in Cibles(mepId))
+        {
+            lock (a) a.Verrous = true;
+            a.Signal.Writer.TryWrite(true);
+        }
     }
 
     /// <summary>Une connexion SSE : son onglet, ses éléments et ce qu'il reste à lui envoyer.</summary>
@@ -143,6 +241,8 @@ public sealed partial class DiffuseurMep(IConfiguration config)
         public int? Version { get; set; }
         /// <summary>La présence a changé depuis le dernier envoi.</summary>
         public bool Presence { get; set; }
+        /// <summary>Les verrous d'édition ont changé depuis le dernier envoi.</summary>
+        public bool Verrous { get; set; }
         /// <summary>Réveil du flux : capacité 1, les signaux en trop sont ignorés (l'état à envoyer est dans les champs).</summary>
         public Channel<bool> Signal { get; } = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
         {
@@ -152,7 +252,7 @@ public sealed partial class DiffuseurMep(IConfiguration config)
     }
 
     /// <summary>Ce qu'un flux doit envoyer à son réveil.</summary>
-    public readonly record struct Envoi(int? Version, bool Presence);
+    public readonly record struct Envoi(int? Version, bool Presence, bool Verrous = false);
 
     public sealed class Abonnement : IDisposable
     {
@@ -179,9 +279,10 @@ public sealed partial class DiffuseurMep(IConfiguration config)
         {
             lock (_abonne)
             {
-                var envoi = new Envoi(_abonne.Version, _abonne.Presence);
+                var envoi = new Envoi(_abonne.Version, _abonne.Presence, _abonne.Verrous);
                 _abonne.Version = null;
                 _abonne.Presence = false;
+                _abonne.Verrous = false;
                 return envoi;
             }
         }

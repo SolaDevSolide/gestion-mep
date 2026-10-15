@@ -43,6 +43,7 @@ public static class VariablesTexte
         new("version_cible", "Version cible", GroupeMep, "Version installée par la MEP."),
         new("impacts", "Impacts attendus", GroupeMep, "Impacts saisis dans Intervention."),
         new("lien_mep", "Lien vers la MEP", GroupeMep, "Adresse de la MEP dans l'application (adresse publique du serveur)."),
+        new("sections", "Sections du plan", GroupeMep, "Titres des sections du plan de déploiement, dans l'ordre de création.", Liste: true),
 
         new("date", "Date de la MEP", GroupeDates, "Date annoncée (Communication), sinon date du Go. Ex. « mardi 20 octobre 2026 »."),
         new("heure_debut", "Heure de début", GroupeDates, "Heure de début annoncée, sinon heure du Go. Ex. « 20h00 »."),
@@ -186,6 +187,7 @@ public static class VariablesTexte
                 ? $"oui ({string.Join(", ", prod)})"
                 : mep.Systemes.Any(s => s.Environnements.Count > 0) ? "non" : null),
             ["objets_impactes"] = L(ObjetsImpactes(mep)),
+            ["sections"] = L(mep.SectionsDu(TypePlan.Deploiement).Select(s => s.Titre)),
 
             ["reference_demande"] = V(c.ReferenceDemande),
             ["niveau_risque"] = V(c.NiveauRisque switch

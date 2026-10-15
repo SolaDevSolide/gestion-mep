@@ -119,31 +119,36 @@ public class ApiBibliothequesTests : IDisposable
         Assert.Equal(0, Utilisations(res));
         var m = await Corps(await alice.PostAsJsonAsync("/api/etapes-modeles", Saisie(null, "Vacuum de la base", [cat("BDD"), cat("BATCH")], resolutions: [Id(res)])));
 
-        // Ligne inexistante : 400 ; sauvegarde dans le retour arrière : 422.
-        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{demo}/etapes/depuis-modele", new { modeleId = Id(m), ligne = 99 })).StatusCode);
+        // Deux places à la fois ou lien incomplet : 400 ; sauvegarde dans le retour arrière : 422.
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{demo}/etapes/depuis-modele",
+            new { modeleId = Id(m), apres = Guid.NewGuid(), paralleleA = Guid.NewGuid() })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{demo}/etapes/depuis-modele",
+            new { modeleId = Id(m), entre = new { de = Guid.NewGuid() } })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{demo}/etapes/depuis-modele", new { })).StatusCode);
         var avant = await Ok(await alice.GetAsync($"/api/meps/{demo}"));
         var bddMep = avant.GetProperty("systemes").EnumerateArray().Single(s => s.GetProperty("nom").GetString() == "BDD");
 
-        var mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{demo}/etapes/depuis-modele", new { modeleId = Id(m), ligne = 0, position = 0 }));
+        var mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{demo}/etapes/depuis-modele", new { modeleId = Id(m) }));
         var copie = mep.GetProperty("etapes").EnumerateArray().Single(e => e.GetProperty("modeleEtapeId").ValueKind == JsonValueKind.String
             && e.GetProperty("modeleEtapeId").GetGuid() == Id(m));
-        Assert.Equal((0, 0, false), (copie.GetProperty("ligne").GetInt32(), copie.GetProperty("ordre").GetInt32(), copie.GetProperty("pointDeNonRetour").GetBoolean()));
+        // Sans place : isolée, en bout de première ligne.
+        Assert.Equal((0, 3, false), (copie.GetProperty("ligne").GetInt32(), copie.GetProperty("ordre").GetInt32(), copie.GetProperty("pointDeNonRetour").GetBoolean()));
+        Assert.Empty(copie.GetProperty("dependances").EnumerateArray());
         Assert.Equal([Id(bddMep)], copie.GetProperty("systemeIds").EnumerateArray().Select(x => x.GetGuid()));
         Assert.Equal([Id(res)], copie.GetProperty("resolutionIds").EnumerateArray().Select(x => x.GetGuid()));
         Assert.Equal(1, Utilisations(await Modele(alice, Id(m))));
         Assert.Equal(1, Utilisations(await Ok(await alice.GetAsync($"/api/resolutions/{Id(res)}"))));
 
-        // Deuxième copie dans la même MEP, posée entre deux lignes : elle ouvre une ligne à elle ; pas de nouvelle utilisation.
-        var lignesAvant = mep.GetProperty("etapes").EnumerateArray().Where(e => e.GetProperty("plan").GetString() == "Deploiement")
-            .Select(e => e.GetProperty("ligne").GetInt32()).Distinct().Count();
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{demo}/etapes/depuis-modele", new { modeleId = Id(m), ligne = 1, nouvelleLigne = true }));
-        var deploiement = mep.GetProperty("etapes").EnumerateArray().Where(e => e.GetProperty("plan").GetString() == "Deploiement").ToList();
-        var seconde = deploiement.Single(e => e.GetProperty("modeleEtapeId").ValueKind == JsonValueKind.String
+        // Deuxième copie dans la même MEP, insérée sur le lien E0007 → E0008 : pas de nouvelle utilisation.
+        string Code(Guid eid) => mep.GetProperty("etapes").EnumerateArray().Single(e => e.GetProperty("id").GetGuid() == eid).GetProperty("code").GetString()!;
+        Guid IdDe(string code) => mep.GetProperty("etapes").EnumerateArray().Single(e => e.GetProperty("code").GetString() == code).GetProperty("id").GetGuid();
+        var (e7, e8) = (IdDe("E0007"), IdDe("E0008"));
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{demo}/etapes/depuis-modele", new { modeleId = Id(m), entre = new { de = e7, vers = e8 } }));
+        var seconde = mep.GetProperty("etapes").EnumerateArray().Single(e => e.GetProperty("modeleEtapeId").ValueKind == JsonValueKind.String
             && e.GetProperty("modeleEtapeId").GetGuid() == Id(m) && e.GetProperty("ligne").GetInt32() != 0);
-        Assert.Equal((1, 0), (seconde.GetProperty("ligne").GetInt32(), seconde.GetProperty("ordre").GetInt32()));
-        Assert.Single(deploiement, e => e.GetProperty("ligne").GetInt32() == 1);
-        Assert.Equal(lignesAvant + 1, deploiement.Select(e => e.GetProperty("ligne").GetInt32()).Distinct().Count());
+        Assert.Equal(["E0007"], seconde.GetProperty("dependances").EnumerateArray().Select(d => Code(d.GetGuid())));
+        Assert.Equal([seconde.GetProperty("id").GetGuid()],
+            mep.GetProperty("etapes").EnumerateArray().Single(e => e.GetProperty("id").GetGuid() == e8).GetProperty("dependances").EnumerateArray().Select(d => d.GetGuid()));
         Assert.Equal(1, Utilisations(await Modele(alice, Id(m))));
         // Dans une autre MEP : une utilisation de plus.
         await Ok(await alice.PostAsJsonAsync($"/api/meps/{prete}/etapes/depuis-modele", new { modeleId = Id(m) }));

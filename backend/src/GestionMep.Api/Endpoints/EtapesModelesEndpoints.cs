@@ -149,11 +149,10 @@ public static class EtapesModelesEndpoints
                 ServiceMep.ExigerEditeur(mep, acteur);
                 Regles.ExigerPreparation(mep);
                 var plan = c.Plan ?? TypePlan.Deploiement;
-                var nbLignes = Regles.Lignes(mep, plan).Count;
-                if (c.Ligne is { } l && (l < 0 || l > nbLignes)) throw ErreurHttp.Saisie($"Ligne invalide : entre 0 et {nbLignes} (nouvelle ligne en bas).");
-                if (c.Position is < 0) throw ErreurHttp.Saisie("La position ne peut pas être négative.");
-                var (etape, _) = Regles.InsererEtapeModele(mep, modele, plan, c.Ligne, c.Position, actives, c.NouvelleLigne);
-                return await svc.EnregistrerContenu(mep, acteur, "etape.creee", $"{etape.Code} créée depuis l'étape modèle « {modele.Action} »");
+                var place = EtapesEndpoints.Place(c.Apres, c.Entre, c.ParalleleA, "entre");
+                var (etape, _) = Regles.InsererEtapeModele(mep, modele, plan, place, c.SectionId, actives);
+                return await svc.EnregistrerContenu(mep, acteur, "etape.creee",
+                    $"{etape.Code} créée depuis l'étape modèle « {modele.Action} »{EtapesEndpoints.DansSection(mep, etape)}");
             }));
         });
     }

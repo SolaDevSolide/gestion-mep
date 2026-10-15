@@ -1257,7 +1257,7 @@
         }
       }
     },
-    "/api/meps/{id}/etapes/{eid}/placer": {
+    "/api/meps/{id}/etapes/{eid}/deplacer": {
       "post": {
         "tags": [
           "GestionMep.Api"
@@ -1286,7 +1286,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PlacerSaisie"
+                "$ref": "#/components/schemas/DeplacementSaisie"
               }
             }
           },
@@ -1547,6 +1547,505 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/liens": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LienSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/liens/retirer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LienSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/sections": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SectionSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/sections/{sid}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SectionSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/sections/{sid}/placement": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlacementSectionSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/sections/{sid}/ports": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/sections/{sid}/ports/ordre": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrdrePortsSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/sections/{sid}/ports/{pid}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes/{eid}/verrou": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerrouSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "session",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/verrous": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VerrouEtapeDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -5823,6 +6322,47 @@
         },
         "description": "Mode démonstration (route `/api/demo`, sans authentification, déclarée seulement si la démonstration est active) :\ncomptes proposés par la connexion rapide."
       },
+      "DeplacementSaisie": {
+        "type": "object",
+        "properties": {
+          "apres": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "surLien": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LienSaisie"
+              }
+            ]
+          },
+          "paralleleA": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sortirDeSection": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "description": "Déplacement d'une carte : au plus une place, `SurLien` (elle quitte sa place, ses suivants attendent ses préalables, puis\nelle s'insère sur ce lien), `Apres` (elle attend cette étape ou ce cercle) ou `ParalleleA`. `SectionId` : elle\nentre dans cette section ; `SortirDeSection` : elle sort de la sienne ; ni l'un ni l'autre : la section de sa nouvelle\nplace (inchangée sans nouvelle place)."
+      },
       "DepuisCatalogueSaisie": {
         "required": [
           "catalogueId",
@@ -6194,7 +6734,10 @@
           "sauvegardeEmplacement",
           "sauvegardeMethodeRecuperation",
           "modeleEtapeId",
-          "environnements"
+          "environnements",
+          "sectionId",
+          "dependancesDerivees",
+          "portsAttendus"
         ],
         "type": "object",
         "properties": {
@@ -6411,9 +6954,30 @@
               },
               "description": "Environnement d'une étape sur l'un de ses systèmes."
             }
+          },
+          "sectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "dependancesDerivees": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "portsAttendus": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         },
-        "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système."
+        "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système."
       },
       "EtapeModeleRecetteDto": {
         "required": [
@@ -6572,20 +7136,6 @@
             ],
             "format": "int32"
           },
-          "ligne": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "position": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
           "fin": {
             "oneOf": [
               {
@@ -6616,9 +7166,40 @@
             "items": {
               "$ref": "#/components/schemas/EnvironnementEtapeSaisie"
             }
+          },
+          "apres": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "entre": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LienSaisie"
+              }
+            ]
+          },
+          "paralleleA": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
-        "description": "`Ligne` et `Position` ne servent qu'à la création (`POST /etapes`). `Fin`, `SauvegardeEmplacement`,\n`SauvegardeMethodeRecuperation` et `Environnements` absents : inchangés (test unitaire pour une nouvelle étape) ;\nles environnements d'un système retiré de l'étape partent avec lui."
+        "description": "    Champs de la fiche d'une étape. `Fin`, `SauvegardeEmplacement`, `SauvegardeMethodeRecuperation` et\n    `Environnements` absents : inchangés (test unitaire pour une nouvelle étape) ; les environnements d'un système retiré de\n    l'étape partent avec lui. `Dependances` : préalables directs (ceux qui viennent des cercles restent, on peut renvoyer\n    les préalables effectifs).\n    Création seulement (POST /etapes), au plus une place : Apres (la nouvelle étape attend cette étape ou ce\ncercle), Entre (insertion sur ce lien), ParalleleA (mêmes préalables et mêmes suivants que cette étape) ; rien :\nétape isolée. SectionId : section de la nouvelle étape (absente : celle de la place, sinon aucune)."
       },
       "EtapeTestDto": {
         "required": [
@@ -7187,7 +7768,8 @@
               "avertissements",
               "retourArriereActive",
               "communication",
-              "type"
+              "type",
+              "sections"
             ],
             "type": "object",
             "properties": {
@@ -7702,7 +8284,10 @@
                     "sauvegardeEmplacement",
                     "sauvegardeMethodeRecuperation",
                     "modeleEtapeId",
-                    "environnements"
+                    "environnements",
+                    "sectionId",
+                    "dependancesDerivees",
+                    "portsAttendus"
                   ],
                   "type": "object",
                   "properties": {
@@ -7919,9 +8504,30 @@
                         },
                         "description": "Environnement d'une étape sur l'un de ses systèmes."
                       }
+                    },
+                    "sectionId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "dependancesDerivees": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "portsAttendus": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
                     }
                   },
-                  "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système."
+                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système."
                 }
               },
               "resolutions": {
@@ -8555,6 +9161,129 @@
                   "Simplifiee"
                 ],
                 "description": "Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).\nSimplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni\nrésolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la\nvaleur par défaut, est la MEP complète."
+              },
+              "sections": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "plan",
+                    "titre",
+                    "description",
+                    "systemeIds",
+                    "auteurId",
+                    "auteur",
+                    "creeLe",
+                    "placee",
+                    "revision",
+                    "ports"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "plan": {
+                      "enum": [
+                        "Deploiement",
+                        "RetourArriere"
+                      ],
+                      "description": "Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière."
+                    },
+                    "titre": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "systemeIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "auteurId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "auteur": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "creeLe": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "placee": {
+                      "type": "boolean"
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "ports": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "id",
+                          "sens",
+                          "titre",
+                          "description",
+                          "ordre",
+                          "etapes",
+                          "sources"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "sens": {
+                            "enum": [
+                              "Entree",
+                              "Sortie"
+                            ],
+                            "description": "Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne)."
+                          },
+                          "titre": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "ordre": {
+                            "type": "integer",
+                            "format": "int32"
+                          },
+                          "etapes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid"
+                            }
+                          },
+                          "sources": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid"
+                            }
+                          }
+                        },
+                        "description": "Cercle d'une section. Entrée : `Etapes`, les étapes de la section qui l'attendent ; `Sources`, ce qui y arrive de\nl'extérieur (Id d'étapes hors de la section ou de cercles de sortie d'autres sections). Sortie : `Etapes`, les étapes de\nla section qu'il attend ; `Sources` toujours vide (les étapes qui l'attendent le portent dans `PortsAttendus`)."
+                      }
+                    }
+                  },
+                  "description": "Section d'un plan : repère qui regroupe des étapes (`EtapeDto.SectionId`). `Placee` faux : dans le bac.\n`Revision` : augmente à chaque modification de la section ou de ses cercles. `Auteur` : nom du compte auteur."
+                }
               }
             },
             "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées."
@@ -8637,26 +9366,39 @@
               }
             ]
           },
-          "ligne": {
+          "apres": {
             "type": [
               "null",
-              "integer"
+              "string"
             ],
-            "format": "int32"
+            "format": "uuid"
           },
-          "position": {
+          "entre": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LienSaisie"
+              }
+            ]
+          },
+          "paralleleA": {
             "type": [
               "null",
-              "integer"
+              "string"
             ],
-            "format": "int32"
+            "format": "uuid"
           },
-          "nouvelleLigne": {
-            "type": "boolean",
-            "default": false
+          "sectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
-        "description": "Insertion d'une copie d'étape modèle dans un plan de la MEP : `Ligne` absente = nouvelle ligne en bas, `Position`\nabsente = en fin de ligne ; `Plan` absent = déploiement. `NouvelleLigne` : la copie ouvre une ligne à elle, insérée\njuste au-dessus de `Ligne`."
+        "description": "Insertion d'une copie d'étape modèle dans un plan de la MEP (`Plan` absent : déploiement), à la même place qu'une étape\ncréée (voir EtapeSaisie) : `Apres`, `Entre`, `ParalleleA` ou rien, et `SectionId`."
       },
       "InsertionModeleRecetteSaisie": {
         "required": [
@@ -8764,6 +9506,33 @@
           }
         },
         "description": "Relie le compte à `ComptePrincipalId` (même personne) ; `Desactiver` : désactive aussi le compte relié."
+      },
+      "LienSaisie": {
+        "required": [
+          "de",
+          "vers"
+        ],
+        "type": [
+          "null",
+          "object"
+        ],
+        "properties": {
+          "de": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "vers": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "Lien du graphe : `Vers` attend `De` (Id d'étapes ou de cercles de section)."
       },
       "LigneRejeteeDto": {
         "required": [
@@ -8885,7 +9654,8 @@
           "avertissements",
           "retourArriereActive",
           "communication",
-          "type"
+          "type",
+          "sections"
         ],
         "type": "object",
         "properties": {
@@ -9400,7 +10170,10 @@
                 "sauvegardeEmplacement",
                 "sauvegardeMethodeRecuperation",
                 "modeleEtapeId",
-                "environnements"
+                "environnements",
+                "sectionId",
+                "dependancesDerivees",
+                "portsAttendus"
               ],
               "type": "object",
               "properties": {
@@ -9617,9 +10390,30 @@
                     },
                     "description": "Environnement d'une étape sur l'un de ses systèmes."
                   }
+                },
+                "sectionId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "dependancesDerivees": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "portsAttendus": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
                 }
               },
-              "description": "`Ligne` : ligne du graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système."
+              "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système."
             }
           },
           "resolutions": {
@@ -10253,6 +11047,129 @@
               "Simplifiee"
             ],
             "description": "Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).\nSimplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni\nrésolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la\nvaleur par défaut, est la MEP complète."
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "plan",
+                "titre",
+                "description",
+                "systemeIds",
+                "auteurId",
+                "auteur",
+                "creeLe",
+                "placee",
+                "revision",
+                "ports"
+              ],
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "plan": {
+                  "enum": [
+                    "Deploiement",
+                    "RetourArriere"
+                  ],
+                  "description": "Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière."
+                },
+                "titre": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "systemeIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "auteurId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "auteur": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "creeLe": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "placee": {
+                  "type": "boolean"
+                },
+                "revision": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "ports": {
+                  "type": "array",
+                  "items": {
+                    "required": [
+                      "id",
+                      "sens",
+                      "titre",
+                      "description",
+                      "ordre",
+                      "etapes",
+                      "sources"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "sens": {
+                        "enum": [
+                          "Entree",
+                          "Sortie"
+                        ],
+                        "description": "Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne)."
+                      },
+                      "titre": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "ordre": {
+                        "type": "integer",
+                        "format": "int32"
+                      },
+                      "etapes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      },
+                      "sources": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    },
+                    "description": "Cercle d'une section. Entrée : `Etapes`, les étapes de la section qui l'attendent ; `Sources`, ce qui y arrive de\nl'extérieur (Id d'étapes hors de la section ou de cercles de sortie d'autres sections). Sortie : `Etapes`, les étapes de\nla section qu'il attend ; `Sources` toujours vide (les étapes qui l'attendent le portent dans `PortsAttendus`)."
+                  }
+                }
+              },
+              "description": "Section d'un plan : repère qui regroupe des étapes (`EtapeDto.SectionId`). `Placee` faux : dans le bac.\n`Revision` : augmente à chaque modification de la section ou de ses cercles. `Auteur` : nom du compte auteur."
+            }
           }
         },
         "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées."
@@ -11317,6 +12234,36 @@
         },
         "description": "Options de la page de connexion (sans authentification) : bouton de connexion unique s'il est actif."
       },
+      "OrdrePortsSaisie": {
+        "required": [
+          "sens",
+          "ports"
+        ],
+        "type": "object",
+        "properties": {
+          "sens": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SensPort"
+              }
+            ]
+          },
+          "ports": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "description": "Nouvel ordre des cercles d'un bord : tous les cercles de ce sens, de gauche à droite."
+      },
       "ParametresDto": {
         "required": [
           "approbationsMinimum"
@@ -11538,37 +12485,19 @@
           }
         }
       },
-      "PlacerSaisie": {
+      "PlacementSectionSaisie": {
         "required": [
-          "ligne",
-          "position"
+          "placee"
         ],
         "type": "object",
         "properties": {
-          "ligne": {
+          "placee": {
             "type": [
               "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "position": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "liensParDefaut": {
-            "type": "boolean",
-            "default": true
-          },
-          "nouvelleLigne": {
-            "type": "boolean",
-            "default": false
+              "boolean"
+            ]
           }
-        },
-        "description": "Déplacement d'une étape dans le graphe : `Ligne` affichée (le nombre de lignes = nouvelle ligne en bas), `Position` dans la\nligne. `NouvelleLigne` : l'étape ouvre une ligne à elle, insérée juste au-dessus de `Ligne` (glisser entre deux lignes)."
+        }
       },
       "PlanRepliDto": {
         "required": [
@@ -11652,6 +12581,84 @@
           }
         }
       },
+      "PortSaisie": {
+        "type": "object",
+        "properties": {
+          "sens": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SensPort"
+              }
+            ]
+          },
+          "titre": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Cercle d'une section : `Sens` obligatoire à la création, ignoré ensuite ; titre absent à la création : « Entrée 2 »…"
+      },
+      "PortSectionDto": {
+        "required": [
+          "id",
+          "sens",
+          "titre",
+          "description",
+          "ordre",
+          "etapes",
+          "sources"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sens": {
+            "enum": [
+              "Entree",
+              "Sortie"
+            ],
+            "description": "Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne)."
+          },
+          "titre": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "ordre": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "etapes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "description": "Cercle d'une section. Entrée : `Etapes`, les étapes de la section qui l'attendent ; `Sources`, ce qui y arrive de\nl'extérieur (Id d'étapes hors de la section ou de cercles de sortie d'autres sections). Sortie : `Etapes`, les étapes de\nla section qu'il attend ; `Sources` toujours vide (les étapes qui l'attendent le portent dans `PortsAttendus`)."
+      },
       "PresenceDto": {
         "required": [
           "utilisateurId",
@@ -11722,6 +12729,77 @@
             ]
           }
         }
+      },
+      "PriseVerrouDto": {
+        "required": [
+          "pris",
+          "verrou"
+        ],
+        "type": "object",
+        "properties": {
+          "pris": {
+            "type": "boolean"
+          },
+          "verrou": {
+            "required": [
+              "etapeId",
+              "utilisateurId",
+              "nom",
+              "session",
+              "prisLe",
+              "expireLe",
+              "reprisDeUtilisateurId",
+              "reprisDeNom",
+              "reprisDeSession"
+            ],
+            "type": "object",
+            "properties": {
+              "etapeId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "utilisateurId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "nom": {
+                "type": "string"
+              },
+              "session": {
+                "type": "string"
+              },
+              "prisLe": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expireLe": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "reprisDeUtilisateurId": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "uuid"
+              },
+              "reprisDeNom": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "reprisDeSession": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              }
+            },
+            "description": "Verrou d'édition d'une étape (panneau d'édition ouvert) : tenu par l'onglet `Session` du compte `UtilisateurId`\njusqu'à `ExpireLe` sans renouvellement. `ReprisDe…` : qui le tenait quand il a été pris en main (null sinon)."
+          }
+        },
+        "description": "Résultat d'une demande de verrou : `Pris`, cet onglet le tient ; sinon `Verrou` dit qui est dessus."
       },
       "ProcedureRelueSaisie": {
         "required": [
@@ -12482,6 +13560,1763 @@
           }
         },
         "description": "`Emplacement` et `MethodeRecuperation` absents : inchangés."
+      },
+      "SectionCreeeDto": {
+        "required": [
+          "sectionId",
+          "mep"
+        ],
+        "type": "object",
+        "properties": {
+          "sectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mep": {
+            "required": [
+              "id",
+              "version",
+              "outil",
+              "versionActuelle",
+              "versionCible",
+              "objet",
+              "impacts",
+              "dateMep",
+              "heureDebut",
+              "heureFin",
+              "fuseauHoraire",
+              "indisponibiliteMinutes",
+              "piloteId",
+              "suppleantIds",
+              "phase",
+              "echeanceRepli",
+              "issue",
+              "retourArriere",
+              "cloture",
+              "planRepli",
+              "sauvegarde",
+              "procedureRelue",
+              "demarrageAutorise",
+              "participants",
+              "systemes",
+              "objetsImpactes",
+              "etapes",
+              "resolutions",
+              "erreursPlan",
+              "droits",
+              "estModele",
+              "approbationsMinimum",
+              "approbations",
+              "goNoGo",
+              "fichesRecette",
+              "bilanActive",
+              "bilan",
+              "nonRetourFranchi",
+              "piecesJointes",
+              "responsablesTechniques",
+              "avertissements",
+              "retourArriereActive",
+              "communication",
+              "type",
+              "sections"
+            ],
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "version": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "outil": {
+                "type": "string"
+              },
+              "versionActuelle": {
+                "type": "string"
+              },
+              "versionCible": {
+                "type": "string"
+              },
+              "objet": {
+                "type": "string"
+              },
+              "impacts": {
+                "type": "string"
+              },
+              "dateMep": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date"
+              },
+              "heureDebut": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "time"
+              },
+              "heureFin": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "time"
+              },
+              "fuseauHoraire": {
+                "type": "string"
+              },
+              "indisponibiliteMinutes": {
+                "type": [
+                  "null",
+                  "integer"
+                ],
+                "format": "int32"
+              },
+              "piloteId": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "uuid"
+              },
+              "suppleantIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "phase": {
+                "enum": [
+                  "Preparation",
+                  "Execution",
+                  "RetourArriere",
+                  "Cloturee",
+                  "Recette"
+                ],
+                "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin."
+              },
+              "echeanceRepli": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "issue": {
+                "enum": [
+                  "Reussie",
+                  "Repliee",
+                  null
+                ]
+              },
+              "retourArriere": {
+                "required": [
+                  "le",
+                  "par",
+                  "motif"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "motif": {
+                    "type": "string"
+                  }
+                },
+                "description": "`Par` vaut null quand le retour arrière s'est déclenché automatiquement."
+              },
+              "cloture": {
+                "required": [
+                  "le",
+                  "par"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  }
+                }
+              },
+              "planRepli": {
+                "required": [
+                  "quandDeclencher",
+                  "dureeTesteeMinutes",
+                  "versionARestaurer",
+                  "donneesDepuisSauvegarde",
+                  "siRepliEchoue"
+                ],
+                "type": "object",
+                "properties": {
+                  "quandDeclencher": {
+                    "type": "string"
+                  },
+                  "dureeTesteeMinutes": {
+                    "type": [
+                      "null",
+                      "integer"
+                    ],
+                    "format": "int32"
+                  },
+                  "versionARestaurer": {
+                    "type": "string"
+                  },
+                  "donneesDepuisSauvegarde": {
+                    "type": "string"
+                  },
+                  "siRepliEchoue": {
+                    "type": "string"
+                  }
+                }
+              },
+              "sauvegarde": {
+                "required": [
+                  "mode",
+                  "structure",
+                  "donnees",
+                  "configuration",
+                  "responsableId",
+                  "realiseeLe",
+                  "procedure",
+                  "copies",
+                  "restaurationTestee",
+                  "dateTestRestauration",
+                  "preuveTestRestauration"
+                ],
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "enum": [
+                      "AvantMep",
+                      "PendantMep"
+                    ],
+                    "description": "Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée."
+                  },
+                  "structure": {
+                    "type": "boolean"
+                  },
+                  "donnees": {
+                    "type": "boolean"
+                  },
+                  "configuration": {
+                    "type": "boolean"
+                  },
+                  "responsableId": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "uuid"
+                  },
+                  "realiseeLe": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date-time"
+                  },
+                  "procedure": {
+                    "type": "string"
+                  },
+                  "copies": {
+                    "type": "string"
+                  },
+                  "restaurationTestee": {
+                    "type": "boolean"
+                  },
+                  "dateTestRestauration": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date"
+                  },
+                  "preuveTestRestauration": {
+                    "type": "string"
+                  }
+                }
+              },
+              "procedureRelue": {
+                "required": [
+                  "par",
+                  "le"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "par": {
+                    "type": "string"
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "demarrageAutorise": {
+                "required": [
+                  "par",
+                  "le"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "par": {
+                    "type": "string"
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "nom",
+                    "role",
+                    "contact",
+                    "utilisateurId",
+                    "utilisateurNom"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "nom": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "contact": {
+                      "type": "string"
+                    },
+                    "utilisateurId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "utilisateurNom": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  }
+                }
+              },
+              "systemes": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "nom",
+                    "cible",
+                    "impact",
+                    "catalogueId",
+                    "sauvegarde",
+                    "environnements"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "nom": {
+                      "type": "string"
+                    },
+                    "cible": {
+                      "type": "string"
+                    },
+                    "impact": {
+                      "type": "string"
+                    },
+                    "catalogueId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "sauvegarde": {
+                      "required": [
+                        "statut",
+                        "moment",
+                        "contenu",
+                        "justification",
+                        "emplacement",
+                        "methodeRecuperation"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "statut": {
+                          "enum": [
+                            "ARenseigner",
+                            "Requise",
+                            "NonRequise"
+                          ],
+                          "description": "Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu."
+                        },
+                        "moment": {
+                          "enum": [
+                            "AvantMep",
+                            "PendantMep"
+                          ],
+                          "description": "Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée."
+                        },
+                        "contenu": {
+                          "type": "string"
+                        },
+                        "justification": {
+                          "type": "string"
+                        },
+                        "emplacement": {
+                          "type": "string"
+                        },
+                        "methodeRecuperation": {
+                          "type": "string"
+                        }
+                      },
+                      "description": "`Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan)."
+                    },
+                    "environnements": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "nom",
+                          "production"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "nom": {
+                            "type": "string"
+                          },
+                          "production": {
+                            "type": "boolean"
+                          }
+                        },
+                        "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
+                      }
+                    }
+                  },
+                  "description": "`Environnements` : environnements touchés par la MEP sur ce système."
+                }
+              },
+              "objetsImpactes": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "systemeId",
+                    "objetCatalogueId",
+                    "categorie",
+                    "type",
+                    "nom",
+                    "libelle",
+                    "precision",
+                    "version",
+                    "repris"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "systemeId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "objetCatalogueId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "categorie": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "nom": {
+                      "type": "string"
+                    },
+                    "libelle": {
+                      "type": "string"
+                    },
+                    "precision": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "repris": {
+                      "type": "boolean"
+                    }
+                  },
+                  "description": "Objet impacté : copie de l'objet du catalogue (`ObjetCatalogueId`) au moment du choix, et version ou correction livrée.\n`Repris` : ancien livrable repris par la migration ; `ObjetCatalogueId` null : livrable d'un système hors catalogue."
+                }
+              },
+              "etapes": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "plan",
+                    "code",
+                    "ligne",
+                    "ordre",
+                    "action",
+                    "systemeIds",
+                    "responsableId",
+                    "executantId",
+                    "criticite",
+                    "dureeEstimeeMinutes",
+                    "etat",
+                    "instructions",
+                    "resultatAttendu",
+                    "preuve",
+                    "commentaire",
+                    "debutReel",
+                    "finReelle",
+                    "revision",
+                    "dependances",
+                    "resolutionIds",
+                    "disponibilite",
+                    "type",
+                    "pointDeNonRetour",
+                    "nonRetourAutorise",
+                    "fin",
+                    "resultatConstate",
+                    "sauvegardeEmplacement",
+                    "sauvegardeMethodeRecuperation",
+                    "modeleEtapeId",
+                    "environnements",
+                    "sectionId",
+                    "dependancesDerivees",
+                    "portsAttendus"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "plan": {
+                      "enum": [
+                        "Deploiement",
+                        "RetourArriere"
+                      ],
+                      "description": "Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière."
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "ligne": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "ordre": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "action": {
+                      "type": "string"
+                    },
+                    "systemeIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "responsableId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "executantId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "criticite": {
+                      "enum": [
+                        "Faible",
+                        "Moderee",
+                        "Elevee",
+                        "Bloquante",
+                        null
+                      ]
+                    },
+                    "dureeEstimeeMinutes": {
+                      "type": [
+                        "null",
+                        "integer"
+                      ],
+                      "format": "int32"
+                    },
+                    "etat": {
+                      "enum": [
+                        "AFaire",
+                        "EnCours",
+                        "Reussie",
+                        "Echec"
+                      ]
+                    },
+                    "instructions": {
+                      "type": "string"
+                    },
+                    "resultatAttendu": {
+                      "type": "string"
+                    },
+                    "preuve": {
+                      "type": "string"
+                    },
+                    "commentaire": {
+                      "type": "string"
+                    },
+                    "debutReel": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    },
+                    "finReelle": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "dependances": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "resolutionIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "disponibilite": {
+                      "required": [
+                        "statut",
+                        "libelle"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "statut": {
+                          "enum": [
+                            "PlanInvalide",
+                            "EcheanceARenseigner",
+                            "RetourArriere",
+                            "FicheACompleter",
+                            "InstructionsACompleter",
+                            "Attend",
+                            "Terminee",
+                            "EnCours",
+                            "ArretResolution",
+                            "ResolutionEnCours",
+                            "SiRetourArriere",
+                            "Disponible"
+                          ]
+                        },
+                        "libelle": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "type": {
+                      "enum": [
+                        "Standard",
+                        "Sauvegarde"
+                      ],
+                      "description": "Nature d'une étape de déploiement : standard, ou étape qui réalise la sauvegarde."
+                    },
+                    "pointDeNonRetour": {
+                      "type": "boolean"
+                    },
+                    "nonRetourAutorise": {
+                      "required": [
+                        "par",
+                        "le"
+                      ],
+                      "type": [
+                        "null",
+                        "object"
+                      ],
+                      "properties": {
+                        "par": {
+                          "type": "string"
+                        },
+                        "le": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "fin": {
+                      "enum": [
+                        "TestUnitaire",
+                        "Verification"
+                      ],
+                      "description": "Fin d'une étape : test unitaire (le résultat attendu est l'instruction de test, le résultat constaté se saisit en\nterminant l'étape) ou simple vérification. Stockée en entier : 0, la valeur par défaut, est le test unitaire."
+                    },
+                    "resultatConstate": {
+                      "type": "string"
+                    },
+                    "sauvegardeEmplacement": {
+                      "type": "string"
+                    },
+                    "sauvegardeMethodeRecuperation": {
+                      "type": "string"
+                    },
+                    "modeleEtapeId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "environnements": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "systemeId",
+                          "nom"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "systemeId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "nom": {
+                            "type": "string"
+                          }
+                        },
+                        "description": "Environnement d'une étape sur l'un de ses systèmes."
+                      }
+                    },
+                    "sectionId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "dependancesDerivees": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "portsAttendus": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    }
+                  },
+                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système."
+                }
+              },
+              "resolutions": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "etapeId",
+                    "resolutionTypeId",
+                    "titre",
+                    "symptomes",
+                    "diagnostic",
+                    "corrections",
+                    "verificationInstruction",
+                    "verificationAttendu",
+                    "verificationResultat",
+                    "verificationObservation",
+                    "statut",
+                    "demarreePar",
+                    "demarreeLe",
+                    "termineeLe"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "etapeId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resolutionTypeId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "titre": {
+                      "type": "string"
+                    },
+                    "symptomes": {
+                      "type": "string"
+                    },
+                    "diagnostic": {
+                      "type": "string"
+                    },
+                    "corrections": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "ordre",
+                          "instruction",
+                          "resultatAttendu",
+                          "resultat",
+                          "observation",
+                          "par",
+                          "le"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "ordre": {
+                            "type": "integer",
+                            "format": "int32"
+                          },
+                          "instruction": {
+                            "type": "string"
+                          },
+                          "resultatAttendu": {
+                            "type": "string"
+                          },
+                          "resultat": {
+                            "enum": [
+                              "Conforme",
+                              "Echec",
+                              null
+                            ]
+                          },
+                          "observation": {
+                            "type": "string"
+                          },
+                          "par": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "le": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "verificationInstruction": {
+                      "type": "string"
+                    },
+                    "verificationAttendu": {
+                      "type": "string"
+                    },
+                    "verificationResultat": {
+                      "enum": [
+                        "Conforme",
+                        "Echec",
+                        null
+                      ]
+                    },
+                    "verificationObservation": {
+                      "type": "string"
+                    },
+                    "statut": {
+                      "enum": [
+                        "EnCours",
+                        "Reussie",
+                        "Echouee"
+                      ]
+                    },
+                    "demarreePar": {
+                      "type": "string"
+                    },
+                    "demarreeLe": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "termineeLe": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    }
+                  }
+                }
+              },
+              "erreursPlan": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "droits": {
+                "required": [
+                  "estPilote",
+                  "peutModifierPlan",
+                  "participantId",
+                  "estApprobateur",
+                  "estResponsableTechnique",
+                  "peutEditerContenu"
+                ],
+                "type": "object",
+                "properties": {
+                  "estPilote": {
+                    "type": "boolean"
+                  },
+                  "peutModifierPlan": {
+                    "type": "boolean"
+                  },
+                  "participantId": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "uuid"
+                  },
+                  "estApprobateur": {
+                    "type": "boolean"
+                  },
+                  "estResponsableTechnique": {
+                    "type": "boolean"
+                  },
+                  "peutEditerContenu": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "estModele": {
+                "type": "boolean"
+              },
+              "approbationsMinimum": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "approbations": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "utilisateurId",
+                    "nom",
+                    "decision",
+                    "commentaire",
+                    "le"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "utilisateurId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "nom": {
+                      "type": "string"
+                    },
+                    "decision": {
+                      "enum": [
+                        "Approuvee",
+                        "Refusee",
+                        null
+                      ]
+                    },
+                    "commentaire": {
+                      "type": "string"
+                    },
+                    "le": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    }
+                  }
+                }
+              },
+              "goNoGo": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "libelle",
+                    "par",
+                    "le"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "libelle": {
+                      "type": "string"
+                    },
+                    "par": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "le": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              },
+              "fichesRecette": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "ordre",
+                    "systemeId",
+                    "titre",
+                    "etapes"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "ordre": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "systemeId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "titre": {
+                      "type": "string"
+                    },
+                    "etapes": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "id",
+                          "ordre",
+                          "instructions",
+                          "resultatAttendu",
+                          "resultat",
+                          "observation",
+                          "par",
+                          "le",
+                          "valideePar",
+                          "valideeLe"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "ordre": {
+                            "type": "integer",
+                            "format": "int32"
+                          },
+                          "instructions": {
+                            "type": "string"
+                          },
+                          "resultatAttendu": {
+                            "type": "string"
+                          },
+                          "resultat": {
+                            "enum": [
+                              "Conforme",
+                              "Echec",
+                              null
+                            ]
+                          },
+                          "observation": {
+                            "type": "string"
+                          },
+                          "par": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "le": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "format": "date-time"
+                          },
+                          "valideePar": {
+                            "type": "string",
+                            "description": "Validation reportée d'un fichier Excel : nom saisi par le métier (« » sinon) ; `Par` est alors le compte qui a importé."
+                          },
+                          "valideeLe": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "description": "Validation reportée d'un fichier Excel : date indiquée dans le fichier.",
+                            "format": "date"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "bilanActive": {
+                "type": "boolean"
+              },
+              "bilan": {
+                "required": [
+                  "ceQuiAMarche",
+                  "incidents",
+                  "actions",
+                  "redigePar",
+                  "le"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "ceQuiAMarche": {
+                    "type": "string"
+                  },
+                  "incidents": {
+                    "type": "string"
+                  },
+                  "actions": {
+                    "type": "string"
+                  },
+                  "redigePar": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "le": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date-time"
+                  }
+                }
+              },
+              "nonRetourFranchi": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "piecesJointes": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "mepId",
+                    "etapeId",
+                    "resolutionTypeId",
+                    "executionResolutionId",
+                    "nomFichier",
+                    "typeContenu",
+                    "taille",
+                    "sha256",
+                    "deposeParId",
+                    "deposePar",
+                    "deposeLe"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "mepId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "etapeId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "resolutionTypeId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "executionResolutionId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "nomFichier": {
+                      "type": "string"
+                    },
+                    "typeContenu": {
+                      "type": "string"
+                    },
+                    "taille": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "sha256": {
+                      "type": "string"
+                    },
+                    "deposeParId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "deposePar": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "deposeLe": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              },
+              "responsablesTechniques": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "participantId",
+                    "systemeIds",
+                    "perimetre",
+                    "disponibilite",
+                    "contactJourJ"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "participantId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "systemeIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "perimetre": {
+                      "type": "string"
+                    },
+                    "disponibilite": {
+                      "enum": [
+                        "Joignable",
+                        "Absent"
+                      ],
+                      "description": "Disponibilité d'un responsable technique le jour de la MEP."
+                    },
+                    "contactJourJ": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "avertissements": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "retourArriereActive": {
+                "type": "boolean"
+              },
+              "communication": {
+                "required": [
+                  "referenceDemande",
+                  "niveauRisque",
+                  "benefices",
+                  "utilisateursImpactes",
+                  "arretApplicatif",
+                  "actionUtilisateurs",
+                  "heureLimite",
+                  "dateAnnoncee",
+                  "heureDebutAnnoncee",
+                  "heureFinAnnoncee",
+                  "valideeParUtilisateurs",
+                  "valideePar",
+                  "valideeLe",
+                  "preuveValidationId"
+                ],
+                "type": "object",
+                "properties": {
+                  "referenceDemande": {
+                    "type": "string"
+                  },
+                  "niveauRisque": {
+                    "enum": [
+                      "NonEvalue",
+                      "Faible",
+                      "Modere",
+                      "Eleve"
+                    ],
+                    "description": "Niveau de risque retenu par l'analyse d'impact (section Communication). Stocké en entier : toute nouvelle valeur s'ajoute à la fin."
+                  },
+                  "benefices": {
+                    "type": "string"
+                  },
+                  "utilisateursImpactes": {
+                    "type": "string"
+                  },
+                  "arretApplicatif": {
+                    "type": "boolean"
+                  },
+                  "actionUtilisateurs": {
+                    "type": "string"
+                  },
+                  "heureLimite": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "time"
+                  },
+                  "dateAnnoncee": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date"
+                  },
+                  "heureDebutAnnoncee": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "time"
+                  },
+                  "heureFinAnnoncee": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "time"
+                  },
+                  "valideeParUtilisateurs": {
+                    "type": "boolean"
+                  },
+                  "valideePar": {
+                    "type": "string"
+                  },
+                  "valideeLe": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date"
+                  },
+                  "preuveValidationId": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "uuid"
+                  }
+                },
+                "description": "Section Communication de la MEP (tout est facultatif). `PreuveValidationId` : pièce jointe de la MEP qui prouve la\nvalidation par les utilisateurs (null si aucune, ou si la pièce a été supprimée)."
+              },
+              "type": {
+                "enum": [
+                  "Complete",
+                  "Simplifiee"
+                ],
+                "description": "Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).\nSimplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni\nrésolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la\nvaleur par défaut, est la MEP complète."
+              },
+              "sections": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "plan",
+                    "titre",
+                    "description",
+                    "systemeIds",
+                    "auteurId",
+                    "auteur",
+                    "creeLe",
+                    "placee",
+                    "revision",
+                    "ports"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "plan": {
+                      "enum": [
+                        "Deploiement",
+                        "RetourArriere"
+                      ],
+                      "description": "Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière."
+                    },
+                    "titre": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "systemeIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "auteurId": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "uuid"
+                    },
+                    "auteur": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "creeLe": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "placee": {
+                      "type": "boolean"
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "ports": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "id",
+                          "sens",
+                          "titre",
+                          "description",
+                          "ordre",
+                          "etapes",
+                          "sources"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "sens": {
+                            "enum": [
+                              "Entree",
+                              "Sortie"
+                            ],
+                            "description": "Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne)."
+                          },
+                          "titre": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "ordre": {
+                            "type": "integer",
+                            "format": "int32"
+                          },
+                          "etapes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid"
+                            }
+                          },
+                          "sources": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid"
+                            }
+                          }
+                        },
+                        "description": "Cercle d'une section. Entrée : `Etapes`, les étapes de la section qui l'attendent ; `Sources`, ce qui y arrive de\nl'extérieur (Id d'étapes hors de la section ou de cercles de sortie d'autres sections). Sortie : `Etapes`, les étapes de\nla section qu'il attend ; `Sources` toujours vide (les étapes qui l'attendent le portent dans `PortsAttendus`)."
+                      }
+                    }
+                  },
+                  "description": "Section d'un plan : repère qui regroupe des étapes (`EtapeDto.SectionId`). `Placee` faux : dans le bac.\n`Revision` : augmente à chaque modification de la section ou de ses cercles. `Auteur` : nom du compte auteur."
+                }
+              }
+            },
+            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées."
+          }
+        },
+        "description": "Section créée (`SectionId`) et MEP à jour."
+      },
+      "SectionDto": {
+        "required": [
+          "id",
+          "plan",
+          "titre",
+          "description",
+          "systemeIds",
+          "auteurId",
+          "auteur",
+          "creeLe",
+          "placee",
+          "revision",
+          "ports"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plan": {
+            "enum": [
+              "Deploiement",
+              "RetourArriere"
+            ],
+            "description": "Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière."
+          },
+          "titre": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "systemeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "auteurId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "auteur": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "creeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "placee": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "sens",
+                "titre",
+                "description",
+                "ordre",
+                "etapes",
+                "sources"
+              ],
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "sens": {
+                  "enum": [
+                    "Entree",
+                    "Sortie"
+                  ],
+                  "description": "Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne)."
+                },
+                "titre": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "ordre": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "etapes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              },
+              "description": "Cercle d'une section. Entrée : `Etapes`, les étapes de la section qui l'attendent ; `Sources`, ce qui y arrive de\nl'extérieur (Id d'étapes hors de la section ou de cercles de sortie d'autres sections). Sortie : `Etapes`, les étapes de\nla section qu'il attend ; `Sources` toujours vide (les étapes qui l'attendent le portent dans `PortsAttendus`)."
+            }
+          }
+        },
+        "description": "Section d'un plan : repère qui regroupe des étapes (`EtapeDto.SectionId`). `Placee` faux : dans le bac.\n`Revision` : augmente à chaque modification de la section ou de ses cercles. `Auteur` : nom du compte auteur."
+      },
+      "SectionSaisie": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "plan": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TypePlan"
+              }
+            ]
+          },
+          "titre": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "systemeIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "placee": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "description": "Création (`Plan` absent : déploiement ; `Placee` absent : dans le bac) ou modification (`Revision` obligatoire) d'une section."
+      },
+      "SensPort": {
+        "enum": [
+          "Entree",
+          "Sortie",
+          null
+        ]
       },
       "SsoIdentiteDto": {
         "required": [
@@ -13385,6 +16220,83 @@
           }
         },
         "description": "Variable des modèles de texte (`{{cle}}`) ; `Liste` : rendue en puces quand elle est seule sur sa ligne."
+      },
+      "VerrouEtapeDto": {
+        "required": [
+          "etapeId",
+          "utilisateurId",
+          "nom",
+          "session",
+          "prisLe",
+          "expireLe",
+          "reprisDeUtilisateurId",
+          "reprisDeNom",
+          "reprisDeSession"
+        ],
+        "type": "object",
+        "properties": {
+          "etapeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "utilisateurId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "session": {
+            "type": "string"
+          },
+          "prisLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expireLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reprisDeUtilisateurId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "reprisDeNom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reprisDeSession": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Verrou d'édition d'une étape (panneau d'édition ouvert) : tenu par l'onglet `Session` du compte `UtilisateurId`\njusqu'à `ExpireLe` sans renouvellement. `ReprisDe…` : qui le tenait quand il a été pris en main (null sinon)."
+      },
+      "VerrouSaisie": {
+        "required": [
+          "session"
+        ],
+        "type": "object",
+        "properties": {
+          "session": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "prendreLaMain": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "description": "Verrou d'édition : `Session`, l'onglet (celui du flux temps réel) ; `PrendreLaMain`, le prendre même s'il est tenu."
       },
       "VersionResolutionTypeDto": {
         "required": [

@@ -1,9 +1,15 @@
+using System.Text.Json;
+
 namespace GestionMep.Domain;
 
-// Règles métier : structure du plan (graphe par lignes).
+// Règles métier : structure du plan. Graphe libre (#76) : seuls les liens comptent, la place des cartes est calculée par
+// l'interface. Ligne et Ordre ne se saisissent plus : ils sont recalculés après chaque opération (profondeur dans le graphe).
 public static partial class Regles
 {
-    /// <summary>Lignes d'un plan, de haut en bas : étapes regroupées par <see cref="Etape.Ligne"/>, chacune triée par <see cref="Etape.Ordre"/>.</summary>
+    /// <summary>
+    /// Lignes d'un plan, de haut en bas : étapes regroupées par <see cref="Etape.Ligne"/> (profondeur dans le graphe), chacune triée
+    /// par <see cref="Etape.Ordre"/>. Lecture seule (exports, ligne de commande).
+    /// </summary>
     public static List<List<Etape>> Lignes(Mep mep, TypePlan plan) =>
         mep.EtapesDu(plan).GroupBy(e => e.Ligne).OrderBy(g => g.Key).Select(g => g.ToList()).ToList();
 
@@ -22,142 +28,10 @@ public static partial class Regles
         }
     }
 
-    /// <summary>Change les préalables d'une étape (nouvelle liste : la colonne est réécrite).</summary>
-    private static void PoserDependances(Etape etape, List<Guid> dependances)
-    {
-        if (!etape.Dependances.SequenceEqual(dependances)) etape.Dependances = dependances;
-    }
-
-    /// <summary>Préalables de chaque étape d'un plan avant une opération sur le graphe.</summary>
-    private static Dictionary<Etape, List<Guid>> Instantane(Mep mep, TypePlan plan) =>
-        mep.EtapesDu(plan).ToDictionary(e => e, e => e.Dependances.ToList());
-
     /// <summary>
-    /// Une seule fois par opération, la révision des étapes dont les préalables ont changé augmente
-    /// (un client qui édite l'une d'elles devra la relire).
-    /// </summary>
-    private static void IncrementerRevisions(Dictionary<Etape, List<Guid>> avant, Etape? sauf = null)
-    {
-        foreach (var (e, prealables) in avant)
-            if (e != sauf && !e.Dependances.SequenceEqual(prealables)) e.Revision++;
-    }
-
-    /// <summary>
-    /// Liens par défaut : l'étape attend toutes les étapes de la ligne au-dessus et est attendue par toutes celles de la ligne
-    /// en dessous ; ses autres liens sont retirés. Les étapes voisines modifiées voient leur révision augmenter.
-    /// <paramref name="lignePropre"/> : l'étape vient d'ouvrir une ligne à elle entre deux lignes (voir <see cref="Relier(Mep, Etape, bool)"/>).
-    /// </summary>
-    public static void RelierParDefaut(Mep mep, Etape etape, bool lignePropre = false)
-    {
-        var avant = Instantane(mep, etape.Plan);
-        Relier(mep, etape, lignePropre);
-        IncrementerRevisions(avant, sauf: etape);
-    }
-
-    /// <summary>
-    /// Liens par défaut de l'étape. Si elle vient d'ouvrir une ligne à elle entre deux lignes (<paramref name="lignePropre"/>), la
-    /// ligne en dessous ne garde pas ses liens directs vers la ligne au-dessus : elle l'attend désormais à travers l'étape insérée.
-    /// </summary>
-    private static void Relier(Mep mep, Etape etape, bool lignePropre = false)
-    {
-        var plan = mep.EtapesDu(etape.Plan).Where(e => e != etape).ToList();
-        foreach (var e in plan.Where(e => e.Dependances.Contains(etape.Id)))
-            PoserDependances(e, e.Dependances.Where(d => d != etape.Id).ToList());
-        etape.Dependances = plan.Where(e => e.Ligne == etape.Ligne - 1).Select(e => e.Id).ToList();
-        var dessus = lignePropre ? etape.Dependances.ToHashSet() : new HashSet<Guid>();
-        foreach (var e in plan.Where(e => e.Ligne == etape.Ligne + 1))
-            PoserDependances(e, [.. e.Dependances.Where(d => !dessus.Contains(d)), etape.Id]);
-    }
-
-    /// <summary>Les étapes données qui n'ont plus aucun préalable (hors première ligne) attendent toute la ligne au-dessus d'elles.</summary>
-    private static void RattacherOrphelins(Mep mep, IEnumerable<Etape> etapes)
-    {
-        foreach (var e in etapes.Where(e => e.Ligne > 0 && e.Dependances.Count == 0 && mep.Etapes.Contains(e)))
-            PoserDependances(e, mep.EtapesDu(e.Plan).Where(x => x.Ligne == e.Ligne - 1).Select(x => x.Id).ToList());
-    }
-
-    /// <summary>Retire les liens devenus invalides (préalable disparu ou qui ne serait plus sur une ligne au-dessus).</summary>
-    private static void NettoyerLiens(Mep mep, TypePlan plan)
-    {
-        var etapes = mep.EtapesDu(plan).ToList();
-        var parId = etapes.ToDictionary(e => e.Id);
-        foreach (var e in etapes)
-            PoserDependances(e, e.Dependances.Where(d => parId.TryGetValue(d, out var p) && p.Ligne < e.Ligne).ToList());
-    }
-
-    /// <summary>
-    /// Place une nouvelle étape (pas encore dans <see cref="Mep.Etapes"/> ou ignorée si elle y est) : <paramref name="ligne"/> absente
-    /// ou égale au nombre de lignes = nouvelle ligne en bas ; <paramref name="position"/> absente = en fin de ligne (bornée sinon).
-    /// Avec <paramref name="nouvelleLigne"/>, l'étape ouvre une ligne à elle, insérée juste au-dessus de la ligne <paramref name="ligne"/>
-    /// (0 : tout en haut ; le nombre de lignes : en bas).
-    /// </summary>
-    public static void PlacerNouvelle(Mep mep, Etape etape, int? ligne, int? position, bool nouvelleLigne = false)
-    {
-        ExigerPreparation(mep);
-        var lignes = Lignes(mep, etape.Plan).Select(l => l.Where(e => e != etape).ToList()).Where(l => l.Count > 0).ToList();
-        var l = ligne ?? lignes.Count;
-        if (l < 0 || l > lignes.Count) throw new RegleMetierException($"Ligne inexistante : choisir une ligne entre 0 et {lignes.Count}.");
-        if (nouvelleLigne) lignes.Insert(l, []);
-        else if (l == lignes.Count) lignes.Add([]);
-        lignes[l].Insert(Math.Clamp(position ?? lignes[l].Count, 0, lignes[l].Count), etape);
-        Renumeroter(lignes);
-    }
-
-    /// <summary>
-    /// Déplace une étape (préparation). Même ligne : simple réordonnancement, liens inchangés. Autre ligne (<paramref name="ligne"/> égale
-    /// au nombre de lignes = nouvelle ligne en bas) : liens par défaut si demandé, et ses anciens suivants restés sans préalable attendent
-    /// la ligne au-dessus d'eux ; sinon seuls les liens devenus invalides sont retirés. Les lignes vides disparaissent.
-    /// Avec <paramref name="nouvelleLigne"/>, l'étape ouvre une ligne à elle, insérée juste au-dessus de la ligne <paramref name="ligne"/>
-    /// (0 : tout en haut ; le nombre de lignes : en bas) ; une étape déjà seule sur sa ligne, insérée juste au-dessus ou juste en
-    /// dessous d'elle-même, ne bouge pas.
-    /// </summary>
-    public static void Placer(Mep mep, Etape etape, int ligne, int position, bool liensParDefaut, bool nouvelleLigne = false)
-    {
-        ExigerPreparation(mep);
-        var lignes = Lignes(mep, etape.Plan);
-        if (ligne < 0 || ligne > lignes.Count) throw new RegleMetierException($"Ligne inexistante : choisir une ligne entre 0 et {lignes.Count}.");
-        var depart = lignes.FindIndex(l => l.Contains(etape));
-        if (nouvelleLigne && lignes[depart].Count == 1 && (ligne == depart || ligne == depart + 1)) return;
-        var memeLigne = !nouvelleLigne && ligne == depart;
-        var anciensSuivants = mep.EtapesDu(etape.Plan).Where(e => e.Dependances.Contains(etape.Id)).ToList();
-        var avant = Instantane(mep, etape.Plan);
-
-        // La ligne de départ reste dans la liste (vide si l'étape y était seule) : les indices demandés restent ceux affichés.
-        lignes[depart].Remove(etape);
-        if (nouvelleLigne) lignes.Insert(ligne, []);
-        else if (ligne == lignes.Count) lignes.Add([]);
-        lignes[ligne].Insert(Math.Clamp(position, 0, lignes[ligne].Count), etape);
-        Renumeroter(lignes);
-        if (memeLigne) return;
-
-        if (liensParDefaut)
-        {
-            Relier(mep, etape, nouvelleLigne);
-            RattacherOrphelins(mep, anciensSuivants);
-        }
-        NettoyerLiens(mep, etape.Plan);
-        IncrementerRevisions(avant);
-    }
-
-    /// <summary>
-    /// Supprime une étape (préparation) : elle est retirée des préalables des autres, ses anciens suivants restés sans préalable
-    /// attendent la ligne au-dessus d'eux, et une ligne devenue vide disparaît.
-    /// </summary>
-    public static void RetirerEtape(Mep mep, Etape etape)
-    {
-        ExigerPreparation(mep);
-        var avant = Instantane(mep, etape.Plan);
-        var suivants = mep.Etapes.Where(e => e.Dependances.Contains(etape.Id)).ToList();
-        foreach (var s in suivants) PoserDependances(s, s.Dependances.Where(d => d != etape.Id).ToList());
-        mep.Etapes.Remove(etape);
-        Renumeroter(Lignes(mep, etape.Plan));
-        RattacherOrphelins(mep, suivants);
-        IncrementerRevisions(avant, sauf: etape);
-    }
-
-    /// <summary>
-    /// Lignes des étapes d'un plan créées avant le jalon 4 : profondeur dans le graphe des dépendances (0 sans préalable,
-    /// sinon 1 + la plus grande ligne des préalables) ; dans une ligne, l'ancien ordre (puis le code) donne la position.
+    /// Ligne et ordre des étapes d'un plan : profondeur dans le graphe des dépendances effectives (0 sans préalable, sinon 1 + la
+    /// plus grande ligne des préalables) ; dans une ligne, l'ancienne place (ligne, puis ordre, puis code) donne la position, pour
+    /// qu'un ajout ailleurs ne réordonne pas le reste. Sert aussi aux étapes d'avant le jalon 4 (ligne -1).
     /// </summary>
     public static void CalculerLignes(IReadOnlyList<Etape> etapesDuPlan)
     {
@@ -174,7 +48,7 @@ public static partial class Regles
         }
         foreach (var e in etapesDuPlan) Profondeur(e);
         Renumeroter(etapesDuPlan.GroupBy(e => profondeur[e.Id]).OrderBy(g => g.Key)
-            .Select(g => g.OrderBy(e => e.Ordre).ThenBy(e => e.Code, StringComparer.Ordinal).ToList()));
+            .Select(g => g.OrderBy(e => e.Ligne).ThenBy(e => e.Ordre).ThenBy(e => e.Code, StringComparer.Ordinal).ToList()));
     }
 
     /// <summary>Équivalent de InitialiserAction : prochain code E0001… (ou R0001… pour le retour arrière) sans jamais réutiliser un numéro.</summary>
@@ -187,26 +61,492 @@ public static partial class Regles
         return $"{prefixe}{max + 1:0000}";
     }
 
+    // ---------- Nœuds et liens ----------
+
+    /// <summary>Extrémité d'un lien du graphe : une étape, ou un cercle de section (avec sa section).</summary>
+    public sealed record Noeud(Guid Id, Etape? Etape, Section? Section, PortSection? Port)
+    {
+        public bool EstEntree => Port is { Sens: SensPort.Entree };
+        public bool EstSortie => Port is { Sens: SensPort.Sortie };
+        public override string ToString() => Etape is { } e ? e.Code : $"le cercle « {Port!.Titre} » de la section « {Section!.Titre} »";
+    }
+
+    /// <summary>Étape ou cercle de ce plan portant cet Id ; null s'il n'y en a pas.</summary>
+    public static Noeud? TrouverNoeud(Mep mep, TypePlan plan, Guid id)
+    {
+        var e = mep.Etapes.FirstOrDefault(x => x.Id == id && x.Plan == plan);
+        if (e is not null) return new(id, e, null, null);
+        foreach (var s in mep.Sections.Where(s => s.Plan == plan))
+            if (s.Ports.FirstOrDefault(p => p.Id == id) is { } port) return new(id, null, s, port);
+        return null;
+    }
+
+    private static Noeud ExigerNoeud(Mep mep, TypePlan plan, Guid id) =>
+        TrouverNoeud(mep, plan, id) ?? throw new RegleMetierException("Étape ou cercle introuvable dans ce plan.");
+
+    private static Noeud NoeudDe(Etape e) => new(e.Id, e, null, null);
+
+    /// <summary>Préalables directs (saisis) : les préalables effectifs moins ceux qui viennent des cercles.</summary>
+    public static List<Guid> Directes(Etape e) => e.Dependances.Where(d => !e.DependancesDerivees.Contains(d)).ToList();
+
     /// <summary>
-    /// Applique de nouvelles dépendances après avoir vérifié qu'elles gardent un graphe valide : même plan,
-    /// et chaque préalable sur une ligne strictement au-dessus (un lien descend toujours).
+    /// Relie deux nœuds : <paramref name="vers"/> attend <paramref name="de"/>. Liens possibles : étape → étape (préalable direct),
+    /// étape hors de la section ou cercle de sortie d'une autre section → cercle d'entrée, cercle d'entrée → étape de sa section,
+    /// étape de la section → cercle de sortie, cercle de sortie → étape hors de sa section. Un lien déjà là ne change rien.
+    /// </summary>
+    private static void Lier(Noeud de, Noeud vers)
+    {
+        if (de.Id == vers.Id) throw new RegleMetierException("Une étape ne peut pas s'attendre elle-même.");
+        switch (de, vers)
+        {
+            case ({ Etape: { } a }, { Etape: { } b }):
+                // Préalable déjà là par un cercle : il devient aussi direct (il reste si le cercle est délié).
+                if (b.DependancesDerivees.Contains(a.Id)) b.DependancesDerivees = b.DependancesDerivees.Where(d => d != a.Id).ToList();
+                else if (!b.Dependances.Contains(a.Id)) b.Dependances = [.. b.Dependances, a.Id];
+                break;
+            case ({ Etape: { } a }, { EstEntree: true, Section: { } s, Port: { } p }):
+                if (a.SectionId == s.Id)
+                    throw new RegleMetierException($"{a.Code} fait partie de la section « {s.Titre} » : un cercle d'entrée reçoit ce qui vient de l'extérieur de la section.");
+                Ajouter(p.Sources, a.Id);
+                break;
+            case ({ EstSortie: true, Section: { } s1, Port: { } q }, { EstEntree: true, Section: { } s2, Port: { } p }):
+                if (s1.Id == s2.Id) throw new RegleMetierException("Un cercle de sortie ne peut pas alimenter un cercle d'entrée de la même section.");
+                Ajouter(p.Sources, q.Id);
+                break;
+            case ({ EstEntree: true, Section: { } s, Port: { } p }, { Etape: { } b }):
+                if (b.SectionId != s.Id)
+                    throw new RegleMetierException($"{b.Code} ne fait pas partie de la section « {s.Titre} » : seules ses étapes attendent ses cercles d'entrée.");
+                Ajouter(p.Etapes, b.Id);
+                break;
+            case ({ Etape: { } a }, { EstSortie: true, Section: { } s, Port: { } q }):
+                if (a.SectionId != s.Id)
+                    throw new RegleMetierException($"{a.Code} ne fait pas partie de la section « {s.Titre} » : un cercle de sortie n'attend que des étapes de sa section.");
+                Ajouter(q.Etapes, a.Id);
+                break;
+            case ({ EstSortie: true, Section: { } s, Port: { } q }, { Etape: { } b }):
+                if (b.SectionId == s.Id)
+                    throw new RegleMetierException($"{b.Code} fait partie de la section « {s.Titre} » : une étape de la section n'attend pas ses propres cercles de sortie.");
+                if (!b.PortsAttendus.Contains(q.Id)) b.PortsAttendus = [.. b.PortsAttendus, q.Id];
+                break;
+            default:
+                throw new RegleMetierException("Lien impossible : un cercle se relie à une étape, ou un cercle de sortie au cercle d'entrée d'une autre section.");
+        }
+    }
+
+    private static void Ajouter(List<Guid> liste, Guid id)
+    {
+        if (!liste.Contains(id)) liste.Add(id);
+    }
+
+    /// <summary>Le lien « <paramref name="vers"/> attend <paramref name="de"/> » existe (préalable direct, ou lien d'un cercle).</summary>
+    private static bool ExisteLien(Noeud de, Noeud vers) => (de, vers) switch
+    {
+        ({ Etape: { } a }, { Etape: { } b }) => Directes(b).Contains(a.Id),
+        (_, { EstEntree: true, Port: { } p }) => p.Sources.Contains(de.Id),
+        ({ EstEntree: true, Port: { } p }, { Etape: { } b }) => p.Etapes.Contains(b.Id),
+        ({ Etape: { } a }, { EstSortie: true, Port: { } q }) => q.Etapes.Contains(a.Id),
+        ({ EstSortie: true, Port: { } q }, { Etape: { } b }) => b.PortsAttendus.Contains(q.Id),
+        _ => false,
+    };
+
+    /// <summary>Retire le lien « <paramref name="vers"/> attend <paramref name="de"/> » (422 s'il n'existe pas).</summary>
+    private static void Delier(Noeud de, Noeud vers)
+    {
+        if (de.Etape is { } a && vers.Etape is { } b && !Directes(b).Contains(a.Id) && b.Dependances.Contains(a.Id))
+            throw new RegleMetierException($"{b.Code} attend {a.Code} par un cercle de section : délier le cercle.");
+        if (!ExisteLien(de, vers)) throw new RegleMetierException($"Lien introuvable : {vers} n'attend pas {de}.");
+        switch (de, vers)
+        {
+            case ({ Etape: { } x }, { Etape: { } y }):
+                y.Dependances = y.Dependances.Where(d => d != x.Id).ToList();
+                break;
+            case (_, { EstEntree: true, Port: { } p }):
+                p.Sources.Remove(de.Id);
+                break;
+            case ({ EstEntree: true, Port: { } p }, { Etape: { } y }):
+                p.Etapes.Remove(y.Id);
+                break;
+            case ({ Etape: { } x }, { EstSortie: true, Port: { } q }):
+                q.Etapes.Remove(x.Id);
+                break;
+            case ({ EstSortie: true, Port: { } q }, { Etape: { } y }):
+                y.PortsAttendus = y.PortsAttendus.Where(id => id != q.Id).ToList();
+                break;
+        }
+    }
+
+    /// <summary>Ce que l'étape attend directement : étapes (préalables directs), cercles d'entrée de sa section, cercles de sortie attendus.</summary>
+    private static List<Noeud> Entrants(Mep mep, Etape e)
+    {
+        var res = Directes(e).Select(d => TrouverNoeud(mep, e.Plan, d)).OfType<Noeud>().Where(n => n.Etape is not null).ToList();
+        if (mep.Sections.FirstOrDefault(s => s.Id == e.SectionId) is { } section)
+            res.AddRange(section.Ports.Where(p => p.Sens == SensPort.Entree && p.Etapes.Contains(e.Id)).OrderBy(p => p.Ordre)
+                .Select(p => new Noeud(p.Id, null, section, p)));
+        res.AddRange(e.PortsAttendus.Select(q => TrouverNoeud(mep, e.Plan, q)).OfType<Noeud>());
+        return res;
+    }
+
+    /// <summary>Ce qui attend directement l'étape : étapes, cercles d'entrée dont elle est une source, cercles de sortie de sa section.</summary>
+    private static List<Noeud> Sortants(Mep mep, Etape e)
+    {
+        var res = mep.EtapesDu(e.Plan).Where(x => x != e && Directes(x).Contains(e.Id)).Select(NoeudDe).ToList();
+        foreach (var s in mep.SectionsDu(e.Plan))
+            res.AddRange(s.Ports.OrderBy(p => p.Ordre)
+                .Where(p => p.Sens == SensPort.Entree ? p.Sources.Contains(e.Id) : s.Id == e.SectionId && p.Etapes.Contains(e.Id))
+                .Select(p => new Noeud(p.Id, null, s, p)));
+        return res;
+    }
+
+    /// <summary>
+    /// L'étape quitte sa place : tous ses liens sont retirés, et ce qui l'attendait attend désormais ce qu'elle attendait
+    /// (quand ce lien est possible), pour que l'ordre du reste du plan ne change pas.
+    /// </summary>
+    private static void Detacher(Mep mep, Etape e)
+    {
+        var moi = NoeudDe(e);
+        var entrants = Entrants(mep, e);
+        var sortants = Sortants(mep, e);
+        foreach (var i in entrants) Delier(i, moi);
+        foreach (var o in sortants) Delier(moi, o);
+        foreach (var o in sortants)
+            foreach (var i in entrants.Where(i => i.Id != o.Id))
+            {
+                // Pas de lien redondant : une étape qui attend déjà l'autre par un autre chemin reste comme elle est.
+                if (i.Etape is { } a && o.Etape is { } b && AttendDeja(mep, b, a, e)) continue;
+                try { Lier(i, o); }
+                catch (RegleMetierException) { /* lien impossible (ex. entrée et sortie d'une même section) : ignoré */ }
+            }
+    }
+
+    /// <summary><paramref name="vers"/> attend déjà <paramref name="de"/>, directement ou non, sans passer par <paramref name="exclue"/>.</summary>
+    private static bool AttendDeja(Mep mep, Etape vers, Etape de, Etape exclue)
+    {
+        var parId = mep.Etapes.Where(x => x.Plan == vers.Plan).ToDictionary(x => x.Id);
+        var vues = new HashSet<Guid>();
+        var pile = new Stack<Guid>(vers.Dependances);
+        while (pile.Count > 0)
+        {
+            var id = pile.Pop();
+            if (id == exclue.Id || !vues.Add(id)) continue;
+            if (id == de.Id) return true;
+            if (parId.TryGetValue(id, out var x)) foreach (var d in x.Dependances) pile.Push(d);
+        }
+        return false;
+    }
+
+    // ---------- Compilation des cercles ----------
+
+    /// <summary>
+    /// Recalcule les préalables effectifs du plan à partir des cercles : <c>Dependances = (Dependances − anciennes dérivées) ∪
+    /// nouvelles dérivées</c>. Les dérivées d'une étape sont, pour chaque cercle d'entrée de sa section qui la contient, ses
+    /// sources résolues (étape : elle-même ; cercle de sortie : ses étapes) et, pour chaque cercle de sortie qu'elle attend, ses
+    /// étapes. Les références devenues invalides (étape ou cercle disparus, étape sortie de la section) sont retirées.
+    /// Avec <paramref name="figer"/>, les préalables dérivés qui ne viennent plus d'aucun cercle deviennent directs au lieu de
+    /// disparaître (suppression d'une section : les liens restent). Sans section, rien ne change.
+    /// </summary>
+    public static void CompilerSections(Mep mep, TypePlan plan, bool figer = false)
+    {
+        var etapes = mep.Etapes.Where(e => e.Plan == plan).ToList();
+        var parId = etapes.ToDictionary(e => e.Id);
+        var sections = mep.Sections.Where(s => s.Plan == plan).ToList();
+        var sectionsParId = sections.ToDictionary(s => s.Id);
+        foreach (var e in etapes.Where(e => e.SectionId is { } sid && !sectionsParId.ContainsKey(sid))) e.SectionId = null;
+        var sorties = sections.SelectMany(s => s.Ports.Where(p => p.Sens == SensPort.Sortie).Select(p => (Section: s, Port: p)))
+            .ToDictionary(x => x.Port.Id);
+
+        foreach (var s in sections)
+            foreach (var p in s.Ports)
+            {
+                p.Etapes = p.Etapes.Distinct().Where(id => parId.TryGetValue(id, out var e) && e.SectionId == s.Id).ToList();
+                p.Sources = p.Sens == SensPort.Sortie ? [] : p.Sources.Distinct()
+                    .Where(id => parId.TryGetValue(id, out var e) ? e.SectionId != s.Id : sorties.TryGetValue(id, out var q) && q.Section.Id != s.Id)
+                    .ToList();
+            }
+
+        foreach (var e in etapes)
+        {
+            var attendus = e.PortsAttendus.Distinct().Where(id => sorties.TryGetValue(id, out var q) && q.Section.Id != e.SectionId).ToList();
+            if (!attendus.SequenceEqual(e.PortsAttendus)) e.PortsAttendus = attendus;
+
+            var derivees = new List<Guid>();
+            if (e.SectionId is { } sid)
+                foreach (var p in sectionsParId[sid].Ports.Where(p => p.Sens == SensPort.Entree && p.Etapes.Contains(e.Id)).OrderBy(p => p.Ordre))
+                    foreach (var source in p.Sources)
+                        if (sorties.TryGetValue(source, out var q)) derivees.AddRange(q.Port.Etapes);
+                        else derivees.Add(source);
+            foreach (var q in e.PortsAttendus) derivees.AddRange(sorties[q].Port.Etapes);
+            derivees = derivees.Distinct().ToList();
+
+            if (figer) e.DependancesDerivees = e.DependancesDerivees.Where(derivees.Contains).ToList();
+            var directes = Directes(e);
+            var nouvelles = derivees.Where(d => !directes.Contains(d)).ToList();
+            var effectives = directes.Concat(nouvelles).ToList();
+            if (!effectives.ToHashSet().SetEquals(e.Dependances)) e.Dependances = effectives;
+            if (!nouvelles.ToHashSet().SetEquals(e.DependancesDerivees)) e.DependancesDerivees = nouvelles;
+        }
+    }
+
+    // ---------- Opérations ----------
+
+    private sealed record Etat(List<Guid> Dependances, List<Guid> Derivees, Guid? SectionId, List<Guid> PortsAttendus);
+
+    private static readonly JsonSerializerOptions OptionsCopie = new();
+
+    private static List<Section> Copier(List<Section> sections) =>
+        JsonSerializer.Deserialize<List<Section>>(JsonSerializer.Serialize(sections, OptionsCopie), OptionsCopie)!;
+
+    private static string Signature(Section s) => JsonSerializer.Serialize(s, OptionsCopie);
+
+    /// <summary>
+    /// Opération sur le graphe d'un plan (préparation) : <paramref name="action"/> change les liens, puis les cercles sont compilés
+    /// et le graphe vérifié. Un graphe invalide (cycle, auto-lien, lien vers un autre plan) annule tout et lève l'erreur. Sinon, la
+    /// révision des étapes dont les préalables effectifs ont changé (sauf <paramref name="sauf"/>) et celle des sections modifiées
+    /// augmentent une fois, puis les lignes du plan sont recalculées.
+    /// </summary>
+    private static void Operer(Mep mep, TypePlan plan, Action action, Etape? sauf = null, bool figer = false)
+    {
+        ExigerPreparation(mep);
+        var etapes = mep.Etapes.ToList();
+        var avant = etapes.ToDictionary(e => e, e => new Etat([.. e.Dependances], [.. e.DependancesDerivees], e.SectionId, [.. e.PortsAttendus]));
+        // État des sections à remettre en place (mêmes objets) si l'opération est refusée.
+        var sections = mep.Sections.ToList();
+        var copies = Copier(mep.Sections).ToDictionary(s => s.Id);
+        var ports = sections.ToDictionary(s => s.Id, s => s.Ports.ToList());
+        var signatures = mep.Sections.ToDictionary(s => s.Id, Signature);
+        try
+        {
+            action();
+            CompilerSections(mep, plan, figer);
+            var erreur = ErreurGraphe(mep, plan);
+            if (erreur is not null)
+                throw new RegleMetierException(erreur == "Cycle de dépendances"
+                    ? "Opération refusée : elle créerait un cycle (une étape s'attendrait elle-même, directement ou par un cercle de section)."
+                    : erreur);
+        }
+        catch
+        {
+            foreach (var e in mep.Etapes.Except(etapes).ToList()) mep.Etapes.Remove(e);
+            foreach (var e in etapes.Except(mep.Etapes).ToList()) mep.Etapes.Add(e);
+            foreach (var (e, etat) in avant)
+            {
+                if (!e.Dependances.SequenceEqual(etat.Dependances)) e.Dependances = etat.Dependances;
+                if (!e.DependancesDerivees.SequenceEqual(etat.Derivees)) e.DependancesDerivees = etat.Derivees;
+                e.SectionId = etat.SectionId;
+                if (!e.PortsAttendus.SequenceEqual(etat.PortsAttendus)) e.PortsAttendus = etat.PortsAttendus;
+            }
+            mep.Sections.Clear();
+            mep.Sections.AddRange(sections);
+            foreach (var section in sections)
+            {
+                section.Ports.Clear();
+                section.Ports.AddRange(ports[section.Id]);
+                foreach (var port in section.Ports)
+                {
+                    var copie = copies[section.Id].Ports.Single(p => p.Id == port.Id);
+                    (port.Etapes, port.Sources, port.Ordre) = (copie.Etapes, copie.Sources, copie.Ordre);
+                }
+            }
+            throw;
+        }
+        foreach (var (e, etat) in avant)
+            if (e != sauf && mep.Etapes.Contains(e) && !e.Dependances.ToHashSet().SetEquals(etat.Dependances)) e.Revision++;
+        foreach (var s in mep.Sections)
+            if (signatures.TryGetValue(s.Id, out var signature) && signature != Signature(s)) s.Revision++;
+        CalculerLignes(mep.EtapesDu(plan).ToList());
+    }
+
+    /// <summary>
+    /// Place d'une étape dans le graphe (au plus une option) : <c>Apres</c>, elle attend ce nœud (étape ou cercle) sans toucher
+    /// aux autres liens ; <c>EntreDe</c>/<c>EntreVers</c>, elle s'insère sur ce lien (<c>EntreVers</c> n'attend plus
+    /// <c>EntreDe</c> directement : il attend l'étape, qui attend <c>EntreDe</c>) ; <c>ParalleleA</c>, mêmes préalables et mêmes
+    /// suivants que cette étape ; rien : étape isolée.
+    /// </summary>
+    public record PlaceEtape(Guid? Apres = null, Guid? EntreDe = null, Guid? EntreVers = null, Guid? ParalleleA = null)
+    {
+        public bool Vide => Apres is null && EntreDe is null && EntreVers is null && ParalleleA is null;
+    }
+
+    private sealed record PlaceResolue(Noeud? Apres, Noeud? De, Noeud? Vers, Etape? Parallele);
+
+    private static PlaceResolue Resoudre(Mep mep, TypePlan plan, PlaceEtape place)
+    {
+        var options = (place.Apres is null ? 0 : 1) + (place.EntreDe is null && place.EntreVers is null ? 0 : 1) + (place.ParalleleA is null ? 0 : 1);
+        if (options > 1) throw new RegleMetierException("Choisir une seule place : après une carte, sur un lien, ou en parallèle d'une carte.");
+        if ((place.EntreDe is null) != (place.EntreVers is null)) throw new RegleMetierException("Un lien se désigne par ses deux extrémités.");
+        var parallele = place.ParalleleA is { } p
+            ? ExigerNoeud(mep, plan, p).Etape ?? throw new RegleMetierException("En parallèle : choisir une étape, pas un cercle.")
+            : null;
+        return new(place.Apres is { } a ? ExigerNoeud(mep, plan, a) : null,
+            place.EntreDe is { } d ? ExigerNoeud(mep, plan, d) : null,
+            place.EntreVers is { } v ? ExigerNoeud(mep, plan, v) : null, parallele);
+    }
+
+    /// <summary>Section du côté où arrive un lien : une étape est dans sa section ; un cercle d'entrée a sa section en aval, un cercle de sortie en amont.</summary>
+    private static Guid? Cote(Noeud n, bool commeOrigine) =>
+        n.Etape is { } e ? e.SectionId : (n.EstEntree == commeOrigine ? n.Section!.Id : null);
+
+    private static Guid? SectionDeduite(PlaceResolue place)
+    {
+        if (place.Apres is { } a) return Cote(a, true);
+        if (place.De is { } de)
+        {
+            var amont = Cote(de, true);
+            return amont == Cote(place.Vers!, false) ? amont : null;
+        }
+        return place.Parallele?.SectionId;
+    }
+
+    /// <summary>
+    /// Indice de place avant le recalcul des lignes (<see cref="CalculerLignes"/> trie une ligne par ancienne place) : en
+    /// parallèle, juste à droite de la carte ; sur un lien, à côté de la carte d'arrivée ; sinon en bout de ligne.
+    /// </summary>
+    private static void IndiceDePlace(Etape etape, PlaceResolue place)
+    {
+        (etape.Ligne, etape.Ordre) = place switch
+        {
+            { Parallele: { } c } => (c.Ligne, c.Ordre),
+            { Vers.Etape: { } v } => (v.Ligne, v.Ordre),
+            _ => (int.MaxValue, int.MaxValue),
+        };
+    }
+
+    private static void Inserer(Mep mep, Etape etape, PlaceResolue place)
+    {
+        IndiceDePlace(etape, place);
+        var moi = NoeudDe(etape);
+        if (place.Apres is { } a) Lier(a, moi);
+        else if (place.De is { } de)
+        {
+            var vers = place.Vers!;
+            if (!ExisteLien(de, vers)) throw new RegleMetierException($"Lien introuvable : {vers} n'attend pas {de}.");
+            Delier(de, vers);
+            Lier(de, moi);
+            Lier(moi, vers);
+        }
+        else if (place.Parallele is { } c)
+        {
+            foreach (var i in Entrants(mep, c)) Lier(i, moi);
+            foreach (var o in Sortants(mep, c)) Lier(moi, o);
+        }
+    }
+
+    /// <summary>
+    /// Création rapide dans une section : une étape sans préalable dans la section attend le premier cercle d'entrée, une étape
+    /// que rien n'attend dans la section est attendue par le premier cercle de sortie.
+    /// </summary>
+    private static void RelierAuxCercles(Mep mep, Etape e)
+    {
+        if (mep.Sections.FirstOrDefault(s => s.Id == e.SectionId) is not { } s) return;
+        var dansSection = mep.Etapes.Where(x => x.SectionId == s.Id && x != e).Select(x => x.Id).ToHashSet();
+        var entrees = s.Ports.Where(p => p.Sens == SensPort.Entree).OrderBy(p => p.Ordre).ToList();
+        var sortiesSection = s.Ports.Where(p => p.Sens == SensPort.Sortie).OrderBy(p => p.Ordre).ToList();
+        var aPrealable = Directes(e).Any(dansSection.Contains) || entrees.Any(p => p.Etapes.Contains(e.Id));
+        var aSuivant = mep.Etapes.Any(x => dansSection.Contains(x.Id) && Directes(x).Contains(e.Id)) || sortiesSection.Any(p => p.Etapes.Contains(e.Id));
+        if (!aPrealable && entrees.Count > 0) entrees[0].Etapes.Add(e.Id);
+        if (!aSuivant && sortiesSection.Count > 0) sortiesSection[0].Etapes.Add(e.Id);
+    }
+
+    private static Section ExigerSection(Mep mep, TypePlan plan, Guid id) =>
+        mep.Sections.FirstOrDefault(s => s.Id == id && s.Plan == plan) ?? throw new RegleMetierException("Section introuvable dans ce plan.");
+
+    /// <summary>
+    /// Ajoute une nouvelle étape (pas encore dans <see cref="Mep.Etapes"/>) à sa place dans le graphe. Section : celle donnée,
+    /// sinon celle de la place (lien ou carte à l'intérieur d'une section), sinon aucune. Dans une section, l'étape se relie
+    /// d'elle-même à ses premiers cercles si rien d'autre ne la relie à la section (<see cref="RelierAuxCercles"/>).
+    /// </summary>
+    public static void AjouterEtape(Mep mep, Etape etape, PlaceEtape place, Guid? sectionId = null) =>
+        Operer(mep, etape.Plan, () =>
+        {
+            var resolue = Resoudre(mep, etape.Plan, place);
+            etape.SectionId = sectionId is { } sid ? ExigerSection(mep, etape.Plan, sid).Id : SectionDeduite(resolue);
+            etape.Dependances = [];
+            etape.DependancesDerivees = [];
+            etape.PortsAttendus = [];
+            mep.Etapes.Add(etape);
+            Inserer(mep, etape, resolue);
+            RelierAuxCercles(mep, etape);
+        }, sauf: etape);
+
+    /// <summary>
+    /// Déplace une carte (préparation) : elle quitte sa place (<see cref="Detacher"/>), entre dans une section, en sort
+    /// (<paramref name="sortirDeSection"/>) ou change de section, puis s'insère à sa nouvelle place. Sans section indiquée,
+    /// elle prend celle de sa nouvelle place (ou garde la sienne sans nouvelle place). Lâchée sur l'un de ses propres liens,
+    /// elle ne bouge pas.
+    /// </summary>
+    public static void DeplacerEtape(Mep mep, Etape etape, PlaceEtape place, Guid? sectionId = null, bool sortirDeSection = false) =>
+        Operer(mep, etape.Plan, () =>
+        {
+            var resolue = Resoudre(mep, etape.Plan, place);
+            if (place.Vide && sectionId is null && !sortirDeSection) throw new RegleMetierException("Indiquer où déplacer l'étape.");
+            if (sectionId is not null && sortirDeSection) throw new RegleMetierException("Choisir : entrer dans une section ou en sortir.");
+            if (resolue.Apres?.Id == etape.Id || resolue.Parallele == etape)
+                throw new RegleMetierException("Choisir une autre carte que celle qu'on déplace.");
+            if (resolue.De is { } de && resolue.Vers is { } vers)
+            {
+                if (de.Id == etape.Id || vers.Id == etape.Id) return; // lâchée sur son propre lien
+                if (!ExisteLien(de, vers)) throw new RegleMetierException($"Lien introuvable : {vers} n'attend pas {de}.");
+            }
+            var section = sortirDeSection ? null
+                : sectionId is { } sid ? ExigerSection(mep, etape.Plan, sid).Id
+                : place.Vide ? etape.SectionId : SectionDeduite(resolue);
+            var placeActuelle = (etape.Ligne, etape.Ordre);
+            Detacher(mep, etape);
+            etape.SectionId = section;
+            Inserer(mep, etape, resolue);
+            if (place.Vide) (etape.Ligne, etape.Ordre) = placeActuelle;
+            RelierAuxCercles(mep, etape);
+        });
+
+    /// <summary>
+    /// Supprime une étape (préparation) : ce qui l'attendait attend désormais ce qu'elle attendait (<see cref="Detacher"/>), et elle
+    /// disparaît des cercles.
+    /// </summary>
+    public static void RetirerEtape(Mep mep, Etape etape) =>
+        Operer(mep, etape.Plan, () =>
+        {
+            Detacher(mep, etape);
+            mep.Etapes.Remove(etape);
+        }, sauf: etape);
+
+    /// <summary>
+    /// Préalables directs d'une étape (fiche de l'étape). Les préalables qui viennent des cercles de section ne se saisissent pas
+    /// ici : ils restent tant que le cercle est relié (on peut donc renvoyer les préalables effectifs). Refusé : un préalable d'un
+    /// autre plan, l'étape elle-même, un cycle.
     /// </summary>
     public static void DefinirDependances(Mep mep, Etape etape, IEnumerable<Guid> dependances)
     {
-        ExigerPreparation(mep);
         var nouvelles = dependances.Distinct().ToList();
-        var autrePlan = mep.Etapes.FirstOrDefault(e => nouvelles.Contains(e.Id) && e.Plan != etape.Plan);
-        if (autrePlan is not null) throw new RegleMetierException($"{autrePlan.Code} appartient à un autre plan.");
-        var montant = mep.Etapes.FirstOrDefault(e => e != etape && nouvelles.Contains(e.Id) && e.Ligne >= etape.Ligne);
-        if (montant is not null)
-            throw new RegleMetierException($"Un lien descend toujours : {montant.Code} doit être sur une ligne au-dessus de {etape.Code}.");
-        var anciennes = etape.Dependances;
-        etape.Dependances = nouvelles;
-        var erreur = ErreurGraphe(mep, etape.Plan);
-        if (erreur is not null)
+        Operer(mep, etape.Plan, () =>
         {
-            etape.Dependances = anciennes;
-            throw new RegleMetierException(erreur);
-        }
+            var autrePlan = mep.Etapes.FirstOrDefault(e => nouvelles.Contains(e.Id) && e.Plan != etape.Plan);
+            if (autrePlan is not null) throw new RegleMetierException($"{autrePlan.Code} appartient à un autre plan.");
+            etape.Dependances = [.. nouvelles.Where(d => !etape.DependancesDerivees.Contains(d)), .. etape.DependancesDerivees];
+        }, sauf: etape);
+    }
+
+    /// <summary>Relie deux nœuds du plan (étapes ou cercles) : <paramref name="versId"/> attend <paramref name="deId"/>. Voir <see cref="Lier"/>.</summary>
+    public static (Noeud De, Noeud Vers) Relier(Mep mep, TypePlan plan, Guid deId, Guid versId)
+    {
+        Noeud? de = null, vers = null;
+        Operer(mep, plan, () =>
+        {
+            de = ExigerNoeud(mep, plan, deId);
+            vers = ExigerNoeud(mep, plan, versId);
+            Lier(de, vers);
+        });
+        return (de!, vers!);
+    }
+
+    /// <summary>Retire le lien « <paramref name="versId"/> attend <paramref name="deId"/> » (préalable direct ou lien d'un cercle).</summary>
+    public static (Noeud De, Noeud Vers) Delier(Mep mep, TypePlan plan, Guid deId, Guid versId)
+    {
+        Noeud? de = null, vers = null;
+        Operer(mep, plan, () =>
+        {
+            de = ExigerNoeud(mep, plan, deId);
+            vers = ExigerNoeud(mep, plan, versId);
+            Delier(de, vers);
+        });
+        return (de!, vers!);
     }
 }

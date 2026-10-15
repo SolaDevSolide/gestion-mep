@@ -74,17 +74,30 @@ Il est découpé en neuf sections. Chacune affiche son état (complète ou à co
 
 ## Le plan d'étapes (Plan › Étapes)
 
-Le plan de déploiement se dessine comme un graphe, de haut en bas :
+Le plan de déploiement se dessine comme un **graphe libre**, rangé automatiquement de haut en bas :
 
-- chaque **ligne** contient des étapes qui peuvent se dérouler **en parallèle** ;
-- par défaut, une étape attend toutes celles de la ligne au-dessus ; on peut aussi tracer un lien particulier en tirant le rond du bas d'une étape vers celle qui doit l'attendre ;
-- **glisser-déposer** une étape la déplace sur une autre ligne ou entre deux étapes ; lâchée **entre deux lignes** (repère « Nouvelle ligne ici »), elle ouvre une ligne à elle à cet endroit : elle attend la ligne au-dessus et la ligne en dessous l'attend. Près du bord de la zone, la vue défile toute seule ; lâchée hors du graphe (sur l'espace d'une étape ouvert à droite, par exemple), elle ne bouge pas. Déplacer une étape n'ouvre pas son espace d'édition ;
-- au clavier, **Alt + flèches** sur une fiche la déplacent (dans la ligne, ou vers la ligne voisine) et **Alt + Maj + ↑ / ↓** la mettent sur une ligne à elle, juste au-dessus ou en dessous ; la fiche garde le focus pour enchaîner ;
-- « + Étape » au bout d'une ligne et « + Nouvelle ligne » en bas ajoutent des étapes, et l'étape créée s'ouvre. Si l'étape ouverte a une saisie non enregistrée, on choisit d'abord de l'enregistrer ou non : rien n'est perdu. Un double clic ne crée qu'une étape ;
-- en haut à gauche du graphe, **« Étape modèle »** propose les étapes modèles les plus utilisées pour les systèmes de la MEP, et **« Parcourir la bibliothèque »** ouvre la [bibliothèque d'étapes](#la-bibliothèque-détapes) (voir plus bas) ;
-- un lien remonte toujours vers une ligne au-dessus : le plan ne peut pas boucler.
+- seuls les **liens** comptent : une étape attend ses préalables, et deux étapes qui ne s'attendent pas peuvent se dérouler **en parallèle**. Le plan ne peut pas boucler : une opération qui ferait qu'une étape s'attende elle-même, directement ou par une section, est refusée et rien ne change ;
+- le **rangement** est automatique, sur une grille ; il ne bouge pas pendant qu'on glisse une carte, qu'on édite une étape ou qu'on trace un lien, et la carte visée garde sa place à l'écran. Un ajout ailleurs ne réordonne pas le reste ;
+- **navigation** : zoom, déplacement, mini-carte, « Ajuster à l'écran », recherche d'une étape par son code ;
+- **création rapide** : « + » sous une carte (la nouvelle étape l'attend), sur un lien (elle s'insère entre les deux étapes) ou à côté d'une carte (en parallèle : mêmes préalables et mêmes suivants), et l'étape créée s'ouvre. Si l'étape ouverte a une saisie non enregistrée, on choisit d'abord de l'enregistrer ou non : rien n'est perdu. Un double clic ne crée qu'une étape ;
+- **glisser une carte** : lâchée sur un lien, elle s'y insère ; lâchée sur une carte, elle passe après elle. Elle quitte sa place sans casser le plan : ce qui l'attendait attend ce qu'elle attendait. Déplacer une étape n'ouvre pas son espace d'édition ;
+- **tracer un lien** en tirant la poignée d'une carte vers celle qui doit l'attendre (ou vers un cercle de section) ;
+- en haut à gauche du graphe, **« Étape modèle »** propose les étapes modèles les plus utilisées pour les systèmes de la MEP, et **« Parcourir la bibliothèque »** ouvre la [bibliothèque d'étapes](#la-bibliothèque-détapes) (voir plus bas).
 
-![Graphe des étapes : lignes parallèles et barrière du point de non-retour](images/graphe-des-etapes.png)
+### Les sections
+
+Une **section** regroupe des étapes sous un titre (« Tables factures », « Export et téléchargement »…), avec une description et des systèmes. C'est un **repère** : elle ne s'exécute pas et ne change rien au déroulement, sinon par ses cercles.
+
+- Une section a des **cercles** sur ses bords : d'**entrée** en haut, de **sortie** en bas. Elle naît avec « Début » et « Fin » ; on les renomme, on en ajoute (« + »), on les décrit, on les réordonne, on les supprime (les liens qui passaient par eux disparaissent).
+- Un cercle d'entrée reçoit ce qui arrive de l'extérieur (une étape, ou le cercle de sortie d'une autre section) et les étapes de la section qui y sont reliées l'attendent. Un cercle de sortie attend les étapes de la section qui y sont reliées, et ce qui y est relié dehors l'attend. Une étape créée dans une section se relie toute seule au premier cercle d'entrée et au premier cercle de sortie.
+- Dans le graphe, une section est un **cadre replié** (titre, systèmes, nombre d'étapes, auteur) : un clic la déplie sur place, le crayon ouvre sa **vue d'édition** (même graphe et même espace d'édition, limités à ses étapes). Les sections des autres sont repliées par défaut, les siennes dépliées ; le choix est mémorisé.
+- **Nouvelle section** la crée dans le **bac**, la colonne à droite du graphe : on la prépare, puis on la glisse dans le graphe pour la placer et relier ses cercles. Une section restée dans le bac **bloque le Go** (« Vérifier le plan ») ; un cercle sans étape, ou un cercle d'entrée où rien n'arrive, donne un avertissement.
+- Supprimer une section garde ses étapes, hors section, avec les mêmes préalables.
+- Le jour J, une section repliée montre son avancement (« 4/7, 1 en échec »).
+
+Plusieurs personnes peuvent préparer le plan en même temps. Ouvrir l'espace d'édition d'une étape la **verrouille** : une autre personne qui l'ouvre voit « Alice est dessus », en lecture seule, avec **« Prendre la main »**. Si elle la prend, Alice voit « Bob a pris la main », son espace passe en lecture seule et sa saisie non enregistrée reste affichée pour qu'elle la recopie. Le verrou tombe à la fermeture de l'espace, ou après une minute sans signe de vie. Le reste du graphe reste modifiable par tous.
+
+![Graphe des étapes : étapes en parallèle et barrière du point de non-retour](images/graphe-des-etapes.png)
 
 Cliquer une étape ouvre son **espace d'édition** :
 
@@ -181,7 +194,7 @@ Dans Plan › Étapes, deux boutons sont accolés en haut à gauche du graphe :
 - **« Étape modèle ▾ »** liste les 5 étapes modèles les plus utilisées pour les systèmes de la MEP ;
 - **« Parcourir la bibliothèque »** ouvre une fenêtre construite comme la page : choix du système (limité par défaut aux systèmes de la MEP, « Tous » pour voir les autres), liste triée par utilisations, aperçu de l'étape choisie, puis « Insérer une copie ».
 
-L'étape choisie arrive **flottante** au-dessus du graphe, avec la pastille « À placer » : on la **glisse** sur une ligne (entre deux étapes ou en bout de ligne) ou entre deux lignes (elle ouvre alors une ligne à elle), ou on clique l'un des blocs **« ↓ Poser ici »** (en bout de ligne) ou **« Poser ici, sur une nouvelle ligne »**. **Échap** annule : rien n'est écrit tant qu'elle n'est pas posée. Une fois posée, c'est une étape ordinaire : nouveau code, liens par défaut avec la ligne au-dessus et la ligne en dessous, pas de point de non-retour. La modifier ne change pas le modèle ; son espace d'édition rappelle « Copie de l'étape modèle « … » », sans marque sur la fiche du graphe.
+L'étape choisie arrive **flottante** au-dessus du graphe, avec la pastille « À placer » : on la **glisse** sur un lien (elle s'y insère) ou sur une carte (elle passe après elle), ou dans une section. **Échap** annule : rien n'est écrit tant qu'elle n'est pas posée. Une fois posée, c'est une étape ordinaire : nouveau code, pas de point de non-retour. La modifier ne change pas le modèle ; son espace d'édition rappelle « Copie de l'étape modèle « … » », sans marque sur la fiche du graphe.
 
 Les systèmes du modèle deviennent les systèmes de la MEP issus du même système du catalogue. Si un système du modèle n'est **pas dans la MEP**, il n'est pas ajouté : l'aperçu et le message après la pose le signalent, à vous de l'ajouter aux systèmes impactés si besoin. Les environnements ne font pas partie du modèle : un système qui n'a qu'un environnement dans la MEP le donne à la copie ; s'il en a plusieurs, la copie arrive sans environnement pour ce système, à choisir dans son espace d'édition. Le plan de retour arrière n'accepte que les étapes modèles normales.
 

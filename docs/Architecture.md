@@ -21,7 +21,7 @@ flowchart LR
 - **Une seule image Docker** contient l'API et le front déjà construit : l'API sert les fichiers statiques et renvoie `index.html` pour toute route qui n'est pas sous `/api`.
 - **PostgreSQL** est la seule dépendance externe. Le schéma est migré automatiquement au démarrage (EF Core), après une sauvegarde automatique contrôlée (voir [Exploiter](Exploiter.md#mettre-à-jour)).
 - **Pièces jointes** : fichiers sur disque (volume Docker), métadonnées en base.
-- **Instance unique** : le flux temps réel est diffusé en mémoire et les migrations tournent au démarrage. Pour plusieurs instances, il faudrait remplacer `DiffuseurMep` par `LISTEN/NOTIFY` PostgreSQL et sortir les migrations du démarrage.
+- **Instance unique** : le flux temps réel et les verrous d'édition des étapes sont tenus en mémoire et les migrations tournent au démarrage. Pour plusieurs instances, il faudrait remplacer `DiffuseurMep` par `LISTEN/NOTIFY` PostgreSQL et sortir les migrations du démarrage.
 
 ## Back-end
 
@@ -32,7 +32,7 @@ Trois projets dans `backend/src`, testés par `backend/tests/GestionMep.Tests`.
 Aucune dépendance vers ASP.NET ni EF Core.
 
 - `Modele.cs` : entités (`Mep`, `Etape`, `Participant`, `Systeme`, `ResolutionType`, `FicheRecette`, `Approbation`…) et énumérations.
-- `Regles.cs` et `Regles.*.cs` : toutes les règles, en fonctions statiques pures d'une même classe partielle, un fichier par domaine (`Regles.Graphe.cs`, `Regles.Disponibilite.cs`, `Regles.Droits.cs`, `Regles.Phases.cs`, `Regles.Recette.cs`, `Regles.Resolutions.cs`, `Regles.Bibliotheques.cs`, `Regles.TypeMep.cs`…). Elles couvrent la disponibilité d'une étape, la validité du graphe, la vérification du plan, les transitions de phase, les approbations, le go / no-go, le point de non-retour, la recette, le retour arrière, les résolutions types, les étapes modèles et les compteurs d'utilisations des bibliothèques, la duplication et le type de MEP (complète ou simplifiée : suppléants implicites, résolutions proposées le jour J, changements de type).
+- `Regles.cs` et `Regles.*.cs` : toutes les règles, en fonctions statiques pures d'une même classe partielle, un fichier par domaine (`Regles.Graphe.cs`, `Regles.StructurePlan.cs` et `Regles.Sections.cs` pour le graphe libre et les sections, `Regles.Disponibilite.cs`, `Regles.Droits.cs`, `Regles.Phases.cs`, `Regles.Recette.cs`, `Regles.Resolutions.cs`, `Regles.Bibliotheques.cs`, `Regles.TypeMep.cs`…). Elles couvrent la disponibilité d'une étape, la validité du graphe, la vérification du plan, les transitions de phase, les approbations, le go / no-go, le point de non-retour, la recette, le retour arrière, les résolutions types, les étapes modèles et les compteurs d'utilisations des bibliothèques, la duplication et le type de MEP (complète ou simplifiée : suppléants implicites, résolutions proposées le jour J, changements de type).
 - Un refus lève `RegleMetierException` avec un message en français destiné à l'utilisateur. L'API le traduit en **422**.
 - L'heure courante est toujours passée en paramètre (`maintenant`) : les règles se testent sans horloge.
 - `AnnuairePersonnes.cs` : comptes vus comme des personnes. Des comptes reliés (`Utilisateur.ComptePrincipalId`, un seul niveau) forment une personne, nommée d'après son compte principal, dont les équipes sont celles de tous ses comptes. Rien n'est fusionné : chaque compte garde ses données, ses droits et son historique. Les règles de liaison et de nom d'équipe sont dans `Regles.Comptes.cs`.
@@ -56,7 +56,7 @@ Brique commune, sans règle métier, pour écrire et relire des classeurs `.xlsx
 | `Services/Dtos.cs` | Contrats d'entrée (`…Saisie`) et de sortie (`…Dto`). |
 | `Services/DocumentationOpenApi.cs` | Description OpenAPI servie sur `/api/openapi.json`, copiée dans `docs/openapi.json` pour générer les types du front. |
 | `Services/ErreurHttp.cs` | Erreurs HTTP explicites et middleware qui traduit les exceptions en `{ "message": "…" }`. |
-| `Services/DiffuseurMep.cs` | Diffusion en mémoire aux abonnés du flux SSE : dernière version de chaque MEP et présence (personnes connectées au flux, éléments déclarés par chaque onglet). La présence vit avec la connexion : un onglet fermé la retire. |
+| `Services/DiffuseurMep.cs` | Diffusion en mémoire aux abonnés du flux SSE : dernière version de chaque MEP, présence (personnes connectées au flux, éléments déclarés par chaque onglet) et verrous d'édition des étapes (événement `verrous`, expiration après une minute sans renouvellement, `TimeProvider` pour les tests). La présence et les verrous vivent avec la connexion : le dernier flux d'un onglet fermé les retire. |
 | `Services/SurveillanceEcheances.cs` | Tâche de fond : chaque minute, bascule en retour arrière les MEP dont l'échéance est atteinte (plan de retour arrière activé). |
 | `Services/StockagePiecesJointes.cs` | Écriture, lecture et suppression des fichiers joints ; fichiers sans enregistrement en base mis de côté au démarrage. |
 | `Services/MisesAJour.cs` | Version en cours, vérification des versions publiées sur GitHub et dialogue avec le service facultatif de mise à jour (fichiers dans un volume partagé). |
@@ -103,7 +103,7 @@ Brique commune, sans règle métier, pour écrire et relire des classeurs `.xlsx
 
 ### Base de données
 
-- PostgreSQL via Npgsql. Les listes et petits objets attachés à une entité (dépendances, systèmes d'une étape, responsables techniques, expertises…) sont stockés en `jsonb` via `AsJson` / `AsJsonObjet` (`MepDbContext.cs`).
+- PostgreSQL via Npgsql. Les listes et petits objets attachés à une entité (dépendances, systèmes d'une étape, responsables techniques, expertises, sections du plan et leurs cercles…) sont stockés en `jsonb` via `AsJson` / `AsJsonObjet` (`MepDbContext.cs`).
 - Les migrations sont dans `Donnees/Migrations`. Voir [Contribuer](../CONTRIBUTING.md#créer-une-migration) pour en créer une.
 
 ### Authentification

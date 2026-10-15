@@ -33,6 +33,9 @@ export function etape(p: Partial<Etape> = {}, statut: StatutDisponibilite = 'Dis
     disponibilite: { statut, libelle: statut },
     modeleEtapeId: null,
     environnements: [],
+    sectionId: null,
+    dependancesDerivees: [],
+    portsAttendus: [],
     ...p,
   };
 }
@@ -144,6 +147,7 @@ export function mep(p: Partial<Mep> = {}): Mep {
       peutEditerContenu: false,
       participantId: 'p1',
     },
+    sections: [],
     ...p,
   };
 }

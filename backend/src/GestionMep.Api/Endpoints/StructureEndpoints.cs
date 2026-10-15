@@ -133,6 +133,7 @@ public static class StructureEndpoints
                 mep.FichesRecette = mep.FichesRecette.Select(f => { if (f.SystemeId == sid) f.SystemeId = null; return f; }).ToList();
             if (mep.ResponsablesTechniques.Any(r => r.SystemeIds.Contains(sid)))
                 mep.ResponsablesTechniques = mep.ResponsablesTechniques.Select(r => { r.SystemeIds = r.SystemeIds.Where(x => x != sid).ToList(); return r; }).ToList();
+            Regles.RetirerSystemeDesSections(mep, sid);
             mep.Systemes.Remove(s);
             return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "systeme.supprime", $"Système supprimé : {s.Nom}");
         })));

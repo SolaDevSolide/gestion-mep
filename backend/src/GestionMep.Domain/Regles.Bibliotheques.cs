@@ -50,17 +50,16 @@ public static partial class Regles
     }
 
     /// <summary>
-    /// Insère dans le plan (préparation) une copie d'une étape modèle : nouveau code, ligne donnée (absente : nouvelle ligne en
-    /// bas), position donnée (absente : en fin de ligne), liens par défaut avec la ligne au-dessus et la ligne en dessous, jamais
-    /// de point de non-retour. Les systèmes du modèle deviennent les systèmes de la MEP issus du même système du catalogue ;
+    /// Insère dans le plan (préparation) une copie d'une étape modèle : nouveau code, à la place donnée dans le graphe et dans la
+    /// section donnée (comme une étape créée, voir <see cref="AjouterEtape"/>), jamais de point de non-retour. Les systèmes du modèle deviennent les systèmes de la MEP issus du même système du catalogue ;
     /// ceux qui ne sont pas dans la MEP ne sont pas ajoutés et sont renvoyés (le front prévient). Un système de la MEP qui n'a
     /// qu'un environnement le donne à la copie ; s'il en a plusieurs (ou aucun), la copie n'en a pas : à choisir dans l'étape,
     /// comme pour une étape saisie. Les environnements ne font pas partie du modèle. Seules les résolutions
     /// <paramref name="resolutionsActives"/> sont reprises. Dans une MEP simplifiée, la copie n'a ni durée, ni criticité,
     /// ni résolutions liées.
     /// </summary>
-    public static (Etape Etape, List<Guid> SystemesAbsents) InsererEtapeModele(Mep mep, ModeleEtape modele, TypePlan plan, int? ligne, int? position,
-        IReadOnlyCollection<Guid> resolutionsActives, bool nouvelleLigne = false)
+    public static (Etape Etape, List<Guid> SystemesAbsents) InsererEtapeModele(Mep mep, ModeleEtape modele, TypePlan plan, PlaceEtape place,
+        Guid? sectionId, IReadOnlyCollection<Guid> resolutionsActives)
     {
         ExigerPreparation(mep);
         if (plan == TypePlan.RetourArriere && modele.Type != TypeEtape.Standard)
@@ -84,10 +83,8 @@ public static partial class Regles
             .Select(s => new EnvironnementEtape { SystemeId = s.Id, Nom = s.Environnements[0].Nom })
             .ToList();
         DefinirType(etape, modele.Type, pointDeNonRetour: false);
-        PlacerNouvelle(mep, etape, ligne, position, nouvelleLigne);
-        mep.Etapes.Add(etape);
         AppliquerTypeAEtape(mep, etape);
-        RelierParDefaut(mep, etape, nouvelleLigne);
+        AjouterEtape(mep, etape, place, sectionId);
         return (etape, systemes.Where(s => s.Systeme is null).Select(s => s.Catalogue).ToList());
     }
 

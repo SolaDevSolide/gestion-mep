@@ -132,7 +132,7 @@ public class ApiJalon31Tests : IDisposable
             dave.PutAsJsonAsync($"/api/meps/{id}/systemes/{mep.GetProperty("systemes")[0].GetProperty("id").GetGuid()}/environnements", new { noms = new[] { "Recette" } }),
             dave.PutAsJsonAsync($"/api/meps/{id}/systemes/{mep.GetProperty("systemes")[0].GetProperty("id").GetGuid()}/objets", new { objets = Array.Empty<object>() }),
             dave.PostAsJsonAsync($"/api/meps/{id}/fiches-recette", new { titre = "X" }),
-            dave.PostAsJsonAsync($"/api/meps/{id}/etapes/{Etape(mep, "E0004").GetProperty("id").GetGuid()}/placer", new { ligne = 0, position = 0 }),
+            dave.PostAsJsonAsync($"/api/meps/{id}/etapes/{Etape(mep, "E0004").GetProperty("id").GetGuid()}/deplacer", new { sortirDeSection = true }),
             dave.PutAsJsonAsync($"/api/meps/{id}/systemes/{mep.GetProperty("systemes")[0].GetProperty("id").GetGuid()}/sauvegarde",
                 new { version = Version(mep), statut = "Requise" }),
             dave.PutAsJsonAsync($"/api/meps/{id}/plan-repli", new { version = Version(mep) }),

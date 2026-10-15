@@ -470,7 +470,8 @@ public static class VuesExcel
         var codes = mep.Etapes.ToDictionary(e => e.Id, e => e.Code);
         string EnvironnementsEtape(EtapeDto e) => string.Join(" ; ", e.Environnements.GroupBy(x => x.SystemeId)
             .Select(g => $"{NomSysteme(mep, g.Key)} : {string.Join(", ", g.Select(x => x.Nom))}"));
-        var colonnes = new List<Colonne> { new("Code", 9, true), new("Ligne", 7), new("Action", 40), new("Type", 12), new("Systèmes", 16),
+        var sections = mep.Sections.ToDictionary(s => s.Id, s => s.Titre);
+        var colonnes = new List<Colonne> { new("Code", 9, true), new("Ligne", 7), new("Section", 20), new("Action", 40), new("Type", 12), new("Systèmes", 16),
             new("Environnements", 28), new("Dépend de", 14, true) };
         if (!simplifiee) colonnes.AddRange([new("Criticité", 11), new("Durée estimée (min)", 11)]);
         colonnes.AddRange([new("Point de non-retour", 12), new("Fin de l'étape", 16), new("Instructions", 60), new("Résultat attendu", 36),
@@ -483,7 +484,8 @@ public static class VuesExcel
             {
                 var v = new List<object?>
                 {
-                    e.Code, e.Ligne + 1, e.Action, e.Type == TypeEtape.Sauvegarde ? "Sauvegarde" : "Normale",
+                    e.Code, e.Ligne + 1, e.SectionId is { } sid && sections.TryGetValue(sid, out var section) ? section : "", e.Action,
+                    e.Type == TypeEtape.Sauvegarde ? "Sauvegarde" : "Normale",
                     string.Join(", ", e.SystemeIds.Select(s => NomSysteme(mep, s)).Where(n => n.Length > 0)), EnvironnementsEtape(e),
                     string.Join(", ", e.Dependances.Select(d => codes.TryGetValue(d, out var c) ? c : "").Where(c => c.Length > 0)),
                 };

@@ -366,15 +366,48 @@ public static partial class DonneesDemo
             "Fichier de sauvegarde présent, sans erreur."));
         var e2 = E(mep, 2, 1, "Migration des tables factures", [bdd], 20, Criticite.Elevee,
             Sim + Code("psql -h bdd-demo -U admin -d compta -f migrations/3.5.sql"), "Colonnes Factur-X présentes, aucune erreur.", e1);
-        var e3 = E(mep, 3, 1, "Déploiement de l'export nocturne", [batch], 20, Criticite.Moderee, "", "Le traitement apparaît dans l'ordonnanceur.", e1);
+        // E0003, E0004 et E0005 reçoivent leurs préalables par les cercles des sections (plus bas).
+        var e3 = E(mep, 3, 1, "Déploiement de l'export nocturne", [batch], 20, Criticite.Moderee, "", "Le traitement apparaît dans l'ordonnanceur.");
         var e4 = E(mep, 4, 1, "Publication du module PDF", [web], 15, Criticite.Moderee,
-            Sim + Code("./publier.sh factures-pdf 3.5"), "Le bouton « Télécharger (Factur-X) » s'affiche.", e1);
+            Sim + Code("./publier.sh factures-pdf 3.5"), "Le bouton « Télécharger (Factur-X) » s'affiche.");
         var e5 = E(mep, 5, 2, "Exemple : vérifier une facture", [bdd, batch, web], 10, Criticite.Faible,
-            "Ouvrir une facture et vérifier son contenu.", "La facture est conforme.", e2, e3, e4);
+            "Ouvrir une facture et vérifier son contenu.", "La facture est conforme.");
         // Incohérence à repérer à la relecture : la base est vérifiée en préproduction, l'export et le portail en production.
         EnvironnementsEtape(e5, (bdd, ["Préproduction"]), (batch, ["Production"]), (web, ["Production"]));
         R(mep, 1, 0, "Restaurer les tables factures", [bdd], 20, Sim + Code("psql -h bdd-demo -U admin compta < /sauvegardes/factures.sql"),
             "Restauration sans erreur.");
+
+        // Sections (#60) : deux sections placées, reliées par leurs cercles, et une troisième encore dans le bac (elle bloque le Go).
+        // Les préalables effectifs restent : E0002, E0003 et E0004 attendent E0001 ; E0005 attend E0002, E0003 et E0004.
+        var creation = c.Maintenant.AddDays(-2).AddHours(-2);
+        var tables = Regles.CreerSection(mep, TypePlan.Deploiement, "Tables factures",
+            "Sauvegarde puis migration des tables au format Factur-X.", [bdd.Id], c.Equipe.Alice.Id, creation, placee: true);
+        var export = Regles.CreerSection(mep, TypePlan.Deploiement, "Export et téléchargement",
+            "Nouvel export nocturne et module de téléchargement PDF, une fois la sauvegarde faite.", [batch.Id, web.Id], c.Equipe.Bob.Id,
+            creation.AddMinutes(10), placee: true);
+        Regles.CreerSection(mep, TypePlan.Deploiement, "Contrôles de bout en bout",
+            "À préparer avec la Comptabilité : une facture créée le jour J doit partir dans l'export de la nuit.", [batch.Id, web.Id],
+            c.Equipe.Claire.Id, creation.AddMinutes(20), placee: false);
+        e1.SectionId = e2.SectionId = tables.Id;
+        e3.SectionId = e4.SectionId = export.Id;
+        var tablesDebut = tables.Ports.Single(p => p.Sens == SensPort.Entree);
+        var tablesMigrees = tables.Ports.Single(p => p.Sens == SensPort.Sortie);
+        Regles.ModifierPort(mep, tables, tablesMigrees, "Tables migrées", "Colonnes Factur-X en place.");
+        var sauvegardeFaite = Regles.AjouterPort(mep, tables, SensPort.Sortie, "Sauvegarde faite", "Les tables peuvent être restaurées.");
+        var exportSauvegarde = export.Ports.Single(p => p.Sens == SensPort.Entree);
+        Regles.ModifierPort(mep, export, exportSauvegarde, "Sauvegarde", "");
+        var exportFin = export.Ports.Single(p => p.Sens == SensPort.Sortie);
+        foreach (var (de, vers) in new[]
+        {
+            (tablesDebut.Id, e1.Id), (e1.Id, sauvegardeFaite.Id), (e2.Id, tablesMigrees.Id),
+            (sauvegardeFaite.Id, exportSauvegarde.Id), (exportSauvegarde.Id, e3.Id), (exportSauvegarde.Id, e4.Id),
+            (e3.Id, exportFin.Id), (e4.Id, exportFin.Id), (tablesMigrees.Id, e5.Id), (exportFin.Id, e5.Id),
+        })
+            Regles.Relier(mep, TypePlan.Deploiement, de, vers);
+        // Plan construit d'un coup : rien n'a encore été relu, révisions de départ.
+        foreach (var e in mep.Etapes) e.Revision = 0;
+        foreach (var s in mep.Sections) s.Revision = 0;
+
         mep.PlanRepli = Repli(25, "Version 3.4 fictive.", "Tables factures restaurées depuis la sauvegarde E0001.");
         mep.PlanRepli.QuandDeclencher = "";
 
@@ -393,6 +426,9 @@ public static partial class DonneesDemo
         var d = new Deroule(mep, c.Maintenant.AddDays(-2).AddHours(-3));
         d.Creer(c.Equipe.Alice);
         d.Plus(25).Note(c.Equipe.Alice, "etape.creee", "E0005 créée");
+        d.Plus(5).Note(c.Equipe.Alice, "section.creee", "Section « Tables factures » créée");
+        d.Plus(10).Note(c.Equipe.Bob, "section.creee", "Section « Export et téléchargement » créée");
+        d.Plus(10).Note(c.Equipe.Claire, "section.creee", "Section « Contrôles de bout en bout » créée, dans le bac");
         d.Plus(5).Approbateurs(c.Equipe.Alice, c.Equipe.Claire);
         d.A(c.Maintenant.AddDays(-1).AddHours(-5)).Note(c.Equipe.Bob, "recette.fiche-ajoutee", "Recette « Export nocturne » ajoutée");
         d.Plus(10).Note(c.Equipe.Bob, "responsables-techniques.modifies", "Responsables techniques : Bob, Claire");

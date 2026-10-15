@@ -259,23 +259,24 @@ public class ApiTests : IDisposable
         Assert.True(mep.GetProperty("erreursPlan").GetArrayLength() > 0);
 
         mep = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/etapes", new { }));
-        mep = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/etapes", new { }));
+        mep = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/etapes", new { apres = EtapeId(mep, "E0001") }));
         Assert.Equal(["E0001", "E0002"], mep.GetProperty("etapes").EnumerateArray().Select(e => e.GetProperty("code").GetString()!).ToArray());
         Assert.Equal("Moderee", Etape(mep, "E0001").GetProperty("criticite").GetString());
-        // Chaque création sans ligne ouvre une ligne en bas, reliée par défaut à la ligne au-dessus.
+        // « + sous une carte » : la nouvelle étape l'attend ; sa ligne (lecture seule) est calculée.
         Assert.Equal(1, Etape(mep, "E0002").GetProperty("ligne").GetInt32());
         Assert.Equal(EtapeId(mep, "E0001"), Etape(mep, "E0002").GetProperty("dependances")[0].GetGuid());
 
-        // E0001 ne peut pas attendre E0002 : un lien descend toujours.
+        // E0001 ne peut pas attendre E0002 : cycle.
         object Saisie(JsonElement m, string code, Guid dep) => new { revision = Revision(m, code), action = "a", dependances = new[] { dep } };
-        mep = await Ok(await bob.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0002")}", Saisie(mep, "E0002", EtapeId(mep, "E0001"))));
-        var montant = await bob.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0001")}", Saisie(mep, "E0001", EtapeId(mep, "E0002")));
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, montant.StatusCode);
-        Assert.Equal("Un lien descend toujours : E0002 doit être sur une ligne au-dessus de E0001.", await Message(montant));
+        var cycle = await bob.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0001")}", Saisie(mep, "E0001", EtapeId(mep, "E0002")));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, cycle.StatusCode);
+        Assert.StartsWith("Opération refusée : elle créerait un cycle", await Message(cycle));
 
-        var placee = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0002")}/placer", new { ligne = 0, position = 0 }));
+        // Glisser E0001 après E0002 : elle quitte sa place, E0002 n'attend plus rien et E0001 l'attend.
+        var placee = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0001")}/deplacer", new { apres = EtapeId(mep, "E0002") }));
         Assert.Equal("E0002", placee.GetProperty("etapes")[0].GetProperty("code").GetString());
-        Assert.All(placee.GetProperty("etapes").EnumerateArray(), e => Assert.Equal(0, e.GetProperty("dependances").GetArrayLength()));
+        Assert.Empty(Etape(placee, "E0002").GetProperty("dependances").EnumerateArray());
+        Assert.Equal([EtapeId(mep, "E0002")], Etape(placee, "E0001").GetProperty("dependances").EnumerateArray().Select(d => d.GetGuid()));
 
         // Un autre utilisateur ne peut pas supprimer la MEP ; son créateur le peut.
         var claire = await _api.ClientConnecte("claire");

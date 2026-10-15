@@ -192,6 +192,15 @@ public class Mep
     /// </summary>
     public List<Guid> ElementsBibliothequeComptes { get; set; } = [];
 
+    /// <summary>
+    /// Sections du plan (repères qui regroupent des étapes, avec leurs cercles d'entrée et de sortie) ; elles n'ont aucun effet
+    /// sur l'exécution, qui ne lit que <see cref="Etape.Dependances"/>.
+    /// </summary>
+    public List<Section> Sections { get; set; } = [];
+
+    /// <summary>Sections d'un plan, par ordre de création.</summary>
+    public IEnumerable<Section> SectionsDu(TypePlan plan) => Sections.Where(s => s.Plan == plan).OrderBy(s => s.CreeLe).ThenBy(s => s.Titre, StringComparer.Ordinal);
+
     /// <summary>Étapes d'un plan, de haut en bas puis de gauche à droite (ligne, puis ordre dans la ligne).</summary>
     public IEnumerable<Etape> EtapesDu(TypePlan plan) => Etapes.Where(e => e.Plan == plan).OrderBy(e => e.Ligne).ThenBy(e => e.Ordre);
 
@@ -530,9 +539,13 @@ public class Etape
     public DateTimeOffset? NonRetourAutoriseLe { get; set; }
     /// <summary>Identifiant lisible et stable (E0001… pour le déploiement, R0001… pour le retour arrière), jamais renuméroté.</summary>
     public string Code { get; set; } = "";
-    /// <summary>Ligne du graphe (0 en haut), propre à chaque plan, sans trou. -1 : à calculer (données d'avant le jalon 4).</summary>
+    /// <summary>
+    /// Profondeur dans le graphe (0 en haut), propre à chaque plan, sans trou ; recalculée après chaque opération sur le graphe
+    /// (<see cref="Regles.CalculerLignes"/>), jamais saisie. Sert aux exports, à la ligne de commande et d'indice d'ordre pour le
+    /// rangement. -1 : à calculer (données d'avant le jalon 4).
+    /// </summary>
     public int Ligne { get; set; }
-    /// <summary>Position dans la ligne (0, 1, 2… de gauche à droite).</summary>
+    /// <summary>Position dans la ligne (0, 1, 2… de gauche à droite), recalculée avec <see cref="Ligne"/>.</summary>
     public int Ordre { get; set; }
     public string Action { get; set; } = "";
     /// <summary>Systèmes de la MEP concernés par l'étape (un ou plusieurs).</summary>
@@ -560,8 +573,20 @@ public class Etape
     public DateTimeOffset? DebutReel { get; set; }
     public DateTimeOffset? FinReelle { get; set; }
     public int Revision { get; set; }
-    /// <summary>Identifiants (Id) des étapes préalables, qui doivent toutes être Réussies.</summary>
+    /// <summary>
+    /// Identifiants (Id) des étapes préalables, qui doivent toutes être Réussies : ensemble EFFECTIF, seul utilisé par
+    /// l'exécution. Il réunit les préalables directs et ceux qui viennent des cercles de section (<see cref="DependancesDerivees"/>).
+    /// </summary>
     public List<Guid> Dependances { get; set; } = [];
+    /// <summary>
+    /// Part de <see cref="Dependances"/> qui vient des cercles de section (jamais un préalable direct), recalculée par
+    /// <see cref="Regles.CompilerSections"/> après chaque changement.
+    /// </summary>
+    public List<Guid> DependancesDerivees { get; set; } = [];
+    /// <summary>Section de l'étape (une au plus, dans le même plan) ; null : étape hors section.</summary>
+    public Guid? SectionId { get; set; }
+    /// <summary>Cercles de sortie d'autres sections que l'étape attend (elle est hors de leur section).</summary>
+    public List<Guid> PortsAttendus { get; set; } = [];
     /// <summary>Résolutions types applicables si l'étape échoue.</summary>
     public List<Guid> ResolutionIds { get; set; } = [];
     /// <summary>Étape modèle dont l'étape est une copie (null : étape saisie dans la MEP). La copie ne suit pas le modèle.</summary>
@@ -571,6 +596,52 @@ public class Etape
     /// système. Aucun contrôle de cohérence entre systèmes : c'est à la personne qui relit de repérer une incohérence.
     /// </summary>
     public List<EnvironnementEtape> Environnements { get; set; } = [];
+}
+
+/// <summary>Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne).</summary>
+public enum SensPort { Entree, Sortie }
+
+/// <summary>
+/// Section d'un plan (#60) : un repère qui regroupe des étapes, avec ses systèmes et ses cercles nommés. Ce n'est pas une
+/// étape : elle ne s'exécute pas, et ses cercles ne servent qu'à calculer les préalables effectifs des étapes
+/// (<see cref="Regles.CompilerSections"/>). Une section non placée (<see cref="Placee"/> faux) attend dans le bac.
+/// </summary>
+public class Section
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public TypePlan Plan { get; set; } = TypePlan.Deploiement;
+    public string Titre { get; set; } = "";
+    public string Description { get; set; } = "";
+    /// <summary>Systèmes de la MEP touchés par la section (indicatif, modifiables à tout moment).</summary>
+    public List<Guid> SystemeIds { get; set; } = [];
+    /// <summary>Compte qui a créé la section.</summary>
+    public Guid? AuteurId { get; set; }
+    public DateTimeOffset CreeLe { get; set; }
+    /// <summary>Faux : la section attend dans le bac (« Vérifier le plan » bloque le Go tant qu'elle y reste).</summary>
+    public bool Placee { get; set; } = true;
+    /// <summary>Augmente à chaque modification de la section ou de ses cercles (contrôle de concurrence de la fiche).</summary>
+    public int Revision { get; set; }
+    /// <summary>Cercles d'entrée et de sortie.</summary>
+    public List<PortSection> Ports { get; set; } = [];
+}
+
+/// <summary>
+/// Cercle d'une section. Entrée : <see cref="Etapes"/> sont les étapes de la section qui l'attendent, <see cref="Sources"/> ce qui
+/// y arrive de l'extérieur (étapes hors de la section ou cercles de sortie d'autres sections). Sortie : <see cref="Etapes"/> sont
+/// les étapes de la section qu'il attend ; les étapes qui l'attendent le portent dans <see cref="Etape.PortsAttendus"/>, les
+/// cercles d'entrée d'autres sections dans leurs <see cref="Sources"/>.
+/// </summary>
+public class PortSection
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public SensPort Sens { get; set; }
+    public string Titre { get; set; } = "";
+    public string Description { get; set; } = "";
+    /// <summary>Position sur son bord (0, 1, 2… de gauche à droite), parmi les cercles du même sens.</summary>
+    public int Ordre { get; set; }
+    public List<Guid> Etapes { get; set; } = [];
+    /// <summary>Entrée seulement : Id d'étapes hors de la section ou de cercles de sortie d'autres sections.</summary>
+    public List<Guid> Sources { get; set; } = [];
 }
 
 /// <summary>Décision attendue d'un approbateur (compte de l'application) sur la MEP en préparation.</summary>
