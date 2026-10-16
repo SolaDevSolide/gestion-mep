@@ -23,7 +23,6 @@ import {
   type KeyboardEvent,
   type PointerEvent as PointerEventReact,
   type ReactNode,
-  type RefObject,
 } from 'react';
 import { PresentsMep } from '../../presence';
 import type { Etape, Mep, ModeleEtape, TypePlan } from '../../types';
@@ -62,14 +61,16 @@ import { liensAuPoint } from './routage';
 import { sautsSansJonctions } from './routageBordure';
 import { SqueletteGraphe } from './SqueletteGraphe';
 import { infoSection, type Section } from './sections';
+import { useHauteurDisponible } from './hauteurDisponible';
 import { useRangement } from './useRangement';
 
 export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 1.6;
 const PAS_ZOOM = 1.2;
 const DUREE_ANIMATION = 260;
+/** Effacement de l'intérieur d'une section qu'on replie, avant que son cadre se réduise. */
+const DUREE_EFFACEMENT = 140;
 /** Hauteur minimale du graphe quand la fenêtre est très basse. */
-const HAUTEUR_MIN = 360;
 const MINI_CARTE = { largeur: 168, hauteur: 112 };
 
 /** Actions d'édition du graphe ; absentes en lecture ou en exécution. */
@@ -199,8 +200,6 @@ function noeudsDepuis(
       id: n.id,
       type: n.nature,
       position,
-      // Nœud apparu (section dépliée, étape ajoutée) : il se montre en fondu, une fois les autres à leur place.
-      ...(precedents.size > 0 && !avant ? { className: 'noeud-apparu' } : {}),
       data: { etapeId: n.etapeId, sectionId: n.sectionId, cercleId: n.cercleId },
       ...(n.parent ? { parentId: n.parent } : {}),
       // Dans le plan, l'intérieur d'une section dépliée est en lecture seule : ses cartes ne se glissent pas.
@@ -214,47 +213,6 @@ function noeudsDepuis(
       ...(avant?.measured && avant.type === n.nature ? { measured: avant.measured } : {}),
     } satisfies NoeudRf;
   });
-}
-
-/**
- * Hauteur du graphe pour que la page tienne dans la fenêtre sans défiler : de son bord haut au bas de la fenêtre, moins ce
- * qui reste dessous (marges du cadre de page). Recalculée quand la fenêtre ou la page change de taille.
- */
-function useHauteurDisponible(ref: RefObject<HTMLElement | null>, actif: boolean): number | null {
-  const [hauteur, setHauteur] = useState<number | null>(null);
-  useLayoutEffect(() => {
-    if (!actif) return undefined;
-    let image = 0;
-    const calculer = () => {
-      const el = ref.current;
-      if (!el) return;
-      let dessous = 0;
-      for (let p: HTMLElement | null = el.parentElement; p && p !== document.body; p = p.parentElement) {
-        const s = getComputedStyle(p);
-        dessous += parseFloat(s.paddingBottom) + parseFloat(s.borderBottomWidth);
-      }
-      const haut = el.getBoundingClientRect().top + window.scrollY;
-      const h = Math.max(HAUTEUR_MIN, Math.floor(window.innerHeight - haut - dessous - 1));
-      setHauteur(h);
-      // Correction : ce qui dépasse encore (contenu sous le graphe) est retiré au tour suivant.
-      window.cancelAnimationFrame(image);
-      image = window.requestAnimationFrame(() => {
-        const exces = document.documentElement.scrollHeight - window.innerHeight;
-        if (exces > 0 && exces < 400) setHauteur((x) => (x === null ? x : Math.max(HAUTEUR_MIN, x - exces)));
-      });
-    };
-    calculer();
-    window.addEventListener('resize', calculer);
-    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(calculer);
-    const el = ref.current;
-    if (ro && el?.parentElement) ro.observe(el.parentElement);
-    return () => {
-      window.removeEventListener('resize', calculer);
-      window.cancelAnimationFrame(image);
-      ro?.disconnect();
-    };
-  }, [ref, actif]);
-  return hauteur;
 }
 
 /** Préférence de mini-carte : affichée par défaut, sauf dans la vue d'ensemble (#61), qui a sa propre préférence. */
@@ -381,6 +339,16 @@ function Graphe(props: Props) {
   noeudsRef.current = noeuds;
   const modeleAffiche = range?.modele ?? modele;
   const animation = useRef<number | undefined>(undefined);
+  // Phase d'un repli ou d'un dépli (mesure des nœuds apparus, effacement des nœuds qui partent) avant le mouvement.
+  const phase = useRef<number | undefined>(undefined);
+  // Nœuds apparus, cachés jusqu'à la fin du mouvement, puis montrés en fondu.
+  const cachesRef = useRef(new Set<string>());
+  // Mouvement en cours : les tailles animées des sections et des cadres ne sont pas des mesures (sinon une section repliée
+  // garderait la largeur de son cadre).
+  const mouvementRef = useRef(false);
+  // Rangement des nœuds affichés (cercles sur le bord des sections repliées) : celui du mouvement en cours, pas un rangement
+  // arrivé pendant qu'on mesure encore les nœuds apparus.
+  const [rangeVisible, setRangeVisible] = useState(range);
   const [anime, setAnime] = useState(false);
   const premier = useRef(true);
   // Graphe montré seulement une fois rangé (tailles mesurées, vue d'arrivée posée) : avant, un squelette ; jamais de carte
@@ -497,6 +465,7 @@ function Graphe(props: Props) {
     const precedents = new Map(noeudsRef.current.map((n) => [n.id, n]));
     const cibles = noeudsDepuis(modeleAffiche, range?.rangement ?? null, parId, edition, precedents);
     window.cancelAnimationFrame(animation.current ?? 0);
+    mouvementRef.current = false;
     // Premier rangement fait avec les tailles mesurées : posé sans animation, puis la vue d'arrivée.
     const mesure =
       !!range &&
@@ -504,7 +473,9 @@ function Graphe(props: Props) {
         (n) => (n.nature !== 'etape' && n.nature !== 'section') || taillesRef.current.has(n.id),
       );
     if (!range || premier.current || precedents.size === 0) {
-      setNoeuds(premier.current ? cibles.map((n) => ({ ...n, className: undefined })) : cibles);
+      cachesRef.current.clear();
+      setRangeVisible(range);
+      setNoeuds(cibles);
       setAnime(false);
       // Rangement de la vue en cours (pas celui de la vue quittée), tailles mesurées : vue d'arrivée, puis le graphe paraît.
       if (range && premier.current && mesure && range.modele === modele) {
@@ -520,80 +491,141 @@ function Graphe(props: Props) {
       }
       return;
     }
-    // Ancrage (protection 2) : le nœud regardé reste à sa place à l'écran ; le reste glisse vers sa nouvelle place.
-    const parents = new Map(modeleAffiche.noeuds.map((n) => [n.id, n.parent]));
-    const absAvant = positionsAbsolues(
-      {
-        places: new Map(
-          [...precedents.values()].map((n) => [n.id, { x: n.position.x, y: n.position.y, largeur: 0, hauteur: 0 }]),
-        ),
-        cercles: new Map(),
-        routes: new Map(),
-      },
-      new Map([...precedents.values()].map((n) => [n.id, n.parentId ?? null])),
+    window.clearTimeout(phase.current);
+    const reduit = mouvementReduit();
+    // Repli ou dépli d'une section, étape ajoutée : jamais une image avec des cartes ou des liens à moitié placés.
+    // 1. Nœuds apparus (intérieur d'une section dépliée…) pas encore mesurés : rendus invisibles pour être mesurés, le reste
+    //    ne bouge pas ; le rangement suivant (tailles mesurées) lance le mouvement. Liens masqués pendant tout ce temps.
+    const caches = cachesRef.current;
+    for (const n of cibles) if (!precedents.has(n.id)) caches.add(n.id);
+    const aMesurer = cibles.some(
+      (n) => caches.has(n.id) && (n.type === 'etape' || n.type === 'section') && !taillesRef.current.has(n.id),
     );
-    const absApres = positionsAbsolues(range.rangement, parents);
-    const ancre = ancreCourante(absAvant);
-    const vp = rf.getViewport();
-    const { dx, dy } = decalageAncrage(absAvant, absApres, ancre, vp.zoom);
-    const depart = new Map([...precedents.values()].map((n) => [n.id, n.position]));
-    // Taille de départ des cadres et sections (une section qui se déplie grandit jusqu'à son cadre, et inversement).
-    const tailleAvant = new Map(
-      [...precedents.values()].map((n) => [
-        n.id,
-        {
-          w: Number(n.style?.width ?? n.measured?.width ?? Number.NaN),
-          h: Number(n.style?.height ?? n.measured?.height ?? Number.NaN),
-        },
-      ]),
-    );
-    const vers = <T,>(a: number, b: T, k: number): T | number =>
-      typeof b === 'number' && Number.isFinite(a) ? a + (b - a) * k : b;
-    const duree = mouvementReduit() ? 1 : DUREE_ANIMATION;
-    const debut = performance.now();
-    const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-    setAnime(true);
-    const pas = (maintenant: number) => {
-      const t = Math.min(1, (maintenant - debut) / duree);
-      const k = ease(t);
+    if (aMesurer) {
+      setAnime(true);
+      setNoeuds(cibles.map((n) => precedents.get(n.id) ?? Object.assign(n, { className: 'noeud-cache' })));
+      // Mesure qui n'arrive pas (cas anormal) : le mouvement part quand même.
+      phase.current = window.setTimeout(() => animer(), 600);
+      return;
+    }
+    // 2. Nœuds qui partent (intérieur d'une section repliée) : ils s'effacent d'abord, puis le cadre se réduit.
+    const partants = [...precedents.keys()].filter((id) => !cibles.some((n) => n.id === id));
+    if (partants.length > 0 && !reduit) {
+      setAnime(true);
       setNoeuds(
-        cibles.map((n) => {
-          const a = depart.get(n.id);
-          // Nœud apparu : directement à sa place (en fondu, voir `noeud-apparu`).
-          if (!a || t >= 1) return n;
-          const ta = tailleAvant.get(n.id);
-          const style =
-            n.style && ta
-              ? { ...n.style, width: vers(ta.w, n.style.width, k), height: vers(ta.h, n.style.height, k) }
-              : n.style;
-          return {
-            ...n,
-            position: { x: a.x + (n.position.x - a.x) * k, y: a.y + (n.position.y - a.y) * k },
-            ...(style ? { style } : {}),
-          };
-        }),
+        [...precedents.values()].map((n) =>
+          partants.includes(n.id) ? Object.assign({}, n, { className: 'noeud-disparait' }) : n,
+        ),
       );
-      void rf.setViewport({ x: vp.x + dx * k, y: vp.y + dy * k, zoom: vp.zoom });
-      if (t < 1) animation.current = window.requestAnimationFrame(pas);
-      else {
-        setAnime(false);
-        const m = aMontrer.current;
-        if (m && performance.now() > m.jusqua) aMontrer.current = null;
-        else if (m) window.requestAnimationFrame(() => montrer(m.id));
-      }
-    };
-    animation.current = window.requestAnimationFrame(pas);
+      phase.current = window.setTimeout(() => animer(), DUREE_EFFACEMENT);
+      return;
+    }
+    animer();
+
+    // 3. Mouvement : le cadre s'agrandit ou se réduit, le reste glisse ; les nœuds apparus restent cachés jusqu'au bout, puis
+    //    paraissent en fondu avec les liens.
+    function animer() {
+      if (!range) return;
+      setRangeVisible(range);
+      // Ancrage (protection 2) : le nœud regardé reste à sa place à l'écran ; le reste glisse vers sa nouvelle place.
+      const parents = new Map(modeleAffiche.noeuds.map((n) => [n.id, n.parent]));
+      const absAvant = positionsAbsolues(
+        {
+          places: new Map(
+            [...precedents.values()].map((n) => [n.id, { x: n.position.x, y: n.position.y, largeur: 0, hauteur: 0 }]),
+          ),
+          cercles: new Map(),
+          routes: new Map(),
+        },
+        new Map([...precedents.values()].map((n) => [n.id, n.parentId ?? null])),
+      );
+      const absApres = positionsAbsolues(range.rangement, parents);
+      const ancre = ancreCourante(absAvant);
+      const vp = rf.getViewport();
+      const { dx, dy } = decalageAncrage(absAvant, absApres, ancre, vp.zoom);
+      const depart = new Map([...precedents.values()].map((n) => [n.id, n.position]));
+      // Taille de départ des cadres et sections (une section qui se déplie grandit jusqu'à son cadre, et inversement).
+      const tailleAvant = new Map(
+        [...precedents.values()].map((n) => [
+          n.id,
+          {
+            w: Number(n.style?.width ?? n.measured?.width ?? Number.NaN),
+            h: Number(n.style?.height ?? n.measured?.height ?? Number.NaN),
+          },
+        ]),
+      );
+      const vers = <T,>(a: number, b: T, k: number): T | number =>
+        typeof b === 'number' && Number.isFinite(a) ? a + (b - a) * k : b;
+      const duree = reduit ? 1 : DUREE_ANIMATION;
+      const debut = performance.now();
+      const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+      setAnime(true);
+      mouvementRef.current = true;
+      const pas = (maintenant: number) => {
+        const t = Math.min(1, (maintenant - debut) / duree);
+        const k = ease(t);
+        setNoeuds(
+          cibles.map((n) => {
+            const a = depart.get(n.id);
+            if (caches.has(n.id)) return Object.assign({}, n, { className: t >= 1 ? 'noeud-apparu' : 'noeud-cache' });
+            if (!a || t >= 1) return n;
+            const ta = tailleAvant.get(n.id);
+            const style =
+              n.style && ta
+                ? {
+                    ...n.style,
+                    width: vers(ta.w, n.style.width, k),
+                    // Section qu'on replie : sa hauteur rangée sert de cible (sa hauteur naturelle, à la fin).
+                    height: vers(ta.h, n.style.height ?? range.rangement.places.get(n.id)?.hauteur, k),
+                  }
+                : n.style;
+            // Nœud qui change de genre (section repliée ↔ cadre déplié) : pas encore mesuré, React Flow le cacherait une
+            // image ; sa taille animée lui sert de mesure.
+            const w = style?.width;
+            const h = style?.height;
+            const mesureAnimee =
+              !n.measured && typeof w === 'number' && typeof h === 'number'
+                ? { measured: { width: w, height: h } }
+                : {};
+            return {
+              ...n,
+              position: { x: a.x + (n.position.x - a.x) * k, y: a.y + (n.position.y - a.y) * k },
+              ...(style ? { style } : {}),
+              ...mesureAnimee,
+            };
+          }),
+        );
+        void rf.setViewport({ x: vp.x + dx * k, y: vp.y + dy * k, zoom: vp.zoom });
+        if (t < 1) animation.current = window.requestAnimationFrame(pas);
+        else {
+          mouvementRef.current = false;
+          caches.clear();
+          setAnime(false);
+          const m = aMontrer.current;
+          if (m && performance.now() > m.jusqua) aMontrer.current = null;
+          else if (m) window.requestAnimationFrame(() => montrer(m.id));
+        }
+      };
+      // Première image tout de suite, avec le rangement affiché : jamais une image où ils ne vont pas ensemble.
+      pas(debut);
+    }
     // Rangement seulement : la sélection, la cible et les droits sont lus au moment de l'animation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range, edition]);
-  useEffect(() => () => window.cancelAnimationFrame(animation.current ?? 0), []);
+  useEffect(
+    () => () => {
+      window.cancelAnimationFrame(animation.current ?? 0);
+      window.clearTimeout(phase.current);
+    },
+    [],
+  );
 
   const onNodesChange = useCallback((changes: NodeChange<NoeudRf>[]) => {
     setNoeuds((n) => applyNodeChanges(changes, n));
     const dims = changes.filter(
       (c): c is Extract<NodeChange<NoeudRf>, { type: 'dimensions' }> => c.type === 'dimensions' && !!c.dimensions,
     );
-    if (dims.length === 0) return;
+    if (dims.length === 0 || mouvementRef.current) return;
     setTailles((avant) => {
       let change = false;
       const apres = new Map(avant);
@@ -1171,7 +1203,7 @@ function Graphe(props: Props) {
       cible,
       glisse,
       placement,
-      cercles: range?.rangement.cercles ?? new Map(),
+      cercles: rangeVisible?.rangement.cercles ?? new Map(),
       sectionVue,
       enAvant,
       enMouvement: anime,
@@ -1214,7 +1246,7 @@ function Graphe(props: Props) {
       cible,
       glisse,
       placement,
-      range,
+      rangeVisible,
       sectionVue,
       enAvant,
       anime,

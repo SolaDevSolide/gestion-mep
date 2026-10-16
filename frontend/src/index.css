@@ -253,16 +253,28 @@
 .activite {
   animation: activite 1.1s ease-in-out infinite;
 }
-/* Graphe : un nœud apparu (section dépliée) se montre en fondu quand les autres arrivent à leur place ; pendant le
-   mouvement, les liens (tracés provisoires) s'estompent, puis leur tracé définitif paraît en fondu. */
+/* Graphe : repli et dépli d'une section. L'intérieur d'une section qu'on déplie reste caché (`noeud-cache`) le temps d'être
+   mesuré et rangé, pendant que le cadre s'agrandit et que le reste glisse ; puis il paraît en fondu (`noeud-apparu`). Celui
+   d'une section qu'on replie s'efface d'abord (`noeud-disparait`), puis le cadre se réduit. Les liens sont masqués pendant
+   tout le mouvement (`data-anime`), puis leur tracé définitif paraît en fondu. */
+.noeud-cache {
+  opacity: 0;
+  pointer-events: none;
+}
 .noeud-apparu {
-  animation: fade-in 180ms ease-out 140ms backwards;
+  animation: fade-in 200ms ease-out backwards;
+}
+.noeud-disparait {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 130ms ease-in;
 }
 .graphe-libre .react-flow__edge {
-  transition: opacity 160ms ease-out;
+  transition: opacity 200ms ease-out;
 }
 .graphe-libre [data-anime] .react-flow__edge {
-  opacity: 0.15;
+  opacity: 0;
+  transition: none;
 }
 @keyframes pulse-ring {
   0%,
