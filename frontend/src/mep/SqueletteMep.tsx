@@ -1,3 +1,4 @@
+import { SqueletteEnsemble } from './ensemble/Squelettes';
 import {
   EnChargement,
   Squelette,
@@ -32,6 +33,7 @@ export function SqueletteOnglet({ onglet }: { onglet: string | null }) {
         <SqueletteCadreGraphe />
       </div>
     );
+  if (onglet === 'ensemble') return <SqueletteEnsemble />;
   if (onglet === 'journal')
     return (
       <div className="mx-auto w-full max-w-4xl px-6 py-6">

@@ -26,6 +26,7 @@ import { useAsync, useNow } from '../../hooks';
 import { useMep } from '../../mepContext';
 import { useAutresPresents } from '../../presence';
 import { useReferentiels } from '../../referentiels';
+import { SqueletteEnsemble, SqueletteEvenements } from './Squelettes';
 import { metaPhase } from '../../statuts';
 import type { Etape, Evenement, Mep } from '../../types';
 import { Alerte } from '../../ui/Alerte';
@@ -432,6 +433,7 @@ function Evenements({ journal }: { journal: Evenement[] | null }) {
       {journal && marquants.length === 0 && (
         <p className="text-[13px] text-fg-subtle">Rien de marquant pour l’instant.</p>
       )}
+      {!journal && <SqueletteEvenements />}
       <ol className="relative grid gap-2 border-l border-line pl-4">
         {marquants.map((ev) => {
           const { Icone, ton } = iconeEvenement(ev.type);
@@ -506,7 +508,7 @@ export default function VueEnsembleTab() {
   );
 
   return (
-    <Apparition pret={pret}>
+    <Apparition pret={pret} libelle="Chargement de la vue d’ensemble…" squelette={<SqueletteEnsemble />}>
       <div className="mx-auto grid w-full max-w-[1700px] gap-4 px-4 py-5 sm:px-6">
         {mep.phase === 'Preparation' && (
           <Alerte ton="run" icone={Info}>

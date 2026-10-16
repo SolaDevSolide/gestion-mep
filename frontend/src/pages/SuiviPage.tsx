@@ -46,6 +46,7 @@ import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { cn } from '../ui/cn';
 import { EmptyState } from '../ui/EmptyState';
+import { SqueletteSuivi } from '../mep/ensemble/Squelettes';
 import { ProgressBar } from '../ui/ProgressBar';
 import { StatusPill } from '../ui/StatusPill';
 import { TON } from '../ui/tons';
@@ -448,7 +449,7 @@ export default function SuiviPage() {
         </Alerte>
       )}
 
-      <Apparition pret={suivi !== null || erreur !== ''}>
+      <Apparition pret={suivi !== null || erreur !== ''} libelle="Chargement du suivi…" squelette={<SqueletteSuivi />}>
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Tuile titre="MEP en cours" Icone={Play} valeur={meps.length} />
           <Tuile titre="Échecs à traiter" Icone={XCircle} valeur={nbEchecs} ton={nbEchecs > 0 ? 'danger' : undefined} />

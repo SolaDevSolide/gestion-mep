@@ -101,6 +101,17 @@ describe('SuiviPage (#61)', () => {
     expect(screen.getByText('Prochaine MEP').parentElement).toHaveTextContent('Aucune MEP annoncée');
   });
 
+  it('tient la place du tableau de bord par un squelette jusqu’à la réponse, sans « Aucune MEP » provisoire', async () => {
+    let repondre: (s: Suivi) => void = () => undefined;
+    vi.mocked(api.suivi).mockReturnValue(new Promise<Suivi>((r) => (repondre = r)));
+    rendre();
+    expect(screen.getByRole('status', { name: 'Chargement du suivi…' })).toBeInTheDocument();
+    expect(screen.queryByText('Aucune MEP en cours')).not.toBeInTheDocument();
+    act(() => repondre(suivi()));
+    expect(await screen.findByRole('list', { name: 'MEP en cours' })).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Chargement du suivi…' })).not.toBeInTheDocument();
+  });
+
   it('relit le tableau de bord quand le flux signale des modifications, en les regroupant', async () => {
     vi.mocked(api.suivi).mockResolvedValue(suivi({ enCours: [] }));
     rendre();

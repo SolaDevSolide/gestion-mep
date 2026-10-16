@@ -13,6 +13,7 @@ import {
   familleEvenement,
 } from '../format';
 import { useAsync } from '../hooks';
+import { SqueletteRapport } from '../mep/ensemble/Squelettes';
 import { causesBlocage, duree } from '../mep/ensemble/calculs';
 import { Legende } from '../mep/ensemble/VueEnsembleTab';
 import { GrapheLibre } from '../mep/graphe/GrapheLibre';
@@ -508,7 +509,9 @@ export default function RapportPage() {
           </Alerte>
         </div>
       ) : (
-        <Apparition pret={rapport !== null}>{rapport && <ContexteRapport r={rapport} />}</Apparition>
+        <Apparition pret={rapport !== null} libelle="Chargement du rapport…" squelette={<SqueletteRapport />}>
+          {rapport && <ContexteRapport r={rapport} />}
+        </Apparition>
       )}
     </main>
   );
