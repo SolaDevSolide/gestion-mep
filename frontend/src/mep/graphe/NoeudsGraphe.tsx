@@ -1,8 +1,9 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { ChevronDown, ChevronRight, Pencil, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2, Pencil, Plus } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { MarquePresence, useEditeurs } from '../../presence';
 import { cn } from '../../ui/cn';
+import { Squelette } from '../../ui/Squelette';
 import { useGraphe } from './contexteGraphe';
 import { POIGNEE_BAS, POIGNEE_HAUT } from './modeleGraphe';
 import { NoeudEtape } from './NoeudEtape';
@@ -109,17 +110,20 @@ function EnTeteSection({ section, deplie }: { section: Section; deplie: boolean 
   const systemes = systemesDe(g.mep, section.systemeIds);
   const av = avancementSection(etapes);
   const Chevron = deplie ? ChevronDown : ChevronRight;
+  const enCours = g.sectionsEnCours.has(section.id);
   return (
     <div className="flex min-w-0 items-start gap-2">
       <button
         type="button"
         onClick={() => g.onBasculer(section.id)}
         aria-expanded={deplie}
+        aria-busy={enCours || undefined}
         aria-label={`${deplie ? 'Replier' : 'Déplier'} la section ${section.titre}`}
         title={deplie ? 'Replier la section' : 'Déplier la section'}
-        className="nodrag nopan -mt-0.5 -ml-1.5 grid size-9 shrink-0 place-content-center rounded-lg border border-line bg-surface text-fg-muted shadow-sm hover:bg-surface-2 hover:text-fg"
+        className="nodrag nopan relative -mt-0.5 -ml-1.5 grid size-9 shrink-0 place-content-center rounded-lg border border-line bg-surface text-fg-muted shadow-sm hover:bg-surface-2 hover:text-fg"
       >
         <Chevron className="size-5" aria-hidden />
+        {enCours && <AttenteBouton />}
       </button>
       <div className="grid min-w-0 flex-1 gap-1">
         <p className="truncate text-[14px] leading-tight font-semibold" title={section.titre}>
@@ -240,6 +244,21 @@ function CercleCadre({ cercle: c, edition }: { cercle: CercleSection; edition: b
   );
 }
 
+/**
+ * Repli ou dépli qui se prépare (mesure et rangement de l'intérieur de la section) : une pastille qui tourne sur le coin
+ * du bouton, seulement si l'attente dure (court délai, voir `attente-section`).
+ */
+function AttenteBouton() {
+  return (
+    <span
+      aria-hidden
+      className="attente-section pointer-events-none absolute -top-1.5 -right-1.5 grid size-4 place-content-center rounded-full bg-surface shadow-sm"
+    >
+      <Loader2 className="size-3.5 animate-spin text-accent" />
+    </span>
+  );
+}
+
 /** Section repliée : un cadre (titre, systèmes, nombre d'étapes, auteur) et ses cercles sur les bords. */
 /** Délai d'un clic sur une section repliée avant de la déplier : un double-clic ouvre plutôt sa vue d'édition. */
 export const DELAI_DOUBLE_CLIC_MS = 250;
@@ -334,6 +353,14 @@ export function NoeudCadre({ data }: NodeProps) {
           : 'border-accent/60 bg-accent-soft/40',
       )}
     >
+      {g.ouverture.has(id) && (
+        <Squelette
+          className={cn(
+            'pointer-events-none absolute inset-x-6 top-10 bottom-6 rounded-xl opacity-70',
+            !g.enMouvement && 'squelette-sortie',
+          )}
+        />
+      )}
       <PresenceSection id={id} deplie />
     </div>
   );
@@ -362,11 +389,13 @@ export function NoeudTitreCadre({ data }: NodeProps) {
         type="button"
         onClick={() => g.onBasculer(id)}
         aria-expanded
+        aria-busy={g.sectionsEnCours.has(id) || undefined}
         aria-label={`Replier la section ${s.titre}`}
         title="Replier la section"
-        className="nodrag nopan grid size-7 shrink-0 place-content-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg"
+        className="nodrag nopan relative grid size-7 shrink-0 place-content-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg"
       >
         <ChevronDown className="size-5" aria-hidden />
+        {g.sectionsEnCours.has(id) && <AttenteBouton />}
       </button>
       <p className="min-w-0 flex-1 truncate text-[13px] leading-tight font-semibold">
         {s.titre || 'Section sans titre'}

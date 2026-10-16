@@ -34,6 +34,10 @@ export interface ValeurGraphe {
   enAvant: { liens: ReadonlySet<string>; noeuds: ReadonlySet<string> } | null;
   /** Rangement animé en cours : les liens suivent leurs poignées au lieu du tracé d’ELK (de même pour la carte glissée). */
   enMouvement: boolean;
+  /** Sections dont le repli ou le dépli se prépare (mesure et rangement de leur intérieur) : leur bouton le signale. */
+  sectionsEnCours: ReadonlySet<string>;
+  /** Sections qu'on déplie, pendant le mouvement : leur cadre montre un squelette jusqu'à ce que l'intérieur paraisse. */
+  ouverture: ReadonlySet<string>;
   /** Réorganisation en cours : le nœud glissé change de place dans son niveau (gauche-droite). */
   reordre: string | null;
   estEstompee?: (e: Etape) => boolean;

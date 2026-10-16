@@ -253,10 +253,29 @@
 .activite {
   animation: activite 1.1s ease-in-out infinite;
 }
-/* Graphe : repli et dépli d'une section. L'intérieur d'une section qu'on déplie reste caché (`noeud-cache`) le temps d'être
-   mesuré et rangé, pendant que le cadre s'agrandit et que le reste glisse ; puis il paraît en fondu (`noeud-apparu`). Celui
-   d'une section qu'on replie s'efface d'abord (`noeud-disparait`), puis le cadre se réduit. Les liens sont masqués pendant
-   tout le mouvement (`data-anime`), puis leur tracé définitif paraît en fondu. */
+/* Graphe : repli et dépli d'une section. Les nœuds qui vont paraître sont d'abord mesurés en invisible (`noeud-mesure`,
+   copies posées dans un nœud affiché) ; le graphe affiché ne bouge pas d'ici là, et le bouton de la section signale
+   l'attente (`attente-section`, après un court délai). Une fois le rangement définitif prêt : l'intérieur d'une section
+   qu'on replie s'efface (`noeud-disparait`), puis en un seul mouvement le cadre change de taille avec son titre, le reste
+   glisse et la vue suit ; l'intérieur d'une section dépliée, caché pendant le mouvement (`noeud-cache`), paraît alors en
+   fondu (`noeud-apparu`). Les liens sont masqués pendant le mouvement (`data-anime`), puis paraissent en fondu. */
+.noeud-mesure {
+  /* React Flow écrit `visibility: visible` dans le style du nœud une fois mesuré. */
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+/* Squelette d'un cadre qu'on déplie : il s'efface pendant que l'intérieur paraît. */
+.squelette.squelette-sortie {
+  animation: disparition 200ms ease-in forwards;
+}
+@keyframes disparition {
+  to {
+    opacity: 0;
+  }
+}
+.attente-section {
+  animation: fade-in 200ms ease-out 150ms backwards;
+}
 .noeud-cache {
   opacity: 0;
   pointer-events: none;
@@ -269,12 +288,12 @@
   pointer-events: none;
   transition: opacity 130ms ease-in;
 }
-.graphe-libre .react-flow__edge {
-  transition: opacity 200ms ease-out;
+/* Liens : masqués pendant le mouvement ; à la fin, tous (anciens et nouveaux) paraissent en fondu avec l'intérieur. */
+.graphe-libre [data-graphe-libre]:not([data-anime]) .react-flow__edge {
+  animation: fade-in 200ms ease-out backwards;
 }
 .graphe-libre [data-anime] .react-flow__edge {
   opacity: 0;
-  transition: none;
 }
 @keyframes pulse-ring {
   0%,
