@@ -3,7 +3,6 @@ import { ChevronDown, ChevronRight, Loader2, Pencil, Plus } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { MarquePresence, useEditeurs } from '../../presence';
 import { cn } from '../../ui/cn';
-import { Squelette } from '../../ui/Squelette';
 import { useGraphe } from './contexteGraphe';
 import { POIGNEE_BAS, POIGNEE_HAUT } from './modeleGraphe';
 import { NoeudEtape } from './NoeudEtape';
@@ -353,14 +352,6 @@ export function NoeudCadre({ data }: NodeProps) {
           : 'border-accent/60 bg-accent-soft/40',
       )}
     >
-      {g.ouverture.has(id) && (
-        <Squelette
-          className={cn(
-            'pointer-events-none absolute inset-x-6 top-10 bottom-6 rounded-xl opacity-70',
-            !g.enMouvement && 'squelette-sortie',
-          )}
-        />
-      )}
       <PresenceSection id={id} deplie />
     </div>
   );

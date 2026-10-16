@@ -2,6 +2,7 @@ import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type EdgeProps } from '
 import { ArrowDown } from 'lucide-react';
 import { useGraphe } from './contexteGraphe';
 import type { LienModele } from './modeleGraphe';
+import type { LienMouvement } from './mouvementGraphe';
 import type { Point } from './rangement';
 import { cheminLien, milieuLien } from './routage';
 
@@ -117,6 +118,28 @@ export function LienGraphe(props: EdgeProps) {
         </EdgeLabelRenderer>
       )}
     </>
+  );
+}
+
+/**
+ * Liens pendant un repli ou un dépli (ceux de React Flow sont masqués) : mêmes traits, liseré et flèches, attachés aux
+ * nœuds qui bougent. Posés dans la vue du graphe, sous les cartes et au-dessus des cadres, comme les liens.
+ */
+export function LiensEnMouvement({ liens, zIndex }: { liens: readonly LienMouvement[]; zIndex: number }) {
+  return (
+    <svg aria-hidden className="pointer-events-none absolute top-0 left-0 size-px overflow-visible" style={{ zIndex }}>
+      {liens.map((l) => (
+        <g key={l.id} style={{ opacity: l.opacite }}>
+          <path d={l.d} fill="none" style={{ stroke: 'var(--surface)', strokeWidth: 1.75 + 4 }} />
+          <path
+            d={l.d}
+            fill="none"
+            markerEnd={`url(#fleche-${l.ton})`}
+            style={{ stroke: COULEUR[l.ton], strokeWidth: 1.75, strokeLinejoin: 'round' }}
+          />
+        </g>
+      ))}
+    </svg>
   );
 }
 

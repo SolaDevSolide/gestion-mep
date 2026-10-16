@@ -254,24 +254,14 @@
   animation: activite 1.1s ease-in-out infinite;
 }
 /* Graphe : repli et dépli d'une section. Les nœuds qui vont paraître sont d'abord mesurés en invisible (`noeud-mesure`,
-   copies posées dans un nœud affiché) ; le graphe affiché ne bouge pas d'ici là, et le bouton de la section signale
-   l'attente (`attente-section`, après un court délai). Une fois le rangement définitif prêt : l'intérieur d'une section
-   qu'on replie s'efface (`noeud-disparait`), puis en un seul mouvement le cadre change de taille avec son titre, le reste
-   glisse et la vue suit ; l'intérieur d'une section dépliée, caché pendant le mouvement (`noeud-cache`), paraît alors en
-   fondu (`noeud-apparu`). Les liens sont masqués pendant le mouvement (`data-anime`), puis paraissent en fondu. */
+   copies posées dans un nœud affiché, puis `noeud-cache`) ; le graphe affiché ne bouge pas d'ici là, et le bouton de la
+   section signale l'attente (`attente-section`, après un court délai). Puis un seul mouvement : le cadre s'ouvre ou se
+   ferme en emportant son intérieur à sa mesure (`noeud-echelle`, échelle `--echelle`, en fondu), le reste glisse, la
+   vue suit, et les liens restent attachés à leurs nœuds (tracés par le graphe pendant le mouvement, `data-anime`). */
 .noeud-mesure {
   /* React Flow écrit `visibility: visible` dans le style du nœud une fois mesuré. */
   visibility: hidden !important;
   pointer-events: none !important;
-}
-/* Squelette d'un cadre qu'on déplie : il s'efface pendant que l'intérieur paraît. */
-.squelette.squelette-sortie {
-  animation: disparition 200ms ease-in forwards;
-}
-@keyframes disparition {
-  to {
-    opacity: 0;
-  }
 }
 .attente-section {
   animation: fade-in 200ms ease-out 150ms backwards;
@@ -280,17 +270,10 @@
   opacity: 0;
   pointer-events: none;
 }
-.noeud-apparu {
-  animation: fade-in 200ms ease-out backwards;
-}
-.noeud-disparait {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 130ms ease-in;
-}
-/* Liens : masqués pendant le mouvement ; à la fin, tous (anciens et nouveaux) paraissent en fondu avec l'intérieur. */
-.graphe-libre [data-graphe-libre]:not([data-anime]) .react-flow__edge {
-  animation: fade-in 200ms ease-out backwards;
+/* Contenu à l'échelle : la boîte du nœud (mesurée par React Flow) ne change pas, seul son dessin est réduit. */
+.noeud-echelle > * {
+  scale: var(--echelle, 1);
+  transform-origin: 0 0;
 }
 .graphe-libre [data-anime] .react-flow__edge {
   opacity: 0;

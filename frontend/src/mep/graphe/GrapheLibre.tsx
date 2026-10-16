@@ -43,7 +43,7 @@ import {
 import { deplacementPour, interpreterConnexion, placePour, type CibleDepot } from './connexions';
 import { ContexteGraphe, type ValeurGraphe } from './contexteGraphe';
 import { EtapeFlottante } from './EtapesModeles';
-import { MarqueursLiens, TYPES_LIENS, type DonneesLien } from './LienGraphe';
+import { LiensEnMouvement, MarqueursLiens, TYPES_LIENS, type DonneesLien } from './LienGraphe';
 import { MenuLabel } from '../../ui/Menu';
 import { ContenuMenuLien, EntreesCreation, MenuAuPoint, type ChoixCreation } from './MenusGraphe';
 import { construireModele, idSection, type LienModele, type ModeleGraphe } from './modeleGraphe';
@@ -55,10 +55,23 @@ import {
   GRILLE,
   noeudAuCentre,
   positionsAbsolues,
+  type Point,
   type Rangement,
   type Taille,
 } from './rangement';
-import { liensAuPoint } from './routage';
+import { liensAuPoint, RAYON_COUDE } from './routage';
+import {
+  adoucir,
+  cheminArrondi,
+  dansCadre,
+  etatA,
+  rampeApparition,
+  rampeDisparition,
+  routeSuivant,
+  type EtatNoeud,
+  type LienMouvement,
+  type PlaceDansCadre,
+} from './mouvementGraphe';
 import { sautsSansJonctions } from './routageBordure';
 import { SqueletteGraphe } from './SqueletteGraphe';
 import { infoSection, type Section } from './sections';
@@ -70,8 +83,6 @@ export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 1.6;
 const PAS_ZOOM = 1.2;
 const DUREE_ANIMATION = 260;
-/** Effacement de l'intérieur d'une section qu'on replie, avant que son cadre se réduise. */
-const DUREE_EFFACEMENT = 140;
 /** Secours seulement (cas anormal) : un nœud monté que React Flow ne mesure jamais n'empêche pas le mouvement. */
 const SECOURS_MONTAGE_MS = 3000;
 /** Hauteur minimale du graphe quand la fenêtre est très basse. */
@@ -373,14 +384,12 @@ function Graphe(props: Props) {
     window.clearTimeout(phase.current);
     m.suite(m.mesures);
   }, []);
-  // Nœuds apparus, cachés jusqu'à la fin du mouvement, puis montrés en fondu.
-  const cachesRef = useRef(new Set<string>());
   // Rangement des nœuds affichés (cercles sur le bord des sections repliées) : celui du mouvement en cours, pas un rangement
   // arrivé pendant qu'on mesure encore les nœuds apparus.
   const [rangeVisible, setRangeVisible] = useState(range);
   const [anime, setAnime] = useState(false);
-  // Sections qu'on déplie, pendant le mouvement : leur cadre montre un squelette en attendant que l'intérieur paraisse.
-  const [ouverture, setOuverture] = useState<ReadonlySet<string>>(() => new Set());
+  // Liens dessinés pendant un mouvement (ceux de React Flow sont alors masqués) : attachés aux nœuds qui bougent.
+  const [liensMouvement, setLiensMouvement] = useState<LienMouvement[] | null>(null);
   const premier = useRef(true);
   useLayoutEffect(() => {
     premier.current = true;
@@ -505,11 +514,10 @@ function Graphe(props: Props) {
         (n) => (n.nature !== 'etape' && n.nature !== 'section') || taillesRef.current.has(n.id),
       );
     if (!range || premier.current || precedents.size === 0) {
-      cachesRef.current.clear();
       setRangeVisible(range);
       setNoeuds(cibles);
       setAnime(false);
-      setOuverture(new Set());
+      setLiensMouvement(null);
       // Rangement de la vue en cours (pas celui de la vue quittée), tailles mesurées : vue d'arrivée, puis le graphe paraît.
       if (range && premier.current && mesure && range.modele === modele) {
         premier.current = false;
@@ -526,41 +534,23 @@ function Graphe(props: Props) {
       return;
     }
     const reduit = mouvementReduit();
-    // Repli ou dépli d'une section, étape ajoutée ou reçue. Ce rangement est définitif : les nouveaux nœuds ont été
-    // mesurés avant, en invisible (`useRangement` attend leurs mesures), et rien n'a bougé d'ici là. Puis :
-    // 1. l'intérieur d'une section qu'on replie s'efface ;
-    // 2. un seul mouvement : le cadre s'agrandit ou se réduit avec son titre, le reste glisse, la vue suit (section dépliée
-    //    montrée en entier) ; liens masqués ;
-    // 3. l'intérieur d'une section dépliée et les liens paraissent en fondu, à leur place définitive.
-    // Squelette d'une ouverture précédente (déjà effacé) : retiré, il ne reparaît pas au mouvement suivant.
-    setOuverture(new Set());
-    const caches = cachesRef.current;
-    for (const n of cibles) if (!precedents.has(n.id) && n.type !== 'titre') caches.add(n.id);
-    // Titre d'une section qu'on déplie : il accompagne le cadre qui grandit (sauf si le cadre lui-même apparaît).
-    for (const n of cibles)
-      if (!precedents.has(n.id) && n.type === 'titre' && caches.has(n.parentId ?? '')) caches.add(n.id);
+    // Repli ou dépli d'une section, étapes reçues ou parties. Ce rangement est définitif : les nouveaux nœuds ont été
+    // mesurés avant, en invisible (`useRangement` attend leurs mesures), et rien n'a bougé d'ici là. Puis un seul
+    // mouvement, entièrement calculé avant sa première image (voir mouvementGraphe) : chaque nœud va de sa place affichée
+    // à sa nouvelle place, le cadre qui s'ouvre ou se ferme emporte son intérieur à sa mesure (en fondu), la vue suit, et
+    // les liens restent attachés à leurs nœuds du début à la fin.
     const idsCibles = new Set(cibles.map((n) => n.id));
-    const partants = new Set([...precedents.keys()].filter((id) => !idsCibles.has(id)));
     const suite = (mesures: ReadonlyMap<string, { width: number; height: number }> = new Map()) => {
       // Mesures prises par React Flow pendant le montage invisible : reprises, sinon il cacherait ces nœuds le temps de
-      // les mesurer à nouveau (titre absent, intérieur qui paraît en retard).
+      // les mesurer à nouveau.
       for (const n of cibles) {
         const d = mesures.get(n.id);
         if (!n.measured && d) n.measured = d;
       }
-      if (partants.size > 0 && !reduit) {
-        setAnime(true);
-        // Le titre du cadre reste jusqu'au mouvement : le cadre ne paraît jamais vide et sans nom.
-        setNoeuds(
-          noeudsRef.current.map((n) =>
-            partants.has(n.id) && n.type !== 'titre' ? { ...n, className: 'noeud-disparait' } : n,
-          ),
-        );
-        phase.current = window.setTimeout(animer, DUREE_EFFACEMENT);
-      } else animer();
+      animer();
     };
     // Nœuds qui vont paraître : d'abord montés invisibles (et mesurés par React Flow) sans que rien d'autre ne change à
-    // l'écran, liens compris ; le mouvement part quand React Flow les a tous mesurés (pas après un délai fixe).
+    // l'écran ; le mouvement part quand React Flow les a tous mesurés (pas après un délai fixe).
     const nouveaux = cibles.filter((n) => !precedents.has(n.id));
     if (nouveaux.length > 0) {
       montage.current = { ids: new Set(nouveaux.map((n) => n.id)), mesures: new Map(), suite };
@@ -573,9 +563,9 @@ function Graphe(props: Props) {
 
     function animer() {
       if (!range) return;
+      const ancien = rangeVisible;
       setRangeVisible(range);
-      // Ancrage (protection 2) : le nœud regardé reste à sa place à l'écran ; le reste glisse vers sa nouvelle place.
-      const parents = new Map(modeleAffiche.noeuds.map((n) => [n.id, n.parent]));
+      const parentsAvant = new Map([...precedents.values()].map((n) => [n.id, n.parentId ?? null]));
       const absAvant = positionsAbsolues(
         {
           places: new Map(
@@ -584,9 +574,10 @@ function Graphe(props: Props) {
           cercles: new Map(),
           routes: new Map(),
         },
-        new Map([...precedents.values()].map((n) => [n.id, n.parentId ?? null])),
+        parentsAvant,
       );
-      const absApres = positionsAbsolues(range.rangement, parents);
+      const absApres = positionsAbsolues(range.rangement, new Map(cibles.map((n) => [n.id, n.parentId ?? null])));
+      // Ancrage (protection 2) : le nœud regardé reste à sa place à l'écran ; le reste glisse vers sa nouvelle place.
       const ancre = ancreCourante(absAvant);
       const vp = rf.getViewport();
       const { dx, dy } = decalageAncrage(absAvant, absApres, ancre, vp.zoom);
@@ -607,79 +598,167 @@ function Graphe(props: Props) {
         );
         aMontrer.current = null;
       }
-      const depart = new Map([...precedents.values()].map((n) => [n.id, n.position]));
-      // Taille de départ des cadres et sections (une section qui se déplie grandit jusqu'à son cadre, et inversement).
-      const tailleAvant = new Map(
-        [...precedents.values()].map((n) => [
-          n.id,
-          {
-            w: Number(n.style?.width ?? n.measured?.width ?? Number.NaN),
-            h: Number(n.style?.height ?? n.measured?.height ?? Number.NaN),
+
+      // États de départ (affichés) et d'arrivée (nouveau rangement) de chaque nœud ; boîtes à leur taille visible.
+      const depart = new Map<string, EtatNoeud>();
+      const arrivee = new Map<string, EtatNoeud>();
+      for (const n of precedents.values()) {
+        const a = absAvant.get(n.id);
+        if (!a) continue;
+        const echelle = Number(n.style ? (Object.entries(n.style).find(([c]) => c === '--echelle')?.[1] ?? 1) : 1);
+        depart.set(n.id, {
+          boite: {
+            x: a.x,
+            y: a.y,
+            largeur: Number(n.style?.width ?? n.measured?.width ?? 0) * echelle,
+            hauteur: Number(n.style?.height ?? n.measured?.height ?? 0) * echelle,
           },
-        ]),
-      );
-      const vers = <T,>(a: number, b: T, k: number): T | number =>
-        typeof b === 'number' && Number.isFinite(a) ? a + (b - a) * k : b;
+          opacite: n.className?.includes('noeud-cache') ? 0 : Number(n.style?.opacity ?? 1),
+          echelle,
+        });
+      }
+      for (const n of cibles) {
+        const a = absApres.get(n.id);
+        if (!a) continue;
+        const p = range.rangement.places.get(n.id);
+        arrivee.set(n.id, {
+          boite: {
+            x: a.x,
+            y: a.y,
+            largeur: p?.largeur ?? n.measured?.width ?? 0,
+            hauteur: p?.hauteur ?? n.measured?.height ?? 0,
+          },
+          opacite: 1,
+          echelle: 1,
+        });
+      }
+      // Ce qui paraît dans un cadre qui s'ouvre part de sa place, à l'échelle du cadre de départ ; ce qui part d'un cadre
+      // qui se ferme va à l'échelle du cadre d'arrivée. Le titre accompagne le cadre, à sa taille, visible du début à la
+      // fin ; les cercles de la bordure suivent la bordure, en fondu (sur le petit cadre de départ ou d'arrivée, ils
+      // couvriraient le titre).
+      const placeDans = (n: NoeudRf): PlaceDansCadre =>
+        n.type === 'titre' ? 'titre' : n.type === 'cercle' && !sectionVue ? 'bord' : 'contenu';
+      for (const n of cibles) {
+        const fin = arrivee.get(n.id);
+        if (depart.has(n.id) || !fin) continue;
+        const pd = n.parentId ? depart.get(n.parentId) : undefined;
+        const pa = n.parentId ? arrivee.get(n.parentId) : undefined;
+        const place = placeDans(n);
+        const r = pd && pa ? dansCadre(fin.boite, pa.boite, pd.boite, place) : null;
+        depart.set(n.id, {
+          boite: r?.boite ?? fin.boite,
+          echelle: r?.echelle ?? 1,
+          // Le cadre ne paraît jamais vide : son intérieur, en réduction, est déjà visible au départ.
+          opacite: !r ? 0 : place === 'titre' ? 1 : place === 'contenu' ? 0.3 : 0,
+        });
+      }
+      const partants = [...precedents.values()].filter((n) => !idsCibles.has(n.id));
+      for (const n of partants) {
+        const deb = depart.get(n.id);
+        if (!deb) continue;
+        const pd = n.parentId ? depart.get(n.parentId) : undefined;
+        const pa = n.parentId ? arrivee.get(n.parentId) : undefined;
+        const place = placeDans(n);
+        const r = pd && pa ? dansCadre(deb.boite, pd.boite, pa.boite, place) : null;
+        arrivee.set(n.id, {
+          boite: r?.boite ?? deb.boite,
+          echelle: deb.echelle * (r?.echelle ?? 1),
+          // Symétrique du dépli : l'intérieur reste visible, en réduction, jusqu'à ce que la section reprenne sa place.
+          opacite: !r ? 0 : place === 'titre' ? deb.opacite : place === 'contenu' ? Math.min(deb.opacite, 0.3) : 0,
+        });
+      }
+      // Pendant le mouvement, une section qui se replie reste un cadre (qui se réduit) ; elle redevient une section à
+      // l'arrivée, à la même taille. Une section qui se déplie devient tout de suite un cadre, à sa taille de section.
+      const enMouvement = [
+        ...cibles.map((n) => {
+          const a = precedents.get(n.id);
+          return a && a.type === 'cadre' && n.type === 'section' ? a : n;
+        }),
+        ...partants,
+      ];
+      const idsNouveauxLiens = new Set(range.modele.liens.map((l) => l.id));
+      const idsAnciensLiens = new Set(ancien?.modele.liens.map((l) => l.id) ?? []);
       const duree = reduit ? 1 : DUREE_ANIMATION;
       const debut = performance.now();
-      const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-      const parCible = new Map(cibles.map((n) => [n.id, n]));
-      setOuverture(
-        new Set(
-          cibles
-            .filter((n) => caches.has(n.id) && n.parentId && !caches.has(n.parentId))
-            .map((n) => parCible.get(n.parentId ?? '')?.data.sectionId ?? ''),
-        ),
-      );
       setAnime(true);
-      const pas = (maintenant: number) => {
-        const t = Math.min(1, (maintenant - debut) / duree);
-        const k = ease(t);
-        setNoeuds(
-          cibles.map((n) => {
-            const a = depart.get(n.id);
-            if (caches.has(n.id)) return Object.assign({}, n, { className: t >= 1 ? 'noeud-apparu' : 'noeud-cache' });
-            if (!a || t >= 1) return n;
-            const ta = tailleAvant.get(n.id);
-            const style =
-              n.style && ta
-                ? {
-                    ...n.style,
-                    width: vers(ta.w, n.style.width, k),
-                    // Section qu'on replie : sa hauteur rangée sert de cible (sa hauteur naturelle, à la fin).
-                    height: vers(ta.h, n.style.height ?? range.rangement.places.get(n.id)?.hauteur, k),
-                  }
-                : n.style;
-            // Nœud qui change de genre (section repliée ↔ cadre déplié) : pas encore mesuré, React Flow le cacherait une
-            // image ; sa taille animée lui sert de mesure.
-            const w = style?.width;
-            const h = style?.height;
-            const mesureAnimee =
-              !n.measured && typeof w === 'number' && typeof h === 'number'
-                ? { measured: { width: w, height: h } }
-                : {};
-            return {
-              ...n,
-              position: { x: a.x + (n.position.x - a.x) * k, y: a.y + (n.position.y - a.y) * k },
-              ...(style ? { style } : {}),
-              ...mesureAnimee,
-            };
-          }),
-        );
+      const pas = () => {
+        // Heure lue à chaque image (pas l'horodatage passé par requestAnimationFrame, qui peut précéder `debut`).
+        const t = Math.min(1, Math.max(0, (performance.now() - debut) / duree));
+        const k = adoucir(t);
         void rf.setViewport({
           x: vp.x + (vueFin.x - vp.x) * k,
           y: vp.y + (vueFin.y - vp.y) * k,
           zoom: vp.zoom + (vueFin.zoom - vp.zoom) * k,
         });
-        if (t < 1) animation.current = window.requestAnimationFrame(pas);
-        else {
-          caches.clear();
-          // Le squelette des cadres ouverts s'efface pendant que l'intérieur paraît (`squelette-sortie`).
+        if (t >= 1) {
+          setNoeuds(cibles);
+          setLiensMouvement(null);
           setAnime(false);
+          return;
         }
+        const etats = new Map<string, EtatNoeud>();
+        for (const [id, a] of depart) {
+          const b = arrivee.get(id);
+          if (b) etats.set(id, etatA(a, b, k));
+        }
+        setNoeuds(
+          enMouvement.map((n) => {
+            const e = etats.get(n.id);
+            if (!e) return n;
+            const parent = n.parentId ? etats.get(n.parentId) : undefined;
+            const style: Record<string, unknown> = { ...n.style, opacity: e.opacite };
+            if (e.echelle !== 1) style['--echelle'] = e.echelle;
+            else delete style['--echelle'];
+            if (n.type === 'cadre' || n.type === 'section') {
+              style.width = e.boite.largeur / e.echelle;
+              style.height = e.boite.hauteur / e.echelle;
+            }
+            // Nœud qui change de genre (section repliée ↔ cadre déplié) : pas encore mesuré, React Flow le cacherait une
+            // image ; sa taille animée lui sert de mesure.
+            const w = style.width;
+            const h = style.height;
+            const mesureAnimee =
+              !n.measured && typeof w === 'number' && typeof h === 'number'
+                ? { measured: { width: w, height: h } }
+                : {};
+            return Object.assign({}, n, mesureAnimee, {
+              position: parent
+                ? { x: e.boite.x - parent.boite.x, y: e.boite.y - parent.boite.y }
+                : { x: e.boite.x, y: e.boite.y },
+              style,
+              className: e.echelle !== 1 ? 'noeud-echelle' : undefined,
+            });
+          }),
+        );
+        // Liens attachés à leurs nœuds : ceux qui restent, tels quels ; ceux qui changent de bout (section repliée ↔
+        // cercles de son cadre) passent en fondu de l'ancien tracé au nouveau.
+        const traces: LienMouvement[] = [];
+        const tracer = (l: LienModele, route: Point[] | undefined, ref: Map<string, EtatNoeud>, fondu: number) => {
+          const rs = ref.get(l.source)?.boite;
+          const rc = ref.get(l.cible)?.boite;
+          const s = etats.get(l.source);
+          const c = etats.get(l.cible);
+          if (!route || !rs || !rc || !s || !c) return;
+          const opacite = Math.min(s.opacite, c.opacite) * fondu;
+          if (opacite <= 0.01) return;
+          traces.push({
+            id: l.id,
+            d: cheminArrondi(routeSuivant(route, rs, s.boite, rc, c.boite), RAYON_COUDE),
+            opacite,
+            ton: fait(l) ? 'ok' : 'neutre',
+          });
+        };
+        for (const l of range.modele.liens)
+          tracer(l, range.rangement.routes.get(l.id), arrivee, idsAnciensLiens.has(l.id) ? 1 : rampeApparition(k));
+        if (ancien)
+          for (const l of ancien.modele.liens)
+            if (!idsNouveauxLiens.has(l.id))
+              tracer(l, ancien.rangement.routes.get(l.id), depart, 1 - rampeDisparition(k));
+        setLiensMouvement(traces);
+        animation.current = window.requestAnimationFrame(pas);
       };
       // Première image tout de suite, avec le rangement affiché : jamais une image où ils ne vont pas ensemble.
-      pas(debut);
+      pas();
     }
     // Rangement seulement : la sélection, la cible et les droits sont lus au moment de l'animation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1317,7 +1396,6 @@ function Graphe(props: Props) {
       enAvant,
       enMouvement: anime,
       sectionsEnCours,
-      ouverture,
       reordre: reordre ? glisse : null,
       estEstompee,
       onActiver: (id) => {
@@ -1362,7 +1440,6 @@ function Graphe(props: Props) {
       enAvant,
       anime,
       sectionsEnCours,
-      ouverture,
       reordre,
       estEstompee,
       onSelection,
@@ -1602,6 +1679,11 @@ function Graphe(props: Props) {
               aria-label={sectionVue ? 'Graphe de la section' : 'Graphe des étapes'}
             >
               {fantome && <ApercuDepot fantome={fantome} />}
+              {liensMouvement && (
+                <ViewportPortal>
+                  <LiensEnMouvement liens={liensMouvement} zIndex={Z.lien} />
+                </ViewportPortal>
+              )}
               {barre && (
                 <ViewportPortal>
                   <div
