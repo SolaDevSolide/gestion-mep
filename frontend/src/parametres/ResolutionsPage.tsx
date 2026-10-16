@@ -25,7 +25,9 @@ import {
   MentionTri,
   RechercheBibliotheque,
   type SystemeBiblio,
+  SqueletteBibliotheque,
 } from './bibliotheque';
+import { cn } from '../ui/cn';
 import { auteurModification, HistoriqueResolutionDialog } from './HistoriqueResolution';
 
 const UNITE = ['résolution', 'résolutions'] as const;
@@ -145,125 +147,128 @@ export default function ResolutionsPage() {
         </Alerte>
       )}
 
-      {pret && !nomSysteme && !accueil && (
-        <div className="mt-6">
-          <LectureRecherche analyse={analyse} nb={filtrees.length} unite={UNITE} champs="le titre ou les symptômes" />
-        </div>
-      )}
+      {!pret && !(res.erreur || cat.erreur) && <SqueletteBibliotheque accueil={accueil} />}
+      <div className={cn(pret && 'apparition')}>
+        {pret && !nomSysteme && !accueil && (
+          <div className="mt-6">
+            <LectureRecherche analyse={analyse} nb={filtrees.length} unite={UNITE} champs="le titre ou les symptômes" />
+          </div>
+        )}
 
-      {pret && accueil && liste.length === 0 && (
-        <Card className="mt-6">
-          <EmptyState
-            icone={Wrench}
-            titre="Aucune résolution type"
-            description="Écrivez une première procédure : symptômes, corrections ordonnées et vérification finale."
-            action={nouveau}
-          />
-        </Card>
-      )}
+        {pret && accueil && liste.length === 0 && (
+          <Card className="mt-6">
+            <EmptyState
+              icone={Wrench}
+              titre="Aucune résolution type"
+              description="Écrivez une première procédure : symptômes, corrections ordonnées et vérification finale."
+              action={nouveau}
+            />
+          </Card>
+        )}
 
-      {pret && accueil && liste.length > 0 && (
-        <>
-          <h2 className="mt-8 mb-3 text-xs font-semibold tracking-wider text-fg-subtle uppercase">
-            Choisissez un système · {nombre(systemes.length, ['système', 'systèmes'])} du catalogue
-          </h2>
-          <GrilleSystemes
-            systemes={systemes}
-            compter={(s) => duSysteme(s.id).length}
-            detail={(s) => {
-              const multi = duSysteme(s.id).filter((r) => r.systemeCatalogueIds.length > 1).length;
-              return multi ? `dont ${multi} multi-systèmes` : 'Toutes propres à ce système';
-            }}
-            unite={UNITE}
-            lien={(s) => `/parametres/resolutions?systeme=${encodeURIComponent(s.nom)}`}
-          />
-          {communes > 0 && (
-            <p className="mt-3 text-xs text-fg-subtle">
-              + {nombre(communes, ['résolution commune', 'résolutions communes'])} à tous les systèmes, proposée
-              {communes > 1 ? 's' : ''} dans chacun.
-            </p>
-          )}
-        </>
-      )}
+        {pret && accueil && liste.length > 0 && (
+          <>
+            <h2 className="mt-8 mb-3 text-xs font-semibold tracking-wider text-fg-subtle uppercase">
+              Choisissez un système · {nombre(systemes.length, ['système', 'systèmes'])} du catalogue
+            </h2>
+            <GrilleSystemes
+              systemes={systemes}
+              compter={(s) => duSysteme(s.id).length}
+              detail={(s) => {
+                const multi = duSysteme(s.id).filter((r) => r.systemeCatalogueIds.length > 1).length;
+                return multi ? `dont ${multi} multi-systèmes` : 'Toutes propres à ce système';
+              }}
+              unite={UNITE}
+              lien={(s) => `/parametres/resolutions?systeme=${encodeURIComponent(s.nom)}`}
+            />
+            {communes > 0 && (
+              <p className="mt-3 text-xs text-fg-subtle">
+                + {nombre(communes, ['résolution commune', 'résolutions communes'])} à tous les systèmes, proposée
+                {communes > 1 ? 's' : ''} dans chacun.
+              </p>
+            )}
+          </>
+        )}
 
-      {pret && nomSysteme && !courant && (
-        <Alerte ton="warn" icone={OctagonAlert} className="mt-6">
-          Le système « {nomSysteme} » n’est pas dans le catalogue.
-        </Alerte>
-      )}
+        {pret && nomSysteme && !courant && (
+          <Alerte ton="warn" icone={OctagonAlert} className="mt-6">
+            Le système « {nomSysteme} » n’est pas dans le catalogue.
+          </Alerte>
+        )}
 
-      {pret && !accueil && (!nomSysteme || courant) && filtrees.length === 0 && (
-        <Card className="mt-4">
-          <EmptyState
-            icone={Wrench}
-            titre="Aucun résultat"
-            description="Aucune résolution ne correspond à ces critères."
-          />
-        </Card>
-      )}
+        {pret && !accueil && (!nomSysteme || courant) && filtrees.length === 0 && (
+          <Card className="mt-4">
+            <EmptyState
+              icone={Wrench}
+              titre="Aucun résultat"
+              description="Aucune résolution ne correspond à ces critères."
+            />
+          </Card>
+        )}
 
-      {pret && !accueil && (!nomSysteme || courant) && (
-        <ul className="mt-4 grid gap-3 lg:grid-cols-2">
-          {filtrees.map((r) => (
-            <li key={r.id}>
-              <Card className="flex h-full flex-col p-4 transition-shadow duration-150 hover:shadow-md">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="flex items-center gap-2 font-semibold">
-                      <Wrench className="size-4 shrink-0 text-warn-solid" aria-hidden />
-                      <span className="truncate">{r.titre}</span>
-                    </h2>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                      {r.systemeCatalogueIds.length ? (
-                        (!nomSysteme || r.systemeCatalogueIds.length > 1) &&
-                        r.systemeCatalogueIds.map((s) => <Badge key={s}>{noms.get(s) ?? 'Système'}</Badge>)
-                      ) : (
-                        <Badge>Tous les systèmes</Badge>
-                      )}
-                      <Badge>
-                        <ListOrdered className="size-3" aria-hidden />
-                        {nombre(r.corrections.length, ['correction', 'corrections'])}
-                      </Badge>
+        {pret && !accueil && (!nomSysteme || courant) && (
+          <ul className="mt-4 grid gap-3 lg:grid-cols-2">
+            {filtrees.map((r) => (
+              <li key={r.id}>
+                <Card className="flex h-full flex-col p-4 transition-shadow duration-150 hover:shadow-md">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="flex items-center gap-2 font-semibold">
+                        <Wrench className="size-4 shrink-0 text-warn-solid" aria-hidden />
+                        <span className="truncate">{r.titre}</span>
+                      </h2>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        {r.systemeCatalogueIds.length ? (
+                          (!nomSysteme || r.systemeCatalogueIds.length > 1) &&
+                          r.systemeCatalogueIds.map((s) => <Badge key={s}>{noms.get(s) ?? 'Système'}</Badge>)
+                        ) : (
+                          <Badge>Tous les systèmes</Badge>
+                        )}
+                        <Badge>
+                          <ListOrdered className="size-3" aria-hidden />
+                          {nombre(r.corrections.length, ['correction', 'corrections'])}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-0.5">
-                    <CompteurUtilisations n={r.utilisations} className="mr-1.5" />
-                    <Tooltip content="Historique">
-                      <BoutonIcone label={`Historique de ${r.titre}`} taille="sm" onClick={() => setHistorique(r)}>
-                        <History className="size-4" aria-hidden />
-                      </BoutonIcone>
-                    </Tooltip>
-                    <Tooltip content="Modifier">
-                      <BoutonIcone
-                        label={`Modifier ${r.titre}`}
-                        taille="sm"
-                        onClick={() => setEdition({ existant: r })}
-                      >
-                        <Pencil className="size-4" aria-hidden />
-                      </BoutonIcone>
-                    </Tooltip>
-                    {admin && (
-                      <Tooltip content="Supprimer">
-                        <BoutonIcone label={`Supprimer ${r.titre}`} taille="sm" onClick={() => setSuppr(r)}>
-                          <Trash2 className="size-4" aria-hidden />
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <CompteurUtilisations n={r.utilisations} className="mr-1.5" />
+                      <Tooltip content="Historique">
+                        <BoutonIcone label={`Historique de ${r.titre}`} taille="sm" onClick={() => setHistorique(r)}>
+                          <History className="size-4" aria-hidden />
                         </BoutonIcone>
                       </Tooltip>
-                    )}
+                      <Tooltip content="Modifier">
+                        <BoutonIcone
+                          label={`Modifier ${r.titre}`}
+                          taille="sm"
+                          onClick={() => setEdition({ existant: r })}
+                        >
+                          <Pencil className="size-4" aria-hidden />
+                        </BoutonIcone>
+                      </Tooltip>
+                      {admin && (
+                        <Tooltip content="Supprimer">
+                          <BoutonIcone label={`Supprimer ${r.titre}`} taille="sm" onClick={() => setSuppr(r)}>
+                            <Trash2 className="size-4" aria-hidden />
+                          </BoutonIcone>
+                        </Tooltip>
+                      )}
+                    </div>
                   </div>
-                </div>
-                {r.symptomes ? (
-                  <Markdown className="mt-3 line-clamp-3 text-fg-muted" source={r.symptomes} />
-                ) : (
-                  <p className="mt-3 text-sm text-fg-muted">Symptômes non décrits.</p>
-                )}
-                <p className="mt-auto pt-3 text-xs text-fg-subtle">
-                  {auteurModification(r)} · version {r.version}
-                </p>
-              </Card>
-            </li>
-          ))}
-        </ul>
-      )}
+                  {r.symptomes ? (
+                    <Markdown className="mt-3 line-clamp-3 text-fg-muted" source={r.symptomes} />
+                  ) : (
+                    <p className="mt-3 text-sm text-fg-muted">Symptômes non décrits.</p>
+                  )}
+                  <p className="mt-auto pt-3 text-xs text-fg-subtle">
+                    {auteurModification(r)} · version {r.version}
+                  </p>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <ResolutionEditeurDialog
         key={edition?.existant?.id ?? 'nouvelle'}

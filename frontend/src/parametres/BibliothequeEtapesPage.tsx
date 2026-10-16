@@ -29,6 +29,7 @@ import {
   RechercheBibliotheque,
   type SystemeBiblio,
   UNITE_ETAPES,
+  SqueletteBibliotheque,
 } from './bibliotheque';
 import { EtapeModeleDialog, type EditionModele } from './EtapeModeleDialog';
 
@@ -259,7 +260,8 @@ export default function BibliothequeEtapesPage() {
             Le système « {nomSysteme} » n’est pas dans le catalogue.
           </Alerte>
         )}
-        {pret && courant && resultats}
+        {!pret && !erreur && <SqueletteBibliotheque accueil={false} />}
+        {pret && courant && <div className="apparition">{resultats}</div>}
         {dialogues}
       </main>
     );
@@ -290,17 +292,18 @@ export default function BibliothequeEtapesPage() {
       <AideRecherche champs="le nom ou le type de l’étape" />
       {erreur}
 
+      {!pret && !erreur && <SqueletteBibliotheque accueil={!enRecherche} />}
       {pret &&
         (enRecherche ? (
-          <>
+          <div className="apparition">
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
               <LectureRecherche analyse={analyse} nb={filtres.length} unite={UNITE_ETAPES} champs={CHAMPS_ETAPES} />
               <MentionTri />
             </div>
             {resultats}
-          </>
+          </div>
         ) : (
-          <>
+          <div className="apparition">
             <h2 className="mt-8 mb-3 text-xs font-semibold tracking-wider text-fg-subtle uppercase">
               Choisissez un système · {nombre(systemes.length, ['système', 'systèmes'])} du catalogue
             </h2>
@@ -321,7 +324,7 @@ export default function BibliothequeEtapesPage() {
                 lien={(s) => `/parametres/etapes?systeme=${encodeURIComponent(s.nom)}`}
               />
             )}
-          </>
+          </div>
         ))}
       {dialogues}
     </main>

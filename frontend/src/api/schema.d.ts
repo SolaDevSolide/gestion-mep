@@ -1891,6 +1891,7 @@ export interface paths {
             parameters: {
                 query?: {
                     plan?: components["schemas"]["TypePlan"];
+                    sectionId?: string;
                 };
                 header?: never;
                 path: {
@@ -8049,10 +8050,15 @@ export interface components {
         ObjetsSystemeSaisie: {
             objets: null | components["schemas"]["ObjetChoisiSaisie"][];
         };
-        /** @description Optimisation des liens d'un plan : la liste des liens redondants montrée à la personne (voir `liens/redondants`). */
+        /**
+         * @description Optimisation des liens d'un plan : la liste des liens redondants montrée à la personne (voir `liens/redondants`).
+         *     `SectionId` : seulement les liens entre éléments de cette section (vue d'une section).
+         */
         OptimisationLiensSaisie: {
             plan: null | components["schemas"]["TypePlan"];
             liens: null | components["schemas"]["LienSaisie"][];
+            /** Format: uuid */
+            sectionId?: null | string;
         };
         /** @description Options de la page de connexion (sans authentification) : bouton de connexion unique s'il est actif. */
         OptionsConnexionDto: {

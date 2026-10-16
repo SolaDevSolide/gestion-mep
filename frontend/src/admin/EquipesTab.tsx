@@ -1,4 +1,4 @@
-import { Loader2, OctagonAlert, Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
+import { OctagonAlert, Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { useAsync } from '../hooks';
@@ -13,6 +13,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Field, Input, Textarea } from '../ui/Input';
 import { Badge } from '../ui/StatusPill';
 import { useToast } from '../ui/Toast';
+import { EnChargement, SqueletteTableau } from '../ui/Squelette';
 import { Tooltip } from '../ui/Tooltip';
 
 function EquipeDialog({
@@ -161,9 +162,9 @@ export default function EquipesTab() {
           </div>
         )}
         {!erreur && equipes === null && (
-          <p className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-fg-subtle" role="status">
-            <Loader2 className="size-4 animate-spin" aria-hidden /> Chargement…
-          </p>
+          <EnChargement libelle="Chargement des équipes…">
+            <SqueletteTableau lignes={5} colonnes={3} className="rounded-none border-0" />
+          </EnChargement>
         )}
         {equipes && equipes.length === 0 && (
           <EmptyState

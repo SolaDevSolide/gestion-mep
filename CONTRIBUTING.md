@@ -25,6 +25,12 @@ cd frontend && npm run dev
 
 Comptes de démonstration : `alice` (administratrice), `bob`, `claire`, mot de passe `demo`.
 
+Pour voir l'application comme avec une base lointaine (squelettes de chargement, rechargements en arrière-plan), l'API peut retarder chacune de ses réponses, en développement seulement (jamais en production, inactif par défaut) :
+
+```bash
+cd backend && Developpement__LatenceMs=800 dotnet run --project src/GestionMep.Api
+```
+
 ## Avant de pousser
 
 | Côté | Commande | Vérifie |
@@ -61,6 +67,7 @@ La CI lance les mêmes vérifications sur chaque pull request.
 - La logique sans affichage va dans un module pur et testé (`domaine.ts`, `graphe.ts`, `recherche.ts`…), pas dans un composant.
 - Une action sur une MEP passe par `useMep().run(...)`, qui gère les conflits et les messages. Voir [frontend/README.md](frontend/README.md).
 - Couleurs et espacements par les jetons CSS de `src/index.css`, jamais en dur.
+- Données qui arrivent du serveur : un squelette aux dimensions du contenu (`ui/Squelette.tsx`, dans `EnChargement` ou `Apparition`), jamais un écran vide ni un état provisoire faux (« Aucun… » avant la réponse) ; pendant un rechargement, l'ancien contenu reste affiché (`useAsync` : `rechargement`).
 
 ### Tests
 

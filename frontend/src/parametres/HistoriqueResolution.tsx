@@ -5,6 +5,7 @@ import { useAsync } from '../hooks';
 import type { ResolutionType, VersionResolutionType } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Dialog } from '../ui/Dialog';
+import { EnChargement, Squelette, SqueletteLignes } from '../ui/Squelette';
 import { Badge } from '../ui/StatusPill';
 
 const ACTIONS: Record<VersionResolutionType['action'], string> = {
@@ -49,9 +50,19 @@ function Versions({ id }: { id: string }) {
         {versions.erreur}
       </Alerte>
     );
-  if (versions.donnees === null) return <p className="text-sm text-fg-muted">Chargement…</p>;
+  if (versions.donnees === null)
+    return (
+      <EnChargement libelle="Chargement de l’historique…" className="grid gap-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="rounded-xl border border-line p-3">
+            <Squelette className="h-5 w-64" />
+            <SqueletteLignes lignes={2} className="mt-3" />
+          </div>
+        ))}
+      </EnChargement>
+    );
   return (
-    <ol className="grid gap-3">
+    <ol className="apparition grid gap-3">
       {versions.donnees.map((v) => (
         <li key={`${v.version}-${v.modifieeLe}`} className="rounded-xl border border-line p-3">
           <div className="flex flex-wrap items-center gap-2 text-sm">

@@ -2,7 +2,6 @@ import {
   CornerDownRight,
   KeyRound,
   Link2,
-  Loader2,
   OctagonAlert,
   Pencil,
   Search,
@@ -30,6 +29,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Field, Input, Select } from '../ui/Input';
 import { Badge, StatusPill } from '../ui/StatusPill';
 import { useToast } from '../ui/Toast';
+import { EnChargement, SqueletteTableau } from '../ui/Squelette';
 import { Tooltip } from '../ui/Tooltip';
 
 /** Boîte affichant une seule fois le mot de passe provisoire. */
@@ -402,9 +402,9 @@ export default function ComptesTab() {
           </div>
         )}
         {!erreur && donnees === null && (
-          <p className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-fg-subtle" role="status">
-            <Loader2 className="size-4 animate-spin" aria-hidden /> Chargement…
-          </p>
+          <EnChargement libelle="Chargement des comptes…">
+            <SqueletteTableau lignes={4} colonnes={5} className="rounded-none border-0" />
+          </EnChargement>
         )}
         {donnees && comptes.length === 0 && (
           <EmptyState
@@ -416,7 +416,7 @@ export default function ComptesTab() {
           />
         )}
         {comptes.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="apparition overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line text-xs tracking-wide text-fg-subtle uppercase">
                 <tr>

@@ -4,6 +4,7 @@ import { compte } from '../format';
 import { useAsync } from '../hooks';
 import type { TestUnitaire } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { Squelette } from '../ui/Squelette';
 import { StatusPill } from '../ui/StatusPill';
 
 /** État d'un test unitaire : réussi, en échec ou non fait (étape pas encore terminée, ou reprise). */
@@ -39,7 +40,9 @@ export function TestsUnitairesEncadre({ mepId, tick }: { mepId: string; tick: nu
         {erreur}
       </Alerte>
     );
-  if (!donnees || (donnees.tests.length === 0 && donnees.verifications === 0)) return null;
+  // Premier chargement : sa place est tenue (le journal dessous ne descend pas à son arrivée).
+  if (!donnees) return <Squelette className="mb-6 h-12 w-full rounded-lg" />;
+  if (donnees.tests.length === 0 && donnees.verifications === 0) return null;
   return (
     <section aria-label="Tests unitaires" className="mb-6 rounded-lg border border-line bg-surface">
       <details>

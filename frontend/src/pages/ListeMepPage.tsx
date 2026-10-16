@@ -33,6 +33,7 @@ import { Segmented } from '../ui/Segmented';
 import { DuplicationDialog, type SourceDuplication } from '../mep/DuplicationDialog';
 import { BadgeSimplifiee, estSimplifiee } from '../mep/typeMep';
 import { useToast } from '../ui/Toast';
+import { EnChargement, Squelette } from '../ui/Squelette';
 import { OctagonAlert } from 'lucide-react';
 
 function Chrono({ m, now }: { m: MepResume; now: number }) {
@@ -228,7 +229,7 @@ const FILTRES: { valeur: Phase | 'toutes'; libelle: string }[] = [
 
 export default function ListeMepPage() {
   const [vue, setVue] = useState<'meps' | 'modeles'>('meps');
-  const { donnees: meps, erreur } = useAsync(() => api.meps(vue === 'modeles'), [vue]);
+  const { donnees: meps, erreur, rechargement } = useAsync(() => api.meps(vue === 'modeles'), [vue]);
   const [recherche, setRecherche] = useState('');
   const [phase, setPhase] = useState<Phase | 'toutes'>('toutes');
   const { donnees: equipes } = useAsync(() => api.equipes(), []);
@@ -335,6 +336,8 @@ export default function ListeMepPage() {
             },
           ]}
         />
+        {/* Équipes pas encore arrivées : leur place est tenue (la barre de filtres ne bouge pas à leur arrivée). */}
+        {equipes === null && <Squelette className="h-9 w-52 rounded-lg" />}
         {equipes && equipes.length > 0 && (
           <div className="w-52">
             <Select aria-label="Filtrer par équipe" value={equipe} onChange={(e) => setEquipe(e.target.value)}>
@@ -381,11 +384,26 @@ export default function ListeMepPage() {
       )}
 
       {meps === null && !erreur && (
-        <div className="mt-6 space-y-3" aria-busy="true">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-24 animate-pulse rounded-xl border border-line bg-surface" />
+        <EnChargement libelle="Chargement des mises en production…" className="mt-6 space-y-3">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="rounded-xl border border-line bg-surface p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-6">
+                <div className="grid flex-1 gap-2">
+                  <div className="flex items-center gap-3">
+                    <Squelette className="h-6 w-56" />
+                    <Squelette className="h-5 w-24 rounded-full" />
+                  </div>
+                  <Squelette className="h-4 w-96 max-w-full" />
+                </div>
+                <Squelette className="h-5 w-48" />
+              </div>
+              <div className="mt-4 flex items-center gap-6 pr-32">
+                <Squelette className="h-2 flex-1 rounded-full" />
+                <Squelette className="h-3.5 w-32" />
+              </div>
+            </div>
           ))}
-        </div>
+        </EnChargement>
       )}
 
       {meps !== null && meps.length === 0 && (
@@ -432,7 +450,15 @@ export default function ListeMepPage() {
         </div>
       )}
 
-      <ul className="mt-6 space-y-3">
+      {/* Rechargement (MEP ↔ modèles) : la liste précédente reste, estompée, jusqu'à la réponse. */}
+      <ul
+        aria-busy={rechargement || undefined}
+        className={cn(
+          'mt-6 space-y-3 transition-opacity duration-200',
+          meps !== null && 'apparition',
+          rechargement && 'opacity-50',
+        )}
+      >
         {filtrees.map((m) => {
           const meta = metaPhase(m.phase, m.issue);
           return (

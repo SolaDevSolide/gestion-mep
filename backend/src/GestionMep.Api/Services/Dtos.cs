@@ -281,8 +281,11 @@ public record EnvironnementEtapeSaisie(Guid? SystemeId, string? Nom);
 /// <summary>Lien du graphe : <c>Vers</c> attend <c>De</c> (Id d'étapes ou de cercles de section).</summary>
 public record LienSaisie(Guid? De, Guid? Vers);
 
-/// <summary>Optimisation des liens d'un plan : la liste des liens redondants montrée à la personne (voir <c>liens/redondants</c>).</summary>
-public record OptimisationLiensSaisie(TypePlan? Plan, List<LienSaisie>? Liens);
+/// <summary>
+/// Optimisation des liens d'un plan : la liste des liens redondants montrée à la personne (voir <c>liens/redondants</c>).
+/// <c>SectionId</c> : seulement les liens entre éléments de cette section (vue d'une section).
+/// </summary>
+public record OptimisationLiensSaisie(TypePlan? Plan, List<LienSaisie>? Liens, Guid? SectionId = null);
 
 /// <summary>Lien redondant : <c>Vers</c> attend déjà <c>De</c> par un autre chemin ; <c>Libelle</c> : « E0007 → Fin (Export) ».</summary>
 public record LienRedondantDto(Guid De, Guid Vers, string Libelle);

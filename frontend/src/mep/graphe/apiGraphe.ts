@@ -23,8 +23,8 @@ export type PlaceEtape =
  */
 export type Deplacement = { surLien: { de: string; vers: string } } | { apres: string } | { paralleleA: string };
 
-const json = <T>(methode: string, chemin: string, corps?: unknown) =>
-  request<T>(methode, chemin, corps ?? (methode === 'GET' || methode === 'DELETE' ? undefined : {}));
+const json = <T>(methode: string, chemin: string, corps?: unknown, silencieux = false) =>
+  request<T>(methode, chemin, corps ?? (methode === 'GET' || methode === 'DELETE' ? undefined : {}), { silencieux });
 
 export const apiGraphe = {
   /** Création rapide ; `sectionId` absent : section déduite de la place (vue d'une section : la section). */
@@ -50,17 +50,29 @@ export const apiGraphe = {
   /** `vers` attendra `de` : étapes, ou cercles de section (source d'une entrée, étape d'une section, sortie attendue). */
   lier: (mepId: string, de: string, vers: string) => json<Mep>('POST', `/meps/${mepId}/liens`, { de, vers }),
   delier: (mepId: string, de: string, vers: string) => json<Mep>('POST', `/meps/${mepId}/liens/retirer`, { de, vers }),
-  /** Liens inutiles du plan : « B attend A » alors que B attend déjà A par un autre chemin (cercles compris). */
-  liensRedondants: (mepId: string, plan: TypePlan) =>
-    json<LienRedondant[]>('GET', `/meps/${mepId}/liens/redondants?plan=${plan}`),
+  /**
+   * Liens inutiles du plan : « B attend A » alors que B attend déjà A par un autre chemin (cercles compris). `sectionId` :
+   * seulement les liens entre éléments de cette section (vue d'une section), le reste du plan n'est pas concerné.
+   */
+  liensRedondants: (mepId: string, plan: TypePlan, sectionId: string | null = null) =>
+    json<LienRedondant[]>(
+      'GET',
+      `/meps/${mepId}/liens/redondants?plan=${plan}${sectionId ? `&sectionId=${sectionId}` : ''}`,
+    ),
   /**
    * Retire en une opération les liens montrés (refusé si le plan a changé depuis le calcul) ; ce que chaque étape attend,
    * directement ou non, ne change pas.
    */
-  optimiserLiens: (mepId: string, plan: TypePlan, liens: { de: string; vers: string }[]) =>
+  optimiserLiens: (
+    mepId: string,
+    plan: TypePlan,
+    liens: { de: string; vers: string }[],
+    sectionId: string | null = null,
+  ) =>
     json<Mep>('POST', `/meps/${mepId}/liens/optimiser`, {
       plan,
       liens: liens.map(({ de, vers }) => ({ de, vers })),
+      sectionId,
     }),
 
   /** Nouvelle section (dans le bac sauf `placee`), avec ses cercles « Début » et « Fin ». */
@@ -96,11 +108,18 @@ export const apiGraphe = {
 export const apiVerrou = {
   /** Prend ou renouvelle le verrou ; `prendreLaMain` : sans confirmation, l'autre personne passe en lecture seule. */
   prendre: (mepId: string, etapeId: string, session: string, prendreLaMain = false) =>
-    json<PriseVerrou>('POST', `/meps/${mepId}/etapes/${etapeId}/verrou`, {
-      session,
-      ...(prendreLaMain ? { prendreLaMain } : {}),
-    }),
+    json<PriseVerrou>(
+      'POST',
+      `/meps/${mepId}/etapes/${etapeId}/verrou`,
+      { session, ...(prendreLaMain ? { prendreLaMain } : {}) },
+      true,
+    ),
   relacher: (mepId: string, etapeId: string, session: string) =>
-    json<void>('DELETE', `/meps/${mepId}/etapes/${etapeId}/verrou?session=${encodeURIComponent(session)}`),
+    json<void>(
+      'DELETE',
+      `/meps/${mepId}/etapes/${etapeId}/verrou?session=${encodeURIComponent(session)}`,
+      undefined,
+      true,
+    ),
   liste: (mepId: string) => json<Verrou[]>('GET', `/meps/${mepId}/verrous`),
 };

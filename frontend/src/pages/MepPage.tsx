@@ -1,4 +1,4 @@
-import { Flag, Loader2, OctagonAlert, Siren } from 'lucide-react';
+import { Flag, OctagonAlert, Siren } from 'lucide-react';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
@@ -37,6 +37,7 @@ import type { Mep, Phase, Presence, Verrou } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { cn } from '../ui/cn';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
+import { SqueletteMep } from '../mep/SqueletteMep';
 import { useToast } from '../ui/Toast';
 
 const LIBELLES_SOUS: Record<SousOnglet, string> = { etapes: 'Étapes', retour: 'Retour arrière', recette: 'Recette' };
@@ -174,13 +175,16 @@ export default function MepPage() {
    * Rechargement déclenché à distance : la MEP à jour s'affiche aussitôt. Une saisie en cours n'est pas perdue :
    * chaque formulaire garde son brouillon (`useDraft`) et signale si sa section a changé entre-temps.
    */
-  const synchroniser = useCallback(async () => {
-    try {
-      appliquer(await api.mep(id));
-    } catch {
-      /* silencieux : prochain cycle */
-    }
-  }, [id, appliquer]);
+  const synchroniser = useCallback(
+    async (silencieux = false) => {
+      try {
+        appliquer(await api.mep(id, silencieux));
+      } catch {
+        /* silencieux : prochain cycle */
+      }
+    },
+    [id, appliquer],
+  );
 
   useEffect(() => {
     phaseRef.current = null;
@@ -269,9 +273,9 @@ export default function MepPage() {
     [presences, moi, declarer],
   );
 
-  // Rafraîchissement périodique (disponibilités dépendantes de l'heure, échéance automatique).
+  // Rafraîchissement périodique (disponibilités dépendantes de l'heure, échéance automatique), sans indicateur.
   useEffect(() => {
-    const t = window.setInterval(() => void synchroniser(), 30_000);
+    const t = window.setInterval(() => void synchroniser(true), 30_000);
     return () => window.clearInterval(t);
   }, [synchroniser]);
 
@@ -314,13 +318,7 @@ export default function MepPage() {
       </main>
     );
   }
-  if (!mep) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-24 text-fg-subtle" role="status">
-        <Loader2 className="mr-2 size-5 animate-spin" aria-hidden /> Chargement de la MEP…
-      </div>
-    );
-  }
+  if (!mep) return <SqueletteMep onglet={params.get('plan') ?? params.get('onglet')} />;
 
   const vue = lireVue(params, mep);
   const repliActif = mep.phase === 'RetourArriere';

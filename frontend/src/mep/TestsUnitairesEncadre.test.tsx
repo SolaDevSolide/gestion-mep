@@ -69,7 +69,7 @@ describe('Encadré des tests unitaires', () => {
   it('rien à afficher sans aucune étape suivie', async () => {
     vi.mocked(api.testsUnitaires).mockResolvedValue({ faits: 0, nonFaits: 0, verifications: 0, tests: [] });
     const { container } = render(<TestsUnitairesEncadre mepId="m1" tick={0} />);
-    await vi.waitFor(() => expect(api.testsUnitaires).toHaveBeenCalled());
-    expect(container).toBeEmptyDOMElement();
+    // Sa place est tenue le temps du chargement, puis rien.
+    await vi.waitFor(() => expect(container).toBeEmptyDOMElement());
   });
 });

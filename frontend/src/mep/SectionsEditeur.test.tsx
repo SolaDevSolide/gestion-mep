@@ -358,10 +358,34 @@ describe('Sections du plan', () => {
     expect(panneau).toHaveTextContent('1 lien inutile');
     expect(within(panneau).getByRole('list', { name: 'Liens qui seront retirés' })).toHaveTextContent('E0001 → E0003');
     await userEvent.click(within(panneau).getByRole('button', { name: 'Confirmer' }));
-    expect(apiGraphe.optimiserLiens).toHaveBeenCalledWith('m1', 'Deploiement', [
-      { de: 'e1', vers: 'e3', libelle: 'E0001 → E0003' },
-    ]);
+    expect(apiGraphe.liensRedondants).toHaveBeenLastCalledWith('m1', 'Deploiement', null);
+    expect(apiGraphe.optimiserLiens).toHaveBeenCalledWith(
+      'm1',
+      'Deploiement',
+      [{ de: 'e1', vers: 'e3', libelle: 'E0001 → E0003' }],
+      null,
+    );
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Optimiser les liens' })).toBeNull());
+  });
+
+  it('« Optimiser les liens » dans la vue d’une section : seulement les liens de la section', async () => {
+    vi.mocked(apiGraphe.liensRedondants).mockResolvedValueOnce([
+      { de: 'in', vers: 'e3', libelle: 'Début (Bascule BDD) → E0003' },
+    ]);
+    rendre(planAvecSections(), '/meps/m1?section=sb');
+    expect(await screen.findByRole('button', { name: 'Retour au plan' })).toBeInTheDocument();
+    const bouton = screen.getByRole('button', { name: 'Optimiser les liens' });
+    expect(bouton).toHaveAttribute('title', expect.stringContaining('cette section'));
+    await userEvent.click(bouton);
+    expect(apiGraphe.liensRedondants).toHaveBeenLastCalledWith('m1', 'Deploiement', 'sb');
+    const panneau = await screen.findByRole('region', { name: 'Optimiser les liens' });
+    await userEvent.click(within(panneau).getByRole('button', { name: 'Confirmer' }));
+    expect(apiGraphe.optimiserLiens).toHaveBeenLastCalledWith(
+      'm1',
+      'Deploiement',
+      [{ de: 'in', vers: 'e3', libelle: 'Début (Bascule BDD) → E0003' }],
+      'sb',
+    );
   });
 
   it('« Optimiser les liens » sans lien inutile : rien à confirmer', async () => {

@@ -29,6 +29,7 @@ import { PresentsMep } from '../../presence';
 import type { Etape, Mep, ModeleEtape, TypePlan } from '../../types';
 import { BoutonIcone, Button } from '../../ui/Button';
 import { cn } from '../../ui/cn';
+import { mouvementReduit } from '../../ui/mouvement';
 import type { Deplacement, PlaceEtape } from './apiGraphe';
 import { CarteEtape, type ModeGraphe } from './CarteEtape';
 import {
@@ -59,6 +60,7 @@ import {
 } from './rangement';
 import { liensAuPoint } from './routage';
 import { sautsSansJonctions } from './routageBordure';
+import { SqueletteGraphe } from './SqueletteGraphe';
 import { infoSection, type Section } from './sections';
 import { useRangement } from './useRangement';
 
@@ -195,6 +197,8 @@ function noeudsDepuis(
       id: n.id,
       type: n.nature,
       position,
+      // Nœud apparu (section dépliée, étape ajoutée) : il se montre en fondu, une fois les autres à leur place.
+      ...(precedents.size > 0 && !avant ? { className: 'noeud-apparu' } : {}),
       data: { etapeId: n.etapeId, sectionId: n.sectionId, cercleId: n.cercleId },
       ...(n.parent ? { parentId: n.parent } : {}),
       // Dans le plan, l'intérieur d'une section dépliée est en lecture seule : ses cartes ne se glissent pas.
@@ -373,6 +377,25 @@ function Graphe(props: Props) {
   const animation = useRef<number | undefined>(undefined);
   const [anime, setAnime] = useState(false);
   const premier = useRef(true);
+  // Graphe montré seulement une fois rangé (tailles mesurées, vue d'arrivée posée) : avant, un squelette ; jamais de carte
+  // à une place provisoire. Même chose en changeant de vue (plan ↔ section) : l'ancienne vue s'efface, la nouvelle
+  // apparaît en fondu une fois rangée.
+  const contexte = `${plan}|${sectionVue ?? ''}`;
+  const [pret, setPret] = useState(false);
+  const [contexteAffiche, setContexteAffiche] = useState(contexte);
+  if (contexteAffiche !== contexte) {
+    setContexteAffiche(contexte);
+    setPret(false);
+  }
+  useLayoutEffect(() => {
+    premier.current = true;
+  }, [contexte]);
+  // Rangement impossible (cas anormal) : le graphe se montre quand même.
+  useEffect(() => {
+    if (pret) return undefined;
+    const t = window.setTimeout(() => setPret(true), 6000);
+    return () => window.clearTimeout(t);
+  }, [pret, contexte]);
   // Dernier nœud touché (« + », dépôt) : ancre de la vue quand il n'y a pas de sélection.
   const derniereAncre = useRef<string | null>(null);
   // Section qu'on vient de déplier : la vue la montre en entier une fois rangée (et après les rangements qui suivent de
@@ -475,9 +498,10 @@ function Graphe(props: Props) {
         (n) => (n.nature !== 'etape' && n.nature !== 'section') || taillesRef.current.has(n.id),
       );
     if (!range || premier.current || precedents.size === 0) {
-      setNoeuds(cibles);
+      setNoeuds(premier.current ? cibles.map((n) => ({ ...n, className: undefined })) : cibles);
       setAnime(false);
-      if (range && premier.current && mesure) {
+      // Rangement de la vue en cours (pas celui de la vue quittée), tailles mesurées : vue d'arrivée, puis le graphe paraît.
+      if (range && premier.current && mesure && range.modele === modele) {
         premier.current = false;
         requestAnimationFrame(() => {
           const sel = selection && rf.getNode(selection);
@@ -485,6 +509,7 @@ function Graphe(props: Props) {
             const abs = rf.getInternalNode(sel.id)?.internals.positionAbsolute ?? sel.position;
             void rf.setCenter(abs.x + CARTE.largeur / 2, abs.y + CARTE.hauteur / 2, { zoom: 1 });
           } else vueInitiale();
+          setPret(true);
         });
       }
       return;
@@ -506,18 +531,40 @@ function Graphe(props: Props) {
     const vp = rf.getViewport();
     const { dx, dy } = decalageAncrage(absAvant, absApres, ancre, vp.zoom);
     const depart = new Map([...precedents.values()].map((n) => [n.id, n.position]));
+    // Taille de départ des cadres et sections (une section qui se déplie grandit jusqu'à son cadre, et inversement).
+    const tailleAvant = new Map(
+      [...precedents.values()].map((n) => [
+        n.id,
+        {
+          w: Number(n.style?.width ?? n.measured?.width ?? Number.NaN),
+          h: Number(n.style?.height ?? n.measured?.height ?? Number.NaN),
+        },
+      ]),
+    );
+    const vers = <T,>(a: number, b: T, k: number): T | number =>
+      typeof b === 'number' && Number.isFinite(a) ? a + (b - a) * k : b;
+    const duree = mouvementReduit() ? 1 : DUREE_ANIMATION;
     const debut = performance.now();
     const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
     setAnime(true);
     const pas = (maintenant: number) => {
-      const t = Math.min(1, (maintenant - debut) / DUREE_ANIMATION);
+      const t = Math.min(1, (maintenant - debut) / duree);
       const k = ease(t);
       setNoeuds(
         cibles.map((n) => {
           const a = depart.get(n.id);
-          // Nœud apparu : directement à sa place.
+          // Nœud apparu : directement à sa place (en fondu, voir `noeud-apparu`).
           if (!a || t >= 1) return n;
-          return { ...n, position: { x: a.x + (n.position.x - a.x) * k, y: a.y + (n.position.y - a.y) * k } };
+          const ta = tailleAvant.get(n.id);
+          const style =
+            n.style && ta
+              ? { ...n.style, width: vers(ta.w, n.style.width, k), height: vers(ta.h, n.style.height, k) }
+              : n.style;
+          return {
+            ...n,
+            position: { x: a.x + (n.position.x - a.x) * k, y: a.y + (n.position.y - a.y) * k },
+            ...(style ? { style } : {}),
+          };
         }),
       );
       void rf.setViewport({ x: vp.x + dx * k, y: vp.y + dy * k, zoom: vp.zoom });
@@ -1312,13 +1359,17 @@ function Graphe(props: Props) {
             ref={zone}
             data-graphe-libre
             data-survol-lien={survol.length > 0 || undefined}
+            data-anime={anime || undefined}
             onKeyDown={clavier}
             onPointerMove={survoler}
             onPointerLeave={() => setSurvol([])}
             className="relative min-w-0 flex-1"
           >
             <MarqueursLiens />
+            {!pret && <SqueletteGraphe />}
             <ReactFlow<NoeudRf, LienRf>
+              className={cn('transition-opacity duration-200 ease-out', !pret && 'opacity-0')}
+              aria-busy={!pret || undefined}
               nodes={noeudsAffiches}
               edges={liens}
               zIndexMode="manual"

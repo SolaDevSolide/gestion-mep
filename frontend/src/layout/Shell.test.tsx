@@ -9,7 +9,10 @@ import { utilisateur } from '../test/fabrique';
 import type { Utilisateur } from '../types';
 import { Shell } from './Shell';
 
-vi.mock('../api', () => ({ api: { meps: vi.fn().mockResolvedValue([]), application: vi.fn() } }));
+vi.mock('../api', () => ({
+  api: { meps: vi.fn().mockResolvedValue([]), application: vi.fn() },
+  suivreActivite: () => () => undefined,
+}));
 
 const miseAJour = {
   active: true,

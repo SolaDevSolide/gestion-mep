@@ -2,15 +2,30 @@ import { Check, Route, X } from 'lucide-react';
 import type { LienRedondant } from '../../types';
 import { Button } from '../../ui/Button';
 
-/** Bouton de la barre d'outils : calcule les liens inutiles du plan et les montre avant de les retirer. */
-export function BoutonOptimiserLiens({ actif, onClick }: { actif: boolean; onClick: () => void }) {
+/**
+ * Bouton de la barre d'outils : calcule les liens inutiles du plan (ou, dans la vue d'une section, ceux de la section) et les
+ * montre avant de les retirer.
+ */
+export function BoutonOptimiserLiens({
+  actif,
+  dansSection = false,
+  onClick,
+}: {
+  actif: boolean;
+  dansSection?: boolean;
+  onClick: () => void;
+}) {
   return (
     <Button
       taille="sm"
       icone={<Route className="size-4" aria-hidden />}
       aria-pressed={actif}
       onClick={onClick}
-      title="Repérer les liens inutiles (déjà garantis par un autre chemin) et les retirer, sans changer l’ordre d’exécution"
+      title={
+        dansSection
+          ? 'Repérer les liens inutiles entre les éléments de cette section (déjà garantis par un autre chemin dans la section) et les retirer, sans toucher au reste du plan'
+          : 'Repérer les liens inutiles (déjà garantis par un autre chemin) et les retirer, sans changer l’ordre d’exécution'
+      }
     >
       Optimiser les liens
     </Button>

@@ -87,7 +87,9 @@ export default function ProfilPage() {
   }
 
   const systemes = catalogue ?? [];
-  const nomSysteme = (id: string) => systemes.find((s) => s.id === id)?.nom ?? 'Système inconnu';
+  // Catalogue pas encore arrivé : pas de « Système inconnu » provisoire.
+  const nomSysteme = (id: string) =>
+    systemes.find((s) => s.id === id)?.nom ?? (catalogue === null ? 'Chargement…' : 'Système inconnu');
   const libres = systemes.filter((s) => s.actif && !v.expertises.some((e) => e.systemeCatalogueId === s.id));
   const incomplet = !v.nomAffiche.trim() || v.expertises.some((e) => !e.systemeCatalogueId);
 
@@ -236,7 +238,7 @@ export default function ProfilPage() {
       </Card>
 
       {etatSso && (etatSso.disponible || etatSso.identifiant !== null) && (
-        <Card className="mt-6">
+        <Card className="apparition mt-6">
           <CardHeader
             titre="Connexion unique"
             description={

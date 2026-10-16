@@ -19,6 +19,7 @@ import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { ConfirmDialog } from '../ui/Dialog';
+import { EnChargement, Squelette, SqueletteLignes } from '../ui/Squelette';
 import { useToast } from '../ui/Toast';
 
 /** Présentation du dernier statut du service de mise à jour (« pret » : rien à afficher). */
@@ -102,120 +103,130 @@ export default function VersionTab() {
           {erreur}
         </Alerte>
       )}
-      <Card>
-        <CardHeader
-          titre="Version de l’application"
-          description="Les nouvelles versions sont publiées sur GitHub ; l’application les vérifie deux fois par jour."
-          action={
-            etat?.active && (
-              <Button
-                taille="sm"
-                icone={<RefreshCw className="size-4" aria-hidden />}
-                chargement={envoi}
-                onClick={() => void verifier()}
-              >
-                Vérifier maintenant
-              </Button>
-            )
-          }
-        />
-        <div className="grid gap-4 px-5 py-5">
-          <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
-            <dt className="text-fg-subtle">Version en cours</dt>
-            <dd className="font-mono font-semibold">{donnees?.version ?? '…'}</dd>
-            {etat?.derniereVersion && (
-              <>
-                <dt className="text-fg-subtle">Dernière version publiée</dt>
-                <dd>
-                  <span className="font-mono font-semibold">{etat.derniereVersion}</span>
-                  {etat.publieeLe && <span className="text-fg-subtle"> · {formatDate(etat.publieeLe, true)}</span>}
-                </dd>
-              </>
+      {!donnees && !erreur ? (
+        <EnChargement libelle="Chargement de la version…">
+          <Card className="p-5">
+            <Squelette className="h-5 w-56" />
+            <Squelette className="mt-2 h-4 w-96 max-w-full" />
+            <SqueletteLignes lignes={3} className="mt-6 max-w-md" />
+          </Card>
+        </EnChargement>
+      ) : (
+        <Card className="apparition">
+          <CardHeader
+            titre="Version de l’application"
+            description="Les nouvelles versions sont publiées sur GitHub ; l’application les vérifie deux fois par jour."
+            action={
+              etat?.active && (
+                <Button
+                  taille="sm"
+                  icone={<RefreshCw className="size-4" aria-hidden />}
+                  chargement={envoi}
+                  onClick={() => void verifier()}
+                >
+                  Vérifier maintenant
+                </Button>
+              )
+            }
+          />
+          <div className="grid gap-4 px-5 py-5">
+            <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
+              <dt className="text-fg-subtle">Version en cours</dt>
+              <dd className="font-mono font-semibold">{donnees?.version ?? '…'}</dd>
+              {etat?.derniereVersion && (
+                <>
+                  <dt className="text-fg-subtle">Dernière version publiée</dt>
+                  <dd>
+                    <span className="font-mono font-semibold">{etat.derniereVersion}</span>
+                    {etat.publieeLe && <span className="text-fg-subtle"> · {formatDate(etat.publieeLe, true)}</span>}
+                  </dd>
+                </>
+              )}
+              {etat?.verifieeLe && (
+                <>
+                  <dt className="text-fg-subtle">Dernière vérification</dt>
+                  <dd>{formatDateHeure(etat.verifieeLe)}</dd>
+                </>
+              )}
+            </dl>
+            {etat && !etat.active && (
+              <Alerte ton="later" icone={TriangleAlert}>
+                La vérification des nouvelles versions est désactivée sur ce serveur (MisesAJour__Verifier=false).
+              </Alerte>
             )}
-            {etat?.verifieeLe && (
-              <>
-                <dt className="text-fg-subtle">Dernière vérification</dt>
-                <dd>{formatDateHeure(etat.verifieeLe)}</dd>
-              </>
+            {etat?.erreur && (
+              <Alerte ton="warn" icone={TriangleAlert}>
+                {etat.erreur}
+              </Alerte>
             )}
-          </dl>
-          {etat && !etat.active && (
-            <Alerte ton="later" icone={TriangleAlert}>
-              La vérification des nouvelles versions est désactivée sur ce serveur (MisesAJour__Verifier=false).
-            </Alerte>
-          )}
-          {etat?.erreur && (
-            <Alerte ton="warn" icone={TriangleAlert}>
-              {etat.erreur}
-            </Alerte>
-          )}
-          {etat?.disponible && (
-            <Alerte
-              ton="run"
-              icone={CircleArrowUp}
-              titre={`La version ${etat.derniereVersion} est disponible`}
-              action={
-                <span className="flex flex-wrap gap-x-4 gap-y-1">
-                  {etat.notesUrl && (
+            {etat?.disponible && (
+              <Alerte
+                ton="run"
+                icone={CircleArrowUp}
+                titre={`La version ${etat.derniereVersion} est disponible`}
+                action={
+                  <span className="flex flex-wrap gap-x-4 gap-y-1">
+                    {etat.notesUrl && (
+                      <a
+                        href={etat.notesUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 font-medium underline-offset-2 hover:underline"
+                      >
+                        Voir les nouveautés <ExternalLink className="size-3.5" aria-hidden />
+                      </a>
+                    )}
                     <a
-                      href={etat.notesUrl}
+                      href={DOC_MISE_A_JOUR}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 font-medium underline-offset-2 hover:underline"
                     >
-                      Voir les nouveautés <ExternalLink className="size-3.5" aria-hidden />
+                      Comment mettre à jour <ExternalLink className="size-3.5" aria-hidden />
                     </a>
-                  )}
-                  <a
-                    href={DOC_MISE_A_JOUR}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 font-medium underline-offset-2 hover:underline"
-                  >
-                    Comment mettre à jour <ExternalLink className="size-3.5" aria-hidden />
-                  </a>
-                </span>
-              }
-            >
-              {miseAJourSansDocker(chargees.donnees?.installation, etat?.derniereVersion) ??
-                (installateur?.present
-                  ? 'Une sauvegarde est faite automatiquement avant toute modification de la base.'
-                  : 'L’équipe informatique change MEP_IMAGE dans le fichier .env du serveur, puis relance l’application. Une sauvegarde est faite automatiquement avant toute modification de la base. Elle peut aussi activer le service de mise à jour pour faire apparaître ici un bouton « Mettre à jour ».')}
-            </Alerte>
-          )}
-          {etat?.disponible && installateur?.present && !installationEnCours && (
-            <div>
-              <Button
-                variante="primaire"
-                icone={<Download className="size-4" aria-hidden />}
-                onClick={() => setConfirmer(true)}
+                  </span>
+                }
               >
-                Mettre à jour vers {etat.derniereVersion}
-              </Button>
-            </div>
-          )}
-          {installateur?.message && installateur.statut && installateur.statut in PRESENTATION && (
-            <Alerte
-              ton={PRESENTATION[installateur.statut].ton}
-              icone={PRESENTATION[installateur.statut].icone}
-              titre={PRESENTATION[installateur.statut].titre}
-            >
-              {installateur.message}
-              {installationEnCours && ' Les utilisateurs seront déconnectés le temps du redémarrage.'}
-            </Alerte>
-          )}
-          {developpement && (
-            <p className="text-sm text-fg-subtle">
-              Version de développement (construite depuis le code) : elle n’est pas comparée aux versions publiées.
-            </p>
-          )}
-          {etat?.active && !developpement && !etat.disponible && etat.derniereVersion && !etat.erreur && (
-            <p className="flex items-center gap-2 text-sm text-ok-fg">
-              <CircleCheck className="size-4" aria-hidden /> L’application est à jour.
-            </p>
-          )}
-        </div>
-      </Card>
+                {miseAJourSansDocker(chargees.donnees?.installation, etat?.derniereVersion) ??
+                  (installateur?.present
+                    ? 'Une sauvegarde est faite automatiquement avant toute modification de la base.'
+                    : 'L’équipe informatique change MEP_IMAGE dans le fichier .env du serveur, puis relance l’application. Une sauvegarde est faite automatiquement avant toute modification de la base. Elle peut aussi activer le service de mise à jour pour faire apparaître ici un bouton « Mettre à jour ».')}
+              </Alerte>
+            )}
+            {etat?.disponible && installateur?.present && !installationEnCours && (
+              <div>
+                <Button
+                  variante="primaire"
+                  icone={<Download className="size-4" aria-hidden />}
+                  onClick={() => setConfirmer(true)}
+                >
+                  Mettre à jour vers {etat.derniereVersion}
+                </Button>
+              </div>
+            )}
+            {installateur?.message && installateur.statut && installateur.statut in PRESENTATION && (
+              <Alerte
+                ton={PRESENTATION[installateur.statut].ton}
+                icone={PRESENTATION[installateur.statut].icone}
+                titre={PRESENTATION[installateur.statut].titre}
+              >
+                {installateur.message}
+                {installationEnCours && ' Les utilisateurs seront déconnectés le temps du redémarrage.'}
+              </Alerte>
+            )}
+            {developpement && (
+              <p className="text-sm text-fg-subtle">
+                Version de développement (construite depuis le code) : elle n’est pas comparée aux versions publiées.
+              </p>
+            )}
+            {etat?.active && !developpement && !etat.disponible && etat.derniereVersion && !etat.erreur && (
+              <p className="flex items-center gap-2 text-sm text-ok-fg">
+                <CircleCheck className="size-4" aria-hidden /> L’application est à jour.
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
       <ConfirmDialog
         open={confirmer}
         onOpenChange={setConfirmer}

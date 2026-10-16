@@ -10,6 +10,8 @@ import { Button } from '../../ui/Button';
 import { Dialog } from '../../ui/Dialog';
 import { Input, Select } from '../../ui/Input';
 import { Badge } from '../../ui/StatusPill';
+import { EnChargement, Squelette } from '../../ui/Squelette';
+import { cn } from '../../ui/cn';
 import { premiereLigne } from '../../blocs';
 
 /**
@@ -102,7 +104,21 @@ export function BibliothequeDialog({ systeme, onFermer }: { systeme: Systeme | n
             : 'Aucun modèle ne correspond.'}
         </p>
       )}
-      <ul className="mt-4 max-h-[55vh] space-y-2 overflow-y-auto" aria-label="Modèles de recette">
+      {modeles.donnees === null && !modeles.erreur && (
+        <EnChargement libelle="Chargement de la bibliothèque…" className="mt-4 space-y-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="grid gap-2 rounded-lg border border-line px-3 py-2.5">
+              <Squelette className="h-4 w-1/2" />
+              <Squelette className="h-3 w-3/4" />
+              <Squelette className="h-4 w-40" />
+            </div>
+          ))}
+        </EnChargement>
+      )}
+      <ul
+        className={cn('mt-4 max-h-[55vh] space-y-2 overflow-y-auto', modeles.donnees !== null && 'apparition')}
+        aria-label="Modèles de recette"
+      >
         {filtres.map((m) => (
           <li key={m.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-line px-3 py-2.5">
             <div className="min-w-0 flex-1 basis-60">

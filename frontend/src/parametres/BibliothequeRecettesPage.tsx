@@ -18,6 +18,7 @@ import { Field, Input, Select } from '../ui/Input';
 import { Badge } from '../ui/StatusPill';
 import { useToast } from '../ui/Toast';
 import { Tooltip } from '../ui/Tooltip';
+import { cn } from '../ui/cn';
 import {
   AideRecherche,
   CompteurUtilisations,
@@ -27,6 +28,7 @@ import {
   MentionTri,
   RechercheBibliotheque,
   type SystemeBiblio,
+  SqueletteBibliotheque,
 } from './bibliotheque';
 
 /** « Modifié par Claire le … » : auteur et date de la dernière modification d'un modèle. */
@@ -260,101 +262,104 @@ export default function BibliothequeRecettesPage() {
         </Alerte>
       )}
 
-      {pret && !nomSysteme && !accueil && (
-        <div className="mt-6">
-          <LectureRecherche analyse={analyse} nb={filtres.length} unite={UNITE} champs="le titre" />
-        </div>
-      )}
+      {!pret && !(modeles.erreur || cat.erreur) && <SqueletteBibliotheque accueil={accueil} />}
+      <div className={cn(pret && 'apparition')}>
+        {pret && !nomSysteme && !accueil && (
+          <div className="mt-6">
+            <LectureRecherche analyse={analyse} nb={filtres.length} unite={UNITE} champs="le titre" />
+          </div>
+        )}
 
-      {pret && accueil && (
-        <>
-          <h2 className="mt-8 mb-3 text-xs font-semibold tracking-wider text-fg-subtle uppercase">
-            Choisissez un système · {nombre(systemes.length, ['système', 'systèmes'])} du catalogue
-          </h2>
-          <GrilleSystemes
-            systemes={systemes}
-            compter={(s) => duSysteme(s.id)}
-            unite={UNITE}
-            lien={(s) => `/parametres/recettes?systeme=${encodeURIComponent(s.nom)}`}
-          />
-        </>
-      )}
+        {pret && accueil && (
+          <>
+            <h2 className="mt-8 mb-3 text-xs font-semibold tracking-wider text-fg-subtle uppercase">
+              Choisissez un système · {nombre(systemes.length, ['système', 'systèmes'])} du catalogue
+            </h2>
+            <GrilleSystemes
+              systemes={systemes}
+              compter={(s) => duSysteme(s.id)}
+              unite={UNITE}
+              lien={(s) => `/parametres/recettes?systeme=${encodeURIComponent(s.nom)}`}
+            />
+          </>
+        )}
 
-      {pret && nomSysteme && !courant && (
-        <Alerte ton="warn" icone={OctagonAlert} className="mt-6">
-          Le système « {nomSysteme} » n’est pas dans le catalogue.
-        </Alerte>
-      )}
+        {pret && nomSysteme && !courant && (
+          <Alerte ton="warn" icone={OctagonAlert} className="mt-6">
+            Le système « {nomSysteme} » n’est pas dans le catalogue.
+          </Alerte>
+        )}
 
-      {pret && !accueil && (!nomSysteme || courant) && filtres.length === 0 && (
-        <Card className="mt-4">
-          <EmptyState
-            icone={Library}
-            titre={liste.length === 0 ? 'Bibliothèque vide' : 'Aucun résultat'}
-            description={
-              liste.length === 0
-                ? 'Enregistrez une fiche de recette comme modèle depuis sa page, ou créez-en un ici.'
-                : 'Aucun modèle ne correspond à ces critères.'
-            }
-          />
-        </Card>
-      )}
+        {pret && !accueil && (!nomSysteme || courant) && filtres.length === 0 && (
+          <Card className="mt-4">
+            <EmptyState
+              icone={Library}
+              titre={liste.length === 0 ? 'Bibliothèque vide' : 'Aucun résultat'}
+              description={
+                liste.length === 0
+                  ? 'Enregistrez une fiche de recette comme modèle depuis sa page, ou créez-en un ici.'
+                  : 'Aucun modèle ne correspond à ces critères.'
+              }
+            />
+          </Card>
+        )}
 
-      {pret && !accueil && (!nomSysteme || courant) && (
-        <ul className="mt-4 grid gap-3 lg:grid-cols-2">
-          {filtres.map((m) => (
-            <li key={m.id}>
-              <Card className="flex h-full flex-col p-4 transition-shadow duration-150 hover:shadow-md">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="flex items-center gap-2 font-semibold">
-                      <Library className="size-4 shrink-0 text-accent" aria-hidden />
-                      <span className="truncate">{m.titre}</span>
-                    </h2>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                      {!nomSysteme && <Badge>{noms.get(m.systemeCatalogueId) ?? 'Système'}</Badge>}
-                      <Badge>
-                        <ListOrdered className="size-3" aria-hidden />
-                        {nombre(m.etapes.length, ['étape de test', 'étapes de test'])}
-                      </Badge>
+        {pret && !accueil && (!nomSysteme || courant) && (
+          <ul className="mt-4 grid gap-3 lg:grid-cols-2">
+            {filtres.map((m) => (
+              <li key={m.id}>
+                <Card className="flex h-full flex-col p-4 transition-shadow duration-150 hover:shadow-md">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="flex items-center gap-2 font-semibold">
+                        <Library className="size-4 shrink-0 text-accent" aria-hidden />
+                        <span className="truncate">{m.titre}</span>
+                      </h2>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        {!nomSysteme && <Badge>{noms.get(m.systemeCatalogueId) ?? 'Système'}</Badge>}
+                        <Badge>
+                          <ListOrdered className="size-3" aria-hidden />
+                          {nombre(m.etapes.length, ['étape de test', 'étapes de test'])}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-0.5">
-                    <CompteurUtilisations n={m.utilisations} className="mr-1.5" />
-                    <Tooltip content="Modifier">
-                      <BoutonIcone
-                        label={`Modifier ${m.titre}`}
-                        taille="sm"
-                        onClick={() => setEdition({ existant: m })}
-                      >
-                        <Pencil className="size-4" aria-hidden />
-                      </BoutonIcone>
-                    </Tooltip>
-                    {admin && (
-                      <Tooltip content="Supprimer">
-                        <BoutonIcone label={`Supprimer ${m.titre}`} taille="sm" onClick={() => setSuppr(m)}>
-                          <Trash2 className="size-4" aria-hidden />
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <CompteurUtilisations n={m.utilisations} className="mr-1.5" />
+                      <Tooltip content="Modifier">
+                        <BoutonIcone
+                          label={`Modifier ${m.titre}`}
+                          taille="sm"
+                          onClick={() => setEdition({ existant: m })}
+                        >
+                          <Pencil className="size-4" aria-hidden />
                         </BoutonIcone>
                       </Tooltip>
-                    )}
+                      {admin && (
+                        <Tooltip content="Supprimer">
+                          <BoutonIcone label={`Supprimer ${m.titre}`} taille="sm" onClick={() => setSuppr(m)}>
+                            <Trash2 className="size-4" aria-hidden />
+                          </BoutonIcone>
+                        </Tooltip>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <ol className="mt-3 space-y-1 text-sm text-fg-muted">
-                  {m.etapes.slice(0, 3).map((e) => (
-                    <li key={e.ordre} className="truncate">
-                      {e.ordre}. {premiereLigne(e.instructions) || 'Déroulé à compléter'}
-                    </li>
-                  ))}
-                  {m.etapes.length > 3 && <li className="text-fg-subtle">…</li>}
-                </ol>
-                <p className="mt-auto pt-3 text-xs text-fg-subtle">
-                  {auteur(m)} · version {m.version}
-                </p>
-              </Card>
-            </li>
-          ))}
-        </ul>
-      )}
+                  <ol className="mt-3 space-y-1 text-sm text-fg-muted">
+                    {m.etapes.slice(0, 3).map((e) => (
+                      <li key={e.ordre} className="truncate">
+                        {e.ordre}. {premiereLigne(e.instructions) || 'Déroulé à compléter'}
+                      </li>
+                    ))}
+                    {m.etapes.length > 3 && <li className="text-fg-subtle">…</li>}
+                  </ol>
+                  <p className="mt-auto pt-3 text-xs text-fg-subtle">
+                    {auteur(m)} · version {m.version}
+                  </p>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <ModeleDialog
         ouvert={edition !== null}

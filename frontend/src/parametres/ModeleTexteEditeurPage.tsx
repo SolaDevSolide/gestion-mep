@@ -18,6 +18,7 @@ import { Field, Input, Select, Textarea } from '../ui/Input';
 import { Segmented } from '../ui/Segmented';
 import { Badge } from '../ui/StatusPill';
 import { useToast } from '../ui/Toast';
+import { EnChargement, Squelette, SqueletteFormulaire, SqueletteLignes } from '../ui/Squelette';
 import { Tooltip } from '../ui/Tooltip';
 
 interface Brouillon {
@@ -191,8 +192,24 @@ export default function ModeleTexteEditeurPage() {
         </Alerte>
       )}
 
+      {!pret && !chargementErreur && (
+        <EnChargement
+          libelle="Chargement du modèle…"
+          className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]"
+        >
+          <Card className="p-5">
+            <SqueletteFormulaire champs={4} />
+            <Squelette className="mt-4 h-72 w-full" />
+          </Card>
+          <Card className="p-5">
+            <Squelette className="h-5 w-40" />
+            <SqueletteLignes lignes={10} className="mt-4" />
+          </Card>
+        </EnChargement>
+      )}
+
       {pret && (
-        <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <div className="apparition mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           <Card className="grid gap-5 p-5">
             {lecture && (
               <Alerte ton="wait" icone={TriangleAlert}>

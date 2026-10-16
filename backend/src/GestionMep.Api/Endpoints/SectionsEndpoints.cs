@@ -76,11 +76,12 @@ public static class SectionsEndpoints
         })));
 
         // Liens inutiles du plan : « B attend A » alors que B attend déjà A par un autre chemin (étapes ou cercles de section).
-        api.MapGet("/meps/{id:guid}/liens/redondants", async (Guid id, TypePlan? plan, ServiceMep svc) =>
+        // sectionId : seulement les liens entre éléments de cette section (vue d'une section).
+        api.MapGet("/meps/{id:guid}/liens/redondants", async (Guid id, TypePlan? plan, Guid? sectionId, ServiceMep svc) =>
         {
             var mep = await svc.Charger(id);
             var p = plan ?? TypePlan.Deploiement;
-            return Regles.LiensRedondants(mep, p).Select(l => VersDto(mep, p, l)).ToList();
+            return Regles.LiensRedondants(mep, p, sectionId).Select(l => VersDto(mep, p, l)).ToList();
         });
 
         // Retire en une opération les liens redondants montrés à la personne (409 si le plan a changé entre-temps).
@@ -93,13 +94,14 @@ public static class SectionsEndpoints
             if (c.Liens is null) throw ErreurHttp.Saisie("Indiquer les liens à retirer (ceux du calcul).");
             if (c.Liens.Any(l => l.De is null || l.Vers is null)) throw ErreurHttp.Saisie("Un lien se désigne par « de » et « vers ».");
             var attendus = c.Liens.Select(l => new Regles.LienPlan(l.De!.Value, l.Vers!.Value)).ToList();
-            if (!Regles.LiensRedondants(mep, plan).ToHashSet().SetEquals(attendus))
+            if (!Regles.LiensRedondants(mep, plan, c.SectionId).ToHashSet().SetEquals(attendus))
                 throw ErreurHttp.Conflit("Le plan a changé depuis le calcul : relancez « Optimiser les liens ».");
-            var retires = Regles.OptimiserLiens(mep, plan, attendus);
+            var retires = Regles.OptimiserLiens(mep, plan, attendus, c.SectionId);
             if (retires.Count == 0) return await svc.VersDto(mep, acteur.Id);
             var liste = string.Join(", ", retires.Select(r => $"{Court(r.De)} → {Court(r.Vers)}"));
+            var ou = c.SectionId is { } sid ? $" dans la section « {mep.Sections.First(s => s.Id == sid).Titre} »" : "";
             return await svc.EnregistrerContenu(mep, acteur, "plan.liens-optimises",
-                $"Liens optimisés : {retires.Count} lien{(retires.Count > 1 ? "s" : "")} redondant{(retires.Count > 1 ? "s" : "")} retiré{(retires.Count > 1 ? "s" : "")} ({liste})");
+                $"Liens optimisés{ou} : {retires.Count} lien{(retires.Count > 1 ? "s" : "")} redondant{(retires.Count > 1 ? "s" : "")} retiré{(retires.Count > 1 ? "s" : "")} ({liste})");
         })));
 
         // ---------- Sections ----------
