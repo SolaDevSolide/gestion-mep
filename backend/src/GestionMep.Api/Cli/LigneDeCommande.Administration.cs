@@ -503,6 +503,11 @@ public static partial class LigneDeCommande
                 libelle = "Objets impactés";
                 break;
             }
+            case "rapport":
+                // Rapport de fin figé à la clôture (une MEP clôturée avant son existence obtient le sien maintenant).
+                export = await SuiviEndpoints.RapportExcel(new RapportsFin(db, service), id, DateTimeOffset.UtcNow);
+                libelle = "Rapport de fin";
+                break;
             default:
                 (var vue, libelle) = vueTexte.ToLowerInvariant() switch
                 {
@@ -510,7 +515,7 @@ public static partial class LigneDeCommande
                     "etapes" => (VuesExcel.Vue.Etapes, "Étapes"),
                     "retour-arriere" => (VuesExcel.Vue.RetourArriere, "Retour arrière"),
                     "journal" => (VuesExcel.Vue.Journal, "Journal"),
-                    _ => throw new ErreurUsage($"vue inconnue « {vueTexte} » : preparation, etapes, retour-arriere, recette, objets ou journal"),
+                    _ => throw new ErreurUsage($"vue inconnue « {vueTexte} » : preparation, etapes, retour-arriere, recette, objets, journal ou rapport"),
                 };
                 export = await ExportsExcelEndpoints.Vue(db, service, id, vue);
                 break;

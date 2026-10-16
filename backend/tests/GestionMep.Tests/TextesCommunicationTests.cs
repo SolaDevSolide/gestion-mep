@@ -204,4 +204,29 @@ public class TextesCommunicationTests
         Assert.All(VariablesTexte.Toutes, v => Assert.Contains($"`{{{{{v.Cle}}}}}`", doc));
         Assert.All(VariablesTexte.Toutes.Select(v => v.Groupe).Distinct(), g => Assert.Contains($"### {g}", doc));
     }
+    [Fact]
+    public void Avancement_fin_estimee_et_lien_du_rapport_suivent_l_execution()
+    {
+        var mep = MepExemple();
+        var go = new DateTimeOffset(2026, 10, 20, 18, 0, 0, TimeSpan.Zero);
+        var a = new Etape { Code = "E0001", Action = "Sauvegarde", Plan = TypePlan.Deploiement, DureeEstimeeMinutes = 30, Etat = EtatEtape.Reussie, DebutReel = go, FinReelle = go.AddMinutes(30) };
+        var b = new Etape { Code = "E0002", Action = "Déploiement", Plan = TypePlan.Deploiement, DureeEstimeeMinutes = 45, Etat = EtatEtape.Echec, DebutReel = go.AddMinutes(30), Dependances = [a.Id] };
+        mep.Etapes.AddRange([a, b]);
+        var avant = VariablesTexte.Valeurs(mep, null, "https://mep.exemple.invalid/meps/1", new Dictionary<Guid, string>(), go);
+        Assert.True(avant["avancement"].EstManquante);
+        Assert.True(avant["fin_estimee"].EstManquante);
+
+        mep.Phase = Phase.Execution;
+        mep.DemarrageAutoriseLe = go;
+        var v = VariablesTexte.Valeurs(mep, null, "https://mep.exemple.invalid/meps/1", new Dictionary<Guid, string>(), go.AddMinutes(40));
+        Assert.Equal("1/2 étapes faites (50 %)", v["avancement"].Texte);
+        // Paris (UTC+2) : prévue à 21h15 ; E0002 en échec compte 45 + 10 min depuis 20h40, soit 21h35.
+        Assert.Equal("21h35 (prévue à 21h15, +20 min)", v["fin_estimee"].Texte);
+        Assert.True(v["lien_rapport"].EstManquante);
+
+        mep.Phase = Phase.Cloturee;
+        var fin = VariablesTexte.Valeurs(mep, null, "https://mep.exemple.invalid/meps/1", new Dictionary<Guid, string>(), go.AddMinutes(90));
+        Assert.Equal("https://mep.exemple.invalid/meps/1/rapport", fin["lien_rapport"].Texte);
+        Assert.True(fin["fin_estimee"].EstManquante);
+    }
 }

@@ -867,6 +867,23 @@ public class EvenementJournal
     public string Detail { get; set; } = "";
 }
 
+/// <summary>
+/// Rapport de fin d'une MEP (#61) : instantané figé à la clôture (la MEP telle qu'elle s'affichait, son journal complet et la
+/// synthèse calculée), stocké en JSON et relu tel quel. Une MEP clôturée avant l'existence des rapports obtient le sien à la
+/// première demande, figé à son tour. Supprimé avec la MEP.
+/// </summary>
+public class RapportFin
+{
+    public Guid MepId { get; set; }
+    public DateTimeOffset FigeLe { get; set; }
+    /// <summary>Calculé à la première demande (MEP clôturée avant les rapports de fin) plutôt qu'au moment de la clôture.</summary>
+    public bool CalculeApres { get; set; }
+    /// <summary>Version du format de <see cref="Contenu"/>, pour relire les anciens rapports si ce format change.</summary>
+    public int Format { get; set; }
+    /// <summary>Contenu figé (JSON produit et relu par l'API).</summary>
+    public string Contenu { get; set; } = "";
+}
+
 /// <summary>Fournisseur de la connexion unique : Microsoft Entra ID (préréglage) ou tout autre fournisseur OpenID Connect.</summary>
 public enum FournisseurSso { Microsoft, OpenIdConnect }
 

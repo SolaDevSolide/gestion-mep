@@ -70,6 +70,8 @@ import type {
   SsoSaisie,
   SsoTest,
   Phase,
+  RapportFin,
+  Suivi,
 } from './types';
 
 export class ApiError extends Error {
@@ -240,6 +242,8 @@ export const api = {
   variablesTexte: (id: string, equipe?: string) =>
     get<VariablesMep>(`/meps/${id}/variables-texte${equipe ? `?equipe=${encodeURIComponent(equipe)}` : ''}`),
   journal: (id: string) => get<Evenement[]>(`/meps/${id}/journal`),
+  rapport: (id: string) => get<RapportFin>(`/meps/${id}/rapport`),
+  suivi: () => get<Suivi>('/suivi'),
   /** Tests unitaires faits, non faits et leurs résultats constatés. */
   testsUnitaires: (id: string) => get<TestsUnitaires>(`/meps/${id}/tests-unitaires`),
   presences: (id: string) => get<Presence[]>(`/meps/${id}/presence`),
@@ -367,6 +371,7 @@ export const api = {
 
   // Recette en Excel : export (téléchargement direct), aperçu puis report de la validation des métiers.
   urlExportRecette: (id: string) => `/api/meps/${id}/recette/excel`,
+  urlExportRapport: (id: string) => `/api/meps/${id}/rapport/excel`,
   apercuValidation: (id: string, f: File) =>
     post<ApercuValidation>(`/meps/${id}/recette/excel/apercu`, formulaireFichier(f)),
   importerValidation: (id: string, f: File) => post<Mep>(`/meps/${id}/recette/excel/import`, formulaireFichier(f)),

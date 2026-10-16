@@ -91,7 +91,7 @@ Tant que le point de non-retour n'est pas franchi et qu'aucune étape ni résolu
 
 1. Quand toutes les étapes de déploiement ont réussi, le pilote clique **« Passer en recette »**.
 2. Dans **Plan › Recette** (la MEP s'y ouvre pendant la recette), ouvrir chaque fiche : chaque étape de test est déclarée « Conforme » ou « Échec » avec une observation, par toute personne de la MEP reliée à un compte. Le pilote peut faire refaire un test ou une fiche. Les équipes métier peuvent aussi valider dans Excel (voir ci-dessous).
-3. Quand tout est conforme, le pilote clique **« Clôturer : MEP réussie »** et rédige le bilan.
+3. Quand tout est conforme, le pilote clique **« Clôturer : MEP réussie »** et rédige le bilan. Le [rapport de fin](Suivre-une-MEP.md#rapport-de-fin) est alors figé (bouton « Rapport de fin » du bilan).
 
 ### Valider la recette dans Excel
 
@@ -116,6 +116,10 @@ L'onglet **Journal** retrace tout, du plus récent au plus ancien, groupé par j
 En tête du journal, l'encadré **Tests unitaires** compte les tests faits et non faits (et les simples vérifications) ; déplié, il donne pour chaque test le résultat attendu, le résultat constaté, l'exécutant et l'état (réussi, échec, non fait). Les étapes du retour arrière n'y figurent qu'une fois celui-ci déclenché. Une étape reprise après un échec redevient « non faite » jusqu'à sa nouvelle fin.
 
 ![Onglet Journal](images/journal.png)
+
+## Suivre sans exécuter
+
+Qui n'exécute aucune étape (chef de projet, astreinte) arrive sur la **vue d'ensemble** de la MEP : chiffres clés, fin estimée, plan coloré, blocages et qui fait quoi. Le tableau de bord **Suivi en direct** montre toutes les MEP lancées, et chaque MEP clôturée a son **rapport de fin**. Voir [Suivre une MEP](Suivre-une-MEP.md).
 
 ## Travailler à plusieurs
 

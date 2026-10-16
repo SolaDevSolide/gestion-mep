@@ -27,6 +27,14 @@ public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? te
     /// <summary>Réglage <c>Flux:ConnexionsMax</c>, relu à chaque ouverture.</summary>
     private int MaxTotal => Math.Max(1, config.GetValue("Flux:ConnexionsMax", 1000));
 
+    /// <summary>
+    /// Pseudo-MEP des abonnés du suivi en direct (#61) : prévenus de toute modification de n'importe quelle MEP, sans présence
+    /// ni verrous (voir <see cref="AbonnerSuivi"/>).
+    /// </summary>
+    public static readonly Guid Suivi = Guid.Empty;
+    /// <summary>Nombre de modifications diffusées depuis le démarrage : « version » envoyée aux abonnés du suivi.</summary>
+    private int _modifications;
+
     private readonly Dictionary<Guid, List<Abonne>> _abonnes = [];
     private readonly Dictionary<Guid, int> _parCompte = [];
     private int _total;
@@ -59,7 +67,16 @@ public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? te
         return new Abonnement(abonne, () => Desabonner(mepId, abonne));
     }
 
+    /// <summary>Abonnement au suivi en direct : un événement à chaque modification d'une MEP, quelle qu'elle soit.</summary>
+    public Abonnement? AbonnerSuivi(Guid utilisateurId) => Abonner(Suivi, utilisateurId);
+
     public void Notifier(Guid mepId, int version)
+    {
+        Signaler(mepId, version);
+        if (mepId != Suivi) Signaler(Suivi, Interlocked.Increment(ref _modifications));
+    }
+
+    private void Signaler(Guid mepId, int version)
     {
         foreach (var a in Cibles(mepId))
         {

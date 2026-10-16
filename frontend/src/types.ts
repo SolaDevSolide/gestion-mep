@@ -195,6 +195,15 @@ export type ValeurVariable = S['ValeurVariableDto'];
 /** Valeurs des variables d'une MEP pour une équipe (`equipeProposeeId` : équipe du pilote). */
 export type VariablesMep = S['VariablesMepDto'];
 
+/** Tableau de bord « Suivi en direct » (#61) : MEP lancées, prévues aujourd'hui et demain, clôturées depuis 24 heures. */
+export type Suivi = S['SuiviDto'];
+export type MepPrevue = S['MepPrevueDto'];
+export type MepCloturee = S['MepClotureeDto'];
+/** Rapport de fin (#61), figé à la clôture ; `calculeApres` : MEP clôturée avant les rapports, figé à sa première demande. */
+export type RapportFin = S['RapportFinDto'];
+export type SyntheseRapport = S['SyntheseRapportDto'];
+export type PointBloquant = S['PointBloquantDto'];
+
 // ---------- Entrées (saisies) ----------
 
 /** `nomAffiche` absent : inchangé. */

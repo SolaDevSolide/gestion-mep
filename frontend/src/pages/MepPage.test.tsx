@@ -38,6 +38,7 @@ vi.mock('../mep/RetourArriereTab', () => ({ default: () => <p>Contenu Retour arr
 vi.mock('../mep/RecetteTab', () => ({ default: () => <p>Contenu Recette</p> }));
 vi.mock('../mep/ExecutionTab', () => ({ default: () => <p>Contenu Exécution</p> }));
 vi.mock('../mep/JournalTab', () => ({ default: () => <p>Contenu Journal</p> }));
+vi.mock('../mep/ensemble/VueEnsembleTab', () => ({ default: () => <p>Contenu Vue d’ensemble</p> }));
 
 /** Flux SSE simulé : la page ouvre `/api/meps/{id}/flux?session=…`. */
 class FauxFlux {
@@ -121,10 +122,18 @@ afterEach(() => {
 });
 
 describe('MepPage : onglets', () => {
-  it('Préparation, Plan, Exécution, Journal ; Plan a trois sous-onglets avec leur nombre d’éléments', async () => {
+  it('Vue d’ensemble, Préparation, Plan, Exécution, Journal ; Plan a trois sous-onglets avec leur nombre d’éléments', async () => {
     await rendre(enPreparation());
     const onglets = within(screen.getByRole('tablist', { name: 'Sections de la MEP' })).getAllByRole('tab');
-    expect(onglets.map((o) => o.textContent)).toEqual(['Préparation', 'Plan', 'Exécution', 'Journal']);
+    expect(onglets.map((o) => o.textContent)).toEqual([
+      'Vue d’ensemble',
+      'Préparation',
+      'Plan',
+      'Exécution',
+      'Journal',
+    ]);
+    // Pas encore lancée : pas de pastille « en direct ».
+    expect(screen.queryByRole('img', { name: 'En direct' })).toBeNull();
     expect(screen.getByRole('tab', { name: 'Préparation' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByRole('tablist', { name: 'Parties du plan' })).toBeNull();
 
@@ -141,6 +150,19 @@ describe('MepPage : onglets', () => {
     await userEvent.click(within(parties).getByRole('tab', { name: /Retour arrière/ }));
     expect(screen.getByText('Contenu Retour arrière')).toBeInTheDocument();
     expect(adresse()).toBe('?onglet=plan&plan=retour');
+  });
+
+  it('pendant l’exécution, qui n’exécute aucune étape arrive sur la vue d’ensemble, en direct (#61)', async () => {
+    await rendre(mep({ phase: 'Execution', etapes: [etape({ id: 'e1', code: 'E1', responsableId: 'p2' })] }));
+    expect(screen.getByRole('tab', { name: /Vue d’ensemble/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('img', { name: 'En direct' })).toBeInTheDocument();
+    expect(screen.getByText('Contenu Vue d’ensemble')).toBeInTheDocument();
+  });
+
+  it('un modèle n’a pas de vue d’ensemble', async () => {
+    await rendre(enPreparation({ estModele: true }), '/meps/m1?onglet=ensemble');
+    expect(screen.queryByRole('tab', { name: /Vue d’ensemble/ })).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Préparation' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('sans plan de retour arrière, Plan n’a pas de sous-onglet Retour arrière', async () => {

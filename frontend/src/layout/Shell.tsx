@@ -11,6 +11,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Rocket,
+  Activity,
   Search,
   ShieldCheck,
   ShieldUser,
@@ -108,7 +109,8 @@ export function Shell() {
     <div className="flex min-h-[calc(100vh-var(--bandeau-demo,0px))]">
       <aside
         className={cn(
-          'sticky top-[var(--bandeau-demo,0px)] flex h-[calc(100vh-var(--bandeau-demo,0px))] shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200',
+          // Masqué à l'impression (rapport de fin, #61) : seule la page s'imprime.
+          'sticky top-[var(--bandeau-demo,0px)] flex h-[calc(100vh-var(--bandeau-demo,0px))] shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200 print:hidden',
           replie ? 'w-[68px]' : 'w-64',
         )}
       >
@@ -141,6 +143,7 @@ export function Shell() {
 
         <nav aria-label="Navigation principale" className="mt-4 flex flex-1 flex-col gap-0.5 overflow-y-auto px-3">
           <Lien to="/" end icone={Rocket} libelle="Mises en production" replie={replie} />
+          <Lien to="/suivi" icone={Activity} libelle="Suivi en direct" replie={replie} />
           <div
             className={cn(
               'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase',

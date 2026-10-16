@@ -11,6 +11,7 @@ import { CARTE, CERCLE } from './rangement';
 import { CERCLE_BORD, TITRE_BORD } from './rangementBordure';
 import { avancementSection, cerclesTries, libelleAvancement, type CercleSection, type Section } from './sections';
 import { PuceSysteme, systemesDe } from './systemes';
+import { cadreEnsemble, LigneEnsemble } from '../ensemble/LigneEnsemble';
 
 export interface DonneesNoeud extends Record<string, unknown> {
   etapeId?: string;
@@ -129,7 +130,8 @@ function EnTeteSection({ section, deplie }: { section: Section; deplie: boolean 
             <PuceSysteme key={s.id} nom={s.nom} className="px-1.5 py-0 text-[11px]" />
           ))}
         </div>
-        <p className="text-xs text-fg-muted tnum">
+        {g.ensemble && <LigneEnsemble etapes={etapes} bloquees={g.ensemble.bloquees} />}
+        <p hidden={!!g.ensemble} className="text-xs text-fg-muted tnum">
           {g.mode === 'execution' ? (
             <span
               className={cn(
@@ -256,6 +258,7 @@ export function NoeudSection({ data }: NodeProps) {
     else if (detail <= 1) minuterie.current = window.setTimeout(() => g.onBasculer(id), DELAI_DOUBLE_CLIC_MS);
   };
   const selectionnee = g.selection === `s:${id}` || (g.enAvant?.noeuds.has(`s:${id}`) ?? false);
+  const cadreEns = g.ensemble ? cadreEnsemble(g.etapesParSection.get(id) ?? [], g.ensemble.bloquees) : null;
   return (
     <div
       data-section={id}
@@ -263,7 +266,7 @@ export function NoeudSection({ data }: NodeProps) {
       aria-label={`Section ${s.titre}, repliée`}
       className={cn(
         'group relative size-full rounded-xl border-2 bg-surface px-3 pt-9 pb-9 shadow-sm',
-        selectionnee ? 'border-accent shadow-[0_0_0_3px_var(--accent-soft)]' : 'border-accent/60',
+        selectionnee ? 'border-accent shadow-[0_0_0_3px_var(--accent-soft)]' : (cadreEns ?? 'border-accent/60'),
       )}
     >
       <Handle type="target" id={POIGNEE_HAUT} position={Position.Top} isConnectable={false} className="!opacity-0" />
@@ -324,7 +327,12 @@ export function NoeudCadre({ data }: NodeProps) {
       data-section={id}
       role="group"
       aria-label={`Section ${s.titre}, dépliée`}
-      className="relative size-full rounded-2xl border-2 border-dashed border-accent/60 bg-accent-soft/40"
+      className={cn(
+        'relative size-full rounded-2xl border-2 border-dashed',
+        g.ensemble
+          ? cadreEnsemble(g.etapesParSection.get(id) ?? [], g.ensemble.bloquees)
+          : 'border-accent/60 bg-accent-soft/40',
+      )}
     >
       <PresenceSection id={id} deplie />
     </div>

@@ -918,6 +918,29 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("PiecesJointes");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.RapportFin", b =>
+                {
+                    b.Property<Guid>("MepId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CalculeApres")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Contenu")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("FigeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Format")
+                        .HasColumnType("integer");
+
+                    b.HasKey("MepId");
+
+                    b.ToTable("RapportsFin");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.Reglage", b =>
                 {
                     b.Property<string>("Cle")
@@ -1429,6 +1452,15 @@ namespace GestionMep.Api.Donnees.Migrations
                         .WithMany()
                         .HasForeignKey("ResolutionTypeId")
                         .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.RapportFin", b =>
+                {
+                    b.HasOne("GestionMep.Domain.Mep", null)
+                        .WithOne()
+                        .HasForeignKey("GestionMep.Domain.RapportFin", "MepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Systeme", b =>

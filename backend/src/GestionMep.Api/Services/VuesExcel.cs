@@ -11,7 +11,7 @@ namespace GestionMep.Api.Services;
 /// fiche « libellé / valeur ». Ces classeurs ne se réimportent pas : seuls la recette (<see cref="RecetteExcel"/>) et les
 /// objets impactés (<see cref="ObjetsExcel"/>) s'échangent dans les deux sens. Les dates et heures sont dans le fuseau de la MEP.
 /// </summary>
-public static class VuesExcel
+public static partial class VuesExcel
 {
     public const string TypeContenu = RecetteExcel.TypeContenu;
     private const int LigneEnTetes = 4;

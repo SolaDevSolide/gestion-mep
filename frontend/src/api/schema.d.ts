@@ -4104,6 +4104,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/suivi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suivi/flux": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/rapport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/rapport/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/etapes-modeles": {
         parameters: {
             query?: never;
@@ -7332,6 +7468,25 @@ export interface components {
             /** Format: uuid */
             systemeCatalogueId: null | string;
         };
+        MepClotureeDto: {
+            /** Format: uuid */
+            id: string;
+            outil: string;
+            versionCible: string;
+            /**
+             * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+             *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+             *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+             *     valeur par défaut, est la MEP complète.
+             * @enum {unknown}
+             */
+            type: "Complete" | "Simplifiee";
+            /** @enum {unknown} */
+            issue: "Reussie" | "Repliee" | null;
+            /** Format: date-time */
+            clotureeLe: string;
+            pilote: null | string;
+        };
         /**
          * @description Création d'une MEP, ou d'un modèle si `Modele` vaut true. `Type` absent : MEP complète ; un modèle est
          *     toujours complet.
@@ -7809,6 +7964,29 @@ export interface components {
             bilanActive?: null | boolean;
             retourArriereActive?: null | boolean;
         };
+        /** @description MEP en préparation au créneau annoncé (Communication) ; `Debut` : date et heure annoncées (minuit sans heure). */
+        MepPrevueDto: {
+            /** Format: uuid */
+            id: string;
+            outil: string;
+            versionCible: string;
+            /**
+             * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+             *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+             *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+             *     valeur par défaut, est la MEP complète.
+             * @enum {unknown}
+             */
+            type: "Complete" | "Simplifiee";
+            /** Format: date */
+            date: string;
+            /** Format: time */
+            heure: null | string;
+            /** Format: date-time */
+            debut: string;
+            fuseauHoraire: string;
+            pilote: null | string;
+        };
         /**
          * @description `DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;
          *     `RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).
@@ -8146,6 +8324,34 @@ export interface components {
             donneesDepuisSauvegarde: null | string;
             siRepliEchoue: null | string;
         };
+        /**
+         * @description Échec d'une étape pendant l'exécution, tiré du journal : motif, résolution lancée ensuite (la dernière avant la reprise),
+         *     reprise de l'étape et sa réussite. `ArretMinutes` : de l'échec au redémarrage de l'étape.
+         */
+        PointBloquantDto: {
+            /**
+             * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+             * @enum {unknown}
+             */
+            plan: "Deploiement" | "RetourArriere";
+            code: string;
+            action: string;
+            /** Format: date-time */
+            echecLe: string;
+            par: string;
+            motif: string;
+            resolution: null | string;
+            /** @enum {unknown} */
+            statutResolution: "EnCours" | "Reussie" | "Echouee" | null;
+            /** Format: int32 */
+            dureeResolutionMinutes: null | number;
+            /** Format: date-time */
+            repriseLe: null | string;
+            /** Format: date-time */
+            repriseReussieLe: null | string;
+            /** Format: int32 */
+            arretMinutes: null | number;
+        };
         /** @description Cercle d'une section : `Sens` obligatoire à la création, ignoré ensuite ; titre absent à la création : « Entrée 2 »… */
         PortSaisie: {
             sens?: null | components["schemas"]["SensPort"];
@@ -8225,6 +8431,551 @@ export interface components {
             role: null | string;
             contact: null | string;
             expertises: null | components["schemas"]["ExpertiseSaisie"][];
+        };
+        /**
+         * @description Rapport de fin d'une MEP, figé à la clôture (`FigeLe`) ou, pour une MEP clôturée avant son existence, à la première
+         *     demande (`CalculeApres`). `Mep` et `Journal` (du plus récent au plus ancien) sont ceux du moment où il a été figé.
+         */
+        RapportFinDto: {
+            /** Format: uuid */
+            mepId: string;
+            /** Format: date-time */
+            figeLe: string;
+            calculeApres: boolean;
+            /**
+             * @description Chiffres du rapport : étapes du déploiement, Go et fin de l'exécution du déploiement (dernière étape terminée), durées réelle
+             *     et prévue (plus long chemin des durées estimées, 0 sans durées), échecs d'étape (tous plans) et ceux repris avec succès,
+             *     résolutions exécutées, tests de recette, retour arrière déclenché.
+             */
+            synthese: {
+                /** Format: int32 */
+                etapes: number;
+                /** Format: int32 */
+                etapesReussies: number;
+                /** Format: date-time */
+                go: null | string;
+                /** Format: date-time */
+                finDeploiement: null | string;
+                /** Format: int32 */
+                dureeReelleMinutes: null | number;
+                /** Format: int32 */
+                dureePrevueMinutes: number;
+                /** Format: int32 */
+                echecs: number;
+                /** Format: int32 */
+                echecsRepris: number;
+                /** Format: int32 */
+                resolutions: number;
+                /** Format: int32 */
+                recetteTests: number;
+                /** Format: int32 */
+                recetteConformes: number;
+                /** Format: int32 */
+                recetteEchecs: number;
+                retourArriere: boolean;
+            };
+            pointsBloquants: {
+                /**
+                 * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+                 * @enum {unknown}
+                 */
+                plan: "Deploiement" | "RetourArriere";
+                code: string;
+                action: string;
+                /** Format: date-time */
+                echecLe: string;
+                par: string;
+                motif: string;
+                resolution: null | string;
+                /** @enum {unknown} */
+                statutResolution: "EnCours" | "Reussie" | "Echouee" | null;
+                /** Format: int32 */
+                dureeResolutionMinutes: null | number;
+                /** Format: date-time */
+                repriseLe: null | string;
+                /** Format: date-time */
+                repriseReussieLe: null | string;
+                /** Format: int32 */
+                arretMinutes: null | number;
+            }[];
+            /**
+             * @description Suivi des tests unitaires d'une MEP, dans l'ordre du plan : le déploiement, puis le retour arrière s'il a été déclenché.
+             *     `Verifications` : nombre d'étapes suivies qui se terminent par une simple vérification (absentes de `Tests`).
+             */
+            testsUnitaires: {
+                /** Format: int32 */
+                faits: number;
+                /** Format: int32 */
+                nonFaits: number;
+                /** Format: int32 */
+                verifications: number;
+                tests: {
+                    /** Format: uuid */
+                    etapeId: string;
+                    code: string;
+                    /**
+                     * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+                     * @enum {unknown}
+                     */
+                    plan: "Deploiement" | "RetourArriere";
+                    action: string;
+                    /** @enum {unknown} */
+                    etat: "AFaire" | "EnCours" | "Reussie" | "Echec";
+                    fait: boolean;
+                    resultatAttendu: string;
+                    resultatConstate: string;
+                    executant: null | string;
+                    /** Format: date-time */
+                    finReelle: null | string;
+                }[];
+            };
+            /**
+             * @description `RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).
+             *     `EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.
+             *     `Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les
+             *     personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
+             *     résolutions liées.
+             */
+            mep: {
+                /** Format: uuid */
+                id: string;
+                /** Format: int32 */
+                version: number;
+                outil: string;
+                versionActuelle: string;
+                versionCible: string;
+                objet: string;
+                impacts: string;
+                /** Format: date */
+                dateMep: null | string;
+                /** Format: time */
+                heureDebut: null | string;
+                /** Format: time */
+                heureFin: null | string;
+                fuseauHoraire: string;
+                /** Format: int32 */
+                indisponibiliteMinutes: null | number;
+                /** Format: uuid */
+                piloteId: null | string;
+                suppleantIds: string[];
+                /**
+                 * @description Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin.
+                 * @enum {unknown}
+                 */
+                phase: "Preparation" | "Execution" | "RetourArriere" | "Cloturee" | "Recette";
+                /** Format: date-time */
+                echeanceRepli: null | string;
+                /** @enum {unknown} */
+                issue: "Reussie" | "Repliee" | null;
+                /** @description `Par` vaut null quand le retour arrière s'est déclenché automatiquement. */
+                retourArriere: null | {
+                    /** Format: date-time */
+                    le: string;
+                    par: null | string;
+                    motif: string;
+                };
+                cloture: null | {
+                    /** Format: date-time */
+                    le: string;
+                    par: null | string;
+                };
+                planRepli: {
+                    quandDeclencher: string;
+                    /** Format: int32 */
+                    dureeTesteeMinutes: null | number;
+                    versionARestaurer: string;
+                    donneesDepuisSauvegarde: string;
+                    siRepliEchoue: string;
+                };
+                sauvegarde: {
+                    /**
+                     * @description Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée.
+                     * @enum {unknown}
+                     */
+                    mode: "AvantMep" | "PendantMep";
+                    structure: boolean;
+                    donnees: boolean;
+                    configuration: boolean;
+                    /** Format: uuid */
+                    responsableId: null | string;
+                    /** Format: date-time */
+                    realiseeLe: null | string;
+                    procedure: string;
+                    copies: string;
+                    restaurationTestee: boolean;
+                    /** Format: date */
+                    dateTestRestauration: null | string;
+                    preuveTestRestauration: string;
+                };
+                procedureRelue: null | {
+                    par: string;
+                    /** Format: date-time */
+                    le: string;
+                };
+                demarrageAutorise: null | {
+                    par: string;
+                    /** Format: date-time */
+                    le: string;
+                };
+                participants: {
+                    /** Format: uuid */
+                    id: string;
+                    nom: string;
+                    role: string;
+                    contact: string;
+                    /** Format: uuid */
+                    utilisateurId: null | string;
+                    utilisateurNom: null | string;
+                }[];
+                systemes: {
+                    /** Format: uuid */
+                    id: string;
+                    nom: string;
+                    cible: string;
+                    impact: string;
+                    /** Format: uuid */
+                    catalogueId: null | string;
+                    /** @description `Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan). */
+                    sauvegarde: {
+                        /**
+                         * @description Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu.
+                         * @enum {unknown}
+                         */
+                        statut: "ARenseigner" | "Requise" | "NonRequise";
+                        /**
+                         * @description Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée.
+                         * @enum {unknown}
+                         */
+                        moment: "AvantMep" | "PendantMep";
+                        contenu: string;
+                        justification: string;
+                        emplacement: string;
+                        methodeRecuperation: string;
+                    };
+                    environnements: {
+                        nom: string;
+                        production: boolean;
+                    }[];
+                }[];
+                objetsImpactes: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    systemeId: null | string;
+                    /** Format: uuid */
+                    objetCatalogueId: null | string;
+                    categorie: string;
+                    type: string;
+                    nom: string;
+                    libelle: string;
+                    precision: string;
+                    version: string;
+                    repris: boolean;
+                }[];
+                etapes: {
+                    /** Format: uuid */
+                    id: string;
+                    /**
+                     * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+                     * @enum {unknown}
+                     */
+                    plan: "Deploiement" | "RetourArriere";
+                    code: string;
+                    /** Format: int32 */
+                    ligne: number;
+                    /** Format: int32 */
+                    ordre: number;
+                    action: string;
+                    systemeIds: string[];
+                    /** Format: uuid */
+                    responsableId: null | string;
+                    /** Format: uuid */
+                    executantId: null | string;
+                    /** @enum {unknown} */
+                    criticite: "Faible" | "Moderee" | "Elevee" | "Bloquante" | null;
+                    /** Format: int32 */
+                    dureeEstimeeMinutes: null | number;
+                    /** @enum {unknown} */
+                    etat: "AFaire" | "EnCours" | "Reussie" | "Echec";
+                    instructions: string;
+                    resultatAttendu: string;
+                    preuve: string;
+                    commentaire: string;
+                    /** Format: date-time */
+                    debutReel: null | string;
+                    /** Format: date-time */
+                    finReelle: null | string;
+                    /** Format: int32 */
+                    revision: number;
+                    dependances: string[];
+                    resolutionIds: string[];
+                    disponibilite: {
+                        /** @enum {unknown} */
+                        statut: "PlanInvalide" | "EcheanceARenseigner" | "RetourArriere" | "FicheACompleter" | "InstructionsACompleter" | "Attend" | "Terminee" | "EnCours" | "ArretResolution" | "ResolutionEnCours" | "SiRetourArriere" | "Disponible";
+                        libelle: string;
+                    };
+                    /**
+                     * @description Nature d'une étape de déploiement : standard, ou étape qui réalise la sauvegarde.
+                     * @enum {unknown}
+                     */
+                    type: "Standard" | "Sauvegarde";
+                    pointDeNonRetour: boolean;
+                    nonRetourAutorise: null | {
+                        par: string;
+                        /** Format: date-time */
+                        le: string;
+                    };
+                    /**
+                     * @description Fin d'une étape : test unitaire (le résultat attendu est l'instruction de test, le résultat constaté se saisit en
+                     *     terminant l'étape) ou simple vérification. Stockée en entier : 0, la valeur par défaut, est le test unitaire.
+                     * @enum {unknown}
+                     */
+                    fin: "TestUnitaire" | "Verification";
+                    resultatConstate: string;
+                    sauvegardeEmplacement: string;
+                    sauvegardeMethodeRecuperation: string;
+                    /** Format: uuid */
+                    modeleEtapeId: null | string;
+                    environnements: {
+                        /** Format: uuid */
+                        systemeId: string;
+                        nom: string;
+                    }[];
+                    /** Format: uuid */
+                    sectionId: null | string;
+                    dependancesDerivees: string[];
+                    portsAttendus: string[];
+                    /** Format: int32 */
+                    rang: number;
+                }[];
+                resolutions: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    etapeId: string;
+                    /** Format: uuid */
+                    resolutionTypeId: string;
+                    titre: string;
+                    symptomes: string;
+                    diagnostic: string;
+                    corrections: {
+                        /** Format: int32 */
+                        ordre: number;
+                        instruction: string;
+                        resultatAttendu: string;
+                        /** @enum {unknown} */
+                        resultat: "Conforme" | "Echec" | null;
+                        observation: string;
+                        par: null | string;
+                        /** Format: date-time */
+                        le: null | string;
+                    }[];
+                    verificationInstruction: string;
+                    verificationAttendu: string;
+                    /** @enum {unknown} */
+                    verificationResultat: "Conforme" | "Echec" | null;
+                    verificationObservation: string;
+                    /** @enum {unknown} */
+                    statut: "EnCours" | "Reussie" | "Echouee";
+                    demarreePar: string;
+                    /** Format: date-time */
+                    demarreeLe: string;
+                    /** Format: date-time */
+                    termineeLe: null | string;
+                }[];
+                erreursPlan: string[];
+                droits: {
+                    estPilote: boolean;
+                    peutModifierPlan: boolean;
+                    /** Format: uuid */
+                    participantId: null | string;
+                    estApprobateur: boolean;
+                    estResponsableTechnique: boolean;
+                    peutEditerContenu: boolean;
+                };
+                estModele: boolean;
+                /** Format: int32 */
+                approbationsMinimum: number;
+                approbations: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    utilisateurId: string;
+                    nom: string;
+                    /** @enum {unknown} */
+                    decision: "Approuvee" | "Refusee" | null;
+                    commentaire: string;
+                    /** Format: date-time */
+                    le: null | string;
+                }[];
+                goNoGo: {
+                    libelle: string;
+                    par: null | string;
+                    /** Format: date-time */
+                    le: string;
+                }[];
+                fichesRecette: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: int32 */
+                    ordre: number;
+                    /** Format: uuid */
+                    systemeId: null | string;
+                    titre: string;
+                    etapes: {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: int32 */
+                        ordre: number;
+                        instructions: string;
+                        resultatAttendu: string;
+                        /** @enum {unknown} */
+                        resultat: "Conforme" | "Echec" | null;
+                        observation: string;
+                        par: null | string;
+                        /** Format: date-time */
+                        le: null | string;
+                        /** @description Validation reportée d'un fichier Excel : nom saisi par le métier (« » sinon) ; `Par` est alors le compte qui a importé. */
+                        valideePar: string;
+                        /**
+                         * Format: date
+                         * @description Validation reportée d'un fichier Excel : date indiquée dans le fichier.
+                         */
+                        valideeLe: null | string;
+                    }[];
+                }[];
+                bilanActive: boolean;
+                bilan: null | {
+                    ceQuiAMarche: string;
+                    incidents: string;
+                    actions: string;
+                    redigePar: null | string;
+                    /** Format: date-time */
+                    le: null | string;
+                };
+                nonRetourFranchi: null | string;
+                piecesJointes: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    mepId: null | string;
+                    /** Format: uuid */
+                    etapeId: null | string;
+                    /** Format: uuid */
+                    resolutionTypeId: null | string;
+                    /** Format: uuid */
+                    executionResolutionId: null | string;
+                    nomFichier: string;
+                    typeContenu: string;
+                    /** Format: int64 */
+                    taille: number;
+                    sha256: string;
+                    /** Format: uuid */
+                    deposeParId: null | string;
+                    deposePar: null | string;
+                    /** Format: date-time */
+                    deposeLe: string;
+                }[];
+                responsablesTechniques: {
+                    /** Format: uuid */
+                    participantId: string;
+                    systemeIds: string[];
+                    perimetre: string;
+                    /**
+                     * @description Disponibilité d'un responsable technique le jour de la MEP.
+                     * @enum {unknown}
+                     */
+                    disponibilite: "Joignable" | "Absent";
+                    contactJourJ: string;
+                }[];
+                avertissements: string[];
+                retourArriereActive: boolean;
+                /**
+                 * @description Section Communication de la MEP (tout est facultatif). `PreuveValidationId` : pièce jointe de la MEP qui prouve la
+                 *     validation par les utilisateurs (null si aucune, ou si la pièce a été supprimée).
+                 */
+                communication: {
+                    referenceDemande: string;
+                    /**
+                     * @description Niveau de risque retenu par l'analyse d'impact (section Communication). Stocké en entier : toute nouvelle valeur s'ajoute à la fin.
+                     * @enum {unknown}
+                     */
+                    niveauRisque: "NonEvalue" | "Faible" | "Modere" | "Eleve";
+                    benefices: string;
+                    utilisateursImpactes: string;
+                    arretApplicatif: boolean;
+                    actionUtilisateurs: string;
+                    /** Format: time */
+                    heureLimite: null | string;
+                    /** Format: date */
+                    dateAnnoncee: null | string;
+                    /** Format: time */
+                    heureDebutAnnoncee: null | string;
+                    /** Format: time */
+                    heureFinAnnoncee: null | string;
+                    valideeParUtilisateurs: boolean;
+                    valideePar: string;
+                    /** Format: date */
+                    valideeLe: null | string;
+                    /** Format: uuid */
+                    preuveValidationId: null | string;
+                };
+                /**
+                 * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+                 *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+                 *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+                 *     valeur par défaut, est la MEP complète.
+                 * @enum {unknown}
+                 */
+                type: "Complete" | "Simplifiee";
+                sections: {
+                    /** Format: uuid */
+                    id: string;
+                    /**
+                     * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+                     * @enum {unknown}
+                     */
+                    plan: "Deploiement" | "RetourArriere";
+                    titre: string;
+                    description: string;
+                    systemeIds: string[];
+                    /** Format: uuid */
+                    auteurId: null | string;
+                    auteur: null | string;
+                    /** Format: date-time */
+                    creeLe: string;
+                    placee: boolean;
+                    /** Format: int32 */
+                    revision: number;
+                    ports: {
+                        /** Format: uuid */
+                        id: string;
+                        /**
+                         * @description Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne).
+                         * @enum {unknown}
+                         */
+                        sens: "Entree" | "Sortie";
+                        titre: string;
+                        description: string;
+                        /** Format: int32 */
+                        ordre: number;
+                        etapes: string[];
+                        sources: string[];
+                    }[];
+                    /** Format: int32 */
+                    rang: number;
+                }[];
+            };
+            journal: {
+                /** Format: int64 */
+                id: number;
+                /** Format: date-time */
+                quand: string;
+                auteur: string;
+                type: string;
+                detail: string;
+                auteurLogin: null | string;
+            }[];
         };
         /** @description Réglage tel que l'affichent la console et la ligne de commande. */
         ReglageDto: {
@@ -8975,6 +9726,541 @@ export interface components {
         };
         /** @enum {unknown} */
         StatutSauvegarde: "ARenseigner" | "Requise" | "NonRequise" | null;
+        /**
+         * @description Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur
+         *     avancement par le navigateur ; MEP prévues aujourd'hui ou demain (date annoncée) et la prochaine à venir ; MEP clôturées
+         *     depuis moins de 24 heures. `Maintenant` : heure du serveur.
+         */
+        SuiviDto: {
+            enCours: {
+                /** Format: uuid */
+                id: string;
+                /** Format: int32 */
+                version: number;
+                outil: string;
+                versionActuelle: string;
+                versionCible: string;
+                objet: string;
+                impacts: string;
+                /** Format: date */
+                dateMep: null | string;
+                /** Format: time */
+                heureDebut: null | string;
+                /** Format: time */
+                heureFin: null | string;
+                fuseauHoraire: string;
+                /** Format: int32 */
+                indisponibiliteMinutes: null | number;
+                /** Format: uuid */
+                piloteId: null | string;
+                suppleantIds: string[];
+                /**
+                 * @description Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin.
+                 * @enum {unknown}
+                 */
+                phase: "Preparation" | "Execution" | "RetourArriere" | "Cloturee" | "Recette";
+                /** Format: date-time */
+                echeanceRepli: null | string;
+                /** @enum {unknown} */
+                issue: "Reussie" | "Repliee" | null;
+                /** @description `Par` vaut null quand le retour arrière s'est déclenché automatiquement. */
+                retourArriere: null | {
+                    /** Format: date-time */
+                    le: string;
+                    par: null | string;
+                    motif: string;
+                };
+                cloture: null | {
+                    /** Format: date-time */
+                    le: string;
+                    par: null | string;
+                };
+                planRepli: {
+                    quandDeclencher: string;
+                    /** Format: int32 */
+                    dureeTesteeMinutes: null | number;
+                    versionARestaurer: string;
+                    donneesDepuisSauvegarde: string;
+                    siRepliEchoue: string;
+                };
+                sauvegarde: {
+                    /**
+                     * @description Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée.
+                     * @enum {unknown}
+                     */
+                    mode: "AvantMep" | "PendantMep";
+                    structure: boolean;
+                    donnees: boolean;
+                    configuration: boolean;
+                    /** Format: uuid */
+                    responsableId: null | string;
+                    /** Format: date-time */
+                    realiseeLe: null | string;
+                    procedure: string;
+                    copies: string;
+                    restaurationTestee: boolean;
+                    /** Format: date */
+                    dateTestRestauration: null | string;
+                    preuveTestRestauration: string;
+                };
+                procedureRelue: null | {
+                    par: string;
+                    /** Format: date-time */
+                    le: string;
+                };
+                demarrageAutorise: null | {
+                    par: string;
+                    /** Format: date-time */
+                    le: string;
+                };
+                participants: {
+                    /** Format: uuid */
+                    id: string;
+                    nom: string;
+                    role: string;
+                    contact: string;
+                    /** Format: uuid */
+                    utilisateurId: null | string;
+                    utilisateurNom: null | string;
+                }[];
+                systemes: {
+                    /** Format: uuid */
+                    id: string;
+                    nom: string;
+                    cible: string;
+                    impact: string;
+                    /** Format: uuid */
+                    catalogueId: null | string;
+                    /** @description `Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan). */
+                    sauvegarde: {
+                        /**
+                         * @description Faut-il sauvegarder un système de la MEP ? À renseigner tant que personne n'a répondu.
+                         * @enum {unknown}
+                         */
+                        statut: "ARenseigner" | "Requise" | "NonRequise";
+                        /**
+                         * @description Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée.
+                         * @enum {unknown}
+                         */
+                        moment: "AvantMep" | "PendantMep";
+                        contenu: string;
+                        justification: string;
+                        emplacement: string;
+                        methodeRecuperation: string;
+                    };
+                    environnements: {
+                        nom: string;
+                        production: boolean;
+                    }[];
+                }[];
+                objetsImpactes: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    systemeId: null | string;
+                    /** Format: uuid */
+                    objetCatalogueId: null | string;
+                    categorie: string;
+                    type: string;
+                    nom: string;
+                    libelle: string;
+                    precision: string;
+                    version: string;
+                    repris: boolean;
+                }[];
+                etapes: {
+                    /** Format: uuid */
+                    id: string;
+                    /**
+                     * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+                     * @enum {unknown}
+                     */
+                    plan: "Deploiement" | "RetourArriere";
+                    code: string;
+                    /** Format: int32 */
+                    ligne: number;
+                    /** Format: int32 */
+                    ordre: number;
+                    action: string;
+                    systemeIds: string[];
+                    /** Format: uuid */
+                    responsableId: null | string;
+                    /** Format: uuid */
+                    executantId: null | string;
+                    /** @enum {unknown} */
+                    criticite: "Faible" | "Moderee" | "Elevee" | "Bloquante" | null;
+                    /** Format: int32 */
+                    dureeEstimeeMinutes: null | number;
+                    /** @enum {unknown} */
+                    etat: "AFaire" | "EnCours" | "Reussie" | "Echec";
+                    instructions: string;
+                    resultatAttendu: string;
+                    preuve: string;
+                    commentaire: string;
+                    /** Format: date-time */
+                    debutReel: null | string;
+                    /** Format: date-time */
+                    finReelle: null | string;
+                    /** Format: int32 */
+                    revision: number;
+                    dependances: string[];
+                    resolutionIds: string[];
+                    disponibilite: {
+                        /** @enum {unknown} */
+                        statut: "PlanInvalide" | "EcheanceARenseigner" | "RetourArriere" | "FicheACompleter" | "InstructionsACompleter" | "Attend" | "Terminee" | "EnCours" | "ArretResolution" | "ResolutionEnCours" | "SiRetourArriere" | "Disponible";
+                        libelle: string;
+                    };
+                    /**
+                     * @description Nature d'une étape de déploiement : standard, ou étape qui réalise la sauvegarde.
+                     * @enum {unknown}
+                     */
+                    type: "Standard" | "Sauvegarde";
+                    pointDeNonRetour: boolean;
+                    nonRetourAutorise: null | {
+                        par: string;
+                        /** Format: date-time */
+                        le: string;
+                    };
+                    /**
+                     * @description Fin d'une étape : test unitaire (le résultat attendu est l'instruction de test, le résultat constaté se saisit en
+                     *     terminant l'étape) ou simple vérification. Stockée en entier : 0, la valeur par défaut, est le test unitaire.
+                     * @enum {unknown}
+                     */
+                    fin: "TestUnitaire" | "Verification";
+                    resultatConstate: string;
+                    sauvegardeEmplacement: string;
+                    sauvegardeMethodeRecuperation: string;
+                    /** Format: uuid */
+                    modeleEtapeId: null | string;
+                    environnements: {
+                        /** Format: uuid */
+                        systemeId: string;
+                        nom: string;
+                    }[];
+                    /** Format: uuid */
+                    sectionId: null | string;
+                    dependancesDerivees: string[];
+                    portsAttendus: string[];
+                    /** Format: int32 */
+                    rang: number;
+                }[];
+                resolutions: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    etapeId: string;
+                    /** Format: uuid */
+                    resolutionTypeId: string;
+                    titre: string;
+                    symptomes: string;
+                    diagnostic: string;
+                    corrections: {
+                        /** Format: int32 */
+                        ordre: number;
+                        instruction: string;
+                        resultatAttendu: string;
+                        /** @enum {unknown} */
+                        resultat: "Conforme" | "Echec" | null;
+                        observation: string;
+                        par: null | string;
+                        /** Format: date-time */
+                        le: null | string;
+                    }[];
+                    verificationInstruction: string;
+                    verificationAttendu: string;
+                    /** @enum {unknown} */
+                    verificationResultat: "Conforme" | "Echec" | null;
+                    verificationObservation: string;
+                    /** @enum {unknown} */
+                    statut: "EnCours" | "Reussie" | "Echouee";
+                    demarreePar: string;
+                    /** Format: date-time */
+                    demarreeLe: string;
+                    /** Format: date-time */
+                    termineeLe: null | string;
+                }[];
+                erreursPlan: string[];
+                droits: {
+                    estPilote: boolean;
+                    peutModifierPlan: boolean;
+                    /** Format: uuid */
+                    participantId: null | string;
+                    estApprobateur: boolean;
+                    estResponsableTechnique: boolean;
+                    peutEditerContenu: boolean;
+                };
+                estModele: boolean;
+                /** Format: int32 */
+                approbationsMinimum: number;
+                approbations: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    utilisateurId: string;
+                    nom: string;
+                    /** @enum {unknown} */
+                    decision: "Approuvee" | "Refusee" | null;
+                    commentaire: string;
+                    /** Format: date-time */
+                    le: null | string;
+                }[];
+                goNoGo: {
+                    libelle: string;
+                    par: null | string;
+                    /** Format: date-time */
+                    le: string;
+                }[];
+                fichesRecette: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: int32 */
+                    ordre: number;
+                    /** Format: uuid */
+                    systemeId: null | string;
+                    titre: string;
+                    etapes: {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: int32 */
+                        ordre: number;
+                        instructions: string;
+                        resultatAttendu: string;
+                        /** @enum {unknown} */
+                        resultat: "Conforme" | "Echec" | null;
+                        observation: string;
+                        par: null | string;
+                        /** Format: date-time */
+                        le: null | string;
+                        /** @description Validation reportée d'un fichier Excel : nom saisi par le métier (« » sinon) ; `Par` est alors le compte qui a importé. */
+                        valideePar: string;
+                        /**
+                         * Format: date
+                         * @description Validation reportée d'un fichier Excel : date indiquée dans le fichier.
+                         */
+                        valideeLe: null | string;
+                    }[];
+                }[];
+                bilanActive: boolean;
+                bilan: null | {
+                    ceQuiAMarche: string;
+                    incidents: string;
+                    actions: string;
+                    redigePar: null | string;
+                    /** Format: date-time */
+                    le: null | string;
+                };
+                nonRetourFranchi: null | string;
+                piecesJointes: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    mepId: null | string;
+                    /** Format: uuid */
+                    etapeId: null | string;
+                    /** Format: uuid */
+                    resolutionTypeId: null | string;
+                    /** Format: uuid */
+                    executionResolutionId: null | string;
+                    nomFichier: string;
+                    typeContenu: string;
+                    /** Format: int64 */
+                    taille: number;
+                    sha256: string;
+                    /** Format: uuid */
+                    deposeParId: null | string;
+                    deposePar: null | string;
+                    /** Format: date-time */
+                    deposeLe: string;
+                }[];
+                responsablesTechniques: {
+                    /** Format: uuid */
+                    participantId: string;
+                    systemeIds: string[];
+                    perimetre: string;
+                    /**
+                     * @description Disponibilité d'un responsable technique le jour de la MEP.
+                     * @enum {unknown}
+                     */
+                    disponibilite: "Joignable" | "Absent";
+                    contactJourJ: string;
+                }[];
+                avertissements: string[];
+                retourArriereActive: boolean;
+                /**
+                 * @description Section Communication de la MEP (tout est facultatif). `PreuveValidationId` : pièce jointe de la MEP qui prouve la
+                 *     validation par les utilisateurs (null si aucune, ou si la pièce a été supprimée).
+                 */
+                communication: {
+                    referenceDemande: string;
+                    /**
+                     * @description Niveau de risque retenu par l'analyse d'impact (section Communication). Stocké en entier : toute nouvelle valeur s'ajoute à la fin.
+                     * @enum {unknown}
+                     */
+                    niveauRisque: "NonEvalue" | "Faible" | "Modere" | "Eleve";
+                    benefices: string;
+                    utilisateursImpactes: string;
+                    arretApplicatif: boolean;
+                    actionUtilisateurs: string;
+                    /** Format: time */
+                    heureLimite: null | string;
+                    /** Format: date */
+                    dateAnnoncee: null | string;
+                    /** Format: time */
+                    heureDebutAnnoncee: null | string;
+                    /** Format: time */
+                    heureFinAnnoncee: null | string;
+                    valideeParUtilisateurs: boolean;
+                    valideePar: string;
+                    /** Format: date */
+                    valideeLe: null | string;
+                    /** Format: uuid */
+                    preuveValidationId: null | string;
+                };
+                /**
+                 * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+                 *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+                 *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+                 *     valeur par défaut, est la MEP complète.
+                 * @enum {unknown}
+                 */
+                type: "Complete" | "Simplifiee";
+                sections: {
+                    /** Format: uuid */
+                    id: string;
+                    /**
+                     * @description Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.
+                     * @enum {unknown}
+                     */
+                    plan: "Deploiement" | "RetourArriere";
+                    titre: string;
+                    description: string;
+                    systemeIds: string[];
+                    /** Format: uuid */
+                    auteurId: null | string;
+                    auteur: null | string;
+                    /** Format: date-time */
+                    creeLe: string;
+                    placee: boolean;
+                    /** Format: int32 */
+                    revision: number;
+                    ports: {
+                        /** Format: uuid */
+                        id: string;
+                        /**
+                         * @description Sens d'un cercle de section : entrée (bord haut, ce que la section attend) ou sortie (bord bas, ce qu'elle donne).
+                         * @enum {unknown}
+                         */
+                        sens: "Entree" | "Sortie";
+                        titre: string;
+                        description: string;
+                        /** Format: int32 */
+                        ordre: number;
+                        etapes: string[];
+                        sources: string[];
+                    }[];
+                    /** Format: int32 */
+                    rang: number;
+                }[];
+            }[];
+            prevues: {
+                /** Format: uuid */
+                id: string;
+                outil: string;
+                versionCible: string;
+                /**
+                 * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+                 *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+                 *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+                 *     valeur par défaut, est la MEP complète.
+                 * @enum {unknown}
+                 */
+                type: "Complete" | "Simplifiee";
+                /** Format: date */
+                date: string;
+                /** Format: time */
+                heure: null | string;
+                /** Format: date-time */
+                debut: string;
+                fuseauHoraire: string;
+                pilote: null | string;
+            }[];
+            /** @description MEP en préparation au créneau annoncé (Communication) ; `Debut` : date et heure annoncées (minuit sans heure). */
+            prochaine: null | {
+                /** Format: uuid */
+                id: string;
+                outil: string;
+                versionCible: string;
+                /**
+                 * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+                 *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+                 *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+                 *     valeur par défaut, est la MEP complète.
+                 * @enum {unknown}
+                 */
+                type: "Complete" | "Simplifiee";
+                /** Format: date */
+                date: string;
+                /** Format: time */
+                heure: null | string;
+                /** Format: date-time */
+                debut: string;
+                fuseauHoraire: string;
+                pilote: null | string;
+            };
+            cloturees: {
+                /** Format: uuid */
+                id: string;
+                outil: string;
+                versionCible: string;
+                /**
+                 * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+                 *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+                 *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+                 *     valeur par défaut, est la MEP complète.
+                 * @enum {unknown}
+                 */
+                type: "Complete" | "Simplifiee";
+                /** @enum {unknown} */
+                issue: "Reussie" | "Repliee" | null;
+                /** Format: date-time */
+                clotureeLe: string;
+                pilote: null | string;
+            }[];
+            /** Format: date-time */
+            maintenant: string;
+        };
+        /**
+         * @description Chiffres du rapport : étapes du déploiement, Go et fin de l'exécution du déploiement (dernière étape terminée), durées réelle
+         *     et prévue (plus long chemin des durées estimées, 0 sans durées), échecs d'étape (tous plans) et ceux repris avec succès,
+         *     résolutions exécutées, tests de recette, retour arrière déclenché.
+         */
+        SyntheseRapportDto: {
+            /** Format: int32 */
+            etapes: number;
+            /** Format: int32 */
+            etapesReussies: number;
+            /** Format: date-time */
+            go: null | string;
+            /** Format: date-time */
+            finDeploiement: null | string;
+            /** Format: int32 */
+            dureeReelleMinutes: null | number;
+            /** Format: int32 */
+            dureePrevueMinutes: number;
+            /** Format: int32 */
+            echecs: number;
+            /** Format: int32 */
+            echecsRepris: number;
+            /** Format: int32 */
+            resolutions: number;
+            /** Format: int32 */
+            recetteTests: number;
+            /** Format: int32 */
+            recetteConformes: number;
+            /** Format: int32 */
+            recetteEchecs: number;
+            retourArriere: boolean;
+        };
         /**
          * @description Système du catalogue : `Environnements` et `Categories` (dans l'ordre de la fiche), `NbObjets` connus
          *     (le détail : `GET /catalogue/systemes/{id}/objets`).

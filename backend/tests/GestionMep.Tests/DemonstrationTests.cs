@@ -194,13 +194,13 @@ public class DemonstrationTests : IDisposable
         Assert.Empty((await Mep(DonneesDemo.OutilPrete)).GetProperty("erreursPlan").EnumerateArray());
         var execution = await Mep(DonneesDemo.OutilExecution);
         Assert.Equal("En cours", Dispo(execution, "E0004"));
-        Assert.Equal("Arrêt / résolution", Dispo(execution, "E0005"));
+        Assert.Equal("Résolution en cours", Dispo(execution, "E0005"));
         var recette = await Mep(DonneesDemo.OutilRecette);
         Assert.Equal("Reussie", Assert.Single(recette.GetProperty("resolutions").EnumerateArray()).GetProperty("statut").GetString());
         var repli = await Mep(DonneesDemo.OutilRetourArriere);
         Assert.Equal(JsonValueKind.Null, repli.GetProperty("retourArriere").GetProperty("par").ValueKind);
         Assert.Equal("En cours", Dispo(repli, "R0002"));
-        Assert.Equal("Rien à signaler.", (await Mep(DonneesDemo.OutilReussie)).GetProperty("bilan").GetProperty("incidents").GetString());
+        Assert.StartsWith("E0003 en échec", (await Mep(DonneesDemo.OutilReussie)).GetProperty("bilan").GetProperty("incidents").GetString());
 
         // Journal de chaque MEP lisible, et aucun retour arrière déclenché par l'échéance à l'ouverture.
         foreach (var m in liste)

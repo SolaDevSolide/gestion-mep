@@ -69,6 +69,7 @@ builder.Services.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = true)
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<DiffuseurMep>();
 builder.Services.AddScoped<ServiceMep>();
+builder.Services.AddScoped<RapportsFin>();
 builder.Services.AddSingleton<SimulationDemo>();
 // Pièces jointes : dossier Stockage:Dossier, taille maximale Stockage:TailleMaxMo (réglage modifiable : le formulaire est
 // accepté jusqu'au plafond du réglage, la limite en cours est appliquée à chaque dépôt).
@@ -144,6 +145,7 @@ api.MapResolutions();
 api.MapDeroule();
 api.MapRecette();
 api.MapExportsExcel();
+api.MapSuivi();
 api.MapEtapesModeles();
 api.MapParametres();
 api.MapAdmin();

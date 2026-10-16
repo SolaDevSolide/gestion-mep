@@ -1,16 +1,41 @@
-import { mep } from '../test/fabrique';
-import { estAncienneAdresse, lireVue, parametresVue, sousOngletsVisibles, vueParDefaut } from './onglets';
+import { etape, mep } from '../test/fabrique';
+import { estAncienneAdresse, executeLaMep, lireVue, parametresVue, sousOngletsVisibles, vueParDefaut } from './onglets';
 
 const p = (s: string) => new URLSearchParams(s);
 
 describe('Onglets d’une MEP', () => {
   it('ouvre la vue qui suit la phase', () => {
     expect(vueParDefaut(mep({ phase: 'Preparation' }))).toEqual({ onglet: 'preparation', sous: 'etapes' });
-    expect(vueParDefaut(mep({ phase: 'Execution' }))).toEqual({ onglet: 'execution', sous: 'etapes' });
+    // p1 (la personne qui ouvre) est pilote : elle exécute la MEP.
+    expect(vueParDefaut(mep({ phase: 'Execution', piloteId: 'p1' }))).toEqual({ onglet: 'execution', sous: 'etapes' });
     expect(vueParDefaut(mep({ phase: 'Recette' }))).toEqual({ onglet: 'plan', sous: 'recette' });
-    expect(vueParDefaut(mep({ phase: 'RetourArriere' }))).toEqual({ onglet: 'plan', sous: 'retour' });
+    expect(vueParDefaut(mep({ phase: 'RetourArriere', piloteId: 'p1' }))).toEqual({ onglet: 'plan', sous: 'retour' });
     expect(vueParDefaut(mep({ phase: 'Cloturee', issue: 'Repliee' }))).toEqual({ onglet: 'plan', sous: 'retour' });
     expect(vueParDefaut(mep({ phase: 'Cloturee', issue: 'Reussie' }))).toEqual({ onglet: 'execution', sous: 'etapes' });
+  });
+
+  it('pendant l’exécution, ouvre la vue d’ensemble à qui n’exécute aucune étape (#61)', () => {
+    const deploiement = etape({ id: 'e1', plan: 'Deploiement', responsableId: 'p2', executantId: null });
+    const enCours = mep({ phase: 'Execution', etapes: [deploiement] });
+    expect(vueParDefaut(enCours).onglet).toBe('ensemble');
+    expect(executeLaMep(enCours)).toBe(false);
+    // Responsable d'une étape à venir, exécutant d'une étape démarrée, ou pilote : l'exécution.
+    expect(vueParDefaut({ ...enCours, etapes: [{ ...deploiement, responsableId: 'p1' }] }).onglet).toBe('execution');
+    expect(vueParDefaut({ ...enCours, etapes: [{ ...deploiement, executantId: 'p1' }] }).onglet).toBe('execution');
+    // Retour arrière : seules comptent les étapes du plan de retour arrière.
+    const repli = mep({ phase: 'RetourArriere', etapes: [{ ...deploiement, responsableId: 'p1' }] });
+    expect(vueParDefaut(repli).onglet).toBe('ensemble');
+    expect(
+      vueParDefaut({ ...repli, etapes: [{ ...deploiement, plan: 'RetourArriere', responsableId: 'p1' }] }),
+    ).toEqual({
+      onglet: 'plan',
+      sous: 'retour',
+    });
+    // Personne qui n'est pas participante.
+    expect(vueParDefaut({ ...enCours, droits: { ...enCours.droits, participantId: null } }).onglet).toBe('ensemble');
+    // La vue d'ensemble se demande par l'adresse, sauf pour un modèle.
+    expect(lireVue(p('onglet=ensemble'), mep({ phase: 'Preparation' })).onglet).toBe('ensemble');
+    expect(lireVue(p('onglet=ensemble'), mep({ estModele: true, phase: 'Preparation' })).onglet).toBe('preparation');
   });
 
   it('mène les anciennes adresses au bon sous-onglet de Plan', () => {
@@ -44,7 +69,7 @@ describe('Onglets d’une MEP', () => {
       retourArriere: { le: '2026-10-09T21:00:00Z', par: 'Alice', motif: 'Échec' },
     });
     expect(sousOngletsVisibles(declenche)).toEqual(['etapes', 'retour', 'recette']);
-    expect(vueParDefaut(declenche)).toEqual({ onglet: 'plan', sous: 'retour' });
+    expect(vueParDefaut({ ...declenche, piloteId: 'p1' })).toEqual({ onglet: 'plan', sous: 'retour' });
   });
 
   it('écrit l’adresse d’une vue en gardant les autres paramètres si demandé', () => {

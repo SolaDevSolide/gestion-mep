@@ -74,6 +74,8 @@
 
 **Preuve** : ce que l'exécutant a constaté en terminant une étape.
 
+**Rapport de fin** : compte rendu figé à la clôture d'une MEP : vue d'ensemble, points bloquants, résolutions, tests unitaires, qui a fait quoi, bilan, annexes. Exportable en Excel et en PDF. Voir [Suivre une MEP](Suivre-une-MEP.md#rapport-de-fin).
+
 **Recette** : phase de vérification après le déploiement, avant la clôture.
 
 **Résolution type** : fiche de dépannage réutilisable (symptômes, diagnostic, corrections, vérification finale) liée aux étapes qui peuvent échouer.
@@ -88,6 +90,10 @@
 
 **Suppléant** : remplaçant du pilote, avec les mêmes droits. Dans une MEP simplifiée, toutes les personnes sauf le pilote le sont.
 
+**Suivi en direct** : tableau de bord de toutes les MEP lancées, avec les MEP prévues aujourd'hui et demain et celles clôturées dans les dernières 24 heures. Voir [Suivre une MEP](Suivre-une-MEP.md#suivi-en-direct).
+
 **Système** : composant touché par la MEP (base de données, API, portail web…).
 
 **Test unitaire** : fin d'une étape par défaut. Le résultat attendu est l'instruction de test ; le résultat constaté est saisi en terminant l'étape.
+
+**Vue d'ensemble** : premier onglet d'une MEP : chiffres clés, fin estimée, plan coloré par état, blocages et qui fait quoi, en lecture seule. Voir [Suivre une MEP](Suivre-une-MEP.md#vue-densemble-dune-mep).

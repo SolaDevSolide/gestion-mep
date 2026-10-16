@@ -14,6 +14,8 @@ const AdminPage = lazy(() => import('./admin/AdminPage'));
 const ListeMepPage = lazy(() => import('./pages/ListeMepPage'));
 const ProfilPage = lazy(() => import('./pages/ProfilPage'));
 const MepPage = lazy(() => import('./pages/MepPage'));
+const SuiviPage = lazy(() => import('./pages/SuiviPage'));
+const RapportPage = lazy(() => import('./pages/RapportPage'));
 const GoNoGoPage = lazy(() => import('./parametres/GoNoGoPage'));
 const NouvelleResolutionPage = lazy(() => import('./parametres/NouvelleResolutionPage'));
 const ResolutionsPage = lazy(() => import('./parametres/ResolutionsPage'));
@@ -56,7 +58,9 @@ export default function App() {
         <Route path="/connexion" element={<ConnexionPage />} />
         <Route element={<Protege />}>
           <Route path="/" element={<ListeMepPage />} />
+          <Route path="/suivi" element={<SuiviPage />} />
           <Route path="/meps/:id" element={<MepPage />} />
+          <Route path="/meps/:id/rapport" element={<RapportPage />} />
           <Route path="/profil" element={<ProfilPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/parametres/systemes" element={<SystemesPage />} />

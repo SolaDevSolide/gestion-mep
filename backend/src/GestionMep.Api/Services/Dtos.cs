@@ -208,6 +208,45 @@ public record VariablesMepDto(Guid? EquipeId, Guid? EquipeProposeeId, List<Valeu
 /// <summary><c>AuteurLogin</c> : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte supprimé.</summary>
 public record EvenementDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail, string? AuteurLogin);
 
+// ---------- Suivi en direct et rapport de fin (#61) ----------
+
+/// <summary>
+/// Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur
+/// avancement par le navigateur ; MEP prévues aujourd'hui ou demain (date annoncée) et la prochaine à venir ; MEP clôturées
+/// depuis moins de 24 heures. <c>Maintenant</c> : heure du serveur.
+/// </summary>
+public record SuiviDto(List<MepDto> EnCours, List<MepPrevueDto> Prevues, MepPrevueDto? Prochaine, List<MepClotureeDto> Cloturees,
+    DateTimeOffset Maintenant);
+
+/// <summary>MEP en préparation au créneau annoncé (Communication) ; <c>Debut</c> : date et heure annoncées (minuit sans heure).</summary>
+public record MepPrevueDto(Guid Id, string Outil, string VersionCible, TypeMep Type, DateOnly Date, TimeOnly? Heure, DateTimeOffset Debut,
+    string FuseauHoraire, string? Pilote);
+
+public record MepClotureeDto(Guid Id, string Outil, string VersionCible, TypeMep Type, IssueMep? Issue, DateTimeOffset ClotureeLe, string? Pilote);
+
+/// <summary>
+/// Rapport de fin d'une MEP, figé à la clôture (<c>FigeLe</c>) ou, pour une MEP clôturée avant son existence, à la première
+/// demande (<c>CalculeApres</c>). <c>Mep</c> et <c>Journal</c> (du plus récent au plus ancien) sont ceux du moment où il a été figé.
+/// </summary>
+public record RapportFinDto(Guid MepId, DateTimeOffset FigeLe, bool CalculeApres, SyntheseRapportDto Synthese, List<PointBloquantDto> PointsBloquants,
+    TestsUnitairesDto TestsUnitaires, MepDto Mep, List<EvenementDto> Journal);
+
+/// <summary>
+/// Chiffres du rapport : étapes du déploiement, Go et fin de l'exécution du déploiement (dernière étape terminée), durées réelle
+/// et prévue (plus long chemin des durées estimées, 0 sans durées), échecs d'étape (tous plans) et ceux repris avec succès,
+/// résolutions exécutées, tests de recette, retour arrière déclenché.
+/// </summary>
+public record SyntheseRapportDto(int Etapes, int EtapesReussies, DateTimeOffset? Go, DateTimeOffset? FinDeploiement, int? DureeReelleMinutes,
+    int DureePrevueMinutes, int Echecs, int EchecsRepris, int Resolutions, int RecetteTests, int RecetteConformes, int RecetteEchecs,
+    bool RetourArriere);
+
+/// <summary>
+/// Échec d'une étape pendant l'exécution, tiré du journal : motif, résolution lancée ensuite (la dernière avant la reprise),
+/// reprise de l'étape et sa réussite. <c>ArretMinutes</c> : de l'échec au redémarrage de l'étape.
+/// </summary>
+public record PointBloquantDto(TypePlan Plan, string Code, string Action, DateTimeOffset EchecLe, string Par, string Motif, string? Resolution,
+    StatutResolution? StatutResolution, int? DureeResolutionMinutes, DateTimeOffset? RepriseLe, DateTimeOffset? RepriseReussieLe, int? ArretMinutes);
+
 /// <summary>
 /// Personne qui a la MEP ouverte (flux temps réel connecté) et éléments sur lesquels elle travaille, tous onglets confondus :
 /// <c>etape:{id}</c>, <c>preparation:{section}</c>, <c>recette:{idFiche}</c>, <c>retour:fiche</c>…

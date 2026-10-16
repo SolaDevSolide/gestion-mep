@@ -130,6 +130,8 @@ interface Props {
   onPlein?: (plein: boolean) => void;
   /** « Optimiser les liens » : liens (tels que le serveur les connaît) qui seront retirés, en rouge en attendant la confirmation. */
   retraits?: ReadonlyArray<{ de: string; vers: string }> | null;
+  /** Vue d'ensemble (#61) : cartes et sections colorées par état, étapes bloquées ; mini-carte masquée par défaut. */
+  ensemble?: { bloquees: ReadonlyMap<string, Etape[]> } | null;
   /** Création depuis une étape modèle, proposée avec « Étape vierge » dans chaque menu de création. */
   creation?: {
     /** Les plus utilisées pour les systèmes de la MEP. */
@@ -251,11 +253,15 @@ function useHauteurDisponible(ref: RefObject<HTMLElement | null>, actif: boolean
   return hauteur;
 }
 
-function lireMiniCarte(): boolean {
+/** Préférence de mini-carte : affichée par défaut, sauf dans la vue d'ensemble (#61), qui a sa propre préférence. */
+const cleMiniCarte = (ensemble: boolean) => (ensemble ? 'graphe.miniCarte.ensemble' : 'graphe.miniCarte');
+
+function lireMiniCarte(ensemble: boolean): boolean {
   try {
-    return window.localStorage.getItem('graphe.miniCarte') !== 'non';
+    const v = window.localStorage.getItem(cleMiniCarte(ensemble));
+    return ensemble ? v === 'oui' : v !== 'non';
   } catch {
-    return true;
+    return !ensemble;
   }
 }
 
@@ -342,11 +348,11 @@ function Graphe(props: Props) {
     window.addEventListener('keydown', echap);
     return () => window.removeEventListener('keydown', echap);
   }, [plein, setPlein]);
-  const [miniCarte, setMiniCarte] = useState(lireMiniCarte);
+  const [miniCarte, setMiniCarte] = useState(() => lireMiniCarte(!!props.ensemble));
   const basculerMiniCarte = () =>
     setMiniCarte((v) => {
       try {
-        window.localStorage.setItem('graphe.miniCarte', v ? 'non' : 'oui');
+        window.localStorage.setItem(cleMiniCarte(!!props.ensemble), v ? 'non' : 'oui');
       } catch {
         /* préférence non mémorisée */
       }
@@ -1147,6 +1153,7 @@ function Graphe(props: Props) {
       },
       onEditerSection: actions.editerSection,
       onOuvrirCercle: actions.ouvrirCercle,
+      ensemble: props.ensemble ?? null,
     }),
     [
       mep,
@@ -1168,6 +1175,7 @@ function Graphe(props: Props) {
       estEstompee,
       onSelection,
       actions,
+      props.ensemble,
       onBasculer,
       deplies,
       code,

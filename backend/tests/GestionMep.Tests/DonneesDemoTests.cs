@@ -148,7 +148,8 @@ public class DonneesDemoTests
         Assert.Equal("Terminée", Dispo(m, "E0001"));
         Assert.Equal("Terminée", Dispo(m, "E0003"));
         Assert.Equal("En cours", Dispo(m, "E0004"));
-        Assert.Equal("Arrêt / résolution", Dispo(m, "E0005"));
+        // Claire applique la résolution type de la purge du cache CDN (une correction faite, vérification à faire).
+        Assert.Equal("Résolution en cours", Dispo(m, "E0005"));
         Assert.NotEmpty(E(m, "E0005").ResolutionIds);
         Assert.NotEmpty(E(m, "E0005").Commentaire);
         var pnr = E(m, "E0006");
@@ -157,7 +158,12 @@ public class DonneesDemoTests
         Assert.False(Regles.NonRetourFranchi(m));
         Assert.StartsWith("Attend", Dispo(m, "E0006"));
         Assert.Equal(Bob, m.Participants.Single(p => p.Id == E(m, "E0004").ExecutantId).UtilisateurId);
-        Assert.Empty(m.Resolutions);
+        var resolution = Assert.Single(m.Resolutions);
+        Assert.Equal((StatutResolution.EnCours, E(m, "E0005").Id), (resolution.Statut, resolution.EtapeId));
+        // Deux étapes en cours (Bob dépasse sa durée), le plan rangé en cinq sections.
+        Assert.Equal(["E0004", "E0009"], m.Etapes.Where(e => e.Etat == EtatEtape.EnCours).Select(e => e.Code).Order());
+        Assert.Equal(5, m.Sections.Count);
+        Assert.All(m.Etapes.Where(e => e.Plan == TypePlan.Deploiement && e.Code != "E0006"), e => Assert.NotNull(e.SectionId));
     }
 
     [Fact]

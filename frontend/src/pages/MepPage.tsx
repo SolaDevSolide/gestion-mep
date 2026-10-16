@@ -24,6 +24,7 @@ import {
 import PreparationTab from '../mep/PreparationTab';
 import RecetteTab from '../mep/RecetteTab';
 import RetourArriereTab from '../mep/RetourArriereTab';
+import VueEnsembleTab from '../mep/ensemble/VueEnsembleTab';
 import {
   libellePriseDeMain,
   lireVerrous,
@@ -342,6 +343,18 @@ export default function MepPage() {
               onglets={
                 <>
                   <TabsList aria-label="Sections de la MEP">
+                    {!mep.estModele && (
+                      <TabsTrigger value="ensemble">
+                        Vue d’ensemble
+                        {mep.phase !== 'Preparation' && mep.phase !== 'Cloturee' && (
+                          <span
+                            className="size-2 animate-pulse rounded-full bg-ok-solid"
+                            role="img"
+                            aria-label="En direct"
+                          />
+                        )}
+                      </TabsTrigger>
+                    )}
                     <TabsTrigger value="preparation">Préparation</TabsTrigger>
                     <TabsTrigger value="plan">
                       Plan
@@ -404,9 +417,12 @@ export default function MepPage() {
               </div>
             )}
 
-            {mep.phase === 'Cloturee' && mep.bilan && <BilanCarte bilan={mep.bilan} />}
+            {mep.phase === 'Cloturee' && mep.bilan && <BilanCarte bilan={mep.bilan} mepId={mep.id} />}
 
             <div className="flex-1">
+              <TabsContent value="ensemble" className="outline-none">
+                <VueEnsembleTab />
+              </TabsContent>
               <TabsContent value="preparation" className="outline-none">
                 <PreparationTab />
               </TabsContent>

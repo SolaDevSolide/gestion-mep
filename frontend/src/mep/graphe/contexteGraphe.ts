@@ -43,6 +43,8 @@ export interface ValeurGraphe {
   onBasculer: (sectionId: string) => void;
   onEditerSection?: (sectionId: string) => void;
   onOuvrirCercle?: (cercleId: string) => void;
+  /** Vue d'ensemble (#61) : lecture seule, cartes et sections colorées par état ; étapes bloquées et leurs causes. */
+  ensemble?: { bloquees: ReadonlyMap<string, Etape[]> } | null;
 }
 
 export const ContexteGraphe = createContext<ValeurGraphe | null>(null);

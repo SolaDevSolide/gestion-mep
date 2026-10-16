@@ -1,10 +1,11 @@
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { formatDateHeure } from '../format';
 import type { Bilan } from '../types';
 import { Card, CardHeader } from '../ui/Card';
 
-/** Bilan de clôture, affiché en tête d'une MEP clôturée. */
-export function BilanCarte({ bilan }: { bilan: Bilan }) {
+/** Bilan de clôture, affiché en tête d'une MEP clôturée, avec le lien vers son rapport de fin (#61). */
+export function BilanCarte({ bilan, mepId }: { bilan: Bilan; mepId?: string }) {
   const blocs: [string, string][] = [
     ['Ce qui a marché', bilan.ceQuiAMarche],
     ['Incidents', bilan.incidents],
@@ -23,6 +24,17 @@ export function BilanCarte({ bilan }: { bilan: Bilan }) {
           bilan.redigePar
             ? `Rédigé par ${bilan.redigePar}${bilan.le ? ` le ${formatDateHeure(bilan.le)}` : ''}`
             : undefined
+        }
+        action={
+          mepId && (
+            <Link
+              to={`/meps/${mepId}/rapport`}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-[13px] font-medium shadow-sm hover:bg-surface-2"
+            >
+              <FileText className="size-4" aria-hidden />
+              Rapport de fin
+            </Link>
+          )
         }
       />
       <dl className="grid gap-x-8 gap-y-4 p-5 md:grid-cols-3">

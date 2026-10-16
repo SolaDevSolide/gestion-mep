@@ -18,8 +18,9 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 
 | Dossier               | Contenu                                                                                                                                      |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/pages`           | Pages : connexion, liste des MEP, une MEP, profil                                                                                            |
+| `src/pages`           | Pages : connexion, liste des MEP, une MEP, Suivi en direct, rapport de fin, profil                                                           |
 | `src/mep`             | Onglets et dialogues d'une MEP (préparation, plan : étapes, retour arrière, recette ; exécution, journal ; `onglets.ts`)                     |
+| `src/mep/ensemble`    | Vue d'ensemble d'une MEP et calculs du suivi (états, étapes bloquées, fin estimée, ordre du tableau de bord) dans `calculs.ts`               |
 | `src/mep/graphe`      | Graphe libre des étapes (React Flow, rangement ELK), sections, verrou d'édition d'une étape ; appels de l'API du graphe dans `apiGraphe.ts`  |
 | `src/mep/preparation` | Sections de l'onglet Préparation                                                                                                             |
 | `src/parametres`      | Paramètres globaux : catalogue des systèmes, résolutions types, bibliothèques d'étapes et de recettes, critères go / no-go, modèles de texte |

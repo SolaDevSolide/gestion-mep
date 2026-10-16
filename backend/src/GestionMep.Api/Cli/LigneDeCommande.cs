@@ -100,7 +100,8 @@ public static partial class LigneDeCommande
                                                               --excel : la liste filtrée en classeur Excel
           gestion-mep meps exporter <id> [fichier.json|-]     MEP complète et son journal, en JSON (archive, audit)
           gestion-mep meps excel <id> <vue> [fichier.xlsx]    Une vue de la MEP en classeur Excel : preparation, etapes,
-                                                              retour-arriere, recette, objets ou journal
+                                                              retour-arriere, recette, objets, journal, ou rapport (rapport
+                                                              de fin d'une MEP clôturée, figé à la clôture)
           gestion-mep journal [--depuis AAAA-MM-JJ] [--limite n]
                                                               Journal d'administration (200 derniers événements par défaut)
 

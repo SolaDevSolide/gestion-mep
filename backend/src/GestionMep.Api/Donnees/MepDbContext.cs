@@ -63,6 +63,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<IdentiteExterne> IdentitesExternes => Set<IdentiteExterne>();
     public DbSet<Equipe> Equipes => Set<Equipe>();
     public DbSet<ModeleTexte> ModelesTexte => Set<ModeleTexte>();
+    public DbSet<RapportFin> RapportsFin => Set<RapportFin>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -237,6 +238,14 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         {
             e.HasOne<Mep>().WithMany().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.MepId, x.Id });
+        });
+
+        // Rapport de fin figé à la clôture : un par MEP, supprimé avec elle.
+        b.Entity<RapportFin>(e =>
+        {
+            e.HasKey(x => x.MepId);
+            e.Property(x => x.Contenu).HasColumnType("jsonb");
+            e.HasOne<Mep>().WithOne().HasForeignKey<RapportFin>(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<EvenementAdmin>(e =>
