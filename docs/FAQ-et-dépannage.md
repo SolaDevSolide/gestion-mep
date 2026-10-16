@@ -39,7 +39,10 @@ Quelqu'un d'autre a enregistré cette section pendant que vous la modifiiez. « 
 Un formulaire de la vue a des modifications non enregistrées, listées dans la fenêtre. « Rester » permet de les enregistrer d'abord ; « Quitter sans enregistrer » les abandonne.
 
 **Un bandeau propose une nouvelle version de l'application.**
-L'application a été mise à jour sur le serveur : cliquer « Recharger ».
+L'application a été mise à jour sur le serveur (nouveau numéro de version, ou nouvelle construction de l'interface, par exemple une image reconstruite depuis une branche) : cliquer « Recharger ». Un onglet resté ouvert garde sinon l'ancienne interface.
+
+**Après avoir reconstruit l'image, l'application semble inchangée.**
+`docker compose up -d` réutilise l'image déjà construite : reconstruire avec `docker compose up -d --build` (ou `docker compose build app` puis `docker compose up -d`), puis recharger la page (le bandeau ci-dessus le propose aussi dans les onglets ouverts).
 
 ## Connexion
 
