@@ -63,7 +63,7 @@ import { sautsSansJonctions } from './routageBordure';
 import { SqueletteGraphe } from './SqueletteGraphe';
 import { infoSection, type Section } from './sections';
 import { useHauteurDisponible } from './hauteurDisponible';
-import { hoteMesure, mesuresManquantes, PREFIXE_MESURE, vueMontrant } from './mesuresGraphe';
+import { hoteMesure, mesuresManquantes, PREFIXE_MESURE, tailleRetenue, vueMontrant } from './mesuresGraphe';
 import { useRangement } from './useRangement';
 
 export const ZOOM_MIN = 0.25;
@@ -295,6 +295,9 @@ function Graphe(props: Props) {
     () => construireModele({ etapes, sections, deplies, sectionVue }),
     [etapes, sections, deplies, sectionVue],
   );
+  const noeudsModele = useMemo(() => new Map(modele.noeuds.map((n) => [n.id, n])), [modele]);
+  const modeleParId = useRef(noeudsModele);
+  modeleParId.current = noeudsModele;
 
   // ---------- Cadre : hauteur de la fenêtre, plein écran.
   const cadre = useRef<HTMLDivElement>(null);
@@ -372,9 +375,6 @@ function Graphe(props: Props) {
   }, []);
   // Nœuds apparus, cachés jusqu'à la fin du mouvement, puis montrés en fondu.
   const cachesRef = useRef(new Set<string>());
-  // Mouvement en cours : les tailles animées des sections et des cadres ne sont pas des mesures (sinon une section repliée
-  // garderait la largeur de son cadre).
-  const mouvementRef = useRef(false);
   // Rangement des nœuds affichés (cercles sur le bord des sections repliées) : celui du mouvement en cours, pas un rangement
   // arrivé pendant qu'on mesure encore les nœuds apparus.
   const [rangeVisible, setRangeVisible] = useState(range);
@@ -498,7 +498,6 @@ function Graphe(props: Props) {
     window.cancelAnimationFrame(animation.current ?? 0);
     window.clearTimeout(phase.current);
     montage.current = null;
-    mouvementRef.current = false;
     // Premier rangement fait avec les tailles mesurées : posé sans animation, puis la vue d'arrivée.
     const mesure =
       !!range &&
@@ -633,7 +632,6 @@ function Graphe(props: Props) {
         ),
       );
       setAnime(true);
-      mouvementRef.current = true;
       const pas = (maintenant: number) => {
         const t = Math.min(1, (maintenant - debut) / duree);
         const k = ease(t);
@@ -675,7 +673,6 @@ function Graphe(props: Props) {
         });
         if (t < 1) animation.current = window.requestAnimationFrame(pas);
         else {
-          mouvementRef.current = false;
           caches.clear();
           // Le squelette des cadres ouverts s'efface pendant que l'intérieur paraît (`squelette-sortie`).
           setAnime(false);
@@ -726,18 +723,20 @@ function Graphe(props: Props) {
         }
         if (m.ids.size === 0) terminerMontage();
       }
+      // Taille retenue d'après le nœud tel qu'il est à l'écran au moment de la mesure (pas d'après l'état React, qui peut
+      // déjà avoir changé) : voir `tailleRetenue`.
+      const lues = dims.flatMap((c) => {
+        const el = zone.current?.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(c.id)}"]`);
+        const id = c.id.startsWith(PREFIXE_MESURE) ? c.id.slice(PREFIXE_MESURE.length) : c.id;
+        const genre = el ? /react-flow__node-(\w+)/.exec(el.className)?.[1] : undefined;
+        const t = c.dimensions && tailleRetenue(genre, modeleParId.current.get(id), !!el?.style.height, c.dimensions);
+        return t ? [{ id, t }] : [];
+      });
+      if (lues.length === 0) return;
       setTailles((avant) => {
         let change = false;
         const apres = new Map(avant);
-        for (const c of dims) {
-          const copie = c.id.startsWith(PREFIXE_MESURE);
-          // Mouvement en cours : les tailles animées des sections et des cadres ne sont pas des mesures (sinon une section
-          // repliée garderait la largeur de son cadre) ; celles des nœuds de mesure, si.
-          if (mouvementRef.current && !copie) continue;
-          const n = (copie ? mesuresRef.current : noeudsRef.current).find((x) => x.id === c.id);
-          if (!n || (n.type !== 'etape' && n.type !== 'section') || !c.dimensions) continue;
-          const id = copie ? c.id.slice(PREFIXE_MESURE.length) : c.id;
-          const t = { largeur: c.dimensions.width, hauteur: c.dimensions.height };
+        for (const { id, t } of lues) {
           const a = avant.get(id);
           if (a && Math.abs(a.largeur - t.largeur) < 4 && Math.abs(a.hauteur - t.hauteur) < 4) continue;
           apres.set(id, t);

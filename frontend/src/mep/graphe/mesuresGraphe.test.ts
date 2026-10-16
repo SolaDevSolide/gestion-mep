@@ -1,4 +1,4 @@
-import { hoteMesure, mesuresManquantes, vueMontrant } from './mesuresGraphe';
+import { hoteMesure, mesuresManquantes, tailleRetenue, vueMontrant } from './mesuresGraphe';
 import type { ModeleGraphe, NoeudModele } from './modeleGraphe';
 
 const n = (id: string, nature: NoeudModele['nature'], parent: string | null = null): NoeudModele => ({
@@ -60,5 +60,30 @@ describe('vueMontrant', () => {
     const v = vueMontrant({ x: 0, y: 0, zoom: 1 }, { x: 0, y: 100, largeur: 400, hauteur: 10000 }, zone, 24, 0.25);
     expect(v.zoom).toBe(0.25);
     expect(v.y).toBe(24 - 100 * 0.25);
+  });
+});
+
+describe('tailleRetenue', () => {
+  const section = n('s:a', 'section');
+  it('retient toute mesure d’une étape', () => {
+    expect(tailleRetenue('etape', n('e1', 'etape'), false, { width: 212, height: 126 })).toEqual({
+      largeur: 212,
+      hauteur: 126,
+    });
+  });
+  it('section repliée : hauteur mesurée à sa largeur rangée, sans hauteur imposée', () => {
+    expect(tailleRetenue('section', section, false, { width: 288, height: 136 })).toEqual({
+      largeur: 288,
+      hauteur: 136,
+    });
+  });
+  it('ignore une section mesurée en plein mouvement (largeur ou hauteur animée) : sa forme ne dérive pas', () => {
+    expect(tailleRetenue('section', section, false, { width: 624, height: 136 })).toBeNull();
+    expect(tailleRetenue('section', section, true, { width: 288, height: 300 })).toBeNull();
+  });
+  it('ignore un nœud affiché sous un autre genre que celui du modèle (cadre pas encore replié) et les cadres', () => {
+    expect(tailleRetenue('cadre', section, false, { width: 800, height: 350 })).toBeNull();
+    expect(tailleRetenue('cadre', n('s:a', 'cadre'), false, { width: 800, height: 350 })).toBeNull();
+    expect(tailleRetenue('etape', undefined, false, { width: 212, height: 126 })).toBeNull();
   });
 });

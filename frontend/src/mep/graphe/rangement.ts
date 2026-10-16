@@ -84,11 +84,14 @@ const OPTIONS_CADRE: Record<string, string> = {
   ...OPTIONS_LIENS,
 };
 
-/** Taille d'une section repliée : assez large pour ses cercles. */
+/**
+ * Taille d'une section repliée : assez large pour ses cercles, haute comme son contenu mesuré. La largeur ne vient jamais
+ * d'une mesure : c'est le rangement qui la fixe au nœud, la mesurer la ferait dépendre de l'affichage précédent.
+ */
 export function tailleSectionRepliee(n: Pick<NoeudModele, 'entrees' | 'sorties'>, mesuree?: Taille): Taille {
   const cercles = Math.max(n.entrees?.length ?? 0, n.sorties?.length ?? 0);
   return {
-    largeur: Math.max(mesuree?.largeur ?? 0, 288, cercles * PAS_CERCLE + GRILLE),
+    largeur: Math.max(288, cercles * PAS_CERCLE + GRILLE),
     hauteur: mesuree?.hauteur ?? 120,
   };
 }

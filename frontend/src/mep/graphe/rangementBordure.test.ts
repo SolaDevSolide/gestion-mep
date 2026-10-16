@@ -381,3 +381,21 @@ describe('faussesRelations', () => {
     expect(depart?.y).toBe((debut?.y ?? 0) + (debut?.hauteur ?? 0));
   });
 });
+
+describe('repli après un dépli : même rangement qu’au chargement', () => {
+  it('une mesure de section prise pendant un mouvement ne change ni sa forme ni le rangement', async () => {
+    const m = facturation(false);
+    const carte = { largeur: 212, hauteur: 126 };
+    const neuf = new Map([
+      ['F', carte],
+      ['s:T', { largeur: 288, hauteur: 136 }],
+      ['s:X', { largeur: 288, hauteur: 136 }],
+    ]);
+    // Largeur du cadre déplié (ou d'une image du mouvement) gardée pour la section repliée.
+    const apresMouvement = new Map(neuf).set('s:X', { largeur: 624, hauteur: 136 });
+    const a = await rangerBordure(m, neuf);
+    const b = await rangerBordure(m, apresMouvement);
+    expect(Object.fromEntries(b.places)).toEqual(Object.fromEntries(a.places));
+    expect(b.places.get('s:X')?.largeur).toBe(288);
+  });
+});

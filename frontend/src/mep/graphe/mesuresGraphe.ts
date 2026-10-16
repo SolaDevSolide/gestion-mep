@@ -1,5 +1,5 @@
 import type { ModeleGraphe, NoeudModele } from './modeleGraphe';
-import type { Taille } from './rangement';
+import { tailleSectionRepliee, type Taille } from './rangement';
 
 /** Préfixe des nœuds de mesure : copies invisibles d'un nœud pas encore mesuré, rendues pour connaître sa taille. */
 export const PREFIXE_MESURE = 'mesure:';
@@ -21,6 +21,29 @@ export function hoteMesure(n: NoeudModele, affiches: ReadonlySet<string>, premie
   if (n.parent && affiches.has(n.parent)) return n.parent;
   if (affiches.has(n.id)) return n.id;
   return premier;
+}
+
+/**
+ * Taille à retenir pour le rangement, d'après une mesure de React Flow et le nœud tel qu'il était affiché à cet instant
+ * (`genre` : son type à l'écran, `hauteurImposee` : sa hauteur fixée par une animation), ou null pour l'ignorer.
+ * - Étape : sa taille dépend seulement de son contenu, toute mesure est bonne.
+ * - Section repliée : sa largeur est fixée par le rangement (`tailleSectionRepliee`), seule sa hauteur se mesure, et
+ *   seulement quand elle est affichée à cette largeur, sans hauteur imposée. Une mesure prise pendant un mouvement (largeur
+ *   ou hauteur en cours d'animation, mouvement interrompu par un autre clic) serait sinon reprise par le rangement, puis
+ *   imposée au nœud, puis mesurée à nouveau : la section garderait une mauvaise forme jusqu'au rechargement.
+ * - Autres nœuds (cadres, titres, cercles) : taille calculée, pas mesurée.
+ */
+export function tailleRetenue(
+  genre: string | undefined,
+  modele: NoeudModele | undefined,
+  hauteurImposee: boolean,
+  d: { width: number; height: number },
+): Taille | null {
+  if (!modele || genre !== modele.nature) return null;
+  if (genre === 'etape') return { largeur: d.width, hauteur: d.height };
+  if (genre !== 'section' || hauteurImposee) return null;
+  const largeur = tailleSectionRepliee(modele).largeur;
+  return Math.abs(d.width - largeur) <= 1 ? { largeur, hauteur: d.height } : null;
 }
 
 export interface Vue {
