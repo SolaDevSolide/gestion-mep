@@ -40,6 +40,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Input, Select } from '../ui/Input';
 import { TON } from '../ui/tons';
 import { Code2, OctagonAlert } from 'lucide-react';
+import { EnChargement, SqueletteChronologie } from '../ui/Squelette';
 import { TestsUnitairesEncadre } from './TestsUnitairesEncadre';
 
 function iconeEvenement(type: string): { Icone: LucideIcon; ton: Ton } {
@@ -199,6 +200,12 @@ export default function JournalTab({ mepId, tick }: { mepId: string; tick: numbe
         </Alerte>
       )}
 
+      {donnees === null && !erreur && (
+        <EnChargement libelle="Chargement du journal…" className="mt-6">
+          <SqueletteChronologie evenements={8} />
+        </EnChargement>
+      )}
+
       {donnees !== null && filtres.length === 0 && (
         <EmptyState
           icone={NotebookText}
@@ -211,7 +218,7 @@ export default function JournalTab({ mepId, tick }: { mepId: string; tick: numbe
         />
       )}
 
-      <div className="mt-6 space-y-8">
+      <div className={cn('mt-6 space-y-8', donnees !== null && 'apparition')}>
         {groupes.map((g) => (
           <section key={g.cle} aria-label={formatJourLong(g.iso)}>
             <h2 className="mb-3 text-xs font-semibold tracking-wider text-fg-subtle uppercase">

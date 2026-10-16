@@ -93,8 +93,42 @@ export function setUnauthorizedHandler(fn: () => void) {
   onUnauthorized = fn;
 }
 
+// ---------- Requêtes en cours : l'indicateur discret de chargement (`ActiviteReseau`) les suit.
+let enCours = 0;
+const ecouteursActivite = new Set<(n: number) => void>();
+function compter(d: number) {
+  enCours += d;
+  for (const f of ecouteursActivite) f(enCours);
+}
+/** Suit le nombre de requêtes en cours (hors requêtes silencieuses) ; renvoie de quoi arrêter le suivi. */
+export function suivreActivite(f: (n: number) => void): () => void {
+  ecouteursActivite.add(f);
+  f(enCours);
+  return () => ecouteursActivite.delete(f);
+}
+
+export interface OptionsRequete {
+  /** Requête de fond (présence, verrou, sondage périodique) : pas d'indicateur de chargement. */
+  silencieux?: boolean;
+}
+
 /** Requête vers l'API (`/api` + chemin) : erreurs en `ApiError`, 401 renvoie à la connexion. */
-export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  options: OptionsRequete = {},
+): Promise<T> {
+  if (options.silencieux) return envoyer<T>(method, path, body);
+  compter(1);
+  try {
+    return await envoyer<T>(method, path, body);
+  } finally {
+    compter(-1);
+  }
+}
+
+async function envoyer<T>(method: string, path: string, body?: unknown): Promise<T> {
   const formulaire = typeof FormData !== 'undefined' && body instanceof FormData;
   let res: Response;
   try {
@@ -173,6 +207,8 @@ async function lireDemo(): Promise<EtatDemo | null> {
   }
 }
 
+let demoLu: Promise<EtatDemo | null> | null = null;
+
 export const urlPieceJointe = (pid: string) => `/api/pieces-jointes/${pid}/contenu`;
 
 /** Paramètres d'adresse (« ?a=1&b=2 »), sans les valeurs vides ; « » s'il n'en reste aucun. */
@@ -183,9 +219,9 @@ function requete(valeurs: Record<string, string | undefined>): string {
   return texte ? `?${texte}` : '';
 }
 
-const get = <T>(p: string) => request<T>('GET', p);
+const get = <T>(p: string, options?: OptionsRequete) => request<T>('GET', p, undefined, options);
 const post = <T>(p: string, b?: unknown) => request<T>('POST', p, b ?? {});
-const put = <T>(p: string, b: unknown) => request<T>('PUT', p, b);
+const put = <T>(p: string, b: unknown, options?: OptionsRequete) => request<T>('PUT', p, b, options);
 const del = <T>(p: string) => request<T>('DELETE', p);
 
 export const api = {
@@ -194,10 +230,11 @@ export const api = {
   moi: () => get<Utilisateur>('/auth/moi'),
   optionsConnexion: () => get<OptionsConnexion>('/auth/options'),
   // Mode démonstration (routes absentes hors démonstration).
-  demo: lireDemo,
+  /** Lu une fois par page (le bandeau et le premier affichage l'attendent ensemble : pas de bandeau qui surgit). */
+  demo: () => (demoLu ??= lireDemo()),
   connexionDemo: (login: string) => post<Utilisateur>('/demo/connexion', { login }),
   reinitialiserDemo: () => post<ReinitialisationDemo>('/demo/reinitialiser'),
-  simulationDemo: () => get<EtatSimulation>('/demo/simulation'),
+  simulationDemo: () => get<EtatSimulation>('/demo/simulation', { silencieux: true }),
   simulerCollegues: (actif: boolean) => post<EtatSimulation>('/demo/simulation', { actif }),
   ssoEtat: () => get<SsoProfil>('/auth/sso/etat'),
   ssoLier: () => post<SsoLiaison>('/auth/sso/lier'),
@@ -234,7 +271,8 @@ export const api = {
     post<Mep>('/meps', { outil, objet, modele, type }),
   /** Type de la MEP, en préparation : passer en simplifiée efface durées, criticités, résolutions liées et versions. */
   changerTypeMep: (id: string, s: TypeMepSaisie) => put<Mep>(`/meps/${id}/type`, s),
-  mep: (id: string) => get<Mep>(`/meps/${id}`),
+  /** `silencieux` : relecture périodique, sans indicateur de chargement. */
+  mep: (id: string, silencieux = false) => get<Mep>(`/meps/${id}`, { silencieux }),
   modifierIdentite: (id: string, s: MepIdentiteSaisie) => put<Mep>(`/meps/${id}`, s),
   modifierSauvegarde: (id: string, s: SauvegardeSaisie) => put<Mep>(`/meps/${id}/sauvegarde`, s),
   modifierCommunication: (id: string, s: CommunicationSaisie) => put<Mep>(`/meps/${id}/communication`, s),
@@ -249,7 +287,7 @@ export const api = {
   presences: (id: string) => get<Presence[]>(`/meps/${id}/presence`),
   /** Éléments sur lesquels travaille cet onglet (`session` : celle passée au flux). 404 si le flux n'est pas ouvert. */
   declarerPresence: (id: string, session: string, elements: string[]) =>
-    put<void>(`/meps/${id}/presence`, { session, elements }),
+    put<void>(`/meps/${id}/presence`, { session, elements }, { silencieux: true }),
 
   ajouterParticipant: (id: string, s: ParticipantSaisie) => post<Mep>(`/meps/${id}/participants`, s),
   modifierParticipant: (id: string, pid: string, s: ParticipantSaisie) =>

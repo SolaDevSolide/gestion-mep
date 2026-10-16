@@ -16,6 +16,8 @@ import { EmptyState } from '../ui/EmptyState';
 import { Field, Input, Select, Textarea } from '../ui/Input';
 import { Badge } from '../ui/StatusPill';
 import { useToast } from '../ui/Toast';
+import { cn } from '../ui/cn';
+import { EnChargement, Squelette, SqueletteCartes } from '../ui/Squelette';
 import { Tooltip } from '../ui/Tooltip';
 
 /** Deux premières lignes utiles du texte (sans « Bonjour, » ni marques de gras). */
@@ -216,6 +218,14 @@ export default function ModelesTextePage() {
         </Card>
       )}
 
+      {equipes.donnees === null && !equipes.erreur && (
+        <EnChargement libelle="Chargement des modèles de texte…" className="mt-6">
+          <Squelette className="h-9 w-[34rem] max-w-full rounded-lg" />
+          <Squelette className="mt-6 h-20 w-full rounded-xl" />
+          <SqueletteCartes cartes={4} hauteur="h-40" className="mt-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2" />
+        </EnChargement>
+      )}
+
       {equipe && (
         <>
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -287,7 +297,19 @@ export default function ModelesTextePage() {
             </Card>
           )}
 
-          <ul className="mt-4 grid gap-3 lg:grid-cols-2">
+          {modeles.donnees === null && !modeles.erreur && (
+            <EnChargement libelle="Chargement des modèles de texte…" className="mt-4">
+              <SqueletteCartes cartes={4} hauteur="h-40" className="sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2" />
+            </EnChargement>
+          )}
+          <ul
+            aria-busy={modeles.rechargement || undefined}
+            className={cn(
+              'mt-4 grid gap-3 transition-opacity duration-200 lg:grid-cols-2',
+              modeles.donnees !== null && 'apparition',
+              modeles.rechargement && 'opacity-50',
+            )}
+          >
             {filtres.map((m) => (
               <li key={m.id}>
                 <Card className="flex h-full flex-col p-4 transition-shadow duration-150 hover:shadow-md">

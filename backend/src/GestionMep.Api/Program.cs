@@ -104,6 +104,18 @@ app.UtiliserEnTetesProxy();
 if (!app.Environment.IsDevelopment()) app.UseHsts();
 app.UtiliserEnTetesSecurite(app.Environment.WebRootPath is { } racine ? Path.Combine(racine, "index.html") : null);
 app.UtiliserGestionErreurs();
+// Développement seulement (jamais en production) : Developpement:LatenceMs > 0 retarde chaque réponse de l'API, pour voir
+// l'application comme avec une base lointaine (chargements, squelettes, rechargements en arrière-plan). Inactif par défaut.
+if (app.Environment.IsDevelopment() && app.Configuration.GetValue("Developpement:LatenceMs", 0) is > 0 and var latence)
+    app.Use(async (ctx, next) =>
+    {
+        if (ctx.Request.Path.StartsWithSegments("/api"))
+        {
+            try { await Task.Delay(latence, ctx.RequestAborted); }
+            catch (OperationCanceledException) { return; } // client parti
+        }
+        await next();
+    });
 app.UseDefaultFiles();
 // index.html n'est jamais mis en cache : après un déploiement, le navigateur charge la nouvelle version (les fichiers
 // de /assets ont un nom haché et peuvent, eux, rester en cache).

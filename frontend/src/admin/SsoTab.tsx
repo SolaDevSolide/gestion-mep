@@ -3,7 +3,6 @@ import {
   CircleX,
   Copy,
   Link2Off,
-  Loader2,
   OctagonAlert,
   Power,
   PowerOff,
@@ -28,6 +27,7 @@ import { Field, Input } from '../ui/Input';
 import { Segmented } from '../ui/Segmented';
 import { StatusPill } from '../ui/StatusPill';
 import { useToast } from '../ui/Toast';
+import { EnChargement, SqueletteFormulaire, SqueletteTableau } from '../ui/Squelette';
 import { commande, commandeAvecSecret, useInstallation, type ModeInstallation } from '../installation';
 
 const JOUR_MS = 86_400_000;
@@ -99,9 +99,9 @@ export default function SsoTab() {
   const v = d.value;
   if (!donnees || !v) {
     return (
-      <p className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-fg-subtle">
-        <Loader2 className="size-4 animate-spin" aria-hidden /> Chargement…
-      </p>
+      <EnChargement libelle="Chargement de la connexion unique…" className="p-5">
+        <SqueletteFormulaire champs={6} />
+      </EnChargement>
     );
   }
   const microsoft = v.fournisseur === 'Microsoft';
@@ -509,9 +509,9 @@ export default function SsoTab() {
           </div>
         )}
         {!identites.erreur && identites.donnees === null && (
-          <p className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-fg-subtle">
-            <Loader2 className="size-4 animate-spin" aria-hidden /> Chargement…
-          </p>
+          <EnChargement libelle="Chargement des comptes liés…">
+            <SqueletteTableau lignes={4} colonnes={4} className="rounded-none border-0" />
+          </EnChargement>
         )}
         {identites.donnees?.length === 0 && (
           <EmptyState icone={Users} titre="Aucun compte lié" description="Les liaisons apparaîtront ici." />

@@ -1638,6 +1638,14 @@
             "schema": {
               "$ref": "#/components/schemas/TypePlan"
             }
+          },
+          {
+            "name": "sectionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -12661,9 +12669,16 @@
             "items": {
               "$ref": "#/components/schemas/LienSaisie"
             }
+          },
+          "sectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
-        "description": "Optimisation des liens d'un plan : la liste des liens redondants montrée à la personne (voir `liens/redondants`)."
+        "description": "Optimisation des liens d'un plan : la liste des liens redondants montrée à la personne (voir `liens/redondants`).\n`SectionId` : seulement les liens entre éléments de cette section (vue d'une section)."
       },
       "OptionsConnexionDto": {
         "required": [

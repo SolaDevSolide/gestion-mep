@@ -107,6 +107,83 @@ public class SimulationEtOptimisationTests
         Assert.Empty(Regles.LiensRedondants(m, TypePlan.Deploiement));
     }
 
+    [Fact]
+    public void Dans_une_section_seuls_ses_liens_internes_sont_optimises()
+    {
+        var m = new Mep { Outil = "Test" };
+        Etape Ajouter(Guid? section = null)
+        {
+            var e = new Etape { MepId = m.Id, Plan = TypePlan.Deploiement, Code = Regles.ProchainCode(m.Etapes, TypePlan.Deploiement) };
+            Regles.AjouterEtape(m, e, new(), section);
+            return e;
+        }
+        void Relier(Guid de, Guid vers) => Regles.Relier(m, TypePlan.Deploiement, de, vers);
+        // Hors section : A → B → C et le raccourci A → C. Dans S : X → Y → Z et le raccourci X → Z.
+        var a = Ajouter();
+        var b = Ajouter();
+        var c = Ajouter();
+        Relier(a.Id, b.Id);
+        Relier(b.Id, c.Id);
+        Relier(a.Id, c.Id);
+        var s = Regles.CreerSection(m, TypePlan.Deploiement, "S", "", [], null, DateTimeOffset.UnixEpoch, placee: true);
+        var x = Ajouter(s.Id);
+        var y = Ajouter(s.Id);
+        var z = Ajouter(s.Id);
+        Relier(x.Id, y.Id);
+        Relier(y.Id, z.Id);
+        Relier(x.Id, z.Id);
+
+        // Dans S, outre X → Z : les liens que les cercles de S ont reçus à l'ajout des étapes (entrée → Y, X → sortie…).
+        var dansS = Regles.LiensRedondants(m, TypePlan.Deploiement, s.Id);
+        Assert.Contains(new Regles.LienPlan(x.Id, z.Id), dansS);
+        Assert.True(Regles.LiensRedondants(m, TypePlan.Deploiement).Except([new Regles.LienPlan(a.Id, c.Id)]).ToHashSet().SetEquals(dansS));
+        // La liste du plan entier n'est pas celle de la section : refus.
+        Assert.Throws<RegleMetierException>(() =>
+            Regles.OptimiserLiens(m, TypePlan.Deploiement, Regles.LiensRedondants(m, TypePlan.Deploiement), s.Id));
+
+        Assert.Equal(dansS.Count, Regles.OptimiserLiens(m, TypePlan.Deploiement, dansS, s.Id).Count);
+        Assert.DoesNotContain(x.Id, Regles.Directes(z));
+        Assert.Contains(a.Id, Regles.Directes(c)); // le reste du plan n'est pas touché
+        Assert.Empty(Regles.LiensRedondants(m, TypePlan.Deploiement, s.Id));
+        Assert.Equal([new Regles.LienPlan(a.Id, c.Id)], Regles.LiensRedondants(m, TypePlan.Deploiement));
+        Assert.Throws<RegleMetierException>(() => Regles.LiensRedondants(m, TypePlan.RetourArriere, s.Id));
+    }
+
+    [Fact]
+    public async Task L_optimisation_d_une_section_par_l_api_ne_touche_que_ses_liens()
+    {
+        using var api = new ApiFixture();
+        var alice = await api.ClientConnecte("alice");
+        var id = await AidesApi.IdMep(alice, DonneesDemo.OutilIncomplete);
+        var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        Guid e1 = IdEtape(mep, "E0001"), e2 = IdEtape(mep, "E0002"), e5 = IdEtape(mep, "E0005");
+        var tables = mep.GetProperty("sections").EnumerateArray().Single(s => s.GetProperty("titre").GetString()!.StartsWith("Tables", StringComparison.Ordinal));
+        var sid = tables.GetProperty("id").GetGuid();
+        // E0001 → E0002 existe dans « Tables factures » ; ajout du raccourci « Début » → E0002 (déjà attendu par E0001) et, hors
+        // de la section, E0001 → E0005 (déjà attendu par E0002 et « Tables migrées »).
+        var debut = tables.GetProperty("ports").EnumerateArray().Single(p => p.GetProperty("titre").GetString() == "Début").GetProperty("id").GetGuid();
+        Assert.Contains(mep.GetProperty("etapes").EnumerateArray().Single(e => e.GetProperty("id").GetGuid() == e2)
+            .GetProperty("dependances").EnumerateArray(), d => d.GetGuid() == e1);
+        await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/liens", new { de = debut, vers = e2 }));
+        await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/liens", new { de = e1, vers = e5 }));
+
+        var plan = (await Ok(await alice.GetAsync($"/api/meps/{id}/liens/redondants?plan=Deploiement"))).EnumerateArray().ToList();
+        Assert.Equal(2, plan.Count);
+        var section = (await Ok(await alice.GetAsync($"/api/meps/{id}/liens/redondants?plan=Deploiement&sectionId={sid}"))).EnumerateArray().ToList();
+        Assert.Equal(["Début (Tables factures) → E0002"], section.Select(l => l.GetProperty("libelle").GetString()!).ToArray());
+        var liens = section.Select(l => new { de = l.GetProperty("de").GetGuid(), vers = l.GetProperty("vers").GetGuid() }).ToList();
+        // La liste d'une section appliquée au plan entier : refus (ce n'est pas la liste du plan).
+        Assert.Equal(HttpStatusCode.Conflict, (await alice.PostAsJsonAsync($"/api/meps/{id}/liens/optimiser", new { plan = "Deploiement", liens })).StatusCode);
+        await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/liens/optimiser", new { plan = "Deploiement", liens, sectionId = sid }));
+
+        Assert.Empty((await Ok(await alice.GetAsync($"/api/meps/{id}/liens/redondants?plan=Deploiement&sectionId={sid}"))).EnumerateArray());
+        var reste = (await Ok(await alice.GetAsync($"/api/meps/{id}/liens/redondants?plan=Deploiement"))).EnumerateArray();
+        Assert.Equal(["E0001 → E0005"], reste.Select(l => l.GetProperty("libelle").GetString()!).ToArray());
+        var journal = await Ok(await alice.GetAsync($"/api/meps/{id}/journal"));
+        Assert.Contains(journal.EnumerateArray(), j => j.GetProperty("type").GetString() == "plan.liens-optimises"
+            && j.GetProperty("detail").GetString()!.StartsWith("Liens optimisés dans la section « Tables factures » : 1 lien", StringComparison.Ordinal));
+    }
+
     private static async Task<T> Attendre<T>(Func<Task<T?>> lire, string quoi) where T : class
     {
         var fin = DateTime.UtcNow + TimeSpan.FromSeconds(20);

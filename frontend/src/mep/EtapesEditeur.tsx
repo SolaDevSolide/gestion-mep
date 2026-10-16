@@ -9,6 +9,7 @@ import { useMep } from '../mepContext';
 import type { LienRedondant, Mep, ModeleEtape, TypePlan } from '../types';
 import { useReferentiels } from '../referentiels';
 import { Apparition } from '../ui/Apparition';
+import { SqueletteCadreGraphe } from './SqueletteMep';
 import { Button } from '../ui/Button';
 import { cn } from '../ui/cn';
 import { apiGraphe, type Deplacement, type PlaceEtape } from './graphe/apiGraphe';
@@ -370,14 +371,27 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
       }
     : { editerSection: (id, etapeId) => allerSection(id, etapeId) };
 
-  // « Optimiser les liens » : aperçu (liens inutiles en rouge et listés), puis une seule opération au serveur.
+  // « Optimiser les liens » : aperçu (liens inutiles en rouge et listés), puis une seule opération au serveur. Dans la vue
+  // d'une section, seulement les liens entre ses éléments (étapes et cercles de la section).
   const [optimisation, setOptimisation] = useState<LienRedondant[] | null>(null);
   const [optimisationEnCours, setOptimisationEnCours] = useState(false);
+  const portee = sectionVue?.id ?? null;
+  // Autre vue (plan ↔ section) : l'aperçu calculé pour l'ancienne ne vaut plus.
+  const [porteeAffichee, setPorteeAffichee] = useState(portee);
+  if (porteeAffichee !== portee) {
+    setPorteeAffichee(portee);
+    setOptimisation(null);
+  }
   async function calculerOptimisation() {
     if (optimisation) return setOptimisation(null);
     try {
-      const liens = await apiGraphe.liensRedondants(mep.id, plan);
-      if (liens.length === 0) astuce.afficher('Aucun lien inutile : chaque lien compte pour l’ordre d’exécution.');
+      const liens = await apiGraphe.liensRedondants(mep.id, plan, portee);
+      if (liens.length === 0)
+        astuce.afficher(
+          portee
+            ? 'Aucun lien inutile dans cette section : chaque lien compte pour l’ordre d’exécution.'
+            : 'Aucun lien inutile : chaque lien compte pour l’ordre d’exécution.',
+        );
       else setOptimisation(liens);
     } catch (e) {
       astuce.afficher(e instanceof Error ? e.message : 'Calcul impossible.');
@@ -389,7 +403,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
     setOptimisationEnCours(true);
     await exclusif(() =>
       run(
-        () => apiGraphe.optimiserLiens(mep.id, plan, optimisation),
+        () => apiGraphe.optimiserLiens(mep.id, plan, optimisation, portee),
         `${n} lien${n > 1 ? 's' : ''} inutile${n > 1 ? 's' : ''} retiré${n > 1 ? 's' : ''}.`,
       ),
     );
@@ -486,14 +500,16 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
         }
         retraits={optimisation}
         outils={
-          !sectionVue && (
-            <>
-              {modifiable && (
-                <BoutonOptimiserLiens actif={!!optimisation} onClick={() => void calculerOptimisation()} />
-              )}
-              {sections.some((s) => s.placee) && <BoutonsRepli onToutes={toutes} />}
-            </>
-          )
+          <>
+            {modifiable && (
+              <BoutonOptimiserLiens
+                actif={!!optimisation}
+                dansSection={!!sectionVue}
+                onClick={() => void calculerOptimisation()}
+              />
+            )}
+            {!sectionVue && sections.some((s) => s.placee) && <BoutonsRepli onToutes={toutes} />}
+          </>
         }
         lateral={
           !sectionVue &&
@@ -527,7 +543,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
 
   return (
     // Onglet affiché en une fois, référentiels compris (systèmes, résolutions) : voir Apparition.
-    <Apparition pret={pret}>
+    <Apparition pret={pret} libelle="Chargement du plan…" squelette={<SqueletteCadreGraphe />}>
       <div className="grid gap-3">
         {graphe}
         {modifiable && (

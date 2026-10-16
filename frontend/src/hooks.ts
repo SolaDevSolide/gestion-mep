@@ -88,27 +88,47 @@ export function useNow(ms = 1000): number {
   return now;
 }
 
-/** Charge des données asynchrones avec rechargement manuel. */
+/**
+ * Charge des données asynchrones avec rechargement manuel. Pendant un rechargement (`recharger`, autres `deps`), les
+ * données précédentes restent affichées : `chargement` est vrai jusqu'à la réponse (`rechargement` : vrai s'il y avait
+ * déjà des données, pour un indicateur discret plutôt qu'un squelette).
+ */
 export function useAsync<T>(charger: () => Promise<T>, deps: unknown[]) {
   const [donnees, setDonnees] = useState<T | null>(null);
   const [erreur, setErreur] = useState('');
   const [tick, setTick] = useState(0);
+  const cle = [...deps, tick];
+  // Clé de la dernière réponse reçue (réussie ou non) : différente de `cle` tant qu'une demande est en cours.
+  const [cleRecue, setCleRecue] = useState<unknown[] | null>(null);
   useEffect(() => {
     let annule = false;
+    const demandee = cle;
     charger()
       .then((d) => {
         if (!annule) {
           setDonnees(d);
           setErreur('');
+          setCleRecue(demandee);
         }
       })
       .catch((e: unknown) => {
-        if (!annule) setErreur(e instanceof Error ? e.message : 'Chargement impossible.');
+        if (!annule) {
+          setErreur(e instanceof Error ? e.message : 'Chargement impossible.');
+          setCleRecue(demandee);
+        }
       });
     return () => {
       annule = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, tick]);
-  return { donnees, erreur, recharger: () => setTick((t) => t + 1), setDonnees };
+  const chargement = !(cleRecue?.length === cle.length && cleRecue.every((v, i) => Object.is(v, cle[i])));
+  return {
+    donnees,
+    erreur,
+    chargement,
+    rechargement: chargement && donnees !== null,
+    recharger: () => setTick((t) => t + 1),
+    setDonnees,
+  };
 }

@@ -3,7 +3,6 @@ import {
   CircleArrowUp,
   Layers,
   Library,
-  Loader2,
   LogOut,
   Mail,
   Megaphone,
@@ -33,6 +32,8 @@ import { FiletErreur } from '../ui/FiletErreur';
 import { Kbd } from '../ui/Kbd';
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from '../ui/Menu';
 import { Tooltip } from '../ui/Tooltip';
+import { EnChargement, Squelette, SqueletteLignes } from '../ui/Squelette';
+import { ActiviteReseau } from '../ui/ActiviteReseau';
 import { PaletteCommandes } from './PaletteCommandes';
 
 const THEMES: { id: PreferenceTheme; libelle: string; Icone: typeof Sun }[] = [
@@ -170,12 +171,14 @@ export function Shell() {
               </div>
               <Lien to="/admin" icone={ShieldUser} libelle="Console d’administration" replie={replie} />
               {miseAJour && (
-                <Lien
-                  to="/admin?onglet=version"
-                  icone={CircleArrowUp}
-                  libelle={`Mise à jour ${miseAJour.derniereVersion ?? ''} disponible`}
-                  replie={replie}
-                />
+                <div className="animate-fade-in">
+                  <Lien
+                    to="/admin?onglet=version"
+                    icone={CircleArrowUp}
+                    libelle={`Mise à jour ${miseAJour.derniereVersion ?? ''} disponible`}
+                    replie={replie}
+                  />
+                </div>
               )}
             </>
           )}
@@ -279,9 +282,11 @@ export function Shell() {
         <FiletErreur cle={location.pathname + location.search}>
           <Suspense
             fallback={
-              <output className="flex flex-1 items-center justify-center py-24 text-fg-subtle">
-                <Loader2 className="mr-2 size-5 animate-spin" aria-hidden /> Chargement…
-              </output>
+              <EnChargement libelle="Chargement de la page…" className="mx-auto w-full max-w-6xl px-6 py-8">
+                <Squelette className="h-7 w-72" />
+                <Squelette className="mt-2 h-4 w-96 max-w-full" />
+                <SqueletteLignes lignes={6} className="mt-10 gap-4" />
+              </EnChargement>
             }
           >
             <Outlet />
@@ -289,6 +294,7 @@ export function Shell() {
         </FiletErreur>
       </div>
       <PaletteCommandes open={palette} onOpenChange={setPalette} />
+      <ActiviteReseau />
     </div>
   );
 }

@@ -15,6 +15,8 @@ import { StatusPill } from '../ui/StatusPill';
 import { Tooltip } from '../ui/Tooltip';
 import { useToast } from '../ui/Toast';
 import { CategoriesDefautDialog } from './CategoriesDefautDialog';
+import { cn } from '../ui/cn';
+import { SqueletteRangees } from '../ui/Squelette';
 import { SystemeDialog } from './SystemeDialog';
 
 /** « 25 dans 3 catégories » : objets connus de la fiche. */
@@ -118,7 +120,12 @@ export default function SystemesPage() {
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line">
+              <tbody
+                className={cn('divide-y divide-line', donnees !== null && 'apparition')}
+                aria-busy={(donnees === null && !erreur) || undefined}
+                aria-label={donnees === null && !erreur ? 'Chargement du catalogue…' : undefined}
+              >
+                {donnees === null && !erreur && <SqueletteRangees lignes={6} colonnes={admin ? 7 : 6} />}
                 {(donnees ?? []).map((s) => (
                   <tr key={s.id} className="transition-colors duration-150 hover:bg-surface-2/50">
                     <th scope="row" className="px-4 py-3 font-medium">

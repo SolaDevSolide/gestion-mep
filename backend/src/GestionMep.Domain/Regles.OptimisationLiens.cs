@@ -36,10 +36,20 @@ public static partial class Regles
     /// Liens redondants d'un plan : « B attend A » est inutile quand B attend déjà A par un autre chemin (par d'autres étapes ou
     /// par des cercles de section). Les retirer tous ensemble ne change ni ce que chaque étape attend, directement ou non, ni donc
     /// l'ordre d'exécution (réduction transitive d'un graphe sans cycle).
+    /// <paramref name="sectionId"/> : seulement les liens entre éléments de cette section (ses étapes et ses cercles), l'autre
+    /// chemin passant lui aussi par la section ; le reste du plan n'est pas concerné. Un lien redondant dans la section l'est
+    /// aussi dans le plan : les retirer garde l'ordre d'exécution.
     /// </summary>
-    public static List<LienPlan> LiensRedondants(Mep mep, TypePlan plan)
+    public static List<LienPlan> LiensRedondants(Mep mep, TypePlan plan, Guid? sectionId = null)
     {
         var liens = LiensDuPlan(mep, plan);
+        if (sectionId is { } sid)
+        {
+            var section = ExigerSection(mep, plan, sid);
+            var dedans = mep.EtapesDu(plan).Where(e => e.SectionId == sid).Select(e => e.Id)
+                .Concat(section.Ports.Select(p => p.Id)).ToHashSet();
+            liens = liens.Where(l => dedans.Contains(l.De) && dedans.Contains(l.Vers)).ToList();
+        }
         var suivants = liens.GroupBy(l => l.De).ToDictionary(g => g.Key, g => g.Select(l => l.Vers).ToList());
         bool Atteint(Guid depart, Guid cible, Guid exclu)
         {
@@ -79,14 +89,16 @@ public static partial class Regles
     }
 
     /// <summary>
-    /// Retire en une fois les liens redondants du plan (<see cref="LiensRedondants"/>). <paramref name="attendus"/> est la liste
+    /// Retire en une fois les liens redondants du plan, ou d'une de ses sections (<see cref="LiensRedondants"/>). <paramref name="attendus"/> est la liste
     /// montrée à la personne : si le plan a changé depuis (autre liste), rien n'est fait et l'opération est refusée. Par sécurité,
     /// l'opération est annulée si ce qu'attend une étape, directement ou non, changeait.
     /// </summary>
+    /// <param name="sectionId">Seulement dans cette section (voir <see cref="LiensRedondants"/>).</param>
     /// <returns>Liens retirés, avec leurs extrémités (pour le journal).</returns>
-    public static List<(Noeud De, Noeud Vers)> OptimiserLiens(Mep mep, TypePlan plan, IReadOnlyCollection<LienPlan> attendus)
+    public static List<(Noeud De, Noeud Vers)> OptimiserLiens(Mep mep, TypePlan plan, IReadOnlyCollection<LienPlan> attendus,
+        Guid? sectionId = null)
     {
-        var redondants = LiensRedondants(mep, plan);
+        var redondants = LiensRedondants(mep, plan, sectionId);
         if (!redondants.ToHashSet().SetEquals(attendus))
             throw new RegleMetierException("Le plan a changé depuis le calcul : relancez « Optimiser les liens ».");
         var retires = new List<(Noeud De, Noeud Vers)>();

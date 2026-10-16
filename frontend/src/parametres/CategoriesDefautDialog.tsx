@@ -5,6 +5,7 @@ import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
 import { Input } from '../ui/Input';
+import { EnChargement, SqueletteLignes } from '../ui/Squelette';
 import { useToast } from '../ui/Toast';
 
 /**
@@ -94,7 +95,9 @@ export function CategoriesDefautDialog({ open, onOpenChange }: { open: boolean; 
           </Button>
         </form>
         {liste === null ? (
-          <p className="text-sm text-fg-subtle">Chargement…</p>
+          <EnChargement libelle="Chargement des catégories…">
+            <SqueletteLignes lignes={4} />
+          </EnChargement>
         ) : liste.length === 0 ? (
           <p className="text-sm text-fg-subtle">Aucune catégorie par défaut.</p>
         ) : (

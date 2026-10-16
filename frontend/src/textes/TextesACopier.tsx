@@ -14,6 +14,7 @@ import { Segmented } from '../ui/Segmented';
 import { Badge } from '../ui/StatusPill';
 import { useToast } from '../ui/Toast';
 import { ApercuTexte } from './ApercuTexte';
+import { EnChargement, Squelette, SqueletteLignes } from '../ui/Squelette';
 import {
   copier,
   enHtml,
@@ -100,8 +101,22 @@ export function TextesACopierContenu({ mep }: { mep: Pick<Mep, 'id' | 'version'>
       />
     );
 
+  if (equipes.donnees === null || modeles.donnees === null || valeurs.donnees === null)
+    return (
+      <EnChargement libelle="Chargement des textes…" className="space-y-4">
+        <Squelette className="ml-auto h-9 w-72 rounded-lg" />
+        <div className="grid gap-5 lg:grid-cols-[14rem_minmax(0,1fr)]">
+          <SqueletteLignes lignes={4} className="content-start gap-4" />
+          <div className="grid gap-3">
+            <Squelette className="h-9 w-full rounded-lg" />
+            <Squelette className="h-64 w-full rounded-lg" />
+          </div>
+        </div>
+      </EnChargement>
+    );
+
   return (
-    <div className="space-y-4">
+    <div className="apparition space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
         <span className="text-[13px] text-fg-subtle">Modèles de</span>
         <div className="w-60">

@@ -8,6 +8,7 @@ import type { ModeleEtape, TypeEtape } from '../types';
 import { Card } from '../ui/Card';
 import { cn } from '../ui/cn';
 import { Input, Select } from '../ui/Input';
+import { EnChargement, Squelette, SqueletteLignes } from '../ui/Squelette';
 import { Badge } from '../ui/StatusPill';
 
 /**
@@ -300,5 +301,40 @@ export function BadgesModele({ m }: { m: ModeleEtape }) {
         </Badge>
       )}
     </>
+  );
+}
+
+/**
+ * Bibliothèque en chargement : la grille des systèmes (accueil) ou la liste des éléments, aux dimensions du contenu à
+ * venir.
+ */
+export function SqueletteBibliotheque({ accueil }: { accueil: boolean }) {
+  return (
+    <EnChargement libelle="Chargement de la bibliothèque…">
+      {accueil ? (
+        <>
+          <Squelette className="mt-8 mb-3 h-3 w-72" />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }, (_, i) => (
+              <Card key={i} className="flex items-center gap-4 p-4">
+                <Squelette className="size-10 rounded-lg" />
+                <SqueletteLignes lignes={3} className="flex-1" />
+                <Squelette className="h-6 w-6" />
+              </Card>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {Array.from({ length: 6 }, (_, i) => (
+            <Card key={i} className="grid h-40 content-start gap-3 p-4">
+              <Squelette className="h-5 w-3/5" />
+              <Squelette className="h-4 w-1/3" />
+              <SqueletteLignes lignes={2} />
+            </Card>
+          ))}
+        </div>
+      )}
+    </EnChargement>
   );
 }

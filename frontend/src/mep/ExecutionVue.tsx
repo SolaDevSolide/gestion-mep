@@ -7,6 +7,7 @@ import { useMep } from '../mepContext';
 import type { Etape, TypePlan } from '../types';
 import { useReferentiels } from '../referentiels';
 import { Apparition } from '../ui/Apparition';
+import { SqueletteCadreGraphe } from './SqueletteMep';
 import { cn } from '../ui/cn';
 import { MultiSelect } from '../ui/Combobox';
 import { EmptyState } from '../ui/EmptyState';
@@ -128,7 +129,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
 
   return (
     // Onglet affiché en une fois, référentiels compris : voir Apparition.
-    <Apparition pret={pret}>
+    <Apparition pret={pret} libelle="Chargement du plan…" squelette={<SqueletteCadreGraphe />}>
       <div>
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <div className="w-full min-w-56 sm:w-80">
