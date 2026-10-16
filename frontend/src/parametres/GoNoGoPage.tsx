@@ -324,7 +324,7 @@ export default function GoNoGoPage() {
                         label={`Monter ${c.libelle}`}
                         taille="sm"
                         disabled={i === 0}
-                        onClick={() => void deplacer(i, -1)}
+                        action={() => deplacer(i, -1)}
                       >
                         <ArrowUp className="size-4" aria-hidden />
                       </BoutonIcone>
@@ -332,7 +332,7 @@ export default function GoNoGoPage() {
                         label={`Descendre ${c.libelle}`}
                         taille="sm"
                         disabled={i === criteres.length - 1}
-                        onClick={() => void deplacer(i, 1)}
+                        action={() => deplacer(i, 1)}
                       >
                         <ArrowDown className="size-4" aria-hidden />
                       </BoutonIcone>
@@ -340,7 +340,7 @@ export default function GoNoGoPage() {
                         <BoutonIcone
                           label={`${c.actif ? 'Désactiver' : 'Activer'} ${c.libelle}`}
                           taille="sm"
-                          onClick={() => void basculer(c)}
+                          action={() => basculer(c)}
                         >
                           {c.actif ? (
                             <CircleOff className="size-4" aria-hidden />

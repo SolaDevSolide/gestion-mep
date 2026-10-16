@@ -40,10 +40,13 @@ export function BoutonGoNoGo({ taille = 'sm', lien = false }: { taille?: TailleB
   }, [ouvert]);
 
   const modele = mep.estModele;
+  // Critères en cours de lecture (premier clic) : le bouton montre qu'il travaille, la décision s'ouvre ensuite.
+  const attente = ouvert && criteres === null && !erreur;
   const bouton = lien ? (
     <button
       type="button"
-      disabled={modele}
+      disabled={modele || attente}
+      aria-busy={attente || undefined}
       onClick={() => setOuvert(true)}
       className="rounded text-sm font-medium text-accent-text underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
     >
@@ -55,6 +58,7 @@ export function BoutonGoNoGo({ taille = 'sm', lien = false }: { taille?: TailleB
       taille={taille}
       icone={<Play className="size-4" aria-hidden />}
       disabled={modele}
+      chargement={attente}
       onClick={() => setOuvert(true)}
     >
       Go / no-go

@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { api } from './api';
 import { useAuth } from './auth';
@@ -6,7 +6,7 @@ import { useAsync } from './hooks';
 import { BandeauDemo } from './layout/BandeauDemo';
 import { GardeModifications } from './layout/GardeModifications';
 import { NouvelleVersion } from './layout/NouvelleVersion';
-import { Shell } from './layout/Shell';
+import { ChargementPage, Shell } from './layout/Shell';
 import ConnexionPage from './pages/ConnexionPage';
 import MotDePasseObligatoirePage from './pages/MotDePasseObligatoirePage';
 import { EnChargement, Squelette, SqueletteCartes, SqueletteLignes } from './ui/Squelette';
@@ -52,6 +52,20 @@ function Chargement() {
   );
 }
 
+/**
+ * Page chargée à la demande, dans sa propre limite Suspense (clé : le chemin de la route). Le routeur change de page dans
+ * une transition : une limite déjà affichée (partagée, ou réutilisée d'une route à l'autre faute de clé) garderait
+ * l'ancienne page à l'écran pendant le chargement du code de la nouvelle ; une limite neuve montre tout de suite la
+ * silhouette de la page demandée.
+ */
+function page(route: string, contenu: ReactNode) {
+  return (
+    <Suspense key={route} fallback={<ChargementPage />}>
+      {contenu}
+    </Suspense>
+  );
+}
+
 function Protege() {
   const { utilisateur, chargement } = useAuth();
   // Le bandeau de démonstration paraît en même temps que le reste (pas de page qui descend d'un cran).
@@ -74,21 +88,24 @@ export default function App() {
       <Routes>
         <Route path="/connexion" element={<ConnexionPage />} />
         <Route element={<Protege />}>
-          <Route path="/" element={<ListeMepPage />} />
-          <Route path="/suivi" element={<SuiviPage />} />
-          <Route path="/meps/:id" element={<MepPage />} />
-          <Route path="/meps/:id/rapport" element={<RapportPage />} />
-          <Route path="/profil" element={<ProfilPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/parametres/systemes" element={<SystemesPage />} />
-          <Route path="/parametres/systemes/:id" element={<SystemeFichePage />} />
-          <Route path="/parametres/resolutions" element={<ResolutionsPage />} />
-          <Route path="/parametres/resolutions/nouvelle" element={<NouvelleResolutionPage />} />
-          <Route path="/parametres/etapes" element={<BibliothequeEtapesPage />} />
-          <Route path="/parametres/recettes" element={<BibliothequeRecettesPage />} />
-          <Route path="/parametres/go-no-go" element={<GoNoGoPage />} />
-          <Route path="/parametres/textes" element={<ModelesTextePage />} />
-          <Route path="/parametres/textes/:id" element={<ModeleTexteEditeurPage />} />
+          <Route path="/" element={page('/', <ListeMepPage />)} />
+          <Route path="/suivi" element={page('/suivi', <SuiviPage />)} />
+          <Route path="/meps/:id" element={page('/meps/:id', <MepPage />)} />
+          <Route path="/meps/:id/rapport" element={page('/meps/:id/rapport', <RapportPage />)} />
+          <Route path="/profil" element={page('/profil', <ProfilPage />)} />
+          <Route path="/admin" element={page('/admin', <AdminPage />)} />
+          <Route path="/parametres/systemes" element={page('/parametres/systemes', <SystemesPage />)} />
+          <Route path="/parametres/systemes/:id" element={page('/parametres/systemes/:id', <SystemeFichePage />)} />
+          <Route path="/parametres/resolutions" element={page('/parametres/resolutions', <ResolutionsPage />)} />
+          <Route
+            path="/parametres/resolutions/nouvelle"
+            element={page('/parametres/resolutions/nouvelle', <NouvelleResolutionPage />)}
+          />
+          <Route path="/parametres/etapes" element={page('/parametres/etapes', <BibliothequeEtapesPage />)} />
+          <Route path="/parametres/recettes" element={page('/parametres/recettes', <BibliothequeRecettesPage />)} />
+          <Route path="/parametres/go-no-go" element={page('/parametres/go-no-go', <GoNoGoPage />)} />
+          <Route path="/parametres/textes" element={page('/parametres/textes', <ModelesTextePage />)} />
+          <Route path="/parametres/textes/:id" element={page('/parametres/textes/:id', <ModeleTexteEditeurPage />)} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

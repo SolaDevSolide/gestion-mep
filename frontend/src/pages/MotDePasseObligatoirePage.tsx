@@ -27,11 +27,7 @@ export default function MotDePasseObligatoirePage() {
         <FormulaireMotDePasse
           libelleAncien="Mot de passe provisoire"
           pied={
-            <Button
-              variante="fantome"
-              icone={<LogOut className="size-4" aria-hidden />}
-              onClick={() => void deconnecter()}
-            >
+            <Button variante="fantome" icone={<LogOut className="size-4" aria-hidden />} action={deconnecter}>
               Se déconnecter
             </Button>
           }

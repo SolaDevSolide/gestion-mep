@@ -427,8 +427,8 @@ export function PanneauEdition(props: Props) {
           <Button
             variante="primaire"
             taille="sm"
-            onClick={() =>
-              void enregistrer().then((ok) => {
+            action={() =>
+              enregistrer().then((ok) => {
                 if (ok) onSelection(cible.cible);
               })
             }

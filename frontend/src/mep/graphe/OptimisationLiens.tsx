@@ -13,14 +13,14 @@ export function BoutonOptimiserLiens({
 }: {
   actif: boolean;
   dansSection?: boolean;
-  onClick: () => void;
+  onClick: () => unknown;
 }) {
   return (
     <Button
       taille="sm"
       icone={<Route className="size-4" aria-hidden />}
       aria-pressed={actif}
-      onClick={onClick}
+      action={onClick}
       title={
         dansSection
           ? 'Repérer les liens inutiles entre les éléments de cette section (déjà garantis par un autre chemin dans la section) et les retirer, sans toucher au reste du plan'

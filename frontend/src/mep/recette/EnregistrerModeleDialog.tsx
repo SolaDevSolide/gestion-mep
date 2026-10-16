@@ -80,8 +80,16 @@ export function EnregistrerModeleDialog({
         </Field>
         <Field label="Système du catalogue">
           {(id) => (
-            <Select id={id} value={systemeCatalogueId} onChange={(e) => setSystemeCatalogueId(e.target.value)}>
-              <option value="">— Choisir —</option>
+            <Select
+              id={id}
+              value={systemeCatalogueId}
+              disabled={catalogue.donnees === null && !catalogue.erreur}
+              aria-busy={(catalogue.donnees === null && !catalogue.erreur) || undefined}
+              onChange={(e) => setSystemeCatalogueId(e.target.value)}
+            >
+              <option value="">
+                {catalogue.donnees === null && !catalogue.erreur ? 'Chargement…' : '— Choisir —'}
+              </option>
               {(catalogue.donnees ?? []).map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nom}

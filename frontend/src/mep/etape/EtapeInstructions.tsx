@@ -57,7 +57,7 @@ function CarteResolution({
           taille="sm"
           disabled={!peutAgir}
           icone={<Wrench className="size-4" aria-hidden />}
-          onClick={() => void actions.appliquerResolution(etape, r.id)}
+          action={() => actions.appliquerResolution(etape, r.id)}
         >
           Appliquer cette résolution
         </Button>
@@ -159,7 +159,7 @@ export function EtapeInstructions({ mep, etape, droits, liees, groupes = null, e
               <Button
                 variante="primaire"
                 icone={<RotateCcw className="size-4" aria-hidden />}
-                onClick={() => void actions.demarrer(etape)}
+                action={() => actions.demarrer(etape)}
               >
                 Redémarrer l’étape
               </Button>
@@ -231,10 +231,7 @@ export function EtapeInstructions({ mep, etape, droits, liees, groupes = null, e
           )}
           {pilote && !enCours && !resolutionEchouee && (
             <div>
-              <Button
-                icone={<Play className="size-4" aria-hidden />}
-                onClick={() => void actions.autoriserReprise(etape)}
-              >
+              <Button icone={<Play className="size-4" aria-hidden />} action={() => actions.autoriserReprise(etape)}>
                 Autoriser la reprise
               </Button>
             </div>

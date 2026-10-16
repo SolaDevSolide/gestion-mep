@@ -254,7 +254,7 @@ export function Shell() {
               </BoutonIcone>
             </Tooltip>
             <Tooltip content="Se déconnecter">
-              <BoutonIcone label="Se déconnecter" onClick={() => void deconnecter()}>
+              <BoutonIcone label="Se déconnecter" action={deconnecter}>
                 <LogOut className="size-4" aria-hidden />
               </BoutonIcone>
             </Tooltip>
@@ -280,15 +280,7 @@ export function Shell() {
         {/* Pages chargées à la demande (voir App) : le menu reste affiché pendant le chargement, et après une erreur
             d'affichage (FiletErreur), réessayée au changement de page ou d'onglet. */}
         <FiletErreur cle={location.pathname + location.search}>
-          <Suspense
-            fallback={
-              <EnChargement libelle="Chargement de la page…" className="mx-auto w-full max-w-6xl px-6 py-8">
-                <Squelette className="h-7 w-72" />
-                <Squelette className="mt-2 h-4 w-96 max-w-full" />
-                <SqueletteLignes lignes={6} className="mt-10 gap-4" />
-              </EnChargement>
-            }
-          >
+          <Suspense fallback={<ChargementPage />}>
             <Outlet />
           </Suspense>
         </FiletErreur>
@@ -296,5 +288,19 @@ export function Shell() {
       <PaletteCommandes open={palette} onOpenChange={setPalette} />
       <ActiviteReseau />
     </div>
+  );
+}
+
+/**
+ * Silhouette d'une page dont le code se charge encore. Chaque route a sa propre limite Suspense (voir App) : en changeant
+ * de page, c'est cette silhouette qui s'affiche, pas l'ancienne page qui resterait figée le temps du chargement.
+ */
+export function ChargementPage() {
+  return (
+    <EnChargement libelle="Chargement de la page…" className="mx-auto w-full max-w-6xl px-6 py-8">
+      <Squelette className="h-7 w-72" />
+      <Squelette className="mt-2 h-4 w-96 max-w-full" />
+      <SqueletteLignes lignes={6} className="mt-10 gap-4" />
+    </EnChargement>
   );
 }

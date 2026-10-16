@@ -502,11 +502,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
         outils={
           <>
             {modifiable && (
-              <BoutonOptimiserLiens
-                actif={!!optimisation}
-                dansSection={!!sectionVue}
-                onClick={() => void calculerOptimisation()}
-              />
+              <BoutonOptimiserLiens actif={!!optimisation} dansSection={!!sectionVue} onClick={calculerOptimisation} />
             )}
             {!sectionVue && sections.some((s) => s.placee) && <BoutonsRepli onToutes={toutes} />}
           </>

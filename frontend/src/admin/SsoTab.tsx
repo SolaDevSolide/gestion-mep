@@ -232,7 +232,7 @@ export default function SsoTab() {
                   variante="primaire"
                   icone={<Power className="size-4" aria-hidden />}
                   disabled={donnees.anomalies.length > 0}
-                  onClick={() => void activer()}
+                  action={activer}
                 >
                   Activer
                 </Button>

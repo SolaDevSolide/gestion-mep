@@ -343,7 +343,7 @@ export function CercleDialog({
               variante="danger-doux"
               className="mr-auto"
               icone={<Trash2 className="size-4" aria-hidden />}
-              onClick={() => void onSupprimer().then((ok) => ok && onFermer())}
+              action={() => onSupprimer().then((ok) => ok && onFermer())}
             >
               Supprimer
             </Button>
@@ -351,7 +351,7 @@ export function CercleDialog({
           <Button variante="fantome" onClick={onFermer}>
             Annuler
           </Button>
-          <Button variante="primaire" disabled={!titre.trim()} onClick={() => void valider()}>
+          <Button variante="primaire" disabled={!titre.trim()} action={valider}>
             Enregistrer
           </Button>
         </>
