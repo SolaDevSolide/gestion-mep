@@ -3,6 +3,7 @@ using System.Text.Json;
 using ClosedXML.Excel;
 using GestionMep.Api.Services;
 using GestionMep.Domain;
+using GestionMep.Tableur;
 
 namespace GestionMep.Tests;
 
@@ -41,26 +42,37 @@ public class ApiExportsExcelTests : IDisposable
 
         using (var c = await Classeur(bob, "/api/meps/excel"))
         {
-            var f = c.Worksheet("MEP");
+            var f = c.Worksheet("Mises en production");
             Assert.Equal("Mises en production", f.Cell(1, 1).GetString());
             Assert.Contains("aucun filtre", f.Cell(2, 1).GetString());
+            Assert.StartsWith("Généré par Gestion MEP ", f.Cell(3, 1).GetString(), StringComparison.Ordinal);
             Assert.Equal(toutes.Select(m => m.GetProperty("outil").GetString()!).Order(), Colonne(f, "Outil").Order());
-            Assert.True(f.AutoFilter.IsEnabled);
+            // Vrai tableau Excel avec filtres, en-têtes figés et répétés à l'impression, identifiant gardé mais masqué.
+            var table = Assert.Single(f.Tables);
+            Assert.True(table.ShowAutoFilter);
+            Assert.Equal(4, table.HeadersRow().RowNumber());
+            Assert.Equal(4, f.SheetView.SplitRow);
+            Assert.Equal(XLPageOrientation.Landscape, f.PageSetup.PageOrientation);
+            Assert.Equal(1, f.PageSetup.PagesWide);
+            Assert.Equal(4, f.PageSetup.FirstRowToRepeatAtTop);
+            var identifiant = f.Row(4).CellsUsed().Single(x => x.GetString() == "Identifiant").Address.ColumnNumber;
+            Assert.True(f.Column(identifiant).IsHidden);
+            Assert.Equal("dd/mm/yyyy", f.Cell(5, f.Row(4).CellsUsed().Single(x => x.GetString() == "Créée le").Address.ColumnNumber).Style.NumberFormat.Format);
         }
 
         // Phase et recherche (sans accents ni casse, comme la page d'accueil : « electronique » trouve « électronique »).
         using (var c = await Classeur(bob, "/api/meps/excel?phase=RetourArriere&recherche=MESSAGERIE"))
         {
-            var f = c.Worksheet("MEP");
+            var f = c.Worksheet("Mises en production");
             Assert.Equal([DonneesDemo.OutilRetourArriere], Colonne(f, "Outil"));
             Assert.Equal(["Retour arrière"], Colonne(f, "Phase"));
             Assert.Contains("phase Retour arrière", f.Cell(2, 1).GetString());
             Assert.Contains("recherche « MESSAGERIE »", f.Cell(2, 1).GetString());
         }
         using (var c = await Classeur(bob, "/api/meps/excel?recherche=electronique"))
-            Assert.Contains(DonneesDemo.OutilIncomplete, Colonne(c.Worksheet("MEP"), "Outil"));
+            Assert.Contains(DonneesDemo.OutilIncomplete, Colonne(c.Worksheet("Mises en production"), "Outil"));
         using (var c = await Classeur(bob, "/api/meps/excel?recherche=rien-de-tel"))
-            Assert.Contains("Aucune MEP", c.Worksheet("MEP").Cell(5, 1).GetString());
+            Assert.Contains("Aucune MEP", c.Worksheet("Mises en production").Cell(5, 1).GetString());
 
         // Modèles : leur propre onglet.
         using (var c = await Classeur(bob, "/api/meps/excel?modele=true"))
@@ -101,14 +113,20 @@ public class ApiExportsExcelTests : IDisposable
 
         using (var c = await Classeur(bob, $"/api/meps/{id}/etapes/excel"))
         {
-            var f = c.Worksheet("Étapes");
+            Assert.Equal(["Étapes de déploiement", "Instructions et résultats"], c.Worksheets.Select(x => x.Name).Take(2));
+            var f = c.Worksheet("Étapes de déploiement");
             Assert.Equal(Codes("Deploiement"), Colonne(f, "Code"));
             Assert.All(Colonne(f, "État"), e => Assert.Contains(e, new[] { "À faire", "En cours", "Réussie", "Échec" }));
-            Assert.Contains(Colonne(f, "Instructions"), i => i.Length > 0);
+            Assert.NotEmpty(f.ConditionalFormats); // états colorés
+            Assert.Equal(Codes("Deploiement"), Colonne(c.Worksheet("Instructions et résultats"), "Code"));
+            Assert.Contains(Colonne(c.Worksheet("Instructions et résultats"), "Instructions"), i => i.Length > 0);
+            // Durée estimée : une vraie durée Excel (fraction de jour), affichée « 0 h 15 ».
+            var duree = f.Row(4).CellsUsed().Single(x => x.GetString() == "Durée estimée").Address.ColumnNumber;
+            Assert.Equal(StylesExcel.FormatDuree, f.Cell(5, duree).Style.NumberFormat.Format);
         }
         using (var c = await Classeur(bob, $"/api/meps/{id}/retour-arriere/excel"))
         {
-            Assert.Equal("Fiche du plan", c.Worksheet(1).Name);
+            Assert.Equal("Plan de retour arrière", c.Worksheet(1).Name);
             Assert.Equal(Codes("RetourArriere"), Colonne(c.Worksheet("Étapes de retour arrière"), "Code"));
         }
     }

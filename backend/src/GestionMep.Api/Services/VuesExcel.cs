@@ -7,14 +7,13 @@ namespace GestionMep.Api.Services;
 
 /// <summary>
 /// Exportations Excel en lecture des vues de l'application (#58) : liste des MEP, préparation, étapes, retour arrière et
-/// journal d'une MEP. Chaque onglet est un tableau (titre, ligne de contexte, en-têtes figés et filtre automatique) ou une
-/// fiche « libellé / valeur ». Ces classeurs ne se réimportent pas : seuls la recette (<see cref="RecetteExcel"/>) et les
+/// journal d'une MEP. Chaque onglet commence par un bloc de titre (vue et MEP, contexte, mention « Généré par ») puis
+/// présente un tableau Excel (en-têtes figés, filtres, états colorés) ou une fiche « libellé / valeur ». Ces classeurs ne se réimportent pas : seuls la recette (<see cref="RecetteExcel"/>) et les
 /// objets impactés (<see cref="ObjetsExcel"/>) s'échangent dans les deux sens. Les dates et heures sont dans le fuseau de la MEP.
 /// </summary>
 public static partial class VuesExcel
 {
-    public const string TypeContenu = RecetteExcel.TypeContenu;
-    private const int LigneEnTetes = 4;
+    public const string TypeContenu = ExcelCommun.TypeContenu;
 
     /// <summary>Vues d'une MEP exportables, avec leur nom dans les adresses et la ligne de commande.</summary>
     public enum Vue { Preparation, Etapes, RetourArriere, Journal }
@@ -137,12 +136,6 @@ public static partial class VuesExcel
 
     // ---------- Noms de fichier ----------
 
-    private static string Assainir(string nom)
-    {
-        var s = new string(nom.Select(c => char.IsLetterOrDigit(c) || c is '.' or '-' ? c : '-').ToArray()).Trim('-');
-        return s.Length == 0 ? "mep" : s;
-    }
-
     /// <summary>« etapes-Outil-1.2.xlsx », « preparation-… », « retour-arriere-… », « journal-… ».</summary>
     public static string NomFichier(MepDto mep, Vue vue)
     {
@@ -153,121 +146,78 @@ public static partial class VuesExcel
             Vue.RetourArriere => "retour-arriere",
             _ => "journal",
         };
-        return $"{prefixe}-{Assainir($"{mep.Outil} {mep.VersionCible}".Trim())}.xlsx";
+        return ExcelCommun.NomFichier(prefixe, NomMep(mep));
     }
 
     /// <summary>« meps-2026-10-14.xlsx » (« modeles-… » pour les modèles).</summary>
     public static string NomFichierListe(bool modeles, DateTimeOffset maintenant) =>
-        $"{(modeles ? "modeles" : "meps")}-{Locale(maintenant, null):yyyy-MM-dd}.xlsx";
+        $"{(modeles ? "modeles" : "meps")}-{ExcelCommun.Locale(maintenant, null):yyyy-MM-dd}.xlsx";
 
     // ---------- Briques de mise en page ----------
 
-    /// <summary>Instant dans le fuseau donné (Europe/Paris par défaut, celui des MEP), sans indication de fuseau pour Excel.</summary>
-    private static DateTime Locale(DateTimeOffset instant, string? fuseau)
-    {
-        try
-        {
-            return TimeZoneInfo.ConvertTime(instant, TimeZoneInfo.FindSystemTimeZoneById(fuseau ?? "Europe/Paris")).DateTime;
-        }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            return instant.UtcDateTime;
-        }
-    }
-
-    private static DateTime? Quand(DateTimeOffset? instant, string? fuseau) => instant is { } i ? DateTime.SpecifyKind(Locale(i, fuseau), DateTimeKind.Unspecified) : null;
+    private static DateTime? Quand(DateTimeOffset? instant, string? fuseau) => ExcelCommun.Quand(instant, fuseau);
 
     private static string Heure(TimeOnly? h) => h?.ToString("HH:mm", CultureInfo.InvariantCulture) ?? "";
 
-    private static string NomMep(MepDto mep)
-    {
-        var nom = $"{mep.Outil} {mep.VersionCible}".Trim();
-        return nom.Length == 0 ? "MEP" : nom;
-    }
+    private static string NomMep(MepDto mep) => ExcelCommun.NomMep(mep.Outil, mep.VersionCible);
 
-    private static Format FormatValeur(object? v) => v is DateTime { TimeOfDay.Ticks: > 0 } ? Charte.Cellule with { DateHeure = true }
-        : v is DateTime or DateOnly ? Charte.Cellule with { Date = true } : Charte.Cellule;
-
-    /// <summary>Colonne d'un tableau : en-tête, largeur, et police à chasse fixe (codes, commandes).</summary>
-    private sealed record Colonne(string Titre, double Largeur, bool Code = false);
+    private static ClasseurExcel Classeur(string vue, MepDto mep, DateTimeOffset maintenant, PaletteExcel? palette) =>
+        ExcelCommun.Nouveau($"{vue} · {NomMep(mep)}", maintenant, mep.FuseauHoraire, palette, mep.Objet.Length > 0 ? mep.Objet : null);
 
     /// <summary>
-    /// Onglet tableau : titre (ligne 1), contexte (ligne 2), en-têtes (ligne 4, figées, avec filtre automatique), puis une
-    /// ligne par élément. Message discret à la place des lignes s'il n'y en a aucune.
+    /// Onglet tableau : bloc de titre (titre, contexte, mention de génération), puis tableau Excel à la ligne 4 (en-têtes
+    /// figés, filtres, colonnes facultatives vides retirées). Message discret à la place des lignes s'il n'y en a aucune.
     /// </summary>
-    private static void Tableau(ClasseurExcel classeur, string onglet, string titre, string contexte, IReadOnlyList<Colonne> colonnes,
-        IEnumerable<object?[]> lignes, string siVide)
+    private static TableauEcrit Tableau(ClasseurExcel classeur, string onglet, string titre, string? contexte, IReadOnlyList<ColonneTableau> colonnes,
+        IEnumerable<object?[]> lignes, string siVide, int colonnesFigees = 0)
     {
         var f = classeur.AjouterFeuille(onglet);
-        f.Ecrire(1, 1, titre, Charte.Titre);
-        f.Fusionner(1, 1, 1, Math.Max(1, Math.Min(colonnes.Count, 8)));
-        f.HauteurLigne(1, 24);
-        f.Ecrire(2, 1, contexte, Charte.SousTitre);
-        f.Fusionner(2, 1, 2, Math.Max(1, Math.Min(colonnes.Count, 8)));
-        f.HauteurLigne(2, Charte.HauteurTexte(contexte, colonnes.Take(8).Sum(c => c.Largeur)));
-        for (var i = 0; i < colonnes.Count; i++)
+        var t = f.Tableau(4, onglet, colonnes, lignes, siVide);
+        // Le contexte s'étend sur les premières colonnes visibles, sans dépasser une largeur d'écran.
+        double largeur = 0;
+        var n = 0;
+        foreach (var c in t.Colonnes)
         {
-            f.Ecrire(LigneEnTetes, i + 1, colonnes[i].Titre, Charte.EnTete);
-            f.LargeurColonne(i + 1, colonnes[i].Largeur);
+            if (c.Masquee || largeur >= 140) break;
+            largeur += c.Largeur;
+            n++;
         }
-        var ligne = LigneEnTetes + 1;
-        foreach (var valeurs in lignes)
-        {
-            for (var i = 0; i < colonnes.Count && i < valeurs.Length; i++)
-            {
-                var format = FormatValeur(valeurs[i]);
-                f.Ecrire(ligne, i + 1, valeurs[i], colonnes[i].Code ? format with { ChasseFixe = true } : format);
-            }
-            ligne++;
-        }
-        if (ligne == LigneEnTetes + 1) f.Ecrire(ligne, 1, siVide, Charte.SousTitre);
-        else f.FiltreAuto(LigneEnTetes, 1, ligne - 1, colonnes.Count);
-        f.FigerLignes(LigneEnTetes);
+        f.BlocTitre(titre, contexte, Math.Max(1, n), largeur);
+        if (colonnesFigees > 0 && t.Colonnes.Count > colonnesFigees) f.FigerLignes(4, colonnesFigees);
+        return t;
     }
 
-    /// <summary>Onglet fiche : une ligne « libellé / valeur » par champ ; une ligne sans valeur (null) sert d'intertitre.</summary>
-    private static void Fiche(ClasseurExcel classeur, string onglet, string titre, string contexte, IEnumerable<(string Libelle, object? Valeur)> champs)
+    /// <summary>Onglet fiche : bloc de titre, puis une ligne « libellé / valeur » par champ ; une ligne sans valeur (null) sert d'intertitre.</summary>
+    private static void Fiche(ClasseurExcel classeur, string onglet, string titre, string? contexte, IEnumerable<(string Libelle, object? Valeur)> champs)
     {
         var f = classeur.AjouterFeuille(onglet);
         f.LargeurColonne(1, 34);
-        f.LargeurColonne(2, 80);
-        f.Ecrire(1, 1, titre, Charte.Titre);
-        f.Fusionner(1, 1, 1, 2);
-        f.HauteurLigne(1, 24);
-        f.Ecrire(2, 1, contexte, Charte.SousTitre);
-        f.Fusionner(2, 1, 2, 2);
-        var ligne = 4;
-        foreach (var (libelle, valeur) in champs)
-        {
-            if (valeur is null)
-            {
-                if (ligne > 4) ligne++;
-                f.Ecrire(ligne, 1, libelle, Charte.EnTete);
-                f.Fusionner(ligne, 1, ligne, 2);
-                f.Formater(ligne, 1, ligne, 2, Charte.EnTete);
-            }
-            else
-            {
-                f.Ecrire(ligne, 1, libelle, Charte.Cellule with { Gras = true });
-                var texte = valeur as string;
-                f.Ecrire(ligne, 2, texte is { Length: 0 } ? "Non renseigné" : valeur,
-                    texte is { Length: 0 } ? Charte.Cellule with { Couleur = Charte.TexteDiscret } : FormatValeur(valeur));
-                if (texte is { Length: > 0 }) f.HauteurLigne(ligne, Charte.HauteurTexte(texte, 80));
-            }
-            ligne++;
-        }
+        f.LargeurColonne(2, 90);
+        var ligne = f.BlocTitre(titre, contexte, 2, 124);
+        f.Fiche(ligne, champs);
     }
 
-    private static string Contexte(MepDto mep, DateTimeOffset maintenant) =>
-        $"{NomMep(mep)}{(mep.Objet.Length > 0 ? " · " + mep.Objet : "")} · {(mep.EstModele ? "Modèle" : Libelle(mep.Phase, mep.Issue))} · "
-        + $"exporté le {Locale(maintenant, mep.FuseauHoraire):dd/MM/yyyy à HH:mm}";
+    /// <summary>Ligne de contexte d'une MEP : objet et phase (le nom de la MEP est dans le titre).</summary>
+    private static string Contexte(MepDto mep) =>
+        string.Join(" · ", new[] { mep.Objet, mep.EstModele ? "Modèle" : Libelle(mep.Phase, mep.Issue) }.Where(s => s.Length > 0));
 
     private static string Participant(MepDto mep, Guid? id) => mep.Participants.FirstOrDefault(p => p.Id == id)?.Nom ?? "";
 
     private static string NomSysteme(MepDto mep, Guid? id) => mep.Systemes.FirstOrDefault(s => s.Id == id)?.Nom ?? "";
 
     private static string Environnements(SystemeDto s) =>
-        string.Join(", ", s.Environnements.Select(e => e.Production ? $"{e.Nom} (production)" : e.Nom));
+        string.Join(", ", s.Environnements.Select(e =>
+            e.Production && !e.Nom.Contains("prod", StringComparison.OrdinalIgnoreCase) ? $"{e.Nom} (production)" : e.Nom));
+
+    private static string Le(DateTimeOffset instant, string? fuseau) => $"{ExcelCommun.Locale(instant, fuseau):dd/MM/yyyy à HH:mm}";
+
+    private static int? MinutesEntre(DateTimeOffset? de, DateTimeOffset? a) =>
+        de is { } d && a is { } f ? (int)Math.Round((f - d).TotalMinutes) : null;
+
+    private static ColonneTableau Col(string titre, double largeur, TypeColonne type = TypeColonne.Texte) => new(titre, largeur, type);
+
+    /// <summary>Identifiant technique : gardé (masqué) pour les recherches et la ligne de commande, jamais affiché.</summary>
+    private static ColonneTableau ColIdentifiant() => new("Identifiant", 38, TypeColonne.Code) { Masquee = true };
 
     // ---------- Liste des MEP ----------
 
@@ -276,35 +226,43 @@ public static partial class VuesExcel
     /// de contexte. <paramref name="equipes"/> : noms des équipes, par identifiant.
     /// </summary>
     public static byte[] ListeMeps(IReadOnlyList<MepResumeDto> meps, bool modeles, IReadOnlyList<string> filtres,
-        IReadOnlyDictionary<Guid, string> equipes, DateTimeOffset maintenant)
+        IReadOnlyDictionary<Guid, string> equipes, DateTimeOffset maintenant, PaletteExcel? palette = null)
     {
-        using var classeur = new ClasseurExcel();
-        var contexte = $"{meps.Count} {(modeles ? "modèle(s)" : "MEP")} · "
-            + (filtres.Count == 0 ? "aucun filtre" : "filtres : " + string.Join(" ; ", filtres))
-            + $" · exporté le {Locale(maintenant, null):dd/MM/yyyy à HH:mm}";
+        var titre = modeles ? "Modèles de MEP" : "Mises en production";
+        using var classeur = ExcelCommun.Nouveau(titre, maintenant, null, palette);
+        var contexte = $"{meps.Count} {(modeles ? (meps.Count > 1 ? "modèles" : "modèle") : "MEP")} · "
+            + (filtres.Count == 0 ? "aucun filtre" : "filtres : " + string.Join(" ; ", filtres));
         string Equipes(MepResumeDto m) => string.Join(", ", m.EquipeIds.Select(e => equipes.TryGetValue(e, out var n) ? n : "").Where(n => n.Length > 0).Order());
         if (modeles)
         {
-            Tableau(classeur, "Modèles", "Modèles de MEP", contexte,
-                [new("Outil", 26), new("Objet", 44), new("Étapes de déploiement", 12), new("Retour arrière prévu", 12), new("Équipes", 24),
-                    new("Créé le", 12), new("Identifiant", 38, true)],
-                meps.Select(m => new object?[] { m.Outil, m.Objet, m.NbEtapes, OuiNon(m.RetourArriereActive), Equipes(m), DateOnly.FromDateTime(Locale(m.CreeLe, null)), m.Id.ToString() }),
+            Tableau(classeur, "Modèles", titre, contexte,
+                [Col("Outil", 26), Col("Objet", 48), Col("Étapes de déploiement", 13, TypeColonne.Entier),
+                    Col("Retour arrière prévu", 12, TypeColonne.Court), Col("Équipes", 26) with { Facultative = true }, Col("Créé le", 12, TypeColonne.Date),
+                    ColIdentifiant()],
+                meps.Select(m => new object?[]
+                {
+                    m.Outil, m.Objet, m.NbEtapes, OuiNon(m.RetourArriereActive), Equipes(m), DateOnly.FromDateTime(ExcelCommun.Locale(m.CreeLe, null)),
+                    m.Id.ToString(),
+                }),
                 "Aucun modèle ne correspond à ces critères.");
         }
         else
         {
-            Tableau(classeur, "MEP", "Mises en production", contexte,
-                [new("Outil", 24), new("Version cible", 14, true), new("Objet", 40), new("Type", 11), new("Phase", 18), new("Production", 11),
-                    new("Pilote", 20), new("Équipes", 22), new("Démarrée le", 12), new("Créée le", 12), new("Étapes", 8), new("Réussies", 9),
-                    new("En échec", 9), new("Retour arrière prévu", 12), new("Échéance de retour arrière", 18), new("Identifiant", 38, true)],
+            Tableau(classeur, "Mises en production", titre, contexte,
+                [Col("Outil", 24), Col("Version cible", 12) with { Facultative = true }, Col("Objet", 44), Col("Type", 11, TypeColonne.Court),
+                    Col("Phase", 18, TypeColonne.Court) with { Tons = ExcelCommun.TonsPhase }, Col("Production", 11, TypeColonne.Court),
+                    Col("Pilote", 18), Col("Équipes", 24) with { Facultative = true }, Col("Démarrée le", 12, TypeColonne.Date),
+                    Col("Créée le", 12, TypeColonne.Date), Col("Étapes", 8, TypeColonne.Entier), Col("Réussies", 9, TypeColonne.Entier),
+                    Col("En échec", 9, TypeColonne.Entier), Col("Retour arrière prévu", 12, TypeColonne.Court),
+                    Col("Échéance de retour arrière", 17, TypeColonne.DateHeure) with { Facultative = true }, ColIdentifiant()],
                 meps.Select(m => new object?[]
                 {
                     m.Outil, m.Type == TypeMep.Simplifiee ? "" : m.VersionCible, m.Objet, Libelle(m.Type), Libelle(m.Phase, m.Issue),
-                    m.ToucheProduction ? "Oui" : "", m.Pilote ?? "", Equipes(m), m.DateMep, DateOnly.FromDateTime(Locale(m.CreeLe, null)),
+                    OuiNon(m.ToucheProduction), m.Pilote ?? "", Equipes(m), m.DateMep, DateOnly.FromDateTime(ExcelCommun.Locale(m.CreeLe, null)),
                     m.NbEtapes, m.NbReussies, m.NbEchecs, OuiNon(m.RetourArriereActive),
                     m.RetourArriereActive ? Quand(m.EcheanceRepli, null) : null, m.Id.ToString(),
                 }),
-                "Aucune MEP ne correspond à ces critères.");
+                "Aucune MEP ne correspond à ces critères.", colonnesFigees: 1);
         }
         return classeur.Enregistrer();
     }
@@ -312,10 +270,11 @@ public static partial class VuesExcel
     // ---------- Préparation ----------
 
     /// <summary>Préparation d'une MEP : un onglet par section (Intervention, Personnes, Systèmes…), comme le sommaire de l'onglet.</summary>
-    public static byte[] Preparation(MepDto mep, DateTimeOffset maintenant)
+    public static byte[] Preparation(MepDto mep, DateTimeOffset maintenant, PaletteExcel? palette = null)
     {
-        using var classeur = new ClasseurExcel();
-        var contexte = Contexte(mep, maintenant);
+        using var classeur = Classeur("Préparation", mep, maintenant, palette);
+        var contexte = Contexte(mep);
+        var nom = NomMep(mep);
         var simplifiee = mep.Type == TypeMep.Simplifiee;
         var f = mep.FuseauHoraire;
 
@@ -330,34 +289,40 @@ public static partial class VuesExcel
             ("Pilote", Participant(mep, mep.PiloteId)),
             ("Suppléants", string.Join(", ", mep.SuppleantIds.Select(s => Participant(mep, s)).Where(n => n.Length > 0))),
             ("Fuseau horaire", mep.FuseauHoraire),
-            ("Indisponibilité prévue (minutes)", mep.IndisponibiliteMinutes?.ToString(CultureInfo.InvariantCulture) ?? ""),
+            ("Indisponibilité prévue", mep.IndisponibiliteMinutes is { } ind ? VariablesTexte.Duree(ind) : ""),
             ("Plan de retour arrière", OuiNon(mep.RetourArriereActive)),
         ]);
         if (mep.RetourArriereActive) intervention.Add(("Échéance de retour arrière", (object?)Quand(mep.EcheanceRepli, f) ?? ""));
         intervention.AddRange([("Phase", mep.EstModele ? "Modèle" : Libelle(mep.Phase, mep.Issue)), ("Démarrée le", mep.DateMep is { } d ? d : "")]);
-        Fiche(classeur, "Intervention", "1. Intervention", contexte, intervention);
+        Fiche(classeur, "Intervention", $"Intervention · {nom}", contexte, intervention);
 
-        Tableau(classeur, "Personnes", "2. Personnes", contexte,
-            [new("Nom", 24), new("Rôle", 22), new("Contact", 28), new("Compte", 22), new("Rôle dans la MEP", 16)],
+        Tableau(classeur, "Personnes", $"Personnes · {nom}", contexte,
+            [Col("Nom", 24), Col("Rôle", 24), Col("Contact", 30), Col("Compte", 22) with { Facultative = true }, Col("Rôle dans la MEP", 16, TypeColonne.Court)],
             mep.Participants.Select(p => new object?[]
             {
                 p.Nom, p.Role, p.Contact, p.UtilisateurNom ?? "",
                 p.Id == mep.PiloteId ? "Pilote" : mep.SuppleantIds.Contains(p.Id) ? "Suppléant" : "",
             }), "Aucune personne.");
 
-        Tableau(classeur, "Systèmes", "3. Systèmes", contexte,
-            [new("Système", 14), new("Cible", 24, true), new("Impact", 34), new("Environnements", 30), new("Sauvegarde", 14),
-                new("Moment", 14), new("Quoi et comment ?", 34), new("Justification", 30), new("Emplacement de la sauvegarde", 28),
-                new("Méthode de récupération", 30)],
+        Tableau(classeur, "Systèmes", $"Systèmes · {nom}", contexte,
+            [Col("Système", 14), Col("Cible", 24, TypeColonne.Code), Col("Impact", 34), Col("Environnements", 28) with { Facultative = true },
+                Col("Sauvegarde", 13, TypeColonne.Court) with { Tons = ExcelCommun.TonsSauvegarde },
+                Col("Moment", 15, TypeColonne.Court) with { Facultative = true }, Col("Quoi et comment ?", 34) with { Facultative = true },
+                Col("Justification", 30) with { Facultative = true }, Col("Emplacement de la sauvegarde", 28) with { Facultative = true },
+                Col("Méthode de récupération", 30) with { Facultative = true }],
             mep.Systemes.Select(s => new object?[]
             {
                 s.Nom, s.Cible, s.Impact, Environnements(s), Libelle(s.Sauvegarde.Statut),
                 s.Sauvegarde.Statut == StatutSauvegarde.Requise ? Libelle(s.Sauvegarde.Moment) : "",
-                s.Sauvegarde.Contenu, s.Sauvegarde.Justification, s.Sauvegarde.Emplacement, s.Sauvegarde.MethodeRecuperation,
-            }), "Aucun système.");
+                BlocsMarkdown.ToutEnTexte(s.Sauvegarde.Contenu), BlocsMarkdown.ToutEnTexte(s.Sauvegarde.Justification),
+                BlocsMarkdown.ToutEnTexte(s.Sauvegarde.Emplacement), BlocsMarkdown.ToutEnTexte(s.Sauvegarde.MethodeRecuperation),
+            }), "Aucun système.", colonnesFigees: 1);
 
-        Tableau(classeur, "Responsables techniques", "4. Responsables techniques", contexte,
-            [new("Personne", 24), new("Systèmes", 22), new("Périmètre", 36), new("Jour J", 12), new("Contact le jour J", 28)],
+        Tableau(classeur, "Responsables techniques", $"Responsables techniques · {nom}", contexte,
+            [Col("Personne", 24), Col("Systèmes", 22), Col("Périmètre", 40), Col("Jour J", 12, TypeColonne.Court) with
+                {
+                    Tons = new Dictionary<string, Ton> { ["Absent"] = Ton.Attention, ["Joignable"] = Ton.Succes },
+                }, Col("Contact le jour J", 30)],
             mep.ResponsablesTechniques.Select(r => new object?[]
             {
                 Participant(mep, r.ParticipantId), string.Join(", ", r.SystemeIds.Select(s => NomSysteme(mep, s)).Where(n => n.Length > 0)),
@@ -365,16 +330,16 @@ public static partial class VuesExcel
             }), "Aucun responsable technique.");
 
         var ordreSystemes = mep.Systemes.Select((s, i) => (s.Id, i)).ToDictionary(x => x.Id, x => x.i);
-        Tableau(classeur, "Objets impactés", "5. Objets impactés", contexte,
-            [new("Système", 14), new("Catégorie", 22), new("Type", 16), new("Nom", 30, true), new("Libellé", 34), new("Précision", 24),
-                new("Version ou correction", 22)],
+        Tableau(classeur, "Objets impactés", $"Objets impactés · {nom}", contexte,
+            [Col("Système", 14), Col("Catégorie", 22), Col("Type", 16), Col("Nom", 30, TypeColonne.Code), Col("Libellé", 36),
+                Col("Précision", 24) with { Facultative = true }, Col("Version ou correction", 24)],
             mep.ObjetsImpactes.OrderBy(o => o.SystemeId is { } s && ordreSystemes.TryGetValue(s, out var i) ? i : int.MaxValue)
                 .ThenBy(o => o.Categorie, StringComparer.OrdinalIgnoreCase).ThenBy(o => o.Nom, StringComparer.OrdinalIgnoreCase)
                 .Select(o => new object?[] { NomSysteme(mep, o.SystemeId), o.Categorie, o.Type, o.Nom, o.Libelle, o.Precision, o.Version }),
             "Aucun objet impacté.");
 
         var sv = mep.Sauvegarde;
-        Fiche(classeur, "Sauvegarde", "6. Sauvegarde", contexte,
+        Fiche(classeur, "Sauvegarde", $"Sauvegarde · {nom}", contexte,
         [
             ("Responsable de la sauvegarde", Participant(mep, sv.ResponsableId)),
             ("Réalisée le", (object?)Quand(sv.RealiseeLe, f) ?? ""),
@@ -390,9 +355,9 @@ public static partial class VuesExcel
 
         var validation = new List<(string, object?)>
         {
-            ("Procédure relue", mep.ProcedureRelue is { } pr ? $"Oui, par {pr.Par} le {Locale(pr.Le, f):dd/MM/yyyy à HH:mm}" : "Non"),
+            ("Procédure relue", mep.ProcedureRelue is { } pr ? $"Oui, par {pr.Par} le {Le(pr.Le, f)}" : "Non"),
             ("Approbations demandées au minimum", mep.ApprobationsMinimum.ToString(CultureInfo.InvariantCulture)),
-            ("Démarrage autorisé", mep.DemarrageAutorise is { } da ? $"Par {da.Par} le {Locale(da.Le, f):dd/MM/yyyy à HH:mm}" : "Non"),
+            ("Démarrage autorisé", mep.DemarrageAutorise is { } da ? $"Par {da.Par} le {Le(da.Le, f)}" : "Non"),
             ("Approbations", null),
         };
         validation.AddRange(mep.Approbations.Select(a => (a.Nom, (object?)(a.Decision switch
@@ -400,17 +365,17 @@ public static partial class VuesExcel
             DecisionApprobation.Approuvee => "Approuvée",
             DecisionApprobation.Refusee => "Refusée",
             _ => "En attente",
-        } + (a.Le is { } le ? $" le {Locale(le, f):dd/MM/yyyy à HH:mm}" : "") + (a.Commentaire.Length > 0 ? $" : {a.Commentaire}" : "")))));
+        } + (a.Le is { } le ? $" le {Le(le, f)}" : "") + (a.Commentaire.Length > 0 ? $" : {a.Commentaire}" : "")))));
         if (mep.Approbations.Count == 0) validation.Add(("Approbateurs", "Aucun"));
         if (mep.GoNoGo.Count > 0)
         {
             validation.Add(("Critères validés au Go", null));
-            validation.AddRange(mep.GoNoGo.Select(c => (c.Libelle, (object?)$"{(c.Par is null ? "Validé" : $"Validé par {c.Par}")} le {Locale(c.Le, f):dd/MM/yyyy à HH:mm}")));
+            validation.AddRange(mep.GoNoGo.Select(c => (c.Libelle, (object?)$"{(c.Par is null ? "Validé" : $"Validé par {c.Par}")} le {Le(c.Le, f)}")));
         }
-        Fiche(classeur, "Validation", "7. Validation", contexte, validation);
+        Fiche(classeur, "Validation", $"Validation · {nom}", contexte, validation);
 
         var c = mep.Communication;
-        Fiche(classeur, "Communication", "8. Communication", contexte,
+        Fiche(classeur, "Communication", $"Communication · {nom}", contexte,
         [
             ("Référence de la demande", c.ReferenceDemande), ("Niveau de risque", Libelle(c.NiveauRisque)),
             ("Bénéfices et nouveautés", c.Benefices), ("Utilisateurs impactés", c.UtilisateursImpactes),
@@ -422,14 +387,15 @@ public static partial class VuesExcel
         ]);
 
         var codes = mep.Etapes.ToDictionary(e => e.Id, e => e.Code);
-        Tableau(classeur, "Pièces jointes", "9. Pièces jointes", contexte,
-            [new("Fichier", 36), new("Étape", 10, true), new("Type", 26), new("Taille (Ko)", 11), new("Déposé par", 22), new("Déposé le", 16),
-                new("Empreinte SHA-256", 40, true)],
+        Tableau(classeur, "Pièces jointes", $"Pièces jointes · {nom}", contexte + " · les fichiers eux-mêmes ne sont pas dans le classeur",
+            [Col("Fichier", 36), Col("Étape", 9, TypeColonne.Code) with { Facultative = true }, Col("Type de fichier", 24),
+                Col("Taille (Ko)", 11, TypeColonne.Nombre), Col("Déposé par", 22), Col("Déposé le", 16, TypeColonne.DateHeure),
+                Col("Empreinte SHA-256", 40, TypeColonne.Code) with { Note = "Empreinte du fichier, pour vérifier qu'il n'a pas été modifié." }],
             mep.PiecesJointes.OrderBy(p => p.DeposeLe).Select(p => new object?[]
             {
                 p.NomFichier, p.EtapeId is { } e && codes.TryGetValue(e, out var code) ? code : "", p.TypeContenu,
                 Math.Round(p.Taille / 1024d, 1), p.DeposePar ?? "", Quand(p.DeposeLe, f), p.Sha256,
-            }), "Aucune pièce jointe (les fichiers eux-mêmes ne sont pas dans le classeur).");
+            }), "Aucune pièce jointe.");
         return classeur.Enregistrer();
     }
 
@@ -437,31 +403,31 @@ public static partial class VuesExcel
 
     /// <summary>
     /// Étapes d'un plan (déploiement ou retour arrière), dans l'ordre du graphe (ligne, puis position) : définition, exécution
-    /// et résultat de chacune. Le retour arrière commence par la fiche du plan ; les résolutions exécutées suivent si besoin.
-    /// <paramref name="resolutions"/> : titres des résolutions types, par identifiant.
+    /// et résultat de chacune ; les colonnes qu'aucune étape ne renseigne sont omises. Le retour arrière commence par la fiche
+    /// du plan ; les résolutions exécutées suivent si besoin. <paramref name="resolutions"/> : titres des résolutions types.
     /// </summary>
-    public static byte[] Plan(MepDto mep, TypePlan plan, IReadOnlyDictionary<Guid, string> resolutions, DateTimeOffset maintenant)
+    public static byte[] Plan(MepDto mep, TypePlan plan, IReadOnlyDictionary<Guid, string> resolutions, DateTimeOffset maintenant, PaletteExcel? palette = null)
     {
-        using var classeur = new ClasseurExcel();
-        var contexte = Contexte(mep, maintenant);
-        var f = mep.FuseauHoraire;
-        var simplifiee = mep.Type == TypeMep.Simplifiee;
         var repli = plan == TypePlan.RetourArriere;
+        using var classeur = Classeur(repli ? "Retour arrière" : "Étapes de déploiement", mep, maintenant, palette);
+        var contexte = Contexte(mep);
+        var nom = NomMep(mep);
+        var f = mep.FuseauHoraire;
         if (repli)
         {
             var p = mep.PlanRepli;
-            Fiche(classeur, "Fiche du plan", "Fiche du plan de retour arrière", contexte,
+            Fiche(classeur, "Plan de retour arrière", $"Plan de retour arrière · {nom}", contexte,
             [
                 ("Plan de retour arrière prévu", OuiNon(mep.RetourArriereActive)),
                 ("Quand déclencher le retour arrière ?", p.QuandDeclencher),
-                ("Durée testée (minutes)", p.DureeTesteeMinutes?.ToString(CultureInfo.InvariantCulture) ?? ""),
+                ("Durée testée", p.DureeTesteeMinutes is { } dt ? VariablesTexte.Duree(dt) : ""),
                 ("Version ou copies à restaurer", p.VersionARestaurer),
                 ("Données créées depuis la sauvegarde", p.DonneesDepuisSauvegarde),
                 ("Si le retour arrière échoue", p.SiRepliEchoue),
                 ("Échéance de retour arrière", mep.RetourArriereActive ? (object?)Quand(mep.EcheanceRepli, f) ?? "" : ""),
                 ("Point de non-retour franchi", mep.NonRetourFranchi ?? "Non"),
                 ("Retour arrière déclenché", mep.RetourArriere is { } ra
-                    ? $"Le {Locale(ra.Le, f):dd/MM/yyyy à HH:mm}{(ra.Par is null ? " (automatiquement)" : $" par {ra.Par}")}{(ra.Motif.Length > 0 ? $" : {ra.Motif}" : "")}"
+                    ? $"Le {Le(ra.Le, f)}{(ra.Par is null ? " (automatiquement)" : $" par {ra.Par}")}{(ra.Motif.Length > 0 ? $" : {ra.Motif}" : "")}"
                     : "Non"),
             ]);
         }
@@ -471,43 +437,59 @@ public static partial class VuesExcel
         string EnvironnementsEtape(EtapeDto e) => string.Join(" ; ", e.Environnements.GroupBy(x => x.SystemeId)
             .Select(g => $"{NomSysteme(mep, g.Key)} : {string.Join(", ", g.Select(x => x.Nom))}"));
         var sections = mep.Sections.ToDictionary(s => s.Id, s => s.Titre);
-        var colonnes = new List<Colonne> { new("Code", 9, true), new("Ligne", 7), new("Section", 20), new("Action", 40), new("Type", 12), new("Systèmes", 16),
-            new("Environnements", 28), new("Dépend de", 14, true) };
-        if (!simplifiee) colonnes.AddRange([new("Criticité", 11), new("Durée estimée (min)", 11)]);
-        colonnes.AddRange([new("Point de non-retour", 12), new("Fin de l'étape", 16), new("Instructions", 60), new("Résultat attendu", 36),
-            new("État", 11), new("Exécutant", 20), new("Début réel", 16), new("Fin réelle", 16), new("Résultat constaté", 36), new("Preuve", 30),
-            new("Commentaire", 30)]);
-        if (!simplifiee) colonnes.Add(new("Résolutions liées", 30));
-        colonnes.AddRange([new("Emplacement de la sauvegarde", 26), new("Méthode de récupération", 26)]);
-        Tableau(classeur, repli ? "Étapes de retour arrière" : "Étapes", repli ? "Étapes de retour arrière" : "Étapes de déploiement", contexte, colonnes,
-            etapes.Select(e =>
+        var titre = repli ? "Étapes de retour arrière" : "Étapes de déploiement";
+        var siVide = repli ? "Aucune étape de retour arrière." : "Aucune étape de déploiement.";
+        // Deux onglets pour rester lisibles à l'écran comme à l'impression : le déroulé (qui, quoi, quand, dans quel état),
+        // puis le texte des étapes (instructions, résultats, preuves).
+        Tableau(classeur, titre, $"{titre} · {nom}", contexte,
+            [
+                Col("Code", 9, TypeColonne.Code), Col("Ligne", 7, TypeColonne.Entier) with { Note = "Ligne du plan : les étapes d'une même ligne se suivent." },
+                Col("Section", 18) with { Facultative = true }, Col("Action", 40), Col("Type", 12, TypeColonne.Court) with { Facultative = true },
+                Col("Systèmes", 14) with { Facultative = true }, Col("Environnements", 24) with { Facultative = true },
+                Col("Dépend de", 12, TypeColonne.Code) with { Facultative = true },
+                Col("Criticité", 11, TypeColonne.Court) with { Facultative = true, Tons = ExcelCommun.TonsCriticite },
+                Col("Durée estimée", 10, TypeColonne.Duree) with { Facultative = true },
+                Col("Point de non-retour", 11, TypeColonne.Court) with { Facultative = true, Tons = ExcelCommun.TonsAlerte },
+                Col("État", 11, TypeColonne.Court) with { Tons = ExcelCommun.TonsEtatEtape }, Col("Exécutant", 18) with { Facultative = true },
+                Col("Début réel", 16, TypeColonne.DateHeure) with { Facultative = true }, Col("Fin réelle", 16, TypeColonne.DateHeure) with { Facultative = true },
+            ],
+            etapes.Select(e => new object?[]
             {
-                var v = new List<object?>
-                {
-                    e.Code, e.Ligne + 1, e.SectionId is { } sid && sections.TryGetValue(sid, out var section) ? section : "", e.Action,
-                    e.Type == TypeEtape.Sauvegarde ? "Sauvegarde" : "Normale",
-                    string.Join(", ", e.SystemeIds.Select(s => NomSysteme(mep, s)).Where(n => n.Length > 0)), EnvironnementsEtape(e),
-                    string.Join(", ", e.Dependances.Select(d => codes.TryGetValue(d, out var c) ? c : "").Where(c => c.Length > 0)),
-                };
-                if (!simplifiee) v.AddRange([Libelle(e.Criticite), e.DureeEstimeeMinutes]);
-                v.AddRange([e.PointDeNonRetour ? "Oui" : "", e.Fin == FinEtape.Verification ? "Simple vérification" : "Test unitaire",
-                    BlocsMarkdown.ToutEnTexte(e.Instructions), BlocsMarkdown.ToutEnTexte(e.ResultatAttendu), Libelle(e.Etat),
-                    Participant(mep, e.ExecutantId), Quand(e.DebutReel, f), Quand(e.FinReelle, f), e.ResultatConstate, e.Preuve, e.Commentaire]);
-                if (!simplifiee) v.Add(string.Join(" ; ", e.ResolutionIds.Select(r => resolutions.TryGetValue(r, out var t) ? t : "").Where(t => t.Length > 0)));
-                v.AddRange([e.SauvegardeEmplacement, e.SauvegardeMethodeRecuperation]);
-                return v.ToArray();
+                e.Code, e.Ligne + 1, e.SectionId is { } sid && sections.TryGetValue(sid, out var section) ? section : "", e.Action,
+                e.Type == TypeEtape.Sauvegarde ? "Sauvegarde" : "",
+                string.Join(", ", e.SystemeIds.Select(s => NomSysteme(mep, s)).Where(n => n.Length > 0)), EnvironnementsEtape(e),
+                string.Join(", ", e.Dependances.Select(d => codes.TryGetValue(d, out var c) ? c : "").Where(c => c.Length > 0)),
+                Libelle(e.Criticite), e.DureeEstimeeMinutes, e.PointDeNonRetour ? "Oui" : "", Libelle(e.Etat),
+                Participant(mep, e.ExecutantId), Quand(e.DebutReel, f), Quand(e.FinReelle, f),
             }),
-            repli ? "Aucune étape de retour arrière." : "Aucune étape de déploiement.");
+            siVide, colonnesFigees: 1);
+        Tableau(classeur, "Instructions et résultats", $"Instructions et résultats · {nom}", contexte,
+            [
+                Col("Code", 9, TypeColonne.Code), Col("Action", 30), Col("Instructions", 54), Col("Résultat attendu", 34),
+                Col("Fin de l'étape", 13, TypeColonne.Court) with { Note = "Test unitaire : le résultat constaté est demandé. Simple vérification : non." },
+                Col("Résultat constaté", 34) with { Facultative = true }, Col("Preuve", 26) with { Facultative = true },
+                Col("Commentaire", 26) with { Facultative = true }, Col("Résolutions liées", 26) with { Facultative = true },
+                Col("Emplacement de la sauvegarde", 24) with { Facultative = true }, Col("Méthode de récupération", 24) with { Facultative = true },
+            ],
+            etapes.Select(e => new object?[]
+            {
+                e.Code, e.Action, BlocsMarkdown.ToutEnTexte(e.Instructions), BlocsMarkdown.ToutEnTexte(e.ResultatAttendu),
+                e.Fin == FinEtape.Verification ? "Simple vérification" : "Test unitaire", e.ResultatConstate, e.Preuve, e.Commentaire,
+                string.Join(" ; ", e.ResolutionIds.Select(r => resolutions.TryGetValue(r, out var t) ? t : "").Where(t => t.Length > 0)),
+                BlocsMarkdown.ToutEnTexte(e.SauvegardeEmplacement), BlocsMarkdown.ToutEnTexte(e.SauvegardeMethodeRecuperation),
+            }),
+            siVide, colonnesFigees: 1);
 
         var executees = mep.Resolutions.Where(r => etapes.Any(e => e.Id == r.EtapeId)).ToList();
         if (executees.Count > 0)
-            Tableau(classeur, "Résolutions exécutées", "Résolutions exécutées", contexte,
-                [new("Étape", 9, true), new("Résolution", 36), new("Statut", 12), new("Démarrée par", 20), new("Démarrée le", 16),
-                    new("Terminée le", 16), new("Corrections", 50), new("Vérification", 40)],
+            Tableau(classeur, "Résolutions exécutées", $"Résolutions exécutées · {nom}", contexte,
+                [Col("Étape", 9, TypeColonne.Code), Col("Résolution", 36), Col("Statut", 12, TypeColonne.Court) with { Tons = ExcelCommun.TonsResolution },
+                    Col("Démarrée par", 20), Col("Démarrée le", 16, TypeColonne.DateHeure), Col("Terminée le", 16, TypeColonne.DateHeure),
+                    Col("Durée", 9, TypeColonne.Duree), Col("Corrections", 50), Col("Vérification", 40)],
                 executees.Select(r => new object?[]
                 {
                     codes.TryGetValue(r.EtapeId, out var c) ? c : "", r.Titre, Libelle(r.Statut), r.DemarreePar, Quand(r.DemarreeLe, f),
-                    Quand(r.TermineeLe, f),
+                    Quand(r.TermineeLe, f), MinutesEntre(r.DemarreeLe, r.TermineeLe),
                     string.Join("\n", r.Corrections.OrderBy(x => x.Ordre).Select(x => $"{x.Ordre}. {BlocsMarkdown.ToutEnTexte(x.Instruction)}"
                         + (x.Resultat is { } res ? $" ({(res == ResultatControle.Conforme ? "conforme" : "échec")})" : ""))),
                     BlocsMarkdown.ToutEnTexte(r.VerificationInstruction)
@@ -518,29 +500,46 @@ public static partial class VuesExcel
 
     // ---------- Journal ----------
 
+    private static readonly ColonneTableau[] ColonnesJournal =
+    [
+        Col("Quand", 16, TypeColonne.DateHeure), Col("Auteur", 22), Col("Compte", 16) with { Facultative = true }, Col("Type", 18, TypeColonne.Court),
+        Col("Détail", 90), new("Événement", 24, TypeColonne.Code) { Masquee = true },
+    ];
+
+    private static object?[] LigneJournal(EvenementDto e, string? fuseau) =>
+        [Quand(e.Quand, fuseau), e.Auteur, e.AuteurLogin ?? "", LibelleFamille(e.Type), e.Detail, e.Type];
+
+    private static ColonneTableau[] ColonnesTests(bool etat) =>
+    [
+        Col("Code", 9, TypeColonne.Code), Col("Plan", 14, TypeColonne.Court), Col("Action", 36),
+        .. etat ? [Col("État", 11, TypeColonne.Court) with { Tons = ExcelCommun.TonsEtatEtape }] : Array.Empty<ColonneTableau>(),
+        Col("Fait", 8, TypeColonne.Court) with { Tons = ExcelCommun.TonsFait }, Col("Résultat attendu", 40), Col("Résultat constaté", 40),
+        Col("Exécutant", 20), Col("Fin", 16, TypeColonne.DateHeure),
+    ];
+
+    private static object?[] LigneTest(TestUnitaireDto t, string? fuseau, bool etat) =>
+    [
+        t.Code, t.Plan == TypePlan.RetourArriere ? "Retour arrière" : "Déploiement", t.Action, .. etat ? [Libelle(t.Etat)] : Array.Empty<object?>(),
+        OuiNon(t.Fait), BlocsMarkdown.ToutEnTexte(t.ResultatAttendu), t.ResultatConstate, t.Executant ?? "", Quand(t.FinReelle, fuseau),
+    ];
+
+    private static string ContexteTests(TestsUnitairesDto tests) =>
+        $"{tests.Faits} fait(s), {tests.NonFaits} non fait(s) · {tests.Verifications} étape(s) terminée(s) par une simple vérification (non listées)";
+
     /// <summary>
     /// Journal d'une MEP (du plus récent au plus ancien, comme l'onglet), filtres compris, puis le suivi des tests unitaires.
     /// </summary>
     public static byte[] Journal(MepDto mep, IReadOnlyList<EvenementDto> journal, IReadOnlyList<string> filtres, TestsUnitairesDto tests,
-        DateTimeOffset maintenant)
+        DateTimeOffset maintenant, PaletteExcel? palette = null)
     {
-        using var classeur = new ClasseurExcel();
-        var contexte = Contexte(mep, maintenant) + $" · {journal.Count} événement(s)"
-            + (filtres.Count == 0 ? "" : " · filtres : " + string.Join(" ; ", filtres));
+        using var classeur = Classeur("Journal", mep, maintenant, palette);
+        var nom = NomMep(mep);
+        var contexte = Contexte(mep) + $" · {journal.Count} événement(s)" + (filtres.Count == 0 ? "" : " · filtres : " + string.Join(" ; ", filtres));
         var f = mep.FuseauHoraire;
-        Tableau(classeur, "Journal", "Journal", contexte,
-            [new("Quand", 16), new("Auteur", 22), new("Compte", 18), new("Type", 18), new("Détail", 80), new("Événement", 24, true)],
-            journal.Select(e => new object?[] { Quand(e.Quand, f), e.Auteur, e.AuteurLogin ?? "", LibelleFamille(e.Type), e.Detail, e.Type }),
+        Tableau(classeur, "Journal", $"Journal · {nom}", contexte, ColonnesJournal, journal.Select(e => LigneJournal(e, f)),
             "Aucun événement ne correspond à ces critères.");
-        Tableau(classeur, "Tests unitaires", "Tests unitaires",
-            $"{tests.Faits} fait(s), {tests.NonFaits} non fait(s) · {tests.Verifications} étape(s) terminée(s) par une simple vérification (non listées)",
-            [new("Code", 9, true), new("Plan", 14), new("Action", 36), new("État", 11), new("Fait", 8), new("Résultat attendu", 40),
-                new("Résultat constaté", 40), new("Exécutant", 20), new("Fin", 16)],
-            tests.Tests.Select(t => new object?[]
-            {
-                t.Code, t.Plan == TypePlan.RetourArriere ? "Retour arrière" : "Déploiement", t.Action, Libelle(t.Etat), OuiNon(t.Fait),
-                BlocsMarkdown.ToutEnTexte(t.ResultatAttendu), t.ResultatConstate, t.Executant ?? "", Quand(t.FinReelle, f),
-            }), "Aucun test unitaire.");
+        Tableau(classeur, "Tests unitaires", $"Tests unitaires · {nom}", ContexteTests(tests), ColonnesTests(etat: true),
+            tests.Tests.Select(t => LigneTest(t, f, etat: true)), "Aucun test unitaire.");
         return classeur.Enregistrer();
     }
 }

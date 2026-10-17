@@ -499,7 +499,7 @@ public static partial class LigneDeCommande
                 var mep = await service.Charger(id);
                 var ids = mep.Systemes.Select(s => s.CatalogueId).OfType<Guid>().Distinct().ToList();
                 var fiches = await db.SystemesCatalogue.AsNoTracking().Where(s => ids.Contains(s.Id)).ToDictionaryAsync(s => s.Id);
-                export = new(ObjetsExcel.Exporter(mep, fiches, modele: false), ObjetsExcel.NomFichier(mep, modele: false));
+                export = new(ObjetsExcel.Exporter(mep, fiches, modele: false, DateTimeOffset.UtcNow), ObjetsExcel.NomFichier(mep, modele: false));
                 libelle = "Objets impactés";
                 break;
             }

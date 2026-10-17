@@ -15,7 +15,7 @@ namespace GestionMep.Api.Endpoints;
 /// </summary>
 public static class ObjetsImpactesEndpoints
 {
-    private const string TypeExcel = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    private const string TypeExcel = ExcelCommun.TypeContenu;
 
     /// <summary>Fiches du catalogue des systèmes de la MEP, par identifiant.</summary>
     private static async Task<Dictionary<Guid, SystemeCatalogue>> Fiches(MepDbContext db, Mep mep)
@@ -80,11 +80,11 @@ public static class ObjetsImpactesEndpoints
 
         // ---------- Excel : modèle, export, import ----------
         // ?modele=true : classeur vide à remplir ; sinon les objets de la MEP. Les deux se réimportent.
-        api.MapGet("/meps/{id:guid}/objets/excel", async (Guid id, bool? modele, ServiceMep svc, MepDbContext db) =>
+        api.MapGet("/meps/{id:guid}/objets/excel", async (Guid id, bool? modele, ServiceMep svc, MepDbContext db, TimeProvider temps) =>
         {
             var mep = await svc.Charger(id);
             var vide = modele == true;
-            return Results.File(ObjetsExcel.Exporter(mep, await Fiches(db, mep), vide), TypeExcel, ObjetsExcel.NomFichier(mep, vide));
+            return Results.File(ObjetsExcel.Exporter(mep, await Fiches(db, mep), vide, temps.GetUtcNow()), TypeExcel, ObjetsExcel.NomFichier(mep, vide));
         }).Produces(StatusCodes.Status200OK, contentType: TypeExcel);
 
         // Import : les lignes rattachées au catalogue sont ajoutées (ou leur version mise à jour) ; les autres sont rejetées et

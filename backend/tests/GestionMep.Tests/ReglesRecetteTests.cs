@@ -142,7 +142,7 @@ public class ReglesRecetteTests
         var a = AnalyserValidation(m, m.Id, VersionRecette(m), lignes);
         Assert.Equal(4, a.Erreurs.Count);
         Assert.Contains(a.Erreurs, e => e.Contains("déjà « Conforme » dans l'application", StringComparison.Ordinal));
-        Assert.Contains(a.Erreurs, e => e.Contains("validation « Peut-être » inconnue (Validé ou Refusé attendu)", StringComparison.Ordinal));
+        Assert.Contains(a.Erreurs, e => e.Contains("validation « Peut-être » inconnue (colonne « Validation » : Validé ou Refusé attendu)", StringComparison.Ordinal));
         Assert.Contains(a.Erreurs, e => e.Contains("indiquer qui a validé", StringComparison.Ordinal));
         Assert.Contains(a.Erreurs, e => e.Contains("date illisible", StringComparison.Ordinal) && e.Contains("décrire le résultat constaté du refus", StringComparison.Ordinal));
 
@@ -183,6 +183,8 @@ public class ReglesRecetteTests
     [InlineData(" valide ", ResultatControle.Conforme)]
     [InlineData("REFUSÉ", ResultatControle.Echec)]
     [InlineData("Refuse", ResultatControle.Echec)]
+    [InlineData("Validée", ResultatControle.Conforme)]
+    [InlineData(" refusée", ResultatControle.Echec)]
     [InlineData("OK", null)]
     [InlineData("Conforme", null)]
     public void Les_valeurs_de_validation_acceptees(string valeur, ResultatControle? attendu) => Assert.Equal(attendu, LireValidation(valeur));

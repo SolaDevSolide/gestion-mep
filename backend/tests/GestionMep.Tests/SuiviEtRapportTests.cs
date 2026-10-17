@@ -128,7 +128,7 @@ public class SuiviEtRapportTests : IDisposable
             c.Worksheets.Select(f => f.Name));
         Assert.Equal("E0003", c.Worksheet("Points bloquants").Cell(5, 1).GetString());
         Assert.Contains(c.Worksheet("Synthèse").Column(2).CellsUsed(), x => x.GetString() == "1 (dont 1 repris avec succès)");
-        Assert.Equal("Bob", c.Worksheet("Étapes").Cell(7, 5).GetString());
+        Assert.Equal(("Exécutant", "Bob"), (c.Worksheet("Étapes").Cell(4, 4).GetString(), c.Worksheet("Étapes").Cell(7, 4).GetString()));
 
         // MEP repliée : l'annexe du retour arrière s'ajoute.
         var repliee = await AidesApi.IdMep(bob, DonneesDemo.OutilRepliee);
@@ -158,7 +158,7 @@ public class SuiviEtRapportTests : IDisposable
         }
         Assert.Contains("Rapport de fin", sortie.ToString());
         using var c = new XLWorkbook(fichier);
-        Assert.Equal("Rapport de fin de MEP", c.Worksheet("Synthèse").Cell(1, 1).GetString());
+        Assert.Equal("Rapport de fin · Gestion des stocks 6.3", c.Worksheet("Synthèse").Cell(1, 1).GetString());
         Assert.False(File.Exists(fichier + "2"));
     }
 }
