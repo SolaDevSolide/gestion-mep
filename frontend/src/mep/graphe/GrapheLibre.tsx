@@ -62,15 +62,22 @@ import {
 import { liensAuPoint, RAYON_COUDE } from './routage';
 import {
   adoucir,
+  ancrageHaut,
   cheminArrondi,
   dansCadre,
+  decoupe,
+  DUREE_MOUVEMENT_MS,
   etatA,
+  placeAncree,
   rampeApparition,
   rampeDisparition,
+  revelation,
   routeSuivant,
+  type Ancrage,
   type EtatNoeud,
   type LienMouvement,
   type PlaceDansCadre,
+  type SensCadre,
 } from './mouvementGraphe';
 import { sautsSansJonctions } from './routageBordure';
 import { SqueletteGraphe } from './SqueletteGraphe';
@@ -82,7 +89,8 @@ import { useRangement } from './useRangement';
 export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 1.6;
 const PAS_ZOOM = 1.2;
-const DUREE_ANIMATION = 260;
+/** Glissement du contenu d'un cadre qui s'ouvre (il descend à sa place) ou se ferme (il remonte en s'effaçant). */
+const GLISSE_CONTENU = 10;
 /** Secours seulement (cas anormal) : un nœud monté que React Flow ne mesure jamais n'empêche pas le mouvement. */
 const SECOURS_MONTAGE_MS = 3000;
 /** Hauteur minimale du graphe quand la fenêtre est très basse. */
@@ -500,6 +508,11 @@ function Graphe(props: Props) {
     .map((n) => n.sectionId)
     .join(',');
   const sectionsEnCours = useMemo(() => new Set(cleEnCours ? cleEnCours.split(',') : []), [cleEnCours]);
+  const cleRepli = modele.noeuds
+    .filter((n) => n.nature === 'section' && noeuds.some((x) => x.id === n.id && x.type === 'cadre'))
+    .map((n) => n.sectionId)
+    .join(',');
+  const sectionsRepli = useMemo(() => new Set(cleRepli ? cleRepli.split(',') : []), [cleRepli]);
 
   useEffect(() => {
     const precedents = new Map(noeudsRef.current.map((n) => [n.id, n]));
@@ -537,8 +550,8 @@ function Graphe(props: Props) {
     // Repli ou dépli d'une section, étapes reçues ou parties. Ce rangement est définitif : les nouveaux nœuds ont été
     // mesurés avant, en invisible (`useRangement` attend leurs mesures), et rien n'a bougé d'ici là. Puis un seul
     // mouvement, entièrement calculé avant sa première image (voir mouvementGraphe) : chaque nœud va de sa place affichée
-    // à sa nouvelle place, le cadre qui s'ouvre ou se ferme emporte son intérieur à sa mesure (en fondu), la vue suit, et
-    // les liens restent attachés à leurs nœuds du début à la fin.
+    // à sa nouvelle place, le cadre qui s'ouvre ou se ferme dévoile ou cache son intérieur (découpé par lui), la vue suit,
+    // et les liens restent attachés à leurs nœuds du début à la fin.
     const idsCibles = new Set(cibles.map((n) => n.id));
     const suite = (mesures: ReadonlyMap<string, { width: number; height: number }> = new Map()) => {
       // Mesures prises par React Flow pendant le montage invisible : reprises, sinon il cacherait ces nœuds le temps de
@@ -638,12 +651,25 @@ function Graphe(props: Props) {
       // couvriraient le titre).
       const placeDans = (n: NoeudRf): PlaceDansCadre =>
         n.type === 'titre' ? 'titre' : n.type === 'cercle' && !sectionVue ? 'bord' : 'contenu';
+      // Contenu (étapes) d'un cadre qui s'ouvre ou se ferme : à sa taille réelle, ancré au milieu du bord haut du cadre et
+      // découpé par lui, révélé rangée par rangée (voir `revelation`) ; il glisse un peu en paraissant ou en partant.
+      const reveles = new Map<
+        string,
+        { parent: string; ancrage: Ancrage; sens: SensCadre; largeur: number; hauteur: number }
+      >();
       for (const n of cibles) {
         const fin = arrivee.get(n.id);
         if (depart.has(n.id) || !fin) continue;
         const pd = n.parentId ? depart.get(n.parentId) : undefined;
         const pa = n.parentId ? arrivee.get(n.parentId) : undefined;
         const place = placeDans(n);
+        if (place === 'contenu' && pd && pa && n.parentId) {
+          const ancrage = ancrageHaut(fin.boite, pa.boite);
+          const { largeur, hauteur: haut } = fin.boite;
+          reveles.set(n.id, { parent: n.parentId, ancrage, sens: 'ouvre', largeur, hauteur: haut });
+          depart.set(n.id, { boite: placeAncree(ancrage, pd.boite, largeur, haut), opacite: 0, echelle: 1 });
+          continue;
+        }
         const r = pd && pa ? dansCadre(fin.boite, pa.boite, pd.boite, place) : null;
         depart.set(n.id, {
           boite: r?.boite ?? fin.boite,
@@ -659,6 +685,17 @@ function Graphe(props: Props) {
         const pd = n.parentId ? depart.get(n.parentId) : undefined;
         const pa = n.parentId ? arrivee.get(n.parentId) : undefined;
         const place = placeDans(n);
+        if (place === 'contenu' && pd && pa && n.parentId) {
+          const ancrage = ancrageHaut(deb.boite, pd.boite);
+          const { largeur, hauteur: haut } = deb.boite;
+          reveles.set(n.id, { parent: n.parentId, ancrage, sens: 'ferme', largeur, hauteur: haut });
+          arrivee.set(n.id, {
+            boite: placeAncree(ancrage, pa.boite, largeur, haut),
+            opacite: 0,
+            echelle: deb.echelle,
+          });
+          continue;
+        }
         const r = pd && pa ? dansCadre(deb.boite, pd.boite, pa.boite, place) : null;
         arrivee.set(n.id, {
           boite: r?.boite ?? deb.boite,
@@ -678,7 +715,7 @@ function Graphe(props: Props) {
       ];
       const idsNouveauxLiens = new Set(range.modele.liens.map((l) => l.id));
       const idsAnciensLiens = new Set(ancien?.modele.liens.map((l) => l.id) ?? []);
-      const duree = reduit ? 1 : DUREE_ANIMATION;
+      const duree = reduit ? 1 : DUREE_MOUVEMENT_MS;
       const debut = performance.now();
       setAnime(true);
       const pas = () => {
@@ -701,6 +738,16 @@ function Graphe(props: Props) {
           const b = arrivee.get(id);
           if (b) etats.set(id, etatA(a, b, k));
         }
+        const decoupes = new Map<string, string | null>();
+        for (const [id, r] of reveles) {
+          const p = etats.get(r.parent);
+          if (!p) continue;
+          const opacite = revelation(r.ancrage.ry, k, r.sens);
+          const b = placeAncree(r.ancrage, p.boite, r.largeur, r.hauteur);
+          b.y -= (1 - opacite) * GLISSE_CONTENU;
+          etats.set(id, { boite: b, opacite, echelle: 1 });
+          decoupes.set(id, decoupe(b, p.boite));
+        }
         setNoeuds(
           enMouvement.map((n) => {
             const e = etats.get(n.id);
@@ -709,6 +756,9 @@ function Graphe(props: Props) {
             const style: Record<string, unknown> = { ...n.style, opacity: e.opacite };
             if (e.echelle !== 1) style['--echelle'] = e.echelle;
             else delete style['--echelle'];
+            const coupe = decoupes.get(n.id);
+            if (coupe) style.clipPath = coupe;
+            else delete style.clipPath;
             if (n.type === 'cadre' || n.type === 'section') {
               style.width = e.boite.largeur / e.echelle;
               style.height = e.boite.hauteur / e.echelle;
@@ -741,11 +791,14 @@ function Graphe(props: Props) {
           if (!route || !rs || !rc || !s || !c) return;
           const opacite = Math.min(s.opacite, c.opacite) * fondu;
           if (opacite <= 0.01) return;
+          const r = reveles.get(l.source) ?? reveles.get(l.cible);
+          const dans = r ? etats.get(r.parent)?.boite : undefined;
           traces.push({
             id: l.id,
             d: cheminArrondi(routeSuivant(route, rs, s.boite, rc, c.boite), RAYON_COUDE),
             opacite,
             ton: fait(l) ? 'ok' : 'neutre',
+            ...(dans ? { dans } : {}),
           });
         };
         for (const l of range.modele.liens)
@@ -1396,6 +1449,7 @@ function Graphe(props: Props) {
       enAvant,
       enMouvement: anime,
       sectionsEnCours,
+      sectionsRepli,
       reordre: reordre ? glisse : null,
       estEstompee,
       onActiver: (id) => {
@@ -1440,6 +1494,7 @@ function Graphe(props: Props) {
       enAvant,
       anime,
       sectionsEnCours,
+      sectionsRepli,
       reordre,
       estEstompee,
       onSelection,

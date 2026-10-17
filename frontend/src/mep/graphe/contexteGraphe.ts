@@ -36,6 +36,8 @@ export interface ValeurGraphe {
   enMouvement: boolean;
   /** Sections dont le repli ou le dépli se prépare (mesure et rangement de leur intérieur) : leur bouton le signale. */
   sectionsEnCours: ReadonlySet<string>;
+  /** Parmi elles, celles qui se replient (jusqu'à la fin du mouvement) : le chevron de leur titre tourne vers la droite. */
+  sectionsRepli: ReadonlySet<string>;
   /** Réorganisation en cours : le nœud glissé change de place dans son niveau (gauche-droite). */
   reordre: string | null;
   estEstompee?: (e: Etape) => boolean;
