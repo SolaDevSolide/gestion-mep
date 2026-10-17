@@ -6,7 +6,7 @@
 
 **Avertissement** : point signalé par « Vérifier le plan » qui n'empêche pas le Go (par exemple un système sans recette).
 
-**Bac** : colonne à droite du graphe des étapes qui reçoit les sections pas encore placées dans le plan. Une section restée dans le bac bloque le Go.
+**Bac** : colonne à droite du graphe des étapes qui reçoit les sections pas encore placées dans le plan et les étapes retirées du graphe (« Étapes à placer »). Une section ou une étape restée dans le bac bloque le Go.
 
 **Bilan** : retour d'expérience rédigé à la clôture : ce qui a marché, incidents, actions.
 

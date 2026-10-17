@@ -47,6 +47,24 @@ export const apiGraphe = {
   deplacerEtape: (mepId: string, etapeId: string, cible: Deplacement) =>
     json<Mep>('POST', `/meps/${mepId}/etapes/${etapeId}/deplacer`, cible),
 
+  /** Retire l'étape du graphe : ses suivants attendent ses préalables, elle attend sans lien dans le bac « Étapes à placer ». */
+  retirerDuPlan: (mepId: string, etapeId: string) =>
+    json<Mep>('POST', `/meps/${mepId}/etapes/${etapeId}/retirer-du-plan`),
+  /**
+   * Replace une étape du bac à cette place (sur un lien, après une carte ou un cercle, en parallèle), ou à part (`{}`).
+   * `sectionId` : section où la poser (vue d'une section) ; absent : celle de la place.
+   */
+  placerEtape: (
+    mepId: string,
+    etapeId: string,
+    place: Deplacement | Record<string, never>,
+    sectionId: string | null = null,
+  ) =>
+    json<Mep>('POST', `/meps/${mepId}/etapes/${etapeId}/placer-depuis-le-bac`, {
+      ...place,
+      ...(sectionId ? { sectionId } : {}),
+    }),
+
   /** `vers` attendra `de` : étapes, ou cercles de section (source d'une entrée, étape d'une section, sortie attendue). */
   lier: (mepId: string, de: string, vers: string) => json<Mep>('POST', `/meps/${mepId}/liens`, { de, vers }),
   delier: (mepId: string, de: string, vers: string) => json<Mep>('POST', `/meps/${mepId}/liens/retirer`, { de, vers }),

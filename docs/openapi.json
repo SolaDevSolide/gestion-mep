@@ -1299,6 +1299,86 @@
         }
       }
     },
+    "/api/meps/{id}/etapes/{eid}/retirer-du-plan": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes/{eid}/placer-depuis-le-bac": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PlacementEtapeSaisie"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/meps/{id}/etapes/{eid}/prendre-la-main": {
       "post": {
         "tags": [
@@ -6968,7 +7048,8 @@
           "sectionId",
           "dependancesDerivees",
           "portsAttendus",
-          "rang"
+          "rang",
+          "aPlacer"
         ],
         "type": "object",
         "properties": {
@@ -7210,9 +7291,12 @@
           "rang": {
             "type": "integer",
             "format": "int32"
+          },
+          "aPlacer": {
+            "type": "boolean"
           }
         },
-        "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné)."
+        "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go)."
       },
       "EtapeModeleRecetteDto": {
         "required": [
@@ -8569,7 +8653,8 @@
                     "sectionId",
                     "dependancesDerivees",
                     "portsAttendus",
-                    "rang"
+                    "rang",
+                    "aPlacer"
                   ],
                   "type": "object",
                   "properties": {
@@ -8811,9 +8896,12 @@
                     "rang": {
                       "type": "integer",
                       "format": "int32"
+                    },
+                    "aPlacer": {
+                      "type": "boolean"
                     }
                   },
-                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné)."
+                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go)."
                 }
               },
               "resolutions": {
@@ -10535,7 +10623,8 @@
                 "sectionId",
                 "dependancesDerivees",
                 "portsAttendus",
-                "rang"
+                "rang",
+                "aPlacer"
               ],
               "type": "object",
               "properties": {
@@ -10777,9 +10866,12 @@
                 "rang": {
                   "type": "integer",
                   "format": "int32"
+                },
+                "aPlacer": {
+                  "type": "boolean"
                 }
               },
-              "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné)."
+              "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go)."
             }
           },
           "resolutions": {
@@ -12980,6 +13072,43 @@
           }
         }
       },
+      "PlacementEtapeSaisie": {
+        "type": "object",
+        "properties": {
+          "apres": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "surLien": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LienSaisie"
+              }
+            ]
+          },
+          "paralleleA": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "Retour dans le graphe d'une étape du bac « Étapes à placer » : au plus une place, `SurLien` (insertion sur ce lien),\n`Apres` (elle attend cette étape ou ce cercle) ou `ParalleleA` ; aucune : posée à part. `SectionId` : section\noù la poser (vue d'une section) ; absente : celle de la place, ou la sienne posée à part."
+      },
       "PlacementSectionSaisie": {
         "required": [
           "placee"
@@ -14281,7 +14410,8 @@
                     "sectionId",
                     "dependancesDerivees",
                     "portsAttendus",
-                    "rang"
+                    "rang",
+                    "aPlacer"
                   ],
                   "type": "object",
                   "properties": {
@@ -14523,9 +14653,12 @@
                     "rang": {
                       "type": "integer",
                       "format": "int32"
+                    },
+                    "aPlacer": {
+                      "type": "boolean"
                     }
                   },
-                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné)."
+                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go)."
                 }
               },
               "resolutions": {
@@ -16620,7 +16753,8 @@
                     "sectionId",
                     "dependancesDerivees",
                     "portsAttendus",
-                    "rang"
+                    "rang",
+                    "aPlacer"
                   ],
                   "type": "object",
                   "properties": {
@@ -16862,9 +16996,12 @@
                     "rang": {
                       "type": "integer",
                       "format": "int32"
+                    },
+                    "aPlacer": {
+                      "type": "boolean"
                     }
                   },
-                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné)."
+                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go)."
                 }
               },
               "resolutions": {
@@ -18683,7 +18820,8 @@
                       "sectionId",
                       "dependancesDerivees",
                       "portsAttendus",
-                      "rang"
+                      "rang",
+                      "aPlacer"
                     ],
                     "type": "object",
                     "properties": {
@@ -18925,9 +19063,12 @@
                       "rang": {
                         "type": "integer",
                         "format": "int32"
+                      },
+                      "aPlacer": {
+                        "type": "boolean"
                       }
                     },
-                    "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné)."
+                    "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go)."
                   }
                 },
                 "resolutions": {

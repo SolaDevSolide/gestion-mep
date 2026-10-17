@@ -1562,6 +1562,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meps/{id}/etapes/{eid}/retirer-du-plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    eid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/etapes/{eid}/placer-depuis-le-bac": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    eid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": null | components["schemas"]["PlacementEtapeSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meps/{id}/etapes/{eid}/prendre-la-main": {
         parameters: {
             query?: never;
@@ -6656,6 +6732,7 @@ export interface components {
          *     `ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).
          *     `Environnements` : environnements où agit l'étape, système par système.
          *     `Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).
+         *     `APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go).
          */
         EtapeDto: {
             /** Format: uuid */
@@ -6732,6 +6809,7 @@ export interface components {
             portsAttendus: string[];
             /** Format: int32 */
             rang: number;
+            aPlacer: boolean;
         };
         EtapeModeleRecetteDto: {
             /** Format: int32 */
@@ -7159,6 +7237,7 @@ export interface components {
                     portsAttendus: string[];
                     /** Format: int32 */
                     rang: number;
+                    aPlacer: boolean;
                 }[];
                 resolutions: {
                     /** Format: uuid */
@@ -7716,6 +7795,7 @@ export interface components {
                 portsAttendus: string[];
                 /** Format: int32 */
                 rang: number;
+                aPlacer: boolean;
             }[];
             resolutions: {
                 /** Format: uuid */
@@ -8309,6 +8389,20 @@ export interface components {
             /** Format: date-time */
             deposeLe: string;
         };
+        /**
+         * @description Retour dans le graphe d'une étape du bac « Étapes à placer » : au plus une place, `SurLien` (insertion sur ce lien),
+         *     `Apres` (elle attend cette étape ou ce cercle) ou `ParalleleA` ; aucune : posée à part. `SectionId` : section
+         *     où la poser (vue d'une section) ; absente : celle de la place, ou la sienne posée à part.
+         */
+        PlacementEtapeSaisie: {
+            /** Format: uuid */
+            apres?: null | string;
+            surLien?: null | components["schemas"]["LienSaisie"];
+            /** Format: uuid */
+            paralleleA?: null | string;
+            /** Format: uuid */
+            sectionId?: null | string;
+        };
         PlacementSectionSaisie: {
             placee: null | boolean;
         };
@@ -8753,6 +8847,7 @@ export interface components {
                     portsAttendus: string[];
                     /** Format: int32 */
                     rang: number;
+                    aPlacer: boolean;
                 }[];
                 resolutions: {
                     /** Format: uuid */
@@ -9382,6 +9477,7 @@ export interface components {
                     portsAttendus: string[];
                     /** Format: int32 */
                     rang: number;
+                    aPlacer: boolean;
                 }[];
                 resolutions: {
                     /** Format: uuid */
@@ -9949,6 +10045,7 @@ export interface components {
                     portsAttendus: string[];
                     /** Format: int32 */
                     rang: number;
+                    aPlacer: boolean;
                 }[];
                 resolutions: {
                     /** Format: uuid */

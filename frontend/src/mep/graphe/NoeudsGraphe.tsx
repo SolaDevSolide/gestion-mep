@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { ChevronDown, Loader2, Pencil, Plus } from 'lucide-react';
+import { ChevronDown, Inbox, Loader2, Pencil, Plus } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { MarquePresence, useEditeurs } from '../../presence';
 import { cn } from '../../ui/cn';
@@ -156,6 +156,17 @@ function EnTeteSection({ section, deplie }: { section: Section; deplie: boolean 
           {section.auteur && <> · par {section.auteur}</>}
         </p>
       </div>
+      {g.edition && g.onRetirerSection && (
+        <button
+          type="button"
+          onClick={() => g.onRetirerSection?.(section.id)}
+          aria-label={`Retirer la section ${section.titre} du plan`}
+          title="Retirer du plan : la section retourne dans le bac (ou la glisser sur le bac)"
+          className="nodrag nopan -mt-0.5 grid size-9 shrink-0 place-content-center rounded-lg border border-line bg-surface text-fg-muted shadow-sm hover:bg-surface-2 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        >
+          <Inbox className="size-4" aria-hidden />
+        </button>
+      )}
       {g.onEditerSection && (
         <button
           type="button"
@@ -404,6 +415,17 @@ export function NoeudTitreCadre({ data }: NodeProps) {
         {g.mode === 'execution' ? libelleAvancement(av) : `${n} ét.`}
       </span>
       <PresentsSection sectionId={id} titre={s.titre} etapeIds={etapeIds} className="relative" />
+      {g.edition && g.onRetirerSection && (
+        <button
+          type="button"
+          onClick={() => g.onRetirerSection?.(id)}
+          aria-label={`Retirer la section ${s.titre} du plan`}
+          title="Retirer du plan : la section retourne dans le bac (ou la glisser sur le bac)"
+          className="nodrag nopan grid size-7 shrink-0 place-content-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        >
+          <Inbox className="size-4" aria-hidden />
+        </button>
+      )}
       {g.onEditerSection && (
         <button
           type="button"

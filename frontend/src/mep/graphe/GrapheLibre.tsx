@@ -41,7 +41,7 @@ import {
   type Geometrie,
 } from './cibleDepot';
 import { deplacementPour, interpreterConnexion, placePour, type CibleDepot } from './connexions';
-import { ContexteGraphe, type ValeurGraphe } from './contexteGraphe';
+import { ContexteBac, ContexteGraphe, type BacGraphe, type ValeurGraphe } from './contexteGraphe';
 import { EtapeFlottante } from './EtapesModeles';
 import { LiensEnMouvement, MarqueursLiens, TYPES_LIENS, type DonneesLien } from './LienGraphe';
 import { MenuLabel } from '../../ui/Menu';
@@ -113,6 +113,12 @@ export interface ActionsGraphe {
   ouvrirCercle?: (cercleId: string) => void;
   /** Ouvre la vue d'édition d'une section (et, si donnée, la fiche d'une de ses étapes). */
   editerSection?: (sectionId: string, etapeId?: string) => void;
+  /** Carte lâchée sur le bac : l'étape quitte le graphe (ses suivants attendent ses préalables) pour « Étapes à placer ». */
+  retirerEtape?: (etapeId: string) => void;
+  /** Section lâchée sur le bac (ou « Retirer du plan ») : elle y retourne, ses cercles perdent leurs liens extérieurs. */
+  retirerSection?: (sectionId: string) => void;
+  /** Étape du bac glissée dans le graphe : sur un lien, après une carte ou un cercle, en parallèle, ou à part (`{}`). */
+  placerEtape?: (etapeId: string, place: PlaceEtape) => void;
 }
 
 interface Props {
@@ -146,6 +152,7 @@ interface Props {
   /** Contrôles ajoutés à droite de la barre d'outils (Tout replier, Étape…). */
   outils?: ReactNode;
   /** Panneau latéral intérieur, à droite du graphe (bac des sections), avec son propre défilement. */
+  /** Panneau latéral (bac) : il lit le dépôt et le glisser de ses étapes par `useBacGraphe`. */
   lateral?: ReactNode;
   /** Espace d'une étape ouvert en panneau à droite : le plein écran lui laisse sa place. */
   retraitDroit?: boolean;
@@ -1229,6 +1236,23 @@ function Graphe(props: Props) {
     return { c, index: c ? null : placeDansRangee(p) };
   };
 
+  /** Nœud du graphe qu'on peut lâcher sur le bac : une carte (hors section dépliée) ou une section. */
+  const retirable = (n: NoeudRf) =>
+    n.type === 'etape'
+      ? !!actions.retirerEtape && parId.has(n.id) && !n.parentId
+      : (n.type === 'section' || n.type === 'cadre') && !!actions.retirerSection && !!n.data.sectionId;
+  /** Carte ou section lâchée sur le bac : elle revient d'abord à sa place, puis quitte le graphe avec le rangement reçu. */
+  const retirer = (n: NoeudRf) => {
+    setGlisse(null);
+    setCible(null);
+    setReordre(null);
+    rangee.current = null;
+    setNoeuds(noeudsDepuis(modeleAffiche, range?.rangement ?? null, parId, edition, new Map()));
+    if (!retirable(n)) return;
+    if (n.type === 'etape') actions.retirerEtape?.(n.id);
+    else if (n.data.sectionId) actions.retirerSection?.(n.data.sectionId);
+  };
+
   const finGlisser = useCallback(
     (id: string, c: CibleDepot | null, index: number | null) => {
       setGlisse(null);
@@ -1287,6 +1311,19 @@ function Graphe(props: Props) {
   // Copie flottante d'une étape modèle : glisser au pointeur, même cible qu'une carte. La copie suit le pointeur sans
   // rendu React (transformation posée directement) ; seul un changement de cible rend le graphe.
   const [clone, setClone] = useState(false);
+  // Copie glissée au pointeur : étape modèle pas encore posée, ou étape du bac.
+  const [copie, setCopie] = useState<Etape | null>(null);
+  // Bac posé à droite du graphe (`data-bac-plan`) : sa place est relevée au début d'un glisser ; une carte ou une section
+  // lâchée dessus quitte le graphe. Pointeur au-dessus : le graphe ne défile pas tout seul (`autoPanOnNodeDrag`).
+  const rectBac = useRef<DOMRect | null>(null);
+  const releverBac = () => {
+    rectBac.current = cadre.current?.querySelector('[data-bac-plan]')?.getBoundingClientRect() ?? null;
+  };
+  const dansBac = (x: number, y: number) => {
+    const r = rectBac.current;
+    return !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  };
+  const [depotBac, setDepotBac] = useState<BacGraphe['depot']>('aucun');
   const cloneRef = useRef<HTMLDivElement>(null);
   const positionClone = useRef({ x: 0, y: 0 });
   const placerClone = useCallback(() => {
@@ -1297,40 +1334,73 @@ function Graphe(props: Props) {
   useLayoutEffect(() => {
     if (clone) placerClone();
   }, [clone, placerClone]);
-  const appuyerFlottante = (ev: PointerEventReact<HTMLDivElement>) => {
-    if (!flottante) return;
-    const fin = (e: PointerEvent, deposer: boolean) => {
+  /**
+   * Glisser d'une copie au pointeur (étape modèle pas encore posée, étape du bac) : mêmes cibles qu'une carte. Lâchée sur une
+   * cible : `deposer(place)` ; ailleurs dans le graphe : `deposer({})` (à part) ; hors du graphe ou sur le bac : rien.
+   * `seuil` : le glisser ne part qu'après ce déplacement (un clic sur l'étape du bac reste un clic).
+   */
+  const glisserCopie = (
+    depart: { x: number; y: number },
+    etape: Etape,
+    deposer: (place: PlaceEtape) => void,
+    seuil = 0,
+  ) => {
+    let actif = false;
+    const commencer = (x: number, y: number) => {
+      actif = true;
+      releverGeometrie(null);
+      releverBac();
+      setGlisse(etape.id);
+      setCopie(etape);
+      positionClone.current = { x, y };
+      setClone(true);
+    };
+    const fin = (e: PointerEvent, lacher: boolean) => {
       window.removeEventListener('pointermove', bouger);
-      window.removeEventListener('pointerup', lacher);
+      window.removeEventListener('pointerup', relacher);
       window.removeEventListener('pointercancel', annuler);
+      if (!actif) return;
       annulerImage();
       setClone(false);
+      setCopie(null);
       setGlisse(null);
-      const c = deposer ? cibleSous(e.clientX, e.clientY) : null;
+      const surLeBac = dansBac(e.clientX, e.clientY);
+      const c = lacher && !surLeBac ? cibleSous(e.clientX, e.clientY) : null;
       geometrie.current = null;
+      rectBac.current = null;
       setCible(null);
-      if (!deposer) return;
+      if (!lacher || surLeBac) return;
       const dansGraphe = document
         .elementsFromPoint(e.clientX, e.clientY)
         .some((el) => el.closest('[data-graphe-libre]'));
       const place = c ? placePour(c) : null;
-      if (place) actions.ajouter?.(place);
-      else if (dansGraphe) actions.ajouter?.({});
+      if (place) deposer(place);
+      else if (dansGraphe) deposer({});
     };
     const bouger = (e: PointerEvent) => {
+      if (!actif) {
+        if (Math.hypot(e.clientX - depart.x, e.clientY - depart.y) < seuil) return;
+        commencer(e.clientX, e.clientY);
+      }
       positionClone.current = { x: e.clientX, y: e.clientY };
       placerClone();
-      parImage(e.clientX, e.clientY, (x, y) => majCible(cibleSous(x, y)));
+      parImage(e.clientX, e.clientY, (x, y) => majCible(dansBac(x, y) ? null : cibleSous(x, y)));
     };
-    const lacher = (e: PointerEvent) => fin(e, true);
+    const relacher = (e: PointerEvent) => fin(e, true);
     const annuler = (e: PointerEvent) => fin(e, false);
-    releverGeometrie(null);
-    setGlisse(flottante.etape.id);
-    positionClone.current = { x: ev.clientX, y: ev.clientY };
-    setClone(true);
+    if (seuil <= 0) commencer(depart.x, depart.y);
     window.addEventListener('pointermove', bouger);
-    window.addEventListener('pointerup', lacher);
+    window.addEventListener('pointerup', relacher);
     window.addEventListener('pointercancel', annuler);
+  };
+  const appuyerFlottante = (ev: PointerEventReact<HTMLDivElement>) => {
+    if (!flottante) return;
+    glisserCopie({ x: ev.clientX, y: ev.clientY }, flottante.etape, (place) => actions.ajouter?.(place));
+  };
+  const glisserEtapeDuBac = (ev: PointerEventReact<HTMLElement>, e: Etape) => {
+    const placer = actions.placerEtape;
+    if (!placer || ev.button !== 0) return;
+    glisserCopie({ x: ev.clientX, y: ev.clientY }, e, (place) => placer(e.id, place), 4);
   };
 
   // Aperçu du dépôt : la carte à venir (en pointillé) et les liens qui seront créés.
@@ -1376,6 +1446,10 @@ function Graphe(props: Props) {
     const e = etapes.find((x) => x.code.toLowerCase() === q) ?? etapes.find((x) => x.code.toLowerCase().includes(q));
     if (!e) {
       onMessage?.(`Aucune étape « ${texte.trim()} » dans ce plan.`);
+      return;
+    }
+    if (e.aPlacer) {
+      onMessage?.(`${e.code} est dans le bac « Étapes à placer » : glissez-la dans le graphe pour la placer.`);
       return;
     }
     const sid = infoSection(e).sectionId;
@@ -1474,6 +1548,7 @@ function Graphe(props: Props) {
         onBasculer(id);
       },
       onEditerSection: actions.editerSection,
+      onRetirerSection: actions.retirerSection,
       onOuvrirCercle: actions.ouvrirCercle,
       ensemble: props.ensemble ?? null,
     }),
@@ -1506,7 +1581,7 @@ function Graphe(props: Props) {
     ],
   );
 
-  const carteGlissee = flottante && glisse === flottante.etape.id ? flottante.etape : null;
+  const carteGlissee = copie && glisse === copie.id ? copie : null;
   const noeudsAffiches = useMemo(
     () =>
       (glisse ? noeuds.map((n) => (n.id === glisse ? { ...n, zIndex: Z.glisse } : n)) : noeuds).concat(noeudsMesure),
@@ -1531,12 +1606,12 @@ function Graphe(props: Props) {
     barre = { x, haut: r.haut - GRILLE / 2, bas: r.bas + GRILLE / 2 };
   }
   // Ce que fera le dépôt, annoncé pendant le glisser (deux gestes : changer les liens, ou l'ordre dans la rangée).
-  const geste =
+  const geste0 =
     glisse && !carteGlissee
       ? reordre
         ? 'Lâcher : changer l’ordre dans la rangée (les liens ne changent pas)'
         : cible?.type === 'lien'
-          ? `Lâcher : insérer sur le ${libelleLien(cible.lien).toLowerCase()}`
+          ? `Lâcher : insérer sur le lien ${flecheLien(cible.lien)}`
           : cible?.type === 'carte'
             ? cible.parallele
               ? `Lâcher : placer en parallèle de ${code(cible.id)} (mêmes préalables, mêmes suivants)`
@@ -1547,6 +1622,29 @@ function Graphe(props: Props) {
                 ? 'Sur un lien : insérer · sur une carte : placer après · à gauche ou à droite dans sa rangée : changer l’ordre'
                 : 'À gauche ou à droite dans sa rangée : changer l’ordre'
       : null;
+  const bac = useMemo<BacGraphe>(
+    () => ({ depot: depotBac, glisserEtape: actions.placerEtape ? glisserEtapeDuBac : undefined }),
+    // Le glisser lit l'état du graphe au moment du geste.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [depotBac, actions.placerEtape],
+  );
+  const copieDuBac = !!carteGlissee && carteGlissee.id !== flottante?.etape.id;
+  const geste =
+    depotBac === 'vise'
+      ? glisse && parId.has(glisse)
+        ? 'Lâcher : retirer l’étape du plan (ses suivants attendront ses préalables), elle attendra dans le bac'
+        : 'Lâcher : remettre la section dans le bac (ses cercles perdent leurs liens)'
+      : copieDuBac
+        ? cible?.type === 'lien'
+          ? `Lâcher : placer sur le lien ${flecheLien(cible.lien)}`
+          : cible?.type === 'carte'
+            ? cible.parallele
+              ? `Lâcher : placer en parallèle de ${code(cible.id)}`
+              : `Lâcher : placer après ${code(cible.id)}`
+            : cible?.type === 'cercle'
+              ? 'Lâcher : placer après ce cercle'
+              : 'Sur un lien, une carte ou un cercle : placer là · ailleurs dans le graphe : à part'
+        : geste0;
 
   return (
     <ContexteGraphe.Provider value={valeur}>
@@ -1688,6 +1786,12 @@ function Graphe(props: Props) {
                 setMenu(null);
                 rangee.current = actions.ordonner ? releverRangee(n.id) : null;
                 if (n.type === 'etape') releverGeometrie(n.id);
+                // Le bac devient une zone de dépôt : une carte ou une section lâchée dessus quitte le graphe.
+                rectBac.current = null;
+                if (retirable(n)) {
+                  releverBac();
+                  if (rectBac.current) setDepotBac('possible');
+                }
                 setGlisse(n.id);
               }}
               onNodeDrag={(ev, n) => {
@@ -1695,6 +1799,13 @@ function Graphe(props: Props) {
                 const p = pointDe(ev);
                 const etape = n.type === 'etape';
                 parImage(p.x, p.y, (x, y) => {
+                  if (dansBac(x, y)) {
+                    setDepotBac('vise');
+                    majCible(null);
+                    setReordre(null);
+                    return;
+                  }
+                  if (rectBac.current) setDepotBac('possible');
                   const { c, index } = depotCarte(etape, { x, y });
                   majCible(c);
                   setReordre((a) => (index === null ? null : a?.index === index ? a : { index }));
@@ -1704,6 +1815,14 @@ function Graphe(props: Props) {
                 if (!GLISSABLE.has(n.type ?? '')) return;
                 const p = pointDe(ev);
                 annulerImage();
+                const surLeBac = dansBac(p.x, p.y);
+                rectBac.current = null;
+                setDepotBac('aucun');
+                if (surLeBac) {
+                  geometrie.current = null;
+                  retirer(n);
+                  return;
+                }
                 const { c, index } = depotCarte(n.type === 'etape', p);
                 geometrie.current = null;
                 finGlisser(n.id, c, index);
@@ -1713,6 +1832,8 @@ function Graphe(props: Props) {
               onConnect={onConnect}
               isValidConnection={connexionValide}
               onMove={(_, v) => setZoom(v.zoom)}
+              // Pointeur au-dessus du bac : le graphe ne défile pas tout seul, le bac reçoit le dépôt.
+              autoPanOnNodeDrag={depotBac !== 'vise'}
               nodesDraggable={edition}
               nodesConnectable={edition}
               nodesFocusable={false}
@@ -1845,7 +1966,7 @@ function Graphe(props: Props) {
               </p>
             )}
           </div>
-          {lateral}
+          <ContexteBac.Provider value={bac}>{lateral}</ContexteBac.Provider>
         </div>
       </div>
       {menu && (

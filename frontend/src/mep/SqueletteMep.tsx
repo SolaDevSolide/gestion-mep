@@ -1,4 +1,5 @@
 import { SqueletteEnsemble } from './ensemble/Squelettes';
+import { lireBacReplie } from './graphe/contexteGraphe';
 import {
   EnChargement,
   Squelette,
@@ -8,19 +9,43 @@ import {
   SqueletteTableau,
 } from '../ui/Squelette';
 
-/** Cadre du graphe en chargement : barre d'outils et bandeau, à la hauteur du graphe. */
-export function SqueletteCadreGraphe() {
+/**
+ * Cadre du graphe en chargement : barre d'outils et bandeau, à la hauteur du graphe ; avec `bac`, la colonne du bac à droite
+ * (« Sections à placer », « Étapes à placer »), à sa largeur : rien ne se décale quand le plan paraît.
+ */
+export function SqueletteCadreGraphe({ bac = false }: { bac?: boolean }) {
+  // Même place que le bac à venir : replié en fine colonne si l'utilisateur l'a replié.
+  const bacReplie = bac && lireBacReplie();
   return (
-    <div className="h-[clamp(520px,calc(100vh-280px),940px)] overflow-hidden rounded-xl border border-line bg-surface">
-      <div className="flex h-12 items-center gap-2 border-b border-line bg-surface-2/60 px-3">
+    <div className="flex h-[clamp(520px,calc(100vh-280px),940px)] flex-col overflow-hidden rounded-xl border border-line bg-surface">
+      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-surface-2/60 px-3">
         <Squelette className="h-8 w-36 rounded-lg" />
         <Squelette className="h-8 w-44 rounded-lg" />
         <Squelette className="ml-auto h-8 w-28 rounded-lg" />
         <Squelette className="h-8 w-36 rounded-lg" />
       </div>
-      <div className="flex h-9 items-center border-b border-line px-3">
+      <div className="flex h-9 shrink-0 items-center border-b border-line px-3">
         <Squelette className="h-3.5 w-64" />
       </div>
+      {bacReplie && (
+        <div className="flex min-h-0 flex-1 justify-end">
+          <div className="grid w-11 content-start justify-items-center gap-2 border-l border-line bg-surface-2/40 py-2">
+            <Squelette className="size-7 rounded-lg" />
+            <Squelette className="h-24 w-3.5" />
+          </div>
+        </div>
+      )}
+      {bac && !bacReplie && (
+        <div className="flex min-h-0 flex-1 justify-end">
+          <div className="grid w-60 content-start gap-2 border-l border-line bg-surface-2/40 p-2.5 max-sm:w-48">
+            <Squelette className="h-3.5 w-36" />
+            <Squelette className="h-8 w-full rounded-lg" />
+            <Squelette className="h-24 w-full rounded-xl" />
+            <Squelette className="mt-2 h-3.5 w-32" />
+            <Squelette className="h-20 w-full rounded-xl" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -155,6 +155,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("APlacer")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Action")
                         .IsRequired()
                         .HasColumnType("text");

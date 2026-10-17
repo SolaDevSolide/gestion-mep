@@ -119,7 +119,7 @@ public static partial class Regles
             mep.Etapes.Add(new Etape
             {
                 Id = etapes[e.Id], MepId = mep.Id, Plan = e.Plan, Type = e.Type, PointDeNonRetour = e.PointDeNonRetour,
-                Code = e.Code, Ligne = e.Ligne, Ordre = e.Ordre, Rang = e.Rang, Action = e.Action, SystemeIds = e.SystemeIds.Select(id => S(id)).OfType<Guid>().ToList(),
+                Code = e.Code, Ligne = e.Ligne, Ordre = e.Ordre, Rang = e.Rang, APlacer = e.APlacer, Action = e.Action, SystemeIds = e.SystemeIds.Select(id => S(id)).OfType<Guid>().ToList(),
                 DureeEstimeeMinutes = e.DureeEstimeeMinutes,
                 Criticite = e.Criticite, Instructions = e.Instructions, ResultatAttendu = e.ResultatAttendu, Fin = e.Fin,
                 SauvegardeEmplacement = e.SauvegardeEmplacement, SauvegardeMethodeRecuperation = e.SauvegardeMethodeRecuperation,

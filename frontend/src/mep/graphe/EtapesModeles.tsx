@@ -85,6 +85,7 @@ export function apercuDepuisModele(mep: Mep, plan: TypePlan, m: ModeleEtape): Et
     id: ID_FLOTTANTE,
     plan,
     rang: 0,
+    aPlacer: false,
     code: prochainCode(
       mep.etapes.filter((e) => e.plan === plan),
       plan,

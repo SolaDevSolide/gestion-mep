@@ -552,6 +552,12 @@ public class Etape
     /// le rangement l'impose aux éléments d'un même niveau. 0 : jamais réordonné (l'ordre suit alors Ligne, Ordre, Code).
     /// </summary>
     public int Rang { get; set; }
+    /// <summary>
+    /// Étape retirée du graphe, en attente dans le bac « Étapes à placer » (<see cref="Regles.RetirerDuPlan"/>) : elle n'a aucun
+    /// lien tant qu'elle y reste et bloque le Go (« Vérifier le plan »). Explicite plutôt que déduit de l'absence de liens : une
+    /// étape seule dans son plan, ou posée à part, reste dans le graphe.
+    /// </summary>
+    public bool APlacer { get; set; }
     public string Action { get; set; } = "";
     /// <summary>Systèmes de la MEP concernés par l'étape (un ou plusieurs).</summary>
     public List<Guid> SystemeIds { get; set; } = [];

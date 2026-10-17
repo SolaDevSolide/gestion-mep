@@ -67,6 +67,7 @@ public record DisponibiliteDto(StatutDisponibilite Statut, string Libelle);
 /// <c>ModeleEtapeId</c> : étape modèle dont l'étape est une copie (null : saisie dans la MEP).
 /// <c>Environnements</c> : environnements où agit l'étape, système par système.
 /// <c>Rang</c> : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).
+/// <c>APlacer</c> : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go).
 /// </summary>
 public record EtapeDto(Guid Id, TypePlan Plan, string Code, int Ligne, int Ordre, string Action, List<Guid> SystemeIds, Guid? ResponsableId, Guid? ExecutantId,
     Criticite? Criticite, int? DureeEstimeeMinutes,
@@ -74,7 +75,7 @@ public record EtapeDto(Guid Id, TypePlan Plan, string Code, int Ligne, int Ordre
     int Revision, List<Guid> Dependances, List<Guid> ResolutionIds, DisponibiliteDto Disponibilite,
     TypeEtape Type, bool PointDeNonRetour, ValidationDto? NonRetourAutorise, FinEtape Fin, string ResultatConstate, string SauvegardeEmplacement,
     string SauvegardeMethodeRecuperation, Guid? ModeleEtapeId, List<EnvironnementEtapeDto> Environnements, Guid? SectionId,
-    List<Guid> DependancesDerivees, List<Guid> PortsAttendus, int Rang);
+    List<Guid> DependancesDerivees, List<Guid> PortsAttendus, int Rang, bool APlacer);
 
 /// <summary>
 /// Cercle d'une section. Entrée : <c>Etapes</c>, les étapes de la section qui l'attendent ; <c>Sources</c>, ce qui y arrive de
@@ -355,6 +356,13 @@ public record EtapeSaisie(int? Revision, string? Action, List<Guid>? SystemeIds,
 /// </summary>
 public record DeplacementSaisie(Guid? Apres = null, LienSaisie? SurLien = null, Guid? ParalleleA = null, Guid? SectionId = null,
     bool SortirDeSection = false);
+
+/// <summary>
+/// Retour dans le graphe d'une étape du bac « Étapes à placer » : au plus une place, <c>SurLien</c> (insertion sur ce lien),
+/// <c>Apres</c> (elle attend cette étape ou ce cercle) ou <c>ParalleleA</c> ; aucune : posée à part. <c>SectionId</c> : section
+/// où la poser (vue d'une section) ; absente : celle de la place, ou la sienne posée à part.
+/// </summary>
+public record PlacementEtapeSaisie(Guid? Apres = null, LienSaisie? SurLien = null, Guid? ParalleleA = null, Guid? SectionId = null);
 
 /// <summary>
 /// Création (<c>Plan</c> absent : déploiement ; <c>Placee</c> absent : dans le bac) ou modification (<c>Revision</c> obligatoire) d'une section.

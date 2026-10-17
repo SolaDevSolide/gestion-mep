@@ -136,6 +136,41 @@ public static class EtapesEndpoints
             return await svc.EnregistrerContenu(mep, acteur, "etape.deplacee", detail);
         })));
 
+        // Retirée du graphe : ses suivants attendent ses préalables, elle attend sans lien dans le bac « Étapes à placer ».
+        api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/retirer-du-plan", async (Guid id, Guid eid, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
+        {
+            var acteur = Acteur.Depuis(user);
+            ServiceMep.ExigerEditeur(mep, acteur);
+            Regles.ExigerPreparation(mep);
+            var e = ServiceMep.TrouverEtape(mep, eid);
+            if (!Regles.RetirerDuPlan(mep, e)) return await svc.VersDto(mep, acteur.Id);
+            return await svc.EnregistrerContenu(mep, acteur, "etape.retiree-du-plan",
+                $"{e.Code} retirée du graphe{DansSection(mep, e)}, dans le bac des étapes à placer");
+        })));
+
+        // Retour dans le graphe d'une étape du bac, à la place donnée (ou à part).
+        api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/placer-depuis-le-bac", async (Guid id, Guid eid,
+            [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] PlacementEtapeSaisie? c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
+        {
+            var acteur = Acteur.Depuis(user);
+            ServiceMep.ExigerEditeur(mep, acteur);
+            Regles.ExigerPreparation(mep);
+            var e = ServiceMep.TrouverEtape(mep, eid);
+            c ??= new PlacementEtapeSaisie();
+            var place = Place(c.Apres, c.SurLien, c.ParalleleA, "surLien");
+            Regles.PlacerEtape(mep, e, place, c.SectionId);
+            string Nom(Guid n) => Regles.TrouverNoeud(mep, e.Plan, n)?.ToString() ?? "?";
+            var ou = place switch
+            {
+                { Apres: { } a } => $"après {Nom(a)}",
+                { EntreDe: { } de, EntreVers: { } vers } => $"sur le lien {Nom(de)} → {Nom(vers)}",
+                { ParalleleA: { } p } => $"en parallèle de {Nom(p)}",
+                _ => "à part",
+            };
+            return await svc.EnregistrerContenu(mep, acteur, "etape.placee",
+                $"{e.Code} placée dans le graphe depuis le bac, {ou}{DansSection(mep, e)}");
+        })));
+
         // ---------- Prise de main ----------
         api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/prendre-la-main", async (Guid id, Guid eid, PriseDeMainSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
