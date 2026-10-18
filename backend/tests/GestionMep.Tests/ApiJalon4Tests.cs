@@ -394,4 +394,41 @@ public class ApiJalon4Tests : IDisposable
         mep = await AidesApi.Go(_api, alice, id);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync(url, new { apres = EtapeId(mep, "E0001") })).StatusCode);
     }
+
+    [Fact]
+    public async Task Retirer_une_etape_du_plan_puis_la_replacer_depuis_le_bac()
+    {
+        var (alice, id, mep) = await Demo();
+        await AidesApi.Approuver(_api, id);
+        mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        var e7 = EtapeId(mep, "E0007");
+
+        // E0007 au bac : E0008 attend ce qu'elle attendait, plus aucun lien vers elle ; le Go est bloqué.
+        mep = await Ok(await alice.PostAsync($"/api/meps/{id}/etapes/{e7}/retirer-du-plan", null));
+        Assert.True(Etape(mep, "E0007").GetProperty("aPlacer").GetBoolean());
+        Assert.Empty(Prealables(mep, "E0007"));
+        Assert.Equal(["E0004", "E0005", "E0006"], Prealables(mep, "E0008"));
+        Assert.Contains("Étape à placer : E0007 est dans le bac, la placer dans le plan ou la supprimer.", Liste(mep, "erreursPlan"));
+        Assert.Contains(await Journal(alice, id), x => x.Type == "etape.retiree-du-plan" && x.Detail == "E0007 retirée du graphe, dans le bac des étapes à placer");
+        // Déjà au bac : rien ne change.
+        Assert.Equal(Version(mep), Version(await Ok(await alice.PostAsync($"/api/meps/{id}/etapes/{e7}/retirer-du-plan", null))));
+
+        // Replacée sur le lien E0008 → E0009.
+        var url = $"/api/meps/{id}/etapes/{e7}/placer-depuis-le-bac";
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync(url, new { surLien = new { vers = EtapeId(mep, "E0009") } })).StatusCode);
+        mep = await Ok(await alice.PostAsJsonAsync(url, new { surLien = new { de = EtapeId(mep, "E0008"), vers = EtapeId(mep, "E0009") } }));
+        Assert.False(Etape(mep, "E0007").GetProperty("aPlacer").GetBoolean());
+        Assert.Equal(["E0008"], Prealables(mep, "E0007"));
+        Assert.Equal(["E0007"], Prealables(mep, "E0009"));
+        Assert.DoesNotContain(Liste(mep, "erreursPlan"), x => x.Contains("à placer", StringComparison.Ordinal));
+        Assert.Contains(await Journal(alice, id), x => x.Type == "etape.placee" && x.Detail == "E0007 placée dans le graphe depuis le bac, sur le lien E0008 → E0009");
+        // Déjà dans le graphe : refusé (la déplacer).
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync(url, new { apres = EtapeId(mep, "E0001") })).StatusCode);
+
+        // Au bac puis posée à part (aucune place).
+        await Ok(await alice.PostAsync($"/api/meps/{id}/etapes/{e7}/retirer-du-plan", null));
+        mep = await Ok(await alice.PostAsJsonAsync(url, new { }));
+        Assert.False(Etape(mep, "E0007").GetProperty("aPlacer").GetBoolean());
+        Assert.Contains(await Journal(alice, id), x => x.Type == "etape.placee" && x.Detail == "E0007 placée dans le graphe depuis le bac, à part");
+    }
 }

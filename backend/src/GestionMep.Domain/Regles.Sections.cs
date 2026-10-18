@@ -54,13 +54,20 @@ public static partial class Regles
         section.Revision++;
     }
 
-    /// <summary>Place une section dans le graphe, ou la remet dans le bac. Renvoie faux si rien ne change.</summary>
+    /// <summary>
+    /// Place une section dans le graphe, ou la remet dans le bac : ses cercles perdent alors leurs liens extérieurs, ce qui
+    /// l'attendait attend ce qui lui arrivait (<see cref="DetacherSection"/>). Renvoie faux si rien ne change.
+    /// </summary>
     public static bool PlacerSection(Mep mep, Section section, bool placee)
     {
         ExigerPreparation(mep);
         if (section.Placee == placee) return false;
-        section.Placee = placee;
-        section.Revision++;
+        if (placee)
+        {
+            section.Placee = true;
+            section.Revision++;
+        }
+        else RetirerSectionDuPlan(mep, section);
         return true;
     }
 
@@ -137,11 +144,23 @@ public static partial class Regles
         }
     }
 
-    /// <summary>« Vérifier le plan » : une section restée dans le bac bloque le Go (plans vérifiés seulement).</summary>
+    /// <summary>
+    /// « Vérifier le plan » : une section restée dans le bac bloque le Go, comme une étape restée dans le bac « Étapes à placer »
+    /// (plans vérifiés seulement ; les étapes d'un plan en un seul message).
+    /// </summary>
     public static IEnumerable<string> ErreursSections(Mep mep)
     {
         foreach (var s in mep.Sections.Where(s => !s.Placee && (s.Plan == TypePlan.Deploiement || mep.RetourArriereActive)).OrderBy(s => s.Plan).ThenBy(s => s.CreeLe))
             yield return $"{(s.Plan == TypePlan.RetourArriere ? "Retour arrière : s" : "S")}ection « {s.Titre} » dans le bac : la placer dans le plan ou la supprimer.";
+        foreach (var plan in mep.RetourArriereActive ? new[] { TypePlan.Deploiement, TypePlan.RetourArriere } : [TypePlan.Deploiement])
+        {
+            var aPlacer = mep.EtapesDu(plan).Where(e => e.APlacer).OrderBy(e => e.Code, StringComparer.Ordinal).ToList();
+            if (aPlacer.Count == 0) continue;
+            var prefixe = plan == TypePlan.RetourArriere ? "Retour arrière : é" : "É";
+            yield return aPlacer.Count == 1
+                ? $"{prefixe}tape à placer : {aPlacer[0].Code} est dans le bac, la placer dans le plan ou la supprimer."
+                : $"{prefixe}tapes à placer : {string.Join(", ", aPlacer.Select(e => e.Code))} sont dans le bac, les placer dans le plan ou les supprimer.";
+        }
     }
 
     /// <summary>Avertissements des sections (non bloquants) : cercle sans étape, cercle d'entrée sans source.</summary>

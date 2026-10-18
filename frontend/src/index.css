@@ -256,8 +256,9 @@
 /* Graphe : repli et dépli d'une section. Les nœuds qui vont paraître sont d'abord mesurés en invisible (`noeud-mesure`,
    copies posées dans un nœud affiché, puis `noeud-cache`) ; le graphe affiché ne bouge pas d'ici là, et le bouton de la
    section signale l'attente (`attente-section`, après un court délai). Puis un seul mouvement : le cadre s'ouvre ou se
-   ferme en emportant son intérieur à sa mesure (`noeud-echelle`, échelle `--echelle`, en fondu), le reste glisse, la
-   vue suit, et les liens restent attachés à leurs nœuds (tracés par le graphe pendant le mouvement, `data-anime`). */
+   ferme en dévoilant ou cachant son intérieur (découpé par le cadre, `clip-path` posé par le graphe), le reste glisse, la
+   vue suit, et les liens restent attachés à leurs nœuds (tracés par le graphe pendant le mouvement, `data-anime`).
+   `noeud-echelle` (échelle `--echelle`) sert encore à un nœud repris en plein mouvement. */
 .noeud-mesure {
   /* React Flow écrit `visibility: visible` dans le style du nœud une fois mesuré. */
   visibility: hidden !important;

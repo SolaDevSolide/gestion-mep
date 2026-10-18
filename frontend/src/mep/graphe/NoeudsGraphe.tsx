@@ -1,5 +1,5 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { ChevronDown, ChevronRight, Loader2, Pencil, Plus } from 'lucide-react';
+import { ChevronDown, Inbox, Loader2, Pencil, Plus } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { MarquePresence, useEditeurs } from '../../presence';
 import { cn } from '../../ui/cn';
@@ -27,6 +27,9 @@ function poignee(edition: boolean, extra?: string) {
     extra,
   );
 }
+
+/** Chevron d'une section : il tourne (vers le bas ouverte, vers la droite repliée) pendant le repli ou le dépli. */
+const CHEVRON = 'transition-transform duration-300 ease-in-out';
 
 const bouton =
   'nodrag nopan absolute grid size-7 place-content-center rounded-full border-[1.5px] border-dashed bg-surface text-accent-text shadow-sm transition-opacity duration-150 hover:border-solid hover:bg-accent hover:text-accent-fg focus-visible:opacity-100';
@@ -108,8 +111,9 @@ function EnTeteSection({ section, deplie }: { section: Section; deplie: boolean 
   const etapes = g.etapesParSection.get(section.id) ?? [];
   const systemes = systemesDe(g.mep, section.systemeIds);
   const av = avancementSection(etapes);
-  const Chevron = deplie ? ChevronDown : ChevronRight;
   const enCours = g.sectionsEnCours.has(section.id);
+  // Le chevron tourne dès le clic (vers le bas : dépli demandé), sans attendre le mouvement du cadre.
+  const ouvert = deplie !== enCours;
   return (
     <div className="flex min-w-0 items-start gap-2">
       <button
@@ -121,7 +125,7 @@ function EnTeteSection({ section, deplie }: { section: Section; deplie: boolean 
         title={deplie ? 'Replier la section' : 'Déplier la section'}
         className="nodrag nopan relative -mt-0.5 -ml-1.5 grid size-9 shrink-0 place-content-center rounded-lg border border-line bg-surface text-fg-muted shadow-sm hover:bg-surface-2 hover:text-fg"
       >
-        <Chevron className="size-5" aria-hidden />
+        <ChevronDown className={cn('size-5', CHEVRON, !ouvert && '-rotate-90')} aria-hidden />
         {enCours && <AttenteBouton />}
       </button>
       <div className="grid min-w-0 flex-1 gap-1">
@@ -152,6 +156,17 @@ function EnTeteSection({ section, deplie }: { section: Section; deplie: boolean 
           {section.auteur && <> · par {section.auteur}</>}
         </p>
       </div>
+      {g.edition && g.onRetirerSection && (
+        <button
+          type="button"
+          onClick={() => g.onRetirerSection?.(section.id)}
+          aria-label={`Retirer la section ${section.titre} du plan`}
+          title="Retirer du plan : la section retourne dans le bac (ou la glisser sur le bac)"
+          className="nodrag nopan -mt-0.5 grid size-9 shrink-0 place-content-center rounded-lg border border-line bg-surface text-fg-muted shadow-sm hover:bg-surface-2 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        >
+          <Inbox className="size-4" aria-hidden />
+        </button>
+      )}
       {g.onEditerSection && (
         <button
           type="button"
@@ -385,7 +400,7 @@ export function NoeudTitreCadre({ data }: NodeProps) {
         title="Replier la section"
         className="nodrag nopan relative grid size-7 shrink-0 place-content-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg"
       >
-        <ChevronDown className="size-5" aria-hidden />
+        <ChevronDown className={cn('size-5', CHEVRON, g.sectionsRepli.has(id) && '-rotate-90')} aria-hidden />
         {g.sectionsEnCours.has(id) && <AttenteBouton />}
       </button>
       <p className="min-w-0 flex-1 truncate text-[13px] leading-tight font-semibold">
@@ -400,6 +415,17 @@ export function NoeudTitreCadre({ data }: NodeProps) {
         {g.mode === 'execution' ? libelleAvancement(av) : `${n} ét.`}
       </span>
       <PresentsSection sectionId={id} titre={s.titre} etapeIds={etapeIds} className="relative" />
+      {g.edition && g.onRetirerSection && (
+        <button
+          type="button"
+          onClick={() => g.onRetirerSection?.(id)}
+          aria-label={`Retirer la section ${s.titre} du plan`}
+          title="Retirer du plan : la section retourne dans le bac (ou la glisser sur le bac)"
+          className="nodrag nopan grid size-7 shrink-0 place-content-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        >
+          <Inbox className="size-4" aria-hidden />
+        </button>
+      )}
       {g.onEditerSection && (
         <button
           type="button"

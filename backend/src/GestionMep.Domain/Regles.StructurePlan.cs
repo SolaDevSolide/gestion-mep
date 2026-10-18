@@ -212,14 +212,14 @@ public static partial class Regles
             foreach (var i in entrants.Where(i => i.Id != o.Id))
             {
                 // Pas de lien redondant : une étape qui attend déjà l'autre par un autre chemin reste comme elle est.
-                if (i.Etape is { } a && o.Etape is { } b && AttendDeja(mep, b, a, e)) continue;
+                if (i.Etape is { } a && o.Etape is { } b && AttendDeja(mep, b, a, [e.Id])) continue;
                 try { Lier(i, o); }
                 catch (RegleMetierException) { /* lien impossible (ex. entrée et sortie d'une même section) : ignoré */ }
             }
     }
 
-    /// <summary><paramref name="vers"/> attend déjà <paramref name="de"/>, directement ou non, sans passer par <paramref name="exclue"/>.</summary>
-    private static bool AttendDeja(Mep mep, Etape vers, Etape de, Etape exclue)
+    /// <summary><paramref name="vers"/> attend déjà <paramref name="de"/>, directement ou non, sans passer par <paramref name="exclues"/>.</summary>
+    private static bool AttendDeja(Mep mep, Etape vers, Etape de, HashSet<Guid> exclues)
     {
         var parId = mep.Etapes.Where(x => x.Plan == vers.Plan).ToDictionary(x => x.Id);
         var vues = new HashSet<Guid>();
@@ -227,7 +227,7 @@ public static partial class Regles
         while (pile.Count > 0)
         {
             var id = pile.Pop();
-            if (id == exclue.Id || !vues.Add(id)) continue;
+            if (exclues.Contains(id) || !vues.Add(id)) continue;
             if (id == de.Id) return true;
             if (parId.TryGetValue(id, out var x)) foreach (var d in x.Dependances) pile.Push(d);
         }
@@ -348,6 +348,8 @@ public static partial class Regles
             }
             throw;
         }
+        // Une étape du bac qui reçoit un lien (fiche d'une autre étape, lien tracé) revient dans le graphe : au bac, jamais de lien.
+        foreach (var e in mep.EtapesDu(plan).Where(e => e.APlacer && AUnLien(mep, e)).ToList()) e.APlacer = false;
         foreach (var (e, etat) in avant)
             if (e != sauf && mep.Etapes.Contains(e) && !e.Dependances.ToHashSet().SetEquals(etat.Dependances)) e.Revision++;
         foreach (var s in mep.Sections)
@@ -550,4 +552,90 @@ public static partial class Regles
         });
         return (de!, vers!);
     }
+
+    // ---------- Bac des étapes à placer ----------
+
+    /// <summary>L'étape a-t-elle un lien : un préalable, un suivant, ou une place dans un cercle de section ?</summary>
+    public static bool AUnLien(Mep mep, Etape e) =>
+        e.Dependances.Count > 0 || e.PortsAttendus.Count > 0
+        || mep.EtapesDu(e.Plan).Any(x => x.Dependances.Contains(e.Id))
+        || mep.SectionsDu(e.Plan).Any(s => s.Ports.Any(p => p.Etapes.Contains(e.Id) || p.Sources.Contains(e.Id)));
+
+    /// <summary>
+    /// Retire une étape du graphe (préparation) : elle quitte sa place comme pour un déplacement (<see cref="Detacher"/> : ce qui
+    /// l'attendait attend désormais ce qu'elle attendait) et attend dans le bac « Étapes à placer », sans lien, dans sa section.
+    /// Renvoie faux si elle y était déjà.
+    /// </summary>
+    public static bool RetirerDuPlan(Mep mep, Etape etape)
+    {
+        ExigerPreparation(mep);
+        if (etape.APlacer) return false;
+        Operer(mep, etape.Plan, () =>
+        {
+            Detacher(mep, etape);
+            etape.APlacer = true;
+        });
+        return true;
+    }
+
+    /// <summary>
+    /// Replace dans le graphe une étape du bac (préparation), à la place donnée (après une carte ou un cercle, sur un lien, en
+    /// parallèle d'une carte, ou à part). Section : celle donnée (vue d'une section), sinon celle de la place, sinon la sienne
+    /// pour une étape posée à part. Dans une section, elle se relie d'elle-même à ses premiers cercles (<see cref="RelierAuxCercles"/>).
+    /// </summary>
+    public static void PlacerEtape(Mep mep, Etape etape, PlaceEtape place, Guid? sectionId = null) =>
+        Operer(mep, etape.Plan, () =>
+        {
+            if (!etape.APlacer) throw new RegleMetierException($"{etape.Code} est déjà dans le graphe : la déplacer plutôt.");
+            var resolue = Resoudre(mep, etape.Plan, place);
+            if (resolue.Apres?.Id == etape.Id || resolue.Parallele == etape || resolue.De?.Id == etape.Id || resolue.Vers?.Id == etape.Id)
+                throw new RegleMetierException("Choisir une autre place que l'étape elle-même.");
+            etape.SectionId = sectionId is { } sid ? ExigerSection(mep, etape.Plan, sid).Id
+                : place.Vide ? etape.SectionId : SectionDeduite(resolue);
+            etape.APlacer = false;
+            Inserer(mep, etape, resolue);
+            RelierAuxCercles(mep, etape);
+        });
+
+    /// <summary>
+    /// Une section quitte le graphe (remise dans le bac) : les liens extérieurs de ses cercles sont retirés, et ce qui attendait ses
+    /// cercles de sortie attend désormais ce qui arrivait à ses cercles d'entrée (quand ce lien est possible), comme pour une étape
+    /// (<see cref="Detacher"/>). L'intérieur de la section (ses étapes et leurs liens aux cercles) ne change pas.
+    /// </summary>
+    private static void DetacherSection(Mep mep, Section section)
+    {
+        var interieur = mep.Etapes.Where(e => e.SectionId == section.Id).Select(e => e.Id).ToHashSet();
+        var entrees = section.Ports.Where(p => p.Sens == SensPort.Entree).ToList();
+        var sorties = section.Ports.Where(p => p.Sens == SensPort.Sortie).ToList();
+        var amont = entrees.SelectMany(p => p.Sources).Distinct().Select(id => TrouverNoeud(mep, section.Plan, id)).OfType<Noeud>().ToList();
+        var aval = new List<Noeud>();
+        foreach (var q in sorties)
+        {
+            foreach (var e in mep.EtapesDu(section.Plan).Where(e => e.PortsAttendus.Contains(q.Id)))
+            {
+                e.PortsAttendus = e.PortsAttendus.Where(id => id != q.Id).ToList();
+                aval.Add(NoeudDe(e));
+            }
+            foreach (var s in mep.SectionsDu(section.Plan).Where(s => s.Id != section.Id))
+                foreach (var p in s.Ports.Where(p => p.Sens == SensPort.Entree && p.Sources.Remove(q.Id)))
+                    aval.Add(new Noeud(p.Id, null, s, p));
+        }
+        foreach (var p in entrees) p.Sources.Clear();
+        // Les préalables effectifs passent encore par l'intérieur de la section jusqu'à la compilation : il est exclu du parcours.
+        foreach (var o in aval.DistinctBy(n => n.Id))
+            foreach (var i in amont.Where(i => i.Id != o.Id))
+            {
+                if (i.Etape is { } a && o.Etape is { } b && AttendDeja(mep, b, a, interieur)) continue;
+                try { Lier(i, o); }
+                catch (RegleMetierException) { /* lien impossible : ignoré */ }
+            }
+    }
+
+    /// <summary>Remise dans le bac d'une section placée : voir <see cref="DetacherSection"/>.</summary>
+    private static void RetirerSectionDuPlan(Mep mep, Section section) =>
+        Operer(mep, section.Plan, () =>
+        {
+            DetacherSection(mep, section);
+            section.Placee = false;
+        });
 }

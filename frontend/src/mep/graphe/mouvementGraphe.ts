@@ -3,8 +3,8 @@ import type { Point } from './rangement';
 /**
  * Mouvement du graphe au repli ou au dépli d'une section (ou quand des étapes arrivent ou partent) : un seul mouvement, du
  * rangement affiché au nouveau rangement, calculé avant la première image. Chaque nœud va de sa boîte de départ à sa boîte
- * d'arrivée ; l'intérieur d'un cadre qui s'agrandit ou se réduit grandit ou rapetisse avec lui (même proportion), en fondu ;
- * les liens suivent leurs nœuds pendant tout le mouvement (ils ne disparaissent pas).
+ * d'arrivée ; l'intérieur d'un cadre qui s'ouvre ou se ferme se dévoile ou se cache avec lui (à sa taille réelle, découpé
+ * par le cadre, rangée par rangée) ; les liens suivent leurs nœuds pendant tout le mouvement (ils ne disparaissent pas).
  */
 
 /** Boîte d'un nœud en coordonnées du graphe (absolues). */
@@ -21,6 +21,8 @@ export interface LienMouvement {
   d: string;
   opacite: number;
   ton: 'ok' | 'neutre';
+  /** Lien à l'intérieur d'un cadre qui s'ouvre ou se ferme : dessiné seulement dans le cadre (comme son contenu). */
+  dans?: Boite;
 }
 
 /** État d'un nœud à un bout du mouvement : sa boîte, son opacité et l'échelle de son contenu. */
@@ -33,13 +35,72 @@ export interface EtatNoeud {
 const borne = (v: number) => Math.min(1, Math.max(0, v));
 const entre = (a: number, b: number, k: number) => a + (b - a) * k;
 
-/** Avancement lissé du mouvement : rapide au départ (le clic répond tout de suite), il ralentit à l'arrivée. */
-export const adoucir = (t: number) => 1 - (1 - t) ** 3;
+/**
+ * Durée du mouvement : assez longue pour qu'on voie le cadre s'ouvrir ou se fermer et les voisins glisser (une quinzaine
+ * d'images à 30 images par seconde), assez courte pour ne pas faire attendre.
+ */
+export const DUREE_MOUVEMENT_MS = 480;
+
+/**
+ * Avancement lissé du mouvement : démarre et arrive en douceur (sinusoïde), sans faire l'essentiel du chemin dans les
+ * premières images (le changement se lit comme un mouvement, pas comme un saut).
+ */
+export const adoucir = (t: number) => (1 - Math.cos(Math.PI * borne(t))) / 2;
 
 /** Opacité d'un nœud qui paraît, selon l'avancement `k` : il est entièrement visible aux trois cinquièmes du mouvement. */
 export const rampeApparition = (k: number) => borne(k / 0.6);
 /** Part effacée d'un nœud qui part, selon l'avancement `k` : il a disparu à la moitié du mouvement. */
 export const rampeDisparition = (k: number) => borne(k / 0.5);
+
+/** Sens d'un cadre de section pendant le mouvement : il s'ouvre (dépli) ou se ferme (repli). */
+export type SensCadre = 'ouvre' | 'ferme';
+
+/**
+ * Opacité du contenu d'un cadre qui s'ouvre ou se ferme, rangée par rangée : `ry`, sa place verticale dans le cadre (0 en
+ * haut, 1 en bas). À l'ouverture, le haut paraît aussitôt (le cadre n'est jamais vide) et le bas vers la moitié du
+ * mouvement ; à la fermeture, le bas s'efface d'abord et tout a disparu aux trois quarts du mouvement, avant que le cadre
+ * reprenne la taille de la section repliée.
+ */
+export function revelation(ry: number, k: number, sens: SensCadre): number {
+  const y = borne(ry);
+  if (sens === 'ouvre') return borne((k - 0.2 * y) / 0.25);
+  return 1 - borne((k - 0.35 * (1 - y)) / 0.4);
+}
+
+/** Place d'un nœud dans son cadre, rapportée au milieu du bord haut du cadre (le cadre s'ouvre depuis le haut, au centre). */
+export interface Ancrage {
+  dx: number;
+  dy: number;
+  /** Place verticale relative dans le cadre (0 en haut, 1 en bas) : ordre d'apparition. */
+  ry: number;
+}
+
+export function ancrageHaut(boite: Boite, cadre: Boite): Ancrage {
+  return {
+    dx: boite.x - (cadre.x + cadre.largeur / 2),
+    dy: boite.y - cadre.y,
+    ry: cadre.hauteur > 0 ? (boite.y + boite.hauteur / 2 - cadre.y) / cadre.hauteur : 0,
+  };
+}
+
+/** Boîte d'un nœud de taille `largeur` × `hauteur` ancré (`ancrageHaut`) dans un cadre, à sa taille réelle. */
+export function placeAncree(a: Ancrage, cadre: Boite, largeur: number, hauteur: number): Boite {
+  return { x: cadre.x + cadre.largeur / 2 + a.dx, y: cadre.y + a.dy, largeur, hauteur };
+}
+
+/**
+ * Découpe d'un nœud par le cadre qui le contient (`clip-path`, en coordonnées du nœud) : seule la partie à l'intérieur du
+ * cadre se voit, le contenu se dévoile à mesure que le cadre s'ouvre. Null : le nœud est entièrement dans le cadre.
+ */
+export function decoupe(n: Boite, cadre: Boite): string | null {
+  const haut = Math.max(0, cadre.y - n.y);
+  const gauche = Math.max(0, cadre.x - n.x);
+  const droite = Math.max(0, n.x + n.largeur - (cadre.x + cadre.largeur));
+  const bas = Math.max(0, n.y + n.hauteur - (cadre.y + cadre.hauteur));
+  if (haut + gauche + droite + bas < 0.5) return null;
+  const px = (v: number) => `${Math.round(v * 10) / 10}px`;
+  return `inset(${px(haut)} ${px(droite)} ${px(bas)} ${px(gauche)})`;
+}
 
 export function interpolerBoite(a: Boite, b: Boite, k: number): Boite {
   return {

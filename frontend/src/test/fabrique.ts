@@ -8,6 +8,7 @@ export function etape(p: Partial<Etape> = {}, statut: StatutDisponibilite = 'Dis
     ligne: 0,
     ordre: 0,
     rang: 0,
+    aPlacer: false,
     action: 'Redémarrer le service',
     systemeIds: ['s1'],
     responsableId: 'p1',

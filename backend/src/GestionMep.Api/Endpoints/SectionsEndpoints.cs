@@ -158,7 +158,7 @@ public static class SectionsEndpoints
             if (!Regles.PlacerSection(mep, s, placee)) return await svc.VersDto(mep, acteur.Id);
             return placee
                 ? await svc.EnregistrerContenu(mep, acteur, "section.placee", $"Section « {s.Titre} » placée dans le plan depuis le bac")
-                : await svc.EnregistrerContenu(mep, acteur, "section.bac", $"Section « {s.Titre} » remise dans le bac");
+                : await svc.EnregistrerContenu(mep, acteur, "section.bac", $"Section « {s.Titre} » remise dans le bac, ses cercles déliés du plan");
         })));
 
         // Ordre gauche-droite du graphe (disposition seulement : aucun lien ne change, les approbations restent).

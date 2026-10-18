@@ -132,6 +132,8 @@ interface Props {
   focusAction?: boolean;
   onLier: (de: string, vers: string) => void;
   onDelier: (liens: Lien[]) => void;
+  /** « Retirer du plan » (étape du graphe, modifiable ici) : elle part dans le bac « Étapes à placer ». */
+  onRetirerDuPlan?: () => void;
   onSelection: (id: string | null) => void;
   /** Signale au parent une saisie non enregistrée, pour qu'il ne change pas d'étape sans prévenir. */
   onDirty?: (dirty: boolean) => void;
@@ -237,6 +239,7 @@ export function PanneauEdition(props: Props) {
     focusAction,
     onLier,
     onDelier,
+    onRetirerDuPlan,
     onSelection,
     onDirty,
     demande,
@@ -468,6 +471,7 @@ export function PanneauEdition(props: Props) {
       suppr={suppr}
       onSuppr={setSuppr}
       onSupprimer={() => void supprimer()}
+      onRetirerDuPlan={onRetirerDuPlan}
     />
   );
 

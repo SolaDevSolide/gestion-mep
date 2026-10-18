@@ -74,7 +74,7 @@ public static class MepMapping
                     new DisponibiliteDto(d.Statut, d.Libelle), e.Type, e.PointDeNonRetour, Validation(e.NonRetourAutoriseParId, e.NonRetourAutoriseLe),
                     e.Fin, e.ResultatConstate, e.SauvegardeEmplacement, e.SauvegardeMethodeRecuperation, e.ModeleEtapeId,
                     e.Environnements.Select(x => new EnvironnementEtapeDto(x.SystemeId, x.Nom)).ToList(), e.SectionId,
-                    [.. e.DependancesDerivees], [.. e.PortsAttendus], e.Rang);
+                    [.. e.DependancesDerivees], [.. e.PortsAttendus], e.Rang, e.APlacer);
             }).ToList(),
             m.Resolutions.OrderBy(r => r.DemarreeLe).Select(r => new ExecutionResolutionDto(
                 r.Id, r.EtapeId, r.ResolutionTypeId, r.Titre, r.Symptomes, r.Diagnostic,

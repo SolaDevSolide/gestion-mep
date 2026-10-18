@@ -1,10 +1,14 @@
 import {
   adoucir,
+  ancrageHaut,
   cheminArrondi,
   dansCadre,
+  decoupe,
   etatA,
+  placeAncree,
   rampeApparition,
   rampeDisparition,
+  revelation,
   routeSuivant,
   type Boite,
 } from './mouvementGraphe';
@@ -12,10 +16,15 @@ import {
 const boite = (x: number, y: number, largeur: number, hauteur: number): Boite => ({ x, y, largeur, hauteur });
 
 describe('mouvement : avancement', () => {
-  it('part vite et arrive en douceur, de 0 à 1', () => {
+  it('démarre et arrive en douceur, sans faire l’essentiel du chemin au début', () => {
     expect(adoucir(0)).toBe(0);
     expect(adoucir(1)).toBe(1);
-    expect(adoucir(0.1)).toBeGreaterThan(0.25);
+    expect(adoucir(0.5)).toBeCloseTo(0.5);
+    // Un cinquième du temps : moins d'un dixième du chemin (l'ancienne courbe en faisait la moitié).
+    expect(adoucir(0.2)).toBeLessThan(0.1);
+    expect(adoucir(0.8)).toBeGreaterThan(0.9);
+    // Toujours croissant : chaque image montre une taille intermédiaire différente.
+    for (let i = 1; i <= 20; i++) expect(adoucir(i / 20)).toBeGreaterThan(adoucir((i - 1) / 20));
   });
   it('ce qui paraît est visible tôt ; ce qui part a disparu à mi-chemin', () => {
     expect(rampeApparition(0)).toBe(0);
@@ -108,5 +117,36 @@ describe('cheminArrondi', () => {
         { x: 0, y: 0 },
       ]),
     ).toBe('');
+  });
+});
+
+describe('contenu d’un cadre qui s’ouvre ou se ferme', () => {
+  const ouvert = boite(100, 100, 600, 300);
+  const replie = boite(300, 100, 200, 100);
+  it('se révèle rangée par rangée à l’ouverture, le haut d’abord, tout visible à l’arrivée', () => {
+    expect(revelation(0, 0, 'ouvre')).toBe(0);
+    expect(revelation(0, 0.3, 'ouvre')).toBeGreaterThan(revelation(1, 0.3, 'ouvre'));
+    expect(revelation(1, 0.3, 'ouvre')).toBeLessThan(1);
+    expect(revelation(1, 1, 'ouvre')).toBe(1);
+    expect(revelation(0.5, 1, 'ouvre')).toBe(1);
+  });
+  it('s’efface à la fermeture, le bas d’abord, avant que le cadre reprenne la taille de la section', () => {
+    expect(revelation(0, 0, 'ferme')).toBe(1);
+    expect(revelation(1, 0.2, 'ferme')).toBeLessThan(revelation(0, 0.2, 'ferme'));
+    expect(revelation(0, 0.75, 'ferme')).toBe(0);
+  });
+  it('reste à sa taille, ancré au milieu du bord haut du cadre', () => {
+    const carte = boite(450, 160, 212, 104);
+    const a = ancrageHaut(carte, ouvert);
+    expect(placeAncree(a, ouvert, 212, 104)).toEqual(carte);
+    const petit = placeAncree(a, replie, 212, 104);
+    expect(petit.largeur).toBe(212);
+    expect(petit.x + 106).toBeCloseTo(replie.x + replie.largeur / 2 + (carte.x + 106 - 400));
+    expect(petit.y).toBe(160);
+    expect(a.ry).toBeCloseTo((160 + 52 - 100) / 300);
+  });
+  it('est découpé par le cadre : seule la partie dedans se voit', () => {
+    expect(decoupe(boite(150, 120, 100, 50), ouvert)).toBeNull();
+    expect(decoupe(boite(450, 160, 212, 104), replie)).toBe('inset(0px 162px 64px 0px)');
   });
 });

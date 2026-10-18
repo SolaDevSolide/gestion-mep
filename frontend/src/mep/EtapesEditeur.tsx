@@ -29,7 +29,7 @@ import { ordreGlobal, reordonner, type LienModele } from './graphe/modeleGraphe'
 import { BoutonOptimiserLiens, PanneauOptimisation } from './graphe/OptimisationLiens';
 import { PanneauEdition } from './graphe/PanneauEdition';
 import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
-import { BacSections, CercleDialog, EnTeteVueSection, NouvelleSectionDialog } from './graphe/SectionsPlan';
+import { BacPlan, CercleDialog, EnTeteVueSection, NouvelleSectionDialog } from './graphe/SectionsPlan';
 import { estDepliee, infoSection, sectionsDuPlan, trouverCercle, type CercleSection } from './graphe/sections';
 import { descriptionsSystemes } from './graphe/systemes';
 import { BandeauVerrou, useVerrouEtape } from './graphe/verrouEtape';
@@ -339,8 +339,38 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
       () => apiGraphe.placerSection(mep.id, id, placee),
       placee
         ? `Section « ${s?.titre} » placée : reliez maintenant ses cercles.`
-        : `Section « ${s?.titre} » remise dans le bac.`,
+        : `Section « ${s?.titre} » remise dans le bac : ses cercles ne sont plus reliés au plan.`,
     );
+  }
+
+  /** L'étape quitte le graphe pour le bac « Étapes à placer » : ses suivants attendent ses préalables. */
+  async function retirerEtape(id: string) {
+    const e = mep.etapes.find((x) => x.id === id);
+    if (!e) return false;
+    const ok = await run(() => apiGraphe.retirerDuPlan(mep.id, id), `${e.code} retirée du plan.`);
+    if (ok)
+      astuce.afficher(
+        `${e.code} attend dans le bac « Étapes à placer » ; ses suivants attendent ses préalables. Glissez-la sur un lien ou une carte pour la replacer.`,
+      );
+    return ok;
+  }
+
+  /** Une étape du bac revient dans le graphe à cette place (ou à part). */
+  async function placerEtape(id: string, place: PlaceEtape) {
+    const e = mep.etapes.find((x) => x.id === id);
+    if (!e) return false;
+    const d: Deplacement | Record<string, never> =
+      'entre' in place
+        ? { surLien: place.entre }
+        : 'apres' in place
+          ? { apres: place.apres }
+          : 'paralleleA' in place
+            ? { paralleleA: place.paralleleA }
+            : {};
+    const message = `${e.code} placée ${ouPoser(place)}.`;
+    const ok = await run(() => apiGraphe.placerEtape(mep.id, id, d, sectionVue?.id ?? null), message);
+    if (ok) astuce.afficher(message);
+    return ok;
   }
 
   async function creerSection(titre: string, systemeIds: string[]) {
@@ -368,6 +398,9 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
             }
           : undefined,
         editerSection: (id, etapeId) => allerSection(id, etapeId),
+        retirerEtape: (id) => void exclusif(() => retirerEtape(id)),
+        retirerSection: (id) => void exclusif(() => placerSection(id, false)),
+        placerEtape: (id, place) => void exclusif(() => placerEtape(id, place)),
       }
     : { editerSection: (id, etapeId) => allerSection(id, etapeId) };
 
@@ -412,6 +445,8 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
   }
 
   const enBac = sections.filter((s) => !s.placee);
+  // Étapes du bac : celles du plan, ou de la section dans sa vue.
+  const etapesAPlacer = etapes.filter((e) => e.aPlacer);
   const nbEtapes = (sid: string) => etapesPlan.filter((e) => infoSection(e).sectionId === sid).length;
 
   const bandeau = (
@@ -508,16 +543,19 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
           </>
         }
         lateral={
-          !sectionVue &&
-          (modifiable || enBac.length > 0) && (
-            <BacSections
+          (modifiable || enBac.length > 0 || etapesAPlacer.length > 0) && (
+            <BacPlan
               mep={mep}
-              sections={enBac}
+              sections={sectionVue ? null : enBac}
+              etapes={etapesAPlacer}
+              nomSection={(sid) => sections.find((x) => x.id === sid)?.titre ?? null}
               nbEtapes={nbEtapes}
               modifiable={modifiable}
               onPlacer={(id) => void exclusif(() => placerSection(id))}
               onOuvrir={allerSection}
               onNouvelle={() => setNouvelleSection(true)}
+              onPlacerEtape={(id) => void exclusif(() => placerEtape(id, {}))}
+              onOuvrirEtape={selectionner}
               replieForce={!!etape && modeEspace === 'panneau'}
             />
           )
@@ -539,7 +577,11 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
 
   return (
     // Onglet affiché en une fois, référentiels compris (systèmes, résolutions) : voir Apparition.
-    <Apparition pret={pret} libelle="Chargement du plan…" squelette={<SqueletteCadreGraphe />}>
+    <Apparition
+      pret={pret}
+      libelle="Chargement du plan…"
+      squelette={<SqueletteCadreGraphe bac={modifiable || enBac.length > 0 || etapesAPlacer.length > 0} />}
+    >
       <div className="grid gap-3">
         {graphe}
         {modifiable && (
@@ -610,6 +652,11 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
             focusAction={nouvelle === etape.id}
             onLier={(de, vers) => void exclusif(() => lier(de, vers))}
             onDelier={(l) => void exclusif(() => delier(l))}
+            onRetirerDuPlan={
+              modifiable && !lectureDansPlan && !etape.aPlacer
+                ? () => void exclusif(() => retirerEtape(etape.id))
+                : undefined
+            }
             onSelection={ouvrir}
             onDirty={setSaisieOuverte}
             demande={demande}

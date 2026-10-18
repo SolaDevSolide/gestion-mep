@@ -1,4 +1,4 @@
-import { Trash2, X } from 'lucide-react';
+import { Inbox, Trash2, X } from 'lucide-react';
 import { api } from '../../api';
 import type { Lien } from '../../graphe';
 import { useMep } from '../../mepContext';
@@ -88,6 +88,8 @@ interface Props {
   suppr: boolean;
   onSuppr: (afficher: boolean) => void;
   onSupprimer: () => void;
+  /** « Retirer du plan » : l'étape quitte le graphe pour le bac « Étapes à placer » (absent : pas proposé). */
+  onRetirerDuPlan?: () => void;
 }
 
 /** Colonne droite de l'édition d'une étape : liens (attend / débloque), résolutions, pièces jointes et suppression. */
@@ -111,6 +113,7 @@ export function ColonneLiens(props: Props) {
     suppr,
     onSuppr,
     onSupprimer,
+    onRetirerDuPlan,
   } = props;
   // MEP simplifiée : pas de résolutions liées (le jour J, toutes celles des systèmes de l'étape sont proposées).
   const { mep } = useMep();
@@ -217,14 +220,26 @@ export function ColonneLiens(props: Props) {
             </div>
           </div>
         ) : (
-          <Button
-            variante="danger-doux"
-            taille="sm"
-            icone={<Trash2 className="size-4" aria-hidden />}
-            onClick={() => onSuppr(true)}
-          >
-            Supprimer l’étape
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {onRetirerDuPlan && (
+              <Button
+                taille="sm"
+                icone={<Inbox className="size-4" aria-hidden />}
+                onClick={onRetirerDuPlan}
+                title="L’étape quitte le graphe (ses suivants attendent ses préalables) et attend dans le bac « Étapes à placer »"
+              >
+                Retirer du plan
+              </Button>
+            )}
+            <Button
+              variante="danger-doux"
+              taille="sm"
+              icone={<Trash2 className="size-4" aria-hidden />}
+              onClick={() => onSuppr(true)}
+            >
+              Supprimer l’étape
+            </Button>
+          </div>
         )}
       </div>
     </>

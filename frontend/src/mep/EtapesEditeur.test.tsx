@@ -474,7 +474,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   it('pas de barre des systèmes au-dessus du plan (ils se gèrent en Préparation) ; bac des sections dans le cadre', () => {
     rendre(planExemple());
     expect(screen.queryByRole('button', { name: 'Retirer API de la MEP' })).not.toBeInTheDocument();
-    const bac = screen.getByRole('complementary', { name: 'Bac des sections' });
+    const bac = screen.getByRole('complementary', { name: 'Bac des éléments à placer' });
     expect(bac.closest('.graphe-libre')).not.toBeNull();
     expect(screen.getByRole('button', { name: 'Plan en plein écran' })).toBeInTheDocument();
   });

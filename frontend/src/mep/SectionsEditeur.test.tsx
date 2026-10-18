@@ -27,6 +27,8 @@ vi.mock('./graphe/apiGraphe', () => ({
   apiGraphe: {
     creerEtape: vi.fn(async () => ({ etapes: [] })),
     placerSection: vi.fn(async () => ({})),
+    placerEtape: vi.fn(async () => ({})),
+    retirerDuPlan: vi.fn(async () => ({})),
     creerSection: vi.fn(async () => ({ sectionId: 'nouvelle', mep: {} })),
     modifierSection: vi.fn(async () => ({})),
     supprimerSection: vi.fn(async () => ({})),
@@ -180,7 +182,7 @@ describe('Sections du plan', () => {
 
   it('bac : sections pas encore placées, « Placer dans le graphe », « Nouvelle section »', async () => {
     rendre(planAvecSections());
-    const bac = screen.getByRole('complementary', { name: 'Bac des sections' });
+    const bac = screen.getByRole('complementary', { name: 'Bac des éléments à placer' });
     expect(bac).toHaveTextContent('Sections à placer (1)');
     expect(bac).toHaveTextContent('Purge des caches');
     expect(bac).toHaveTextContent('1 étape · par Bob');
@@ -194,6 +196,34 @@ describe('Sections du plan', () => {
     expect(apiGraphe.creerSection).toHaveBeenCalledWith('m1', 'Deploiement', 'Migration', [], false);
   });
 
+  it('bac : étapes à placer hors du graphe, « Placer à part », « Retirer du plan » sur la fiche', async () => {
+    const m = planAvecSections();
+    rendre({
+      ...m,
+      etapes: [...m.etapes, etape({ id: 'e5', code: 'E0005', action: 'Vider le cache', ligne: 3, aPlacer: true })],
+    });
+    const bac = screen.getByRole('complementary', { name: 'Bac des éléments à placer' });
+    const liste = within(bac).getByRole('list', { name: 'Étapes à placer' });
+    expect(liste).toHaveTextContent('E0005');
+    expect(liste).toHaveTextContent('Vider le cache');
+    // Pas de carte dans le graphe tant qu'elle est au bac.
+    await screen.findByRole('button', { name: /^E0001 Sauvegarde/ });
+    expect(screen.queryByRole('button', { name: /^E0005/ })).toBeNull();
+    await userEvent.click(within(liste).getByRole('button', { name: 'Placer E0005 à part dans le graphe' }));
+    expect(apiGraphe.placerEtape).toHaveBeenCalledWith('m1', 'e5', {}, null);
+
+    // « Retirer du plan » dans l'édition d'une étape placée.
+    fireEvent.click(screen.getByRole('button', { name: /^E0001 Sauvegarde/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Retirer du plan' }));
+    expect(apiGraphe.retirerDuPlan).toHaveBeenCalledWith('m1', 'e1');
+  });
+
+  it('« Retirer du plan » sur une section : elle retourne dans le bac', async () => {
+    rendre(planAvecSections());
+    await userEvent.click(await screen.findByRole('button', { name: 'Retirer la section Bascule BDD du plan' }));
+    expect(apiGraphe.placerSection).toHaveBeenCalledWith('m1', 'sb', false);
+  });
+
   it('vue d’édition d’une section : fil d’Ariane, titre, cercles, ses seules étapes ; création dans la section', async () => {
     rendre(planAvecSections(), '/meps/m1?section=sb');
     const fil = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
@@ -203,7 +233,9 @@ describe('Sections du plan', () => {
     expect(screen.getByLabelText('Titre de la section')).toHaveValue('Bascule BDD');
     expect(await screen.findByRole('button', { name: /^E0002 Arrêt/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^E0001/ })).toBeNull();
-    expect(screen.queryByRole('complementary', { name: 'Bac des sections' })).toBeNull();
+    // Le bac de la vue d'une section ne liste que ses étapes à placer, pas les sections.
+    const bacSection = screen.getByRole('complementary', { name: 'Bac des éléments à placer' });
+    expect(within(bacSection).queryByRole('list', { name: 'Sections à placer' })).toBeNull();
 
     // Les cercles se nomment d'un clic ; « + » en ajoute.
     await userEvent.click(screen.getByRole('button', { name: 'Ajouter une entrée' }));

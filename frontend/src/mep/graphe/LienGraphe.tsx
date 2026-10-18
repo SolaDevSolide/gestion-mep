@@ -1,5 +1,6 @@
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
 import { ArrowDown } from 'lucide-react';
+import { useId } from 'react';
 import { useGraphe } from './contexteGraphe';
 import type { LienModele } from './modeleGraphe';
 import type { LienMouvement } from './mouvementGraphe';
@@ -126,10 +127,22 @@ export function LienGraphe(props: EdgeProps) {
  * nœuds qui bougent. Posés dans la vue du graphe, sous les cartes et au-dessus des cadres, comme les liens.
  */
 export function LiensEnMouvement({ liens, zIndex }: { liens: readonly LienMouvement[]; zIndex: number }) {
+  const prefixe = useId().replace(/:/g, '');
   return (
     <svg aria-hidden className="pointer-events-none absolute top-0 left-0 size-px overflow-visible" style={{ zIndex }}>
-      {liens.map((l) => (
-        <g key={l.id} style={{ opacity: l.opacite }}>
+      {/* Liens d'un cadre qui s'ouvre ou se ferme : découpés par le cadre, comme son contenu. */}
+      <defs>
+        {liens.map(
+          (l, i) =>
+            l.dans && (
+              <clipPath key={l.id} id={`${prefixe}-${i}`} clipPathUnits="userSpaceOnUse">
+                <rect x={l.dans.x} y={l.dans.y} width={l.dans.largeur} height={l.dans.hauteur} />
+              </clipPath>
+            ),
+        )}
+      </defs>
+      {liens.map((l, i) => (
+        <g key={l.id} style={{ opacity: l.opacite }} clipPath={l.dans ? `url(#${prefixe}-${i})` : undefined}>
           <path d={l.d} fill="none" style={{ stroke: 'var(--surface)', strokeWidth: 1.75 + 4 }} />
           <path
             d={l.d}

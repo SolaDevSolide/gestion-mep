@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, type PointerEvent } from 'react';
 import type { Etape, Mep } from '../../types';
 import type { PlaceEtape } from './apiGraphe';
 import type { ModeGraphe } from './CarteEtape';
@@ -36,6 +36,8 @@ export interface ValeurGraphe {
   enMouvement: boolean;
   /** Sections dont le repli ou le dépli se prépare (mesure et rangement de leur intérieur) : leur bouton le signale. */
   sectionsEnCours: ReadonlySet<string>;
+  /** Parmi elles, celles qui se replient (jusqu'à la fin du mouvement) : le chevron de leur titre tourne vers la droite. */
+  sectionsRepli: ReadonlySet<string>;
   /** Réorganisation en cours : le nœud glissé change de place dans son niveau (gauche-droite). */
   reordre: string | null;
   estEstompee?: (e: Etape) => boolean;
@@ -44,6 +46,8 @@ export interface ValeurGraphe {
   onAjouter?: (place: PlaceEtape, ancre: string | null, element: Element | null) => void;
   onBasculer: (sectionId: string) => void;
   onEditerSection?: (sectionId: string) => void;
+  /** « Retirer du plan » d'une section (édition) : elle retourne dans le bac. */
+  onRetirerSection?: (sectionId: string) => void;
   onOuvrirCercle?: (cercleId: string) => void;
   /** Vue d'ensemble (#61) : lecture seule, cartes et sections colorées par état ; étapes bloquées et leurs causes. */
   ensemble?: { bloquees: ReadonlyMap<string, Etape[]> } | null;
@@ -55,4 +59,29 @@ export function useGraphe(): ValeurGraphe {
   const v = useContext(ContexteGraphe);
   if (!v) throw new Error('useGraphe hors du graphe');
   return v;
+}
+
+/**
+ * Ce que le graphe donne au bac posé à sa droite (`lateral`) : l'état du dépôt pendant un glisser et le glisser d'une
+ * étape du bac vers le graphe (mêmes cibles qu'une carte : lien, carte, cercle). Le bac porte `data-bac-plan`.
+ */
+export interface BacGraphe {
+  /** `possible` : une carte ou une section du graphe est glissée et peut y être lâchée ; `vise` : le pointeur est dessus. */
+  depot: 'aucun' | 'possible' | 'vise';
+  /** Commence à glisser une étape du bac (le glisser part après quelques pixels : un clic reste un clic). */
+  glisserEtape?: (ev: PointerEvent<HTMLElement>, etape: Etape) => void;
+}
+
+const AUCUN_BAC: BacGraphe = { depot: 'aucun' };
+export const ContexteBac = createContext<BacGraphe>(AUCUN_BAC);
+/** Dépôt et glisser du bac posé à droite du graphe (hors du graphe : rien à déposer). */
+export const useBacGraphe = () => useContext(ContexteBac);
+
+/** Bac replié en fine colonne (choix mémorisé dans le navigateur) : lu aussi par le squelette, pour garder la même place. */
+export function lireBacReplie(): boolean {
+  try {
+    return window.localStorage.getItem('graphe.bacReplie') === 'oui';
+  } catch {
+    return false;
+  }
 }

@@ -353,6 +353,97 @@ public class GrapheLibreTests
         Assert.Empty(s.SystemeIds);
     }
 
+    // ---------- Bac des étapes à placer ----------
+
+    [Fact]
+    public void Retirer_une_etape_du_plan_rebranche_ses_voisins_et_la_met_au_bac_sans_lien()
+    {
+        var m = Nouvelle();
+        var a = Ajouter(m);
+        var b = Ajouter(m, new(Apres: a.Id));
+        var c = Ajouter(m, new(Apres: b.Id));
+        Assert.True(Regles.RetirerDuPlan(m, b));
+        Assert.True(b.APlacer);
+        Assert.False(Regles.AUnLien(m, b));
+        Assert.Equal(["E0001"], P(m, c));
+        Assert.False(Regles.RetirerDuPlan(m, b));
+
+        // Une étape seule, ou posée à part, reste dans le graphe : seul le retrait la met au bac.
+        var seule = Ajouter(m);
+        Assert.False(seule.APlacer);
+
+        // Retour sur un lien : elle s'insère, et quitte le bac.
+        Regles.PlacerEtape(m, b, new(EntreDe: a.Id, EntreVers: c.Id));
+        Assert.False(b.APlacer);
+        Assert.Equal(["E0002"], P(m, c));
+        Assert.Equal(["E0001"], P(m, b));
+        Assert.Throws<RegleMetierException>(() => Regles.PlacerEtape(m, b, new(Apres: a.Id)));
+
+        // Posée à part depuis le bac : dans le graphe, sans lien.
+        Regles.RetirerDuPlan(m, c);
+        Regles.PlacerEtape(m, c, new());
+        Assert.False(c.APlacer);
+        Assert.Empty(c.Dependances);
+
+        // Un lien tracé vers une étape du bac (fiche d'une autre étape) la remet dans le graphe.
+        Regles.RetirerDuPlan(m, c);
+        Relier(m, a.Id, c.Id);
+        Assert.False(c.APlacer);
+    }
+
+    [Fact]
+    public void Une_etape_retiree_dans_une_section_garde_sa_section_et_revient_reliee_aux_cercles()
+    {
+        var (m, _, b, c, d, e, s, _) = Plan();
+        // C quitte la section : la sortie « Fin » n'attend plus que B ; elle reste dans la section, au bac.
+        Regles.RetirerDuPlan(m, c);
+        Assert.Equal(s.Id, c.SectionId);
+        Assert.Equal([b.Id], Sortie(s).Etapes);
+        Assert.Equal(["E0002"], P(m, e));
+        Assert.Equal(["E0002"], P(m, d));
+        // Replacée à part dans la vue de la section : reliée d'office à Début et à Fin.
+        Regles.PlacerEtape(m, c, new(), s.Id);
+        Assert.Contains(c.Id, Entree(s).Etapes);
+        Assert.Contains(c.Id, Sortie(s).Etapes);
+        Assert.Equal(["E0002", "E0003"], P(m, e));
+    }
+
+    [Fact]
+    public void Remettre_une_section_au_bac_delie_ses_cercles_et_rebranche_le_reste()
+    {
+        var (m, a, b, c, d, e, s, t) = Plan();
+        Assert.True(Regles.PlacerSection(m, s, false));
+        Assert.False(s.Placee);
+        Assert.Empty(Entree(s).Sources);
+        Assert.Empty(e.PortsAttendus);
+        Assert.DoesNotContain(Sortie(s).Id, Entree(t).Sources);
+        // Ce qui attendait la section attend ce qui lui arrivait : E et l'entrée de T attendent A.
+        Assert.Equal(["E0001"], P(m, e));
+        Assert.Equal(["E0001"], P(m, d));
+        // L'intérieur de la section ne change pas.
+        Assert.Equal([b.Id], Entree(s).Etapes);
+        Assert.Equal([b.Id, c.Id], Sortie(s).Etapes);
+        Assert.Empty(P(m, b));
+        Assert.Equal(["E0002"], P(m, c));
+        _ = a;
+    }
+
+    [Fact]
+    public void Une_etape_au_bac_bloque_le_go()
+    {
+        var m = DonneesDemo.Creer(Alice, Bob, Claire, Maintenant).Mep;
+        Regles.Decider(m, Claire, DecisionApprobation.Approuvee, "", Maintenant);
+        Assert.Empty(Regles.ErreursPlan(m, Maintenant, 1));
+        var e = m.EtapesDu(TypePlan.Deploiement).Single(x => x.Code == "E0004");
+        Regles.RetirerDuPlan(m, e);
+        Assert.Equal(["Étape à placer : E0004 est dans le bac, la placer dans le plan ou la supprimer."], Regles.ErreursPlan(m, Maintenant, 1)
+            .Where(x => x.Contains("placer", StringComparison.Ordinal)));
+        Regles.RetirerDuPlan(m, m.EtapesDu(TypePlan.Deploiement).Single(x => x.Code == "E0002"));
+        Assert.Contains("Étapes à placer : E0002, E0004 sont dans le bac, les placer dans le plan ou les supprimer.", Regles.ErreursPlan(m, Maintenant, 1));
+        Assert.Throws<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, DonneesDemo.CriteresGoNoGo().Select(c => c.Id).ToList(),
+            DonneesDemo.CriteresGoNoGo(), 1, Maintenant));
+    }
+
     [Fact]
     public void Hors_preparation_le_graphe_et_les_sections_ne_changent_plus()
     {
@@ -364,6 +455,7 @@ public class GrapheLibreTests
         Assert.Throws<RegleMetierException>(() => Regles.SupprimerSection(m, s));
         Assert.Throws<RegleMetierException>(() => Regles.AjouterPort(m, s, SensPort.Entree, "X", ""));
         Assert.Throws<RegleMetierException>(() => Regles.ModifierSection(m, s, "X", "", []));
+        Assert.Throws<RegleMetierException>(() => Regles.RetirerDuPlan(m, b));
     }
 
     [Fact]

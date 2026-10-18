@@ -147,7 +147,11 @@ type Extremite = { noeud: string; carte: boolean; section: string | null } | nul
 
 export function construireModele({ etapes, sections, deplies, sectionVue = null }: Entree): ModeleGraphe {
   const ordonne = planOrdonne(etapes, sections);
-  const triees = trierEtapes(etapes, ordonne);
+  // Étapes du bac « Étapes à placer » : hors du graphe (elles n'ont aucun lien), listées dans le bac.
+  const triees = trierEtapes(
+    etapes.filter((e) => !e.aPlacer),
+    ordonne,
+  );
   const parSection = new Map(sections.map((s) => [s.id, s]));
   const noeuds: NoeudModele[] = [];
   const liens: LienModele[] = [];
