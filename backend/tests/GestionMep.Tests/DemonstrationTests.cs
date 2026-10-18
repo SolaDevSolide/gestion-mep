@@ -130,7 +130,7 @@ public class DemonstrationTests : IDisposable
         Assert.NotEqual(initial, await Etat());
 
         var rep = await Ok(await alice.PostAsync("/api/demo/reinitialiser", null));
-        Assert.Equal(9, rep.GetProperty("meps").GetInt32());
+        Assert.Equal(13, rep.GetProperty("meps").GetInt32());
         Assert.True(rep.GetProperty("fichiersSupprimes").GetInt32() >= 1);
 
         // Base identique à une base neuve en démonstration ; fichiers supprimés ; anciennes sessions refusées.
@@ -175,15 +175,15 @@ public class DemonstrationTests : IDisposable
     {
         var alice = await _api.ClientConnecte("alice");
         var liste = (await Ok(await alice.GetAsync("/api/meps?modele=false"))).EnumerateArray().ToList();
-        Assert.Equal(9, liste.Count);
+        Assert.Equal(13, liste.Count);
         Assert.Equal(DonneesDemo.OutilPortail, liste[0].GetProperty("outil").GetString()); // la plus récente reste en tête
         var phases = liste.GroupBy(m => m.GetProperty("phase").GetString()!).ToDictionary(g => g.Key, g => g.Count());
         Assert.Equal(3, phases["Preparation"]);
         Assert.Equal(2, phases["Execution"]);
         Assert.Equal(1, phases["Recette"]);
         Assert.Equal(1, phases["RetourArriere"]);
-        Assert.Equal(2, phases["Cloturee"]);
-        Assert.Equal(["Repliee", "Reussie"], liste.Where(m => m.GetProperty("phase").GetString() == "Cloturee")
+        Assert.Equal(6, phases["Cloturee"]);
+        Assert.Equal(["Repliee", "Repliee", "Reussie", "Reussie", "Reussie", "Reussie"], liste.Where(m => m.GetProperty("phase").GetString() == "Cloturee")
             .Select(m => m.GetProperty("issue").GetString()!).Order().ToArray());
 
         async Task<JsonElement> Mep(string outil) => await Ok(await alice.GetAsync($"/api/meps/{await AidesApi.IdMep(alice, outil)}"));
@@ -222,14 +222,14 @@ public class DemonstrationTests : IDisposable
         var (code, _, erreur) = await Cli("demo", "reinitialiser");
         Assert.Equal(1, code);
         Assert.Contains("--oui", erreur);
-        Assert.Equal(10, (await Ok(await alice.GetAsync("/api/meps?modele=false"))).GetArrayLength());
+        Assert.Equal(14, (await Ok(await alice.GetAsync("/api/meps?modele=false"))).GetArrayLength());
 
         var (fait, sortie, _) = await Cli("demo", "reinitialiser", "--oui");
         Assert.Equal(0, fait);
-        Assert.Contains("Démonstration réinitialisée : 9 MEP", sortie);
+        Assert.Contains("Démonstration réinitialisée : 13 MEP", sortie);
         Assert.Equal(HttpStatusCode.Unauthorized, (await alice.GetAsync("/api/meps")).StatusCode);
         var nouvelleAlice = await _api.ClientConnecte("alice");
-        Assert.Equal(9, (await Ok(await nouvelleAlice.GetAsync("/api/meps?modele=false"))).GetArrayLength());
+        Assert.Equal(13, (await Ok(await nouvelleAlice.GetAsync("/api/meps?modele=false"))).GetArrayLength());
         var ligne = Assert.Single((await Ok(await nouvelleAlice.GetAsync("/api/admin/journal"))).EnumerateArray());
         Assert.Equal(("demo.reinitialisee", "Ligne de commande"), (ligne.GetProperty("type").GetString(), ligne.GetProperty("auteur").GetString()));
         Assert.Contains("gestion-mep demo reinitialiser --oui", (await Cli("aide")).Sortie);

@@ -24,8 +24,8 @@ L'écran de connexion propose une **connexion rapide** : un clic sur un compte o
 
 | Compte | Rôle dans l'application | Rôle dans les MEP de démonstration |
 |---|---|---|
-| `alice` | Administratrice | Pilote de la plupart des MEP ; suppléante sur « Annuaire des agences » et « Extranet partenaires » |
-| `bob` | Utilisateur | Suppléant du pilote, responsable technique API et MDM ; pilote de « Annuaire des agences » et « Extranet partenaires » |
+| `alice` | Administratrice | Pilote de la plupart des MEP ; suppléante sur les MEP pilotées par Bob |
+| `bob` | Utilisateur | Suppléant du pilote, responsable technique API et MDM ; pilote de « Annuaire des agences », « Extranet partenaires », « Référentiel produits » et « Prise de rendez-vous » |
 | `claire` | Utilisateur | Responsable technique WEB, approbatrice ; pilote de « Formulaire de contact » (MEP simplifiée) |
 
 La connexion rapide n'accepte que ces trois comptes, et seulement tant qu'ils ont le mot de passe `demo` : un compte créé ensuite, même administrateur, ne s'y connecte jamais. Elle n'existe qu'en mode démonstration.
@@ -49,6 +49,7 @@ Chaque MEP est dans un état différent, pour essayer chaque écran sans tout d�
 | Gestion des stocks | Clôturée réussie | Il y a six jours : déploiement du service en échec, résolu par une résolution type puis refait ; point de non-retour franchi avec l'accord du pilote, recette conforme, bilan qui revient sur l'incident. Son **rapport de fin** en montre le point bloquant. |
 | Extranet partenaires | Clôturée repliée | Il y a dix jours : échec sans résolution connue, retour arrière déclenché par Bob, service rétabli, bilan. |
 | Formulaire de contact | MEP simplifiée, exécution en cours | Petit correctif : Claire pilote, Alice et Bob sont suppléants sans avoir été choisis ; ni versions, ni durée, criticité ou résolutions liées. Le redémarrage du service (API et BDD) est en échec : toutes les résolutions types de ces deux systèmes sont proposées, regroupées par système. Voir [MEP complète ou simplifiée](Préparer-une-MEP.md#mep-complète-ou-simplifiée). |
+| Portail clients, Référentiel produits, Batch de nuit comptable, Prise de rendez-vous | Clôturées des mois passés | L'historique des derniers mois, pour la [recherche des MEP](Suivre-une-MEP.md#rechercher-des-mep) et l'[historique d'un système](Suivre-une-MEP.md#historique-dun-système). Portail clients 4.0 (il y a trois mois et demi, WEB et API) et Référentiel produits 1.2 (deux mois et demi, MDM et BDD) ont réussi ; Batch de nuit comptable 7.0 (sept semaines, BDD et BATCH) a réussi **avec incidents** : une migration en échec sur BDD, reprise ensuite ; Prise de rendez-vous 2.1 (trois semaines, API et BDD) a été **repliée** après un échec sur API. Essayer : filtrer la liste sur BDD avec « Avec un échec d'étape », ou ouvrir l'onglet « Historique des MEP » de la fiche de BDD. |
 
 Les MEP ont leur section **Communication** remplie (référence de la demande, risque, bénéfices, créneau annoncé ; « Gestion des stocks » est validée par les utilisateurs), sauf « Facturation électronique », commencée, et « Portail de démonstration », sans indisponibilité prévue : les textes à copier y signalent les informations manquantes. Deux équipes ont leurs [modèles de texte](Modèles-de-texte.md) : « Exploitation applicative » (Alice et Bob), qui a adapté l'annonce fournie et créé « Prévenir l'astreinte », et « Développement web » (Claire), avec les modèles fournis.
 

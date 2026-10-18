@@ -563,7 +563,18 @@ export interface paths {
             parameters: {
                 query?: {
                     modele?: boolean;
+                    recherche?: string;
+                    systeme?: string;
+                    environnement?: string;
                     equipe?: string;
+                    personne?: string;
+                    role?: string;
+                    etat?: string;
+                    phase?: string;
+                    type?: string;
+                    du?: string;
+                    au?: string;
+                    echec?: string;
                 };
                 header?: never;
                 path?: never;
@@ -2746,6 +2757,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/catalogue/systemes/activite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ActiviteSystemeDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalogue/systemes/{id}/historique": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HistoriqueSystemeDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/catalogue/systemes/{id}": {
         parameters: {
             query?: never;
@@ -4012,13 +4095,56 @@ export interface paths {
             parameters: {
                 query?: {
                     modele?: boolean;
+                    recherche?: string;
+                    systeme?: string;
+                    environnement?: string;
                     equipe?: string;
+                    personne?: string;
+                    role?: string;
+                    etat?: string;
                     phase?: string;
                     type?: string;
-                    recherche?: string;
+                    du?: string;
+                    au?: string;
+                    echec?: string;
                 };
                 header?: never;
                 path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalogue/systemes/{id}/historique/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -6515,6 +6641,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Activité d'un système du catalogue : nombre de MEP et dernière MEP lancée (colonne « Dernière MEP » du catalogue). */
+        ActiviteSystemeDto: {
+            /** Format: uuid */
+            systemeId: string;
+            /** Format: int32 */
+            nbMep: number;
+            /** Format: uuid */
+            derniereMepId: null | string;
+            derniereOutil: null | string;
+            derniereVersion: null | string;
+            /** Format: date */
+            derniereJour: null | string;
+            derniereEtat: null | components["schemas"]["EtatMep"];
+        };
         /** @description Aperçu d'un import de validation : étapes à renseigner, étapes déjà à jour, lignes sans validation (ignorées). */
         ApercuValidationDto: {
             changements: {
@@ -6873,6 +7013,18 @@ export interface components {
         DuplicationSaisie: {
             commeModele: boolean;
         };
+        /** @description Échec d'une étape d'un système pendant une MEP : motif, reprise réussie ou non, dernière résolution lancée. */
+        EchecSystemeDto: {
+            plan: components["schemas"]["TypePlan"];
+            code: string;
+            action: string;
+            /** Format: date-time */
+            echecLe: string;
+            motif: string;
+            repris: boolean;
+            resolution: null | string;
+            statutResolution: null | components["schemas"]["StatutResolution"];
+        };
         EnvironnementCatalogueDto: {
             nom: string;
             cible: string;
@@ -7113,6 +7265,12 @@ export interface components {
         };
         /** @enum {unknown} */
         EtatEtape: "AFaire" | "EnCours" | "Reussie" | "Echec";
+        /**
+         * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+         *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+         * @enum {unknown}
+         */
+        EtatMep: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee";
         EtatsCharteFichier: null | {
             succes?: null | string;
             avertissement?: null | string;
@@ -7256,6 +7414,14 @@ export interface components {
          * @enum {unknown}
          */
         FournisseurSso: "Microsoft" | "OpenIdConnect";
+        /** @description Historique des MEP d'un système du catalogue, de la plus récente à la plus ancienne (modèles exclus). */
+        HistoriqueSystemeDto: {
+            /** Format: uuid */
+            systemeId: string;
+            nom: string;
+            resume: components["schemas"]["ResumeHistoriqueDto"];
+            meps: components["schemas"]["MepHistoriqueDto"][];
+        };
         /** @description Résultat d'un import Excel d'objets impactés : MEP à jour, compteurs et lignes rejetées (rien n'est créé au catalogue). */
         ImportObjetsDto: {
             /**
@@ -7751,6 +7917,16 @@ export interface components {
         /** @description Demande d'installation d'une version publiée (bouton « Mettre à jour » de la console). */
         InstallationSaisie: {
             version: null | string;
+        };
+        /**
+         * @description Personne qui intervient dans une MEP par l'un de ses comptes (`PersonneId` : son compte principal) et ses rôles :
+         *     pilote, suppléant, responsable technique, exécutant, approbateur ; aucun pour une simple participante.
+         */
+        IntervenantDto: {
+            /** Format: uuid */
+            personneId: string;
+            nom: string;
+            roles: components["schemas"]["RoleMep"][];
         };
         /** @enum {unknown} */
         IssueMep: "Reussie" | "Repliee" | null;
@@ -8255,6 +8431,30 @@ export interface components {
             }[];
         };
         /**
+         * @description MEP de l'historique d'un système : `Environnements` touchés sur ce système, `AutresSystemes` de la MEP,
+         *     `Echecs` sur les étapes de ce système, `Rapport` : rapport de fin disponible (MEP clôturée).
+         */
+        MepHistoriqueDto: {
+            /** Format: uuid */
+            id: string;
+            outil: string;
+            versionCible: string;
+            objet: string;
+            type: components["schemas"]["TypeMep"];
+            etat: components["schemas"]["EtatMep"];
+            /** Format: date */
+            jour: string;
+            /** Format: date-time */
+            go: null | string;
+            /** Format: date-time */
+            clotureeLe: null | string;
+            pilote: null | string;
+            environnements: components["schemas"]["EnvironnementSystemeDto"][];
+            autresSystemes: components["schemas"]["SystemeResumeDto"][];
+            echecs: components["schemas"]["EchecSystemeDto"][];
+            rapport: boolean;
+        };
+        /**
          * @description `BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance. La MEP n'a plus
          *     d'environnement propre : ils se choisissent par système (`PUT /meps/{id}/systemes/{sid}/environnements`).
          *     MEP simplifiée : `VersionActuelle`, `VersionCible` et `SuppleantIds` sont ignorés (pas de versions, suppléants implicites).
@@ -8342,6 +8542,17 @@ export interface components {
             equipeIds: string[];
             personnes: string[];
             type: components["schemas"]["TypeMep"];
+            etat: components["schemas"]["EtatMep"];
+            /** Format: date */
+            jour: string;
+            /** Format: date-time */
+            go: null | string;
+            /** Format: date-time */
+            clotureeLe: null | string;
+            /** Format: int32 */
+            echecsSurvenus: number;
+            systemes: components["schemas"]["SystemeResumeDto"][];
+            intervenants: components["schemas"]["IntervenantDto"][];
         };
         /**
          * @description Dernière version publiée sur GitHub. `Disponible` : elle est plus récente que la version en cours (toujours faux
@@ -9422,6 +9633,32 @@ export interface components {
         };
         /** @enum {unknown} */
         ResultatControle: "Conforme" | "Echec" | null;
+        /**
+         * @description Chiffres de l'historique : MEP au total et sur les 12 derniers mois, en cours (non clôturées), clôturées par issue, échecs
+         *     d'étape sur ce système (repris ou non), dernière MEP lancée (Go donné ; à défaut la plus récente).
+         */
+        ResumeHistoriqueDto: {
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            douzeMois: number;
+            /** Format: int32 */
+            enCours: number;
+            /** Format: int32 */
+            cloturees: number;
+            /** Format: int32 */
+            reussies: number;
+            /** Format: int32 */
+            avecIncidents: number;
+            /** Format: int32 */
+            repliees: number;
+            /** Format: int32 */
+            echecs: number;
+            /** Format: int32 */
+            echecsRepris: number;
+            /** Format: uuid */
+            derniereMepId: null | string;
+        };
         RetouchesCharteFichier: null | {
             primaire?: null | string;
             secondaire?: null | string;
@@ -9441,6 +9678,11 @@ export interface components {
             /** Format: int32 */
             revision: null | number;
         };
+        /**
+         * @description Rôle d'une personne dans une MEP (une personne peut en cumuler plusieurs ; sans rôle, elle est simple participante).
+         * @enum {unknown}
+         */
+        RoleMep: "Pilote" | "Suppleant" | "ResponsableTechnique" | "Executant" | "Approbateur";
         SauvegardeDto: {
             /**
              * @description Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée.
@@ -10079,6 +10321,8 @@ export interface components {
             detail: string;
         };
         /** @enum {unknown} */
+        StatutResolution: "EnCours" | "Reussie" | "Echouee" | null;
+        /** @enum {unknown} */
         StatutSauvegarde: "ARenseigner" | "Requise" | "NonRequise" | null;
         /**
          * @description Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur
@@ -10668,6 +10912,18 @@ export interface components {
                 nom: string;
                 production: boolean;
             }[];
+        };
+        /**
+         * @description Système d'une MEP dans la liste : fiche du catalogue (`CatalogueId`, null pour un système saisi à la main),
+         *     environnements touchés et `Echecs` survenus sur les étapes de ce système.
+         */
+        SystemeResumeDto: {
+            /** Format: uuid */
+            catalogueId: null | string;
+            nom: string;
+            environnements: components["schemas"]["EnvironnementSystemeDto"][];
+            /** Format: int32 */
+            echecs: number;
         };
         SystemeSaisie: {
             nom: null | string;

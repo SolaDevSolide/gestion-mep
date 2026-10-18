@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { api } from '../api';
 import { AuthContext } from '../auth';
 import { utilisateur } from '../test/fabrique';
-import type { SystemeCatalogue } from '../types';
+import type { HistoriqueSysteme, MepHistorique, SystemeCatalogue } from '../types';
 import { TooltipProvider } from '../ui/Tooltip';
 import SystemeFichePage from './SystemeFichePage';
 import SystemesPage from './SystemesPage';
@@ -34,6 +34,9 @@ vi.mock('../api', () => ({
     ajouterObjetCatalogue: vi.fn(async () => ({})),
     modifierObjetCatalogue: vi.fn(async () => ({})),
     supprimerObjetCatalogue: vi.fn(async () => undefined),
+    historiqueSysteme: vi.fn(),
+    activiteSystemes: vi.fn(async () => []),
+    urlExportHistorique: (id: string) => `/api/catalogue/systemes/${id}/historique/excel`,
   },
 }));
 
@@ -151,5 +154,161 @@ describe('Catalogue des systèmes : environnements et objets', () => {
     expect(await screen.findByText(/seuls les administrateurs peuvent modifier la fiche/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ajouter une catégorie' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Ajouter un environnement' })).toBeNull();
+  });
+});
+
+/** Jour d'il y a `n` jours, au format des MEP (« 2026-07-14 »). */
+function ilYaJours(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+const ligne = (p: Partial<MepHistorique> & Pick<MepHistorique, 'id' | 'outil' | 'etat' | 'jour'>): MepHistorique => ({
+  versionCible: '',
+  objet: '',
+  type: 'Complete',
+  go: `${p.jour}T20:00:00Z`,
+  clotureeLe: null,
+  pilote: 'Alice',
+  environnements: [{ nom: 'Production', production: true }],
+  autresSystemes: [],
+  echecs: [],
+  rapport: false,
+  ...p,
+});
+
+const historique = (meps: MepHistorique[], resume: Partial<HistoriqueSysteme['resume']> = {}): HistoriqueSysteme => ({
+  systemeId: bdd.id,
+  nom: bdd.nom,
+  resume: {
+    total: meps.length,
+    douzeMois: meps.length,
+    enCours: 0,
+    cloturees: 0,
+    reussies: 0,
+    avecIncidents: 0,
+    repliees: 0,
+    echecs: 0,
+    echecsRepris: 0,
+    derniereMepId: meps[0]?.id ?? null,
+    ...resume,
+  },
+  meps,
+});
+
+describe('Fiche d’un système : historique des MEP (#59)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.catalogueSystemes).mockResolvedValue([bdd]);
+    vi.mocked(api.objetsCatalogue).mockResolvedValue([]);
+    vi.mocked(api.categoriesParDefaut).mockResolvedValue([]);
+  });
+
+  it('l’onglet montre la synthèse, la frise, les MEP par mois et les échecs sur le système', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.historiqueSysteme).mockResolvedValue(
+      historique(
+        [
+          ligne({ id: 'p', outil: 'Portail', etat: 'Preparation', jour: ilYaJours(-3), go: null }),
+          ligne({
+            id: 'b',
+            outil: 'Batch de nuit',
+            versionCible: '4.2',
+            etat: 'AvecIncidents',
+            jour: ilYaJours(40),
+            rapport: true,
+            environnements: [
+              { nom: 'Recette', production: false },
+              { nom: 'Production', production: true },
+            ],
+            autresSystemes: [{ catalogueId: 'c-batch', nom: 'BATCH', environnements: [], echecs: 0 }],
+            echecs: [
+              {
+                plan: 'Deploiement',
+                code: 'E0002',
+                action: 'Migrer le schéma',
+                echecLe: `${ilYaJours(40)}T21:00:00Z`,
+                motif: 'Verrou sur la table',
+                repris: true,
+                resolution: 'Lever le verrou',
+                statutResolution: 'Reussie',
+              },
+            ],
+          }),
+          ligne({ id: 'r', outil: 'Rendez-vous', etat: 'Repliee', jour: ilYaJours(80), rapport: true }),
+        ],
+        { enCours: 1, cloturees: 2, avecIncidents: 1, repliees: 1, echecs: 1, echecsRepris: 1, derniereMepId: 'b' },
+      ),
+    );
+    rendre('/parametres/systemes/c-bdd?onglet=historique');
+    expect(await screen.findByRole('tab', { name: 'Historique des MEP', selected: true })).toBeInTheDocument();
+    expect(await screen.findByText('Clôturées avec problème')).toBeInTheDocument();
+    expect(screen.getByText('100 %')).toBeInTheDocument();
+    expect(screen.getByText(/1 repris · 0 non repris/)).toBeInTheDocument();
+    // Frise : les deux MEP lancées, pas celle à venir.
+    expect(
+      within(screen.getByRole('list', { name: 'MEP des douze derniers mois' })).getAllByRole('listitem'),
+    ).toHaveLength(2);
+    // À venir en tête, puis les mois.
+    const sections = screen.getAllByRole('region');
+    expect(sections[0]).toHaveAccessibleName('À venir : en préparation');
+    const batch = sections.find((r) => within(r).queryByText('Batch de nuit'))!;
+    expect(within(batch).getByText(/Repris après la résolution « Lever le verrou »/)).toBeInTheDocument();
+    expect(within(batch).getByRole('link', { name: 'Rapport de fin' })).toHaveAttribute('href', '/meps/b/rapport');
+    expect(within(batch).getByRole('button', { name: 'BATCH : historique et MEP de ce système' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ouvrir dans la liste des MEP' })).toHaveAttribute(
+      'href',
+      '/?systeme=c-bdd',
+    );
+
+    // Filtre d'environnement : seule la MEP passée en recette reste ; le lien vers la liste suit.
+    await user.click(screen.getByRole('radio', { name: /Recette \(1\)/ }));
+    expect(screen.queryByText('Rendez-vous')).toBeNull();
+    expect(screen.getByText('Batch de nuit')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ouvrir dans la liste des MEP' })).toHaveAttribute(
+      'href',
+      '/?systeme=c-bdd&environnement=Recette',
+    );
+    await user.click(screen.getByRole('radio', { name: /Tous/ }));
+    await user.click(screen.getByRole('checkbox', { name: 'Avec un échec sur BDD' }));
+    expect(screen.queryByText('Rendez-vous')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Ouvrir dans la liste des MEP' })).toHaveAttribute(
+      'href',
+      '/?systeme=c-bdd&echec=1',
+    );
+
+    // Retour à la fiche : l'onglet par défaut n'apparaît pas dans l'adresse.
+    await user.click(screen.getByRole('tab', { name: 'Fiche' }));
+    expect(await screen.findByRole('heading', { name: /Environnements/ })).toBeInTheDocument();
+  });
+
+  it('aucune MEP : état vide ; sans onglet demandé, la fiche s’affiche', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.historiqueSysteme).mockResolvedValue(historique([]));
+    rendre('/parametres/systemes/c-bdd');
+    expect(await screen.findByRole('tab', { name: 'Fiche', selected: true })).toBeInTheDocument();
+    expect(api.historiqueSysteme).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('tab', { name: 'Historique des MEP' }));
+    expect(await screen.findByText('Aucune MEP n’a encore touché BDD')).toBeInTheDocument();
+  });
+
+  it('le catalogue montre la dernière MEP de chaque système', async () => {
+    vi.mocked(api.activiteSystemes).mockResolvedValue([
+      {
+        systemeId: 'c-bdd',
+        nbMep: 3,
+        derniereMepId: 'b',
+        derniereOutil: 'Batch de nuit',
+        derniereVersion: '4.2',
+        derniereJour: '2026-09-08',
+        derniereEtat: 'AvecIncidents',
+      },
+    ]);
+    rendre('/parametres/systemes');
+    expect(await screen.findByRole('columnheader', { name: 'Dernière MEP' })).toBeInTheDocument();
+    const lien = await screen.findByRole('link', { name: /Historique des MEP de BDD : dernière le/ });
+    expect(lien).toHaveAttribute('href', '/parametres/systemes/c-bdd?onglet=historique');
+    expect(lien).toHaveTextContent('Batch de nuit → 4.2 · 3 MEP');
   });
 });

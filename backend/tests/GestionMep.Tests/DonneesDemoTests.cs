@@ -24,15 +24,34 @@ public class DonneesDemoTests
     private static string Dispo(Mep m, string code) => Regles.Disponibilite(m, E(m, code), Maintenant).Libelle;
 
     [Fact]
-    public void Huit_mep_une_par_etat_sans_modele()
+    public void Une_mep_par_etat_puis_l_historique_sans_modele()
     {
         var meps = Scenarios().Select(s => s.Mep).ToList();
-        Assert.Equal(8, meps.Count);
-        Assert.Equal(8, meps.Select(m => m.Outil).Distinct().Count());
+        Assert.Equal(12, meps.Count);
+        Assert.Equal(12, meps.Select(m => m.Outil).Distinct().Count());
         Assert.All(meps, m => Assert.False(m.EstModele));
         Assert.Equal(
-            [Phase.Preparation, Phase.Preparation, Phase.Execution, Phase.Recette, Phase.RetourArriere, Phase.Cloturee, Phase.Cloturee, Phase.Execution],
+            [Phase.Preparation, Phase.Preparation, Phase.Execution, Phase.Recette, Phase.RetourArriere, Phase.Cloturee, Phase.Cloturee, Phase.Execution,
+                Phase.Cloturee, Phase.Cloturee, Phase.Cloturee, Phase.Cloturee],
             meps.Select(m => m.Phase).ToArray());
+    }
+
+    [Fact]
+    public void L_historique_couvre_les_mois_passes_avec_ses_issues()
+    {
+        var maintenant = new DateTimeOffset(2026, 10, 12, 8, 0, 0, TimeSpan.Zero);
+        var historique = Scenarios(maintenant).Skip(8).ToList();
+        Assert.Equal([DonneesDemo.OutilHistoriqueReussie, DonneesDemo.OutilHistoriqueReferentiel, DonneesDemo.OutilHistoriqueIncidents, DonneesDemo.OutilHistoriqueRepliee],
+            historique.Select(h => h.Mep.Outil));
+        Assert.All(historique, h => Assert.True(h.Mep.DemarrageAutoriseLe < maintenant.AddDays(-14), h.Mep.Outil));
+        Assert.Equal([IssueMep.Reussie, IssueMep.Reussie, IssueMep.Reussie, IssueMep.Repliee], historique.Select(h => h.Mep.Issue));
+        // Échecs du journal : un repris sur BDD (réussie avec incidents), un sur API (repliée).
+        int Echecs(DonneesDemo.MepDemo h) => h.Journal.Count(e => e.Type == Regles.EvenementEchecEtape);
+        Assert.Equal([0, 0, 1, 1], historique.Select(Echecs));
+        Assert.Equal(EtatMep.AvecIncidents, Regles.EtatDe(historique[2].Mep.Phase, historique[2].Mep.Issue, Echecs(historique[2])));
+        var bdd = historique[2].Mep.Systemes.Single(s => s.Nom == "BDD").Id;
+        Assert.Contains(bdd, historique[2].Mep.Etapes.Single(e => e.Code == "E0002").SystemeIds);
+        Assert.Equal(EtatEtape.Reussie, historique[2].Mep.Etapes.Single(e => e.Code == "E0002").Etat);
     }
 
     [Theory]

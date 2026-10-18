@@ -19,6 +19,7 @@ import { Legende } from '../mep/ensemble/VueEnsembleTab';
 import { GrapheLibre } from '../mep/graphe/GrapheLibre';
 import { sectionsDuPlan } from '../mep/graphe/sections';
 import { descriptionsSystemes } from '../mep/graphe/systemes';
+import { PuceSystemeMep } from '../mep/SystemeCliquable';
 import { estSimplifiee } from '../mep/typeMep';
 import { MepContext } from '../mepContext';
 import { useReferentiels } from '../referentiels';
@@ -184,7 +185,21 @@ function Rapport({ r }: { r: RapportFin }) {
         </div>
         <div>
           <dt className="text-fg-subtle">Systèmes</dt>
-          <dd className="mt-0.5 font-medium">{mep.systemes.map((x) => x.nom).join(', ') || '—'}</dd>
+          <dd className="mt-1 flex flex-wrap gap-1">
+            {mep.systemes.length === 0
+              ? '—'
+              : mep.systemes.map((x) => (
+                  <PuceSystemeMep
+                    key={x.id}
+                    s={{
+                      ...x,
+                      echecs: r.pointsBloquants.filter((p) =>
+                        mep.etapes.some((e) => e.code === p.code && e.plan === p.plan && e.systemeIds.includes(x.id)),
+                      ).length,
+                    }}
+                  />
+                ))}
+          </dd>
         </div>
       </dl>
 

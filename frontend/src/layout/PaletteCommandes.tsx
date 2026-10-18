@@ -1,6 +1,7 @@
 import {
   Blocks,
   ClipboardCheck,
+  History,
   ClipboardList,
   Layers,
   Library,
@@ -10,12 +11,14 @@ import {
   NotebookText,
   Play,
   Rocket,
+  Search,
   ShieldCheck,
   ShieldUser,
   Sun,
   SunMoon,
   Undo2,
   UserRound,
+  UserSearch,
   Wrench,
 } from 'lucide-react';
 import { Command } from 'cmdk';
@@ -26,7 +29,10 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import { LIBELLE_PHASE } from '../format';
 import { useTheme } from '../theme';
-import type { MepResume } from '../types';
+import { lienHistoriqueSysteme } from '../mep/SystemeCliquable';
+import { personnesDeRecherche } from '../personnes';
+import { ecrireFiltre, FILTRE_VIDE } from '../rechercheMeps';
+import type { MepResume, SystemeCatalogue } from '../types';
 import { Kbd } from '../ui/Kbd';
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -65,21 +71,37 @@ function Entree({
 const GROUPE =
   'px-1 py-1 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-subtle [&_[cmdk-group-heading]]:uppercase';
 
-/** Palette de commandes Ctrl+K : MEP, onglets, paramètres, thème. */
+/**
+ * Palette de commandes Ctrl+K : MEP, onglets, paramètres, thème. Dès qu'on tape (#59) : rechercher le texte dans la liste
+ * des MEP, ouvrir l'historique d'un système du catalogue ou les MEP d'une personne.
+ */
 export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { definir, sombre } = useTheme();
   const { utilisateur } = useAuth();
   const [meps, setMeps] = useState<MepResume[]>([]);
+  const [systemes, setSystemes] = useState<SystemeCatalogue[]>([]);
+  const [personnes, setPersonnes] = useState<{ id: string; nom: string; detail: string }[]>([]);
+  const [saisie, setSaisie] = useState('');
 
   useEffect(() => {
     if (!open) return;
+    setSaisie('');
     api
       .meps()
       .then(setMeps)
       .catch(() => setMeps([]));
+    api
+      .catalogueSystemes()
+      .then((s) => setSystemes(s.filter((x) => x.actif)))
+      .catch(() => setSystemes([]));
+    api
+      .utilisateurs()
+      .then((c) => setPersonnes(personnesDeRecherche(c)))
+      .catch(() => setPersonnes([]));
   }, [open]);
+  const q = saisie.trim();
 
   const mepCourante = /^\/meps\/([^/]+)/.exec(pathname)?.[1];
   const aller = (chemin: string) => {
@@ -99,11 +121,26 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
           <Command filter={filtre} label="Palette de commandes">
             <Command.Input
               autoFocus
-              placeholder="Aller à une MEP, un onglet, un réglage…"
+              value={saisie}
+              onValueChange={setSaisie}
+              placeholder="Aller à une MEP, un système, une personne, un réglage…"
               className="h-12 w-full border-b border-line bg-transparent px-4 text-[15px] text-fg outline-none placeholder:text-fg-subtle"
             />
             <Command.List className="max-h-[50vh] overflow-y-auto p-1.5">
               <Command.Empty className="px-4 py-8 text-center text-sm text-fg-subtle">Aucun résultat.</Command.Empty>
+              {q && (
+                <Command.Group heading="Recherche" className={GROUPE}>
+                  {/* Les mots reprennent la saisie : l'entrée reste toujours proposée, en tête. */}
+                  <Entree
+                    icone={<Search className="size-4" />}
+                    mots={[q]}
+                    aide="Liste des MEP"
+                    onSelect={() => aller(`/?${ecrireFiltre({ ...FILTRE_VIDE, recherche: q }).toString()}`)}
+                  >
+                    Rechercher « {q} » dans les MEP
+                  </Entree>
+                </Command.Group>
+              )}
               {mepCourante && (
                 <Command.Group heading="Cette MEP" className={GROUPE}>
                   <Entree
@@ -171,6 +208,36 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                   </Entree>
                 ))}
               </Command.Group>
+              {q && systemes.length > 0 && (
+                <Command.Group heading="Systèmes" className={GROUPE}>
+                  {systemes.map((s) => (
+                    <Entree
+                      key={s.id}
+                      icone={<History className="size-4" />}
+                      mots={[s.nom, s.description, s.cible, 'système', 'historique']}
+                      aide="Historique des MEP"
+                      onSelect={() => aller(lienHistoriqueSysteme(s.id))}
+                    >
+                      {s.nom}
+                    </Entree>
+                  ))}
+                </Command.Group>
+              )}
+              {q && personnes.length > 0 && (
+                <Command.Group heading="Personnes" className={GROUPE}>
+                  {personnes.map((p) => (
+                    <Entree
+                      key={p.id}
+                      icone={<UserSearch className="size-4" />}
+                      mots={[p.nom, p.detail, 'personne']}
+                      aide="Ses MEP"
+                      onSelect={() => aller(`/?${ecrireFiltre({ ...FILTRE_VIDE, personne: p.id }).toString()}`)}
+                    >
+                      {p.nom}
+                    </Entree>
+                  ))}
+                </Command.Group>
+              )}
               <Command.Group heading="Paramètres" className={GROUPE}>
                 <Entree
                   icone={<Layers className="size-4" />}

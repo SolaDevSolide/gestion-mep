@@ -3,8 +3,8 @@ import {
   filtrerParEquipe,
   groupeCorrespond,
   grouperParPersonne,
-  mepCorrespond,
   personneDe,
+  personnesDeRecherche,
 } from './personnes';
 import { utilisateur } from './test/fabrique';
 
@@ -50,18 +50,10 @@ describe('personnes', () => {
     expect(groupeCorrespond(groupe, 'claire')).toBe(false);
   });
 
-  it('une MEP se filtre par équipe et se trouve par les comptes reliés de ses personnes', () => {
-    const m = {
-      outil: 'Portail',
-      versionCible: '4.2',
-      objet: '',
-      pilote: 'Alice',
-      personnes: ['Alice', 'Jean Dupont', 'jean.dupont@ent.fr'],
-      equipeIds: ['exploit'],
-    };
-    expect(mepCorrespond(m, '', 'exploit')).toBe(true);
-    expect(mepCorrespond(m, '', 'dev')).toBe(false);
-    expect(mepCorrespond(m, 'jean.dupont', '')).toBe(true);
-    expect(mepCorrespond(m, 'Éric', '')).toBe(false);
+  it('la recherche des MEP propose une personne par compte principal, avec tous ses identifiants', () => {
+    expect(personnesDeRecherche([sso, jean, claire])).toEqual([
+      { id: 'claire', nom: claire.nomPersonne, detail: claire.login },
+      { id: 'jean', nom: jean.nomPersonne, detail: `${jean.login}, ${sso.login}` },
+    ]);
   });
 });

@@ -32,6 +32,8 @@
 
 **Équipe** : groupe de personnes géré par les administrateurs, qui sert à filtrer les comptes et les MEP, et qui a ses modèles de texte. Une personne peut appartenir à plusieurs équipes ; une MEP appartient à une équipe dès qu'une de ses personnes en fait partie.
 
+**État d'une MEP** : ce que la recherche des MEP retient d'une MEP : sa phase tant qu'elle n'est pas clôturée (préparation, exécution, recette, retour arrière en cours), puis son issue : **réussie** (sans aucun échec d'étape), **réussie avec incidents** (au moins un échec d'étape, même repris ensuite) ou **repliée** (clôturée après un retour arrière). Voir [Rechercher des MEP](Suivre-une-MEP.md#rechercher-des-mep).
+
 **Étape** : action unitaire du plan, avec des instructions et un résultat attendu. Codes `E0001…` pour le déploiement, `R0001…` pour le retour arrière.
 
 **Étape modèle** : étape type de la bibliothèque d'étapes (fiche complète, sans point de non-retour). L'insérer dans une MEP en fait une copie indépendante, posée à la main dans le graphe ; on peut aussi transformer une étape d'une MEP en étape modèle.
@@ -47,6 +49,10 @@
 **Fiche de recette** : liste d'étapes de test qui vérifient un système après le déploiement. Elle appartient à un seul système ; chaque étape a un déroulé en blocs Texte ou Code et un résultat attendu.
 
 **Go / no-go** : décision du pilote de démarrer l'exécution (Go) ou de la reporter (no-go, avec un motif).
+
+**Historique d'un système** : onglet « Historique des MEP » de la fiche d'un système du catalogue : toutes les MEP qui l'ont touché, avec leur date, leurs environnements sur ce système, leur état et leurs échecs d'étape sur ce système. Voir [Historique d'un système](Suivre-une-MEP.md#historique-dun-système).
+
+**Hors catalogue** : système saisi à la main dans une MEP, sans fiche au catalogue. La recherche des MEP le retrouve par son nom, mais il n'a pas d'historique.
 
 **Journal** : historique horodaté et attribué de toutes les actions sur une MEP.
 
@@ -77,6 +83,8 @@
 **Rapport de fin** : compte rendu figé à la clôture d'une MEP : vue d'ensemble, points bloquants, résolutions, tests unitaires, qui a fait quoi, bilan, annexes. Exportable en Excel et en PDF. Voir [Suivre une MEP](Suivre-une-MEP.md#rapport-de-fin).
 
 **Recette** : phase de vérification après le déploiement, avant la clôture.
+
+**Recherche des MEP** : critères de la liste des MEP (système, environnement, équipe, personne et son rôle, état, période, échec d'étape sur un système), inscrits dans l'adresse de la page pour la partager. Les mêmes critères servent à l'export Excel, à l'API et à `gestion-mep meps lister`.
 
 **Résolution type** : fiche de dépannage réutilisable (symptômes, diagnostic, corrections, vérification finale) liée aux étapes qui peuvent échouer.
 

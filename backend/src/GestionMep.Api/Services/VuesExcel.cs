@@ -112,18 +112,6 @@ public static partial class VuesExcel
         return new string(d.Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray()).ToLowerInvariant();
     }
 
-    /// <summary>
-    /// Filtres de la liste des MEP : phase, type, et recherche dans l'outil, la version, l'objet, le pilote et les personnes
-    /// (avec tous leurs comptes reliés), comme la page d'accueil. L'équipe est filtrée par <c>MepsEndpoints.Lister</c>.
-    /// </summary>
-    public static List<MepResumeDto> FiltrerMeps(IEnumerable<MepResumeDto> meps, Phase? phase, TypeMep? type, string? recherche)
-    {
-        var q = Normaliser((recherche ?? "").Trim());
-        return meps.Where(m => (phase is null || m.Phase == phase) && (type is null || m.Type == type)
-            && (q.Length == 0 || new[] { m.Outil, m.VersionCible, m.Objet, m.Pilote ?? "" }.Concat(m.Personnes).Any(t => Normaliser(t).Contains(q, StringComparison.Ordinal))))
-            .ToList();
-    }
-
     /// <summary>Filtres de l'onglet Journal : famille d'événement et recherche dans le détail, l'auteur et son compte.</summary>
     public static List<EvenementDto> FiltrerJournal(IEnumerable<EvenementDto> journal, string? famille, string? recherche)
     {
@@ -149,9 +137,17 @@ public static partial class VuesExcel
         return ExcelCommun.NomFichier(prefixe, NomMep(mep));
     }
 
-    /// <summary>« meps-2026-10-14.xlsx » (« modeles-… » pour les modèles).</summary>
-    public static string NomFichierListe(bool modeles, DateTimeOffset maintenant) =>
-        $"{(modeles ? "modeles" : "meps")}-{ExcelCommun.Locale(maintenant, null):yyyy-MM-dd}.xlsx";
+    /// <summary>
+    /// « meps-2026-10-14.xlsx » (« modeles-… » pour les modèles) ; « meps-BDD-2026-10-14.xlsx » quand la liste est filtrée
+    /// sur un seul système.
+    /// </summary>
+    public static string NomFichierListe(bool modeles, DateTimeOffset maintenant, string? systeme = null) =>
+        systeme is { Length: > 0 } && !modeles ? ExcelCommun.NomFichier("meps", $"{systeme} {ExcelCommun.Locale(maintenant, null):yyyy-MM-dd}")
+            : $"{(modeles ? "modeles" : "meps")}-{ExcelCommun.Locale(maintenant, null):yyyy-MM-dd}.xlsx";
+
+    /// <summary>« historique-BDD-2026-10-14.xlsx ».</summary>
+    public static string NomFichierHistorique(string systeme, DateTimeOffset maintenant) =>
+        ExcelCommun.NomFichier("historique", $"{systeme} {ExcelCommun.Locale(maintenant, null):yyyy-MM-dd}");
 
     // ---------- Briques de mise en page ----------
 
@@ -223,11 +219,15 @@ public static partial class VuesExcel
 
     /// <summary>
     /// Liste des MEP (ou des modèles) telle qu'affichée, filtres compris : <paramref name="filtres"/> les décrit dans la ligne
-    /// de contexte. <paramref name="equipes"/> : noms des équipes, par identifiant.
+    /// de contexte. <paramref name="equipes"/> : noms des équipes, par identifiant. Pour les MEP, un second onglet « Échecs »
+    /// donne une ligne par échec d'étape (<paramref name="echecs"/>, limités aux systèmes filtrés) ; une colonne donne les rôles
+    /// de la personne filtrée (<paramref name="nomPersonne"/>).
     /// </summary>
     public static byte[] ListeMeps(IReadOnlyList<MepResumeDto> meps, bool modeles, IReadOnlyList<string> filtres,
-        IReadOnlyDictionary<Guid, string> equipes, DateTimeOffset maintenant, PaletteExcel? palette = null)
+        IReadOnlyDictionary<Guid, string> equipes, DateTimeOffset maintenant, PaletteExcel? palette = null, FiltreMeps? filtre = null,
+        IReadOnlyDictionary<Guid, List<HistoriqueSystemes.EchecDetaille>>? echecs = null, string? nomPersonne = null)
     {
+        filtre ??= FiltreMeps.Aucun;
         var titre = modeles ? "Modèles de MEP" : "Mises en production";
         using var classeur = ExcelCommun.Nouveau(titre, maintenant, null, palette);
         var contexte = $"{meps.Count} {(modeles ? (meps.Count > 1 ? "modèles" : "modèle") : "MEP")} · "
@@ -245,26 +245,78 @@ public static partial class VuesExcel
                     m.Id.ToString(),
                 }),
                 "Aucun modèle ne correspond à ces critères.");
+            return classeur.Enregistrer();
         }
-        else
+        var personne = filtre.Personne is not null;
+        var colonnes = new List<ColonneTableau>
         {
-            Tableau(classeur, "Mises en production", titre, contexte,
-                [Col("Outil", 24), Col("Version cible", 12) with { Facultative = true }, Col("Objet", 44), Col("Type", 11, TypeColonne.Court),
-                    Col("Phase", 18, TypeColonne.Court) with { Tons = ExcelCommun.TonsPhase }, Col("Production", 11, TypeColonne.Court),
-                    Col("Pilote", 18), Col("Équipes", 24) with { Facultative = true }, Col("Démarrée le", 12, TypeColonne.Date),
-                    Col("Créée le", 12, TypeColonne.Date), Col("Étapes", 8, TypeColonne.Entier), Col("Réussies", 9, TypeColonne.Entier),
-                    Col("En échec", 9, TypeColonne.Entier), Col("Retour arrière prévu", 12, TypeColonne.Court),
-                    Col("Échéance de retour arrière", 17, TypeColonne.DateHeure) with { Facultative = true }, ColIdentifiant()],
-                meps.Select(m => new object?[]
+            Col("Outil", 24), Col("Version cible", 12) with { Facultative = true }, Col("Objet", 44), Col("Type", 11, TypeColonne.Court),
+            Col("État", 20, TypeColonne.Court) with { Tons = ExcelCommun.TonsEtatMep }, Col("Jour", 12, TypeColonne.Date),
+            Col("Go", 16, TypeColonne.DateHeure) with { Facultative = true }, Col("Clôturée le", 16, TypeColonne.DateHeure) with { Facultative = true },
+            Col("Systèmes et environnements", 36) with { Facultative = true }, Col("Production", 11, TypeColonne.Court),
+            Col("Échecs survenus", 10, TypeColonne.Entier), Col("Pilote", 18),
+        };
+        if (personne) colonnes.Add(Col($"Rôle de {nomPersonne ?? "la personne"}", 26));
+        colonnes.AddRange([Col("Équipes", 24) with { Facultative = true }, Col("Créée le", 12, TypeColonne.Date), Col("Étapes", 8, TypeColonne.Entier),
+            Col("Réussies", 9, TypeColonne.Entier), Col("En échec", 9, TypeColonne.Entier), Col("Retour arrière prévu", 12, TypeColonne.Court),
+            Col("Échéance de retour arrière", 17, TypeColonne.DateHeure) with { Facultative = true }, ColIdentifiant()]);
+        Tableau(classeur, "Mises en production", titre, contexte, colonnes,
+            meps.Select(m =>
+            {
+                var ligne = new List<object?>
                 {
-                    m.Outil, m.Type == TypeMep.Simplifiee ? "" : m.VersionCible, m.Objet, Libelle(m.Type), Libelle(m.Phase, m.Issue),
-                    OuiNon(m.ToucheProduction), m.Pilote ?? "", Equipes(m), m.DateMep, DateOnly.FromDateTime(ExcelCommun.Locale(m.CreeLe, null)),
-                    m.NbEtapes, m.NbReussies, m.NbEchecs, OuiNon(m.RetourArriereActive),
-                    m.RetourArriereActive ? Quand(m.EcheanceRepli, null) : null, m.Id.ToString(),
-                }),
-                "Aucune MEP ne correspond à ces critères.", colonnesFigees: 1);
-        }
+                    m.Outil, m.Type == TypeMep.Simplifiee ? "" : m.VersionCible, m.Objet, Libelle(m.Type), FiltreMeps.Libelle(m.Etat), m.Jour,
+                    Quand(m.Go, null), Quand(m.ClotureeLe, null), SystemesEtEnvironnements(m.Systemes), OuiNon(m.ToucheProduction),
+                    m.EchecsSurvenus, m.Pilote ?? "",
+                };
+                if (personne) ligne.Add(Roles(filtre.RolesDeLaPersonne(m)));
+                ligne.AddRange([Equipes(m), DateOnly.FromDateTime(ExcelCommun.Locale(m.CreeLe, null)), m.NbEtapes, m.NbReussies, m.NbEchecs,
+                    OuiNon(m.RetourArriereActive), m.RetourArriereActive ? Quand(m.EcheanceRepli, null) : null, m.Id.ToString()]);
+                return ligne.ToArray();
+            }),
+            "Aucune MEP ne correspond à ces critères.", colonnesFigees: 1);
+
+        var parId = meps.ToDictionary(m => m.Id);
+        var lignesEchecs = meps.SelectMany(m => echecs?.GetValueOrDefault(m.Id) ?? [])
+            .Where(e => filtre.Systemes.Count == 0 || e.Systemes.Any(s => filtre.Retient(new SystemeResumeDto(s.CatalogueId, s.Nom, [], 0))))
+            .ToList();
+        Tableau(classeur, "Échecs", "Échecs d'étape", $"{lignesEchecs.Count} échec{(lignesEchecs.Count > 1 ? "s" : "")} sur ces MEP"
+                + (filtre.Systemes.Count > 0 ? " (systèmes filtrés)" : "") + " · une étape reprise garde son échec",
+            ColonnesEchecs(avecMep: true), lignesEchecs.Select(e => LigneEchec(e, parId[e.MepId])), "Aucun échec d'étape sur ces MEP.", colonnesFigees: 1);
         return classeur.Enregistrer();
+    }
+
+    /// <summary>« BDD : Recette, Production · API : Production » ; un système hors catalogue est signalé.</summary>
+    private static string SystemesEtEnvironnements(IEnumerable<SystemeResumeDto> systemes) =>
+        string.Join(" · ", systemes.Select(s => (s.CatalogueId is null ? $"{s.Nom} (hors catalogue)" : s.Nom)
+            + (s.Environnements.Count > 0 ? " : " + string.Join(", ", s.Environnements.Select(e => e.Nom)) : "")));
+
+    /// <summary>Rôles d'une personne dans une MEP : « Pilote, Exécutant », « Participant » sans rôle, vide si elle n'y est pas.</summary>
+    private static string Roles(IReadOnlyList<RoleMep>? roles) =>
+        roles is null ? "" : roles.Count == 0 ? "Participant" : string.Join(", ", roles.Select(FiltreMeps.Libelle));
+
+    private static List<ColonneTableau> ColonnesEchecs(bool avecMep)
+    {
+        var c = new List<ColonneTableau>();
+        if (avecMep) c.AddRange([Col("MEP", 30), Col("Jour", 12, TypeColonne.Date), Col("État de la MEP", 20, TypeColonne.Court) with { Tons = ExcelCommun.TonsEtatMep }]);
+        c.AddRange([Col("Systèmes", 18), Col("Plan", 14, TypeColonne.Court), Col("Étape", 8, TypeColonne.Code), Col("Action", 36),
+            Col("Échec le", 16, TypeColonne.DateHeure), Col("Par", 18), Col("Motif", 40), Col("Résolution", 30) with { Facultative = true },
+            Col("Statut de la résolution", 14, TypeColonne.Court) with { Tons = ExcelCommun.TonsResolution, Facultative = true },
+            Col("Reprise réussie", 11, TypeColonne.Court), Col("Arrêt (min)", 10, TypeColonne.Entier) with { Facultative = true }]);
+        if (avecMep) c.Add(ColIdentifiant());
+        return c;
+    }
+
+    private static object?[] LigneEchec(HistoriqueSystemes.EchecDetaille e, MepResumeDto? mep)
+    {
+        var p = e.Point;
+        var l = new List<object?>();
+        if (mep is not null) l.AddRange([ExcelCommun.NomMep(mep.Outil, mep.VersionCible), mep.Jour, FiltreMeps.Libelle(mep.Etat)]);
+        l.AddRange([string.Join(", ", e.Systemes.Select(s => s.Nom)), p.Plan == TypePlan.RetourArriere ? "Retour arrière" : "Déploiement", p.Code,
+            p.Action, Quand(p.EchecLe, null), p.Par, p.Motif, p.Resolution ?? "", p.StatutResolution is { } st ? Libelle(st) : "", OuiNon(e.Repris),
+            p.ArretMinutes]);
+        if (mep is not null) l.Add(mep.Id.ToString());
+        return [.. l];
     }
 
     // ---------- Préparation ----------

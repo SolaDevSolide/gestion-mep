@@ -15,7 +15,7 @@ public static partial class DonneesDemo
     public static readonly IReadOnlyList<CompteDemo> Comptes =
     [
         new("alice", "Alice", true, "Administratrice : pilote de la plupart des MEP, peut réinitialiser la démonstration."),
-        new("bob", "Bob", false, "Suppléant du pilote ; pilote de « Annuaire des agences » et « Extranet partenaires »."),
+        new("bob", "Bob", false, "Suppléant du pilote ; pilote de « Annuaire des agences », « Extranet partenaires » et de deux MEP passées."),
         new("claire", "Claire", false, "Approbatrice des MEP, responsable technique WEB."),
     ];
 
@@ -40,7 +40,8 @@ public static partial class DonneesDemo
 
     /// <summary>
     /// MEP de démonstration supplémentaires : préparation incomplète, prête pour le Go, exécution en cours, recette en cours,
-    /// retour arrière en cours, clôturée réussie, clôturée repliée, et une MEP simplifiée en cours d'exécution. Le catalogue, les résolutions types et les critères sont
+    /// retour arrière en cours, clôturée réussie, clôturée repliée, une MEP simplifiée en cours d'exécution, puis l'historique des
+    /// mois passés (<see cref="Historique"/>). Le catalogue, les résolutions types et les critères sont
     /// ceux de <see cref="Creer"/> (mêmes identifiants) ; les comptes sont ceux de <see cref="Comptes"/>.
     /// </summary>
     public static List<MepDemo> Scenarios(Guid alice, Guid bob, Guid claire, IReadOnlyList<SystemeCatalogue> catalogue,
@@ -48,7 +49,7 @@ public static partial class DonneesDemo
     {
         var equipe = new Equipe(new Compte(alice, "Alice"), new Compte(bob, "Bob"), new Compte(claire, "Claire"));
         var c = new Contexte(equipe, catalogue, resolutions, criteres, maintenant);
-        return [Incomplete(c), Prete(c), EnExecution(c), EnRecette(c), EnRetourArriere(c), Reussie(c), Repliee(c), Simplifiee(c)];
+        return [Incomplete(c), Prete(c), EnExecution(c), EnRecette(c), EnRetourArriere(c), Reussie(c), Repliee(c), Simplifiee(c), .. Historique(c)];
     }
 
     private sealed record Compte(Guid Id, string Nom);
@@ -149,6 +150,12 @@ public static partial class DonneesDemo
         {
             Regles.Terminer(Mep, e, EtatEtape.Echec, preuve, resultatVerifie: false, qui.Id, T);
             Ev(qui, "etape.echec", $"{e.Code} en échec : {preuve}");
+        }
+
+        public void Reprendre(Compte qui, Etape e)
+        {
+            Regles.AutoriserReprise(Mep, e, qui.Id, T);
+            Ev(qui, "etape.reprise", $"Reprise de {e.Code} autorisée");
         }
 
         public void Commenter(Compte qui, Etape e, string texte)

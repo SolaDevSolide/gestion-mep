@@ -1,7 +1,7 @@
 // Personnes et équipes : des comptes reliés (`comptePrincipalId`) forment une seule personne, nommée d'après son compte
 // principal ; les équipes d'une personne sont celles de tous ses comptes. Logique pure, sans affichage.
 import { normaliser } from './recherche';
-import type { MepResume, Utilisateur } from './types';
+import type { Utilisateur } from './types';
 
 type Compte = Pick<Utilisateur, 'id' | 'login' | 'nomAffiche' | 'role' | 'comptePrincipalId' | 'equipeIds'>;
 
@@ -65,15 +65,23 @@ export function optionCompte(u: Pick<Utilisateur, 'id' | 'login' | 'nomPersonne'
   return { valeur: u.id, libelle: u.nomPersonne, detail: [u.login, ...etat].join(' · ') };
 }
 
-/** MEP qui correspond à la recherche (outil, version, objet, pilote, personnes et leurs comptes reliés) et à l'équipe. */
-export function mepCorrespond(
-  m: Pick<MepResume, 'outil' | 'versionCible' | 'objet' | 'pilote' | 'personnes' | 'equipeIds'>,
-  recherche: string,
-  equipe: string,
-): boolean {
-  if (equipe && !m.equipeIds.includes(equipe)) return false;
-  const q = normaliser(recherche.trim());
-  return (
-    !q || [m.outil, m.versionCible, m.objet, m.pilote ?? '', ...m.personnes].some((t) => normaliser(t).includes(q))
-  );
+/**
+ * Personnes proposées par la recherche des MEP (#59) : une par compte principal, nommée d'après lui, avec les identifiants
+ * de tous ses comptes (pour la retrouver par l'un d'eux). Triées par nom.
+ */
+export function personnesDeRecherche(
+  comptes: Pick<
+    Utilisateur,
+    'id' | 'login' | 'nomPersonne' | 'nomAffiche' | 'role' | 'comptePrincipalId' | 'equipeIds'
+  >[],
+): { id: string; nom: string; detail: string }[] {
+  return grouperParPersonne(comptes)
+    .map((g) => ({
+      id: g.principal.id,
+      nom: g.principal.nomPersonne || g.principal.nomAffiche,
+      detail: comptesDuGroupe(g)
+        .map((c) => c.login)
+        .join(', '),
+    }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
 }

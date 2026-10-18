@@ -8,7 +8,7 @@ namespace GestionMep.Api.Endpoints;
 
 /// <summary>
 /// Exportations Excel en lecture des vues (#58) : liste des MEP (filtres de la page d'accueil), préparation, étapes,
-/// retour arrière et journal d'une MEP. La recette et les objets impactés ont leurs propres routes (export et import).
+/// retour arrière et journal d'une MEP, historique d'un système du catalogue (#59). La recette et les objets impactés ont leurs propres routes (export et import).
 /// Partagé avec <c>gestion-mep meps lister --excel</c> et <c>gestion-mep meps excel</c>. Les classeurs prennent les couleurs
 /// de la charte visuelle (palette donnée par <see cref="ServiceCharte"/>).
 /// </summary>
@@ -30,19 +30,36 @@ public static class ExportsExcelEndpoints
         _ => throw ErreurHttp.Saisie("Type de MEP inconnu : complete ou simplifiee."),
     };
 
-    /// <summary>Liste des MEP (ou des modèles) filtrée comme la page d'accueil, en classeur Excel.</summary>
-    public static async Task<Fichier> Liste(MepDbContext db, bool modeles, Guid? equipe, Phase? phase, TypeMep? type, string? recherche,
-        DateTimeOffset maintenant, PaletteExcel? palette = null)
+    /// <summary>
+    /// Liste des MEP (ou des modèles) filtrée comme la page d'accueil (<see cref="FiltreMeps"/>), en classeur Excel, avec
+    /// l'onglet « Échecs ». Pour les modèles, seuls la recherche, l'équipe et le type s'appliquent.
+    /// </summary>
+    public static async Task<Fichier> Liste(MepDbContext db, bool modeles, FiltreMeps filtre, DateTimeOffset maintenant, PaletteExcel? palette = null)
     {
+        if (modeles) filtre = new FiltreMeps { Recherche = filtre.Recherche, Equipes = filtre.Equipes, Type = filtre.Type };
         var equipes = await db.Equipes.AsNoTracking().ToDictionaryAsync(e => e.Id, e => e.Nom);
-        if (equipe is { } e && !equipes.ContainsKey(e)) throw ErreurHttp.NonTrouve("Équipe introuvable.");
-        var meps = VuesExcel.FiltrerMeps(await MepsEndpoints.Lister(db, modeles, equipe), modeles ? null : phase, type, recherche);
-        var filtres = new List<string>();
-        if (!string.IsNullOrWhiteSpace(recherche)) filtres.Add($"recherche « {recherche.Trim()} »");
-        if (equipe is { } eq) filtres.Add($"équipe {equipes[eq]}");
-        if (!modeles && phase is { } p) filtres.Add($"phase {VuesExcel.Libelle(p)}");
-        if (type is { } t) filtres.Add(t == TypeMep.Simplifiee ? "MEP simplifiées" : "MEP complètes");
-        return new(VuesExcel.ListeMeps(meps, modeles, filtres, equipes, maintenant, palette), VuesExcel.NomFichierListe(modeles, maintenant));
+        foreach (var e in filtre.Equipes)
+            if (!equipes.ContainsKey(e)) throw ErreurHttp.NonTrouve("Équipe introuvable.");
+        var catalogue = await db.SystemesCatalogue.AsNoTracking().ToDictionaryAsync(s => s.Id, s => s.Nom);
+        var annuaire = await Personnes.Charger(db);
+        var meps = filtre.Appliquer(await MepsEndpoints.Lister(db, modeles));
+        var description = filtre.Decrire(catalogue.GetValueOrDefault, equipes.GetValueOrDefault, annuaire.NomPersonne);
+        var echecs = modeles ? null : await HistoriqueSystemes.Echecs(db, meps);
+        var nomPersonne = filtre.Personne is { } p ? annuaire.NomPersonne(p) : null;
+        // Un seul système filtré : son nom dans le nom du fichier.
+        var systeme = filtre.Systemes is [var seul]
+            ? seul.StartsWith(FiltreMeps.PrefixeLibre, StringComparison.Ordinal) ? seul[FiltreMeps.PrefixeLibre.Length..]
+                : Guid.TryParse(seul, out var id) ? catalogue.GetValueOrDefault(id) : null
+            : null;
+        return new(VuesExcel.ListeMeps(meps, modeles, description, equipes, maintenant, palette, filtre, echecs, nomPersonne),
+            VuesExcel.NomFichierListe(modeles, maintenant, systeme));
+    }
+
+    /// <summary>Historique des MEP d'un système du catalogue en classeur Excel (route et <c>gestion-mep systemes historique --excel</c>).</summary>
+    public static async Task<Fichier> Historique(MepDbContext db, Guid systemeId, DateTimeOffset maintenant, PaletteExcel? palette = null)
+    {
+        var h = await HistoriqueSystemes.Historique(db, systemeId, DateOnly.FromDateTime(ExcelCommun.Locale(maintenant, null)));
+        return new(VuesExcel.Historique(h, maintenant, palette), VuesExcel.NomFichierHistorique(h.Nom, maintenant));
     }
 
     /// <summary>
@@ -81,13 +98,17 @@ public static class ExportsExcelEndpoints
 
     public static void MapExportsExcel(this RouteGroupBuilder api)
     {
-        // ?modele=true : modèles ; ?equipe, ?phase, ?type (complete|simplifiee), ?recherche : filtres de la page d'accueil.
-        api.MapGet("/meps/excel", async (bool? modele, Guid? equipe, string? phase, string? type, string? recherche, MepDbContext db,
-            TimeProvider temps, ServiceCharte charte) =>
+        // ?modele=true : modèles ; autres paramètres : filtres de la page d'accueil (FiltreMeps : systeme, environnement, equipe,
+        // personne, role, etat, phase, type, du, au, echec, recherche).
+        api.MapGet("/meps/excel", async (bool? modele, [AsParameters] ParametresFiltreMeps filtres, MepDbContext db, TimeProvider temps,
+            ServiceCharte charte) =>
         {
-            var f = await Liste(db, modele == true, equipe, LirePhase(phase), LireType(type), recherche, temps.GetUtcNow(), charte.Courant.Palette);
+            var f = await Liste(db, modele == true, FiltreMeps.Lire(filtres), temps.GetUtcNow(), charte.Courant.Palette);
             return Results.File(f.Contenu, VuesExcel.TypeContenu, f.Nom);
         }).Produces(StatusCodes.Status200OK, contentType: VuesExcel.TypeContenu);
+
+        api.MapGet("/catalogue/systemes/{id:guid}/historique/excel", async (Guid id, MepDbContext db, TimeProvider temps, ServiceCharte charte) =>
+            Telecharger(await Historique(db, id, temps.GetUtcNow(), charte.Courant.Palette))).Produces(StatusCodes.Status200OK, contentType: VuesExcel.TypeContenu);
 
         api.MapGet("/meps/{id:guid}/preparation/excel", async (Guid id, MepDbContext db, ServiceMep svc, ServiceCharte charte) =>
             Telecharger(await Vue(db, svc, id, VuesExcel.Vue.Preparation, palette: charte.Courant.Palette))).Produces(StatusCodes.Status200OK, contentType: VuesExcel.TypeContenu);

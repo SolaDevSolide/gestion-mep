@@ -18,6 +18,7 @@ import { Field, Input } from '../../ui/Input';
 import { Tooltip } from '../../ui/Tooltip';
 import { FormulaireDialog, SectionCarte, vide, type ChampForm } from './Formulaires';
 import { participantDepuisCompte } from './suggestions';
+import { NomSystemeMep } from '../SystemeCliquable';
 
 function Ligne({
   gauche,
@@ -377,7 +378,8 @@ export function SystemesSection() {
               gauche={
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 font-medium">
-                    {s.nom}
+                    {/* Menu du système : historique de ses MEP, MEP sur ce système (#59). */}
+                    <NomSystemeMep s={s} />
                     {s.catalogueId && (
                       <Badge ton="run">
                         <Library className="size-3" aria-hidden />

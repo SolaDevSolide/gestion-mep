@@ -1,0 +1,554 @@
+{
+  "_commentaire": "Cas partagés du filtre de la liste des MEP (#59) : lus par rechercheMeps.test.ts (front) et FiltreMepsTests.cs (back). Les paramètres s'écrivent comme dans l'adresse de la page d'accueil et l'API ; attendus : identifiants des MEP, dans l'ordre.",
+  "systemes": {
+    "BDD": "11111111-0000-4000-8000-000000000001",
+    "LDAP": "11111111-0000-4000-8000-000000000002",
+    "API": "11111111-0000-4000-8000-000000000003",
+    "WEB": "11111111-0000-4000-8000-000000000004",
+    "BATCH": "11111111-0000-4000-8000-000000000005"
+  },
+  "equipes": {
+    "E1": "22222222-0000-4000-8000-000000000001",
+    "E2": "22222222-0000-4000-8000-000000000002"
+  },
+  "personnes": {
+    "Alice": "33333333-0000-4000-8000-000000000001",
+    "Bob": "33333333-0000-4000-8000-000000000002",
+    "Claire": "33333333-0000-4000-8000-000000000003"
+  },
+  "meps": [
+    {
+      "id": "m1",
+      "outil": "Gestion des stocks",
+      "versionCible": "6.3",
+      "objet": "Réassorts automatiques",
+      "type": "Complete",
+      "phase": "Cloturee",
+      "etat": "AvecIncidents",
+      "jour": "2026-09-24",
+      "creeLe": "2026-09-01T08:00:00Z",
+      "echecsSurvenus": 1,
+      "equipeIds": ["22222222-0000-4000-8000-000000000001"],
+      "systemes": [
+        {
+          "catalogueId": "11111111-0000-4000-8000-000000000001",
+          "nom": "BDD",
+          "environnements": [
+            {
+              "nom": "Production",
+              "production": true
+            }
+          ],
+          "echecs": 1
+        },
+        {
+          "catalogueId": "11111111-0000-4000-8000-000000000005",
+          "nom": "BATCH",
+          "environnements": [
+            {
+              "nom": "Production",
+              "production": true
+            }
+          ],
+          "echecs": 0
+        }
+      ],
+      "intervenants": [
+        {
+          "personneId": "33333333-0000-4000-8000-000000000001",
+          "nom": "Alice Martin",
+          "roles": ["Pilote"]
+        },
+        {
+          "personneId": "33333333-0000-4000-8000-000000000002",
+          "nom": "Bob Leroy",
+          "roles": ["Executant"]
+        }
+      ],
+      "pilote": "Alice Martin",
+      "personnes": ["Alice Martin", "alice", "Bob Leroy", "bob"]
+    },
+    {
+      "id": "m2",
+      "outil": "Portail clients",
+      "versionCible": "4.1",
+      "objet": "Suivi de commande",
+      "type": "Complete",
+      "phase": "Cloturee",
+      "etat": "Reussie",
+      "jour": "2026-09-17",
+      "creeLe": "2026-09-02T08:00:00Z",
+      "echecsSurvenus": 0,
+      "equipeIds": ["22222222-0000-4000-8000-000000000002"],
+      "systemes": [
+        {
+          "catalogueId": "11111111-0000-4000-8000-000000000004",
+          "nom": "WEB",
+          "environnements": [
+            {
+              "nom": "Production",
+              "production": true
+            }
+          ],
+          "echecs": 0
+        },
+        {
+          "catalogueId": "11111111-0000-4000-8000-000000000003",
+          "nom": "API",
+          "environnements": [
+            {
+              "nom": "Préproduction",
+              "production": false
+            },
+            {
+              "nom": "Production",
+              "production": true
+            }
+          ],
+          "echecs": 0
+        }
+      ],
+      "intervenants": [
+        {
+          "personneId": "33333333-0000-4000-8000-000000000003",
+          "nom": "Claire Durand",
+          "roles": ["Pilote"]
+        },
+        {
+          "personneId": "33333333-0000-4000-8000-000000000002",
+          "nom": "Bob Leroy",
+          "roles": []
+        }
+      ],
+      "pilote": "Claire Durand",
+      "personnes": ["Claire Durand", "claire", "Bob Leroy", "bob"]
+    },
+    {
+      "id": "m3",
+      "outil": "Œuvre sociale",
+      "versionCible": "",
+      "objet": "Nouveaux droits",
+      "type": "Simplifiee",
+      "phase": "Preparation",
+      "etat": "Preparation",
+      "jour": "2026-10-10",
+      "creeLe": "2026-10-10T07:00:00Z",
+      "echecsSurvenus": 0,
+      "equipeIds": [],
+      "systemes": [
+        {
+          "catalogueId": "11111111-0000-4000-8000-000000000001",
+          "nom": "BDD",
+          "environnements": [
+            {
+              "nom": "Recette",
+              "production": false
+            }
+          ],
+          "echecs": 0
+        },
+        {
+          "catalogueId": "11111111-0000-4000-8000-000000000002",
+          "nom": "LDAP",
+          "environnements": [
+            {
+              "nom": "Production",
+              "production": true
+            }
+          ],
+          "echecs": 0
+        }
+      ],
+      "intervenants": [
+        {
+          "personneId": "33333333-0000-4000-8000-000000000001",
+          "nom": "Alice Martin",
+          "roles": ["Pilote", "Suppleant"]
+        }
+      ],
+      "pilote": "Alice Martin",
+      "personnes": ["Alice Martin", "alice"]
+    },
+    {
+      "id": "m4",
+      "outil": "Annuaire des agences",
+      "versionCible": "1.9",
+      "objet": "Groupes par région",
+      "type": "Complete",
+      "phase": "Cloturee",
+      "etat": "Repliee",
+      "jour": "2026-07-09",
+      "creeLe": "2026-07-01T08:00:00Z",
+      "echecsSurvenus": 1,
+      "equipeIds": ["22222222-0000-4000-8000-000000000001", "22222222-0000-4000-8000-000000000002"],
+      "systemes": [
+        {
+          "catalogueId": "11111111-0000-4000-8000-000000000002",
+          "nom": "LDAP",
+          "environnements": [
+            {
+              "nom": "Production",
+              "production": true
+            }
+          ],
+          "echecs": 0
+        },
+        {
+          "catalogueId": "11111111-0000-4000-8000-000000000001",
+          "nom": "BDD",
+          "environnements": [
+            {
+              "nom": "Production",
+              "production": true
+            }
+          ],
+          "echecs": 1
+        }
+      ],
+      "intervenants": [
+        {
+          "personneId": "33333333-0000-4000-8000-000000000001",
+          "nom": "Alice Martin",
+          "roles": ["Approbateur"]
+        },
+        {
+          "personneId": "33333333-0000-4000-8000-000000000002",
+          "nom": "Bob Leroy",
+          "roles": ["Pilote"]
+        }
+      ],
+      "pilote": "Bob Leroy",
+      "personnes": ["Bob Leroy", "bob"]
+    },
+    {
+      "id": "m5",
+      "outil": "Gestion électronique des documents",
+      "versionCible": "2.0",
+      "objet": "Nouveau stockage",
+      "type": "Complete",
+      "phase": "Execution",
+      "etat": "Execution",
+      "jour": "2026-09-30",
+      "creeLe": "2026-09-20T08:00:00Z",
+      "echecsSurvenus": 0,
+      "equipeIds": ["22222222-0000-4000-8000-000000000002"],
+      "systemes": [
+        {
+          "catalogueId": null,
+          "nom": "Ged",
+          "environnements": [
+            {
+              "nom": "Production",
+              "production": true
+            }
+          ],
+          "echecs": 0
+        }
+      ],
+      "intervenants": [
+        {
+          "personneId": "33333333-0000-4000-8000-000000000002",
+          "nom": "Bob Leroy",
+          "roles": ["Pilote", "Executant"]
+        }
+      ],
+      "pilote": "Bob Leroy",
+      "personnes": ["Bob Leroy", "bob"]
+    },
+    {
+      "id": "m6",
+      "outil": "Batch comptable",
+      "versionCible": "7.0",
+      "objet": "Nouveau calendrier",
+      "type": "Complete",
+      "phase": "Cloturee",
+      "etat": "Reussie",
+      "jour": "2026-09-01",
+      "creeLe": "2026-08-20T08:00:00Z",
+      "echecsSurvenus": 0,
+      "equipeIds": ["22222222-0000-4000-8000-000000000001"],
+      "systemes": [
+        {
+          "catalogueId": "11111111-0000-4000-8000-000000000005",
+          "nom": "BATCH",
+          "environnements": [
+            {
+              "nom": "Recette",
+              "production": false
+            }
+          ],
+          "echecs": 0
+        }
+      ],
+      "intervenants": [
+        {
+          "personneId": "33333333-0000-4000-8000-000000000003",
+          "nom": "Claire Durand",
+          "roles": ["Pilote"]
+        }
+      ],
+      "pilote": "Claire Durand",
+      "personnes": ["Claire Durand", "claire", "cdurand-adm"]
+    },
+    {
+      "id": "m7",
+      "outil": "Paie",
+      "versionCible": "3.2",
+      "objet": "Barème 2027",
+      "type": "Complete",
+      "phase": "Recette",
+      "etat": "Recette",
+      "jour": "2026-09-01",
+      "creeLe": "2026-08-25T08:00:00Z",
+      "echecsSurvenus": 0,
+      "equipeIds": [],
+      "systemes": [
+        {
+          "catalogueId": "11111111-0000-4000-8000-000000000003",
+          "nom": "API",
+          "environnements": [
+            {
+              "nom": "Recette",
+              "production": false
+            }
+          ],
+          "echecs": 0
+        }
+      ],
+      "intervenants": [
+        {
+          "personneId": "33333333-0000-4000-8000-000000000001",
+          "nom": "Alice Martin",
+          "roles": ["Suppleant"]
+        },
+        {
+          "personneId": "33333333-0000-4000-8000-000000000002",
+          "nom": "Bob Leroy",
+          "roles": ["ResponsableTechnique"]
+        }
+      ],
+      "pilote": null,
+      "personnes": ["Alice Martin", "alice", "Bob Leroy", "bob"]
+    }
+  ],
+  "cas": [
+    {
+      "nom": "Sans filtre : toutes, par jour décroissant puis création décroissante",
+      "parametres": {},
+      "attendus": ["m3", "m5", "m1", "m2", "m7", "m6", "m4"]
+    },
+    {
+      "nom": "Recherche sans accents ni casse",
+      "parametres": {
+        "recherche": "oeuvre"
+      },
+      "attendus": ["m3"]
+    },
+    {
+      "nom": "Recherche dans les noms de systèmes",
+      "parametres": {
+        "recherche": "ldap"
+      },
+      "attendus": ["m3", "m4"]
+    },
+    {
+      "nom": "Recherche dans les comptes reliés des personnes",
+      "parametres": {
+        "recherche": "CDURAND"
+      },
+      "attendus": ["m6"]
+    },
+    {
+      "nom": "Recherche avec espaces autour",
+      "parametres": {
+        "recherche": "  gestion des "
+      },
+      "attendus": ["m1"]
+    },
+    {
+      "nom": "Un système du catalogue",
+      "parametres": {
+        "systeme": "11111111-0000-4000-8000-000000000001"
+      },
+      "attendus": ["m3", "m1", "m4"]
+    },
+    {
+      "nom": "Plusieurs systèmes : l'un ou l'autre",
+      "parametres": {
+        "systeme": "11111111-0000-4000-8000-000000000002,11111111-0000-4000-8000-000000000003"
+      },
+      "attendus": ["m3", "m2", "m7", "m4"]
+    },
+    {
+      "nom": "Système hors catalogue, sans casse",
+      "parametres": {
+        "systeme": "libre:GED"
+      },
+      "attendus": ["m5"]
+    },
+    {
+      "nom": "Un nom hors catalogue ne retient pas le système du catalogue",
+      "parametres": {
+        "systeme": "libre:BDD"
+      },
+      "attendus": []
+    },
+    {
+      "nom": "Environnement sans système : sur l'un des systèmes, sans accents",
+      "parametres": {
+        "environnement": "preproduction"
+      },
+      "attendus": ["m2"]
+    },
+    {
+      "nom": "Environnement seul",
+      "parametres": {
+        "environnement": "Recette"
+      },
+      "attendus": ["m3", "m7", "m6"]
+    },
+    {
+      "nom": "Environnement sur le système filtré seulement",
+      "parametres": {
+        "systeme": "11111111-0000-4000-8000-000000000001",
+        "environnement": "Recette"
+      },
+      "attendus": ["m3"]
+    },
+    {
+      "nom": "Échec survenu sur la MEP",
+      "parametres": {
+        "echec": "1"
+      },
+      "attendus": ["m1", "m4"]
+    },
+    {
+      "nom": "Échec sur le système filtré",
+      "parametres": {
+        "systeme": "11111111-0000-4000-8000-000000000001",
+        "echec": "1"
+      },
+      "attendus": ["m1", "m4"]
+    },
+    {
+      "nom": "Échec sur un autre système que le filtré",
+      "parametres": {
+        "systeme": "11111111-0000-4000-8000-000000000002",
+        "echec": "1"
+      },
+      "attendus": []
+    },
+    {
+      "nom": "Une équipe",
+      "parametres": {
+        "equipe": "22222222-0000-4000-8000-000000000001"
+      },
+      "attendus": ["m1", "m6", "m4"]
+    },
+    {
+      "nom": "Plusieurs équipes : l'une ou l'autre",
+      "parametres": {
+        "equipe": "22222222-0000-4000-8000-000000000001,22222222-0000-4000-8000-000000000002"
+      },
+      "attendus": ["m5", "m1", "m2", "m6", "m4"]
+    },
+    {
+      "nom": "Personne, quel que soit son rôle (simple participante comprise)",
+      "parametres": {
+        "personne": "33333333-0000-4000-8000-000000000002"
+      },
+      "attendus": ["m5", "m1", "m2", "m7", "m4"]
+    },
+    {
+      "nom": "Personne avec un rôle",
+      "parametres": {
+        "personne": "33333333-0000-4000-8000-000000000002",
+        "role": "pilote"
+      },
+      "attendus": ["m5", "m4"]
+    },
+    {
+      "nom": "Personne avec l'un des rôles",
+      "parametres": {
+        "personne": "33333333-0000-4000-8000-000000000002",
+        "role": "pilote,responsable"
+      },
+      "attendus": ["m5", "m7", "m4"]
+    },
+    {
+      "nom": "Approbateur",
+      "parametres": {
+        "personne": "33333333-0000-4000-8000-000000000001",
+        "role": "approbateur"
+      },
+      "attendus": ["m4"]
+    },
+    {
+      "nom": "Rôle sans personne : sans effet",
+      "parametres": {
+        "role": "pilote"
+      },
+      "attendus": ["m3", "m5", "m1", "m2", "m7", "m6", "m4"]
+    },
+    {
+      "nom": "États : l'un ou l'autre ; « incidents » : réussie avec incidents",
+      "parametres": {
+        "etat": "reussie,incidents"
+      },
+      "attendus": ["m1", "m2", "m6"]
+    },
+    {
+      "nom": "État en cours",
+      "parametres": {
+        "etat": "retour-arriere,recette"
+      },
+      "attendus": ["m7"]
+    },
+    {
+      "nom": "Phase (adresses existantes)",
+      "parametres": {
+        "phase": "cloturee"
+      },
+      "attendus": ["m1", "m2", "m6", "m4"]
+    },
+    {
+      "nom": "Type de MEP",
+      "parametres": {
+        "type": "simplifiee"
+      },
+      "attendus": ["m3"]
+    },
+    {
+      "nom": "Période, bornes comprises",
+      "parametres": {
+        "du": "2026-09-01",
+        "au": "2026-09-24"
+      },
+      "attendus": ["m1", "m2", "m7", "m6"]
+    },
+    {
+      "nom": "Depuis une date",
+      "parametres": {
+        "du": "2026-09-25"
+      },
+      "attendus": ["m3", "m5"]
+    },
+    {
+      "nom": "Jusqu'à une date",
+      "parametres": {
+        "au": "2026-09-01"
+      },
+      "attendus": ["m7", "m6", "m4"]
+    },
+    {
+      "nom": "Filtres combinés",
+      "parametres": {
+        "systeme": "11111111-0000-4000-8000-000000000001",
+        "environnement": "production",
+        "personne": "33333333-0000-4000-8000-000000000001",
+        "du": "2026-08-01"
+      },
+      "attendus": ["m1"]
+    }
+  ]
+}

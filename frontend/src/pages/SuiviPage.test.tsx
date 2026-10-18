@@ -92,6 +92,11 @@ describe('SuiviPage (#61)', () => {
       'Calme → 2.0',
     ]);
     expect(within(cartes[1]).getByText(/en échec/)).toHaveTextContent('E0005 en échec · bloque 1');
+    // Systèmes de la MEP (#59) : l'alerte signale celui de l'étape en échec.
+    const puce = within(within(cartes[1]).getByRole('list', { name: 'Systèmes' })).getByRole('button', {
+      name: 'API : historique et MEP de ce système',
+    });
+    expect(within(puce).getByLabelText('1 échec d’étape sur ce système')).toBeInTheDocument();
     expect(screen.getByText('MEP en cours').parentElement).toHaveTextContent('3');
     expect(screen.getByText('Échecs à traiter').parentElement).toHaveTextContent('1');
     expect(screen.getByText('Retours arrière').parentElement).toHaveTextContent('1');

@@ -1,7 +1,6 @@
 import { ArrowRight, CalendarDays, ChevronLeft, Copy, LayoutTemplate, Mail, Server } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { couleurSysteme } from '../couleursSysteme';
 import { abregerEnvironnement } from '../environnements';
 import { etapesDuPlan, nomParticipant, planActif, segmentsProgression } from '../domaine';
 import { formatDateHeure } from '../format';
@@ -24,6 +23,7 @@ import {
   BoutonRevenirPreparation,
 } from './ActionsPilote';
 import { DuplicationDialog } from './DuplicationDialog';
+import { NomSystemeMep } from './SystemeCliquable';
 import { CompteARebours } from './CompteARebours';
 import { PlanCheck } from './PlanCheck';
 import { PresentsMep } from '../presence';
@@ -189,7 +189,10 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
   );
 }
 
-/** Environnements touchés, système par système : « BDD Préprod, Prod · BATCH Prod » (production en orange). */
+/**
+ * Environnements touchés, système par système : « BDD Préprod, Prod · BATCH Prod » (production en orange). Le nom du
+ * système ouvre son menu : historique des MEP, MEP sur ce système (#59).
+ */
 function EnvironnementsMep({ mep }: { mep: Mep }) {
   const systemes = mep.systemes.filter((s) => s.environnements.length > 0);
   if (systemes.length === 0) return null;
@@ -203,8 +206,7 @@ function EnvironnementsMep({ mep }: { mep: Mep }) {
               ·
             </span>
           )}
-          <i className="size-2 shrink-0 rounded-full" style={{ background: couleurSysteme(s.nom) }} aria-hidden />
-          <span className="font-semibold text-fg">{s.nom}</span>
+          <NomSystemeMep s={s} />
           <span>
             {s.environnements.map((e, j) => (
               <span key={e.nom}>

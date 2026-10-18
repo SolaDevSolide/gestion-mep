@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type * as moduleApi from '../api';
@@ -131,6 +131,9 @@ describe('RapportPage (#61)', () => {
     expect(screen.getByRole('heading', { name: 'Annexe B. Journal complet' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /Retour arrière/ })).not.toBeInTheDocument();
     expect(screen.getByText(/établi à sa première consultation/)).toBeInTheDocument();
+    // Système touché (#59) : une puce qui ouvre son menu, avec l'alerte de l'échec survenu dessus.
+    const puce = screen.getByRole('button', { name: 'API : historique et MEP de ce système' });
+    expect(within(puce).getByLabelText('1 échec d’étape sur ce système')).toBeInTheDocument();
   });
 
   it('exporte en Excel et passe par l’impression du navigateur pour le PDF', async () => {

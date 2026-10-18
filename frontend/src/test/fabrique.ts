@@ -1,4 +1,4 @@
-import type { Etape, ExecutionResolution, Mep, StatutDisponibilite, Utilisateur } from '../types';
+import type { Etape, ExecutionResolution, Mep, MepResume, StatutDisponibilite, Utilisateur } from '../types';
 
 export function etape(p: Partial<Etape> = {}, statut: StatutDisponibilite = 'Disponible'): Etape {
   return {
@@ -208,6 +208,39 @@ export function utilisateur(p: Partial<Utilisateur> = {}): Utilisateur {
     comptePrincipalId: null,
     nomPersonne: p.nomAffiche ?? 'Claire',
     equipeIds: [],
+    ...p,
+  };
+}
+
+/** Résumé d'une MEP de la liste (préparation, sans système ni personne). */
+export function mepResume(p: Partial<MepResume> = {}): MepResume {
+  return {
+    id: 'm',
+    outil: 'Outil',
+    versionCible: '',
+    objet: '',
+    dateMep: null,
+    phase: 'Preparation',
+    echeanceRepli: null,
+    pilote: null,
+    nbEtapes: 0,
+    nbReussies: 0,
+    nbEchecs: 0,
+    toucheProduction: false,
+    estModele: false,
+    creeLe: '2026-10-01T08:00:00Z',
+    issue: null,
+    retourArriereActive: true,
+    type: 'Complete',
+    equipeIds: [],
+    personnes: [],
+    etat: 'Preparation',
+    jour: '2026-10-01',
+    go: null,
+    clotureeLe: null,
+    echecsSurvenus: 0,
+    systemes: [],
+    intervenants: [],
     ...p,
   };
 }

@@ -18,7 +18,7 @@ namespace GestionMep.Api.Donnees.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -352,6 +352,8 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MepId", "Id");
+
+                    b.HasIndex("Type", "MepId");
 
                     b.ToTable("Journal");
                 });
@@ -864,6 +866,8 @@ namespace GestionMep.Api.Donnees.Migrations
 
                     b.HasIndex("MepId");
 
+                    b.HasIndex("UtilisateurId");
+
                     b.ToTable("Participants");
                 });
 
@@ -1053,6 +1057,8 @@ namespace GestionMep.Api.Donnees.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CatalogueId");
 
                     b.HasIndex("MepId");
 

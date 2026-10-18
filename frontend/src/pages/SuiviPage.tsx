@@ -16,6 +16,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
+import { PuceSystemeMep } from '../mep/SystemeCliquable';
 import { etapesDuPlan, nomParticipant, segmentsProgression } from '../domaine';
 import { ouvrirFlux } from '../flux';
 import { calculerCompteARebours, formatDate, type Ton } from '../format';
@@ -258,7 +259,15 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
         </div>
       </div>
 
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        {/* Systèmes touchés (#59) : chaque puce ouvre l'historique du système ; alerte s'il a une étape en échec. */}
+        <ul className="flex flex-wrap gap-1" aria-label="Systèmes">
+          {mep.systemes.map((s) => (
+            <li key={s.id}>
+              <PuceSystemeMep s={{ ...s, echecs: echecs.filter((e) => e.systemeIds.includes(s.id)).length }} />
+            </li>
+          ))}
+        </ul>
         <Link
           to={`/meps/${mep.id}?onglet=ensemble`}
           className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-[13px] font-medium shadow-sm hover:bg-surface-2"

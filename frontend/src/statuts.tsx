@@ -16,7 +16,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { LIBELLE_DISPONIBILITE, tonDisponibilite, type Ton } from './format';
-import type { Etape, IssueMep, Phase } from './types';
+import type { Etape, EtatMep, IssueMep, Phase } from './types';
 
 export interface MetaStatut {
   ton: Ton;
@@ -65,5 +65,28 @@ export function metaPhase(phase: Phase, issue: IssueMep | null): MetaStatut {
       return issue === 'Repliee'
         ? { ton: 'later', libelle: 'Clôturée : repliée', Icone: Undo2 }
         : { ton: 'done', libelle: 'Clôturée : réussie', Icone: CheckCircle2 };
+  }
+}
+
+/**
+ * État d'une MEP dans la recherche et l'historique (#59) : la phase, puis l'issue une fois clôturée. « Avec incidents » :
+ * clôturée réussie alors qu'une étape a échoué en route. `court` : libellé des puces et des tableaux.
+ */
+export function metaEtatMep(e: EtatMep): MetaStatut & { court: string } {
+  switch (e) {
+    case 'Preparation':
+      return { ton: 'wait', libelle: 'Préparation', court: 'Préparation', Icone: ClipboardList };
+    case 'Execution':
+      return { ton: 'run', libelle: 'Exécution', court: 'Exécution', Icone: Play };
+    case 'Recette':
+      return { ton: 'warn', libelle: 'Recette', court: 'Recette', Icone: ClipboardCheck };
+    case 'RetourArriere':
+      return { ton: 'rollback', libelle: 'Retour arrière en cours', court: 'Retour arrière', Icone: Siren };
+    case 'Reussie':
+      return { ton: 'done', libelle: 'Réussie', court: 'Réussie', Icone: CheckCircle2 };
+    case 'AvecIncidents':
+      return { ton: 'warn', libelle: 'Réussie avec incidents', court: 'Avec incidents', Icone: TriangleAlert };
+    case 'Repliee':
+      return { ton: 'later', libelle: 'Repliée (retour arrière)', court: 'Repliée', Icone: Undo2 };
   }
 }

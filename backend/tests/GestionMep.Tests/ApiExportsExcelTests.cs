@@ -65,7 +65,7 @@ public class ApiExportsExcelTests : IDisposable
         {
             var f = c.Worksheet("Mises en production");
             Assert.Equal([DonneesDemo.OutilRetourArriere], Colonne(f, "Outil"));
-            Assert.Equal(["Retour arrière"], Colonne(f, "Phase"));
+            Assert.Equal(["Retour arrière"], Colonne(f, "État"));
             Assert.Contains("phase Retour arrière", f.Cell(2, 1).GetString());
             Assert.Contains("recherche « MESSAGERIE »", f.Cell(2, 1).GetString());
         }
@@ -158,15 +158,8 @@ public class ApiExportsExcelTests : IDisposable
     }
 
     [Fact]
-    public void Les_filtres_de_la_liste_suivent_ceux_de_la_page()
+    public void Les_familles_du_journal_regroupent_les_approbations()
     {
-        MepResumeDto Mep(string outil, Phase phase, TypeMep type, params string[] personnes) => new(Guid.NewGuid(), outil, "1.0", "", null, phase,
-            null, null, 0, 0, 0, false, false, DateTimeOffset.UtcNow, null, true, [], [.. personnes], type);
-        var meps = new[] { Mep("Œuvre", Phase.Preparation, TypeMep.Complete, "Élodie"), Mep("Paie", Phase.Execution, TypeMep.Simplifiee) };
-        Assert.Equal(["Œuvre"], VuesExcel.FiltrerMeps(meps, null, null, "oeuvre").Select(m => m.Outil));
-        Assert.Equal(["Œuvre"], VuesExcel.FiltrerMeps(meps, null, null, " elodie ").Select(m => m.Outil));
-        Assert.Equal(["Paie"], VuesExcel.FiltrerMeps(meps, Phase.Execution, null, null).Select(m => m.Outil));
-        Assert.Empty(VuesExcel.FiltrerMeps(meps, Phase.Execution, TypeMep.Complete, null));
         Assert.Equal("approbation", VuesExcel.Famille("approbateurs.modifies"));
     }
 }

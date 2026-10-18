@@ -60,6 +60,13 @@ public static class ExcelCommun
         ["Clôturée : réussie"] = Ton.Succes, ["Clôturée : repliée"] = Ton.Attention, ["Modèle"] = Ton.Neutre,
     };
 
+    /// <summary>États de la recherche (#59) : phase en cours, puis issue (« Réussie avec incidents » en attention).</summary>
+    public static readonly IReadOnlyDictionary<string, Ton> TonsEtatMep = new Dictionary<string, Ton>
+    {
+        ["Préparation"] = Ton.Attente, ["Exécution"] = Ton.EnCours, ["Recette"] = Ton.EnCours, ["Retour arrière"] = Ton.Echec,
+        ["Réussie"] = Ton.Succes, ["Réussie avec incidents"] = Ton.Attention, ["Repliée"] = Ton.Attention,
+    };
+
     public static readonly IReadOnlyDictionary<string, Ton> TonsResolution = new Dictionary<string, Ton>
     {
         ["En cours"] = Ton.EnCours, ["Réussie"] = Ton.Succes, ["Échouée"] = Ton.Echec,
