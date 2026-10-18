@@ -18,7 +18,7 @@ describe('Aperçu de la charte', () => {
 
   it('montre un classeur avec la palette des exports : en-têtes en primaire, titre en secondaire', () => {
     render(<ApercuExcel charte={horizon} />);
-    expect(screen.getByText('Réf.')).toHaveStyle({ background: '#0f766e', color: '#ffffff' });
+    expect(screen.getByText('Réf.')).toHaveStyle({ backgroundColor: '#0f766e', color: '#ffffff' });
     expect(screen.getByText('Paiement mobile 4.2 · Étapes', { selector: 'td' })).toHaveStyle({ color: '#1b2a41' });
   });
 });
