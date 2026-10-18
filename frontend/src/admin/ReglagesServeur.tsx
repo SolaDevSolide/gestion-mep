@@ -11,6 +11,7 @@ import { Field, Input } from '../ui/Input';
 import { Segmented } from '../ui/Segmented';
 import { Badge } from '../ui/StatusPill';
 import { useToast } from '../ui/Toast';
+import { EnChargement, Squelette, SqueletteFormulaire } from '../ui/Squelette';
 import { commande, fichierDemarrage, useInstallation, type ModeInstallation } from '../installation';
 
 /** Réglés au démarrage, dans le fichier .env : la console les rappelle sans pouvoir les changer. */
@@ -186,8 +187,19 @@ export default function ReglagesServeur() {
           {erreur}
         </Alerte>
       )}
+      {donnees === null && !erreur && (
+        <EnChargement libelle="Chargement des réglages…" className="grid gap-6">
+          {[0, 1].map((i) => (
+            <Card key={i} className="p-5">
+              <Squelette className="h-5 w-48" />
+              <Squelette className="mt-2 h-4 w-96 max-w-full" />
+              <SqueletteFormulaire champs={3} className="mt-5" />
+            </Card>
+          ))}
+        </EnChargement>
+      )}
       {[...groupes].map(([groupe, reglages], i) => (
-        <Card key={groupe}>
+        <Card key={groupe} className="apparition">
           <CardHeader
             titre={groupe}
             description={

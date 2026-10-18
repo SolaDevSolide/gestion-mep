@@ -77,6 +77,7 @@ public static class FichierInstallation
         ["URL_PUBLIQUE"] = "Application:UrlPublique",
         ["FLUX_MAX"] = "Flux:ConnexionsMax",
         ["HTTPS_OBLIGATOIRE"] = "Securite:HttpsObligatoire",
+        ["CHARTE_FICHIER"] = "Charte:Fichier",
     };
 
     /// <summary>Emplacement : variable GESTION_MEP_CONFIG, sinon l'emplacement installé par le script de chaque système.</summary>

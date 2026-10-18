@@ -75,7 +75,7 @@ Quand toutes les étapes de retour arrière ont réussi, le pilote clôture avec
 
 ## Clôture et bilan
 
-À la clôture, si l'option « Bilan de clôture » est active (c'est le défaut), le pilote rédige un bilan : « Ce qui a marché » et « Incidents » sont obligatoires (« Rien à signaler » est accepté), « Actions » est facultatif. La MEP clôturée est en lecture seule ; le moment de la clôture devient sa date de fin.
+À la clôture, si l'option « Bilan de clôture » est active (c'est le défaut), le pilote rédige un bilan : « Ce qui a marché » et « Incidents » sont obligatoires (« Rien à signaler » est accepté), « Actions » est facultatif. La MEP clôturée est en lecture seule ; le moment de la clôture devient sa date de fin. Son [rapport de fin](Suivre-une-MEP.md#rapport-de-fin) est figé au même moment.
 
 ## Modèles
 

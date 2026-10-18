@@ -144,21 +144,27 @@ export default function ConnexionPage() {
 
   return (
     <div className="grid min-h-[calc(100vh-var(--bandeau-demo,0px))] lg:grid-cols-[1.1fr_1fr]">
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-[#0d0e1a] p-12 text-white lg:flex">
-        <div aria-hidden className="absolute -top-32 -left-24 size-[28rem] rounded-full bg-indigo-600/30 blur-3xl" />
-        <div aria-hidden className="absolute -right-24 -bottom-40 size-[30rem] rounded-full bg-sky-500/20 blur-3xl" />
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-secondaire p-12 text-secondaire-fg lg:flex">
+        <div
+          aria-hidden
+          className="absolute -top-32 -left-24 size-[28rem] rounded-full bg-connexion-halo-1/30 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="absolute -right-24 -bottom-40 size-[30rem] rounded-full bg-connexion-halo-2/20 blur-3xl"
+        />
         <div className="relative flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-indigo-500 shadow-lg">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-connexion-logo text-connexion-logo-fg shadow-lg">
             <Rocket className="size-5" aria-hidden />
           </span>
           <span className="text-lg font-semibold tracking-tight">Gestion MEP</span>
         </div>
         <div className="relative max-w-md">
           <h2 className="text-4xl leading-tight font-semibold tracking-tight">Mettre en production sans improviser.</h2>
-          <p className="mt-4 text-base text-indigo-100/80">
+          <p className="mt-4 text-base text-connexion-texte/80">
             Un plan clair, des étapes tracées, un retour arrière toujours prêt. Même à trois heures du matin.
           </p>
-          <ul className="mt-8 space-y-3 text-sm text-indigo-100/90">
+          <ul className="mt-8 space-y-3 text-sm text-connexion-texte/90">
             <li className="flex items-center gap-3">
               <ShieldCheck className="size-5 text-emerald-300" aria-hidden /> Chaque action est tracée dans le journal
             </li>
@@ -171,7 +177,9 @@ export default function ConnexionPage() {
             </li>
           </ul>
         </div>
-        <p className="relative text-xs text-indigo-200/60">Application interne de gestion des mises en production</p>
+        <p className="relative text-xs text-connexion-discret/60">
+          Application interne de gestion des mises en production
+        </p>
       </div>
 
       <main className="flex items-center justify-center bg-bg p-6">

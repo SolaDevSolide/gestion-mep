@@ -68,7 +68,7 @@ public class ReglesBibliothequesTests
         var nbLignes = Lignes(mep, TypePlan.Deploiement).Count;
         var codes = mep.Etapes.Select(e => e.Code).ToList();
 
-        var (etape, absents) = InsererEtapeModele(mep, modele, TypePlan.Deploiement, null, null, [resolutionActive]);
+        var (etape, absents) = InsererEtapeModele(mep, modele, TypePlan.Deploiement, new(), null, [resolutionActive]);
 
         Assert.Equal([absent], absents);
         Assert.Equal([S(mep, "BDD").Id], etape.SystemeIds);
@@ -78,14 +78,16 @@ public class ReglesBibliothequesTests
         Assert.False(etape.PointDeNonRetour);
         Assert.Equal((TypeEtape.Sauvegarde, "/sauvegardes", FinEtape.Verification), (etape.Type, etape.SauvegardeEmplacement, etape.Fin));
         Assert.Equal([resolutionActive], etape.ResolutionIds);
-        // Sans ligne : nouvelle ligne en bas, reliée à la ligne au-dessus.
-        Assert.Equal(nbLignes + 1, Lignes(mep, TypePlan.Deploiement).Count);
-        Assert.Same(etape, Lignes(mep, TypePlan.Deploiement)[^1].Single());
-        Assert.NotEmpty(etape.Dependances);
+        // Sans place : étape isolée, en haut du graphe.
+        Assert.Empty(etape.Dependances);
+        Assert.Equal(0, etape.Ligne);
 
-        // Ligne et position données.
-        var (deuxieme, _) = InsererEtapeModele(mep, Modele(Cat(jeu, "API")), TypePlan.Deploiement, 0, 0, []);
-        Assert.Same(deuxieme, Lignes(mep, TypePlan.Deploiement)[0][0]);
+        // Après une carte : elle l'attend, une ligne plus bas.
+        var derniere = mep.EtapesDu(TypePlan.Deploiement).Last(e => e != etape);
+        var (deuxieme, _) = InsererEtapeModele(mep, Modele(Cat(jeu, "API")), TypePlan.Deploiement, new(Apres: derniere.Id), null, []);
+        Assert.Equal([derniere.Id], deuxieme.Dependances);
+        Assert.Equal(nbLignes, Lignes(mep, TypePlan.Deploiement).Count - 1);
+        Assert.Same(deuxieme, Lignes(mep, TypePlan.Deploiement)[^1].Single());
     }
 
     [Fact]
@@ -96,7 +98,7 @@ public class ReglesBibliothequesTests
         S(mep, "BDD").Environnements = [new EnvironnementSysteme { Nom = "Préproduction" }, new EnvironnementSysteme { Nom = "Production", Production = true }];
         S(mep, "API").Environnements = [new EnvironnementSysteme { Nom = "Production", Production = true }];
 
-        var (etape, _) = InsererEtapeModele(mep, Modele(Cat(jeu, "BDD"), Cat(jeu, "API")), TypePlan.Deploiement, null, null, []);
+        var (etape, _) = InsererEtapeModele(mep, Modele(Cat(jeu, "BDD"), Cat(jeu, "API")), TypePlan.Deploiement, new(), null, []);
 
         var env = Assert.Single(etape.Environnements);
         Assert.Equal((S(mep, "API").Id, "Production"), (env.SystemeId, env.Nom));
@@ -107,10 +109,10 @@ public class ReglesBibliothequesTests
     public void Le_retour_arriere_refuse_une_etape_modele_de_sauvegarde()
     {
         var jeu = Jeu();
-        Assert.Throws<RegleMetierException>(() => InsererEtapeModele(jeu.Mep, Modele(Cat(jeu, "BDD")), TypePlan.RetourArriere, null, null, []));
+        Assert.Throws<RegleMetierException>(() => InsererEtapeModele(jeu.Mep, Modele(Cat(jeu, "BDD")), TypePlan.RetourArriere, new(), null, []));
         var normale = Modele(Cat(jeu, "BDD"));
         normale.Type = TypeEtape.Standard;
-        var (etape, _) = InsererEtapeModele(jeu.Mep, normale, TypePlan.RetourArriere, null, null, []);
+        var (etape, _) = InsererEtapeModele(jeu.Mep, normale, TypePlan.RetourArriere, new(), null, []);
         Assert.StartsWith("R", etape.Code, StringComparison.Ordinal);
     }
 
@@ -125,15 +127,15 @@ public class ReglesBibliothequesTests
         Assert.Empty(NouveauxElementsBibliotheque(mep));
 
         var modele = Modele(Cat(jeu, "BDD"));
-        var (etape, _) = InsererEtapeModele(mep, modele, TypePlan.Deploiement, null, null, []);
+        var (etape, _) = InsererEtapeModele(mep, modele, TypePlan.Deploiement, new(), null, []);
         Assert.Equal([modele.Id], NouveauxElementsBibliotheque(mep));
         // Retirée puis remise : déjà comptée.
         mep.Etapes.Remove(etape);
-        InsererEtapeModele(mep, modele, TypePlan.Deploiement, null, null, []);
+        InsererEtapeModele(mep, modele, TypePlan.Deploiement, new(), null, []);
         Assert.Empty(NouveauxElementsBibliotheque(mep));
 
         Assert.True(jeu.Modele.EstModele);
-        InsererEtapeModele(jeu.Modele, modele, TypePlan.Deploiement, null, null, []);
+        InsererEtapeModele(jeu.Modele, modele, TypePlan.Deploiement, new(), null, []);
         Assert.Empty(NouveauxElementsBibliotheque(jeu.Modele));
     }
 
@@ -142,7 +144,7 @@ public class ReglesBibliothequesTests
     {
         var jeu = Jeu();
         var modele = Modele(Cat(jeu, "BDD"));
-        var (etape, _) = InsererEtapeModele(jeu.Mep, modele, TypePlan.Deploiement, null, null, []);
+        var (etape, _) = InsererEtapeModele(jeu.Mep, modele, TypePlan.Deploiement, new(), null, []);
         var fiche = jeu.Mep.FichesRecette[0];
         fiche.ModeleRecetteId = Guid.NewGuid();
 

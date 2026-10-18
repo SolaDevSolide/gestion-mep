@@ -178,12 +178,12 @@ public class ReglesTests
     }
 
     [Fact]
-    public void Lien_montant_refuse_et_dependances_inchangees()
+    public void Lien_qui_cree_un_cycle_refuse_et_dependances_inchangees()
     {
         var m = Demo();
         var e1 = E(m, "E0001");
         var ex = Assert.Throws<RegleMetierException>(() => Regles.DefinirDependances(m, e1, [E(m, "E0004").Id]));
-        Assert.Equal("Un lien descend toujours : E0004 doit être sur une ligne au-dessus de E0001.", ex.Message);
+        Assert.StartsWith("Opération refusée : elle créerait un cycle", ex.Message);
         Assert.Empty(e1.Dependances);
         Assert.Throws<RegleMetierException>(() => Regles.DefinirDependances(m, e1, [e1.Id]));
     }

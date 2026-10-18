@@ -1,4 +1,4 @@
-import { Loader2, NotebookText, OctagonAlert, RefreshCw } from 'lucide-react';
+import { NotebookText, OctagonAlert, RefreshCw } from 'lucide-react';
 import { api } from '../api';
 import { formatDateHeure } from '../format';
 import { useAsync } from '../hooks';
@@ -7,6 +7,7 @@ import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
 import { Badge } from '../ui/StatusPill';
+import { EnChargement, SqueletteTableau } from '../ui/Squelette';
 import type { Ton } from '../format';
 
 export const LIBELLE_EVENEMENT_ADMIN: Record<string, string> = {
@@ -19,6 +20,8 @@ export const LIBELLE_EVENEMENT_ADMIN: Record<string, string> = {
   'parametres.modifies': 'Paramètres modifiés',
   'reglage.modifie': 'Réglage modifié',
   'reglage.retabli': 'Réglage rétabli',
+  'charte.modifiee': 'Charte visuelle modifiée',
+  'charte.retablie': 'Charte visuelle rétablie',
   'critere.cree': 'Critère Go / no-go créé',
   'critere.modifie': 'Critère Go / no-go modifié',
   'critere.supprime': 'Critère Go / no-go supprimé',
@@ -82,9 +85,9 @@ export default function JournalTab() {
         </div>
       )}
       {!erreur && donnees === null && (
-        <p className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-fg-subtle" role="status">
-          <Loader2 className="size-4 animate-spin" aria-hidden /> Chargement…
-        </p>
+        <EnChargement libelle="Chargement du journal…">
+          <SqueletteTableau lignes={10} colonnes={3} className="rounded-none border-0" />
+        </EnChargement>
       )}
       {donnees && donnees.length === 0 && (
         <EmptyState
@@ -94,7 +97,7 @@ export default function JournalTab() {
         />
       )}
       {donnees && donnees.length > 0 && (
-        <ul className="divide-y divide-line">
+        <ul className="apparition divide-y divide-line">
           {donnees.map((ev) => (
             <li
               key={ev.id}

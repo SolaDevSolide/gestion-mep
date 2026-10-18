@@ -30,6 +30,7 @@ public static class VariablesTexte
     public const string GroupePersonnes = "Personnes";
     public const string GroupeSystemes = "Systèmes et objets impactés";
     public const string GroupeCommunication = "Communication";
+    public const string GroupeSuivi = "Suivi de l'exécution";
     public const string GroupeFin = "Fin de MEP";
     public const string GroupeEquipe = "Équipe";
 
@@ -43,6 +44,7 @@ public static class VariablesTexte
         new("version_cible", "Version cible", GroupeMep, "Version installée par la MEP."),
         new("impacts", "Impacts attendus", GroupeMep, "Impacts saisis dans Intervention."),
         new("lien_mep", "Lien vers la MEP", GroupeMep, "Adresse de la MEP dans l'application (adresse publique du serveur)."),
+        new("sections", "Sections du plan", GroupeMep, "Titres des sections du plan de déploiement, dans l'ordre de création.", Liste: true),
 
         new("date", "Date de la MEP", GroupeDates, "Date annoncée (Communication), sinon date du Go. Ex. « mardi 20 octobre 2026 »."),
         new("heure_debut", "Heure de début", GroupeDates, "Heure de début annoncée, sinon heure du Go. Ex. « 20h00 »."),
@@ -67,10 +69,16 @@ public static class VariablesTexte
         new("heure_limite", "Heure limite", GroupeCommunication, "Heure limite de l'action demandée."),
         new("validation_utilisateurs", "Validation par les utilisateurs", GroupeCommunication, "« validée par … le … (preuve : fichier) »."),
 
+        new("avancement", "Avancement", GroupeSuivi, "Étapes faites du plan suivi (le retour arrière une fois déclenché). Ex. « 4/14 étapes faites (29 %) »."),
+        new("fin_estimee", "Fin estimée", GroupeSuivi,
+            "Heure de fin estimée de l'exécution, comme la vue d'ensemble (plus long chemin des durées restantes), avec le retard. "
+            + "Ex. « 16h33 (prévue à 15h18, +1 h 15) ». Absente avant le Go et pour une MEP sans durées estimées."),
+
         new("issue", "Issue", GroupeFin, "« réussie » ou « repliée (retour arrière effectué) », une fois la MEP clôturée."),
         new("demarree_le", "Démarrée le", GroupeFin, "Date et heure du Go."),
         new("terminee_le", "Terminée le", GroupeFin, "Date et heure de la clôture."),
         new("bilan", "Bilan de clôture", GroupeFin, "Ce qui a marché, incidents et actions du bilan.", Liste: true),
+        new("lien_rapport", "Lien vers le rapport de fin", GroupeFin, "Adresse du rapport de fin, une fois la MEP clôturée."),
 
         new("equipe", "Nom de l'équipe", GroupeEquipe, "Équipe dont le modèle est utilisé."),
         new("contact_support", "Contact support", GroupeEquipe, "Contact support de l'équipe (Paramètres › Modèles de texte)."),
@@ -131,9 +139,11 @@ public static class VariablesTexte
     /// <summary>
     /// Valeur de chaque variable de <see cref="Toutes"/> pour la MEP et l'équipe (null : aucune équipe, les variables d'équipe
     /// manquent). <paramref name="lienMep"/> : adresse complète de la MEP, ou null si l'adresse du serveur est inconnue.
-    /// <paramref name="nomsPieces"/> : noms des pièces jointes de la MEP (preuve de validation).
+    /// <paramref name="nomsPieces"/> : noms des pièces jointes de la MEP (preuve de validation). <paramref name="maintenant"/> :
+    /// heure de la fin estimée (absente sans elle).
     /// </summary>
-    public static Dictionary<string, ValeurVariable> Valeurs(Mep mep, Equipe? equipe, string? lienMep, IReadOnlyDictionary<Guid, string> nomsPieces)
+    public static Dictionary<string, ValeurVariable> Valeurs(Mep mep, Equipe? equipe, string? lienMep, IReadOnlyDictionary<Guid, string> nomsPieces,
+        DateTimeOffset? maintenant = null)
     {
         var c = mep.Communication;
         var go = mep.DemarrageAutoriseLe is { } g ? Local(g, mep.FuseauHoraire) : (DateTime?)null;
@@ -156,6 +166,15 @@ public static class VariablesTexte
             ? L(new[] { ("Ce qui a marché", b.CeQuiAMarche), ("Incidents", b.Incidents), ("Actions", b.Actions) }
                 .Where(x => !string.IsNullOrWhiteSpace(x.Item2)).Select(x => $"{x.Item1} : {UneLigne(x.Item2)}"))
             : ValeurVariable.Manquante;
+
+        string? FinEstimee()
+        {
+            if (maintenant is not { } m || mep.Phase is not (Phase.Execution or Phase.RetourArriere or Phase.Recette)) return null;
+            var f = Regles.EstimerFin(mep, m);
+            if (f.FinEstimee is not { } fin || f.FinPrevue is not { } prevue) return null;
+            var retard = f.RetardMinutes > 0 ? $", +{Duree(f.RetardMinutes)}" : "";
+            return $"{Heure(TimeOnly.FromDateTime(Local(fin, mep.FuseauHoraire)))} (prévue à {Heure(TimeOnly.FromDateTime(Local(prevue, mep.FuseauHoraire)))}{retard})";
+        }
 
         var valeurs = new Dictionary<string, ValeurVariable>
         {
@@ -186,6 +205,7 @@ public static class VariablesTexte
                 ? $"oui ({string.Join(", ", prod)})"
                 : mep.Systemes.Any(s => s.Environnements.Count > 0) ? "non" : null),
             ["objets_impactes"] = L(ObjetsImpactes(mep)),
+            ["sections"] = L(mep.SectionsDu(TypePlan.Deploiement).Select(s => s.Titre)),
 
             ["reference_demande"] = V(c.ReferenceDemande),
             ["niveau_risque"] = V(c.NiveauRisque switch
@@ -208,9 +228,13 @@ public static class VariablesTexte
                 IssueMep.Repliee => "repliée (retour arrière effectué)",
                 _ => null,
             }),
+            ["avancement"] = V(mep.Phase == Phase.Preparation ? null : Regles.Avancement(mep)),
+            ["fin_estimee"] = V(FinEstimee()),
+
             ["demarree_le"] = V(go is { } d1 ? Instant(d1) : null),
             ["terminee_le"] = V(fin is { } d2 ? Instant(d2) : null),
             ["bilan"] = bilan,
+            ["lien_rapport"] = V(mep.Phase == Phase.Cloturee && lienMep is not null ? $"{lienMep}/rapport" : null),
 
             ["equipe"] = V(equipe?.Nom),
             ["contact_support"] = V(equipe?.ContactSupport),

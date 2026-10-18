@@ -18,7 +18,7 @@ export function descriptionsSystemes(
 export const systemesDe = (mep: Pick<Mep, 'systemes'>, ids: string[]): Systeme[] =>
   mep.systemes.filter((s) => ids.includes(s.id));
 
-/** Puce colorée d'un système (barre « Systèmes impactés », panneaux). */
+/** Puce colorée d'un système (sections, panneaux). */
 export function PuceSysteme({
   nom,
   description,

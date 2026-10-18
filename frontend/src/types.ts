@@ -140,6 +140,10 @@ export type MiseAJour = NonNullable<S['MiseAJourDto']>;
 export type ParametresGlobaux = SaisieVerifiee<S['ParametresSaisie'], S['ParametresDto']>;
 /** Réglage d'exploitation (console ou « gestion-mep reglages ») : valeur en cours et son origine. */
 export type Reglage = S['ReglageDto'];
+/** Charte visuelle en vigueur vue de la console : charte (format du fichier charte.json), origine, fichier, lisibilité. */
+export type EtatCharteServeur = S['EtatCharteDto'];
+/** Vérification d'un fichier charte.json par le serveur (import à blanc). */
+export type VerificationCharte = S['VerificationCharteDto'];
 export type RetourArriereInfo = S['RetourArriereDto'];
 export type ClotureInfo = S['ClotureDto'];
 export type PlanRepli = S['PlanRepliDto'];
@@ -169,6 +173,21 @@ export type Presence = S['PresenceDto'];
 /** `avertissements` : avertissements non bloquants de la vérification du plan (responsables techniques). */
 export type Mep = S['MepDto'];
 
+/**
+ * Section du plan (#60) : groupe d'étapes sous un titre, avec ses cercles d'entrée et de sortie (`ports`, entrées puis
+ * sorties par ordre). `placee` : false tant qu'elle attend dans le bac.
+ */
+export type Section = S['SectionDto'];
+/** Cercle d'une section : `etapes`, ses étapes reliées ; `sources` (entrée seulement), ce qui y arrive du dehors. */
+export type CercleSection = S['PortSectionDto'];
+export type SensCercle = S['PortSectionDto']['sens'];
+/** Création d'une section : son identifiant et la MEP à jour. */
+export type SectionCreee = S['SectionCreeeDto'];
+/** Verrou d'édition d'une étape : tenu par l'onglet `session` jusqu'à `expireLe` sans renouvellement. */
+export type Verrou = S['VerrouEtapeDto'];
+/** `pris` : pris ou renouvelé par cet onglet ; sinon `verrou` dit qui est dessus. */
+export type PriseVerrou = S['PriseVerrouDto'];
+
 /** Section Communication de la MEP (tout est facultatif) ; heures « HH:MM:SS », dates « AAAA-MM-JJ ». */
 export type Communication = S['CommunicationDto'];
 /** Modèle de texte d'une équipe ; `fourni` : copie d'un modèle fourni (non supprimable, rétablissable). */
@@ -179,6 +198,15 @@ export type VariableTexte = S['VariableTexteDto'];
 export type ValeurVariable = S['ValeurVariableDto'];
 /** Valeurs des variables d'une MEP pour une équipe (`equipeProposeeId` : équipe du pilote). */
 export type VariablesMep = S['VariablesMepDto'];
+
+/** Tableau de bord « Suivi en direct » (#61) : MEP lancées, prévues aujourd'hui et demain, clôturées depuis 24 heures. */
+export type Suivi = S['SuiviDto'];
+export type MepPrevue = S['MepPrevueDto'];
+export type MepCloturee = S['MepClotureeDto'];
+/** Rapport de fin (#61), figé à la clôture ; `calculeApres` : MEP clôturée avant les rapports, figé à sa première demande. */
+export type RapportFin = S['RapportFinDto'];
+export type SyntheseRapport = S['SyntheseRapportDto'];
+export type PointBloquant = S['PointBloquantDto'];
 
 // ---------- Entrées (saisies) ----------
 
@@ -360,6 +388,8 @@ export type OptionsConnexion = S['OptionsConnexionDto'];
 export type EtatDemo = S['DemoDto'];
 export type CompteDemo = S['CompteDemoDto'];
 export type ReinitialisationDemo = S['ReinitialisationDemoDto'];
+export type EtatSimulation = S['EtatSimulationDto'];
+export type LienRedondant = S['LienRedondantDto'];
 export type SsoProfil = S['SsoProfilDto'];
 export type SsoLiaison = S['SsoLiaisonDto'];
 export type SsoReglages = S['SsoReglagesDto'];

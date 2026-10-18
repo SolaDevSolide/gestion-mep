@@ -131,7 +131,12 @@ export default function NouvelleResolutionPage() {
               {erreur}
             </Alerte>
           )}
-          <FormulaireResolution b={b} onChange={setB} systemes={catalogue.donnees ?? []} autoFocus />
+          <FormulaireResolution
+            b={b}
+            onChange={setB}
+            systemes={catalogue.donnees ?? (catalogue.erreur ? [] : null)}
+            autoFocus
+          />
           <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
             <Button
               variante="primaire"

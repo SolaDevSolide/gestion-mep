@@ -12,6 +12,7 @@ import { Field, Input, Textarea } from '../ui/Input';
 import { cn } from '../ui/cn';
 import { couleurSysteme, styleSysteme } from '../couleursSysteme';
 import { Instructions, Markdown } from '../ui/Instructions';
+import { EnChargement, Squelette } from '../ui/Squelette';
 import { useToast } from '../ui/Toast';
 import { PuceSysteme } from './graphe/systemes';
 
@@ -80,7 +81,8 @@ export function FormulaireResolution({
 }: {
   b: BrouillonResolution;
   onChange: (b: BrouillonResolution) => void;
-  systemes: SystemeCatalogue[];
+  /** Catalogue des systèmes ; null tant qu'il se charge (pastilles en squelette). */
+  systemes: SystemeCatalogue[] | null;
   autoFocus?: boolean;
 }) {
   const maj = (patch: Partial<BrouillonResolution>) => onChange({ ...b, ...patch });
@@ -111,36 +113,44 @@ export function FormulaireResolution({
         <legend className="mb-1.5 text-[13px] font-medium">
           Systèmes <span className="font-normal text-fg-subtle">(aucun = tous)</span>
         </legend>
-        <div className="flex flex-wrap gap-1.5">
-          {systemes
-            .filter((s) => s.actif || b.systemeCatalogueIds.includes(s.id))
-            .map((s) => {
-              const actif = b.systemeCatalogueIds.includes(s.id);
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  aria-pressed={actif}
-                  title={s.description || undefined}
-                  onClick={() =>
-                    maj({
-                      systemeCatalogueIds: actif
-                        ? b.systemeCatalogueIds.filter((x) => x !== s.id)
-                        : [...b.systemeCatalogueIds, s.id],
-                    })
-                  }
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-[13px] font-semibold',
-                    !actif && 'border-line-strong text-fg-subtle hover:text-fg',
-                  )}
-                  style={actif ? styleSysteme(s.nom) : undefined}
-                >
-                  <i className="size-2 rounded-full" style={{ background: couleurSysteme(s.nom) }} aria-hidden />
-                  {s.nom}
-                </button>
-              );
-            })}
-        </div>
+        {systemes === null ? (
+          <EnChargement libelle="Chargement des systèmes…" className="flex flex-wrap gap-1.5">
+            {['w-20', 'w-28', 'w-16', 'w-24', 'w-14'].map((l) => (
+              <Squelette key={l} className={cn('h-6 rounded-full', l)} />
+            ))}
+          </EnChargement>
+        ) : (
+          <div className="flex flex-wrap gap-1.5 apparition">
+            {systemes
+              .filter((s) => s.actif || b.systemeCatalogueIds.includes(s.id))
+              .map((s) => {
+                const actif = b.systemeCatalogueIds.includes(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    aria-pressed={actif}
+                    title={s.description || undefined}
+                    onClick={() =>
+                      maj({
+                        systemeCatalogueIds: actif
+                          ? b.systemeCatalogueIds.filter((x) => x !== s.id)
+                          : [...b.systemeCatalogueIds, s.id],
+                      })
+                    }
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-[13px] font-semibold',
+                      !actif && 'border-line-strong text-fg-subtle hover:text-fg',
+                    )}
+                    style={actif ? styleSysteme(s.nom) : undefined}
+                  >
+                    <i className="size-2 rounded-full" style={{ background: couleurSysteme(s.nom) }} aria-hidden />
+                    {s.nom}
+                  </button>
+                );
+              })}
+          </div>
+        )}
       </fieldset>
 
       <Field label="Symptômes (markdown)">
@@ -309,7 +319,7 @@ interface Props {
 export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesParDefaut, onEnregistree }: Props) {
   const toast = useToast();
   const [b, setB] = useState<BrouillonResolution>(() => brouillonDepuis(initial, systemesParDefaut));
-  const [systemes, setSystemes] = useState<SystemeCatalogue[]>([]);
+  const [systemes, setSystemes] = useState<SystemeCatalogue[] | null>(null);
   const [pieces, setPieces] = useState<PieceJointe[]>([]);
   const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
   const [erreur, setErreur] = useState('');
@@ -319,6 +329,7 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesP
     if (open) {
       setB(brouillonDepuis(initial, systemesParDefaut));
       setErreur('');
+      setSystemes(null);
       api
         .catalogueSystemes()
         .then(setSystemes)

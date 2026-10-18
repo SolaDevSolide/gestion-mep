@@ -10,7 +10,8 @@ using Microsoft.AspNetCore.Identity;
 namespace GestionMep.Api.Endpoints;
 
 /// <summary>
-/// Mode démonstration : comptes proposés par la connexion rapide, connexion rapide et réinitialisation de la base.
+/// Mode démonstration : comptes proposés par la connexion rapide, connexion rapide, simulation de collègues et réinitialisation
+/// de la base.
 /// Les routes ne sont déclarées que si la démonstration est active (<see cref="Demonstration.Active"/>, lu au démarrage) :
 /// sinon, /api/demo… répond comme toute route inconnue (404) et rien n'est exposé.
 /// </summary>
@@ -53,11 +54,19 @@ public static class DemoEndpoints
             return resultat;
         }).AllowAnonymous().RequireRateLimiting(ProtectionsHttp.PolitiqueConnexion);
 
+        // Simulation de collègues : Bob et Claire travaillent en vrai sur « Facturation électronique » (toute personne connectée).
+        demo.MapGet("/simulation", (SimulationDemo simulation) => simulation.Etat());
+        demo.MapPost("/simulation", async (SimulationSaisie corps, ClaimsPrincipal user, SimulationDemo simulation) =>
+            corps.Actif ? await simulation.Demarrer(Acteur.Depuis(user)) : await simulation.Arreter());
+
         // Réinitialisation : administrateurs seulement. La session de l'auteur est fermée (son compte est recréé).
         demo.MapPost("/reinitialiser", async (ClaimsPrincipal user, HttpContext ctx, MepDbContext db, IConfiguration configuration,
-            IPasswordHasher<Utilisateur> hasher, StockagePiecesJointes stockage, TimeProvider temps, FournisseurReglagesBase reglages, ILoggerFactory journaux) =>
+            IPasswordHasher<Utilisateur> hasher, StockagePiecesJointes stockage, TimeProvider temps, FournisseurReglagesBase reglages, ILoggerFactory journaux,
+            SimulationDemo simulation) =>
         {
             var acteur = Acteur.Depuis(user);
+            // Les collègues simulés quittent la MEP avant qu'elle soit recréée.
+            await simulation.Arreter();
             var (meps, fichiers) = await Demonstration.Reinitialiser(db, configuration, hasher, stockage, temps.GetUtcNow(), acteur);
             reglages.Recharger();
             await AuthentificationLocale.Fermer(ctx);

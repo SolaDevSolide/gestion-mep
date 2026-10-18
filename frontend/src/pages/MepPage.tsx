@@ -1,4 +1,4 @@
-import { Flag, Loader2, OctagonAlert, Siren } from 'lucide-react';
+import { Flag, OctagonAlert, Siren } from 'lucide-react';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
@@ -24,12 +24,21 @@ import {
 import PreparationTab from '../mep/PreparationTab';
 import RecetteTab from '../mep/RecetteTab';
 import RetourArriereTab from '../mep/RetourArriereTab';
+import VueEnsembleTab from '../mep/ensemble/VueEnsembleTab';
+import {
+  libellePriseDeMain,
+  lireVerrous,
+  nouvellesPrisesDeMain,
+  VerrousContext,
+  type ValeurVerrous,
+} from '../mep/graphe/verrouEtape';
 import { MepContext, type MepContextValue } from '../mepContext';
 import { nouvelleSession, PresenceProvider, type PresenceValeur } from '../presence';
-import type { Mep, Phase, Presence } from '../types';
+import type { Mep, Phase, Presence, Verrou } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { cn } from '../ui/cn';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
+import { SqueletteMep } from '../mep/SqueletteMep';
 import { useToast } from '../ui/Toast';
 
 const LIBELLES_SOUS: Record<SousOnglet, string> = { etapes: 'Étapes', retour: 'Retour arrière', recette: 'Recette' };
@@ -116,6 +125,7 @@ export default function MepPage() {
   const [erreurChargement, setErreurChargement] = useState('');
   const [journalTick, setJournalTick] = useState(0);
   const [presences, setPresences] = useState<Presence[]>([]);
+  const [verrous, setVerrous] = useState<Verrou[] | null>(null);
 
   const versionRef = useRef(0);
   const phaseRef = useRef<Phase | null>(null);
@@ -166,19 +176,23 @@ export default function MepPage() {
    * Rechargement déclenché à distance : la MEP à jour s'affiche aussitôt. Une saisie en cours n'est pas perdue :
    * chaque formulaire garde son brouillon (`useDraft`) et signale si sa section a changé entre-temps.
    */
-  const synchroniser = useCallback(async () => {
-    try {
-      appliquer(await api.mep(id));
-    } catch {
-      /* silencieux : prochain cycle */
-    }
-  }, [id, appliquer]);
+  const synchroniser = useCallback(
+    async (silencieux = false) => {
+      try {
+        appliquer(await api.mep(id, silencieux));
+      } catch {
+        /* silencieux : prochain cycle */
+      }
+    },
+    [id, appliquer],
+  );
 
   useEffect(() => {
     phaseRef.current = null;
     versionRef.current = 0;
     setMep(null);
     setPresences([]);
+    setVerrous(null);
     void charger();
   }, [charger]);
 
@@ -224,6 +238,10 @@ export default function MepPage() {
         () => void synchroniser(),
         {
           surPresence: setPresences,
+          surVerrous: (v) => {
+            const liste = lireVerrous(v);
+            if (liste) setVerrous(liste);
+          },
           surOuverture: () => {
             envoyeRef.current = null;
             if (elementsRef.current.size > 0) envoyerPresence();
@@ -233,14 +251,32 @@ export default function MepPage() {
     [id, session, synchroniser, envoyerPresence],
   );
 
+  const valeurVerrous = useMemo<ValeurVerrous>(() => ({ session, verrous }), [session, verrous]);
+
+  // Prise de main sur une étape (par n'importe qui, y compris sur la vôtre) : annoncée à toutes les personnes présentes.
+  const verrousAvantRef = useRef<Verrou[] | null>(null);
+  const mepRef = useRef(mep);
+  useEffect(() => {
+    mepRef.current = mep;
+  }, [mep]);
+  useEffect(() => {
+    const prises = nouvellesPrisesDeMain(verrousAvantRef.current, verrous);
+    verrousAvantRef.current = verrous;
+    for (const v of prises) {
+      if (v.session === session) continue; // c'est cet onglet qui l'a prise
+      const code = mepRef.current?.etapes.find((e) => e.id === v.etapeId)?.code ?? 'une étape';
+      toast.succes(libellePriseDeMain(v, code));
+    }
+  }, [verrous, session, toast]);
+
   const presence = useMemo<PresenceValeur>(
     () => ({ autres: presences.filter((p) => p.utilisateurId !== moi), declarer }),
     [presences, moi, declarer],
   );
 
-  // Rafraîchissement périodique (disponibilités dépendantes de l'heure, échéance automatique).
+  // Rafraîchissement périodique (disponibilités dépendantes de l'heure, échéance automatique), sans indicateur.
   useEffect(() => {
-    const t = window.setInterval(() => void synchroniser(), 30_000);
+    const t = window.setInterval(() => void synchroniser(true), 30_000);
     return () => window.clearInterval(t);
   }, [synchroniser]);
 
@@ -283,13 +319,7 @@ export default function MepPage() {
       </main>
     );
   }
-  if (!mep) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-24 text-fg-subtle" role="status">
-        <Loader2 className="mr-2 size-5 animate-spin" aria-hidden /> Chargement de la MEP…
-      </div>
-    );
-  }
+  if (!mep) return <SqueletteMep onglet={params.get('plan') ?? params.get('onglet')} />;
 
   const vue = lireVue(params, mep);
   const repliActif = mep.phase === 'RetourArriere';
@@ -298,99 +328,118 @@ export default function MepPage() {
   return (
     <MepContext.Provider value={ctx}>
       <PresenceProvider value={presence}>
-        <Tabs
-          value={vue.onglet}
-          onValueChange={(v) => {
-            if (estOnglet(v)) definirVue({ onglet: v, sous: vueParDefaut(mep).sous });
-          }}
-          className="flex min-w-0 flex-1 flex-col"
-        >
-          <EnTeteMep
-            mep={mep}
-            onglets={
-              <>
-                <TabsList aria-label="Sections de la MEP">
-                  <TabsTrigger value="preparation">Préparation</TabsTrigger>
-                  <TabsTrigger value="plan">
-                    Plan
-                    {repliActif && (
-                      <span
-                        className="size-2 rounded-full bg-rollback-bg"
-                        role="img"
-                        aria-label="Retour arrière actif"
-                      />
+        <VerrousContext.Provider value={valeurVerrous}>
+          <Tabs
+            value={vue.onglet}
+            onValueChange={(v) => {
+              if (estOnglet(v)) definirVue({ onglet: v, sous: vueParDefaut(mep).sous });
+            }}
+            className="flex min-w-0 flex-1 flex-col"
+          >
+            <EnTeteMep
+              mep={mep}
+              onglets={
+                <>
+                  <TabsList aria-label="Sections de la MEP">
+                    {!mep.estModele && (
+                      <TabsTrigger value="ensemble">
+                        Vue d’ensemble
+                        {mep.phase !== 'Preparation' && mep.phase !== 'Cloturee' && (
+                          <span
+                            className="size-2 animate-pulse rounded-full bg-ok-solid"
+                            role="img"
+                            aria-label="En direct"
+                          />
+                        )}
+                      </TabsTrigger>
                     )}
-                    {mep.phase === 'Recette' && (
-                      <span className="size-2 rounded-full bg-warn-solid" role="img" aria-label="Recette en cours" />
-                    )}
-                  </TabsTrigger>
-                  {!mep.estModele && <TabsTrigger value="execution">Exécution</TabsTrigger>}
-                  <TabsTrigger value="journal">Journal</TabsTrigger>
-                </TabsList>
-                {vue.onglet === 'plan' && (
-                  <SousOngletsPlan
-                    mep={mep}
-                    sous={vue.sous}
-                    onChange={(s) => definirVue({ onglet: 'plan', sous: s })}
-                  />
-                )}
-              </>
-            }
-          />
+                    <TabsTrigger value="preparation">Préparation</TabsTrigger>
+                    <TabsTrigger value="plan">
+                      Plan
+                      {repliActif && (
+                        <span
+                          className="size-2 rounded-full bg-rollback-bg"
+                          role="img"
+                          aria-label="Retour arrière actif"
+                        />
+                      )}
+                      {mep.phase === 'Recette' && (
+                        <span className="size-2 rounded-full bg-warn-solid" role="img" aria-label="Recette en cours" />
+                      )}
+                    </TabsTrigger>
+                    {!mep.estModele && <TabsTrigger value="execution">Exécution</TabsTrigger>}
+                    <TabsTrigger value="journal">Journal</TabsTrigger>
+                  </TabsList>
+                  {vue.onglet === 'plan' && (
+                    <SousOngletsPlan
+                      mep={mep}
+                      sous={vue.sous}
+                      onChange={(s) => definirVue({ onglet: 'plan', sous: s })}
+                    />
+                  )}
+                </>
+              }
+            />
 
-          {mep.phase === 'RetourArriere' && mep.retourArriere && (
-            <div
-              role="alert"
-              className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-rollback-bg px-6 py-3 text-white"
-            >
-              <Siren className="size-6 shrink-0" aria-hidden />
-              <p className="min-w-0 flex-1 text-[15px]">
-                <strong className="font-extrabold">Retour arrière déclenché</strong>
-                <span aria-hidden> — </span>
-                <span>{mep.retourArriere.motif}</span>
-              </p>
-              <p className="text-sm opacity-90">
-                {mep.retourArriere.par ? `Par ${mep.retourArriere.par}` : 'Déclenchement automatique'} ·{' '}
-                {formatDateHeure(mep.retourArriere.le)}
-              </p>
-            </div>
-          )}
-
-          {mep.nonRetourFranchi && mep.phase !== 'RetourArriere' && (
-            <div
-              role="status"
-              className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-warn-bd bg-warn-bg px-6 py-2.5 text-warn-fg"
-            >
-              <Flag className="size-5 shrink-0 text-warn-solid" aria-hidden />
-              <p className="min-w-0 flex-1 text-sm">
-                <strong className="font-bold">Point de non-retour franchi</strong>
-                <span aria-hidden> — </span>
-                <span>étape {mep.nonRetourFranchi} : le retour arrière n’est plus possible, on corrige en avant.</span>
-              </p>
-            </div>
-          )}
-
-          {mep.phase === 'Cloturee' && mep.bilan && <BilanCarte bilan={mep.bilan} />}
-
-          <div className="flex-1">
-            <TabsContent value="preparation" className="outline-none">
-              <PreparationTab />
-            </TabsContent>
-            <TabsContent value="plan" className="outline-none">
-              <div role="tabpanel" id="panneau-plan" aria-labelledby={`sous-onglet-${vue.sous}`}>
-                {vue.sous === 'etapes' && <EtapesTab />}
-                {vue.sous === 'retour' && <RetourArriereTab />}
-                {vue.sous === 'recette' && <RecetteTab />}
+            {mep.phase === 'RetourArriere' && mep.retourArriere && (
+              <div
+                role="alert"
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-rollback-bg px-6 py-3 text-white"
+              >
+                <Siren className="size-6 shrink-0" aria-hidden />
+                <p className="min-w-0 flex-1 text-[15px]">
+                  <strong className="font-extrabold">Retour arrière déclenché</strong>
+                  <span aria-hidden> — </span>
+                  <span>{mep.retourArriere.motif}</span>
+                </p>
+                <p className="text-sm opacity-90">
+                  {mep.retourArriere.par ? `Par ${mep.retourArriere.par}` : 'Déclenchement automatique'} ·{' '}
+                  {formatDateHeure(mep.retourArriere.le)}
+                </p>
               </div>
-            </TabsContent>
-            <TabsContent value="execution" className="outline-none">
-              <ExecutionTab />
-            </TabsContent>
-            <TabsContent value="journal" className="outline-none">
-              <JournalTab mepId={mep.id} tick={journalTick} />
-            </TabsContent>
-          </div>
-        </Tabs>
+            )}
+
+            {mep.nonRetourFranchi && mep.phase !== 'RetourArriere' && (
+              <div
+                role="status"
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-warn-bd bg-warn-bg px-6 py-2.5 text-warn-fg"
+              >
+                <Flag className="size-5 shrink-0 text-warn-solid" aria-hidden />
+                <p className="min-w-0 flex-1 text-sm">
+                  <strong className="font-bold">Point de non-retour franchi</strong>
+                  <span aria-hidden> — </span>
+                  <span>
+                    étape {mep.nonRetourFranchi} : le retour arrière n’est plus possible, on corrige en avant.
+                  </span>
+                </p>
+              </div>
+            )}
+
+            {mep.phase === 'Cloturee' && mep.bilan && <BilanCarte bilan={mep.bilan} mepId={mep.id} />}
+
+            <div className="flex-1">
+              <TabsContent value="ensemble" className="outline-none">
+                <VueEnsembleTab />
+              </TabsContent>
+              <TabsContent value="preparation" className="outline-none">
+                <PreparationTab />
+              </TabsContent>
+              <TabsContent value="plan" className="outline-none">
+                <div role="tabpanel" id="panneau-plan" aria-labelledby={`sous-onglet-${vue.sous}`}>
+                  {vue.sous === 'etapes' && <EtapesTab />}
+                  {vue.sous === 'retour' && <RetourArriereTab />}
+                  {vue.sous === 'recette' && <RecetteTab />}
+                </div>
+              </TabsContent>
+              <TabsContent value="execution" className="outline-none">
+                <ExecutionTab />
+              </TabsContent>
+              <TabsContent value="journal" className="outline-none">
+                <JournalTab mepId={mep.id} tick={journalTick} />
+              </TabsContent>
+            </div>
+          </Tabs>
+        </VerrousContext.Provider>
       </PresenceProvider>
     </MepContext.Provider>
   );

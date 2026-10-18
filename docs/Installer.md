@@ -79,6 +79,8 @@ Les variables se règlent dans `.env`, lu par `docker-compose.yml`. Celles marqu
 | `FLUX_MAX` (console) | `1000` | Écrans suivis en temps réel en même temps sur le serveur (20 au plus par compte). Au-delà, l'écran se met à jour à la reconnexion suivante. |
 | `CONNEXIONS_PAR_MINUTE` (console) | `20` | Tentatives de connexion autorisées par minute et par adresse IP. Au-delà : refus temporaire. Un compte est en plus bloqué quelques minutes, depuis l'adresse qui a échoué, après 5 échecs consécutifs. |
 
+**Charte visuelle** (facultatif) : pour donner à l'application les couleurs de l'entreprise dès l'installation, poser un fichier `charte.json` à côté de `docker-compose.yml` et décommenter la ligne `./charte.json:/etc/gestion-mep/charte.json:ro` du service `app`. Format, exemple et commandes : [Exploiter](Exploiter.md#charte-visuelle). Les administrateurs peuvent aussi tout régler dans la console (onglet Charte visuelle), sans fichier.
+
 Pour un déploiement sans Docker Compose (Kubernetes, ECS…), l'image se règle par ses variables d'environnement :
 
 | Variable | Rôle |
@@ -99,6 +101,7 @@ Pour un déploiement sans Docker Compose (Kubernetes, ECS…), l'image se règle
 | `MisesAJour__Verifier` | Voir `VERIFIER_MISES_A_JOUR`. `MisesAJour__Depot` (`SolaDevSolide/gestion-mep`) et `MisesAJour__IntervalleHeures` (`12`) changent le dépôt consulté et la fréquence. |
 | `Signalement__Lien` | Voir `LIEN_SIGNALEMENT`. |
 | `MisesAJour__Dossier` | Dossier partagé avec le service de mise à jour (`/data/mise-a-jour`, volume `mise-a-jour`). |
+| `CHARTE_FICHIER` (ou `Charte__Fichier`) | Fichier `charte.json` de la charte visuelle, s'il n'est pas monté sur `/etc/gestion-mep/charte.json`. |
 | `Surveillance__Activer` | `true` par défaut : bascule automatique en retour arrière quand l'échéance d'une MEP est dépassée. Ne pas désactiver en production. |
 
 ### Base de données externe

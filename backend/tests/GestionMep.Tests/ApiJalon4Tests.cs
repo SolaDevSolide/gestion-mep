@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GestionMep.Tests;
 
-/// <summary>Tests d'intégration du jalon 4 : profils, sauvegarde par système, fiches de recette, graphe par lignes (création, placer).</summary>
+/// <summary>Tests d'intégration du jalon 4 : profils, sauvegarde par système, fiches de recette, graphe libre (création rapide, déplacement, liens).</summary>
 [Collection("Api")]
 public class ApiJalon4Tests : IDisposable
 {
@@ -296,88 +296,139 @@ public class ApiJalon4Tests : IDisposable
         Assert.Contains(journal, e => e.Type == "recette.refaire" && e.Auteur == "Bob" && e.Detail == "Recette « Parcours de commande » à refaire");
     }
 
-    // ---------- Étapes : création et placement ----------
+    // ---------- Étapes : création rapide et déplacement (graphe libre) ----------
     [Fact]
-    public async Task Creation_d_une_etape_dans_une_ligne_avec_liens_par_defaut()
+    public async Task Creation_rapide_en_parallele_apres_une_carte_et_sur_un_lien()
     {
         var (alice, id, mep) = await Demo();
         var api = Systeme(mep, "API");
         var revisionE7 = Revision(mep, "E0007");
+        // « + à côté d'une carte » : mêmes préalables et mêmes suivants qu'E0005.
         mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new
         {
-            ligne = 1, position = 0, action = "Prévenir le support", systemeIds = new[] { api, api, Systeme(mep, "WEB") }, dureeEstimeeMinutes = 5,
-            responsableId = mep.GetProperty("piloteId"), instructions = "Appeler le support", resultatAttendu = "Support prévenu",
+            paralleleA = EtapeId(mep, "E0005"), action = "Prévenir le support", systemeIds = new[] { api, api, Systeme(mep, "WEB") }, dureeEstimeeMinutes = 5,
+            instructions = "Appeler le support", resultatAttendu = "Support prévenu",
         }));
         var e10 = Etape(mep, "E0010");
-        Assert.Equal((1, 0, 5), (e10.GetProperty("ligne").GetInt32(), e10.GetProperty("ordre").GetInt32(), e10.GetProperty("dureeEstimeeMinutes").GetInt32()));
+        Assert.Equal((1, 5), (e10.GetProperty("ligne").GetInt32(), e10.GetProperty("dureeEstimeeMinutes").GetInt32()));
         Assert.Equal([api, Systeme(mep, "WEB")], e10.GetProperty("systemeIds").EnumerateArray().Select(s => s.GetGuid()).ToArray());
-        Assert.Equal(["E0001", "E0002", "E0003"], Prealables(mep, "E0010"));
+        Assert.Equal(Prealables(mep, "E0005"), Prealables(mep, "E0010"));
         Assert.Equal(["E0004", "E0005", "E0006", "E0010"], Prealables(mep, "E0007"));
         Assert.Equal(revisionE7 + 1, Revision(mep, "E0007"));
-        Assert.Equal(1, Etape(mep, "E0004").GetProperty("ordre").GetInt32());
-        // GET : étapes triées par plan, ligne puis ordre.
+        // GET : étapes triées par plan, ligne puis ordre ; la nouvelle carte se range à droite de sa voisine.
         var lu = await Ok(await alice.GetAsync($"/api/meps/{id}"));
-        Assert.Equal(["E0001", "E0002", "E0003", "E0010", "E0004", "E0005", "E0006", "E0007", "E0008", "E0009", "R0001", "R0002", "R0003"],
+        Assert.Equal(["E0001", "E0002", "E0003", "E0004", "E0005", "E0010", "E0006", "E0007", "E0008", "E0009", "R0001", "R0002", "R0003"],
             lu.GetProperty("etapes").EnumerateArray().Select(e => e.GetProperty("code").GetString()!).ToArray());
 
-        // Dépendances explicites : pas de liens par défaut.
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { ligne = 2, dependances = new[] { EtapeId(mep, "E0001") } }));
-        Assert.Equal(["E0001"], Prealables(mep, "E0011"));
-        Assert.Equal(["E0007", "E0011"], new[] { "E0007", "E0011" }.Where(c => Ligne(mep, c) == 2).ToArray());
-        Assert.DoesNotContain(EtapeId(mep, "E0011"), Etape(mep, "E0008").GetProperty("dependances").EnumerateArray().Select(d => d.GetGuid()));
-        var montant = await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { ligne = 0, dependances = new[] { EtapeId(mep, "E0001") } });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, montant.StatusCode);
-        Assert.Equal("Un lien descend toujours : E0001 doit être sur une ligne au-dessus de E0012.", await Message(montant));
+        // « + sous une carte » : elle l'attend, sans toucher aux autres liens.
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { apres = EtapeId(mep, "E0009") }));
+        Assert.Equal(["E0009"], Prealables(mep, "E0011"));
+        Assert.Equal(5, Ligne(mep, "E0011"));
+        // « + sur un lien » : E0008 n'attend plus E0007 directement, elle attend la nouvelle étape.
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { entre = new { de = EtapeId(mep, "E0007"), vers = EtapeId(mep, "E0008") } }));
+        Assert.Equal(["E0007"], Prealables(mep, "E0012"));
+        Assert.Equal(["E0012"], Prealables(mep, "E0008"));
+        // Préalables explicites.
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { dependances = new[] { EtapeId(mep, "E0001") } }));
+        Assert.Equal(["E0001"], Prealables(mep, "E0013"));
+        Assert.Contains(await Journal(alice, id), e => e.Type == "etape.creee" && e.Detail == "E0012 créée");
 
-        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { ligne = 99 })).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { position = -1 })).StatusCode);
+        var lienAbsent = await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { entre = new { de = EtapeId(mep, "E0001"), vers = EtapeId(mep, "E0009") } });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, lienAbsent.StatusCode);
+        Assert.StartsWith("Lien introuvable", await Message(lienAbsent));
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes",
+            new { apres = EtapeId(mep, "E0001"), dependances = new[] { EtapeId(mep, "E0001") } })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes",
+            new { apres = EtapeId(mep, "E0001"), paralleleA = EtapeId(mep, "E0002") })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { entre = new { de = EtapeId(mep, "E0001") } })).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { apres = Guid.NewGuid() })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { systemeIds = new[] { Guid.NewGuid() } })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { dureeEstimeeMinutes = -5 })).StatusCode);
     }
 
     [Fact]
-    public async Task Placer_une_etape_deplace_la_fiche_et_recree_les_liens()
+    public async Task Deplacer_une_carte_change_ses_liens_et_les_liens_se_posent_un_par_un()
     {
         var (alice, id, mep) = await Demo();
         await AidesApi.Approuver(_api, id);
         mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
-        var url = $"/api/meps/{id}/etapes/{EtapeId(mep, "E0007")}/placer";
+        var url = $"/api/meps/{id}/etapes/{EtapeId(mep, "E0007")}/deplacer";
 
-        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync(url, new { position = 0 })).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync(url, new { ligne = 6, position = 0 })).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync(url, new { ligne = 0, position = -1 })).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync(url, new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync(url, new { apres = EtapeId(mep, "E0007") })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync(url, new { surLien = new { vers = EtapeId(mep, "E0009") } })).StatusCode);
 
-        // E0007 rejoint la première ligne : sa ligne disparaît, E0008 attend la ligne au-dessus d'elle.
-        mep = await Ok(await alice.PostAsJsonAsync(url, new { ligne = 0, position = 99 }));
-        Assert.Equal((0, 3), (Ligne(mep, "E0007"), Etape(mep, "E0007").GetProperty("ordre").GetInt32()));
-        Assert.Empty(Prealables(mep, "E0007"));
+        // E0007 lâchée sur le lien E0008 → E0009 : elle quitte sa place (E0008 attend ce qu'elle attendait), puis s'insère.
+        mep = await Ok(await alice.PostAsJsonAsync(url, new { surLien = new { de = EtapeId(mep, "E0008"), vers = EtapeId(mep, "E0009") } }));
         Assert.Equal(["E0004", "E0005", "E0006"], Prealables(mep, "E0008"));
-        Assert.Equal(2, Ligne(mep, "E0008"));
+        Assert.Equal(["E0008"], Prealables(mep, "E0007"));
+        Assert.Equal(["E0007"], Prealables(mep, "E0009"));
+        Assert.Equal((2, 3, 4), (Ligne(mep, "E0008"), Ligne(mep, "E0007"), Ligne(mep, "E0009")));
         Assert.Equal(JsonValueKind.Null, mep.GetProperty("approbations")[0].GetProperty("decision").ValueKind);
-        Assert.Contains(await Journal(alice, id), e => e.Type == "etape.deplacee" && e.Detail == "E0007 placée ligne 1");
+        Assert.Contains(await Journal(alice, id), e => e.Type == "etape.deplacee" && e.Detail == "E0007 déplacée");
 
-        // Même ligne : simple réordonnancement, liens inchangés.
-        var avant = Prealables(mep, "E0004");
-        mep = await Ok(await alice.PostAsJsonAsync(url, new { ligne = 0, position = 0 }));
-        Assert.Equal(0, Etape(mep, "E0007").GetProperty("ordre").GetInt32());
-        Assert.Equal(avant, Prealables(mep, "E0004"));
+        // Lâchée sur son propre lien : rien ne change.
+        var avant = mep.GetProperty("etapes").EnumerateArray().Select(e => (e.GetProperty("code").GetString(), e.GetProperty("revision").GetInt32())).ToList();
+        mep = await Ok(await alice.PostAsJsonAsync(url, new { surLien = new { de = EtapeId(mep, "E0007"), vers = EtapeId(mep, "E0009") } }));
+        Assert.Equal(avant, mep.GetProperty("etapes").EnumerateArray().Select(e => (e.GetProperty("code").GetString(), e.GetProperty("revision").GetInt32())).ToList());
 
-        // Sans liens par défaut : seuls les liens devenus montants sont retirés.
-        var e4 = $"/api/meps/{id}/etapes/{EtapeId(mep, "E0004")}/placer";
-        mep = await Ok(await alice.PostAsJsonAsync(e4, new { ligne = 4, position = 0, liensParDefaut = false }));
-        Assert.Equal(4, Ligne(mep, "E0004"));
-        Assert.Equal(["E0001", "E0002", "E0003", "E0007"], Prealables(mep, "E0004"));
-        Assert.Equal(["E0005", "E0006"], Prealables(mep, "E0008"));
+        // Liens posés un par un : ajout, cycle refusé, retrait.
+        var lien = new { de = EtapeId(mep, "E0001"), vers = EtapeId(mep, "E0009") };
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/liens", lien));
+        Assert.Equal(["E0007", "E0001"], Prealables(mep, "E0009"));
+        Assert.Contains(await Journal(alice, id), e => e.Type == "plan.lien-ajoute" && e.Detail == "Lien ajouté : E0009 attend E0001");
+        var cycle = await alice.PostAsJsonAsync($"/api/meps/{id}/liens", new { de = EtapeId(mep, "E0009"), vers = EtapeId(mep, "E0001") });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, cycle.StatusCode);
+        Assert.StartsWith("Opération refusée : elle créerait un cycle", await Message(cycle));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity,
+            (await alice.PostAsJsonAsync($"/api/meps/{id}/liens", new { de = EtapeId(mep, "R0001"), vers = EtapeId(mep, "E0001") })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await alice.PostAsJsonAsync($"/api/meps/{id}/liens", new { de = Guid.NewGuid(), vers = EtapeId(mep, "E0001") })).StatusCode);
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/liens/retirer", lien));
+        Assert.Equal(["E0007"], Prealables(mep, "E0009"));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync($"/api/meps/{id}/liens/retirer", lien)).StatusCode);
 
-        // Entre deux lignes : E0009 ouvre une ligne à elle juste au-dessus de la ligne 1.
-        var e9 = $"/api/meps/{id}/etapes/{EtapeId(mep, "E0009")}/placer";
-        mep = await Ok(await alice.PostAsJsonAsync(e9, new { ligne = 1, position = 3, nouvelleLigne = true }));
-        Assert.Equal((1, 0), (Ligne(mep, "E0009"), Etape(mep, "E0009").GetProperty("ordre").GetInt32()));
-        Assert.Equal(["E0001", "E0002", "E0003", "E0007"], Prealables(mep, "E0009").Order());
-        Assert.Equal(["E0009"], Prealables(mep, "E0005"));
-        Assert.Equal(2, Ligne(mep, "E0005"));
+        // Supprimer E0008 : E0007 attend ce qu'E0008 attendait.
+        mep = await Ok(await alice.DeleteAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0008")}"));
+        Assert.Equal(["E0004", "E0005", "E0006"], Prealables(mep, "E0007"));
 
         mep = await AidesApi.Go(_api, alice, id);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync(url, new { ligne = 1, position = 0 })).StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync(url, new { apres = EtapeId(mep, "E0001") })).StatusCode);
+    }
+
+    [Fact]
+    public async Task Retirer_une_etape_du_plan_puis_la_replacer_depuis_le_bac()
+    {
+        var (alice, id, mep) = await Demo();
+        await AidesApi.Approuver(_api, id);
+        mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        var e7 = EtapeId(mep, "E0007");
+
+        // E0007 au bac : E0008 attend ce qu'elle attendait, plus aucun lien vers elle ; le Go est bloqué.
+        mep = await Ok(await alice.PostAsync($"/api/meps/{id}/etapes/{e7}/retirer-du-plan", null));
+        Assert.True(Etape(mep, "E0007").GetProperty("aPlacer").GetBoolean());
+        Assert.Empty(Prealables(mep, "E0007"));
+        Assert.Equal(["E0004", "E0005", "E0006"], Prealables(mep, "E0008"));
+        Assert.Contains("Étape à placer : E0007 est dans le bac, la placer dans le plan ou la supprimer.", Liste(mep, "erreursPlan"));
+        Assert.Contains(await Journal(alice, id), x => x.Type == "etape.retiree-du-plan" && x.Detail == "E0007 retirée du graphe, dans le bac des étapes à placer");
+        // Déjà au bac : rien ne change.
+        Assert.Equal(Version(mep), Version(await Ok(await alice.PostAsync($"/api/meps/{id}/etapes/{e7}/retirer-du-plan", null))));
+
+        // Replacée sur le lien E0008 → E0009.
+        var url = $"/api/meps/{id}/etapes/{e7}/placer-depuis-le-bac";
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync(url, new { surLien = new { vers = EtapeId(mep, "E0009") } })).StatusCode);
+        mep = await Ok(await alice.PostAsJsonAsync(url, new { surLien = new { de = EtapeId(mep, "E0008"), vers = EtapeId(mep, "E0009") } }));
+        Assert.False(Etape(mep, "E0007").GetProperty("aPlacer").GetBoolean());
+        Assert.Equal(["E0008"], Prealables(mep, "E0007"));
+        Assert.Equal(["E0007"], Prealables(mep, "E0009"));
+        Assert.DoesNotContain(Liste(mep, "erreursPlan"), x => x.Contains("à placer", StringComparison.Ordinal));
+        Assert.Contains(await Journal(alice, id), x => x.Type == "etape.placee" && x.Detail == "E0007 placée dans le graphe depuis le bac, sur le lien E0008 → E0009");
+        // Déjà dans le graphe : refusé (la déplacer).
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync(url, new { apres = EtapeId(mep, "E0001") })).StatusCode);
+
+        // Au bac puis posée à part (aucune place).
+        await Ok(await alice.PostAsync($"/api/meps/{id}/etapes/{e7}/retirer-du-plan", null));
+        mep = await Ok(await alice.PostAsJsonAsync(url, new { }));
+        Assert.False(Etape(mep, "E0007").GetProperty("aPlacer").GetBoolean());
+        Assert.Contains(await Journal(alice, id), x => x.Type == "etape.placee" && x.Detail == "E0007 placée dans le graphe depuis le bac, à part");
     }
 }

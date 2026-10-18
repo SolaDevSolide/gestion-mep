@@ -7,6 +7,8 @@ export function etape(p: Partial<Etape> = {}, statut: StatutDisponibilite = 'Dis
     code: 'E0001',
     ligne: 0,
     ordre: 0,
+    rang: 0,
+    aPlacer: false,
     action: 'Redémarrer le service',
     systemeIds: ['s1'],
     responsableId: 'p1',
@@ -33,6 +35,9 @@ export function etape(p: Partial<Etape> = {}, statut: StatutDisponibilite = 'Dis
     disponibilite: { statut, libelle: statut },
     modeleEtapeId: null,
     environnements: [],
+    sectionId: null,
+    dependancesDerivees: [],
+    portsAttendus: [],
     ...p,
   };
 }
@@ -144,6 +149,7 @@ export function mep(p: Partial<Mep> = {}): Mep {
       peutEditerContenu: false,
       participantId: 'p1',
     },
+    sections: [],
     ...p,
   };
 }

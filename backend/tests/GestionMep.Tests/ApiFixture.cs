@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Npgsql;
 
@@ -19,16 +20,20 @@ public class ApiFixture : IDisposable
     private static string Serveur =>
         Environment.GetEnvironmentVariable("TEST_PG_SERVEUR") ?? "Host=localhost;Port=5432;Username=postgres;Password=postgres";
 
-    private readonly WebApplicationFactory<Program> _usine;
+    private readonly WebApplicationFactory<Program> _racine;
+    private WebApplicationFactory<Program> _usine;
     private readonly bool _demo;
 
     /// <summary>Dossier temporaire des pièces jointes, supprimé à la fin.</summary>
     public string DossierPieces { get; } = Path.Combine(Path.GetTempPath(), "gestion-mep-tests-" + Guid.NewGuid().ToString("N"));
     /// <summary>Dossier d'échange avec le service de mise à jour (etat.json, demande.json).</summary>
     public string DossierMiseAJour => Path.Combine(DossierPieces, "mise-a-jour");
+    /// <summary>Fichier charte.json lu par l'application de test (absent tant qu'un test ne l'écrit pas).</summary>
+    public string FichierCharte => Path.Combine(DossierPieces, "charte.json");
 
     /// <param name="demo">false : base neuve hors mode démonstration (aucun compte, routes /api/demo absentes).</param>
-    public ApiFixture(bool demo = true)
+    /// <param name="environnement">Environnement d'hébergement (par défaut celui de la fabrique de test : Development).</param>
+    public ApiFixture(bool demo = true, string? environnement = null)
     {
         _demo = demo;
         using (var cn = new NpgsqlConnection(Serveur + ";Database=postgres"))
@@ -50,7 +55,11 @@ public class ApiFixture : IDisposable
         Environment.SetEnvironmentVariable("MisesAJour__Verifier", "false"); // pas d'appel à GitHub pendant les tests
         Environment.SetEnvironmentVariable("MisesAJour__Dossier", DossierMiseAJour);
         Environment.SetEnvironmentVariable("Connexion__TentativesParMinute", "1000"); // les tests se connectent sans cesse depuis la même « adresse »
-        _usine = new WebApplicationFactory<Program>();
+        // Fichier de charte visuelle propre au test (absent par défaut) : jamais celui de la machine (/etc/gestion-mep/charte.json).
+        Environment.SetEnvironmentVariable("Charte__Fichier", FichierCharte);
+        _usine = _racine = new WebApplicationFactory<Program>();
+        // L'usine dérivée est libérée avec celle d'origine.
+        if (environnement is not null) _usine = _usine.WithWebHostBuilder(b => b.UseEnvironment(environnement));
         _ = _usine.Server; // démarre l'hôte : migration + données de démo
     }
 
@@ -86,7 +95,7 @@ public class ApiFixture : IDisposable
 
     public void Dispose()
     {
-        _usine.Dispose();
+        _racine.Dispose();
         // Les autres tests (et ceux qui démarrent leur propre application) supposent la démonstration active.
         if (!_demo) Environment.SetEnvironmentVariable("Demo__Activer", "true");
         NpgsqlConnection.ClearAllPools();

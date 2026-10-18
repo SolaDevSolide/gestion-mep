@@ -4,6 +4,8 @@ using GestionMep.Api.Services;
 using GestionMep.Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace GestionMep.Api.Endpoints;
 
@@ -55,14 +57,28 @@ public static class PhaseEndpoints
         })));
 
         api.MapPost("/meps/{id:guid}/cloturer", async (Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ClotureSaisie? c,
-            ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
+            ClaimsPrincipal user, ServiceMep svc, RapportsFin rapports, ILogger<RapportsFin> journal) =>
         {
-            var acteur = Acteur.Depuis(user);
-            var bilan = c is null ? null : new Bilan { CeQuiAMarche = ServiceMep.Texte(c.CeQuiAMarche), Incidents = ServiceMep.Texte(c.Incidents), Actions = ServiceMep.Texte(c.Actions) };
-            Regles.Cloturer(mep, acteur.Id, svc.Maintenant, bilan);
-            var issue = mep.Issue == IssueMep.Reussie ? "réussie" : "repliée";
-            return await svc.Enregistrer(mep, acteur, "mep.cloturee", $"MEP clôturée : {issue}");
-        })));
+            var dto = await svc.Modifier(id, async mep =>
+            {
+                var acteur = Acteur.Depuis(user);
+                var bilan = c is null ? null : new Bilan { CeQuiAMarche = ServiceMep.Texte(c.CeQuiAMarche), Incidents = ServiceMep.Texte(c.Incidents), Actions = ServiceMep.Texte(c.Actions) };
+                Regles.Cloturer(mep, acteur.Id, svc.Maintenant, bilan);
+                var issue = mep.Issue == IssueMep.Reussie ? "réussie" : "repliée";
+                return await svc.Enregistrer(mep, acteur, "mep.cloturee", $"MEP clôturée : {issue}");
+            });
+            // Rapport de fin figé à la clôture, une fois celle-ci enregistrée (une écriture rejouée ne le fige pas deux fois). S'il
+            // échoue, la clôture reste acquise : le rapport sera figé à sa première demande.
+            try
+            {
+                await rapports.Figer(id, calculeApres: false);
+            }
+            catch (Exception e) when (e is DbUpdateException or InvalidOperationException or NpgsqlException)
+            {
+                journal.LogError(e, "Rapport de fin de la MEP {Mep} non figé à la clôture.", id);
+            }
+            return Results.Ok(dto);
+        });
 
         api.MapPost("/meps/{id:guid}/no-go", async (Guid id, NoGoSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {

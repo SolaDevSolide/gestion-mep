@@ -9,10 +9,15 @@ import { utilisateur } from '../test/fabrique';
 import type { Utilisateur } from '../types';
 
 vi.mock('../api', () => ({
-  api: { changerMotDePasse: vi.fn(), meps: vi.fn(), demo: vi.fn().mockResolvedValue(null) },
+  api: {
+    changerMotDePasse: vi.fn(),
+    meps: vi.fn(),
+    demo: vi.fn().mockResolvedValue(null),
+    simulationDemo: vi.fn().mockRejectedValue(new Error('absente')),
+  },
 }));
 
-function rendre(u: Utilisateur) {
+async function rendre(u: Utilisateur) {
   const majUtilisateur = vi.fn();
   vi.mocked(api.meps).mockResolvedValue([]);
   render(
@@ -26,27 +31,32 @@ function rendre(u: Utilisateur) {
       </TooltipProvider>
     </AuthContext.Provider>,
   );
+  // Premier affichage : la silhouette de l'application, le temps de lire le mode démonstration.
+  await waitFor(() => expect(screen.queryByRole('status', { name: 'Chargement de l’application…' })).toBeNull());
   return { majUtilisateur };
 }
 
 describe('Mot de passe provisoire', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.demo).mockResolvedValue(null);
+  });
 
   it('n’affiche que la page de changement tant que le mot de passe est provisoire', async () => {
-    rendre(utilisateur({ doitChangerMotDePasse: true }));
+    await rendre(utilisateur({ doitChangerMotDePasse: true }));
     expect(screen.getByRole('heading', { name: 'Choisissez votre mot de passe' })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Navigation principale' })).not.toBeInTheDocument();
   });
 
   it('garde le bandeau du mode démonstration sur cette page', async () => {
-    vi.mocked(api.demo).mockResolvedValueOnce({ actif: true, comptes: [] });
-    rendre(utilisateur({ doitChangerMotDePasse: true, estAdmin: true }));
+    vi.mocked(api.demo).mockResolvedValue({ actif: true, comptes: [] });
+    await rendre(utilisateur({ doitChangerMotDePasse: true, estAdmin: true }));
     expect(await screen.findByRole('status', { name: 'Mode démonstration' })).toHaveTextContent('données fictives');
     expect(screen.getByRole('button', { name: 'Réinitialiser la démonstration' })).toBeInTheDocument();
   });
 
   it('exige 10 caractères et une confirmation identique', async () => {
-    rendre(utilisateur({ doitChangerMotDePasse: true }));
+    await rendre(utilisateur({ doitChangerMotDePasse: true }));
     const bouton = screen.getByRole('button', { name: 'Changer le mot de passe' });
     await userEvent.type(screen.getByLabelText('Mot de passe provisoire'), 'prov');
     await userEvent.type(screen.getByLabelText('Nouveau mot de passe'), 'court');
@@ -62,7 +72,7 @@ describe('Mot de passe provisoire', () => {
   it('envoie le changement puis met à jour l’utilisateur', async () => {
     const maj = utilisateur({ doitChangerMotDePasse: false });
     vi.mocked(api.changerMotDePasse).mockResolvedValue(maj);
-    const { majUtilisateur } = rendre(utilisateur({ doitChangerMotDePasse: true }));
+    const { majUtilisateur } = await rendre(utilisateur({ doitChangerMotDePasse: true }));
     await userEvent.type(screen.getByLabelText('Mot de passe provisoire'), 'prov');
     await userEvent.type(screen.getByLabelText('Nouveau mot de passe'), 'assez-long-1');
     await userEvent.type(screen.getByLabelText(/Confirmation/), 'assez-long-1');
@@ -75,7 +85,7 @@ describe('Mot de passe provisoire', () => {
 
   it('affiche l’erreur du serveur', async () => {
     vi.mocked(api.changerMotDePasse).mockRejectedValue(new Error('Mot de passe actuel incorrect.'));
-    rendre(utilisateur({ doitChangerMotDePasse: true }));
+    await rendre(utilisateur({ doitChangerMotDePasse: true }));
     await userEvent.type(screen.getByLabelText('Mot de passe provisoire'), 'faux');
     await userEvent.type(screen.getByLabelText('Nouveau mot de passe'), 'assez-long-1');
     await userEvent.type(screen.getByLabelText(/Confirmation/), 'assez-long-1');

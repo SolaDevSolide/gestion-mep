@@ -7,11 +7,13 @@ import { useMep } from '../mepContext';
 import type { Etape, TypePlan } from '../types';
 import { useReferentiels } from '../referentiels';
 import { Apparition } from '../ui/Apparition';
+import { SqueletteCadreGraphe } from './SqueletteMep';
 import { cn } from '../ui/cn';
 import { MultiSelect } from '../ui/Combobox';
 import { EmptyState } from '../ui/EmptyState';
 import { EtapePanneau, type ActionsEtape } from './EtapePanneau';
-import { GrapheEtapes } from './graphe/GrapheEtapes';
+import { GrapheLibre } from './graphe/GrapheLibre';
+import { sectionsDuPlan } from './graphe/sections';
 import { useModeEspace } from './graphe/EspaceEtape';
 import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
 import { estSimplifiee } from './typeMep';
@@ -21,6 +23,19 @@ import { descriptionsSystemes } from './graphe/systemes';
 export function ExecutionVue({ plan }: { plan: TypePlan }) {
   const { mep, run } = useMep();
   const etapes = etapesDuPlan(mep, plan);
+  const sections = useMemo(() => sectionsDuPlan(mep, plan).filter((s) => s.placee), [mep, plan]);
+  // Exécution : sections repliées (avancement « 4/7, 1 en échec »), dépliées d'un clic.
+  const [deplies, setDeplies] = useState<ReadonlySet<string>>(() => new Set());
+  const basculer = useCallback(
+    (id: string) =>
+      setDeplies((d) => {
+        const n = new Set(d);
+        if (n.has(id)) n.delete(id);
+        else n.add(id);
+        return n;
+      }),
+    [],
+  );
   const moi = mep.droits.participantId;
   const modeEspace = useModeEspace();
 
@@ -114,7 +129,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
 
   return (
     // Onglet affiché en une fois, référentiels compris : voir Apparition.
-    <Apparition pret={pret}>
+    <Apparition pret={pret} libelle="Chargement du plan…" squelette={<SqueletteCadreGraphe />}>
       <div>
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <div className="w-full min-w-56 sm:w-80">
@@ -166,21 +181,25 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
             </button>
           )}
           <span className="ml-auto flex items-center gap-2">
-            <ResumePlan etapes={etapes} sansDuree={estSimplifiee(mep)} />
+            <ResumePlan etapes={etapes} sections={sections} sansDuree={estSimplifiee(mep)} />
             <AideGraphe edition={false} />
           </span>
         </div>
 
         {/* Panneau latéral ouvert : le graphe lui laisse la place à droite. */}
         <div className={ouverte && modeEspace === 'panneau' ? 'min-[1100px]:pr-[608px]' : undefined}>
-          <GrapheEtapes
+          <GrapheLibre
             mep={mep}
             plan={plan}
             etapes={etapes}
+            sections={sections}
             mode="execution"
             descriptions={descriptions}
             selection={selection}
             onSelection={setChoix}
+            deplies={deplies}
+            onBasculer={basculer}
+            retraitDroit={!!ouverte && modeEspace === 'panneau'}
             estEstompee={filtreActif ? (e) => !garde(e) : undefined}
           />
         </div>

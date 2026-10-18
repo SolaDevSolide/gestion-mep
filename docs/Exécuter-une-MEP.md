@@ -13,7 +13,7 @@ Cette page s'adresse au **pilote**, à ses **suppléants** et aux **opérateurs*
 
 ## L'onglet Exécution
 
-Le plan s'affiche en graphe ; chaque étape indique son état :
+Le plan s'affiche en graphe, dans un cadre qui tient dans la hauteur de la fenêtre (le bouton en haut à droite l'affiche en plein écran, Échap pour revenir) ; une section s'affiche repliée avec son avancement (« 4/7, 1 en échec ») et se déplie d'un clic. Ouvrir une étape met ses liens en avant ; survoler ou cliquer un lien le met en avant avec ses deux bouts (là où plusieurs liens partagent un tronçon, un clic demande lequel). Chaque étape indique son état :
 
 | État | Sens |
 |---|---|
@@ -91,15 +91,15 @@ Tant que le point de non-retour n'est pas franchi et qu'aucune étape ni résolu
 
 1. Quand toutes les étapes de déploiement ont réussi, le pilote clique **« Passer en recette »**.
 2. Dans **Plan › Recette** (la MEP s'y ouvre pendant la recette), ouvrir chaque fiche : chaque étape de test est déclarée « Conforme » ou « Échec » avec une observation, par toute personne de la MEP reliée à un compte. Le pilote peut faire refaire un test ou une fiche. Les équipes métier peuvent aussi valider dans Excel (voir ci-dessous).
-3. Quand tout est conforme, le pilote clique **« Clôturer : MEP réussie »** et rédige le bilan.
+3. Quand tout est conforme, le pilote clique **« Clôturer : MEP réussie »** et rédige le bilan. Le [rapport de fin](Suivre-une-MEP.md#rapport-de-fin) est alors figé (bouton « Rapport de fin » du bilan).
 
 ### Valider la recette dans Excel
 
-**« Exporter en Excel »**, en haut de **Plan › Recette**, télécharge un classeur à envoyer aux équipes métier : un sommaire avec le mode d'emploi et l'avancement de chaque fiche, puis un onglet par système avec ses fiches à la suite (déroulé, code en police à chasse fixe sur fond gris, résultat attendu). Seules les cases jaunes se remplissent : résultat constaté, validation (liste « Validé » / « Refusé »), validé par et date ; le reste est protégé. Une feuille masquée « Contrôle » identifie la MEP et la version de la recette exportée.
+**« Exporter en Excel »**, en haut de **Plan › Recette**, télécharge un classeur à envoyer aux équipes métier : l'onglet « À lire » (mode d'emploi, légende, exemple de saisie), un sommaire avec l'avancement de chaque fiche (étapes validées, refusées, restantes, recalculées par Excel à chaque saisie) et un lien vers elle, puis un onglet par système : un tableau avec une ligne par étape de test (fiche, numéro, déroulé avec le code en police à chasse fixe, résultat attendu), qu'on peut trier et filtrer. Seules les cases jaunes se remplissent : résultat constaté, validation (liste « Validé » / « Refusé »), validé par (liste des personnes de la MEP, autre nom accepté) et date ; une note sur chaque en-tête rappelle quoi saisir, et le reste est protégé. Des feuilles masquées identifient la MEP, la version de la recette exportée et chaque ligne (colonne « Réf. » masquée).
 
-Une fois le fichier rempli, le pilote ou un suppléant clique **« Importer la validation »** (en phase de recette). L'application affiche d'abord ce qui va changer, étape par étape, puis l'applique sur confirmation : « Validé » rend l'étape conforme, « Refusé » la met en échec, avec le résultat constaté comme observation, la personne et la date indiquées dans le fichier. Les lignes sans validation sont ignorées.
+Une fois le fichier rempli, le pilote ou un suppléant clique **« Importer la validation »** (en phase de recette). L'application affiche d'abord ce qui va changer, étape par étape, puis l'applique sur confirmation : « Validé » rend l'étape conforme, « Refusé » la met en échec, avec le résultat constaté comme observation, la personne et la date indiquées dans le fichier. Les lignes sans validation sont ignorées. Trier, filtrer, réordonner les lignes ou les colonnes ne gêne pas l'import (chaque ligne est retrouvée par sa référence, chaque colonne par son en-tête) ; « validé », « Validée » ou « REFUSÉ » sont acceptés, les espaces autour ignorés. Un fichier exporté par la version précédente de l'application est toujours accepté. Chaque motif de refus indique l'onglet, la ligne, l'étape et la colonne en cause.
 
-Le fichier est **refusé en entier**, sans rien modifier, avec la liste des motifs, s'il est incohérent : fichier d'une autre MEP, recette modifiée depuis l'export (exporter à nouveau), onglet renommé ou supprimé, étape déplacée ou inconnue, valeur de validation inconnue, « Validé par » manquant, date illisible, « Refusé » sans résultat constaté, ou validation qui contredit un résultat déjà saisi dans l'application (faire d'abord refaire l'étape). Un import n'efface jamais un résultat : pour refaire une étape, le pilote utilise « Refaire ». L'import est inscrit dans le journal de la MEP.
+Le fichier est **refusé en entier**, sans rien modifier, avec la liste des motifs, s'il est incohérent : fichier d'une autre MEP, recette modifiée depuis l'export (exporter à nouveau), colonne d'en-tête supprimée, référence d'étape modifiée ou inconnue, valeur de validation inconnue, « Validé par » manquant, date illisible, « Refusé » sans résultat constaté, ou validation qui contredit un résultat déjà saisi dans l'application (faire d'abord refaire l'étape). Un import n'efface jamais un résultat : pour refaire une étape, le pilote utilise « Refaire ». L'import est inscrit dans le journal de la MEP.
 
 Si la recette révèle un problème, que la MEP a un plan de retour arrière et que le point de non-retour n'est pas franchi, le pilote peut encore déclencher le retour arrière.
 
@@ -116,6 +116,10 @@ L'onglet **Journal** retrace tout, du plus récent au plus ancien, groupé par j
 En tête du journal, l'encadré **Tests unitaires** compte les tests faits et non faits (et les simples vérifications) ; déplié, il donne pour chaque test le résultat attendu, le résultat constaté, l'exécutant et l'état (réussi, échec, non fait). Les étapes du retour arrière n'y figurent qu'une fois celui-ci déclenché. Une étape reprise après un échec redevient « non faite » jusqu'à sa nouvelle fin.
 
 ![Onglet Journal](images/journal.png)
+
+## Suivre sans exécuter
+
+Qui n'exécute aucune étape (chef de projet, astreinte) arrive sur la **vue d'ensemble** de la MEP : chiffres clés, fin estimée, plan coloré, blocages et qui fait quoi. Le tableau de bord **Suivi en direct** montre toutes les MEP lancées, et chaque MEP clôturée a son **rapport de fin**. Voir [Suivre une MEP](Suivre-une-MEP.md).
 
 ## Travailler à plusieurs
 

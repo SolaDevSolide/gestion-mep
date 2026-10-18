@@ -1,4 +1,4 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from './cn';
 
@@ -28,6 +28,11 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   taille?: TailleInterne;
   chargement?: boolean;
   icone?: ReactNode;
+  /**
+   * Action lancée au clic (après `onClick`). Si elle renvoie une promesse, le bouton est occupé jusqu'à sa fin : roue à
+   * la place de l'icône, désactivé (un second clic ne relance rien), `aria-busy`.
+   */
+  action?: () => unknown;
 }
 
 export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
@@ -40,15 +45,36 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
     children,
     disabled,
     type = 'button',
+    action,
+    onClick,
     ...rest
   },
   ref,
 ) {
+  const [occupe, setOccupe] = useState(false);
+  const enCours = useRef(false);
+  const charge = chargement || occupe;
+  const icones = taille.startsWith('ic-');
   return (
     <button
       ref={ref}
       type={type}
-      disabled={disabled || chargement}
+      disabled={disabled || charge}
+      aria-busy={charge || undefined}
+      onClick={(ev) => {
+        onClick?.(ev);
+        if (!action || enCours.current || ev.defaultPrevented) return;
+        const r = action();
+        if (!(r instanceof Promise)) return;
+        enCours.current = true;
+        setOccupe(true);
+        void r
+          .catch(() => undefined)
+          .finally(() => {
+            enCours.current = false;
+            setOccupe(false);
+          });
+      }}
       className={cn(
         'inline-flex shrink-0 items-center justify-center font-medium whitespace-nowrap transition-[background-color,box-shadow,filter,color] duration-150 select-none',
         'disabled:cursor-not-allowed disabled:opacity-50 active:translate-y-px',
@@ -58,8 +84,9 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
       )}
       {...rest}
     >
-      {chargement ? <Loader2 className="size-4 animate-spin" aria-hidden /> : icone}
-      {children}
+      {charge ? <Loader2 className={cn('animate-spin', taille === 'lg' ? 'size-5' : 'size-4')} aria-hidden /> : icone}
+      {/* Bouton icône occupé : la roue remplace l'icône. */}
+      {charge && icones && !icone ? null : children}
     </button>
   );
 });

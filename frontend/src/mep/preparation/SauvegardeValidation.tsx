@@ -85,7 +85,7 @@ function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
               taille="sm"
               icone={<Save className="size-4" aria-hidden />}
               disabled={invalide || d.conflit}
-              onClick={() => void enregistrer()}
+              action={enregistrer}
             >
               Enregistrer
             </Button>
@@ -213,7 +213,7 @@ export function SauvegardeSection() {
               variante="primaire"
               icone={<Save className="size-4" aria-hidden />}
               disabled={!d.dirty || d.conflit}
-              onClick={() => void enregistrer()}
+              action={enregistrer}
             >
               Enregistrer
             </Button>

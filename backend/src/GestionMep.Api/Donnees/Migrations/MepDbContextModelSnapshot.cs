@@ -155,6 +155,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("APlacer")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Action")
                         .IsRequired()
                         .HasColumnType("text");
@@ -174,6 +177,10 @@ namespace GestionMep.Api.Donnees.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.PrimitiveCollection<List<Guid>>("Dependances")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.PrimitiveCollection<List<Guid>>("DependancesDerivees")
                         .IsRequired()
                         .HasColumnType("uuid[]");
 
@@ -224,9 +231,16 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<bool>("PointDeNonRetour")
                         .HasColumnType("boolean");
 
+                    b.PrimitiveCollection<List<Guid>>("PortsAttendus")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
                     b.Property<string>("Preuve")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("Rang")
+                        .HasColumnType("integer");
 
                     b.PrimitiveCollection<List<Guid>>("ResolutionIds")
                         .IsRequired()
@@ -253,6 +267,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<string>("SauvegardeMethodeRecuperation")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid?>("SectionId")
+                        .HasColumnType("uuid");
 
                     b.PrimitiveCollection<List<Guid>>("SystemeIds")
                         .IsRequired()
@@ -559,6 +576,10 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<string>("RetourArriereMotif")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("Sections")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.PrimitiveCollection<List<Guid>>("SuppleantIds")
                         .IsRequired()
@@ -898,6 +919,29 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.HasIndex("ResolutionTypeId");
 
                     b.ToTable("PiecesJointes");
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.RapportFin", b =>
+                {
+                    b.Property<Guid>("MepId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CalculeApres")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Contenu")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("FigeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Format")
+                        .HasColumnType("integer");
+
+                    b.HasKey("MepId");
+
+                    b.ToTable("RapportsFin");
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Reglage", b =>
@@ -1411,6 +1455,15 @@ namespace GestionMep.Api.Donnees.Migrations
                         .WithMany()
                         .HasForeignKey("ResolutionTypeId")
                         .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.RapportFin", b =>
+                {
+                    b.HasOne("GestionMep.Domain.Mep", null)
+                        .WithOne()
+                        .HasForeignKey("GestionMep.Domain.RapportFin", "MepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Systeme", b =>

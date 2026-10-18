@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { useDraft } from './hooks';
+import { useAsync, useDraft } from './hooks';
 
 describe('useDraft', () => {
   it('suit la source tant que rien n’est saisi', () => {
@@ -35,5 +35,21 @@ describe('useDraft', () => {
     act(() => result.current.reset());
     expect(result.current.value).toEqual({ titre: 'B' });
     expect(result.current.conflit).toBe(false);
+  });
+});
+
+describe('useAsync : chargement et rechargement', () => {
+  it('garde les données affichées pendant un rechargement, signalé par `rechargement`', async () => {
+    let resoudre: (v: string) => void = () => undefined;
+    const charger = vi.fn(() => new Promise<string>((r) => (resoudre = r)));
+    const { result } = renderHook(() => useAsync(charger, []));
+    expect(result.current.chargement).toBe(true);
+    expect(result.current.rechargement).toBe(false);
+    await act(async () => resoudre('v1'));
+    expect(result.current).toMatchObject({ donnees: 'v1', chargement: false, rechargement: false });
+    act(() => result.current.recharger());
+    expect(result.current).toMatchObject({ donnees: 'v1', chargement: true, rechargement: true });
+    await act(async () => resoudre('v2'));
+    expect(result.current).toMatchObject({ donnees: 'v2', chargement: false, rechargement: false });
   });
 });

@@ -66,7 +66,7 @@ export function CommunicationSection() {
                 variante="primaire"
                 icone={<Save className="size-4" aria-hidden />}
                 disabled={!d.dirty || d.conflit}
-                onClick={() => void enregistrer()}
+                action={enregistrer}
               >
                 Enregistrer
               </Button>

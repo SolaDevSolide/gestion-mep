@@ -196,7 +196,7 @@ export function ApprobationsBloc() {
                 taille="sm"
                 icone={<Save className="size-4" aria-hidden />}
                 disabled={d.conflit}
-                onClick={() => void enregistrer()}
+                action={enregistrer}
               >
                 Enregistrer les approbateurs
               </Button>

@@ -63,6 +63,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<IdentiteExterne> IdentitesExternes => Set<IdentiteExterne>();
     public DbSet<Equipe> Equipes => Set<Equipe>();
     public DbSet<ModeleTexte> ModelesTexte => Set<ModeleTexte>();
+    public DbSet<RapportFin> RapportsFin => Set<RapportFin>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -110,6 +111,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.GoNoGo).AsJson();
             e.Property(x => x.ResponsablesTechniques).AsJson();
             e.Property(x => x.FichesRecette).AsJson();
+            // Sections du plan et leurs cercles (repères sans effet sur l'exécution).
+            e.Property(x => x.Sections).AsJson();
             e.Property(x => x.ElementsBibliothequeComptes).HasColumnType("uuid[]");
             e.Property(x => x.Bilan).AsJsonObjet();
             e.HasIndex(x => x.EstModele);
@@ -140,6 +143,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         {
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.Dependances).HasColumnType("uuid[]");
+            e.Property(x => x.DependancesDerivees).HasColumnType("uuid[]");
+            e.Property(x => x.PortsAttendus).HasColumnType("uuid[]");
             e.Property(x => x.SystemeIds).HasColumnType("uuid[]");
             e.Property(x => x.ResolutionIds).HasColumnType("uuid[]");
             e.Property(x => x.Environnements).AsJson();
@@ -233,6 +238,14 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         {
             e.HasOne<Mep>().WithMany().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.MepId, x.Id });
+        });
+
+        // Rapport de fin figé à la clôture : un par MEP, supprimé avec elle.
+        b.Entity<RapportFin>(e =>
+        {
+            e.HasKey(x => x.MepId);
+            e.Property(x => x.Contenu).HasColumnType("jsonb");
+            e.HasOne<Mep>().WithOne().HasForeignKey<RapportFin>(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<EvenementAdmin>(e =>

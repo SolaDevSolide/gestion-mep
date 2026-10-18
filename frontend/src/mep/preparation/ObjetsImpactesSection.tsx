@@ -378,7 +378,7 @@ function TableObjets({ objets, edition }: { objets: ObjetImpacte[]; edition: boo
                     <BoutonIcone
                       label={`Retirer ${o.nom} de la MEP`}
                       taille="sm"
-                      onClick={() => void run(() => api.supprimerObjetImpacte(mep.id, o.id), `${o.nom} retiré.`)}
+                      action={() => run(() => api.supprimerObjetImpacte(mep.id, o.id), `${o.nom} retiré.`)}
                     >
                       <Trash2 className="size-4" aria-hidden />
                     </BoutonIcone>

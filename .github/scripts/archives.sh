@@ -18,7 +18,7 @@ for rid in linux-x64 win-x64; do
     -p:Version="$VERSION" -p:DebugType=none -o "$dossier" --nologo -v q
   mkdir -p "$dossier/wwwroot" && cp -r "$RACINE/frontend/dist/." "$dossier/wwwroot/"
   printf '%s\n' "$VERSION" > "$dossier/VERSION"
-  cp "$RACINE/installation/gestion-mep.conf.exemple" "$RACINE/LICENSE" "$dossier/"
+  cp "$RACINE/installation/gestion-mep.conf.exemple" "$RACINE/installation/charte.exemple.json" "$RACINE/LICENSE" "$dossier/"
   if [ "$rid" = linux-x64 ]; then
     cp "$RACINE/installation/installer.sh" "$RACINE/installation/gestion-mep.service" "$dossier/"
     chmod 755 "$dossier/installer.sh" "$dossier/GestionMep.Api"

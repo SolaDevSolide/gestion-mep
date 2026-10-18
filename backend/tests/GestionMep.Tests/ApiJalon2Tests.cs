@@ -362,21 +362,28 @@ public class ApiJalon2Tests : IDisposable
         });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, inverse.StatusCode);
 
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { plan = "RetourArriere", action = "Nouveau repli" }));
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { plan = "RetourArriere", action = "Nouveau repli", apres = EtapeId(mep, "R0003") }));
         Assert.Equal("RetourArriere", Etape(mep, "R0004").GetProperty("plan").GetString());
         Assert.Equal(2, Etape(mep, "R0004").GetProperty("ligne").GetInt32());
         Assert.Equal(0, Etape(mep, "R0004").GetProperty("ordre").GetInt32());
         Assert.Equal(EtapeId(mep, "R0003"), Etape(mep, "R0004").GetProperty("dependances").EnumerateArray().Single().GetGuid());
+        // Une place dans l'autre plan : 422.
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { apres = EtapeId(mep, "R0001") })).StatusCode);
+        // Sans place : étape isolée, en haut.
         mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { }));
-        Assert.Equal(5, Etape(mep, "E0010").GetProperty("ligne").GetInt32());
+        Assert.Equal(0, Etape(mep, "E0010").GetProperty("ligne").GetInt32());
+        Assert.Empty(Etape(mep, "E0010").GetProperty("dependances").EnumerateArray());
 
-        // R0004 passe en tête de la première ligne de son plan, sans toucher au déploiement.
-        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "R0004")}/placer", new { ligne = 0, position = 0 }));
-        Assert.Equal((0, 0), (Etape(mep, "R0004").GetProperty("ligne").GetInt32(), Etape(mep, "R0004").GetProperty("ordre").GetInt32()));
-        Assert.Equal(1, Etape(mep, "R0001").GetProperty("ordre").GetInt32());
-        Assert.Equal((0, 0), (Etape(mep, "E0001").GetProperty("ligne").GetInt32(), Etape(mep, "E0001").GetProperty("ordre").GetInt32()));
+        // R0004 glissée en parallèle de R0001 : mêmes préalables (aucun) et mêmes suivants (R0003), sans toucher au déploiement.
+        var e1 = (Etape(mep, "E0001").GetProperty("ligne").GetInt32(), Etape(mep, "E0001").GetProperty("ordre").GetInt32());
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "R0004")}/deplacer", new { paralleleA = EtapeId(mep, "R0001") }));
+        // Rangée juste à droite de R0001.
+        Assert.Equal((0, 1), (Etape(mep, "R0004").GetProperty("ligne").GetInt32(), Etape(mep, "R0004").GetProperty("ordre").GetInt32()));
+        Assert.Equal((0, 2), (Etape(mep, "R0001").GetProperty("ordre").GetInt32(), Etape(mep, "R0002").GetProperty("ordre").GetInt32()));
+        Assert.Equal(e1, (Etape(mep, "E0001").GetProperty("ligne").GetInt32(), Etape(mep, "E0001").GetProperty("ordre").GetInt32()));
         Assert.Equal(3, Etape(mep, "R0003").GetProperty("dependances").GetArrayLength()); // R0001, R0002 et R0004
-        Assert.Equal(HttpStatusCode.NotFound, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "R0001")}/deplacer", new { sens = "haut" })).StatusCode);
+        // Les opérations par ligne n'existent plus.
+        Assert.Equal(HttpStatusCode.NotFound, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "R0001")}/placer", new { ligne = 0, position = 0 })).StatusCode);
     }
 
     // ---------- Catalogue des systèmes ----------

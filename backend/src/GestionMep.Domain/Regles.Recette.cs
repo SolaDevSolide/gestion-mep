@@ -175,7 +175,7 @@ public static partial class Regles
     }
 
     /// <summary>Une ligne d'étape lue dans le fichier : où elle est (pour les messages) et les cases remplies par le métier.</summary>
-    /// <param name="Lieu">Ex. « WEB, ligne 7 (Connexion, étape 2) ».</param>
+    /// <param name="Lieu">Ex. « Onglet WEB, ligne 7 (« Connexion », étape 2) ».</param>
     /// <param name="DateLisible">Faux si la case date contient autre chose qu'une date.</param>
     public record LigneValidation(Guid FicheId, Guid EtapeId, string Lieu, string Validation, string Constate, string ValidePar,
         DateOnly? Date, bool DateLisible = true);
@@ -195,11 +195,11 @@ public static partial class Regles
         return new string(d.Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray()).ToUpperInvariant();
     }
 
-    /// <summary>« Validé » ou « Refusé » (casse et accents indifférents) ; null pour toute autre valeur.</summary>
+    /// <summary>« Validé » ou « Refusé » (casse, accents et accord au féminin indifférents) ; null pour toute autre valeur.</summary>
     public static ResultatControle? LireValidation(string valeur) => SansAccents(valeur.Trim()) switch
     {
-        "VALIDE" => ResultatControle.Conforme,
-        "REFUSE" => ResultatControle.Echec,
+        "VALIDE" or "VALIDEE" => ResultatControle.Conforme,
+        "REFUSE" or "REFUSEE" => ResultatControle.Echec,
         _ => null,
     };
 
@@ -242,10 +242,10 @@ public static partial class Regles
             }
             var anomalies = new List<string>();
             var resultat = LireValidation(l.Validation);
-            if (resultat is null) anomalies.Add($"validation « {l.Validation} » inconnue ({LibelleValide} ou {LibelleRefuse} attendu)");
+            if (resultat is null) anomalies.Add($"validation « {l.Validation} » inconnue (colonne « Validation » : {LibelleValide} ou {LibelleRefuse} attendu)");
             if (l.ValidePar.Length == 0) anomalies.Add("indiquer qui a validé (colonne « Validé par »)");
-            if (!l.DateLisible) anomalies.Add("date illisible (jour/mois/année attendu)");
-            if (resultat == ResultatControle.Echec && l.Constate.Length == 0) anomalies.Add("décrire le résultat constaté du refus");
+            if (!l.DateLisible) anomalies.Add("date illisible (colonne « Date » : jour/mois/année attendu)");
+            if (resultat == ResultatControle.Echec && l.Constate.Length == 0) anomalies.Add("décrire le résultat constaté du refus (colonne « Résultat constaté »)");
             if (anomalies.Count > 0)
             {
                 erreurs.Add($"{l.Lieu} : {string.Join(" ; ", anomalies)}.");

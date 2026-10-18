@@ -7,8 +7,10 @@ import { environnementsEtape } from '../../environnements';
 import { PastilleEnvironnement } from '../../ui/PastilleEnvironnement';
 import { LIBELLE_CRITICITE, LIBELLE_FIN } from '../../format';
 import { construireLignes, indexLignes, type Lien } from '../../graphe';
+import { ascendants, descendants } from './modeleGraphe';
 import { useDraft, useReportDirty } from '../../hooks';
 import { libelleEditeurs, useEditeurs, usePresenceElement } from '../../presence';
+import { cleIciEtape } from './PresentsGraphe';
 import { couleurPersonne } from '../../ui/Avatar';
 import { useMep } from '../../mepContext';
 import type {
@@ -130,6 +132,8 @@ interface Props {
   focusAction?: boolean;
   onLier: (de: string, vers: string) => void;
   onDelier: (liens: Lien[]) => void;
+  /** « Retirer du plan » (étape du graphe, modifiable ici) : elle part dans le bac « Étapes à placer ». */
+  onRetirerDuPlan?: () => void;
   onSelection: (id: string | null) => void;
   /** Signale au parent une saisie non enregistrée, pour qu'il ne change pas d'étape sans prévenir. */
   onDirty?: (dirty: boolean) => void;
@@ -139,6 +143,16 @@ interface Props {
    */
   demande?: string | null;
   onAnnulerDemande?: () => void;
+  /**
+   * Verrou d'édition de l'étape : pris par quelqu'un d'autre (`lectureSeule`), le panneau passe en lecture seule avec
+   * le bandeau donné ; une saisie non enregistrée reste affichée pour être copiée.
+   */
+  verrou?: { lectureSeule: boolean; bandeau: ReactNode };
+  /**
+   * Fiche ouverte en lecture même avec les droits d'édition (étape d'une section, vue depuis le plan) : ce bandeau dit où
+   * la modifier. Rien n'est déclaré aux autres ni verrouillé.
+   */
+  lecture?: ReactNode;
 }
 
 /** Badges de la barre du haut : code, type, point de non-retour. */
@@ -225,18 +239,24 @@ export function PanneauEdition(props: Props) {
     focusAction,
     onLier,
     onDelier,
+    onRetirerDuPlan,
     onSelection,
     onDirty,
     demande,
     onAnnulerDemande,
+    verrou,
+    lecture,
   } = props;
+  const ecriture = modifiable && !lecture;
   const { run } = useMep();
   const navigate = useNavigate();
   const d = useDraft<Fiche>(ficheDepuis(etape));
   useReportDirty(d.dirty, `Étape ${etape.code}`);
   useEffect(() => onDirty?.(d.dirty), [onDirty, d.dirty]);
   // Présence : l'étape ouverte en édition est signalée aux autres, et on voit qui d'autre la modifie.
-  usePresenceElement(`etape:${etape.id}`, modifiable);
+  usePresenceElement(`etape:${etape.id}`, ecriture);
+  // Où l'on est, même en lecture : votre avatar apparaît sur la carte (et sur sa section) chez les autres.
+  usePresenceElement(cleIciEtape(etape.id), true);
   const editeurs = useEditeurs(`etape:${etape.id}`);
   const v = d.value;
   const [suppr, setSuppr] = useState(false);
@@ -255,18 +275,21 @@ export function PanneauEdition(props: Props) {
   const r = ligneDe.get(etape.id) ?? 0;
   const prealables = etapes.filter((e) => etape.dependances.includes(e.id));
   const suivants = etapes.filter((e) => e.dependances.includes(etape.id));
+  // Graphe libre : tout lien qui ne crée pas de boucle est possible, quelle que soit la profondeur des étapes.
+  const apresElle = useMemo(() => descendants(etapes, etape.id), [etapes, etape.id]);
+  const avantElle = useMemo(() => ascendants(etapes, etape.id), [etapes, etape.id]);
   const ajoutsAvant = lignes
-    .slice(0, r)
     .flat()
-    .filter((e) => !etape.dependances.includes(e.id));
+    .filter((e) => e.id !== etape.id && !etape.dependances.includes(e.id) && !apresElle.has(e.id));
   const ajoutsApres = lignes
-    .slice(r + 1)
     .flat()
-    .filter((e) => !e.dependances.includes(etape.id));
+    .filter((e) => e.id !== etape.id && !e.dependances.includes(etape.id) && !avantElle.has(e.id));
 
-  if (!modifiable)
+  if (!ecriture || verrou?.lectureSeule)
     return (
       <EspaceLecture
+        bandeau={lecture ?? (verrou?.lectureSeule ? verrou.bandeau : null)}
+        brouillon={verrou?.lectureSeule && d.dirty ? v : null}
         mep={mep}
         etape={etape}
         prealables={prealables}
@@ -407,8 +430,8 @@ export function PanneauEdition(props: Props) {
           <Button
             variante="primaire"
             taille="sm"
-            onClick={() =>
-              void enregistrer().then((ok) => {
+            action={() =>
+              enregistrer().then((ok) => {
                 if (ok) onSelection(cible.cible);
               })
             }
@@ -448,6 +471,7 @@ export function PanneauEdition(props: Props) {
       suppr={suppr}
       onSuppr={setSuppr}
       onSupprimer={() => void supprimer()}
+      onRetirerDuPlan={onRetirerDuPlan}
     />
   );
 
@@ -473,7 +497,12 @@ function EspaceLecture({
   onSelection,
   transformer,
   mention,
+  bandeau,
+  brouillon,
 }: {
+  bandeau?: ReactNode;
+  /** Saisie non enregistrée, gardée à l'écran après la perte du verrou. */
+  brouillon?: Fiche | null;
   mep: Mep;
   etape: Etape;
   prealables: Etape[];
@@ -510,6 +539,8 @@ function EspaceLecture({
             {transformer}
           </div>
           {mention}
+          {bandeau}
+          {brouillon && <BrouillonPerdu fiche={brouillon} />}
         </div>
       }
       gauche={
@@ -588,5 +619,35 @@ function EspaceLecture({
         </>
       }
     />
+  );
+}
+
+/** Saisie non enregistrée d'une étape dont quelqu'un a pris la main : affichée telle quelle, sélectionnable, à copier. */
+function BrouillonPerdu({ fiche }: { fiche: Fiche }) {
+  const champs: [string, string][] = [
+    ['Action', fiche.action],
+    ['Durée (min)', fiche.duree],
+    ['Instructions', fiche.instructions],
+    ['Résultat attendu', fiche.resultatAttendu],
+    ['Emplacement de la sauvegarde', fiche.sauvegardeEmplacement],
+    ['Méthode de récupération', fiche.sauvegardeMethodeRecuperation],
+  ].filter((c): c is [string, string] => !!c[1].trim());
+  return (
+    <section
+      aria-label="Votre saisie non enregistrée"
+      className="grid max-h-56 gap-1.5 overflow-auto rounded-lg border border-line bg-surface-2 px-3 py-2 text-[13px]"
+    >
+      <h3 className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+        Votre saisie non enregistrée
+      </h3>
+      <dl className="grid gap-1">
+        {champs.map(([nom, valeur]) => (
+          <div key={nom}>
+            <dt className="font-medium">{nom}</dt>
+            <dd className="font-mono text-xs whitespace-pre-wrap text-fg-muted select-text">{valeur}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }

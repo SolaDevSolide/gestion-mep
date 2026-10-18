@@ -1,56 +1,103 @@
+using System.Globalization;
 using ClosedXML.Excel;
 
 namespace GestionMep.Tableur;
 
 /// <summary>
-/// Mise en forme d'une cellule écrite par <see cref="FeuilleExcel.Ecrire"/>. Les couleurs sont en hexadécimal « RRGGBB ».
-/// Le texte est toujours renvoyé à la ligne et aligné en haut, pour rester lisible à l'impression.
+/// Identité d'un classeur : titre (propriétés du fichier, en-tête des pages imprimées), application et version qui l'ont
+/// produit, date de génération (heure locale affichée telle quelle) et palette de marque.
 /// </summary>
-public sealed record Format
+/// <param name="Titre">Par exemple « Étapes de déploiement · Paiement mobile 4.2 ».</param>
+/// <param name="GenereLe">Date et heure de génération, déjà dans le fuseau du lecteur.</param>
+/// <param name="Version">Version de l'application (« 1.4.0 »).</param>
+public sealed record InfosClasseur(string Titre, DateTime GenereLe, string Version)
 {
-    public bool Gras { get; init; }
-    public double? Taille { get; init; }
-    public string? Couleur { get; init; }
-    public string? Fond { get; init; }
-    /// <summary>Police à chasse fixe (code, commandes).</summary>
-    public bool ChasseFixe { get; init; }
-    public bool Centre { get; init; }
-    public bool Bordure { get; init; }
-    /// <summary>Cellule à remplir par le destinataire : seule modifiable une fois la feuille protégée.</summary>
-    public bool ASaisir { get; init; }
-    /// <summary>Format de date jour/mois/année.</summary>
-    public bool Date { get; init; }
-    /// <summary>Format de date et heure jour/mois/année heures:minutes.</summary>
-    public bool DateHeure { get; init; }
+    /// <summary>Nom de l'application, repris dans la mention « Généré par » et les propriétés du fichier.</summary>
+    public string Application { get; init; } = "Gestion MEP";
+    /// <summary>Sujet (propriétés du fichier).</summary>
+    public string? Sujet { get; init; }
+    /// <summary>Couleurs de marque ; null : celles de l'application.</summary>
+    public PaletteExcel? Palette { get; init; }
 
-    public static readonly Format Normal = new();
+    /// <summary>« Généré par Gestion MEP 1.4.0 le 17/10/2026 à 14:34 ».</summary>
+    public string Mention => $"Généré par {Application} {Version} le {GenereLe.ToString("dd/MM/yyyy 'à' HH:mm", CultureInfo.InvariantCulture)}";
 }
 
 /// <summary>
-/// Classeur Excel (.xlsx) en écriture : brique commune des exportations. Ne dépend d'aucun objet métier ; la mise en
-/// forme partagée (en-têtes, cases à remplir en jaune, code sur fond gris) est dans <see cref="Charte"/>.
+/// Classeur Excel (.xlsx) en écriture : brique commune des exportations et des modèles à remplir. Ne dépend d'aucun objet
+/// métier. Chaque onglet reçoit la même mise en page (police, quadrillage masqué, impression paysage ajustée à la largeur,
+/// en-tête et pied de page numérotés) ; la mise en forme vient de la <see cref="StylesExcel"/>.
 /// </summary>
 public sealed class ClasseurExcel : IDisposable
 {
+    public const string FeuilleListes = "Listes";
+
     private readonly XLWorkbook _classeur = new();
     private readonly HashSet<string> _noms = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _tables = new(StringComparer.OrdinalIgnoreCase);
+    private FeuilleExcel? _listes;
+    private int _colonneListes;
 
-    /// <summary>Ajoute une feuille ; le nom est rendu valide pour Excel (<see cref="NomsFeuilles.Assainir"/>) et unique.</summary>
+    public InfosClasseur Infos { get; }
+    public StylesExcel Styles { get; }
+
+    public ClasseurExcel(InfosClasseur infos)
+    {
+        Infos = infos;
+        Styles = new StylesExcel(infos.Palette);
+        _classeur.Style.Font.FontName = StylesExcel.Police;
+        _classeur.Style.Font.FontSize = StylesExcel.TailleTexte;
+        var p = _classeur.Properties;
+        p.Title = infos.Titre;
+        p.Subject = infos.Sujet ?? infos.Titre;
+        p.Author = infos.Application;
+        p.LastModifiedBy = infos.Application;
+        p.Company = infos.Application;
+        p.Comments = infos.Mention;
+        p.Created = infos.GenereLe;
+        p.Modified = infos.GenereLe;
+    }
+
+    /// <summary>
+    /// Ajoute un onglet ; le nom est rendu valide pour Excel (<see cref="NomsFeuilles.Assainir"/>) et unique. Mise en page :
+    /// paysage, A4, une page de large, marges réduites ; en-tête (titre du classeur, nom de l'onglet) et pied de page
+    /// (mention de génération, numéro de page).
+    /// </summary>
     public FeuilleExcel AjouterFeuille(string nom)
     {
         var nomValide = NomsFeuilles.Unique(NomsFeuilles.Assainir(nom), _noms);
         _noms.Add(nomValide);
         var feuille = _classeur.Worksheets.Add(nomValide);
-        feuille.Style.Font.FontName = Charte.Police;
-        feuille.Style.Font.FontSize = 11;
-        feuille.PageSetup.PageOrientation = XLPageOrientation.Landscape;
-        feuille.PageSetup.FitToPages(1, 0);
-        return new FeuilleExcel(feuille);
+        feuille.Style.Font.FontName = StylesExcel.Police;
+        feuille.Style.Font.FontSize = StylesExcel.TailleTexte;
+        feuille.ShowGridLines = false;
+        var ps = feuille.PageSetup;
+        ps.PageOrientation = XLPageOrientation.Landscape;
+        ps.PaperSize = XLPaperSize.A4Paper;
+        ps.FitToPages(1, 0);
+        ps.Margins.Top = 0.6;
+        ps.Margins.Bottom = 0.6;
+        ps.Margins.Left = 0.4;
+        ps.Margins.Right = 0.4;
+        ps.Margins.Header = 0.25;
+        ps.Margins.Footer = 0.25;
+        ps.CenterHorizontally = true;
+        ps.Header.Left.AddText(EchapperEnTete(Infos.Titre), XLHFOccurrence.AllPages);
+        ps.Header.Right.AddText(XLHFPredefinedText.SheetName, XLHFOccurrence.AllPages);
+        ps.Footer.Left.AddText(EchapperEnTete(Infos.Mention), XLHFOccurrence.AllPages);
+        ps.Footer.Right.AddText("Page ", XLHFOccurrence.AllPages);
+        ps.Footer.Right.AddText(XLHFPredefinedText.PageNumber, XLHFOccurrence.AllPages);
+        ps.Footer.Right.AddText(" / ", XLHFOccurrence.AllPages);
+        ps.Footer.Right.AddText(XLHFPredefinedText.NumberOfPages, XLHFOccurrence.AllPages);
+        return new FeuilleExcel(feuille, this);
     }
+
+    /// <summary>Dans un en-tête ou un pied de page, « &amp; » introduit un code de mise en forme : il est doublé.</summary>
+    private static string EchapperEnTete(string texte) => texte.Replace("&", "&&", StringComparison.Ordinal);
 
     /// <summary>
     /// Feuille masquée de contrôle : une paire clé / valeur par ligne (colonnes A et B), lue au retour du fichier par
-    /// <see cref="LecteurClasseur.LireControle"/>. Elle est protégée comme les autres.
+    /// <see cref="LecteurClasseur.LireControle"/>. Elle est protégée.
     /// </summary>
     public FeuilleExcel AjouterFeuilleControle(string nom, IEnumerable<KeyValuePair<string, string>> valeurs)
     {
@@ -58,198 +105,88 @@ public sealed class ClasseurExcel : IDisposable
         var ligne = 1;
         foreach (var (cle, valeur) in valeurs)
         {
-            f.Ecrire(ligne, 1, cle);
-            f.Ecrire(ligne, 2, valeur);
+            f.Ecrire(ligne, 1, cle, Format.Normal with { RetourALaLigne = false });
+            f.Ecrire(ligne, 2, valeur, Format.Normal with { RetourALaLigne = false });
             ligne++;
         }
         f.Interne.Visibility = XLWorksheetVisibility.Hidden;
+        f.Proteger();
         return f;
+    }
+
+    /// <summary>
+    /// Liste de valeurs proposées dans les listes déroulantes, rangée dans l'onglet masqué « Listes » (une colonne par liste,
+    /// valeurs distinctes sans tenir compte de la casse) et nommée « Liste_<paramref name="nom"/> » dans le classeur.
+    /// Renvoie sa plage, ou null si la liste est vide.
+    /// </summary>
+    public IXLRange? Liste(string nom, IEnumerable<string> valeurs)
+    {
+        var distinctes = valeurs.Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (distinctes.Count == 0) return null;
+        if (_listes is null)
+        {
+            _listes = AjouterFeuille(FeuilleListes);
+            _listes.Interne.Visibility = XLWorksheetVisibility.Hidden;
+            _listes.Proteger();
+        }
+        var col = ++_colonneListes;
+        _listes.Ecrire(1, col, nom, Format.Normal with { Gras = true, RetourALaLigne = false });
+        for (var i = 0; i < distinctes.Count; i++) _listes.Ecrire(i + 2, col, distinctes[i], Format.Normal with { RetourALaLigne = false });
+        _listes.LargeurColonne(col, Math.Min(60, Math.Max(12, distinctes.Max(v => v.Length) + 2)));
+        var plage = _listes.Interne.Range(2, col, distinctes.Count + 1, col);
+        var d = nom.Normalize(System.Text.NormalizationForm.FormD);
+        var nomPlage = "Liste_" + new string(d.Where(char.IsAsciiLetterOrDigit).ToArray());
+        if (!_classeur.DefinedNames.Contains(nomPlage)) _classeur.DefinedNames.Add(nomPlage, plage);
+        return plage;
+    }
+
+    /// <summary>Nom de tableau Excel valide et unique : lettres, chiffres et « _ » ASCII, préfixe « T_ ».</summary>
+    internal string NomTable(string souhaite)
+    {
+        var d = souhaite.Normalize(System.Text.NormalizationForm.FormD);
+        var s = new string(d.Where(c => char.IsAsciiLetterOrDigit(c) || c is ' ' or '_' or '-' or '\'').Select(c => char.IsAsciiLetterOrDigit(c) ? c : '_').ToArray()).Trim('_');
+        while (s.Contains("__", StringComparison.Ordinal)) s = s.Replace("__", "_", StringComparison.Ordinal);
+        var nom = "T_" + (s.Length == 0 ? "Tableau" : s);
+        if (nom.Length > 200) nom = nom[..200];
+        var unique = nom;
+        for (var i = 2; !_tables.Add(unique); i++) unique = $"{nom}_{i}";
+        return unique;
     }
 
     /// <summary>
     /// Verrouille la structure du classeur : onglets impossibles à renommer, déplacer, supprimer, ajouter ou afficher
     /// (sans mot de passe : c'est un garde-fou contre les fausses manipulations, pas une sécurité).
     /// </summary>
-    public void VerrouillerStructure() => _classeur.Protect(XLWorkbookProtectionElements.Windows);
+    public void VerrouillerStructure() => _classeur.Protect(XLWorkbookProtectionElements.Windows); // éléments laissés libres : les fenêtres seulement
 
-    /// <summary>Contenu du fichier .xlsx ; la première feuille est active.</summary>
+    /// <summary>
+    /// Contenu du fichier .xlsx : premier onglet visible actif et seul sélectionné, curseur en A1 partout. Les formules sont
+    /// calculées avant l'enregistrement quand c'est possible, pour que leurs valeurs s'affichent même sans recalcul.
+    /// </summary>
     public byte[] Enregistrer()
     {
-        if (_classeur.Worksheets.Count > 0) _classeur.Worksheet(1).SetTabActive();
+        var premiere = _classeur.Worksheets.FirstOrDefault(f => f.Visibility == XLWorksheetVisibility.Visible);
+        foreach (var f in _classeur.Worksheets)
+        {
+            f.TabSelected = f == premiere;
+            f.TabActive = f == premiere;
+            f.SelectedRanges.RemoveAll();
+            f.SelectedRanges.Add(f.Range(1, 1, 1, 1));
+            f.ActiveCell = f.Cell(1, 1);
+        }
         using var flux = new MemoryStream();
-        _classeur.SaveAs(flux);
+        try
+        {
+            _classeur.SaveAs(flux, new SaveOptions { EvaluateFormulasBeforeSaving = true });
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // Formule que le calcul intégré ne sait pas évaluer : Excel la calculera à l'ouverture.
+            flux.SetLength(0);
+            _classeur.SaveAs(flux);
+        }
         return flux.ToArray();
     }
 
     public void Dispose() => _classeur.Dispose();
-}
-
-/// <summary>Feuille d'un <see cref="ClasseurExcel"/> : lignes et colonnes numérotées à partir de 1, comme dans Excel.</summary>
-public sealed class FeuilleExcel
-{
-    /// <summary>Texte maximal d'une cellule Excel.</summary>
-    public const int TexteMax = 32_767;
-
-    internal IXLWorksheet Interne { get; }
-
-    internal FeuilleExcel(IXLWorksheet feuille) => Interne = feuille;
-
-    /// <summary>Nom réel de l'onglet (après assainissement).</summary>
-    public string Nom => Interne.Name;
-
-    /// <summary>
-    /// Écrit une valeur (texte, nombre, date, booléen ou null) avec sa mise en forme. Un texte trop long pour Excel est
-    /// tronqué ; un texte qui commence par « = » est écrit tel quel, jamais comme une formule.
-    /// </summary>
-    public void Ecrire(int ligne, int colonne, object? valeur, Format? format = null)
-    {
-        var c = Interne.Cell(ligne, colonne);
-        switch (valeur)
-        {
-            case null: c.Clear(XLClearOptions.Contents); break;
-            case string s: c.SetValue(s.Length > TexteMax ? s[..(TexteMax - 1)] + "…" : s); break;
-            case int i: c.SetValue(i); break;
-            case long l: c.SetValue(l); break;
-            case double d: c.SetValue(d); break;
-            case decimal m: c.SetValue(m); break;
-            case bool b: c.SetValue(b); break;
-            case DateOnly j: c.SetValue(j.ToDateTime(TimeOnly.MinValue)); break;
-            case DateTime dt: c.SetValue(dt); break;
-            default: c.SetValue(valeur.ToString()); break;
-        }
-        Appliquer(Interne.Range(ligne, colonne, ligne, colonne), format ?? Format.Normal);
-    }
-
-    /// <summary>Formule Excel (sans le « = » initial), par exemple <c>COUNTIF('WEB'!E5:E9,"Validé")</c>.</summary>
-    public void Formule(int ligne, int colonne, string formule, Format? format = null)
-    {
-        Interne.Cell(ligne, colonne).FormulaA1 = formule;
-        Appliquer(Interne.Range(ligne, colonne, ligne, colonne), format ?? Format.Normal);
-    }
-
-    /// <summary>Applique une mise en forme à une plage (bordure, fond, saisie autorisée…).</summary>
-    public void Formater(int ligne1, int colonne1, int ligne2, int colonne2, Format format) =>
-        Appliquer(Interne.Range(ligne1, colonne1, ligne2, colonne2), format);
-
-    /// <summary>Fusionne une plage (la valeur est celle de la cellule en haut à gauche).</summary>
-    public void Fusionner(int ligne1, int colonne1, int ligne2, int colonne2)
-    {
-        if (ligne1 != ligne2 || colonne1 != colonne2) Interne.Range(ligne1, colonne1, ligne2, colonne2).Merge();
-    }
-
-    /// <summary>Liste déroulante sur une plage : seules ces valeurs (ou une case vide) sont acceptées par Excel.</summary>
-    public void ListeDeroulante(int ligne1, int colonne1, int ligne2, int colonne2, IReadOnlyList<string> valeurs)
-    {
-        var v = Interne.Range(ligne1, colonne1, ligne2, colonne2).CreateDataValidation();
-        v.IgnoreBlanks = true;
-        v.List("\"" + string.Join(",", valeurs) + "\"", true);
-        v.ErrorStyle = XLErrorStyle.Stop;
-        v.ErrorTitle = "Valeur non prévue";
-        v.ErrorMessage = "Choisir dans la liste : " + string.Join(" ou ", valeurs) + ".";
-    }
-
-    /// <summary>Date seulement (jour/mois/année) acceptée dans la plage, ou case vide.</summary>
-    public void SaisieDate(int ligne1, int colonne1, int ligne2, int colonne2)
-    {
-        var v = Interne.Range(ligne1, colonne1, ligne2, colonne2).CreateDataValidation();
-        v.IgnoreBlanks = true;
-        v.Date.GreaterThan(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified));
-        v.ErrorStyle = XLErrorStyle.Stop;
-        v.ErrorTitle = "Date attendue";
-        v.ErrorMessage = "Saisir une date, par exemple 18/10/2026.";
-    }
-
-    /// <summary>Lien vers une cellule d'une feuille du même classeur.</summary>
-    public void LienInterne(int ligne, int colonne, string texte, string feuille, int ligneCible, int colonneCible = 1)
-    {
-        var c = Interne.Cell(ligne, colonne);
-        c.SetValue(texte);
-        var adresse = Interne.Workbook.Worksheet(feuille).Cell(ligneCible, colonneCible).Address.ToStringRelative();
-        c.SetHyperlink(new XLHyperlink($"'{feuille.Replace("'", "''")}'!{adresse}"));
-        c.Style.Font.FontColor = XLColor.FromHtml("#" + Charte.Accent);
-        c.Style.Font.Underline = XLFontUnderlineValues.Single;
-    }
-
-    /// <summary>Filtre automatique d'Excel sur un tableau (ligne d'en-têtes comprise) : trier et filtrer sans rien modifier.</summary>
-    public void FiltreAuto(int ligne1, int colonne1, int ligne2, int colonne2) =>
-        Interne.Range(ligne1, colonne1, Math.Max(ligne1, ligne2), colonne2).SetAutoFilter();
-
-    public void LargeurColonne(int colonne, double largeur) => Interne.Column(colonne).Width = largeur;
-
-    public void HauteurLigne(int ligne, double hauteur) => Interne.Row(ligne).Height = hauteur;
-
-    /// <summary>Hauteur actuelle d'une ligne, en points.</summary>
-    public double Hauteur(int ligne) => Interne.Row(ligne).Height;
-
-    /// <summary>Fige les lignes au-dessus de <paramref name="lignes"/> + 1 (en-têtes toujours visibles).</summary>
-    public void FigerLignes(int lignes) => Interne.SheetView.FreezeRows(lignes);
-
-    /// <summary>
-    /// Protège la feuille : seules les cellules écrites avec <see cref="Format.ASaisir"/> restent modifiables
-    /// (sans mot de passe). Largeur des colonnes et hauteur des lignes restent ajustables.
-    /// </summary>
-    public void Proteger() =>
-        Interne.Protect(XLProtectionAlgorithm.Algorithm.SimpleHash, XLSheetProtectionElements.FormatColumns | XLSheetProtectionElements.FormatRows
-            | XLSheetProtectionElements.SelectEverything);
-
-    private static void Appliquer(IXLRange r, Format f)
-    {
-        var s = r.Style;
-        s.Alignment.WrapText = true;
-        s.Alignment.Vertical = XLAlignmentVerticalValues.Top;
-        if (f.Centre) s.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        if (f.Gras) s.Font.Bold = true;
-        if (f.Taille is { } t) s.Font.FontSize = t;
-        if (f.Couleur is { } c) s.Font.FontColor = XLColor.FromHtml("#" + c);
-        if (f.ChasseFixe)
-        {
-            s.Font.FontName = Charte.PoliceCode;
-            s.Font.FontSize = 10;
-        }
-        var fond = f.Fond ?? (f.ASaisir ? Charte.FondASaisir : null);
-        if (fond is not null) s.Fill.SetBackgroundColor(XLColor.FromHtml("#" + fond));
-        if (f.Bordure)
-        {
-            s.Border.OutsideBorder = XLBorderStyleValues.Thin;
-            s.Border.OutsideBorderColor = XLColor.FromHtml("#" + Charte.Bordure);
-            s.Border.InsideBorder = XLBorderStyleValues.Thin;
-            s.Border.InsideBorderColor = XLColor.FromHtml("#" + Charte.Bordure);
-        }
-        if (f.ASaisir) s.Protection.Locked = false;
-        if (f.Date) s.DateFormat.Format = "dd/mm/yyyy";
-        if (f.DateHeure) s.DateFormat.Format = "dd/mm/yyyy hh:mm";
-    }
-}
-
-/// <summary>Charte commune des classeurs exportés : polices, couleurs et formats prêts à l'emploi.</summary>
-public static class Charte
-{
-    public const string Police = "Calibri";
-    public const string PoliceCode = "Consolas";
-    /// <summary>Indigo de l'application (en-têtes de tableau, liens).</summary>
-    public const string Accent = "4F46E5";
-    public const string Bordure = "D4D4DC";
-    public const string TexteDiscret = "6B6B78";
-    /// <summary>Jaune pâle des cases à remplir par le destinataire.</summary>
-    public const string FondASaisir = "FFF7D6";
-    /// <summary>Gris des blocs de code.</summary>
-    public const string FondCode = "F1F1F4";
-
-    public static readonly Format Titre = new() { Gras = true, Taille = 16 };
-    public static readonly Format SousTitre = new() { Couleur = TexteDiscret };
-    public static readonly Format EnTete = new() { Gras = true, Couleur = "FFFFFF", Fond = Accent, Bordure = true };
-    public static readonly Format Cellule = new() { Bordure = true };
-    public static readonly Format Code = new() { ChasseFixe = true, Fond = FondCode, Bordure = true };
-    public static readonly Format ASaisir = new() { ASaisir = true, Bordure = true };
-
-    /// <summary>
-    /// Hauteur estimée (en points) d'un texte renvoyé à la ligne dans une colonne de <paramref name="largeur"/> caractères :
-    /// Excel n'ajuste pas seul la hauteur des cellules fusionnées.
-    /// </summary>
-    public static double HauteurTexte(string texte, double largeur, double minimum = 18)
-    {
-        var parLigne = Math.Max(1, (int)(largeur * 1.1));
-        var lignes = texte.Replace("\r\n", "\n").Split('\n').Sum(l => Math.Max(1, (int)Math.Ceiling(l.Length / (double)parLigne)));
-        return Math.Max(minimum, lignes * 15 + 4);
-    }
 }

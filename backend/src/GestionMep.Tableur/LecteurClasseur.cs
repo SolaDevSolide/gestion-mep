@@ -61,6 +61,34 @@ public sealed class LecteurClasseur : IDisposable
     public FeuilleLue? Feuille(string nom) =>
         _classeur.Worksheets.FirstOrDefault(f => string.Equals(f.Name, nom, StringComparison.Ordinal)) is { } f ? new FeuilleLue(f) : null;
 
+    /// <summary>
+    /// Feuille par son nom sans tenir compte de la casse, des accents, des espaces ni de la ponctuation (« objets impactes »
+    /// trouve « Objets impactés »), ou null.
+    /// </summary>
+    public FeuilleLue? FeuilleApprochee(string nom) => Feuille(nom)
+        ?? (_classeur.Worksheets.FirstOrDefault(f => Cle(f.Name) == Cle(nom)) is { } f ? new FeuilleLue(f) : null);
+
+    /// <summary>Toutes les feuilles, dans l'ordre du classeur (masquées comprises).</summary>
+    public IEnumerable<FeuilleLue> Toutes => _classeur.Worksheets.Select(f => new FeuilleLue(f));
+
+    /// <summary>
+    /// Forme de comparaison d'un en-tête ou d'un nom : minuscules sans accents, lettres et chiffres seulement, mots séparés
+    /// par une espace (« Version / correction* » → « version correction »).
+    /// </summary>
+    public static string Cle(string? texte)
+    {
+        var d = (texte ?? "").Replace("œ", "oe", StringComparison.Ordinal).Replace("Œ", "oe", StringComparison.Ordinal)
+            .Normalize(System.Text.NormalizationForm.FormD).ToLowerInvariant();
+        var sb = new System.Text.StringBuilder();
+        foreach (var c in d)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark) continue;
+            if (char.IsLetterOrDigit(c)) sb.Append(c);
+            else if (sb.Length > 0 && sb[^1] != ' ') sb.Append(' ');
+        }
+        return sb.ToString().Trim();
+    }
+
     /// <summary>Paires clé / valeur d'une feuille de contrôle (colonnes A et B, jusqu'à la première ligne vide), ou null si elle manque.</summary>
     public IReadOnlyDictionary<string, string>? LireControle(string nom)
     {
@@ -86,6 +114,36 @@ public sealed class FeuilleLue
     internal FeuilleLue(IXLWorksheet feuille) => _feuille = feuille;
 
     public string Nom => _feuille.Name;
+
+    /// <summary>Faux pour un onglet masqué.</summary>
+    public bool Visible => _feuille.Visibility == XLWorksheetVisibility.Visible;
+
+    /// <summary>Dernière ligne utilisée (0 si la feuille est vide).</summary>
+    public int DerniereLigne => _feuille.LastRowUsed()?.RowNumber() ?? 0;
+
+    /// <summary>Dernière colonne utilisée (0 si la feuille est vide).</summary>
+    public int DerniereColonne => _feuille.LastColumnUsed()?.ColumnNumber() ?? 0;
+
+    /// <summary>
+    /// Repère la ligne d'en-têtes d'un tableau dans les <paramref name="lignesMax"/> premières lignes : la première qui
+    /// contient l'en-tête <paramref name="requis"/>. <paramref name="synonymes"/> associe la forme comparable d'un en-tête
+    /// (<see cref="LecteurClasseur.Cle"/>) au nom de colonne attendu. Les colonnes peuvent être dans n'importe quel ordre ;
+    /// renvoie la ligne et la colonne de chaque nom trouvé, ou null.
+    /// </summary>
+    public (int Ligne, IReadOnlyDictionary<string, int> Colonnes)? EnTetes(IReadOnlyDictionary<string, string> synonymes, string requis,
+        int lignesMax = 20, int colonnesMax = 40)
+    {
+        for (var r = 1; r <= lignesMax; r++)
+        {
+            var trouvees = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (var c = 1; c <= colonnesMax; c++)
+            {
+                if (synonymes.TryGetValue(LecteurClasseur.Cle(Texte(r, c)), out var nom) && !trouvees.ContainsKey(nom)) trouvees[nom] = c;
+            }
+            if (trouvees.ContainsKey(requis)) return (r, trouvees);
+        }
+        return null;
+    }
 
     /// <summary>Texte affiché d'une cellule, sans les blancs autour (« » si vide). Une formule donne son dernier résultat calculé.</summary>
     public string Texte(int ligne, int colonne)

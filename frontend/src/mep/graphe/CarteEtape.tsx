@@ -1,10 +1,13 @@
+import { useContext } from 'react';
+import { Ban } from 'lucide-react';
 import { estAVous, executantEffectif, nomParticipant } from '../../domaine';
 import { LIBELLE_CRITICITE } from '../../format';
 import type { Etape, Mep } from '../../types';
 import { Avatar } from '../../ui/Avatar';
 import { cn } from '../../ui/cn';
 import { TON } from '../../ui/tons';
-import { BORDURE_TON, etatCarte, TEXTE_TON } from './etatCarte';
+import { BORDURE_TON, etatCarte, TEXTE_TON, type EtatCarte } from './etatCarte';
+import { ContexteGraphe } from './contexteGraphe';
 import { BandeauSystemes, systemesDe } from './systemes';
 import { estSimplifiee } from '../typeMep';
 
@@ -25,7 +28,17 @@ interface Props {
 /** Fiche d'une étape dans le graphe : systèmes, code, criticité ou état, action, exécutant (une fois démarrée), durée, badges. */
 export function CarteEtape({ mep, etape: e, mode, descriptions, selectionnee, estompee, cible, className }: Props) {
   const exec = mode === 'execution';
-  const etat = etatCarte(e);
+  // Vue d'ensemble (#61) : une étape qui attend une étape en échec est « Bloquée ».
+  const causes = useContext(ContexteGraphe)?.ensemble?.bloquees.get(e.id);
+  const etat: EtatCarte = causes
+    ? {
+        libelle: 'Bloquée',
+        ton: 'danger',
+        Icone: Ban,
+        teinte: false,
+        detail: `Attend ${causes.map((c) => c.code).join(', ')} (en échec)`,
+      }
+    : etatCarte(e);
   const executant = executantEffectif(e);
   const nom = nomParticipant(mep, executant);
   const systemes = systemesDe(mep, e.systemeIds);
@@ -38,6 +51,7 @@ export function CarteEtape({ mep, etape: e, mode, descriptions, selectionnee, es
           ? 'border-[2.5px] border-rollback-solid'
           : cn('border-[1.5px]', exec ? BORDURE_TON[etat.ton] : 'border-line-strong hover:border-accent'),
         exec && etat.teinte && TON[etat.ton].fond,
+        causes && 'border-dashed bg-[repeating-linear-gradient(135deg,transparent_0_8px,var(--danger-bg)_8px_10px)]',
         selectionnee && 'border-accent shadow-[0_0_0_3px_var(--accent-soft)]',
         cible === 'ok' && 'shadow-[0_0_0_3px_var(--ok-solid)]',
         cible === 'ko' && 'shadow-[0_0_0_3px_var(--danger-solid)]',
@@ -74,6 +88,7 @@ export function CarteEtape({ mep, etape: e, mode, descriptions, selectionnee, es
         <p className="text-[14px] leading-snug font-semibold">
           {e.action || <em className="font-normal text-fg-subtle">Action à décrire</em>}
         </p>
+        {causes && <p className="text-[11.5px] font-semibold text-danger-fg">{etat.detail}</p>}
         <div className="flex flex-wrap items-center gap-1.5 text-xs text-fg-muted">
           {nom && <Avatar nom={nom} taille="xs" />}
           {nom && (

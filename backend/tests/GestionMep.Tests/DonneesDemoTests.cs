@@ -104,8 +104,19 @@ public class DonneesDemoTests
                      "E0003 : compléter Instructions exactes.", "E0005 : remplacer l'action d'exemple par une action réelle.",
                      "Recette « Export nocturne » : ajouter au moins une étape de test.", "La procédure doit être relue par un opérateur.",
                      "Il faut 1 approbation(s).",
+                     "Section « Contrôles de bout en bout » dans le bac : la placer dans le plan ou la supprimer.",
                  })
             Assert.Contains(attendue, erreurs);
+        // Sections : deux placées et reliées par leurs cercles, une dans le bac ; les préalables effectifs sont ceux du plan.
+        Assert.Equal(["Tables factures", "Export et téléchargement", "Contrôles de bout en bout"], m.Sections.Select(s => s.Titre).ToArray());
+        string[] Prealables(string code) => m.Etapes.Single(e => e.Code == code).Dependances
+            .Select(id => m.Etapes.Single(e => e.Id == id).Code).Order().ToArray();
+        Assert.Equal(["E0001"], Prealables("E0002"));
+        Assert.Equal(["E0001"], Prealables("E0003"));
+        Assert.Equal(["E0001"], Prealables("E0004"));
+        Assert.Equal(["E0002", "E0003", "E0004"], Prealables("E0005"));
+        Assert.Equal(["E0001"], m.Etapes.Single(e => e.Code == "E0004").DependancesDerivees.Select(id => m.Etapes.Single(e => e.Id == id).Code));
+        Assert.Contains(Regles.Avertissements(m), a => a.StartsWith("Section « Contrôles de bout en bout », cercle d'entrée « Début »", StringComparison.Ordinal));
         Assert.Contains(Regles.Avertissements(m), a => a.Contains("Claire sera absent", StringComparison.Ordinal));
         // L'échéance de retour arrière est facultative : son absence n'est ni une anomalie ni un blocage des étapes.
         Assert.Null(m.EcheanceRepli);
@@ -137,7 +148,8 @@ public class DonneesDemoTests
         Assert.Equal("Terminée", Dispo(m, "E0001"));
         Assert.Equal("Terminée", Dispo(m, "E0003"));
         Assert.Equal("En cours", Dispo(m, "E0004"));
-        Assert.Equal("Arrêt / résolution", Dispo(m, "E0005"));
+        // Claire applique la résolution type de la purge du cache CDN (une correction faite, vérification à faire).
+        Assert.Equal("Résolution en cours", Dispo(m, "E0005"));
         Assert.NotEmpty(E(m, "E0005").ResolutionIds);
         Assert.NotEmpty(E(m, "E0005").Commentaire);
         var pnr = E(m, "E0006");
@@ -146,7 +158,12 @@ public class DonneesDemoTests
         Assert.False(Regles.NonRetourFranchi(m));
         Assert.StartsWith("Attend", Dispo(m, "E0006"));
         Assert.Equal(Bob, m.Participants.Single(p => p.Id == E(m, "E0004").ExecutantId).UtilisateurId);
-        Assert.Empty(m.Resolutions);
+        var resolution = Assert.Single(m.Resolutions);
+        Assert.Equal((StatutResolution.EnCours, E(m, "E0005").Id), (resolution.Statut, resolution.EtapeId));
+        // Deux étapes en cours (Bob dépasse sa durée), le plan rangé en cinq sections.
+        Assert.Equal(["E0004", "E0009"], m.Etapes.Where(e => e.Etat == EtatEtape.EnCours).Select(e => e.Code).Order());
+        Assert.Equal(5, m.Sections.Count);
+        Assert.All(m.Etapes.Where(e => e.Plan == TypePlan.Deploiement && e.Code != "E0006"), e => Assert.NotNull(e.SectionId));
     }
 
     [Fact]

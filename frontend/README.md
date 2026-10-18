@@ -18,13 +18,15 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 
 | Dossier               | Contenu                                                                                                                                      |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/pages`           | Pages : connexion, liste des MEP, une MEP, profil                                                                                            |
+| `src/pages`           | Pages : connexion, liste des MEP, une MEP, Suivi en direct, rapport de fin, profil                                                           |
 | `src/mep`             | Onglets et dialogues d'une MEP (préparation, plan : étapes, retour arrière, recette ; exécution, journal ; `onglets.ts`)                     |
-| `src/mep/graphe`      | Éditeur et vue d'exécution du graphe des étapes                                                                                              |
+| `src/mep/ensemble`    | Vue d'ensemble d'une MEP et calculs du suivi (états, étapes bloquées, fin estimée, ordre du tableau de bord) dans `calculs.ts`               |
+| `src/mep/graphe`      | Graphe libre des étapes (React Flow, rangement ELK), sections, verrou d'édition d'une étape ; appels de l'API du graphe dans `apiGraphe.ts`  |
 | `src/mep/preparation` | Sections de l'onglet Préparation                                                                                                             |
 | `src/parametres`      | Paramètres globaux : catalogue des systèmes, résolutions types, bibliothèques d'étapes et de recettes, critères go / no-go, modèles de texte |
 | `src/textes`          | Textes à copier : remplissage des modèles de texte (`modelesTexte.ts`, logique pure), aperçu, copie mise en forme ou simple                  |
 | `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version »                                                                   |
+| `src/charte`          | Charte visuelle : calculs des couleurs (`charte.ts`, `couleurs.ts`, mêmes résultats que le serveur), sélecteur de couleur, aperçus           |
 | `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                                                           |
 | `src/test`            | Configuration Vitest et fabrique de données de test                                                                                          |
 
@@ -36,7 +38,7 @@ Logique pure, testée sans DOM :
 | `types.ts`        | Noms courts des types de l'API (`Mep`, `Etape`…), alias des types générés                                                                                   |
 | `api/schema.d.ts` | Types générés depuis `docs/openapi.json` par `npm run api:types` ; ne jamais modifier à la main                                                             |
 | `domaine.ts`      | Règles d'affichage : plan actif, étapes à vous, bloqueurs, progression, bilan de recette                                                                    |
-| `graphe.ts`       | Lignes du graphe, liens, tracé des jonctions                                                                                                                |
+| `graphe.ts`       | Lignes du graphe (profondeur des étapes, ordre de l'export), liens du plan                                                                                  |
 | `personnes.ts`    | Comptes reliés regroupés par personne, équipes d'une personne, filtres par équipe et recherche des comptes et des MEP                                       |
 | `recherche.ts`    | Recherche insensible aux accents, score et surlignage                                                                                                       |
 | `blocs.ts`        | Découpage des instructions en blocs Texte / Code et raccourcis de mise en forme markdown                                                                    |
@@ -75,9 +77,13 @@ await run(() => api.demarrerEtape(mep.id, etape.id, etape.revision), 'Étape dé
 
 `/api/version` renvoie l'empreinte du `index.html` servi. `layout/NouvelleVersion.tsx` la compare périodiquement à celle chargée et propose de recharger après un déploiement.
 
+### Charte visuelle
+
+Le serveur sert la charte en vigueur dans `/charte.css` (lien `<link id="charte">` de `index.html`) : seulement les jetons qui diffèrent de `index.css`, sous `:root:root:not(.dark)` et `:root:root.dark` pour l'emporter sur eux. Sans charte personnalisée, la feuille ne contient que l'empreinte : l'application est exactement celle de `index.css`. `/api/version` renvoie aussi l'empreinte de la charte ; quand elle change, `charte/appliquer.ts` charge la nouvelle feuille à côté de l'ancienne et retire l'ancienne une fois chargée (aucun rechargement de la page, aucun clignement). L'onglet Charte visuelle de la console (`admin/CharteTab.tsx`) calcule son aperçu et ses contrôles de lisibilité avec `charte/charte.ts`, qui doit donner les mêmes résultats que `CharteVisuelle.cs` : les cas de `charte/vecteurs-charte.json` sont joués des deux côtés, et un test vérifie que `charte/defauts.ts` reprend `index.css` à l'identique.
+
 ## Style
 
-- Couleurs, ombres et rayons sont des **jetons CSS** définis dans `src/index.css` (`--bg`, `--surface`, `--fg`, `--accent`…), redéfinis pour le thème sombre (`:root.dark`). Les tons de statut (`ok`, `run`, `wait`, `danger`, `warn`, `rollback`…) ont chacun un fond, un texte, une bordure et une couleur pleine.
+- Couleurs, ombres et rayons sont des **jetons CSS** définis dans `src/index.css` (`--bg`, `--surface`, `--fg`, `--accent`…), redéfinis pour le thème sombre (`:root.dark`). La charte visuelle les remplace par `/charte.css` : un nouveau jeton qui dépend de la primaire, de la secondaire ou de la tertiaire doit aussi être calculé dans `charte/charte.ts` et `CharteVisuelle.cs`. Le menu latéral utilise ses propres jetons (`--nav-*`), la page de connexion les siens (`--connexion-*`). Les tons de statut (`ok`, `run`, `wait`, `danger`, `warn`, `rollback`…) ont chacun un fond, un texte, une bordure et une couleur pleine.
 - Les classes Tailwind utilisent ces jetons (`bg-surface`, `text-fg-muted`). Pas de couleur en dur.
 - `ui/cn.ts` fusionne les classes (`clsx` + `tailwind-merge`).
 - Le thème (clair, sombre, système) est géré par `theme.tsx`.

@@ -3,7 +3,6 @@ import {
   CircleArrowUp,
   Layers,
   Library,
-  Loader2,
   LogOut,
   Mail,
   Megaphone,
@@ -11,6 +10,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Rocket,
+  Activity,
   Search,
   ShieldCheck,
   ShieldUser,
@@ -32,6 +32,8 @@ import { FiletErreur } from '../ui/FiletErreur';
 import { Kbd } from '../ui/Kbd';
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from '../ui/Menu';
 import { Tooltip } from '../ui/Tooltip';
+import { EnChargement, Squelette, SqueletteLignes } from '../ui/Squelette';
+import { ActiviteReseau } from '../ui/ActiviteReseau';
 import { PaletteCommandes } from './PaletteCommandes';
 
 const THEMES: { id: PreferenceTheme; libelle: string; Icone: typeof Sun }[] = [
@@ -39,6 +41,9 @@ const THEMES: { id: PreferenceTheme; libelle: string; Icone: typeof Sun }[] = [
   { id: 'clair', libelle: 'Clair', Icone: Sun },
   { id: 'sombre', libelle: 'Sombre', Icone: Moon },
 ];
+
+/** Boutons du pied du menu latéral : couleurs du menu (charte visuelle, menu en secondaire possible). */
+const BOUTON_NAV = 'text-nav-muted hover:bg-nav-hover hover:text-nav-fg';
 
 function Lien({
   to,
@@ -61,7 +66,7 @@ function Lien({
       className={({ isActive }) =>
         cn(
           'group flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm font-medium transition-colors duration-150',
-          isActive ? 'bg-accent-soft text-accent-text' : 'text-fg-muted hover:bg-surface-2 hover:text-fg',
+          isActive ? 'bg-nav-active text-nav-active-fg' : 'text-nav-muted hover:bg-nav-hover hover:text-nav-fg',
           replie && 'justify-center px-0',
         )
       }
@@ -108,7 +113,8 @@ export function Shell() {
     <div className="flex min-h-[calc(100vh-var(--bandeau-demo,0px))]">
       <aside
         className={cn(
-          'sticky top-[var(--bandeau-demo,0px)] flex h-[calc(100vh-var(--bandeau-demo,0px))] shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200',
+          // Masqué à l'impression (rapport de fin, #61) : seule la page s'imprime.
+          'sticky top-[var(--bandeau-demo,0px)] flex h-[calc(100vh-var(--bandeau-demo,0px))] shrink-0 flex-col border-r border-nav-line bg-nav-bg text-nav-fg transition-[width] duration-200 print:hidden',
           replie ? 'w-[68px]' : 'w-64',
         )}
       >
@@ -125,7 +131,7 @@ export function Shell() {
             onClick={() => setPalette(true)}
             aria-label="Ouvrir la palette de commandes"
             className={cn(
-              'flex h-9 w-full items-center gap-2 rounded-lg border border-line bg-surface-2 px-2.5 text-sm text-fg-subtle transition-colors duration-150 hover:border-line-strong hover:text-fg',
+              'flex h-9 w-full items-center gap-2 rounded-lg border border-nav-line bg-nav-input px-2.5 text-sm text-nav-subtle transition-colors duration-150 hover:border-nav-line-strong hover:text-nav-fg',
               replie && 'justify-center px-0',
             )}
           >
@@ -141,9 +147,10 @@ export function Shell() {
 
         <nav aria-label="Navigation principale" className="mt-4 flex flex-1 flex-col gap-0.5 overflow-y-auto px-3">
           <Lien to="/" end icone={Rocket} libelle="Mises en production" replie={replie} />
+          <Lien to="/suivi" icone={Activity} libelle="Suivi en direct" replie={replie} />
           <div
             className={cn(
-              'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase',
+              'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-nav-subtle uppercase',
               replie && 'text-center px-0',
             )}
           >
@@ -159,7 +166,7 @@ export function Shell() {
             <>
               <div
                 className={cn(
-                  'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase',
+                  'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-nav-subtle uppercase',
                   replie && 'text-center px-0',
                 )}
               >
@@ -167,18 +174,20 @@ export function Shell() {
               </div>
               <Lien to="/admin" icone={ShieldUser} libelle="Console d’administration" replie={replie} />
               {miseAJour && (
-                <Lien
-                  to="/admin?onglet=version"
-                  icone={CircleArrowUp}
-                  libelle={`Mise à jour ${miseAJour.derniereVersion ?? ''} disponible`}
-                  replie={replie}
-                />
+                <div className="animate-fade-in">
+                  <Lien
+                    to="/admin?onglet=version"
+                    icone={CircleArrowUp}
+                    libelle={`Mise à jour ${miseAJour.derniereVersion ?? ''} disponible`}
+                    replie={replie}
+                  />
+                </div>
               )}
             </>
           )}
           <div
             className={cn(
-              'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase',
+              'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-nav-subtle uppercase',
               replie && 'text-center px-0',
             )}
           >
@@ -187,14 +196,14 @@ export function Shell() {
           <Lien to="/profil" icone={UserRound} libelle="Mon profil" replie={replie} />
         </nav>
 
-        <div className="border-t border-line p-3">
+        <div className="border-t border-nav-line p-3">
           <div className={cn('flex items-center gap-1', replie && 'flex-col')}>
             <Menu>
               <MenuTrigger asChild>
                 <button
                   type="button"
                   className={cn(
-                    'flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors duration-150 hover:bg-surface-2',
+                    'flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors duration-150 hover:bg-nav-hover',
                     replie && 'flex-none',
                   )}
                   aria-label="Menu utilisateur"
@@ -203,7 +212,7 @@ export function Shell() {
                   {!replie && (
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium">{utilisateur?.nomAffiche}</span>
-                      <span className="block truncate text-xs text-fg-subtle">
+                      <span className="block truncate text-xs text-nav-subtle">
                         {utilisateur?.role || (utilisateur?.estAdmin ? 'Administrateur' : 'Utilisateur')}
                       </span>
                     </span>
@@ -243,12 +252,16 @@ export function Shell() {
               </MenuContent>
             </Menu>
             <Tooltip content={sombre ? 'Passer en mode clair' : 'Passer en mode sombre'}>
-              <BoutonIcone label={sombre ? 'Passer en mode clair' : 'Passer en mode sombre'} onClick={basculer}>
+              <BoutonIcone
+                className={BOUTON_NAV}
+                label={sombre ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                onClick={basculer}
+              >
                 {sombre ? <Sun className="size-4" aria-hidden /> : <Moon className="size-4" aria-hidden />}
               </BoutonIcone>
             </Tooltip>
             <Tooltip content="Se déconnecter">
-              <BoutonIcone label="Se déconnecter" onClick={() => void deconnecter()}>
+              <BoutonIcone className={BOUTON_NAV} label="Se déconnecter" action={deconnecter}>
                 <LogOut className="size-4" aria-hidden />
               </BoutonIcone>
             </Tooltip>
@@ -256,7 +269,7 @@ export function Shell() {
           <button
             type="button"
             onClick={() => setReplie(!replie)}
-            className="mt-2 flex h-8 w-full items-center justify-center gap-2 rounded-lg text-xs text-fg-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+            className="mt-2 flex h-8 w-full items-center justify-center gap-2 rounded-lg text-xs text-nav-subtle transition-colors duration-150 hover:bg-nav-hover hover:text-nav-fg"
             aria-label={replie ? 'Déplier le menu' : 'Replier le menu'}
           >
             {replie ? (
@@ -274,18 +287,27 @@ export function Shell() {
         {/* Pages chargées à la demande (voir App) : le menu reste affiché pendant le chargement, et après une erreur
             d'affichage (FiletErreur), réessayée au changement de page ou d'onglet. */}
         <FiletErreur cle={location.pathname + location.search}>
-          <Suspense
-            fallback={
-              <output className="flex flex-1 items-center justify-center py-24 text-fg-subtle">
-                <Loader2 className="mr-2 size-5 animate-spin" aria-hidden /> Chargement…
-              </output>
-            }
-          >
+          <Suspense fallback={<ChargementPage />}>
             <Outlet />
           </Suspense>
         </FiletErreur>
       </div>
       <PaletteCommandes open={palette} onOpenChange={setPalette} />
+      <ActiviteReseau />
     </div>
+  );
+}
+
+/**
+ * Silhouette d'une page dont le code se charge encore. Chaque route a sa propre limite Suspense (voir App) : en changeant
+ * de page, c'est cette silhouette qui s'affiche, pas l'ancienne page qui resterait figée le temps du chargement.
+ */
+export function ChargementPage() {
+  return (
+    <EnChargement libelle="Chargement de la page…" className="mx-auto w-full max-w-6xl px-6 py-8">
+      <Squelette className="h-7 w-72" />
+      <Squelette className="mt-2 h-4 w-96 max-w-full" />
+      <SqueletteLignes lignes={6} className="mt-10 gap-4" />
+    </EnChargement>
   );
 }

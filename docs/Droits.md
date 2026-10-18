@@ -24,6 +24,7 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Action | Qui |
 |---|---|
 | Créer une MEP, dupliquer, créer un modèle | Tout utilisateur |
+| Voir la vue d'ensemble d'une MEP, le tableau de bord « Suivi en direct », le rapport de fin et ses exports | Tout utilisateur |
 | Modifier le contenu en préparation (intervention, personnes, systèmes et leurs environnements, objets impactés, sauvegarde, étapes, retour arrière, recette, approbateurs) | Éditeur |
 | Changer le pilote ou les suppléants, ou le compte auquel ils sont reliés | Pilote, suppléant ou administrateur (tout éditeur tant qu'aucun pilote n'est désigné) |
 | Compléter les informations de sauvegarde après la préparation (sauvegarde réalisée, restauration testée, preuve) | Pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée |

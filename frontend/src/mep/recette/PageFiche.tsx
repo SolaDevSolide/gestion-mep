@@ -110,7 +110,7 @@ export function PageFiche({
               <Button
                 taille="sm"
                 icone={<RotateCcw className="size-4" aria-hidden />}
-                onClick={() => void run(() => api.refaireFicheRecette(mep.id, fiche.id), 'Fiche à refaire.')}
+                action={() => run(() => api.refaireFicheRecette(mep.id, fiche.id), 'Fiche à refaire.')}
               >
                 Refaire la fiche
               </Button>

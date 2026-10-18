@@ -67,9 +67,7 @@ function EtapeTestLigne({
             taille="sm"
             icone={<RotateCcw className="size-4" aria-hidden />}
             aria-label={`Refaire l’étape ${numero} de ${fiche.titre}`}
-            onClick={() =>
-              void run(() => api.refaireEtapeTest(mep.id, fiche.id, etape.id), `Étape ${numero} à refaire.`)
-            }
+            action={() => run(() => api.refaireEtapeTest(mep.id, fiche.id, etape.id), `Étape ${numero} à refaire.`)}
           >
             Refaire
           </Button>
@@ -133,7 +131,7 @@ function EtapeTestLigne({
               taille="lg"
               icone={<Check className="size-5" aria-hidden />}
               disabled={!observation.trim()}
-              onClick={() => void valider('Conforme')}
+              action={() => valider('Conforme')}
             >
               Conforme
             </Button>
@@ -142,7 +140,7 @@ function EtapeTestLigne({
               taille="lg"
               icone={<XCircle className="size-5" aria-hidden />}
               disabled={!observation.trim()}
-              onClick={() => void valider('Echec')}
+              action={() => valider('Echec')}
             >
               Échec
             </Button>

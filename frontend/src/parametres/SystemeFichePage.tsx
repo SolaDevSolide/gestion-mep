@@ -29,6 +29,7 @@ import { PastilleEnvironnement } from '../ui/PastilleEnvironnement';
 import { StatusPill } from '../ui/StatusPill';
 import { Tooltip } from '../ui/Tooltip';
 import { useToast } from '../ui/Toast';
+import { EnChargement, Squelette, SqueletteTableau } from '../ui/Squelette';
 import { SystemeDialog } from './SystemeDialog';
 
 interface Donnees {
@@ -91,8 +92,18 @@ export default function SystemeFichePage() {
           Système introuvable dans le catalogue.
         </Alerte>
       )}
+      {!donnees && !erreur && (
+        <EnChargement libelle="Chargement du système…">
+          <Squelette className="h-8 w-64" />
+          <Squelette className="mt-2 h-4 w-96 max-w-full" />
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            <SqueletteTableau lignes={4} colonnes={2} />
+            <SqueletteTableau lignes={6} colonnes={3} />
+          </div>
+        </EnChargement>
+      )}
       {s && donnees && (
-        <>
+        <div className="apparition">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0">
               <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight">
@@ -123,7 +134,7 @@ export default function SystemeFichePage() {
             <CarteObjets systeme={s} objets={donnees.objets} defaut={donnees.defaut} admin={admin} agir={agir} />
           </div>
           <SystemeDialog existant={s} open={modifier} onOpenChange={setModifier} onFait={recharger} />
-        </>
+        </div>
       )}
     </main>
   );

@@ -53,7 +53,16 @@ export function useAutresPresents(): Presence[] {
 }
 
 /** Encadré coloré (couleur de la première personne) et étiquette « Prénom modifie » posés sur un élément. */
-export function MarquePresence({ editeurs, className }: { editeurs: Presence[]; className?: string }) {
+export function MarquePresence({
+  editeurs,
+  className,
+  etiquette,
+}: {
+  editeurs: Presence[];
+  className?: string;
+  /** Place de l'étiquette (par défaut sur le bord haut, à gauche). */
+  etiquette?: string;
+}) {
   if (editeurs.length === 0) return null;
   const couleur = couleurPersonne(editeurs[0].nom);
   return (
@@ -65,7 +74,10 @@ export function MarquePresence({ editeurs, className }: { editeurs: Presence[]; 
       />
       <span
         role="status"
-        className="pointer-events-none absolute -top-3 left-2 z-[4] inline-flex max-w-[calc(100%-1rem)] items-center gap-1 truncate rounded-full px-2 py-0.5 text-[11px] leading-none font-semibold text-white shadow-sm"
+        className={cn(
+          'pointer-events-none absolute -top-3 left-2 z-[4] inline-flex max-w-[calc(100%-1rem)] items-center gap-1 truncate rounded-full px-2 py-0.5 text-[11px] leading-none font-semibold text-white shadow-sm',
+          etiquette,
+        )}
         style={{ backgroundColor: couleur }}
       >
         {libelleEditeurs(editeurs)}

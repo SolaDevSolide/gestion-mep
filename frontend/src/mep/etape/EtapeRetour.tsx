@@ -38,7 +38,7 @@ function PointDeNonRetour({
                 variante="primaire"
                 taille="sm"
                 icone={<ShieldCheck className="size-4" aria-hidden />}
-                onClick={() => void actions.autoriserNonRetour(etape)}
+                action={() => actions.autoriserNonRetour(etape)}
               >
                 Autoriser le passage
               </Button>
@@ -99,12 +99,10 @@ function CommentaireEtape({
           <Button
             taille="sm"
             icone={<Save className="size-4" aria-hidden />}
-            onClick={() =>
-              void (async () => {
-                const ok = await actions.commenter(etape, commentaire.value.trim());
-                if (ok !== false) commentaire.reset();
-              })()
-            }
+            action={async () => {
+              const ok = await actions.commenter(etape, commentaire.value.trim());
+              if (ok !== false) commentaire.reset();
+            }}
           >
             Enregistrer le commentaire
           </Button>
@@ -196,7 +194,7 @@ export function EtapeRetour({ mep, etape, droits, preuve, onPreuve, commentaire,
               taille="lg"
               className="h-12 w-full"
               icone={<Play className="size-5" aria-hidden />}
-              onClick={() => void actions.demarrer(etape)}
+              action={() => actions.demarrer(etape)}
             >
               Démarrer
             </Button>

@@ -25,7 +25,7 @@ public static partial class LigneDeCommande
     private static readonly string[] Commandes =
     [
         "aide", "--help", "-h", "version", "--version", "migrer", "config", "comptes", "sauvegarder", "importer", "sso", "reglages", "reglage",
-        "systemes", "categories", "criteres", "resolutions", "journal", "sauvegardes", "mettre-a-jour", "meps", "demo", "equipes",
+        "systemes", "categories", "criteres", "resolutions", "journal", "sauvegardes", "mettre-a-jour", "meps", "demo", "equipes", "charte",
     ];
 
     private const string Aide = """
@@ -85,6 +85,17 @@ public static partial class LigneDeCommande
                                                               (dont approbations-minimum : approbations exigées avant le Go)
           gestion-mep reglages retablir <nom>                 Revient à la valeur du fichier .env (ou à la valeur par défaut)
 
+        Charte visuelle (couleurs de l'interface et des exports Excel ; console > fichier charte.json > charte par défaut)
+          gestion-mep charte afficher                         Charte en vigueur, origine (console, fichier, défaut) et lisibilité
+          gestion-mep charte exporter [fichier.json|-]        Charte en vigueur au format du fichier (défaut : sortie standard)
+          gestion-mep charte importer <fichier.json|-> [--essai]
+                                                              Remplace la charte de la console ; --essai : contrôle sans écrire
+          gestion-mep charte verifier [fichier.json]          Valide un fichier (ou la charte en vigueur et le fichier charte.json) :
+                                                              format et lisibilité ; code de retour 1 en cas d'erreur
+          gestion-mep charte definir <rôle> <RRGGBB>          Rôles : primaire, secondaire, tertiaire (ou « primaire » pour la
+                                                              lier), succes, avertissement, erreur, info
+          gestion-mep charte retablir                         Efface la charte de la console : retour au fichier, sinon défaut
+
         Résolutions types
           gestion-mep resolutions lister [--systeme <SYSTÈME>] [--inactives]
           gestion-mep resolutions afficher <id|titre>
@@ -100,7 +111,8 @@ public static partial class LigneDeCommande
                                                               --excel : la liste filtrée en classeur Excel
           gestion-mep meps exporter <id> [fichier.json|-]     MEP complète et son journal, en JSON (archive, audit)
           gestion-mep meps excel <id> <vue> [fichier.xlsx]    Une vue de la MEP en classeur Excel : preparation, etapes,
-                                                              retour-arriere, recette, objets ou journal
+                                                              retour-arriere, recette, objets, journal, ou rapport (rapport
+                                                              de fin d'une MEP clôturée, figé à la clôture)
           gestion-mep journal [--depuis AAAA-MM-JJ] [--limite n]
                                                               Journal d'administration (200 derniers événements par défaut)
 
@@ -139,11 +151,12 @@ public static partial class LigneDeCommande
                                                               catalogue, réglages, journaux ; pièces jointes supprimées) ;
                                                               les sessions ouvertes sont fermées. Refusée hors démonstration.
 
-        Option --json : sortie JSON pour les scripts (commandes lister, afficher, expertises, journal, mettre-a-jour).
+        Option --json : sortie JSON pour les scripts (commandes lister, afficher, expertises, journal, mettre-a-jour, charte afficher).
         Une équipe se désigne par son nom (guillemets s'il contient des espaces) ou son identifiant.
         Exemples : gestion-mep reglages definir url-publique https://mep.entreprise.fr
                    gestion-mep reglages definir lien-signalement ""      (valeur vide : lien masqué)
                    gestion-mep comptes modifier jdupont --ajouter-expertise BDD --detail "Base clients"
+                   gestion-mep charte definir primaire 0F766E           (« #0F766E » entre guillemets dans un shell)
         Codes de retour : 0 succès, 1 échec, 2 commande mal formée.
         """;
 
@@ -157,6 +170,7 @@ public static partial class LigneDeCommande
                                               docker compose up -d app
             Secret depuis un fichier : docker compose exec -T app gestion-mep sso configurer --secret-stdin < secret.txt
             Fichier depuis l'hôte : docker compose exec -T app gestion-mep resolutions importer - < resolutions.json
+            Charte depuis l'hôte : docker compose exec -T app gestion-mep charte importer - < charte.json
             """,
         Installation.Linux => $"""
             Installation sans Docker (Linux) : sudo gestion-mep <commande> ; configuration : {FichierInstallation.Chemin}
@@ -263,6 +277,14 @@ public static partial class LigneDeCommande
                 ["reglages" or "reglage", "lister"] => await ReglagesLister(),
                 ["reglages" or "reglage", "definir", var nom, var valeur] => await ReglagesDefinir(nom, valeur),
                 ["reglages" or "reglage", "retablir", var nom] => await ReglagesRetablir(nom),
+                ["charte", "afficher"] => await CharteAfficher(),
+                ["charte", "exporter"] => await CharteExporter(null),
+                ["charte", "exporter", var fichier] => await CharteExporter(fichier),
+                ["charte", "importer", var fichier, .. var options] => await CharteImporter(fichier, options),
+                ["charte", "verifier"] => await CharteVerifier(null),
+                ["charte", "verifier", var fichier] => await CharteVerifier(fichier),
+                ["charte", "definir", var role, var couleur] => await CharteDefinir(role, couleur),
+                ["charte", "retablir"] => await CharteRetablir(),
                 ["aide" or "--help" or "-h"] => AfficherAide(0),
                 _ => AfficherAide(2),
             };
@@ -925,6 +947,10 @@ public static partial class LigneDeCommande
             Attention("Mot de passe de la base faible ou d'exemple (POSTGRES_PASSWORD) : à changer hors poste de développement.");
         if (!config.GetValue(Reglages.HttpsObligatoire, true))
             Attention("HTTPS non obligatoire (mode d'essai) : les mots de passe peuvent circuler en clair. « gestion-mep reglages definir https-obligatoire oui ».");
+        var charte = ServiceCharte.LireFichier(ServiceCharte.CheminFichier(config));
+        if (!charte.Present) Ok($"Charte visuelle : pas de fichier {charte.Chemin} (facultatif).");
+        else if (charte.Erreur is { } erreurCharte) Attention($"Charte visuelle : fichier {charte.Chemin} invalide, ignoré : {erreurCharte} (« gestion-mep charte verifier »).");
+        else Ok($"Charte visuelle : fichier {charte.Chemin} valide.");
         if (config["Admin:MotDePasse"] is { Length: > 0 })
             Attention($"ADMIN_MOT_DE_PASSE est encore défini : il ne sert qu'au premier démarrage, le retirer du {Installation.NomFichier}.");
         await using var db = Base(config);

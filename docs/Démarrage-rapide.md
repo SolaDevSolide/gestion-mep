@@ -43,10 +43,10 @@ Chaque MEP est dans un état différent, pour essayer chaque écran sans tout d�
 | Portail de démonstration | Préparation, approbation attendue | Le parcours complet ci-dessous : approbation de Claire, Go, exécution, point de non-retour, recette, clôture. |
 | Facturation électronique | Préparation incomplète | La base passe en préproduction puis en production, et l'étape E0005 vérifie la base en préproduction mais l'export et le portail en production : une incohérence à repérer à la relecture. « Vérifier le plan » liste les anomalies : plan de retour arrière sans « quand le déclencher », sauvegarde à renseigner ou non justifiée, étape sans instructions, action d'exemple, fiche de recette vide, procédure non relue, approbation manquante ; avertissement pour une responsable absente. |
 | Annuaire des agences | Prête pour le Go | Plan complet, relu et approuvé : Bob (pilote) ou Alice (suppléante) peut cliquer « Go / no-go » tout de suite. |
-| Paiement mobile | Exécution en cours | Sauvegardes et index réussis ; déploiement de l'API en cours (Bob) ; publication de l'écran en échec avec une résolution type à appliquer (Claire) ; point de non-retour à venir, à autoriser par le pilote. |
+| Paiement mobile | Exécution en cours | Plan rangé en cinq sections (sauvegardes, base de données, service paiement, écran de paiement, contrôles de bout en bout). Sauvegardes, index et table des portefeuilles réussis ; déploiement de l'API en cours (Bob), qui dépasse sa durée, et contrôle des volumes en cours (Alice) ; publication de l'écran en échec, résolution type en cours (Claire), qui bloque la suite ; point de non-retour à venir, à autoriser par le pilote. Sa **vue d'ensemble** montre tout cela d'un coup d'œil. |
 | Portail RH | Recette en cours | Déploiement terminé, dont une migration réparée par une résolution type ; fiches de recette en partie validées, une étape en échec à faire refaire, d'autres à tester avant la clôture. |
 | Messagerie interne | Retour arrière en cours | Résolution en échec : retour arrière déclenché automatiquement ; une étape de repli réussie, une en cours (Alice), la dernière à faire, puis « Service rétabli : clôturer ». |
-| Gestion des stocks | Clôturée réussie | Il y a six jours : point de non-retour franchi avec l'accord du pilote, recette conforme, bilan. |
+| Gestion des stocks | Clôturée réussie | Il y a six jours : déploiement du service en échec, résolu par une résolution type puis refait ; point de non-retour franchi avec l'accord du pilote, recette conforme, bilan qui revient sur l'incident. Son **rapport de fin** en montre le point bloquant. |
 | Extranet partenaires | Clôturée repliée | Il y a dix jours : échec sans résolution connue, retour arrière déclenché par Bob, service rétabli, bilan. |
 | Formulaire de contact | MEP simplifiée, exécution en cours | Petit correctif : Claire pilote, Alice et Bob sont suppléants sans avoir été choisis ; ni versions, ni durée, criticité ou résolutions liées. Le redémarrage du service (API et BDD) est en échec : toutes les résolutions types de ces deux systèmes sont proposées, regroupées par système. Voir [MEP complète ou simplifiée](Préparer-une-MEP.md#mep-complète-ou-simplifiée). |
 
@@ -61,7 +61,7 @@ Les bibliothèques sont remplies elles aussi : une vingtaine d'étapes modèles 
 1. **Alice** : dans « Mises en production », ouvrir « Portail de démonstration ». La fiche s'ouvre sur l'onglet Préparation : ses sections, leur état de complétude et le bouton « Vérifier le plan », qui liste ce qui manque avant de pouvoir démarrer. Il reste l'approbation de Claire.
 
    ![Liste des mises en production](images/liste-des-mep.png)
-2. Parcourir l'onglet **Plan**, sous-onglet **Étapes** : le plan de déploiement en graphe, de haut en bas. Les étapes d'une même ligne peuvent se dérouler en parallèle ; l'étape encadrée de rouge est un point de non-retour. Cliquer une étape ouvre son espace d'édition (instructions, résultat attendu, liens, résolutions).
+2. Parcourir l'onglet **Plan**, sous-onglet **Étapes** : le plan de déploiement en graphe, de haut en bas. Chaque flèche dit qu'une étape attend la précédente, et deux étapes sans flèche entre elles peuvent se dérouler en parallèle ; l'étape encadrée de rouge est un point de non-retour. Cliquer une étape ouvre son espace d'édition (instructions, résultat attendu, liens, résolutions).
 
    ![Graphe des étapes de la MEP de démonstration](images/graphe-des-etapes.png)
 3. **Claire** : ouvrir la même MEP, Préparation, section « Validation », cliquer « Approuver ».
@@ -72,6 +72,14 @@ Les bibliothèques sont remplies elles aussi : une vingtaine d'étapes modèles 
 8. L'onglet **Journal** retrace toute l'intervention.
 
 Pour essayer le retour arrière, ouvrir « Paiement mobile » (exécution en cours) et cliquer « Déclencher le retour arrière », ou reprendre « Messagerie interne », déjà en retour arrière.
+
+## Suivre les MEP en cours
+
+Le menu **Suivi en direct** montre toutes les MEP lancées : « Messagerie interne » (retour arrière) en premier, puis « Paiement mobile » et « Formulaire de contact » (échecs à traiter), puis « Portail RH ». Ouvrir « Paiement mobile » sur sa **vue d'ensemble** : chiffres clés, fin estimée et retard, plan coloré (un clic déplie une section ; les étapes qui attendent l'échec sont hachurées en rouge), blocages et qui fait quoi. « Gestion des stocks » (clôturée) a son **rapport de fin** : bouton « Rapport de fin » du bilan, export Excel ou PDF. Voir [Suivre une MEP](Suivre-une-MEP.md).
+
+## Voir travailler des collègues
+
+Dans le bandeau de démonstration, **« Simuler des collègues »** fait travailler Bob et Claire, pour de vrai, sur « Facturation électronique » pendant quelques minutes. Ouvrir son plan (Plan › Étapes, « Tout déplier ») : leurs avatars apparaissent sur les sections et les cartes où ils se trouvent, leurs modifications arrivent en direct et, si vous avez ouvert une étape, Claire finit par y prendre la main (« Claire a pris la main sur E0005 à Alice »). « Arrêter la simulation » les fait partir.
 
 ## Repartir de zéro
 

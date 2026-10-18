@@ -150,24 +150,49 @@ public class ApiObjetsImpactesTests : IDisposable
         var inconnu = await alice.PutAsJsonAsync($"/api/meps/{id}/systemes/{bdd}/objets", new { objets = new[] { new { objetCatalogueId = Guid.NewGuid(), version = "" } } });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, inconnu.StatusCode);
 
-        // Modèle vide et export : onglet de saisie et catalogue des objets.
+        // Modèle vide : consignes, onglet de saisie (lignes vides à remplir), catalogue, listes masquées.
         var modele = await alice.GetAsync($"/api/meps/{id}/objets/excel?modele=true");
         Assert.Equal(HttpStatusCode.OK, modele.StatusCode);
         using (var c = new XLWorkbook(new MemoryStream(await modele.Content.ReadAsByteArrayAsync())))
         {
-            Assert.True(c.Worksheet("Objets impactés").Cell(5, 4).IsEmpty());
-            Assert.Contains(c.Worksheet("Catalogue").RowsUsed(), r => r.Cell(4).GetString() == "v_factures_a_envoyer");
+            Assert.Equal(["À lire", "Objets impactés", "Catalogue", "Listes"], c.Worksheets.Select(x => x.Name).ToArray());
+            Assert.Equal(XLWorksheetVisibility.Hidden, c.Worksheet("Listes").Visibility);
+            Assert.True(c.IsProtected);
+            var f = c.Worksheet("Objets impactés");
+            Assert.Equal(["Système", "Catégorie", "Nom", "Version ou correction", "Type", "Libellé", "Précision", "Contrôle"],
+                Enumerable.Range(1, 8).Select(i => f.Cell(4, i).GetString()).ToArray());
+            Assert.True(f.Cell(5, 3).IsEmpty());
+            Assert.False(f.Cell(5, 3).Style.Protection.Locked);
+            Assert.True(f.Column(9).IsHidden);
+            Assert.Single(f.Tables);
+            Assert.Contains(f.DataValidations, v => v.AllowedValues == XLAllowedValues.List && v.Ranges.Any(r => r.RangeAddress.FirstAddress.ColumnNumber == 1));
+            Assert.NotNull(f.Cell(4, 3).GetComment());
+            Assert.Contains(c.Worksheet("Catalogue").RowsUsed(), r => r.Cell(3).GetString() == "v_factures_a_envoyer");
         }
+
+        // Export : les objets déjà choisis, contrôlés au catalogue par formule (valeurs calculées dans le fichier).
         var export = await (await alice.GetAsync($"/api/meps/{id}/objets/excel")).Content.ReadAsByteArrayAsync();
+        using (var c = new XLWorkbook(new MemoryStream(export)))
+        {
+            var f = c.Worksheet("Objets impactés");
+            var ligne = f.RowsUsed().First(r => r.Cell(3).GetString() == "clients").RowNumber();
+            Assert.Equal(("2.1", "Au catalogue"), (f.Cell(ligne, 4).GetString(), f.Cell(ligne, 8).CachedValue.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            Assert.Equal("Tables", f.Cell(ligne, 2).GetString());
+        }
+        // Aller-retour : le fichier exporté, réimporté sans retouche, ne change rien.
+        var neutre = await Ok(await alice.PostAsync($"/api/meps/{id}/objets/excel", Fichier(export)));
+        Assert.Equal((0, 0, mep.GetProperty("objetsImpactes").GetArrayLength(), 0), (neutre.GetProperty("ajoutes").GetInt32(), neutre.GetProperty("modifies").GetInt32(),
+            neutre.GetProperty("inchanges").GetInt32(), neutre.GetProperty("rejetees").GetArrayLength()));
+
         byte[] rempli;
         using (var c = new XLWorkbook(new MemoryStream(export)))
         {
             var f = c.Worksheet("Objets impactés");
-            Assert.Equal("Nom", f.Cell(4, 4).GetString());
-            var ligne = f.RowsUsed().First(r => r.Cell(4).GetString() == "clients").RowNumber();
-            f.Cell(ligne, 7).Value = "2.2";
-            var fin = f.LastRowUsed()!.RowNumber() + 1;
-            string[][] ajouts = [["BDD", "Tables", "", "factures", "", "", "3.0"], ["BDD", "", "", "inconnue", "", "", "1"], ["ERP", "", "", "x", "", "", ""]];
+            var ligne = f.RowsUsed().First(r => r.Cell(3).GetString() == "clients").RowNumber();
+            f.Cell(ligne, 4).Value = "2.2";
+            var fin = Enumerable.Range(5, 200).First(l => f.Cell(l, 1).IsEmpty() && f.Cell(l, 3).IsEmpty());
+            // Une ligne vide au milieu, de la casse et des espaces : tolérés.
+            string[][] ajouts = [["", "", "", ""], [" bdd ", "TABLES", "factures", "3.0"], ["BDD", "", "inconnue", "1"], ["ERP", "", "x", ""]];
             for (var i = 0; i < ajouts.Length; i++)
                 for (var col = 0; col < ajouts[i].Length; col++) f.Cell(fin + i, col + 1).Value = ajouts[i][col];
             using var sortie = new MemoryStream();
@@ -179,14 +204,33 @@ public class ApiObjetsImpactesTests : IDisposable
         Assert.Equal((1, 1), (import.GetProperty("ajoutes").GetInt32(), import.GetProperty("modifies").GetInt32()));
         var rejetees = import.GetProperty("rejetees").EnumerateArray().ToList();
         Assert.Equal(2, rejetees.Count);
-        Assert.Equal("Objet absent de la fiche BDD du catalogue.", rejetees[0].GetProperty("raison").GetString());
+        Assert.Equal("Colonne « Nom » : objet absent de la fiche BDD du catalogue.", rejetees[0].GetProperty("raison").GetString());
         Assert.Equal(Systeme(mep, "BDD").GetProperty("catalogueId").GetGuid(), rejetees[0].GetProperty("systemeCatalogueId").GetGuid());
-        Assert.Equal("Le système ERP n'est pas dans la MEP.", rejetees[1].GetProperty("raison").GetString());
+        Assert.StartsWith("Colonne « Système » : le système ERP n'est pas dans la MEP", rejetees[1].GetProperty("raison").GetString(), StringComparison.Ordinal);
         mep = import.GetProperty("mep");
         Assert.Equal(avant + 1, mep.GetProperty("objetsImpactes").GetArrayLength());
         Assert.Equal("2.2", Objets(mep, bdd).Single(o => o.GetProperty("nom").GetString() == "clients").GetProperty("version").GetString());
         var fiches = (await Ok(await alice.GetAsync($"/api/catalogue/systemes/{Systeme(mep, "BDD").GetProperty("catalogueId").GetGuid()}/objets"))).GetArrayLength();
         Assert.Equal(fiche.GetArrayLength(), fiches); // rien n'est créé au catalogue
+
+        // Fichier de la version précédente (Système, Catégorie, Type, Nom, Libellé, Précision, Version ou correction) : accepté.
+        using (var ancien = new XLWorkbook())
+        {
+            var f = ancien.AddWorksheet("Objets impactés");
+            f.Cell(1, 1).Value = "Objets impactés";
+            string[] entetes = ["Système", "Catégorie", "Type", "Nom", "Libellé", "Précision", "Version ou correction"];
+            for (var i = 0; i < entetes.Length; i++) f.Cell(4, i + 1).Value = entetes[i];
+            f.Cell(5, 1).Value = "BDD";
+            f.Cell(5, 4).Value = "clients";
+            f.Cell(5, 7).Value = "2.3";
+            ancien.AddWorksheet("Catalogue").Cell(4, 1).Value = "Système";
+            using var s = new MemoryStream();
+            ancien.SaveAs(s);
+            var r = await Ok(await alice.PostAsync($"/api/meps/{id}/objets/excel", Fichier(s.ToArray())));
+            Assert.Equal((0, 1), (r.GetProperty("ajoutes").GetInt32(), r.GetProperty("modifies").GetInt32()));
+            mep = r.GetProperty("mep");
+            Assert.Equal("2.3", Objets(mep, bdd).Single(o => o.GetProperty("nom").GetString() == "clients").GetProperty("version").GetString());
+        }
 
         using (var vide = new XLWorkbook())
         {

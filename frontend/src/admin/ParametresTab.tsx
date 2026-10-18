@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Input } from '../ui/Input';
 import { useToast } from '../ui/Toast';
+import { EnChargement, Squelette } from '../ui/Squelette';
 import ReglagesServeur from './ReglagesServeur';
 
 export default function ParametresTab() {
@@ -48,17 +49,23 @@ export default function ParametresTab() {
         />
         <div className="px-5 py-5">
           <Field label="Nombre minimum d’approbations" hint="0 = aucune approbation requise." className="max-w-xs">
-            {(id) => (
-              <Input
-                id={id}
-                type="number"
-                min={0}
-                step={1}
-                value={courant}
-                disabled={donnees === null}
-                onChange={(e) => setValeur(e.target.value)}
-              />
-            )}
+            {(id) =>
+              donnees === null && !erreur ? (
+                <EnChargement libelle="Chargement des paramètres…">
+                  <Squelette className="h-9 w-full rounded-lg" />
+                </EnChargement>
+              ) : (
+                <Input
+                  id={id}
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={courant}
+                  disabled={donnees === null}
+                  onChange={(e) => setValeur(e.target.value)}
+                />
+              )
+            }
           </Field>
         </div>
         <div className="flex items-center gap-3 border-t border-line bg-surface-2/50 px-5 py-3">

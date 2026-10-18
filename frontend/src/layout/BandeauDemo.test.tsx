@@ -6,7 +6,20 @@ import { utilisateur } from '../test/fabrique';
 import type { Utilisateur } from '../types';
 import { BandeauDemo, URL_APRES_REINITIALISATION } from './BandeauDemo';
 
-vi.mock('../api', () => ({ api: { demo: vi.fn(), reinitialiserDemo: vi.fn() } }));
+import { MemoryRouter } from 'react-router-dom';
+
+vi.mock('../api', () => ({
+  api: { demo: vi.fn(), reinitialiserDemo: vi.fn(), simulationDemo: vi.fn(), simulerCollegues: vi.fn() },
+}));
+
+const arretee = {
+  actif: false,
+  jusqua: null,
+  mepId: null,
+  outil: 'Facturation électronique',
+  collegues: ['Bob', 'Claire'],
+  lanceePar: null,
+};
 
 const actif = { actif: true, comptes: [] };
 
@@ -17,13 +30,18 @@ function rendre(u: Utilisateur | null) {
     <AuthContext.Provider
       value={{ utilisateur: u, chargement: false, connecter: vi.fn(), deconnecter: vi.fn(), majUtilisateur: vi.fn() }}
     >
-      <BandeauDemo recharger={assign} />
+      <MemoryRouter>
+        <BandeauDemo recharger={assign} />
+      </MemoryRouter>
     </AuthContext.Provider>,
   );
 }
 
 describe('Bandeau du mode démonstration', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.simulationDemo).mockResolvedValue(arretee);
+  });
 
   afterEach(() => {
     document.documentElement.style.removeProperty('--bandeau-demo');
@@ -84,5 +102,35 @@ describe('Bandeau du mode démonstration', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Réservé aux administrateurs.');
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(assign).not.toHaveBeenCalled();
+  });
+
+  it('lance puis arrête la simulation de collègues, pour toute personne connectée', async () => {
+    vi.mocked(api.demo).mockResolvedValue(actif);
+    vi.mocked(api.simulerCollegues).mockResolvedValueOnce({
+      ...arretee,
+      actif: true,
+      mepId: 'm1',
+      jusqua: '2026-10-15T12:03:00Z',
+      lanceePar: 'Bob',
+    });
+    rendre(utilisateur({ estAdmin: false }));
+    await userEvent.click(await screen.findByRole('button', { name: /Simuler des collègues/ }));
+    expect(api.simulerCollegues).toHaveBeenCalledWith(true);
+    expect(await screen.findByRole('link', { name: 'Facturation électronique' })).toHaveAttribute(
+      'href',
+      '/meps/m1?onglet=etapes',
+    );
+    vi.mocked(api.simulerCollegues).mockResolvedValueOnce(arretee);
+    await userEvent.click(screen.getByRole('button', { name: 'Arrêter la simulation' }));
+    expect(api.simulerCollegues).toHaveBeenLastCalledWith(false);
+    expect(await screen.findByRole('button', { name: /Simuler des collègues/ })).toBeInTheDocument();
+  });
+
+  it('ne propose pas la simulation sans session', async () => {
+    vi.mocked(api.demo).mockResolvedValue(actif);
+    rendre(null);
+    await screen.findByRole('status', { name: 'Mode démonstration' });
+    expect(api.simulationDemo).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /Simuler/ })).toBeNull();
   });
 });

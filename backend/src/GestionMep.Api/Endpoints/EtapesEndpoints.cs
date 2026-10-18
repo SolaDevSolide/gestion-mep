@@ -42,6 +42,20 @@ public static class EtapesEndpoints
         Regles.AppliquerTypeAEtape(mep, e);
     }
 
+    /// <summary>Place demandée dans le graphe ; un lien incomplet est refusé (400).</summary>
+    public static Regles.PlaceEtape Place(Guid? apres, LienSaisie? lien, Guid? paralleleA, string champLien)
+    {
+        if (lien is not null && (lien.De is null || lien.Vers is null)) throw ErreurHttp.Saisie($"{champLien} : préciser « de » et « vers ».");
+        var place = new Regles.PlaceEtape(apres, lien?.De, lien?.Vers, paralleleA);
+        var options = (apres is null ? 0 : 1) + (lien is null ? 0 : 1) + (paralleleA is null ? 0 : 1);
+        if (options > 1) throw ErreurHttp.Saisie($"Choisir une seule place : apres, {champLien} ou paralleleA.");
+        return place;
+    }
+
+    /// <summary>« dans la section « X » » pour le journal (vide hors section).</summary>
+    public static string DansSection(Mep mep, Etape e) =>
+        mep.Sections.FirstOrDefault(s => s.Id == e.SectionId) is { } s ? $" dans la section « {s.Titre} »" : "";
+
     public static void MapEtapes(this RouteGroupBuilder api)
     {
         api.MapPost("/meps/{id:guid}/etapes", async (Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] EtapeSaisie? c,
@@ -50,9 +64,8 @@ public static class EtapesEndpoints
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
             Regles.ExigerPreparation(mep);
             var plan = c?.Plan ?? TypePlan.Deploiement;
-            var nbLignes = Regles.Lignes(mep, plan).Count;
-            if (c?.Ligne is { } l && (l < 0 || l > nbLignes)) throw ErreurHttp.Saisie($"Ligne invalide : entre 0 et {nbLignes} (nouvelle ligne en bas).");
-            if (c?.Position is < 0) throw ErreurHttp.Saisie("La position ne peut pas être négative.");
+            var place = Place(c?.Apres, c?.Entre, c?.ParalleleA, "entre");
+            if (c?.Dependances is not null && !place.Vide) throw ErreurHttp.Saisie("Choisir soit les préalables, soit une place dans le graphe.");
             var etape = new Etape
             {
                 MepId = mep.Id,
@@ -60,16 +73,13 @@ public static class EtapesEndpoints
                 Code = Regles.ProchainCode(mep.Etapes, plan),
                 Criticite = Criticite.Moderee,
             };
-            // Ligne absente : nouvelle ligne en bas ; position absente : en fin de ligne.
-            Regles.PlacerNouvelle(mep, etape, c?.Ligne, c?.Position);
-            mep.Etapes.Add(etape);
             if (c is not null)
-                Appliquer(mep, etape, c with { Criticite = c.Criticite ?? Criticite.Moderee }, await svc.ValiderResolutionIds(c.ResolutionIds, []), c.Dependances);
+                Appliquer(mep, etape, c with { Criticite = c.Criticite ?? Criticite.Moderee }, await svc.ValiderResolutionIds(c.ResolutionIds, []), null);
             Regles.AppliquerTypeAEtape(mep, etape);
-            // Sans dépendances explicites : liens par défaut avec la ligne au-dessus et la ligne en dessous.
-            if (c?.Dependances is null) Regles.RelierParDefaut(mep, etape);
-            var dto = await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "etape.creee", $"{etape.Code} créée");
-            return dto;
+            // Sans place ni préalables : étape isolée (dans une section : reliée à ses premiers cercles).
+            Regles.AjouterEtape(mep, etape, place, c?.SectionId);
+            if (c?.Dependances is { } dependances) Regles.DefinirDependances(mep, etape, dependances);
+            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "etape.creee", $"{etape.Code} créée{DansSection(mep, etape)}");
         })));
 
         api.MapPut("/meps/{id:guid}/etapes/{eid:guid}", async (Guid id, Guid eid, EtapeSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
@@ -78,7 +88,8 @@ public static class EtapesEndpoints
             Regles.ExigerPreparation(mep);
             var e = ServiceMep.TrouverEtape(mep, eid);
             ServiceMep.ExigerRevision(e, c.Revision);
-            // Ni la ligne ni la position ne changent ici (voir « placer ») ; dependances absentes = aucun préalable.
+            // La place dans le graphe ne change pas ici (voir « deplacer ») ; dependances absentes = aucun préalable direct
+            // (ceux qui viennent des cercles de section restent).
             Appliquer(mep, e, c, await svc.ValiderResolutionIds(c.ResolutionIds, e.ResolutionIds), c.Dependances ?? []);
             e.Revision++;
             return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "etape.modifiee", $"{e.Code} modifiée");
@@ -93,7 +104,7 @@ public static class EtapesEndpoints
             {
                 ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
                 var e = ServiceMep.TrouverEtape(mep, eid);
-                // Ses suivants restés sans préalable attendent la ligne au-dessus d'eux ; une ligne vide disparaît.
+                // Ce qui l'attendait attend désormais ce qu'elle attendait ; elle disparaît des cercles.
                 Regles.RetirerEtape(mep, e);
                 var executions = mep.Resolutions.Where(r => r.EtapeId == e.Id).Select(r => (Guid?)r.Id).ToList();
                 pieces = await db.PiecesJointes.Where(p => p.EtapeId == e.Id || executions.Contains(p.ExecutionResolutionId)).Select(p => p.Id).ToListAsync();
@@ -111,18 +122,53 @@ public static class EtapesEndpoints
         });
 
         // Déplacement dans le graphe (glisser-déposer) : pas de révision exigée, la place n'est pas dans la fiche.
-        api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/placer", async (Guid id, Guid eid, PlacerSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
+        api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/deplacer", async (Guid id, Guid eid, DeplacementSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
             var acteur = Acteur.Depuis(user);
             ServiceMep.ExigerEditeur(mep, acteur);
             Regles.ExigerPreparation(mep);
             var e = ServiceMep.TrouverEtape(mep, eid);
-            var nbLignes = Regles.Lignes(mep, e.Plan).Count;
-            if (c.Ligne is not { } ligne || ligne < 0 || ligne > nbLignes)
-                throw ErreurHttp.Saisie($"Ligne obligatoire : entre 0 et {nbLignes} (nouvelle ligne en bas).");
-            if (c.Position is not { } position || position < 0) throw ErreurHttp.Saisie("Position obligatoire, positive ou nulle.");
-            Regles.Placer(mep, e, ligne, position, c.LiensParDefaut, c.NouvelleLigne);
-            return await svc.EnregistrerContenu(mep, acteur, "etape.deplacee", $"{e.Code} placée ligne {e.Ligne + 1}");
+            var section = e.SectionId;
+            Regles.DeplacerEtape(mep, e, Place(c.Apres, c.SurLien, c.ParalleleA, "surLien"), c.SectionId, c.SortirDeSection);
+            var detail = e.SectionId == section ? $"{e.Code} déplacée"
+                : e.SectionId is null ? $"{e.Code} sortie de la section « {mep.Sections.FirstOrDefault(s => s.Id == section)?.Titre} »"
+                : $"{e.Code} déplacée{DansSection(mep, e)}";
+            return await svc.EnregistrerContenu(mep, acteur, "etape.deplacee", detail);
+        })));
+
+        // Retirée du graphe : ses suivants attendent ses préalables, elle attend sans lien dans le bac « Étapes à placer ».
+        api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/retirer-du-plan", async (Guid id, Guid eid, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
+        {
+            var acteur = Acteur.Depuis(user);
+            ServiceMep.ExigerEditeur(mep, acteur);
+            Regles.ExigerPreparation(mep);
+            var e = ServiceMep.TrouverEtape(mep, eid);
+            if (!Regles.RetirerDuPlan(mep, e)) return await svc.VersDto(mep, acteur.Id);
+            return await svc.EnregistrerContenu(mep, acteur, "etape.retiree-du-plan",
+                $"{e.Code} retirée du graphe{DansSection(mep, e)}, dans le bac des étapes à placer");
+        })));
+
+        // Retour dans le graphe d'une étape du bac, à la place donnée (ou à part).
+        api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/placer-depuis-le-bac", async (Guid id, Guid eid,
+            [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] PlacementEtapeSaisie? c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
+        {
+            var acteur = Acteur.Depuis(user);
+            ServiceMep.ExigerEditeur(mep, acteur);
+            Regles.ExigerPreparation(mep);
+            var e = ServiceMep.TrouverEtape(mep, eid);
+            c ??= new PlacementEtapeSaisie();
+            var place = Place(c.Apres, c.SurLien, c.ParalleleA, "surLien");
+            Regles.PlacerEtape(mep, e, place, c.SectionId);
+            string Nom(Guid n) => Regles.TrouverNoeud(mep, e.Plan, n)?.ToString() ?? "?";
+            var ou = place switch
+            {
+                { Apres: { } a } => $"après {Nom(a)}",
+                { EntreDe: { } de, EntreVers: { } vers } => $"sur le lien {Nom(de)} → {Nom(vers)}",
+                { ParalleleA: { } p } => $"en parallèle de {Nom(p)}",
+                _ => "à part",
+            };
+            return await svc.EnregistrerContenu(mep, acteur, "etape.placee",
+                $"{e.Code} placée dans le graphe depuis le bac, {ou}{DansSection(mep, e)}");
         })));
 
         // ---------- Prise de main ----------

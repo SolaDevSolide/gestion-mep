@@ -366,15 +366,48 @@ public static partial class DonneesDemo
             "Fichier de sauvegarde présent, sans erreur."));
         var e2 = E(mep, 2, 1, "Migration des tables factures", [bdd], 20, Criticite.Elevee,
             Sim + Code("psql -h bdd-demo -U admin -d compta -f migrations/3.5.sql"), "Colonnes Factur-X présentes, aucune erreur.", e1);
-        var e3 = E(mep, 3, 1, "Déploiement de l'export nocturne", [batch], 20, Criticite.Moderee, "", "Le traitement apparaît dans l'ordonnanceur.", e1);
+        // E0003, E0004 et E0005 reçoivent leurs préalables par les cercles des sections (plus bas).
+        var e3 = E(mep, 3, 1, "Déploiement de l'export nocturne", [batch], 20, Criticite.Moderee, "", "Le traitement apparaît dans l'ordonnanceur.");
         var e4 = E(mep, 4, 1, "Publication du module PDF", [web], 15, Criticite.Moderee,
-            Sim + Code("./publier.sh factures-pdf 3.5"), "Le bouton « Télécharger (Factur-X) » s'affiche.", e1);
+            Sim + Code("./publier.sh factures-pdf 3.5"), "Le bouton « Télécharger (Factur-X) » s'affiche.");
         var e5 = E(mep, 5, 2, "Exemple : vérifier une facture", [bdd, batch, web], 10, Criticite.Faible,
-            "Ouvrir une facture et vérifier son contenu.", "La facture est conforme.", e2, e3, e4);
+            "Ouvrir une facture et vérifier son contenu.", "La facture est conforme.");
         // Incohérence à repérer à la relecture : la base est vérifiée en préproduction, l'export et le portail en production.
         EnvironnementsEtape(e5, (bdd, ["Préproduction"]), (batch, ["Production"]), (web, ["Production"]));
         R(mep, 1, 0, "Restaurer les tables factures", [bdd], 20, Sim + Code("psql -h bdd-demo -U admin compta < /sauvegardes/factures.sql"),
             "Restauration sans erreur.");
+
+        // Sections (#60) : deux sections placées, reliées par leurs cercles, et une troisième encore dans le bac (elle bloque le Go).
+        // Les préalables effectifs restent : E0002, E0003 et E0004 attendent E0001 ; E0005 attend E0002, E0003 et E0004.
+        var creation = c.Maintenant.AddDays(-2).AddHours(-2);
+        var tables = Regles.CreerSection(mep, TypePlan.Deploiement, "Tables factures",
+            "Sauvegarde puis migration des tables au format Factur-X.", [bdd.Id], c.Equipe.Alice.Id, creation, placee: true);
+        var export = Regles.CreerSection(mep, TypePlan.Deploiement, "Export et téléchargement",
+            "Nouvel export nocturne et module de téléchargement PDF, une fois la sauvegarde faite.", [batch.Id, web.Id], c.Equipe.Bob.Id,
+            creation.AddMinutes(10), placee: true);
+        Regles.CreerSection(mep, TypePlan.Deploiement, "Contrôles de bout en bout",
+            "À préparer avec la Comptabilité : une facture créée le jour J doit partir dans l'export de la nuit.", [batch.Id, web.Id],
+            c.Equipe.Claire.Id, creation.AddMinutes(20), placee: false);
+        e1.SectionId = e2.SectionId = tables.Id;
+        e3.SectionId = e4.SectionId = export.Id;
+        var tablesDebut = tables.Ports.Single(p => p.Sens == SensPort.Entree);
+        var tablesMigrees = tables.Ports.Single(p => p.Sens == SensPort.Sortie);
+        Regles.ModifierPort(mep, tables, tablesMigrees, "Tables migrées", "Colonnes Factur-X en place.");
+        var sauvegardeFaite = Regles.AjouterPort(mep, tables, SensPort.Sortie, "Sauvegarde faite", "Les tables peuvent être restaurées.");
+        var exportSauvegarde = export.Ports.Single(p => p.Sens == SensPort.Entree);
+        Regles.ModifierPort(mep, export, exportSauvegarde, "Sauvegarde", "");
+        var exportFin = export.Ports.Single(p => p.Sens == SensPort.Sortie);
+        foreach (var (de, vers) in new[]
+        {
+            (tablesDebut.Id, e1.Id), (e1.Id, sauvegardeFaite.Id), (e2.Id, tablesMigrees.Id),
+            (sauvegardeFaite.Id, exportSauvegarde.Id), (exportSauvegarde.Id, e3.Id), (exportSauvegarde.Id, e4.Id),
+            (e3.Id, exportFin.Id), (e4.Id, exportFin.Id), (tablesMigrees.Id, e5.Id), (exportFin.Id, e5.Id),
+        })
+            Regles.Relier(mep, TypePlan.Deploiement, de, vers);
+        // Plan construit d'un coup : rien n'a encore été relu, révisions de départ.
+        foreach (var e in mep.Etapes) e.Revision = 0;
+        foreach (var s in mep.Sections) s.Revision = 0;
+
         mep.PlanRepli = Repli(25, "Version 3.4 fictive.", "Tables factures restaurées depuis la sauvegarde E0001.");
         mep.PlanRepli.QuandDeclencher = "";
 
@@ -393,6 +426,9 @@ public static partial class DonneesDemo
         var d = new Deroule(mep, c.Maintenant.AddDays(-2).AddHours(-3));
         d.Creer(c.Equipe.Alice);
         d.Plus(25).Note(c.Equipe.Alice, "etape.creee", "E0005 créée");
+        d.Plus(5).Note(c.Equipe.Alice, "section.creee", "Section « Tables factures » créée");
+        d.Plus(10).Note(c.Equipe.Bob, "section.creee", "Section « Export et téléchargement » créée");
+        d.Plus(10).Note(c.Equipe.Claire, "section.creee", "Section « Contrôles de bout en bout » créée, dans le bac");
         d.Plus(5).Approbateurs(c.Equipe.Alice, c.Equipe.Claire);
         d.A(c.Maintenant.AddDays(-1).AddHours(-5)).Note(c.Equipe.Bob, "recette.fiche-ajoutee", "Recette « Export nocturne » ajoutée");
         d.Plus(10).Note(c.Equipe.Bob, "responsables-techniques.modifies", "Responsables techniques : Bob, Claire");
@@ -469,8 +505,9 @@ public static partial class DonneesDemo
     // ---------- 3. Exécution en cours ----------
 
     /// <summary>
-    /// Exécution depuis 80 minutes : sauvegardes et index réussis, déploiement de l'API en cours (Bob), publication de l'écran
-    /// en échec avec une résolution type disponible, point de non-retour à venir. Échéance dans trois jours.
+    /// Exécution depuis 95 minutes, plan en cinq sections : sauvegardes, index et table des portefeuilles réussis, déploiement de
+    /// l'API (Bob, au-delà de sa durée) et contrôle des volumes (Alice) en cours, publication de l'écran en échec avec sa
+    /// résolution type en cours (Claire), point de non-retour et contrôles de bout en bout bloqués. Échéance dans trois jours.
     /// </summary>
     private static MepDemo EnExecution(Contexte c)
     {
@@ -493,26 +530,77 @@ public static partial class DonneesDemo
             (bob, [api, mdm], "Service paiement et flux MDM", DisponibiliteJourJ.Joignable),
             (claire, [web], "Écran de paiement", DisponibiliteJourJ.Joignable));
 
+        // Plan rangé en sections (sauvegardes, base, service, écran, contrôles) : la vue d'ensemble et le suivi en direct les colorent.
         var e1 = Sauvegarde(E(mep, 1, 0, "Sauvegarde de la table des transactions", [bdd], 15, Criticite.Elevee,
             Sim + Code("pg_dump -h bdd-demo -U admin -t transactions paiement > /sauvegardes/transactions.sql"), "Fichier présent, sans erreur."));
         var e2 = Sauvegarde(E(mep, 2, 0, "Sauvegarde du service paiement", [api], 10, Criticite.Moderee,
             Sim + Code("tar czf /sauvegardes/paiement-4.1.tgz /opt/paiement"), "Archive créée."));
         var e3 = E(mep, 3, 1, "Création des index de transactions", [bdd], 20, Criticite.Elevee,
-            Sim + Code("psql -h bdd-demo -U admin -d paiement -f migrations/4.2-index.sql"), "Index `ix_transactions_portefeuille` présent.", e1, e2);
+            Sim + Code("psql -h bdd-demo -U admin -d paiement -f migrations/4.2-index.sql"), "Index `ix_transactions_portefeuille` présent.");
         e3.ResolutionIds = [c.Res(1).Id];
+        var e8 = E(mep, 8, 2, "Migration de la table des portefeuilles", [bdd], 15, Criticite.Elevee,
+            Sim + Code("psql -h bdd-demo -U admin -d paiement -f migrations/4.2-portefeuilles.sql"), "Table `portefeuilles` créée.", e3);
+        var e9 = E(mep, 9, 3, "Contrôle des volumes et des verrous", [bdd], 10, Criticite.Moderee,
+            Sim + Code("psql -h bdd-demo -U lecture -d paiement -f controles/volumes.sql"), "Aucun verrou bloquant, volumes attendus.", e8);
         var e4 = E(mep, 4, 1, "Déploiement du service paiement 4.2", [api], 25, Criticite.Elevee,
             "Le déploiement redémarre le service : prévenir le support **avant** de lancer.\n\n" + Code("cd /opt/paiement && ./deploy.sh 4.2"),
-            "`GET /sante` renvoie 200 avec la version 4.2.", e1, e2);
+            "`GET /sante` renvoie 200 avec la version 4.2.");
         e4.ResolutionIds = [c.Res(0).Id];
+        var e10 = E(mep, 10, 2, "Déclaration du flux MDM des moyens de paiement", [mdm], 15, Criticite.Moderee,
+            Sim + Code("./mdm-flux.sh moyens-paiement --version 4.2"), "Le flux apparaît dans le MDM.", e4);
+        var e11 = E(mep, 11, 2, "Contrôle de santé de l'API", [api], 5, Criticite.Moderee,
+            Code("curl -fsS https://paiement.exemple.invalid/sante"), "Réponse 200 « paiement 4.2 ».", e4);
         var e5 = E(mep, 5, 1, "Publication de l'écran de paiement", [web], 20, Criticite.Moderee,
-            Sim + Code("npm ci && npm run build && ./publier.sh paiement"), "Le bouton « Payer avec mon mobile » s'affiche.", e1, e2);
+            Sim + Code("npm ci && npm run build && ./publier.sh paiement"), "Le bouton « Payer avec mon mobile » s'affiche.");
         e5.ResolutionIds = [c.Res(2).Id];
-        var e6 = NonRetour(E(mep, 6, 2, "Activation des nouveaux moyens de paiement", [api, mdm, bdd], 15, Criticite.Bloquante,
+        var e12 = E(mep, 12, 2, "Vérification de l'écran sur mobile", [web], 10, Criticite.Faible,
+            "Ouvrir le site sur un téléphone de test.", "Le bouton « Payer avec mon mobile » s'affiche.", e5);
+        var e6 = NonRetour(E(mep, 6, 4, "Activation des nouveaux moyens de paiement", [api, mdm, bdd], 15, Criticite.Bloquante,
             "**Irréversible** : les portefeuilles sont déclarés auprès du MDM et les premiers paiements partent.\n\n" + Code("./activer-portefeuilles.sh --appliquer"),
-            "Les portefeuilles apparaissent dans le MDM ; un paiement test passe.", e3, e4, e5));
+            "Les portefeuilles apparaissent dans le MDM ; un paiement test passe."));
         e6.ResolutionIds = [c.Res(3).Id];
-        E(mep, 7, 3, "Contrôle final", [api, web, bdd], 10, Criticite.Elevee,
-            "- [ ] Payer 1 € avec un portefeuille de test\n- [ ] Vérifier la transaction en base\n- [ ] Vérifier le tableau de bord", "Tous les contrôles sont verts.", e6);
+        var e13 = E(mep, 13, 5, "Paiement test de 1 €", [web, api], 10, Criticite.Elevee,
+            "Payer 1 € avec un portefeuille de test sur le site.", "Le paiement est accepté et le reçu s'affiche.");
+        var e14 = E(mep, 14, 6, "Vérification de la transaction en base", [bdd], 5, Criticite.Moderee,
+            Code("psql -h bdd-demo -U lecture -d paiement -c \"SELECT * FROM transactions ORDER BY date DESC LIMIT 1;\""), "La transaction de 1 € est présente.", e13);
+        var e7 = E(mep, 7, 7, "Contrôle final", [api, web, bdd], 10, Criticite.Elevee,
+            "- [ ] Vérifier le tableau de bord\n- [ ] Prévenir le support", "Tous les contrôles sont verts.", e14);
+
+        var creation = c.Maintenant.AddDays(-3);
+        Section NouvelleSection(string titre, string description, Systeme[] systemes, Compte auteur, string entree, string sortie, int minutes)
+        {
+            var s = Regles.CreerSection(mep, TypePlan.Deploiement, titre, description, systemes.Select(x => x.Id), auteur.Id,
+                creation.AddMinutes(minutes), placee: true);
+            Regles.ModifierPort(mep, s, s.Ports.Single(p => p.Sens == SensPort.Entree), entree, "");
+            Regles.ModifierPort(mep, s, s.Ports.Single(p => p.Sens == SensPort.Sortie), sortie, "");
+            return s;
+        }
+        var eqS = c.Equipe;
+        var sSauv = NouvelleSection("Sauvegardes", "Table des transactions et service paiement.", [bdd, api], eqS.Alice, "Début", "Sauvegardes faites", 0);
+        var sBase = NouvelleSection("Base de données", "Index, table des portefeuilles et contrôles.", [bdd], eqS.Alice, "Sauvegardes", "Base prête", 5);
+        var sApi = NouvelleSection("Service paiement", "Service 4.2 et flux MDM.", [api, mdm], eqS.Bob, "Sauvegardes", "API prête", 10);
+        var sWeb = NouvelleSection("Écran de paiement", "Écran « Payer avec mon mobile ».", [web], eqS.Claire, "Sauvegardes", "Écran publié", 15);
+        var sCtl = NouvelleSection("Contrôles de bout en bout", "Paiement test et contrôle final.", [api, web, bdd], eqS.Claire, "Activation", "Fin", 20);
+        e1.SectionId = e2.SectionId = sSauv.Id;
+        e3.SectionId = e8.SectionId = e9.SectionId = sBase.Id;
+        e4.SectionId = e10.SectionId = e11.SectionId = sApi.Id;
+        e5.SectionId = e12.SectionId = sWeb.Id;
+        e13.SectionId = e14.SectionId = e7.SectionId = sCtl.Id;
+        Guid In(Section s) => s.Ports.Single(p => p.Sens == SensPort.Entree).Id;
+        Guid Out(Section s) => s.Ports.Single(p => p.Sens == SensPort.Sortie).Id;
+        foreach (var (de, vers) in new[]
+        {
+            (In(sSauv), e1.Id), (In(sSauv), e2.Id), (e1.Id, Out(sSauv)), (e2.Id, Out(sSauv)),
+            (Out(sSauv), In(sBase)), (Out(sSauv), In(sApi)), (Out(sSauv), In(sWeb)),
+            (In(sBase), e3.Id), (e9.Id, Out(sBase)),
+            (In(sApi), e4.Id), (e10.Id, Out(sApi)), (e11.Id, Out(sApi)),
+            (In(sWeb), e5.Id), (e12.Id, Out(sWeb)),
+            (Out(sBase), e6.Id), (Out(sApi), e6.Id), (Out(sWeb), e6.Id),
+            (e6.Id, In(sCtl)), (In(sCtl), e13.Id), (e7.Id, Out(sCtl)),
+        })
+            Regles.Relier(mep, TypePlan.Deploiement, de, vers);
+        // Plan tel que préparé : les liens posés ci-dessus ne comptent pas comme des modifications d'étape.
+        foreach (var e in mep.Etapes) e.Revision = 0;
         var r1 = R(mep, 1, 0, "Réinstaller le service paiement 4.1", [api], 15, Sim + Code("cd /opt/paiement && ./deploy.sh 4.1"), "`GET /sante` renvoie la version 4.1.");
         var r2 = R(mep, 2, 0, "Supprimer les nouveaux index", [bdd], 10, Sim + Code("psql -h bdd-demo -U admin -d paiement -f migrations/4.2-index-retrait.sql"),
             "Index retirés, sans erreur.");
@@ -526,7 +614,7 @@ public static partial class DonneesDemo
         Fiche(mep, mdm, "Référentiel MDM", ("Rechercher « portefeuille » dans le référentiel des moyens de paiement.", "Deux portefeuilles actifs."));
 
         var eq = c.Equipe;
-        var go = c.Maintenant.AddMinutes(-80);
+        var go = c.Maintenant.AddMinutes(-95);
         mep.Communication = new Communication
         {
             ReferenceDemande = "CHG-DEMO-0405",
@@ -554,9 +642,15 @@ public static partial class DonneesDemo
         d.Plus(2).Demarrer(eq.Alice, e3);
         d.Plus(1).Demarrer(eq.Claire, e5);
         d.Plus(17).Reussir(eq.Alice, e3, "CREATE INDEX (2 index) — fictif");
-        d.Plus(7).Echouer(eq.Claire, e5, "Erreur fictive : 403 au moment de la purge du cache CDN.");
-        d.Plus(2).Commenter(eq.Claire, e5, "Le jeton de purge a sans doute expiré : appliquer la résolution type « WEB : purge du cache CDN refusée ».");
-        d.A(c.Maintenant.AddMinutes(-6)).Demarrer(eq.Bob, e4);
+        d.Plus(4).Demarrer(eq.Alice, e8);
+        d.Plus(3).Echouer(eq.Claire, e5, "Erreur fictive : 403 au moment de la purge du cache CDN.");
+        d.Plus(2).Commenter(eq.Claire, e5, "Le jeton de purge a sans doute expiré : j'applique la résolution type.");
+        d.Plus(3).Commenter(eq.Bob, e4, "J'attends le feu vert du support avant de redémarrer le service.");
+        var resolution = d.Plus(2).LancerResolution(eq.Claire, e5, c.Res(2));
+        d.Plus(8).Reussir(eq.Alice, e8, "Table portefeuilles créée — fictif");
+        d.Plus(4).Corriger(eq.Claire, resolution, 1, ResultatControle.Conforme, "Nouveau jeton enregistré.");
+        d.A(c.Maintenant.AddMinutes(-31)).Demarrer(eq.Bob, e4);
+        d.A(c.Maintenant.AddMinutes(-7)).Demarrer(eq.Alice, e9);
         return d.Fin();
     }
 
@@ -838,7 +932,10 @@ public static partial class DonneesDemo
 
     // ---------- 6. Clôturée réussie ----------
 
-    /// <summary>MEP d'il y a six jours : point de non-retour franchi avec l'accord du pilote, recette conforme, bilan rédigé.</summary>
+    /// <summary>
+    /// MEP d'il y a six jours : échec du service stocks résolu par une résolution type puis étape refaite, point de non-retour
+    /// franchi avec l'accord du pilote, recette conforme, bilan qui revient sur l'incident.
+    /// </summary>
     private static MepDemo Reussie(Contexte c)
     {
         var (mep, _, bob, claire) = NouvelleMep(c, OutilReussie, "6.2", "6.3",
@@ -911,8 +1008,14 @@ public static partial class DonneesDemo
         d.Plus(18).Reussir(eq.Alice, e1, "stocks.sql (3,2 Go) — fictif");
         d.Plus(2).Demarrer(eq.Alice, e2);
         d.Plus(1).Demarrer(eq.Bob, e3);
-        d.Plus(16).Reussir(eq.Bob, e3, "Version 6.3 en ligne — fictif");
-        d.Plus(4).Reussir(eq.Alice, e2, "Migration 6.3 appliquée — fictif");
+        // Un échec résolu par une résolution type : le rapport de fin le montre dans ses points bloquants.
+        d.Plus(9).Echouer(eq.Bob, e3, "Erreur fictive : /sante répond 503 après le redémarrage.");
+        var resolutionStocks = d.Plus(2).LancerResolution(eq.Bob, e3, c.Res(0));
+        d.Plus(3).Corriger(eq.Bob, resolutionStocks, 1, ResultatControle.Conforme, "Service relancé, active (running).");
+        d.Plus(1).Reussir(eq.Alice, e2, "Migration 6.3 appliquée — fictif");
+        d.Plus(1).Verifier(eq.Bob, resolutionStocks, ResultatControle.Conforme, "200 stocks 6.3");
+        d.Plus(1).Demarrer(eq.Bob, e3);
+        d.Plus(4).Reussir(eq.Bob, e3, "Version 6.3 en ligne — fictif");
         d.Plus(2).AutoriserNonRetour(eq.Alice, e4);
         d.Plus(1).Demarrer(eq.Bob, e4);
         d.Plus(22).Reussir(eq.Bob, e4, "Écart global 0,2 % — fictif");
@@ -924,9 +1027,11 @@ public static partial class DonneesDemo
         d.Plus(4).Tester(eq.Bob, "API stocks", 1, ResultatControle.Conforme, "200 stocks 6.3");
         d.Plus(2).Tester(eq.Claire, "API stocks", 2, ResultatControle.Conforme, "Stock de 37 unités renvoyé.");
         d.Plus(6).Cloturer(eq.Alice,
-            "Déploiement dans les temps (1 h 45 pour 2 h prévues). Recalcul initial plus rapide que prévu.",
-            "Rien à signaler.",
-            "Ajouter le contrôle des réassorts du lendemain matin à la recette des prochaines versions.");
+            "Déploiement en 1 h 17 pour 1 h 15 prévues malgré un incident. Recalcul initial plus rapide que prévu.",
+            "E0003 en échec : /sante répondait 503 après le redémarrage du service. Résolu en 5 minutes par la résolution type "
+                + "« API : réponse de test absente », puis E0003 refaite et réussie (8 minutes d'arrêt).",
+            "Ajouter le contrôle des réassorts du lendemain matin à la recette des prochaines versions. "
+                + "Attendre la fin du démarrage du service avant le contrôle /sante.");
         return d.Fin();
     }
 

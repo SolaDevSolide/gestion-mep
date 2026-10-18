@@ -61,6 +61,7 @@ La liste est tenue à jour à chaque fonctionnalité qui ajoute une information 
 | `{{version_cible}}` | Version cible | Version installée par la MEP |
 | `{{impacts}}` | Impacts attendus | Impacts saisis dans Intervention |
 | `{{lien_mep}}` | Lien vers la MEP | Adresse de la MEP dans l'application (réglage « Adresse publique », sinon l'adresse utilisée) |
+| `{{sections}}` | Sections du plan | Titres des sections du plan de déploiement, dans l'ordre de création (liste) |
 
 ### Date et heure
 
@@ -105,6 +106,15 @@ Section 8 de la préparation.
 | `{{heure_limite}}` | Heure limite | Heure limite de l'action demandée |
 | `{{validation_utilisateurs}}` | Validation par les utilisateurs | « validée par … le … (preuve : fichier) » ; manquante si la case n'est pas cochée |
 
+### Suivi de l'exécution
+
+Mêmes chiffres que la [vue d'ensemble](Suivre-une-MEP.md) au moment où le texte est rempli.
+
+| Variable | Libellé | Contenu |
+|---|---|---|
+| `{{avancement}}` | Avancement | Étapes faites du plan suivi (le retour arrière une fois déclenché). Ex. « 4/14 étapes faites (29 %) » ; manquant avant le Go |
+| `{{fin_estimee}}` | Fin estimée | Heure de fin estimée, heure prévue et retard. Ex. « 16h33 (prévue à 15h18, +1 h 15) » ; manquante avant le Go et pour une MEP sans durées estimées |
+
 ### Fin de MEP
 
 | Variable | Libellé | Contenu |
@@ -113,6 +123,7 @@ Section 8 de la préparation.
 | `{{demarree_le}}` | Démarrée le | Date et heure du Go |
 | `{{terminee_le}}` | Terminée le | Date et heure de la clôture |
 | `{{bilan}}` | Bilan de clôture | Liste : ce qui a marché, incidents, actions |
+| `{{lien_rapport}}` | Lien vers le rapport de fin | Adresse du [rapport de fin](Suivre-une-MEP.md#rapport-de-fin), une fois la MEP clôturée |
 
 ### Équipe
 

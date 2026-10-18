@@ -27,6 +27,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Field, Input } from '../ui/Input';
 import { StatusPill } from '../ui/StatusPill';
 import { Tooltip } from '../ui/Tooltip';
+import { EnChargement, Squelette, SqueletteTableau } from '../ui/Squelette';
 import { useToast } from '../ui/Toast';
 
 function CritereDialog({
@@ -156,18 +157,24 @@ function Approbations({ admin }: { admin: boolean }) {
           </Alerte>
         )}
         <Field label="Approbations minimum" className="w-40">
-          {(id) => (
-            <Input
-              id={id}
-              type="number"
-              min={0}
-              step={1}
-              inputMode="numeric"
-              value={courant}
-              disabled={!admin || donnees === null}
-              onChange={(e) => setValeur(e.target.value)}
-            />
-          )}
+          {(id) =>
+            donnees === null && !erreur ? (
+              <EnChargement libelle="Chargement des approbations…">
+                <Squelette className="h-9 w-full rounded-lg" />
+              </EnChargement>
+            ) : (
+              <Input
+                id={id}
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                value={courant}
+                disabled={!admin || donnees === null}
+                onChange={(e) => setValeur(e.target.value)}
+              />
+            )
+          }
         </Field>
         {admin ? (
           <Button
@@ -291,8 +298,12 @@ export default function GoNoGoPage() {
                 ) : undefined
               }
             />
+          ) : donnees === null && !erreur ? (
+            <EnChargement libelle="Chargement des critères…">
+              <SqueletteTableau lignes={5} colonnes={3} className="rounded-none border-0" />
+            </EnChargement>
           ) : (
-            <ol className="divide-y divide-line">
+            <ol className="apparition divide-y divide-line">
               {criteres.map((c, i) => (
                 <li
                   key={c.id}
@@ -313,7 +324,7 @@ export default function GoNoGoPage() {
                         label={`Monter ${c.libelle}`}
                         taille="sm"
                         disabled={i === 0}
-                        onClick={() => void deplacer(i, -1)}
+                        action={() => deplacer(i, -1)}
                       >
                         <ArrowUp className="size-4" aria-hidden />
                       </BoutonIcone>
@@ -321,7 +332,7 @@ export default function GoNoGoPage() {
                         label={`Descendre ${c.libelle}`}
                         taille="sm"
                         disabled={i === criteres.length - 1}
-                        onClick={() => void deplacer(i, 1)}
+                        action={() => deplacer(i, 1)}
                       >
                         <ArrowDown className="size-4" aria-hidden />
                       </BoutonIcone>
@@ -329,7 +340,7 @@ export default function GoNoGoPage() {
                         <BoutonIcone
                           label={`${c.actif ? 'Désactiver' : 'Activer'} ${c.libelle}`}
                           taille="sm"
-                          onClick={() => void basculer(c)}
+                          action={() => basculer(c)}
                         >
                           {c.actif ? (
                             <CircleOff className="size-4" aria-hidden />
