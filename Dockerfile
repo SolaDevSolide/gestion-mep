@@ -1,5 +1,5 @@
 # 1. Front React
-FROM public.ecr.aws/docker/library/node:26-alpine AS front
+FROM mirror.gcr.io/library/node:26-alpine AS front
 WORKDIR /src/frontend
 COPY frontend/package*.json ./
 RUN npm ci
