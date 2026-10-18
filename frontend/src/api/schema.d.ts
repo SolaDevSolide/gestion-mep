@@ -58,7 +58,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["VersionDto"];
+                    };
                 };
             };
         };
@@ -5059,6 +5061,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/charte": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CharteDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/charte/schema.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meps/{id}/pieces-jointes": {
         parameters: {
             query?: never;
@@ -6325,6 +6395,122 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/charte": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EtatCharteDto"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CharteFichier"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EtatCharteDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EtatCharteDto"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/charte/verifier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["VerificationCharteSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VerificationCharteDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -6420,6 +6606,26 @@ export interface components {
             validePar: string;
             /** Format: date */
             date: null | string;
+        };
+        /** @description Charte telle que la lit l'interface avant connexion (couleurs résolues, origine, empreinte de la feuille de style). */
+        CharteDto: {
+            charte: components["schemas"]["CharteFichier"];
+            origine: string;
+            empreinte: string;
+        };
+        /** @description Fichier `charte.json` (version 1) : seule `couleurs.primaire` est obligatoire. Couleurs « #RRGGBB » ou « #RGB ». */
+        CharteFichier: {
+            $schema?: null | string;
+            /** Format: int32 */
+            version?: null | number;
+            nom?: null | string;
+            couleurs?: null | components["schemas"]["CouleursCharteFichier"];
+            /** @description « pages » ou « secondaire ». */
+            menuLateral?: null | string;
+            /** @description « froids », « purs », « chauds » ou « teintes ». */
+            gris?: null | string;
+            sombre?: null | components["schemas"]["RetouchesCharteFichier"];
+            etats?: null | components["schemas"]["EtatsCharteFichier"];
         };
         ClotureDto: {
             /** Format: date-time */
@@ -6574,6 +6780,12 @@ export interface components {
             ordre: null | number;
             instruction: null | string;
             resultatAttendu: null | string;
+        };
+        CouleursCharteFichier: null | {
+            primaire?: null | string;
+            secondaire?: null | string;
+            /** @description Couleur, ou « primaire » pour suivre la primaire. */
+            tertiaire?: null | string;
         };
         CritereGoNoGoDto: {
             /** Format: uuid */
@@ -6887,8 +7099,26 @@ export interface components {
             instructions: null | string;
             resultatAttendu: null | string;
         };
+        /** @description Charte en vigueur vue de la console d'administration. */
+        EtatCharteDto: {
+            charte: components["schemas"]["CharteFichier"];
+            origine: string;
+            empreinte: string;
+            /** Format: date-time */
+            modifieLe: null | string;
+            modifiePar: null | string;
+            fichier: components["schemas"]["FichierCharteDto"];
+            avertissements: components["schemas"]["ProblemeCharte"][];
+            commande: string;
+        };
         /** @enum {unknown} */
         EtatEtape: "AFaire" | "EnCours" | "Reussie" | "Echec";
+        EtatsCharteFichier: null | {
+            succes?: null | string;
+            avertissement?: null | string;
+            erreur?: null | string;
+            info?: null | string;
+        };
         /** @description Simulation de collègues (démonstration) : en cours ou non, jusqu'à quand, sur quelle MEP, quels collègues, lancée par qui. */
         EtatSimulationDto: {
             actif: boolean;
@@ -7009,6 +7239,15 @@ export interface components {
             systemeId: null | string;
             titre: null | string;
             etapes: null | components["schemas"]["EtapeTestSaisie"][];
+        };
+        /** @description Fichier charte.json vu de la console : chemin, présence, erreurs (charte par défaut appliquée à la place). */
+        FichierCharteDto: {
+            chemin: string;
+            present: boolean;
+            erreur: null | string;
+            erreurs: components["schemas"]["ProblemeCharte"][];
+            avertissements: components["schemas"]["ProblemeCharte"][];
+            charte: null | components["schemas"]["CharteFichier"];
         };
         /** @enum {unknown} */
         FinEtape: "TestUnitaire" | "Verification" | null;
@@ -8522,6 +8761,14 @@ export interface components {
                 reprisDeSession: null | string;
             };
         };
+        /** @description Erreur (bloquante) ou avertissement sur une charte. Ligne : ligne du fichier, quand elle est connue. */
+        ProblemeCharte: {
+            code: string;
+            champ: string;
+            message: string;
+            /** Format: int32 */
+            ligne?: null | number;
+        };
         ProcedureRelueSaisie: {
             relue: boolean;
         };
@@ -9175,6 +9422,11 @@ export interface components {
         };
         /** @enum {unknown} */
         ResultatControle: "Conforme" | "Echec" | null;
+        RetouchesCharteFichier: null | {
+            primaire?: null | string;
+            secondaire?: null | string;
+            tertiaire?: null | string;
+        };
         /** @description `Par` vaut null quand le retour arrière s'est déclenché automatiquement. */
         RetourArriereDto: {
             /** Format: date-time */
@@ -10546,6 +10798,17 @@ export interface components {
             description: string;
             liste: boolean;
         };
+        /** @description Résultat de la vérification d'un fichier : erreurs bloquantes, avertissements (clés inconnues, lisibilité) et charte lue. */
+        VerificationCharteDto: {
+            valide: boolean;
+            erreurs: components["schemas"]["ProblemeCharte"][];
+            avertissements: components["schemas"]["ProblemeCharte"][];
+            charte: null | components["schemas"]["CharteFichier"];
+        };
+        /** @description Contenu d'un fichier charte.json à vérifier (import à blanc). */
+        VerificationCharteSaisie: {
+            contenu: null | string;
+        };
         /**
          * @description Verrou d'édition d'une étape (panneau d'édition ouvert) : tenu par l'onglet `Session` du compte `UtilisateurId`
          *     jusqu'à `ExpireLe` sans renouvellement. `ReprisDe…` : qui le tenait quand il a été pris en main (null sinon).
@@ -10571,6 +10834,11 @@ export interface components {
             session: null | string;
             /** @default false */
             prendreLaMain: boolean;
+        };
+        /** @description Version de l'interface servie et empreinte de la charte visuelle en vigueur (/api/version). */
+        VersionDto: {
+            version: string;
+            charte: string;
         };
         VersionResolutionTypeDto: {
             /** Format: int32 */

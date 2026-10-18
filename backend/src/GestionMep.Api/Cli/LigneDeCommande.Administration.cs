@@ -405,11 +405,13 @@ public static partial class LigneDeCommande
                 _ => throw ErreurHttp.Saisie("--type attend complete ou simplifiee."),
             }
             : null;
-        await using var db = Base(Configuration());
+        var config = Configuration();
+        await using var db = Base(config);
         Guid? equipe = o.Valeur("--equipe") is { } e ? (await EquipesEndpoints.Trouver(db, e)).Id : null;
         if (o.Valeur("--excel") is { } classeur)
         {
-            var f = await ExportsExcelEndpoints.Liste(db, o.A("--modeles"), equipe, phase, type, o.Valeur("--recherche"), DateTimeOffset.UtcNow);
+            var f = await ExportsExcelEndpoints.Liste(db, o.A("--modeles"), equipe, phase, type, o.Valeur("--recherche"), DateTimeOffset.UtcNow,
+                (await ServiceCharte.Charger(db, config)).Palette);
             await EcrireClasseur(classeur, f.Contenu);
             Console.WriteLine($"Liste exportée dans {classeur}.");
             return 0;
@@ -482,6 +484,8 @@ public static partial class LigneDeCommande
         var id = IdentifiantOuPrefixe(mepTexte, await db.Meps.AsNoTracking().Select(m => m.Id).ToListAsync(), "MEP")
             ?? throw new ErreurHttp(1, $"MEP « {mepTexte} » introuvable (gestion-mep meps lister).");
         var service = new ServiceMep(db, TimeProvider.System, new DiffuseurMep(config));
+        // Couleurs de la charte visuelle en vigueur (console, sinon fichier charte.json, sinon par défaut).
+        var palette = (await ServiceCharte.Charger(db, config)).Palette;
         ExportsExcelEndpoints.Fichier export;
         string libelle;
         switch (vueTexte.ToLowerInvariant())
@@ -490,7 +494,7 @@ public static partial class LigneDeCommande
             {
                 var mep = await service.Charger(id);
                 var noms = await db.Utilisateurs.AsNoTracking().ToDictionaryAsync(u => u.Id, u => u.NomAffiche);
-                export = new(RecetteExcel.Exporter(mep, noms, DateTimeOffset.UtcNow), RecetteExcel.NomFichier(mep));
+                export = new(RecetteExcel.Exporter(mep, noms, DateTimeOffset.UtcNow, palette), RecetteExcel.NomFichier(mep));
                 libelle = "Recette";
                 break;
             }
@@ -499,13 +503,13 @@ public static partial class LigneDeCommande
                 var mep = await service.Charger(id);
                 var ids = mep.Systemes.Select(s => s.CatalogueId).OfType<Guid>().Distinct().ToList();
                 var fiches = await db.SystemesCatalogue.AsNoTracking().Where(s => ids.Contains(s.Id)).ToDictionaryAsync(s => s.Id);
-                export = new(ObjetsExcel.Exporter(mep, fiches, modele: false, DateTimeOffset.UtcNow), ObjetsExcel.NomFichier(mep, modele: false));
+                export = new(ObjetsExcel.Exporter(mep, fiches, modele: false, DateTimeOffset.UtcNow, palette), ObjetsExcel.NomFichier(mep, modele: false));
                 libelle = "Objets impactés";
                 break;
             }
             case "rapport":
                 // Rapport de fin figé à la clôture (une MEP clôturée avant son existence obtient le sien maintenant).
-                export = await SuiviEndpoints.RapportExcel(new RapportsFin(db, service), id, DateTimeOffset.UtcNow);
+                export = await SuiviEndpoints.RapportExcel(new RapportsFin(db, service), id, DateTimeOffset.UtcNow, palette);
                 libelle = "Rapport de fin";
                 break;
             default:
@@ -517,7 +521,7 @@ public static partial class LigneDeCommande
                     "journal" => (VuesExcel.Vue.Journal, "Journal"),
                     _ => throw new ErreurUsage($"vue inconnue « {vueTexte} » : preparation, etapes, retour-arriere, recette, objets, journal ou rapport"),
                 };
-                export = await ExportsExcelEndpoints.Vue(db, service, id, vue);
+                export = await ExportsExcelEndpoints.Vue(db, service, id, vue, palette: palette);
                 break;
         }
         fichier ??= export.Nom;

@@ -1881,9 +1881,9 @@ function Graphe(props: Props) {
                     n.id.startsWith(PREFIXE_MESURE)
                       ? 'transparent'
                       : n.type === 'cadre'
-                        ? 'var(--accent-soft)'
+                        ? 'var(--tertiaire-soft)'
                         : n.type === 'cercle'
-                          ? 'var(--accent)'
+                          ? 'var(--tertiaire)'
                           : 'var(--line-strong)'
                   }
                   maskColor="color-mix(in srgb, var(--bg) 60%, transparent)"

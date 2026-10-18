@@ -1,3 +1,4 @@
+import type { CharteFichier } from './charte/charte';
 import type {
   BilanSaisie,
   CritereGoNoGo,
@@ -13,6 +14,8 @@ import type {
   ModeleEtape,
   ModeleEtapeSaisie,
   Reglage,
+  EtatCharteServeur,
+  VerificationCharte,
   PieceJointe,
   FicheRecetteSaisie,
   ProfilSaisie,
@@ -482,6 +485,10 @@ export const api = {
   definirReglage: (nom: string, valeur: string) =>
     put<Reglage>(`/admin/reglages/${encodeURIComponent(nom)}`, { valeur }),
   retablirReglage: (nom: string) => del<Reglage>(`/admin/reglages/${encodeURIComponent(nom)}`),
+  charte: () => get<EtatCharteServeur>('/admin/charte'),
+  enregistrerCharte: (c: CharteFichier) => put<EtatCharteServeur>('/admin/charte', c),
+  retablirCharte: () => del<EtatCharteServeur>('/admin/charte'),
+  verifierCharte: (contenu: string) => post<VerificationCharte>('/admin/charte/verifier', { contenu }),
   criteresGoNoGo: () => get<CritereGoNoGo[]>('/criteres-go-no-go'),
   creerCritere: (s: CritereGoNoGoSaisie) => post<CritereGoNoGo>('/criteres-go-no-go', s),
   modifierCritere: (id: string, s: CritereGoNoGoSaisie) => put<CritereGoNoGo>(`/criteres-go-no-go/${id}`, s),

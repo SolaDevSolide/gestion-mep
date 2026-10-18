@@ -196,11 +196,11 @@ function CercleBord({ cercle, x, edition }: { cercle: CercleSection; x: number |
         style={style}
         title={cercle.description || cercle.titre}
         aria-label={`${entree ? 'Entrée' : 'Sortie'} ${cercle.titre}`}
-        className="!z-10 !size-4 !rounded-full !border-2 !border-accent !bg-surface hover:!bg-accent"
+        className="!z-10 !size-4 !rounded-full !border-2 !border-tertiaire !bg-surface hover:!bg-tertiaire"
       />
       <span
         className={cn(
-          'pointer-events-none absolute max-w-[128px] -translate-x-1/2 truncate rounded-full bg-accent-soft px-1.5 text-[11px] font-semibold text-accent-text',
+          'pointer-events-none absolute max-w-[128px] -translate-x-1/2 truncate rounded-full bg-tertiaire-soft px-1.5 text-[11px] font-semibold text-tertiaire-text',
           entree ? 'top-2.5' : 'bottom-2.5',
         )}
         style={style}
@@ -235,7 +235,7 @@ function CercleCadre({ cercle: c, edition }: { cercle: CercleSection; edition: b
         isConnectable={edition}
         style={entree ? { top: point } : { top: point, bottom: 'auto' }}
         aria-label={libelle}
-        className="!z-10 !size-4 !rounded-full !border-2 !border-accent !bg-surface hover:!bg-accent"
+        className="!z-10 !size-4 !rounded-full !border-2 !border-tertiaire !bg-surface hover:!bg-tertiaire"
       />
       <Handle
         type={entree ? 'source' : 'target'}
@@ -248,7 +248,7 @@ function CercleCadre({ cercle: c, edition }: { cercle: CercleSection; edition: b
         role="img"
         aria-label={libelle}
         className={cn(
-          'pointer-events-none absolute left-1/2 max-w-[128px] -translate-x-1/2 truncate rounded-full bg-accent-soft px-1.5 text-[11px] leading-4 font-semibold text-accent-text',
+          'pointer-events-none absolute left-1/2 max-w-[128px] -translate-x-1/2 truncate rounded-full bg-tertiaire-soft px-1.5 text-[11px] leading-4 font-semibold text-tertiaire-text',
           entree ? 'top-[14px]' : 'bottom-[14px]',
         )}
       >
@@ -299,7 +299,7 @@ export function NoeudSection({ data }: NodeProps) {
       aria-label={`Section ${s.titre}, repliée`}
       className={cn(
         'group relative size-full rounded-xl border-2 bg-surface px-3 pt-9 pb-9 shadow-sm',
-        selectionnee ? 'border-accent shadow-[0_0_0_3px_var(--accent-soft)]' : (cadreEns ?? 'border-accent/60'),
+        selectionnee ? 'border-accent shadow-[0_0_0_3px_var(--accent-soft)]' : (cadreEns ?? 'border-tertiaire/60'),
       )}
     >
       <Handle type="target" id={POIGNEE_HAUT} position={Position.Top} isConnectable={false} className="!opacity-0" />
@@ -364,7 +364,7 @@ export function NoeudCadre({ data }: NodeProps) {
         'relative size-full rounded-2xl border-2 border-dashed',
         g.ensemble
           ? cadreEnsemble(g.etapesParSection.get(id) ?? [], g.ensemble.bloquees)
-          : 'border-accent/60 bg-accent-soft/40',
+          : 'border-tertiaire/60 bg-tertiaire-soft/40',
       )}
     >
       <PresenceSection id={id} deplie />
@@ -387,7 +387,7 @@ export function NoeudTitreCadre({ data }: NodeProps) {
   const n = etapes?.length ?? 0;
   return (
     <div
-      className="flex items-center gap-1.5 rounded-full border-2 border-accent/60 bg-surface py-0.5 pr-0.5 pl-0.5 shadow-sm"
+      className="flex items-center gap-1.5 rounded-full border-2 border-tertiaire/60 bg-surface py-0.5 pr-0.5 pl-0.5 shadow-sm"
       style={{ width: TITRE_BORD.largeur, height: TITRE_BORD.hauteur }}
       title={`${s.titre}${s.auteur ? ` · par ${s.auteur}` : ''}`}
     >
@@ -458,7 +458,7 @@ export function NoeudCercle({ data, parentId }: NodeProps) {
   const ouvrir = g.onOuvrirCercle;
   const contenu = (
     <>
-      <span className="size-4 shrink-0 rounded-full border-2 border-accent bg-surface" aria-hidden />
+      <span className="size-4 shrink-0 rounded-full border-2 border-tertiaire bg-surface" aria-hidden />
       <span className="truncate">{c.titre}</span>
     </>
   );
@@ -482,7 +482,7 @@ export function NoeudCercle({ data, parentId }: NodeProps) {
           type="button"
           onClick={() => ouvrir(id)}
           aria-label={`${entree ? 'Entrée' : 'Sortie'} ${c.titre} : modifier`}
-          className="nodrag nopan flex max-w-full items-center gap-1.5 rounded-full border border-accent bg-accent-soft px-2 py-1 text-xs font-semibold text-accent-text shadow-sm hover:bg-accent hover:text-accent-fg"
+          className="nodrag nopan flex max-w-full items-center gap-1.5 rounded-full border border-tertiaire bg-tertiaire-soft px-2 py-1 text-xs font-semibold text-tertiaire-text shadow-sm hover:bg-tertiaire hover:text-tertiaire-fg"
         >
           {contenu}
         </button>
@@ -490,7 +490,7 @@ export function NoeudCercle({ data, parentId }: NodeProps) {
         <span
           role="img"
           aria-label={`${entree ? 'Entrée' : 'Sortie'} ${c.titre}`}
-          className="flex max-w-full items-center gap-1.5 rounded-full border border-accent bg-accent-soft px-2 py-1 text-xs font-semibold text-accent-text"
+          className="flex max-w-full items-center gap-1.5 rounded-full border border-tertiaire bg-tertiaire-soft px-2 py-1 text-xs font-semibold text-tertiaire-text"
         >
           {contenu}
         </span>

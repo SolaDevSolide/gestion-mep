@@ -1,0 +1,1371 @@
+{
+  "description": "Cas de test partagés de la charte visuelle : charte.ts (front) et CharteVisuelle.cs (serveur) doivent donner ces résultats. Régénérer seulement après un changement voulu du calcul, des deux côtés.",
+  "derivations": [
+    {
+      "nom": "charte par défaut",
+      "charte": {
+        "version": 1,
+        "couleurs": {
+          "primaire": "#4F46E5"
+        }
+      },
+      "couleursSombre": {
+        "primaire": "#5b54f0",
+        "secondaire": "#0d0e1a",
+        "tertiaire": "#5b54f0"
+      },
+      "ecarts": {
+        "clair": {},
+        "sombre": {}
+      },
+      "controles": [
+        {
+          "id": "bouton-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 6.287529,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 7.903111,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 5.825346,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 6.681543,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 6.287529,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "bouton-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 5.288057,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 8.403329,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 3.698569,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 7.285325,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 3.507958,
+          "minimum": 3,
+          "reussi": true
+        }
+      ],
+      "excel": {
+        "primaire": "#4f46e5",
+        "secondaire": "#4338ca",
+        "tertiaire": "#eceafd",
+        "fondEnTete": "#4f46e5",
+        "texteEnTete": "#ffffff",
+        "texteTitre": "#4338ca",
+        "texteLien": "#4f46e5",
+        "fondSection": "#eceafd",
+        "texteSection": "#4338ca",
+        "succes": ["#dcfce7", "#14532d"],
+        "echec": ["#fee2e2", "#7f1d1d"],
+        "enCours": ["#dbeafe", "#1e3a8a"],
+        "attention": ["#fef3c7", "#78350f"]
+      }
+    },
+    {
+      "nom": "Groupe Horizon (menu en secondaire, gris teintés)",
+      "charte": {
+        "version": 1,
+        "nom": "Groupe Horizon",
+        "couleurs": {
+          "primaire": "#0F766E",
+          "secondaire": "#1B2A41",
+          "tertiaire": "#C026D3"
+        },
+        "menuLateral": "secondaire",
+        "gris": "teintes"
+      },
+      "couleursSombre": {
+        "primaire": "#129187",
+        "secondaire": "#162132",
+        "tertiaire": "#ca3cdc"
+      },
+      "ecarts": {
+        "clair": {
+          "bg": "#eaf0f1",
+          "surface-2": "#e6ebed",
+          "sunken": "#e1e6ea",
+          "line": "#d7dde2",
+          "line-strong": "#c0c5ce",
+          "accent": "#0f766e",
+          "accent-hover": "#0b5650",
+          "accent-text": "#0f766e",
+          "accent-soft": "#e7f1f1",
+          "tertiaire": "#c026d3",
+          "tertiaire-hover": "#a421b5",
+          "tertiaire-text": "#b022c3",
+          "tertiaire-soft": "#f9e9fb",
+          "secondaire": "#1b2a41",
+          "nav-bg": "#1b2a41",
+          "nav-fg": "#ffffff",
+          "nav-muted": "#bfc3ca",
+          "nav-subtle": "#a4aab3",
+          "nav-hover": "#2d3b50",
+          "nav-active": "#3f4c5f",
+          "nav-active-fg": "#ffffff",
+          "nav-line": "#3b485c",
+          "nav-line-strong": "#566172",
+          "nav-input": "#2b394e",
+          "connexion-logo": "#0f766e",
+          "connexion-halo-1": "#0f766e",
+          "connexion-halo-2": "#c026d3",
+          "connexion-texte": "#ffffff",
+          "connexion-discret": "#ffffff"
+        },
+        "sombre": {
+          "bg": "#0b1517",
+          "surface-2": "#19242a",
+          "sunken": "#091314",
+          "line": "#252f37",
+          "line-strong": "#37434d",
+          "accent": "#129187",
+          "accent-hover": "#15aca0",
+          "accent-text": "#1ce3d3",
+          "accent-soft": "#122c2e",
+          "accent-fg": "#16161a",
+          "tertiaire": "#ca3cdc",
+          "tertiaire-hover": "#d156e1",
+          "tertiaire-text": "#df8aea",
+          "tertiaire-soft": "#371b3f",
+          "tertiaire-fg": "#16161a",
+          "secondaire": "#162132",
+          "nav-bg": "#162132",
+          "nav-fg": "#ffffff",
+          "nav-muted": "#bec1c6",
+          "nav-subtle": "#a2a6ad",
+          "nav-hover": "#293342",
+          "nav-active": "#3b4553",
+          "nav-active-fg": "#ffffff",
+          "nav-line": "#37404f",
+          "nav-line-strong": "#535b67",
+          "nav-input": "#263140",
+          "connexion-logo": "#129187",
+          "connexion-logo-fg": "#16161a",
+          "connexion-halo-1": "#129187",
+          "connexion-halo-2": "#ca3cdc",
+          "connexion-texte": "#ffffff",
+          "connexion-discret": "#ffffff"
+        }
+      },
+      "controles": [
+        {
+          "id": "bouton-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 5.47325,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 5.47325,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 4.752005,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "menu-clair",
+          "type": "contraste",
+          "role": "secondaire",
+          "rapport": 14.441736,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-clair",
+          "type": "contraste",
+          "role": "tertiaire",
+          "rapport": 4.679571,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-clair",
+          "type": "contraste",
+          "role": "tertiaire",
+          "rapport": 4.709398,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "bouton-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 4.662105,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 11.463756,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 4.785154,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "menu-sombre",
+          "type": "contraste",
+          "role": "secondaire",
+          "rapport": 16.182289,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-sombre",
+          "type": "contraste",
+          "role": "tertiaire",
+          "rapport": 6.442218,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-sombre",
+          "type": "contraste",
+          "role": "tertiaire",
+          "rapport": 4.585556,
+          "minimum": 3,
+          "reussi": true
+        }
+      ],
+      "excel": {
+        "primaire": "#0f766e",
+        "secondaire": "#1b2a41",
+        "tertiaire": "#f9e9fb",
+        "fondEnTete": "#0f766e",
+        "texteEnTete": "#ffffff",
+        "texteTitre": "#1b2a41",
+        "texteLien": "#0f766e",
+        "fondSection": "#f9e9fb",
+        "texteSection": "#1b2a41",
+        "succes": ["#dcfce7", "#14532d"],
+        "echec": ["#fee2e2", "#7f1d1d"],
+        "enCours": ["#dbeafe", "#1e3a8a"],
+        "attention": ["#fef3c7", "#78350f"]
+      }
+    },
+    {
+      "nom": "primaire bleue proche de « En cours », tertiaire pâle",
+      "charte": {
+        "couleurs": {
+          "primaire": "#2F6FE0",
+          "secondaire": "#1B2A41",
+          "tertiaire": "#F0A6F5"
+        },
+        "gris": "teintes"
+      },
+      "couleursSombre": {
+        "primaire": "#4a81e4",
+        "secondaire": "#162132",
+        "tertiaire": "#f0a6f5"
+      },
+      "ecarts": {
+        "clair": {
+          "bg": "#eceff7",
+          "surface-2": "#e7ebf3",
+          "sunken": "#e3e6ef",
+          "line": "#d9dce8",
+          "line-strong": "#c1c5d4",
+          "accent": "#2f6fe0",
+          "accent-hover": "#1f5ecd",
+          "accent-text": "#2366dd",
+          "accent-soft": "#eaf1fc",
+          "tertiaire": "#f0a6f5",
+          "tertiaire-hover": "#eb86f1",
+          "tertiaire-text": "#be23c3",
+          "tertiaire-soft": "#fef6fe",
+          "tertiaire-fg": "#16161a",
+          "secondaire": "#1b2a41",
+          "nav-hover": "#e7ebf3",
+          "nav-active": "#eaf1fc",
+          "nav-active-fg": "#2366dd",
+          "nav-line": "#d9dce8",
+          "nav-line-strong": "#c1c5d4",
+          "nav-input": "#e7ebf3",
+          "connexion-logo": "#2f6fe0",
+          "connexion-halo-1": "#2f6fe0",
+          "connexion-halo-2": "#f0a6f5",
+          "connexion-texte": "#ffffff",
+          "connexion-discret": "#ffffff"
+        },
+        "sombre": {
+          "bg": "#0f141e",
+          "surface-2": "#1d2331",
+          "sunken": "#0d111a",
+          "line": "#292e3e",
+          "line-strong": "#3b4254",
+          "accent": "#4a81e4",
+          "accent-hover": "#6594e8",
+          "accent-text": "#9ab9f0",
+          "accent-soft": "#1d2941",
+          "accent-fg": "#16161a",
+          "tertiaire": "#f0a6f5",
+          "tertiaire-hover": "#f5c2f8",
+          "tertiaire-text": "#fef9fe",
+          "tertiaire-soft": "#3e3044",
+          "tertiaire-fg": "#16161a",
+          "secondaire": "#162132",
+          "nav-hover": "#1d2331",
+          "nav-active": "#1d2941",
+          "nav-active-fg": "#9ab9f0",
+          "nav-line": "#292e3e",
+          "nav-line-strong": "#3b4254",
+          "nav-input": "#1d2331",
+          "connexion-logo": "#4a81e4",
+          "connexion-logo-fg": "#16161a",
+          "connexion-halo-1": "#4a81e4",
+          "connexion-halo-2": "#f0a6f5",
+          "connexion-texte": "#ffffff",
+          "connexion-discret": "#ffffff"
+        }
+      },
+      "controles": [
+        {
+          "id": "bouton-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 4.696928,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 5.228947,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 4.083253,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-clair",
+          "type": "contraste",
+          "role": "tertiaire",
+          "rapport": 4.700863,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-clair",
+          "type": "contraste",
+          "role": "tertiaire",
+          "rapport": 1.829578,
+          "minimum": 3,
+          "reussi": false,
+          "correction": {
+            "cible": "tertiaire",
+            "couleur": "#e060e5"
+          }
+        },
+        {
+          "id": "bouton-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 4.770222,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 9.338605,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 4.873545,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-sombre",
+          "type": "contraste",
+          "role": "tertiaire",
+          "rapport": 11.802842,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-sombre",
+          "type": "contraste",
+          "role": "tertiaire",
+          "rapport": 10.139103,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "distinction-primaire-info",
+          "type": "distinction",
+          "role": "primaire",
+          "rapport": 1.100412,
+          "minimum": 0,
+          "reussi": false
+        }
+      ],
+      "excel": {
+        "primaire": "#2f6fe0",
+        "secondaire": "#1b2a41",
+        "tertiaire": "#fef6fe",
+        "fondEnTete": "#2f6fe0",
+        "texteEnTete": "#ffffff",
+        "texteTitre": "#1b2a41",
+        "texteLien": "#2f6fe0",
+        "fondSection": "#fef6fe",
+        "texteSection": "#1b2a41",
+        "succes": ["#dcfce7", "#14532d"],
+        "echec": ["#fee2e2", "#7f1d1d"],
+        "enCours": ["#dbeafe", "#1e3a8a"],
+        "attention": ["#fef3c7", "#78350f"]
+      }
+    },
+    {
+      "nom": "retouche du thème sombre et couleurs d’état",
+      "charte": {
+        "couleurs": {
+          "primaire": "#0F766E",
+          "tertiaire": "#C026D3"
+        },
+        "sombre": {
+          "tertiaire": "#E879F9",
+          "secondaire": "#101820"
+        },
+        "etats": {
+          "succes": "#15803D",
+          "info": "#0369A1"
+        },
+        "gris": "purs"
+      },
+      "couleursSombre": {
+        "primaire": "#129187",
+        "secondaire": "#101820",
+        "tertiaire": "#e879f9"
+      },
+      "ecarts": {
+        "clair": {
+          "bg": "#f6f6f6",
+          "surface-2": "#f2f2f2",
+          "sunken": "#ececec",
+          "line": "#e3e3e3",
+          "line-strong": "#cacaca",
+          "fg-muted": "#4d4d4d",
+          "fg-subtle": "#6b6b6b",
+          "accent": "#0f766e",
+          "accent-hover": "#0b5650",
+          "accent-text": "#0f766e",
+          "accent-soft": "#e7f1f1",
+          "ok-bg": "#daebe0",
+          "ok-fg": "#031209",
+          "ok-bd": "#8ac09e",
+          "ok-solid": "#15803d",
+          "run-bg": "#d7e7f0",
+          "run-fg": "#011724",
+          "run-bd": "#81b4d0",
+          "run-solid": "#0369a1",
+          "done-bg": "#0c4b24",
+          "done-bd": "#083117",
+          "done-solid": "#0c4b24",
+          "tertiaire": "#c026d3",
+          "tertiaire-hover": "#a421b5",
+          "tertiaire-text": "#b022c3",
+          "tertiaire-soft": "#f9e9fb",
+          "nav-muted": "#4d4d4d",
+          "nav-subtle": "#6b6b6b",
+          "nav-hover": "#f2f2f2",
+          "nav-active": "#e7f1f1",
+          "nav-active-fg": "#0f766e",
+          "nav-line": "#e3e3e3",
+          "nav-line-strong": "#cacaca",
+          "nav-input": "#f2f2f2",
+          "connexion-logo": "#0f766e",
+          "connexion-halo-1": "#0f766e",
+          "connexion-halo-2": "#c026d3"
+        },
+        "sombre": {
+          "bg": "#0c0c0c",
+          "surface": "#131313",
+          "surface-2": "#1b1b1b",
+          "sunken": "#090909",
+          "line": "#282828",
+          "line-strong": "#3c3c3c",
+          "accent": "#129187",
+          "accent-hover": "#15aca0",
+          "accent-text": "#1ce3d3",
+          "accent-soft": "#132c2a",
+          "accent-fg": "#16161a",
+          "ok-bg": "#132b20",
+          "ok-fg": "#36de75",
+          "ok-bd": "#144f2c",
+          "ok-solid": "#199647",
+          "run-bg": "#0f2636",
+          "run-fg": "#41bafb",
+          "run-bd": "#0a4263",
+          "run-solid": "#0379ba",
+          "done-bg": "#0c4b24",
+          "done-bd": "#083117",
+          "done-solid": "#0c4b24",
+          "tertiaire": "#e879f9",
+          "tertiaire-hover": "#ed96fa",
+          "tertiaire-text": "#f7d1fd",
+          "tertiaire-soft": "#3e2741",
+          "tertiaire-fg": "#16161a",
+          "secondaire": "#101820",
+          "nav-bg": "#131313",
+          "nav-hover": "#1b1b1b",
+          "nav-active": "#132c2a",
+          "nav-active-fg": "#1ce3d3",
+          "nav-line": "#282828",
+          "nav-line-strong": "#3c3c3c",
+          "nav-input": "#1b1b1b",
+          "connexion-logo": "#129187",
+          "connexion-logo-fg": "#16161a",
+          "connexion-halo-1": "#129187",
+          "connexion-halo-2": "#e879f9",
+          "connexion-texte": "#ffffff",
+          "connexion-discret": "#ffffff"
+        }
+      },
+      "controles": [
+        {
+          "id": "bouton-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 5.47325,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 5.47325,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 5.064486,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-clair",
+          "type": "contraste",
+          "role": "tertiaire",
+          "rapport": 4.679571,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-clair",
+          "type": "contraste",
+          "role": "tertiaire",
+          "rapport": 4.709398,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "bouton-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 4.662105,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 11.482179,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 5.054104,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-sombre",
+          "type": "contraste",
+          "role": "tertiaire",
+          "rapport": 9.859827,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-sombre",
+          "type": "contraste",
+          "role": "tertiaire",
+          "rapport": 7.550615,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "etat-succes-clair",
+          "type": "contraste",
+          "role": "succes",
+          "rapport": 5.015597,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "etat-info-clair",
+          "type": "contraste",
+          "role": "info",
+          "rapport": 5.933639,
+          "minimum": 3,
+          "reussi": true
+        }
+      ],
+      "excel": {
+        "primaire": "#0f766e",
+        "secondaire": "#0f766e",
+        "tertiaire": "#f9e9fb",
+        "fondEnTete": "#0f766e",
+        "texteEnTete": "#ffffff",
+        "texteTitre": "#0f766e",
+        "texteLien": "#0f766e",
+        "fondSection": "#f9e9fb",
+        "texteSection": "#0f766e",
+        "succes": ["#daebe0", "#031209"],
+        "echec": ["#fee2e2", "#7f1d1d"],
+        "enCours": ["#d7e7f0", "#011724"],
+        "attention": ["#fef3c7", "#78350f"]
+      }
+    },
+    {
+      "nom": "primaire jaune claire (texte foncé), secondaire claire en menu, gris chauds",
+      "charte": {
+        "couleurs": {
+          "primaire": "#FACC15",
+          "secondaire": "#E2E8F0"
+        },
+        "menuLateral": "secondaire",
+        "gris": "chauds",
+        "etats": {
+          "avertissement": "#FDE68A",
+          "erreur": "#B91C1C"
+        }
+      },
+      "couleursSombre": {
+        "primaire": "#fbd333",
+        "secondaire": "#56595e",
+        "tertiaire": "#fbd333"
+      },
+      "ecarts": {
+        "clair": {
+          "bg": "#f7f6f3",
+          "surface-2": "#f2f0eb",
+          "sunken": "#ece9e3",
+          "line": "#e4e0d8",
+          "line-strong": "#cdc7bb",
+          "fg-muted": "#514c44",
+          "fg-subtle": "#716a60",
+          "accent": "#facc15",
+          "accent-hover": "#e6b905",
+          "accent-text": "#886e05",
+          "accent-soft": "#fffae8",
+          "accent-fg": "#16161a",
+          "danger-bg": "#f4dbdb",
+          "danger-fg": "#4a0b0b",
+          "danger-bd": "#dc8e8e",
+          "danger-solid": "#b91c1c",
+          "warn-bg": "#fffbec",
+          "warn-fg": "#695404",
+          "warn-bd": "#fef3c5",
+          "warn-solid": "#fde68a",
+          "rollback-bg": "#a31919",
+          "rollback-solid": "#a31919",
+          "tertiaire": "#facc15",
+          "tertiaire-hover": "#e6b905",
+          "tertiaire-text": "#886e05",
+          "tertiaire-soft": "#fffae8",
+          "tertiaire-fg": "#16161a",
+          "secondaire": "#e2e8f0",
+          "secondaire-fg": "#16161a",
+          "nav-bg": "#e2e8f0",
+          "nav-muted": "#4f5156",
+          "nav-subtle": "#66676d",
+          "nav-hover": "#d2d7df",
+          "nav-active": "#c1c6ce",
+          "nav-active-fg": "#16161a",
+          "nav-line": "#c5cbd2",
+          "nav-line-strong": "#adb1b8",
+          "nav-input": "#d4d9e1",
+          "connexion-logo": "#facc15",
+          "connexion-logo-fg": "#16161a",
+          "connexion-halo-1": "#facc15",
+          "connexion-halo-2": "#facc15",
+          "connexion-texte": "#16161a",
+          "connexion-discret": "#16161a"
+        },
+        "sombre": {
+          "bg": "#0f0e0c",
+          "surface": "#171613",
+          "surface-2": "#1f1d19",
+          "sunken": "#0b0a09",
+          "line": "#2c2a25",
+          "line-strong": "#403c35",
+          "accent": "#fbd333",
+          "accent-hover": "#fcd951",
+          "accent-text": "#fde68d",
+          "accent-soft": "#453c19",
+          "accent-fg": "#16161a",
+          "danger-bg": "#371519",
+          "danger-fg": "#f18e8e",
+          "danger-bd": "#6e181a",
+          "danger-solid": "#cf1f1f",
+          "warn-bg": "#464131",
+          "warn-fg": "#ffffff",
+          "warn-bd": "#938757",
+          "warn-solid": "#fdeba3",
+          "rollback-bg": "#a31919",
+          "rollback-solid": "#a31919",
+          "tertiaire": "#fbd333",
+          "tertiaire-hover": "#fcd951",
+          "tertiaire-text": "#fde68d",
+          "tertiaire-soft": "#453c19",
+          "tertiaire-fg": "#16161a",
+          "secondaire": "#56595e",
+          "nav-bg": "#56595e",
+          "nav-fg": "#ffffff",
+          "nav-muted": "#d3d4d4",
+          "nav-subtle": "#d0d1d1",
+          "nav-hover": "#64666b",
+          "nav-active": "#717478",
+          "nav-active-fg": "#ffffff",
+          "nav-line": "#6e7075",
+          "nav-line-strong": "#828488",
+          "nav-input": "#626569",
+          "connexion-logo": "#fbd333",
+          "connexion-logo-fg": "#16161a",
+          "connexion-halo-1": "#fbd333",
+          "connexion-halo-2": "#fbd333",
+          "connexion-texte": "#ffffff",
+          "connexion-discret": "#ffffff"
+        }
+      },
+      "controles": [
+        {
+          "id": "bouton-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 11.782812,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 4.907217,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 1.417026,
+          "minimum": 3,
+          "reussi": false,
+          "correction": {
+            "cible": "primaire",
+            "couleur": "#ab8a05"
+          }
+        },
+        {
+          "id": "menu-clair",
+          "type": "contraste",
+          "role": "secondaire",
+          "rapport": 14.637161,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 4.694917,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 1.531419,
+          "minimum": 3,
+          "reussi": false,
+          "correction": {
+            "cible": "primaire",
+            "couleur": "#b08e05"
+          }
+        },
+        {
+          "id": "bouton-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 12.431193,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 14.544105,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 13.291879,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "menu-sombre",
+          "type": "contraste",
+          "role": "secondaire",
+          "rapport": 7.032187,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 8.821821,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 12.465423,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "etat-avertissement-clair",
+          "type": "contraste",
+          "role": "avertissement",
+          "rapport": 1.245385,
+          "minimum": 3,
+          "reussi": false,
+          "correction": {
+            "cible": "avertissement",
+            "couleur": "#b39002"
+          }
+        },
+        {
+          "id": "etat-erreur-clair",
+          "type": "contraste",
+          "role": "erreur",
+          "rapport": 6.470045,
+          "minimum": 3,
+          "reussi": true
+        }
+      ],
+      "excel": {
+        "primaire": "#facc15",
+        "secondaire": "#e2e8f0",
+        "tertiaire": "#fffae8",
+        "fondEnTete": "#facc15",
+        "texteEnTete": "#16161a",
+        "texteTitre": "#16161a",
+        "texteLien": "#16161a",
+        "fondSection": "#fffae8",
+        "texteSection": "#16161a",
+        "succes": ["#dcfce7", "#14532d"],
+        "echec": ["#f4dbdb", "#4a0b0b"],
+        "enCours": ["#dbeafe", "#1e3a8a"],
+        "attention": ["#fffbec", "#695404"]
+      }
+    },
+    {
+      "nom": "secondaire grise moyenne (menu illisible), primaire très sombre",
+      "charte": {
+        "couleurs": {
+          "primaire": "#1E1E2E",
+          "secondaire": "#808080",
+          "tertiaire": "primaire"
+        },
+        "menuLateral": "secondaire",
+        "sombre": {
+          "primaire": "#8B8BFF"
+        }
+      },
+      "couleursSombre": {
+        "primaire": "#8b8bff",
+        "secondaire": "#343537",
+        "tertiaire": "#8b8bff"
+      },
+      "ecarts": {
+        "clair": {
+          "accent": "#1e1e2e",
+          "accent-hover": "#101018",
+          "accent-text": "#1e1e2e",
+          "accent-soft": "#e9e9ea",
+          "tertiaire": "#1e1e2e",
+          "tertiaire-hover": "#101018",
+          "tertiaire-text": "#1e1e2e",
+          "tertiaire-soft": "#e9e9ea",
+          "secondaire": "#808080",
+          "secondaire-fg": "#16161a",
+          "nav-bg": "#808080",
+          "nav-muted": "#131313",
+          "nav-subtle": "#161616",
+          "nav-hover": "#787878",
+          "nav-active": "#6f6f70",
+          "nav-active-fg": "#16161a",
+          "nav-line": "#717172",
+          "nav-line-strong": "#646465",
+          "nav-input": "#797979",
+          "connexion-logo": "#1e1e2e",
+          "connexion-halo-1": "#1e1e2e",
+          "connexion-halo-2": "#1e1e2e",
+          "connexion-texte": "#16161a",
+          "connexion-discret": "#16161a"
+        },
+        "sombre": {
+          "accent": "#8b8bff",
+          "accent-hover": "#aaaaff",
+          "accent-text": "#e7e7ff",
+          "accent-soft": "#2a2b46",
+          "accent-fg": "#16161a",
+          "tertiaire": "#8b8bff",
+          "tertiaire-hover": "#aaaaff",
+          "tertiaire-text": "#e7e7ff",
+          "tertiaire-soft": "#2a2b46",
+          "tertiaire-fg": "#16161a",
+          "secondaire": "#343537",
+          "nav-bg": "#343537",
+          "nav-fg": "#ffffff",
+          "nav-muted": "#c6c6c7",
+          "nav-subtle": "#aeaeaf",
+          "nav-hover": "#444547",
+          "nav-active": "#545557",
+          "nav-active-fg": "#ffffff",
+          "nav-line": "#505153",
+          "nav-line-strong": "#696a6b",
+          "nav-input": "#424345",
+          "connexion-logo": "#8b8bff",
+          "connexion-logo-fg": "#16161a",
+          "connexion-halo-1": "#8b8bff",
+          "connexion-halo-2": "#8b8bff",
+          "connexion-texte": "#ffffff",
+          "connexion-discret": "#ffffff"
+        }
+      },
+      "controles": [
+        {
+          "id": "bouton-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 16.401579,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 16.401579,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 15.195934,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "menu-clair",
+          "type": "contraste",
+          "role": "secondaire",
+          "rapport": 4.568856,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 13.518334,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 16.401579,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "bouton-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 6.216596,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 15.257299,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 6.738132,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "menu-sombre",
+          "type": "contraste",
+          "role": "secondaire",
+          "rapport": 12.277678,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 11.271026,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 6.390874,
+          "minimum": 3,
+          "reussi": true
+        }
+      ],
+      "excel": {
+        "primaire": "#1e1e2e",
+        "secondaire": "#808080",
+        "tertiaire": "#e9e9ea",
+        "fondEnTete": "#1e1e2e",
+        "texteEnTete": "#ffffff",
+        "texteTitre": "#16161a",
+        "texteLien": "#1e1e2e",
+        "fondSection": "#e9e9ea",
+        "texteSection": "#16161a",
+        "succes": ["#dcfce7", "#14532d"],
+        "echec": ["#fee2e2", "#7f1d1d"],
+        "enCours": ["#dbeafe", "#1e3a8a"],
+        "attention": ["#fef3c7", "#78350f"]
+      }
+    }
+  ],
+  "lectures": [
+    {
+      "nom": "minimale",
+      "texte": "{\"couleurs\":{\"primaire\":\"#0f766e\"}}",
+      "erreurs": [],
+      "avertissements": [],
+      "charte": {
+        "version": 1,
+        "nom": "Charte par défaut",
+        "couleurs": {
+          "primaire": "#0F766E",
+          "secondaire": "#0D0E1A",
+          "tertiaire": "primaire"
+        },
+        "menuLateral": "pages",
+        "gris": "froids"
+      }
+    },
+    {
+      "nom": "complète, codes courts et « primaire »",
+      "texte": "{\"$schema\":\"https://mep.exemple.fr/api/charte/schema.json\",\"version\":1,\"nom\":\"  Groupe Horizon \",\"couleurs\":{\"primaire\":\"#0F766E\",\"secondaire\":\"#123\",\"tertiaire\":\"primaire\"},\"menuLateral\":\"secondaire\",\"gris\":\"teintes\",\"sombre\":{\"primaire\":\"#14B8A6\"},\"etats\":{\"succes\":\"15803D\"}}",
+      "erreurs": [],
+      "avertissements": [],
+      "charte": {
+        "version": 1,
+        "nom": "Groupe Horizon",
+        "couleurs": {
+          "primaire": "#0F766E",
+          "secondaire": "#112233",
+          "tertiaire": "primaire"
+        },
+        "menuLateral": "secondaire",
+        "gris": "teintes",
+        "sombre": {
+          "primaire": "#14B8A6"
+        },
+        "etats": {
+          "succes": "#15803D"
+        }
+      }
+    },
+    {
+      "nom": "JSON illisible",
+      "texte": "{\"couleurs\": {\"primaire\": \"#0F766E\",}}",
+      "erreurs": [
+        {
+          "code": "json",
+          "champ": ""
+        }
+      ],
+      "avertissements": [],
+      "charte": null
+    },
+    {
+      "nom": "pas un objet",
+      "texte": "[\"#0F766E\"]",
+      "erreurs": [
+        {
+          "code": "racine",
+          "champ": ""
+        }
+      ],
+      "avertissements": [],
+      "charte": null
+    },
+    {
+      "nom": "version inconnue",
+      "texte": "{\"version\":2,\"couleurs\":{\"primaire\":\"#0F766E\"}}",
+      "erreurs": [
+        {
+          "code": "version",
+          "champ": "version"
+        }
+      ],
+      "avertissements": [],
+      "charte": null
+    },
+    {
+      "nom": "primaire absente",
+      "texte": "{\"version\":1,\"couleurs\":{\"secondaire\":\"#1B2A41\"}}",
+      "erreurs": [
+        {
+          "code": "obligatoire",
+          "champ": "couleurs.primaire"
+        }
+      ],
+      "avertissements": [],
+      "charte": null
+    },
+    {
+      "nom": "couleurs absentes",
+      "texte": "{\"version\":1,\"nom\":\"Sans couleurs\"}",
+      "erreurs": [
+        {
+          "code": "obligatoire",
+          "champ": "couleurs.primaire"
+        }
+      ],
+      "avertissements": [],
+      "charte": null
+    },
+    {
+      "nom": "couleur invalide",
+      "texte": "{\"couleurs\":{\"primaire\":\"bleu\",\"tertiaire\":\"#12345\"},\"sombre\":{\"secondaire\":\"#GGGGGG\"}}",
+      "erreurs": [
+        {
+          "code": "couleur",
+          "champ": "couleurs.primaire"
+        },
+        {
+          "code": "couleur",
+          "champ": "couleurs.tertiaire"
+        },
+        {
+          "code": "couleur",
+          "champ": "sombre.secondaire"
+        }
+      ],
+      "avertissements": [],
+      "charte": null
+    },
+    {
+      "nom": "valeurs hors liste",
+      "texte": "{\"couleurs\":{\"primaire\":\"#0F766E\"},\"menuLateral\":\"gauche\",\"gris\":\"bleus\"}",
+      "erreurs": [
+        {
+          "code": "valeur",
+          "champ": "menuLateral"
+        },
+        {
+          "code": "valeur",
+          "champ": "gris"
+        }
+      ],
+      "avertissements": [],
+      "charte": null
+    },
+    {
+      "nom": "types inattendus",
+      "texte": "{\"nom\":12,\"couleurs\":{\"primaire\":123},\"sombre\":\"#000000\",\"etats\":[]}",
+      "erreurs": [
+        {
+          "code": "type",
+          "champ": "nom"
+        },
+        {
+          "code": "type",
+          "champ": "couleurs.primaire"
+        },
+        {
+          "code": "type",
+          "champ": "sombre"
+        },
+        {
+          "code": "type",
+          "champ": "etats"
+        }
+      ],
+      "avertissements": [],
+      "charte": null
+    },
+    {
+      "nom": "clés inconnues",
+      "texte": "{\"version\":1,\"couleurs\":{\"primaire\":\"#0F766E\",\"quaternaire\":\"#000000\"},\"police\":\"Inter\",\"etats\":{\"neutre\":\"#888888\"}}",
+      "erreurs": [],
+      "avertissements": [
+        {
+          "code": "cle-inconnue",
+          "champ": "police"
+        },
+        {
+          "code": "cle-inconnue",
+          "champ": "couleurs.quaternaire"
+        },
+        {
+          "code": "cle-inconnue",
+          "champ": "etats.neutre"
+        }
+      ],
+      "charte": {
+        "version": 1,
+        "nom": "Charte par défaut",
+        "couleurs": {
+          "primaire": "#0F766E",
+          "secondaire": "#0D0E1A",
+          "tertiaire": "primaire"
+        },
+        "menuLateral": "pages",
+        "gris": "froids"
+      }
+    },
+    {
+      "nom": "nom trop long",
+      "texte": "{\"nom\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"couleurs\":{\"primaire\":\"#0F766E\"}}",
+      "erreurs": [
+        {
+          "code": "longueur",
+          "champ": "nom"
+        }
+      ],
+      "avertissements": [],
+      "charte": null
+    }
+  ]
+}

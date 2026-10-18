@@ -20,6 +20,8 @@ export const LIBELLE_EVENEMENT_ADMIN: Record<string, string> = {
   'parametres.modifies': 'Paramètres modifiés',
   'reglage.modifie': 'Réglage modifié',
   'reglage.retabli': 'Réglage rétabli',
+  'charte.modifiee': 'Charte visuelle modifiée',
+  'charte.retablie': 'Charte visuelle rétablie',
   'critere.cree': 'Critère Go / no-go créé',
   'critere.modifie': 'Critère Go / no-go modifié',
   'critere.supprime': 'Critère Go / no-go supprimé',

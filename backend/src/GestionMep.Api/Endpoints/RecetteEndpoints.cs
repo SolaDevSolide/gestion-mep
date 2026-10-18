@@ -197,11 +197,11 @@ public static class RecetteEndpoints
         });
 
         // ---------- Recette en Excel ----------
-        api.MapGet("/meps/{id:guid}/recette/excel", async (Guid id, ServiceMep svc, MepDbContext db) =>
+        api.MapGet("/meps/{id:guid}/recette/excel", async (Guid id, ServiceMep svc, MepDbContext db, ServiceCharte charte) =>
         {
             var mep = await svc.Charger(id);
             var noms = await Noms(db);
-            return Results.File(RecetteExcel.Exporter(mep, noms, svc.Maintenant), RecetteExcel.TypeContenu, RecetteExcel.NomFichier(mep));
+            return Results.File(RecetteExcel.Exporter(mep, noms, svc.Maintenant, charte.Courant.Palette), RecetteExcel.TypeContenu, RecetteExcel.NomFichier(mep));
         }).Produces(StatusCodes.Status200OK, contentType: RecetteExcel.TypeContenu);
 
         // Aperçu : rien n'est modifié.

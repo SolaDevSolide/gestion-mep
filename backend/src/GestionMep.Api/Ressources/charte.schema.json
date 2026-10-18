@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Charte visuelle de Gestion MEP (charte.json, version 1)",
+  "description": "Couleurs de l'application pour tous les utilisateurs, en thème clair et sombre, et des exports Excel. Seule couleurs.primaire est obligatoire. Couleurs au format #RRGGBB ou #RGB. La charte enregistrée dans la console d'administration remplace ce fichier.",
+  "type": "object",
+  "required": ["couleurs"],
+  "properties": {
+    "$schema": { "type": "string", "description": "Adresse de ce schéma, pour la complétion dans un éditeur." },
+    "version": { "const": 1, "description": "Version du format (1)." },
+    "nom": { "type": "string", "maxLength": 80, "description": "Nom de la charte, affiché dans la console." },
+    "couleurs": {
+      "type": "object",
+      "required": ["primaire"],
+      "properties": {
+        "primaire": { "$ref": "#/$defs/couleur", "description": "Boutons principaux, liens, onglet et menu actifs, contour de focus, en-têtes des exports Excel." },
+        "secondaire": { "$ref": "#/$defs/couleur", "description": "Menu latéral (si menuLateral vaut « secondaire »), page de connexion, titres des exports Excel. Défaut : #0D0E1A." },
+        "tertiaire": {
+          "description": "Sections du plan, repères du graphe, mises en avant ; « primaire » pour suivre la primaire (défaut).",
+          "anyOf": [{ "$ref": "#/$defs/couleur" }, { "const": "primaire" }]
+        }
+      },
+      "additionalProperties": false
+    },
+    "menuLateral": { "enum": ["pages", "secondaire"], "description": "Fond du menu de gauche : comme les pages (défaut) ou la couleur secondaire." },
+    "gris": { "enum": ["froids", "purs", "chauds", "teintes"], "description": "Fonds, bordures et textes discrets. « teintes » : nuance de la primaire. Défaut : froids." },
+    "sombre": {
+      "type": "object",
+      "description": "Retouches du thème sombre ; une couleur absente est calculée depuis celle du thème clair.",
+      "properties": {
+        "primaire": { "$ref": "#/$defs/couleur" },
+        "secondaire": { "$ref": "#/$defs/couleur" },
+        "tertiaire": { "$ref": "#/$defs/couleur" }
+      },
+      "additionalProperties": false
+    },
+    "etats": {
+      "type": "object",
+      "description": "Couleurs d'état, à changer avec prudence : elles portent le sens du déroulé. Absentes : couleurs standard.",
+      "properties": {
+        "succes": { "$ref": "#/$defs/couleur", "description": "Étape réussie, MEP terminée." },
+        "avertissement": { "$ref": "#/$defs/couleur", "description": "Résolution en cours, durée dépassée." },
+        "erreur": { "$ref": "#/$defs/couleur", "description": "Échec, retour arrière." },
+        "info": { "$ref": "#/$defs/couleur", "description": "En cours, exécution." }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "couleur": { "type": "string", "pattern": "^#?([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$", "examples": ["#0F766E"] }
+  }
+}

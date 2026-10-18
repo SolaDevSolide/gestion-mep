@@ -140,6 +140,10 @@ export type MiseAJour = NonNullable<S['MiseAJourDto']>;
 export type ParametresGlobaux = SaisieVerifiee<S['ParametresSaisie'], S['ParametresDto']>;
 /** Réglage d'exploitation (console ou « gestion-mep reglages ») : valeur en cours et son origine. */
 export type Reglage = S['ReglageDto'];
+/** Charte visuelle en vigueur vue de la console : charte (format du fichier charte.json), origine, fichier, lisibilité. */
+export type EtatCharteServeur = S['EtatCharteDto'];
+/** Vérification d'un fichier charte.json par le serveur (import à blanc). */
+export type VerificationCharte = S['VerificationCharteDto'];
 export type RetourArriereInfo = S['RetourArriereDto'];
 export type ClotureInfo = S['ClotureDto'];
 export type PlanRepli = S['PlanRepliDto'];

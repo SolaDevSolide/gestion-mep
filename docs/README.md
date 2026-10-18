@@ -14,7 +14,7 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 | Conduire ou exécuter une MEP le jour J (je suis pilote ou opérateur) | [Exécuter une MEP](Exécuter-une-MEP.md) |
 | Suivre une MEP en cours, voir toutes les MEP lancées, lire le rapport de fin (je suis chef de projet ou astreinte) | [Suivre une MEP](Suivre-une-MEP.md) |
 | Annoncer une MEP, faire la demande de MEP, envoyer le compte rendu (textes à copier) | [Modèles de texte](Modèles-de-texte.md) |
-| Gérer les comptes, les équipes et les paramètres (je suis administrateur) | [Administrer](Administrer.md) |
+| Gérer les comptes, les équipes, les paramètres et la charte visuelle (je suis administrateur) | [Administrer](Administrer.md) |
 | Installer l'application sur un serveur | [Installer](Installer.md), ou [sans Docker](Installer-sans-Docker.md) (Linux ou Windows) |
 | Mettre à jour, sauvegarder, restaurer, tout administrer en ligne de commande (comptes, équipes, systèmes, critères, résolutions types, réglages, journal, export des MEP) | [Exploiter](Exploiter.md) |
 | Savoir qui a le droit de faire quoi | [Droits par rôle](Droits.md) |

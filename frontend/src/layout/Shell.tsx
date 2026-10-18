@@ -42,6 +42,9 @@ const THEMES: { id: PreferenceTheme; libelle: string; Icone: typeof Sun }[] = [
   { id: 'sombre', libelle: 'Sombre', Icone: Moon },
 ];
 
+/** Boutons du pied du menu latéral : couleurs du menu (charte visuelle, menu en secondaire possible). */
+const BOUTON_NAV = 'text-nav-muted hover:bg-nav-hover hover:text-nav-fg';
+
 function Lien({
   to,
   end,
@@ -63,7 +66,7 @@ function Lien({
       className={({ isActive }) =>
         cn(
           'group flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm font-medium transition-colors duration-150',
-          isActive ? 'bg-accent-soft text-accent-text' : 'text-fg-muted hover:bg-surface-2 hover:text-fg',
+          isActive ? 'bg-nav-active text-nav-active-fg' : 'text-nav-muted hover:bg-nav-hover hover:text-nav-fg',
           replie && 'justify-center px-0',
         )
       }
@@ -111,7 +114,7 @@ export function Shell() {
       <aside
         className={cn(
           // Masqué à l'impression (rapport de fin, #61) : seule la page s'imprime.
-          'sticky top-[var(--bandeau-demo,0px)] flex h-[calc(100vh-var(--bandeau-demo,0px))] shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200 print:hidden',
+          'sticky top-[var(--bandeau-demo,0px)] flex h-[calc(100vh-var(--bandeau-demo,0px))] shrink-0 flex-col border-r border-nav-line bg-nav-bg text-nav-fg transition-[width] duration-200 print:hidden',
           replie ? 'w-[68px]' : 'w-64',
         )}
       >
@@ -128,7 +131,7 @@ export function Shell() {
             onClick={() => setPalette(true)}
             aria-label="Ouvrir la palette de commandes"
             className={cn(
-              'flex h-9 w-full items-center gap-2 rounded-lg border border-line bg-surface-2 px-2.5 text-sm text-fg-subtle transition-colors duration-150 hover:border-line-strong hover:text-fg',
+              'flex h-9 w-full items-center gap-2 rounded-lg border border-nav-line bg-nav-input px-2.5 text-sm text-nav-subtle transition-colors duration-150 hover:border-nav-line-strong hover:text-nav-fg',
               replie && 'justify-center px-0',
             )}
           >
@@ -147,7 +150,7 @@ export function Shell() {
           <Lien to="/suivi" icone={Activity} libelle="Suivi en direct" replie={replie} />
           <div
             className={cn(
-              'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase',
+              'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-nav-subtle uppercase',
               replie && 'text-center px-0',
             )}
           >
@@ -163,7 +166,7 @@ export function Shell() {
             <>
               <div
                 className={cn(
-                  'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase',
+                  'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-nav-subtle uppercase',
                   replie && 'text-center px-0',
                 )}
               >
@@ -184,7 +187,7 @@ export function Shell() {
           )}
           <div
             className={cn(
-              'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase',
+              'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-nav-subtle uppercase',
               replie && 'text-center px-0',
             )}
           >
@@ -193,14 +196,14 @@ export function Shell() {
           <Lien to="/profil" icone={UserRound} libelle="Mon profil" replie={replie} />
         </nav>
 
-        <div className="border-t border-line p-3">
+        <div className="border-t border-nav-line p-3">
           <div className={cn('flex items-center gap-1', replie && 'flex-col')}>
             <Menu>
               <MenuTrigger asChild>
                 <button
                   type="button"
                   className={cn(
-                    'flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors duration-150 hover:bg-surface-2',
+                    'flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors duration-150 hover:bg-nav-hover',
                     replie && 'flex-none',
                   )}
                   aria-label="Menu utilisateur"
@@ -209,7 +212,7 @@ export function Shell() {
                   {!replie && (
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium">{utilisateur?.nomAffiche}</span>
-                      <span className="block truncate text-xs text-fg-subtle">
+                      <span className="block truncate text-xs text-nav-subtle">
                         {utilisateur?.role || (utilisateur?.estAdmin ? 'Administrateur' : 'Utilisateur')}
                       </span>
                     </span>
@@ -249,12 +252,16 @@ export function Shell() {
               </MenuContent>
             </Menu>
             <Tooltip content={sombre ? 'Passer en mode clair' : 'Passer en mode sombre'}>
-              <BoutonIcone label={sombre ? 'Passer en mode clair' : 'Passer en mode sombre'} onClick={basculer}>
+              <BoutonIcone
+                className={BOUTON_NAV}
+                label={sombre ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                onClick={basculer}
+              >
                 {sombre ? <Sun className="size-4" aria-hidden /> : <Moon className="size-4" aria-hidden />}
               </BoutonIcone>
             </Tooltip>
             <Tooltip content="Se déconnecter">
-              <BoutonIcone label="Se déconnecter" action={deconnecter}>
+              <BoutonIcone className={BOUTON_NAV} label="Se déconnecter" action={deconnecter}>
                 <LogOut className="size-4" aria-hidden />
               </BoutonIcone>
             </Tooltip>
@@ -262,7 +269,7 @@ export function Shell() {
           <button
             type="button"
             onClick={() => setReplie(!replie)}
-            className="mt-2 flex h-8 w-full items-center justify-center gap-2 rounded-lg text-xs text-fg-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+            className="mt-2 flex h-8 w-full items-center justify-center gap-2 rounded-lg text-xs text-nav-subtle transition-colors duration-150 hover:bg-nav-hover hover:text-nav-fg"
             aria-label={replie ? 'Déplier le menu' : 'Replier le menu'}
           >
             {replie ? (

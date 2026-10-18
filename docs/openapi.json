@@ -25,7 +25,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionDto"
+                }
+              }
+            }
           }
         }
       }
@@ -4532,6 +4539,37 @@
         }
       }
     },
+    "/api/charte": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CharteDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/charte/schema.json": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/meps/{id}/pieces-jointes": {
       "get": {
         "tags": [
@@ -5488,6 +5526,98 @@
           }
         }
       }
+    },
+    "/api/admin/charte": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EtatCharteDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CharteFichier"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EtatCharteDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EtatCharteDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/charte/verifier": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationCharteSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationCharteDto"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5833,6 +5963,95 @@
           }
         },
         "description": "Étape de test que le fichier Excel importé va renseigner."
+      },
+      "CharteDto": {
+        "required": [
+          "charte",
+          "origine",
+          "empreinte"
+        ],
+        "type": "object",
+        "properties": {
+          "charte": {
+            "$ref": "#/components/schemas/CharteFichier"
+          },
+          "origine": {
+            "type": "string"
+          },
+          "empreinte": {
+            "type": "string"
+          }
+        },
+        "description": "Charte telle que la lit l'interface avant connexion (couleurs résolues, origine, empreinte de la feuille de style)."
+      },
+      "CharteFichier": {
+        "type": "object",
+        "properties": {
+          "$schema": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "couleurs": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CouleursCharteFichier"
+              }
+            ]
+          },
+          "menuLateral": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "« pages » ou « secondaire »."
+          },
+          "gris": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "« froids », « purs », « chauds » ou « teintes »."
+          },
+          "sombre": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RetouchesCharteFichier"
+              }
+            ]
+          },
+          "etats": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EtatsCharteFichier"
+              }
+            ]
+          }
+        },
+        "description": "Fichier `charte.json` (version 1) : seule `couleurs.primaire` est obligatoire. Couleurs « #RRGGBB » ou « #RGB »."
       },
       "ClotureDto": {
         "required": [
@@ -6461,6 +6680,33 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "CouleursCharteFichier": {
+        "type": [
+          "null",
+          "object"
+        ],
+        "properties": {
+          "primaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secondaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tertiaire": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Couleur, ou « primaire » pour suivre la primaire."
           }
         }
       },
@@ -7615,6 +7861,56 @@
           }
         }
       },
+      "EtatCharteDto": {
+        "required": [
+          "charte",
+          "origine",
+          "empreinte",
+          "modifieLe",
+          "modifiePar",
+          "fichier",
+          "avertissements",
+          "commande"
+        ],
+        "type": "object",
+        "properties": {
+          "charte": {
+            "$ref": "#/components/schemas/CharteFichier"
+          },
+          "origine": {
+            "type": "string"
+          },
+          "empreinte": {
+            "type": "string"
+          },
+          "modifieLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "modifiePar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fichier": {
+            "$ref": "#/components/schemas/FichierCharteDto"
+          },
+          "avertissements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProblemeCharte"
+            }
+          },
+          "commande": {
+            "type": "string"
+          }
+        },
+        "description": "Charte en vigueur vue de la console d'administration."
+      },
       "EtatEtape": {
         "enum": [
           "AFaire",
@@ -7622,6 +7918,38 @@
           "Reussie",
           "Echec"
         ]
+      },
+      "EtatsCharteFichier": {
+        "type": [
+          "null",
+          "object"
+        ],
+        "properties": {
+          "succes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "avertissement": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "erreur": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "info": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       },
       "EtatSimulationDto": {
         "required": [
@@ -8063,6 +8391,54 @@
             }
           }
         }
+      },
+      "FichierCharteDto": {
+        "required": [
+          "chemin",
+          "present",
+          "erreur",
+          "erreurs",
+          "avertissements",
+          "charte"
+        ],
+        "type": "object",
+        "properties": {
+          "chemin": {
+            "type": "string"
+          },
+          "present": {
+            "type": "boolean"
+          },
+          "erreur": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "erreurs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProblemeCharte"
+            }
+          },
+          "avertissements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProblemeCharte"
+            }
+          },
+          "charte": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CharteFichier"
+              }
+            ]
+          }
+        },
+        "description": "Fichier charte.json vu de la console : chemin, présence, erreurs (charte par défaut appliquée à la place)."
       },
       "FinEtape": {
         "enum": [
@@ -13510,6 +13886,33 @@
         },
         "description": "Résultat d'une demande de verrou : `Pris`, cet onglet le tient ; sinon `Verrou` dit qui est dessus."
       },
+      "ProblemeCharte": {
+        "required": [
+          "code",
+          "champ",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "champ": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "ligne": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Erreur (bloquante) ou avertissement sur une charte. Ligne : ligne du fichier, quand elle est connue."
+      },
       "ProcedureRelueSaisie": {
         "required": [
           "relue"
@@ -15865,6 +16268,32 @@
           "Echec",
           null
         ]
+      },
+      "RetouchesCharteFichier": {
+        "type": [
+          "null",
+          "object"
+        ],
+        "properties": {
+          "primaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secondaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tertiaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       },
       "RetourArriereDto": {
         "required": [
@@ -20721,6 +21150,58 @@
         },
         "description": "Variable des modèles de texte (`{{cle}}`) ; `Liste` : rendue en puces quand elle est seule sur sa ligne."
       },
+      "VerificationCharteDto": {
+        "required": [
+          "valide",
+          "erreurs",
+          "avertissements",
+          "charte"
+        ],
+        "type": "object",
+        "properties": {
+          "valide": {
+            "type": "boolean"
+          },
+          "erreurs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProblemeCharte"
+            }
+          },
+          "avertissements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProblemeCharte"
+            }
+          },
+          "charte": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CharteFichier"
+              }
+            ]
+          }
+        },
+        "description": "Résultat de la vérification d'un fichier : erreurs bloquantes, avertissements (clés inconnues, lisibilité) et charte lue."
+      },
+      "VerificationCharteSaisie": {
+        "required": [
+          "contenu"
+        ],
+        "type": "object",
+        "properties": {
+          "contenu": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Contenu d'un fichier charte.json à vérifier (import à blanc)."
+      },
       "VerrouEtapeDto": {
         "required": [
           "etapeId",
@@ -20797,6 +21278,22 @@
           }
         },
         "description": "Verrou d'édition : `Session`, l'onglet (celui du flux temps réel) ; `PrendreLaMain`, le prendre même s'il est tenu."
+      },
+      "VersionDto": {
+        "required": [
+          "version",
+          "charte"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "charte": {
+            "type": "string"
+          }
+        },
+        "description": "Version de l'interface servie et empreinte de la charte visuelle en vigueur (/api/version)."
       },
       "VersionResolutionTypeDto": {
         "required": [

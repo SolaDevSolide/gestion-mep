@@ -28,6 +28,8 @@ public class ApiFixture : IDisposable
     public string DossierPieces { get; } = Path.Combine(Path.GetTempPath(), "gestion-mep-tests-" + Guid.NewGuid().ToString("N"));
     /// <summary>Dossier d'échange avec le service de mise à jour (etat.json, demande.json).</summary>
     public string DossierMiseAJour => Path.Combine(DossierPieces, "mise-a-jour");
+    /// <summary>Fichier charte.json lu par l'application de test (absent tant qu'un test ne l'écrit pas).</summary>
+    public string FichierCharte => Path.Combine(DossierPieces, "charte.json");
 
     /// <param name="demo">false : base neuve hors mode démonstration (aucun compte, routes /api/demo absentes).</param>
     /// <param name="environnement">Environnement d'hébergement (par défaut celui de la fabrique de test : Development).</param>
@@ -53,6 +55,8 @@ public class ApiFixture : IDisposable
         Environment.SetEnvironmentVariable("MisesAJour__Verifier", "false"); // pas d'appel à GitHub pendant les tests
         Environment.SetEnvironmentVariable("MisesAJour__Dossier", DossierMiseAJour);
         Environment.SetEnvironmentVariable("Connexion__TentativesParMinute", "1000"); // les tests se connectent sans cesse depuis la même « adresse »
+        // Fichier de charte visuelle propre au test (absent par défaut) : jamais celui de la machine (/etc/gestion-mep/charte.json).
+        Environment.SetEnvironmentVariable("Charte__Fichier", FichierCharte);
         _usine = _racine = new WebApplicationFactory<Program>();
         // L'usine dérivée est libérée avec celle d'origine.
         if (environnement is not null) _usine = _usine.WithWebHostBuilder(b => b.UseEnvironment(environnement));

@@ -1,17 +1,19 @@
 import { RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { appliquerEmpreinte } from '../charte/appliquer';
 import { Button } from '../ui/Button';
 
 const INTERVALLE_MS = 60_000;
 
-async function lireVersion(): Promise<string | null> {
+/** Version du serveur, et empreinte de la charte visuelle en vigueur. */
+async function lireVersion(): Promise<{ version: string | null; charte: string | null }> {
   try {
     const r = await fetch('/api/version', { cache: 'no-store' });
-    if (!r.ok) return null;
-    const corps = (await r.json()) as { version?: string };
-    return corps.version ?? null;
+    if (!r.ok) return { version: null, charte: null };
+    const corps = (await r.json()) as { version?: string; charte?: string };
+    return { version: corps.version ?? null, charte: corps.charte ?? null };
   } catch {
-    return null;
+    return { version: null, charte: null };
   }
 }
 
@@ -41,6 +43,8 @@ async function lireEntree(): Promise<string | null> {
  * l'application d'une seule page garde sinon l'ancien code jusqu'à un rechargement complet. Deux signes : le numéro de
  * version du serveur a changé, ou l'interface servie n'est plus celle de l'onglet (nouvelle construction, même sans
  * nouveau numéro : image reconstruite depuis une branche, numéro « 0.0.0-dev »).
+ * La même vérification applique la charte visuelle modifiée entre-temps (console, fichier, ligne de commande), sans
+ * rechargement : au plus une minute après le changement, ou dès le retour sur l'onglet.
  */
 export function NouvelleVersion() {
   const initiale = useRef<string | null>(null);
@@ -50,8 +54,9 @@ export function NouvelleVersion() {
     if (typeof fetch === 'undefined') return;
     let actif = true;
     const verifier = async () => {
-      const [v, entree] = await Promise.all([lireVersion(), lireEntree()]);
+      const [{ version: v, charte }, entree] = await Promise.all([lireVersion(), lireEntree()]);
       if (!actif) return;
+      appliquerEmpreinte(charte);
       const courante = entreeCourante();
       if (courante && entree && entree !== courante) setDisponible(true);
       if (!v) return;

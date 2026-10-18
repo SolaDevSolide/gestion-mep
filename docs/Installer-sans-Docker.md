@@ -8,8 +8,8 @@ Chaque version publiée sur la page *Releases* du dépôt est accompagnée de de
 
 | Archive | Pour | Contenu |
 |---|---|---|
-| `gestion-mep-<version>-linux-x64.tar.gz` | Linux x64 avec systemd (Ubuntu, Debian, RHEL, Rocky…) | application, `installer.sh`, `gestion-mep.service`, `gestion-mep.conf.exemple` |
-| `gestion-mep-<version>-win-x64.zip` | Windows Server x64 (2019 ou plus récent) | application, `installer.ps1`, `gestion-mep.conf.exemple` |
+| `gestion-mep-<version>-linux-x64.tar.gz` | Linux x64 avec systemd (Ubuntu, Debian, RHEL, Rocky…) | application, `installer.sh`, `gestion-mep.service`, `gestion-mep.conf.exemple`, `charte.exemple.json` |
+| `gestion-mep-<version>-win-x64.zip` | Windows Server x64 (2019 ou plus récent) | application, `installer.ps1`, `gestion-mep.conf.exemple`, `charte.exemple.json` |
 
 Le fichier `SHA256SUMS` de la même page donne leur empreinte : le script la vérifie lui-même quand il télécharge une version.
 
@@ -116,6 +116,7 @@ Le fichier de configuration reprend **les mêmes noms que le fichier `.env`** de
 | `ADRESSE_ECOUTE` | `127.0.0.1` | Adresse d'écoute de l'application. `0.0.0.0` (toutes les cartes réseau) si le proxy est sur une autre machine, ou pour un essai depuis un autre poste avec `HTTPS_OBLIGATOIRE=false`. |
 | `PORT` | `8080` | Port d'écoute. |
 | `PROXY_RESEAUX` | vide | Vide : le proxy est sur la même machine (`127.0.0.1` ou `::1`). Sinon, l'adresse du proxy (`10.0.5.12/32`). |
+| `CHARTE_FICHIER` | à côté du fichier de configuration | Fichier de la charte visuelle, facultatif : `/etc/gestion-mep/charte.json` (Linux), `C:\ProgramData\GestionMep\charte.json` (Windows). Lisible par le compte du service ; relu sans redémarrage. Voir [Charte visuelle](Exploiter.md#charte-visuelle). |
 
 `MEP_IMAGE` et `COMPOSE_PROFILES` n'ont pas de sens hors Docker. Un réglage avancé de l'application peut aussi s'écrire sous sa forme complète, avec deux tirets bas (`Logging__LogLevel__Default=Warning`).
 

@@ -1,13 +1,13 @@
 import { act, render, screen } from '@testing-library/react';
 import { NouvelleVersion } from './NouvelleVersion';
 
-function servir(version: string, entree: string) {
+function servir(version: string, entree: string, charte?: string) {
   vi.stubGlobal(
     'fetch',
     vi.fn((url: string) =>
       Promise.resolve(
         url === '/api/version'
-          ? new Response(JSON.stringify({ version }), { status: 200 })
+          ? new Response(JSON.stringify({ version, charte }), { status: 200 })
           : new Response(`<script type="module" crossorigin src="${entree}"></script>`, { status: 200 }),
       ),
     ),
@@ -43,5 +43,20 @@ describe('NouvelleVersion', () => {
     render(<NouvelleVersion />);
     await vider();
     expect(screen.getByText(/nouvelle version de l’application/)).toBeInTheDocument();
+  });
+
+  it('applique la charte visuelle modifiée entre-temps, sans recharger la page', async () => {
+    const lien = document.createElement('link');
+    lien.id = 'charte';
+    lien.rel = 'stylesheet';
+    lien.href = '/charte.css';
+    lien.dataset.empreinte = 'e3b0c44298fc';
+    document.head.append(lien);
+    servir('0.0.0-dev', '/assets/index-ancien.js', '40f78de39f99');
+    render(<NouvelleVersion />);
+    await vider();
+    expect(document.head.querySelector('link[href="/charte.css?v=40f78de39f99"]')).not.toBeNull();
+    expect(screen.queryByText(/nouvelle version/)).toBeNull();
+    document.head.querySelectorAll('link').forEach((l) => l.remove());
   });
 });

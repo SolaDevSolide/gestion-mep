@@ -55,6 +55,9 @@ services:
       - cles:/data/cles
       - sauvegardes:/data/sauvegardes
       - mise-a-jour:/data/mise-a-jour
+      # Facultatif : charte visuelle (couleurs de l'application et des exports Excel), fichier charte.json posé à côté
+      # de ce fichier. Décommenter la ligne, puis « docker compose up -d ». Voir docs/Exploiter.md#charte-visuelle.
+      # - ./charte.json:/etc/gestion-mep/charte.json:ro
     # Publié sur 127.0.0.1 par défaut : seul un reverse proxy HTTPS de la même machine y accède (voir ADRESSE_ECOUTE dans .env.example).
     ports:
       - "${ADRESSE_ECOUTE:-127.0.0.1}:${PORT:-8080}:8080"

@@ -80,11 +80,12 @@ public static class ObjetsImpactesEndpoints
 
         // ---------- Excel : modèle, export, import ----------
         // ?modele=true : classeur vide à remplir ; sinon les objets de la MEP. Les deux se réimportent.
-        api.MapGet("/meps/{id:guid}/objets/excel", async (Guid id, bool? modele, ServiceMep svc, MepDbContext db, TimeProvider temps) =>
+        api.MapGet("/meps/{id:guid}/objets/excel", async (Guid id, bool? modele, ServiceMep svc, MepDbContext db, TimeProvider temps,
+            ServiceCharte charte) =>
         {
             var mep = await svc.Charger(id);
             var vide = modele == true;
-            return Results.File(ObjetsExcel.Exporter(mep, await Fiches(db, mep), vide, temps.GetUtcNow()), TypeExcel, ObjetsExcel.NomFichier(mep, vide));
+            return Results.File(ObjetsExcel.Exporter(mep, await Fiches(db, mep), vide, temps.GetUtcNow(), charte.Courant.Palette), TypeExcel, ObjetsExcel.NomFichier(mep, vide));
         }).Produces(StatusCodes.Status200OK, contentType: TypeExcel);
 
         // Import : les lignes rattachées au catalogue sont ajoutées (ou leur version mise à jour) ; les autres sont rejetées et

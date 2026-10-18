@@ -56,6 +56,34 @@
   --rollback-fg: #ffffff;
   --rollback-bd: #7f1d1d;
   --rollback-solid: #b91c1c;
+
+  /* Charte visuelle (#78) : rôles et zones que la charte peut colorer. Par défaut, ils reprennent les couleurs
+     ci-dessus (tertiaire = primaire, menu latéral comme les pages) ; /charte.css, chargée après cette feuille, ne
+     redéfinit que les jetons que la charte en vigueur change. */
+  --tertiaire: var(--accent);
+  --tertiaire-hover: var(--accent-hover);
+  --tertiaire-text: var(--accent-text);
+  --tertiaire-soft: var(--accent-soft);
+  --tertiaire-fg: var(--accent-fg);
+  --secondaire: #0d0e1a;
+  --secondaire-fg: #ffffff;
+  --nav-bg: var(--surface);
+  --nav-fg: var(--fg);
+  --nav-muted: var(--fg-muted);
+  --nav-subtle: var(--fg-subtle);
+  --nav-hover: var(--surface-2);
+  --nav-active: var(--accent-soft);
+  --nav-active-fg: var(--accent-text);
+  --nav-line: var(--line);
+  --nav-line-strong: var(--line-strong);
+  --nav-input: var(--surface-2);
+  /* Page de connexion (identique dans les deux thèmes). */
+  --connexion-logo: oklch(58.5% 0.233 277.117);
+  --connexion-logo-fg: #ffffff;
+  --connexion-halo-1: oklch(51.1% 0.262 276.966);
+  --connexion-halo-2: oklch(68.5% 0.169 237.323);
+  --connexion-texte: oklch(93% 0.034 272.788);
+  --connexion-discret: oklch(87% 0.065 274.039);
 }
 
 :root.dark {
@@ -168,6 +196,29 @@
   --color-rollback-fg: var(--rollback-fg);
   --color-rollback-bd: var(--rollback-bd);
   --color-rollback-solid: var(--rollback-solid);
+  --color-tertiaire: var(--tertiaire);
+  --color-tertiaire-hover: var(--tertiaire-hover);
+  --color-tertiaire-text: var(--tertiaire-text);
+  --color-tertiaire-soft: var(--tertiaire-soft);
+  --color-tertiaire-fg: var(--tertiaire-fg);
+  --color-secondaire: var(--secondaire);
+  --color-secondaire-fg: var(--secondaire-fg);
+  --color-nav-bg: var(--nav-bg);
+  --color-nav-fg: var(--nav-fg);
+  --color-nav-muted: var(--nav-muted);
+  --color-nav-subtle: var(--nav-subtle);
+  --color-nav-hover: var(--nav-hover);
+  --color-nav-active: var(--nav-active);
+  --color-nav-active-fg: var(--nav-active-fg);
+  --color-nav-line: var(--nav-line);
+  --color-nav-line-strong: var(--nav-line-strong);
+  --color-nav-input: var(--nav-input);
+  --color-connexion-logo: var(--connexion-logo);
+  --color-connexion-logo-fg: var(--connexion-logo-fg);
+  --color-connexion-halo-1: var(--connexion-halo-1);
+  --color-connexion-halo-2: var(--connexion-halo-2);
+  --color-connexion-texte: var(--connexion-texte);
+  --color-connexion-discret: var(--connexion-discret);
   --animate-fade-in: fade-in 150ms ease-out;
   --animate-pop-in: pop-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
   --animate-slide-in: slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1);

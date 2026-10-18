@@ -42,3 +42,7 @@ ADMIN_MOT_DE_PASSE=
 # VERIFIER_MISES_A_JOUR=true
 # (console) Lien « Signaler un problème ou une idée » du menu utilisateur (vide : masqué)
 # LIEN_SIGNALEMENT=https://github.com/SolaDevSolide/gestion-mep/issues/new/choose
+# Charte visuelle (couleurs de l'interface et des exports Excel) : fichier charte.json facultatif, à côté de ce fichier
+# (Linux : /etc/gestion-mep/charte.json ; Windows : C:\ProgramData\GestionMep\charte.json). Relu sans redémarrage ;
+# la charte enregistrée dans la console (onglet Charte visuelle) le remplace. Autre emplacement :
+# CHARTE_FICHIER=/chemin/vers/charte.json

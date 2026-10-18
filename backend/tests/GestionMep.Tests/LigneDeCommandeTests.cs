@@ -62,7 +62,7 @@ public class LigneDeCommandeTests : IDisposable
         var aide = await Cli("aide");
         Assert.Equal(0, aide.Code);
         foreach (var commande in new[] { "comptes modifier", "comptes expertises", "systemes ajouter", "criteres modifier", "reglages definir",
-                     "resolutions importer", "meps exporter", "equipes ajouter", "comptes relier", "journal [--depuis", "sauvegardes restaurer", "mettre-a-jour", "config afficher" })
+                     "resolutions importer", "meps exporter", "equipes ajouter", "comptes relier", "journal [--depuis", "sauvegardes restaurer", "mettre-a-jour", "config afficher", "charte importer", "charte retablir" })
             Assert.Contains($"gestion-mep {commande}", aide.Sortie);
         Assert.True(LigneDeCommande.EstCommande(["--json", "comptes", "lister"]));
         Assert.False(LigneDeCommande.EstCommande(["--urls", "http://+:8080"]));
@@ -192,6 +192,58 @@ public class LigneDeCommandeTests : IDisposable
         Assert.Equal(0, (await Cli("criteres", "supprimer", modifie.GetProperty("id").GetString()!)).Code);
         Assert.Equal(avant, (await Cli("criteres", "lister", "--json")).Json.GetArrayLength());
         Assert.True(await Journalise("critere.supprime", "Astreinte prévenue et joignable"));
+    }
+
+    [Fact]
+    public async Task La_charte_visuelle_s_exporte_s_importe_et_se_retablit()
+    {
+        var afficher = await Cli("charte", "afficher");
+        Assert.Equal(0, afficher.Code);
+        Assert.Contains("Charte visuelle « Charte par défaut » [charte par défaut]", afficher.Sortie);
+        Assert.Contains("absent (facultatif)", afficher.Sortie);
+
+        // Un fichier invalide est refusé avec ses erreurs (code 1), rien n'est enregistré.
+        var invalide = Fichier("invalide.json");
+        await File.WriteAllTextAsync(invalide, "{\n  \"version\": 1,\n  \"couleurs\": { \"primaire\": \"bleu\" }\n}");
+        var refus = await Cli("charte", "verifier", invalide);
+        Assert.Equal(1, refus.Code);
+        Assert.Contains("couleurs.primaire : « bleu » n'est pas une couleur", refus.Sortie);
+        Assert.Contains("(ligne 3)", refus.Sortie);
+        Assert.Equal(1, (await Cli("charte", "importer", invalide)).Code);
+
+        var horizon = Fichier("horizon.json");
+        await File.WriteAllTextAsync(horizon, """
+            { "nom": "Groupe Horizon", "couleurs": { "primaire": "#0F766E", "secondaire": "#1B2A41", "tertiaire": "#C026D3" },
+              "menuLateral": "secondaire", "gris": "teintes", "police": "Marianne" }
+            """);
+        var essai = await Cli("charte", "importer", horizon, "--essai");
+        Assert.Equal(0, essai.Code);
+        Assert.Contains("Clé inconnue ignorée : « police »", essai.Sortie);
+        Assert.Equal("defaut", (await Cli("charte", "afficher", "--json")).Json.GetProperty("origine").GetString());
+
+        Assert.Equal(0, (await Cli("charte", "importer", horizon)).Code);
+        var json = (await Cli("charte", "afficher", "--json")).Json;
+        Assert.Equal("console", json.GetProperty("origine").GetString());
+        Assert.Equal("Ligne de commande", json.GetProperty("modifiePar").GetString());
+        Assert.Equal("#0F766E", json.GetProperty("charte").GetProperty("couleurs").GetProperty("primaire").GetString());
+        Assert.True(await Journalise("charte.modifiee", "primaire #4F46E5 → #0F766E"));
+
+        Assert.Equal(0, (await Cli("charte", "definir", "tertiaire", "primaire")).Code);
+        Assert.Equal(0, (await Cli("charte", "definir", "succes", "15803d")).Code);
+        Assert.NotEqual(0, (await Cli("charte", "definir", "primaire", "bleu")).Code);
+        Assert.Equal(2, (await Cli("charte", "definir", "logo", "#000000")).Code);
+        var exporte = await Cli("charte", "exporter");
+        Assert.Equal(0, exporte.Code);
+        var fichier = JsonDocument.Parse(exporte.Sortie).RootElement;
+        Assert.Equal("primaire", fichier.GetProperty("couleurs").GetProperty("tertiaire").GetString());
+        Assert.Equal("#15803D", fichier.GetProperty("etats").GetProperty("succes").GetString());
+        Assert.Equal(0, (await Cli("charte", "verifier")).Code);
+
+        var retablir = await Cli("charte", "retablir");
+        Assert.Equal(0, retablir.Code);
+        Assert.Contains("retour à la charte par défaut", retablir.Sortie);
+        Assert.Equal("defaut", (await Cli("charte", "afficher", "--json")).Json.GetProperty("origine").GetString());
+        Assert.True(await Journalise("charte.retablie", "charte par défaut"));
     }
 
     [Fact]

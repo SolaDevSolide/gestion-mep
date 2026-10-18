@@ -8,6 +8,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': { target: 'http://localhost:5080', changeOrigin: false, secure: false },
+      '/charte.css': { target: 'http://localhost:5080', changeOrigin: false, secure: false },
     },
   },
   build: { outDir: 'dist', emptyOutDir: true },
@@ -15,6 +16,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
-    css: false,
+    // Feuilles de style ignorées, sauf lues en texte (?raw) : un test compare la charte par défaut à index.css.
+    css: { include: [/\.css\?raw$/] },
   },
 });

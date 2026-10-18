@@ -72,10 +72,11 @@ public static class SuiviEndpoints
     }
 
     /// <summary>Rapport de fin en classeur Excel (route et <c>gestion-mep meps excel &lt;id&gt; rapport</c>).</summary>
-    public static async Task<ExportsExcelEndpoints.Fichier> RapportExcel(RapportsFin rapports, Guid id, DateTimeOffset maintenant)
+    public static async Task<ExportsExcelEndpoints.Fichier> RapportExcel(RapportsFin rapports, Guid id, DateTimeOffset maintenant,
+        Tableur.PaletteExcel? palette = null)
     {
         var r = await rapports.Lire(id);
-        return new(VuesExcel.Rapport(r, maintenant), VuesExcel.NomFichierRapport(r.Mep));
+        return new(VuesExcel.Rapport(r, maintenant, palette), VuesExcel.NomFichierRapport(r.Mep));
     }
 
     public static void MapSuivi(this RouteGroupBuilder api)
@@ -121,9 +122,9 @@ public static class SuiviEndpoints
         // Rapport de fin : figé à la clôture ; une MEP clôturée avant son existence obtient le sien maintenant. 422 avant la clôture.
         api.MapGet("/meps/{id:guid}/rapport", async (Guid id, RapportsFin rapports) => Results.Ok(await rapports.Lire(id)));
 
-        api.MapGet("/meps/{id:guid}/rapport/excel", async (Guid id, RapportsFin rapports, TimeProvider temps) =>
+        api.MapGet("/meps/{id:guid}/rapport/excel", async (Guid id, RapportsFin rapports, TimeProvider temps, ServiceCharte charte) =>
         {
-            var f = await RapportExcel(rapports, id, temps.GetUtcNow());
+            var f = await RapportExcel(rapports, id, temps.GetUtcNow(), charte.Courant.Palette);
             return Results.File(f.Contenu, VuesExcel.TypeContenu, f.Nom);
         }).Produces(StatusCodes.Status200OK, contentType: VuesExcel.TypeContenu);
     }

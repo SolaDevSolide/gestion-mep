@@ -10,7 +10,7 @@ Il est créé au premier démarrage, sur une base vide, à partir des variables 
 
 ## Console d'administration
 
-Menu « Administration › Console d'administration », visible des seuls administrateurs. Six onglets.
+Menu « Administration › Console d'administration », visible des seuls administrateurs. Sept onglets.
 
 ![Console d'administration, onglet Comptes](images/console-admin.png)
 
@@ -76,9 +76,34 @@ En ligne de commande : `gestion-mep sso afficher | configurer | tester | activer
 
 En ligne de commande : `gestion-mep reglages lister | definir <nom> <valeur> | retablir <nom>` (dont `reglages definir approbations-minimum 2`), `gestion-mep criteres lister | ajouter | modifier | supprimer` pour les critères go / no-go, et `gestion-mep config afficher` pour les réglages lus au démarrage (secrets masqués).
 
+### Charte visuelle
+
+Couleurs de l'application **pour tous les utilisateurs**, en thème clair et en thème sombre, et des classeurs Excel exportés. Rien d'autre ne change : ni le logo, ni le nom de l'application, ni les polices.
+
+- **Primaire** : boutons principaux, liens, onglet et menu actifs, contour de focus ; en-têtes de tableau et liens des exports Excel.
+- **Secondaire** : panneau de la page de connexion, menu latéral s'il est coloré, titres des exports Excel.
+- **Tertiaire** : sections du plan, entrées et sorties du graphe, mises en avant. Par défaut « Identique à la primaire ».
+- **Gris** : froids (par défaut), purs, chauds, ou teintés d'une nuance de la primaire (fonds, bordures, textes discrets).
+- **Menu latéral** : « Comme les pages » (par défaut) ou « Secondaire ».
+- **Couleurs d'état** (panneau replié) : réussie, avertissement (résolution), échec, en cours. À changer avec prudence : elles portent le sens du déroulé d'une MEP.
+
+Un clic sur une pastille ouvre le sélecteur : zone de couleur, teinte, saisie HEX, RVB ou TSL, pipette (selon le navigateur), contraste du texte blanc et sur fond blanc, couleurs de la charte, suggestions et couleurs récentes. La couleur du **thème sombre** est calculée (même teinte, plus claire, textes vérifiés sur fond sombre) ; **Retoucher** en impose une autre, **Revenir au calcul** annule.
+
+La carte **Lisibilité (WCAG AA)** contrôle chaque changement dans les deux thèmes : 4,5:1 pour les textes, 3:1 pour les cadres et le contour de focus. **Corriger** garde la teinte et propose la luminosité la plus proche qui passe. Elle prévient aussi quand la primaire ou la tertiaire ressemble à une couleur d'état (un bouton se lirait comme un état de la MEP). Ce ne sont que des avertissements : rien n'est bloqué.
+
+L'**aperçu** montre l'application (clair ou sombre) et un classeur Excel avec la charte en cours de réglage. Rien ne change pour personne avant **Enregistrer** ; ensuite, la charte s'applique dans la minute à tous les écrans ouverts, sans recharger.
+
+- **Exporter** télécharge la charte affichée au format `charte.json` ; **Importer…** reprend un fichier exporté d'une autre installation ou préparé à la main (le fichier est vérifié, les couleurs actuelles et importées sont comparées ; rien n'est enregistré avant « Enregistrer »).
+- La charte enregistrée dans la console **remplace** le fichier `charte.json` posé par l'équipe informatique (voir [Exploiter](Exploiter.md#charte-visuelle)). **Charte par défaut** l'efface après confirmation : le fichier s'applique de nouveau s'il existe, sinon les couleurs d'origine.
+- Un fichier `charte.json` invalide est ignoré (charte par défaut) et signalé en haut de l'onglet, avec la ligne en cause.
+
+Chaque enregistrement et chaque retour à la charte par défaut est inscrit au journal d'administration, avec les couleurs changées.
+
+En ligne de commande : `gestion-mep charte afficher | exporter | importer | verifier | definir | retablir`.
+
 ### Journal
 
-Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, reliés à un autre compte de la même personne ou déliés, équipes créées, modifiées ou supprimées, mots de passe réinitialisés ou changés, paramètres, réglages du serveur et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, environnements, catégories et objets de leur fiche modifiés, catégories par défaut modifiées, résolutions types supprimées, désactivées ou importées, modèles de recette et étapes modèles supprimés, modèles de texte créés, modifiés, rétablis ou supprimés, MEP exportées en ligne de commande, mises à jour demandées, contrôles des données après une mise à jour ou une importation, réinitialisation de la démonstration. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
+Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, reliés à un autre compte de la même personne ou déliés, équipes créées, modifiées ou supprimées, mots de passe réinitialisés ou changés, paramètres, réglages du serveur, charte visuelle et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, environnements, catégories et objets de leur fiche modifiés, catégories par défaut modifiées, résolutions types supprimées, désactivées ou importées, modèles de recette et étapes modèles supprimés, modèles de texte créés, modifiés, rétablis ou supprimés, MEP exportées en ligne de commande, mises à jour demandées, contrôles des données après une mise à jour ou une importation, réinitialisation de la démonstration. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
 
 L'application y signale aussi, avec l'auteur « Application », **20 échecs de connexion en moins d'une heure sur un même compte**, toutes adresses confondues : signe probable qu'on essaie de deviner son mot de passe.
 

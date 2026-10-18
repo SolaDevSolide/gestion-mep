@@ -52,6 +52,9 @@ var sourceReglages = new SourceReglagesBase(builder.Configuration.GetConnectionS
 ((IConfigurationBuilder)builder.Configuration).Add(sourceReglages);
 builder.Services.AddSingleton(sourceReglages.Fournisseur);
 builder.Services.AddHostedService<RafraichissementReglages>();
+// Charte visuelle (couleurs de l'interface et des exports Excel) : fichier charte.json, remplacé par la charte de la console.
+builder.Services.AddSingleton<ServiceCharte>();
+builder.Services.AddHostedService<RafraichissementCharte>();
 
 builder.Services.AddDbContext<MepDbContext>((sp, options) =>
     options.UseNpgsql(sp.GetRequiredService<IConfiguration>().GetConnectionString("Mep")
@@ -139,8 +142,9 @@ var api = app.MapGroup("/api").RequireAuthorization();
 api.MapOpenApi(DocumentationOpenApi.Chemin);
 api.MapGet("/sante", () => Results.Ok(new { statut = "ok" })).AllowAnonymous();
 // Version du front servi (empreinte de index.html) : un onglet ouvert la compare pour proposer de recharger après un déploiement.
+// Empreinte de la charte : quand elle change, l'onglet recharge seulement /charte.css (nouvelles couleurs sans recharger la page).
 var versionFront = VersionFront(app.Environment);
-api.MapGet("/version", () => Results.Ok(new { version = versionFront })).AllowAnonymous();
+api.MapGet("/version", (ServiceCharte charte) => new VersionDto(versionFront, charte.Courant.Empreinte)).AllowAnonymous();
 api.MapAuth();
 api.MapSso();
 // Mode démonstration (Demo:Activer) : routes déclarées seulement s'il est actif.
@@ -164,10 +168,12 @@ api.MapAdmin();
 api.MapEquipes();
 api.MapCommunication();
 api.MapReglages();
+api.MapCharte();
 api.MapPiecesJointes();
 // Une route /api inconnue ne doit jamais retomber sur index.html.
 api.Map("{**reste}", () => Results.Json(new { message = "Route introuvable." }, statusCode: 404));
 
+app.MapFeuilleCharte();
 app.MapFallbackToFile("index.html", fichiersStatiques);
 
 await Amorcage.Executer(app.Services);
