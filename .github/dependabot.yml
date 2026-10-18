@@ -16,6 +16,10 @@ updates:
     groups:
       back:
         update-types: [minor, patch]
+    ignore:
+      # Fixé à la série 1.0 (Apache 2.0) : les versions suivantes ne sont plus sous licence libre permissive,
+      # et ClosedXML n'accepte pas la série 3 (voir GestionMep.Tableur.csproj).
+      - dependency-name: SixLabors.Fonts
 
   - package-ecosystem: github-actions
     directory: /
