@@ -24,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUtilisateur(null);
       // Déjà sur l'écran de connexion : on garde son adresse (message ?erreur=… ou ?demo=reinitialisee).
       if (window.location.pathname !== '/connexion') void navigate('/connexion', { replace: true });
+      return Promise.resolve(false);
     });
   }, [navigate]);
 

@@ -96,6 +96,8 @@ export function useNow(ms = 1000): number {
 export function useAsync<T>(charger: () => Promise<T>, deps: unknown[]) {
   const [donnees, setDonnees] = useState<T | null>(null);
   const [erreur, setErreur] = useState('');
+  // Erreur reçue telle quelle (`ApiError` : code, requête) : `ErreurChargement` en tire son message et ses détails.
+  const [echec, setEchec] = useState<unknown>(null);
   const [tick, setTick] = useState(0);
   const cle = [...deps, tick];
   // Clé de la dernière réponse reçue (réussie ou non) : différente de `cle` tant qu'une demande est en cours.
@@ -108,12 +110,14 @@ export function useAsync<T>(charger: () => Promise<T>, deps: unknown[]) {
         if (!annule) {
           setDonnees(d);
           setErreur('');
+          setEchec(null);
           setCleRecue(demandee);
         }
       })
       .catch((e: unknown) => {
         if (!annule) {
           setErreur(e instanceof Error ? e.message : 'Chargement impossible.');
+          setEchec(e ?? new Error('Chargement impossible.'));
           setCleRecue(demandee);
         }
       });
@@ -126,6 +130,8 @@ export function useAsync<T>(charger: () => Promise<T>, deps: unknown[]) {
   return {
     donnees,
     erreur,
+    /** Erreur de la dernière réponse (null si elle a réussi), pour `ErreurChargement`. */
+    echec,
     chargement,
     rechargement: chargement && donnees !== null,
     recharger: () => setTick((t) => t + 1),
