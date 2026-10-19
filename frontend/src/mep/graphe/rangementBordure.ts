@@ -1,4 +1,5 @@
-import type { ELK as MoteurElk, ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api';
+import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api';
+import { calculerRangement } from './moteurElk';
 import { POIGNEE_BAS, POIGNEE_HAUT, type ModeleGraphe, type NoeudModele } from './modeleGraphe';
 import {
   CARTE,
@@ -311,19 +312,13 @@ function grouper(morceaux: Morceau[], noeuds: Map<string, ElkNode>) {
   }
 }
 
-let moteur: Promise<MoteurElk> | null = null;
-
-/** ELK est chargé à la première utilisation (bibliothèque volumineuse, inutile hors du graphe). */
-function chargerMoteur(): Promise<MoteurElk> {
-  moteur ??= import('elkjs/lib/elk.bundled.js').then(({ default: ELK }) => new ELK());
-  return moteur;
-}
-
-/** Range le modèle : places relatives au parent (React Flow), cercles (sections repliées et cadres), tracés absolus. */
+/**
+ * Range le modèle : places relatives au parent (React Flow), cercles (sections repliées et cadres), tracés absolus. Calcul
+ * dans le fil de calcul d'ELK (`moteurElk`) ; échec : `RangementIndisponible`.
+ */
 export async function rangerBordure(modele: ModeleGraphe, tailles: ReadonlyMap<string, Taille>): Promise<Rangement> {
-  const elk = await chargerMoteur();
   const g = grapheBordure(modele, tailles);
-  return relire(modele, await elk.layout(g.graphe), g);
+  return relire(modele, await calculerRangement(g.graphe), g);
 }
 
 const arrondi = (v: number | undefined) => Math.round((v ?? 0) * 2) / 2;
