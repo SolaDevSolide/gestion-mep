@@ -72,9 +72,9 @@ public class ApiJalon3Tests : IDisposable
         var claire = await _api.ClientConnecte("claire");
         var modeles = (await Ok(await alice.GetAsync("/api/meps?modele=true"))).EnumerateArray().ToList();
         Assert.Equal("Modèle : déploiement API standard", Assert.Single(modeles).GetProperty("outil").GetString());
-        // Le modèle, le « Portail de démonstration », les 8 MEP de démonstration dans les autres états (dont la MEP simplifiée)
-        // et les 4 MEP clôturées des mois passés.
-        Assert.Equal(1 + 1 + 8 + 4, (await Ok(await alice.GetAsync("/api/meps"))).GetArrayLength());
+        // Le modèle, le « Portail de démonstration », les 8 MEP de démonstration dans les autres états (dont la MEP simplifiée),
+        // les 3 sorties du cycle de vie (reportée, annulée, clôturée en échec, #93) et les 4 MEP clôturées des mois passés.
+        Assert.Equal(1 + 1 + 8 + 3 + 4, (await Ok(await alice.GetAsync("/api/meps"))).GetArrayLength());
         Assert.Equal(["Équipe présente et joignable", "Sauvegarde disponible", "Utilisateurs prévenus de l'interruption", "Supervision en place"],
             (await Ok(await claire.GetAsync("/api/criteres-go-no-go"))).EnumerateArray().Select(c => c.GetProperty("libelle").GetString()!).ToArray());
         Assert.Equal(1, (await Ok(await claire.GetAsync("/api/parametres"))).GetProperty("approbationsMinimum").GetInt32());
@@ -332,7 +332,7 @@ public class ApiJalon3Tests : IDisposable
         Assert.Equal((await Ok(await alice.GetAsync($"/api/meps/{id}"))).GetProperty("systemes").EnumerateArray().Select(s => s.GetProperty("environnements").GetArrayLength()),
             nouveauModele.GetProperty("systemes").EnumerateArray().Select(s => s.GetProperty("environnements").GetArrayLength()));
         Assert.Equal(2, (await Ok(await alice.GetAsync("/api/meps?modele=true"))).GetArrayLength());
-        Assert.Equal(13 + 1, (await Ok(await alice.GetAsync("/api/meps?modele=false"))).GetArrayLength()); // MEP de démonstration et la copie
+        Assert.Equal(16 + 1, (await Ok(await alice.GetAsync("/api/meps?modele=false"))).GetArrayLength()); // MEP de démonstration et la copie
         Assert.Equal(HttpStatusCode.NotFound, (await alice.PostAsJsonAsync($"/api/meps/{Guid.NewGuid()}/dupliquer", new { commeModele = false })).StatusCode);
     }
 

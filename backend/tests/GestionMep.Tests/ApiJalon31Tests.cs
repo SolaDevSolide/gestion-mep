@@ -218,7 +218,7 @@ public class ApiJalon31Tests : IDisposable
         mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes/{e7.GetProperty("id").GetGuid()}/autoriser-non-retour", new { revision = e7.GetProperty("revision").GetInt32() }));
         await Reussir(bob, "E0007");
 
-        var rep = await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Preparation" });
+        var rep = await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Preparation", motif = "Étape mal écrite" });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, rep.StatusCode);
         Assert.Contains("point de non-retour", await Message(rep));
     }

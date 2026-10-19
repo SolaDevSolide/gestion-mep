@@ -1,17 +1,21 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { metaPhase } from '../statuts';
+import { MepContext } from '../mepContext';
+import { metaEtatMep, metaPhase } from '../statuts';
 import { mep } from '../test/fabrique';
 import type { Mep } from '../types';
 import { TooltipProvider } from '../ui/Tooltip';
 import { EnTeteMep } from './EnTeteMep';
 
 function rendre(m: Partial<Mep>) {
+  const valeur = mep(m);
   render(
     <MemoryRouter>
-      <TooltipProvider>
-        <EnTeteMep mep={mep(m)} onglets={null} />
-      </TooltipProvider>
+      <MepContext.Provider value={{ mep: valeur, run: vi.fn() } as never}>
+        <TooltipProvider>
+          <EnTeteMep mep={valeur} onglets={null} />
+        </TooltipProvider>
+      </MepContext.Provider>
     </MemoryRouter>,
   );
 }
@@ -28,6 +32,24 @@ describe('metaPhase', () => {
       ton: 'warn',
       libelle: 'Clôturée : réussie avec incidents',
     });
+  });
+});
+
+describe('nouveaux états du cycle de vie (#93)', () => {
+  it('reportée : la date visée dans la pastille, ou « sans date »', () => {
+    expect(metaPhase('Preparation', 'Reportee', '2026-10-28')).toMatchObject({
+      ton: 'wait',
+      libelle: 'Reportée · 28/10/2026',
+    });
+    expect(metaPhase('Preparation', 'Reportee', null).libelle).toMatch(/^Reportée/);
+  });
+
+  it('annulée et clôturée en échec ont leur pastille', () => {
+    expect(metaPhase('Annulee', 'Annulee')).toMatchObject({ ton: 'later', libelle: 'Annulée' });
+    expect(metaPhase('Cloturee', 'Echec')).toMatchObject({ ton: 'danger', libelle: 'Clôturée : échec' });
+    expect(metaEtatMep('Echec')).toMatchObject({ ton: 'danger', libelle: 'Échec (service dégradé)' });
+    expect(metaEtatMep('Annulee').libelle).toBe('Annulée');
+    expect(metaEtatMep('Reportee').libelle).toBe('Reportée');
   });
 });
 

@@ -18,10 +18,21 @@ export function planActif(phase: Phase): TypePlan | null {
 /** Exécutant d’une étape : la personne qui l’a démarrée (ou a pris la main) ; aucun avant le démarrage. */
 export const executantEffectif = (e: Pick<Etape, 'executantId'>): string | null => e.executantId;
 
+/** MEP terminée, en lecture seule : clôturée (quelle que soit son issue) ou annulée (#93). */
+export const estTerminee = (mep: Pick<Mep, 'phase'>): boolean => mep.phase === 'Cloturee' || mep.phase === 'Annulee';
+
+/**
+ * Retour arrière effectué : en cours, ou clôturée repliée, ou clôturée en échec après un retour arrière (le plan suivi reste
+ * alors celui du retour arrière).
+ */
+export const retourArriereEffectue = (mep: Pick<Mep, 'phase' | 'issue' | 'retourArriere'>): boolean =>
+  mep.phase === 'RetourArriere' ||
+  (mep.phase === 'Cloturee' && (mep.issue === 'Repliee' || (mep.issue === 'Echec' && mep.retourArriere !== null)));
+
 /** Badge « À vous » : seulement sur une étape à faire ou en cours, jamais sur une étape terminée ni dans une MEP clôturée. */
 export const estAVous = (mep: Pick<Mep, 'droits' | 'phase'>, e: Pick<Etape, 'executantId' | 'etat'>): boolean => {
   const moi = mep.droits.participantId;
-  return moi !== null && executantEffectif(e) === moi && e.etat !== 'Reussie' && mep.phase !== 'Cloturee';
+  return moi !== null && executantEffectif(e) === moi && e.etat !== 'Reussie' && !estTerminee(mep);
 };
 
 export const participantPar = (

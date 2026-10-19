@@ -67,7 +67,7 @@ describe('filtre dans l’adresse', () => {
     const p = ecrireFiltre({ ...FILTRE_VIDE, equipes: ['e'] }, new URLSearchParams('onglet=x'));
     expect(p.toString()).toBe('onglet=x&equipe=e');
     expect(p.get('onglet')).toBe('x');
-    expect(lireFiltre(new URLSearchParams('etat=annulee,reussie&role=chef&du=hier&echec=peut-etre'))).toEqual({
+    expect(lireFiltre(new URLSearchParams('etat=abandonnee,reussie&role=chef&du=hier&echec=peut-etre'))).toEqual({
       ...FILTRE_VIDE,
       etats: ['reussie'],
     });

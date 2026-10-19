@@ -16,6 +16,7 @@ import { BoutonGoNoGo } from '../ActionsPilote';
 import { ChampBlocs } from '../ChampBlocs';
 import { ApprobationsBloc } from './Approbations';
 import { SectionCarte, vide } from './Formulaires';
+import { estTerminee } from '../../domaine';
 
 /**
  * Ligne de sauvegarde d'un système : requise (moment, contenu, emplacement et méthode de récupération, ces deux derniers
@@ -189,7 +190,7 @@ export function SauvegardeSection() {
   useReportDirty(d.dirty, 'Sauvegarde');
   const v = d.value;
   // Après la préparation, seuls le pilote et ses suppléants complètent les preuves ; plus personne une fois la MEP clôturée.
-  const editable = mep.droits.peutEditerContenu || (mep.droits.estPilote && mep.phase !== 'Cloturee');
+  const editable = mep.droits.peutEditerContenu || (mep.droits.estPilote && !estTerminee(mep));
   const aucunSauvegarde = mep.systemes.length > 0 && mep.systemes.every((s) => s.sauvegarde.statut === 'NonRequise');
 
   async function enregistrer() {

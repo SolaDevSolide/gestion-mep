@@ -9,6 +9,7 @@ import { PiecesJointes } from '../../ui/PiecesJointes';
 import { Bloc } from './EspaceEtape';
 import { SelecteurResolutions } from './SelecteurResolutions';
 import { estSimplifiee } from '../typeMep';
+import { estTerminee } from '../../domaine';
 
 /** Pièces jointes d'une étape (dépôt possible tant que la MEP n'est pas clôturée). */
 export function PiecesEtape({ etapeId, className }: { etapeId: string; className?: string }) {
@@ -17,7 +18,7 @@ export function PiecesEtape({ etapeId, className }: { etapeId: string; className
     <PiecesJointes
       className={className}
       compact
-      lectureSeule={mep.phase === 'Cloturee'}
+      lectureSeule={estTerminee(mep)}
       pilote={mep.droits.estPilote}
       pieces={mep.piecesJointes.filter((p) => p.etapeId === etapeId)}
       onDeposer={(f, signaler) => run(() => api.deposerPieceEtape(mep.id, etapeId, f), undefined, signaler)}

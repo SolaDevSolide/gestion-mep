@@ -388,6 +388,7 @@ public static partial class LigneDeCommande
         Phase.Recette => "recette",
         Phase.RetourArriere => "retour arrière",
         Phase.Cloturee => "clôturée",
+        Phase.Annulee => "annulée",
         _ => phase.ToString(),
     };
 
@@ -480,7 +481,8 @@ public static partial class LigneDeCommande
         }
         var r = h.Resume;
         Console.WriteLine($"{h.Nom} : {r.Total} MEP ({r.DouzeMois} sur les 12 derniers mois), {r.EnCours} en cours, {r.Reussies} réussie(s), "
-            + $"{r.AvecIncidents} avec incidents, {r.Repliees} repliée(s) ; {r.Echecs} échec(s) d'étape sur ce système, {r.EchecsRepris} repris.");
+            + $"{r.AvecIncidents} avec incidents, {r.Repliees} repliée(s), {r.EnEchec} en échec, {r.Annulees} annulée(s) ; "
+            + $"{r.Echecs} échec(s) d'étape sur ce système, {r.EchecsRepris} repris.");
         if (h.Meps.Count == 0) return 0;
         Console.WriteLine();
         Console.WriteLine($"{"JOUR",-10}  {"ÉTAT",-22}  {"ENVIRONNEMENTS",-24}  ÉCHECS  OUTIL ET OBJET");

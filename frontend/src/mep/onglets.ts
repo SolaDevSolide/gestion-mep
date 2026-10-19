@@ -1,3 +1,4 @@
+import { retourArriereEffectue } from '../domaine';
 import type { Mep } from '../types';
 
 /** Onglets d'une MEP. Vue d'ensemble et Exécution n'existent pas pour un modèle. */
@@ -30,8 +31,7 @@ export const sousOngletsVisibles = (m: Mep): SousOnglet[] =>
 
 /** Sous-onglet du plan qui suit la phase : retour arrière pendant (ou après) un repli, recette pendant la recette. */
 export function sousOngletParDefaut(m: Mep): SousOnglet {
-  if ((m.phase === 'RetourArriere' || (m.phase === 'Cloturee' && m.issue === 'Repliee')) && retourVisible(m))
-    return 'retour';
+  if (retourArriereEffectue(m) && retourVisible(m)) return 'retour';
   if (m.phase === 'Recette') return 'recette';
   return 'etapes';
 }
@@ -65,7 +65,10 @@ export function vueParDefaut(m: Mep): Vue {
     case 'Recette':
       return { onglet: 'plan', sous };
     case 'Cloturee':
-      return m.issue === 'Repliee' ? { onglet: 'plan', sous } : { onglet: 'execution', sous };
+      return retourArriereEffectue(m) ? { onglet: 'plan', sous } : { onglet: 'execution', sous };
+    case 'Annulee':
+      // Annulée après un Go : ce qui a été exécuté ; jamais lancée : sa préparation.
+      return { onglet: m.premierGo ? 'execution' : 'preparation', sous };
   }
 }
 

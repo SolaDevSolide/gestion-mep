@@ -5,7 +5,7 @@ Cette page s'adresse au **pilote**, à ses **suppléants** et aux **opérateurs*
 ## Avant de commencer
 
 1. Vérifier que le plan est complet (« Vérifier le plan » : aucune anomalie) et que les approbations sont données.
-2. Le pilote ou un suppléant ouvre « Go / no-go », coche les critères (équipe présente, sauvegarde disponible, utilisateurs prévenus…) et clique « Go : passer en exécution ». S'il manque quelque chose, « No-go » avec un motif laisse la MEP en préparation.
+2. Le pilote ou un suppléant ouvre « Go / no-go », coche les critères (équipe présente, sauvegarde disponible, utilisateurs prévenus…) et clique « Go : passer en exécution ». S'il manque quelque chose, « No-go » avec un motif laisse la MEP en préparation ; la case « Reporter la MEP » la reporte en même temps, avec une date visée facultative (voir [Reporter une MEP](Cycle-de-vie.md#reporter-une-mep)).
 
 À partir du Go, si la MEP a une échéance de retour arrière, l'en-tête affiche le compte à rebours « Retour arrière dans… », orange à moins d'une heure de l'échéance. À l'échéance, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi. Une MEP sans échéance n'a ni compte à rebours ni déclenchement automatique ; une MEP sans plan de retour arrière n'a ni sous-onglet Plan › Retour arrière, ni bouton « Déclencher le retour arrière » (voir [Préparer une MEP](Préparer-une-MEP.md#retour-arrière-facultatif)).
 
@@ -85,7 +85,11 @@ L'étape point de non-retour est encadrée de rouge. Avant qu'on puisse la déma
 
 ## Revenir en préparation
 
-Tant que le point de non-retour n'est pas franchi et qu'aucune étape ni résolution n'est en cours, le pilote peut cliquer « Revenir en préparation » (par exemple pour corriger le plan). Les états des étapes sont conservés.
+Tant que le point de non-retour n'est pas franchi et qu'aucune étape ni résolution n'est en cours, le pilote peut cliquer « Revenir en préparation » (par exemple pour corriger le plan), avec un **motif obligatoire**, inscrit au journal. Les états des étapes sont conservés, comme l'heure du premier Go. Une fois revenue en préparation, la MEP peut être corrigée puis relancée par un nouveau Go, ou [annulée](Cycle-de-vie.md#annuler-une-mep) depuis le menu « ⋯ Plus d'actions » (motif et état laissé en production obligatoires).
+
+## Ajouter une étape corrective
+
+Pendant l'exécution, le pilote ou un suppléant clique **« Ajouter une étape corrective »** dans **Plan › Étapes** pour corriger en avant : action, système, instructions et résultat attendu sont obligatoires, comme la durée et la criticité dans une MEP complète. L'étape prend le code suivant (`E0006`, `E0007`…), attend les dernières étapes du plan, et porte la mention **« Ajoutée après le Go »** dans le graphe, la fiche de l'étape et le rapport de fin. Sa fiche ne se modifie plus ensuite : si elle ne convient pas, on en ajoute une autre.
 
 ## Recette et clôture
 
@@ -101,17 +105,32 @@ Une fois le fichier rempli, le pilote ou un suppléant clique **« Importer la v
 
 Le fichier est **refusé en entier**, sans rien modifier, avec la liste des motifs, s'il est incohérent : fichier d'une autre MEP, recette modifiée depuis l'export (exporter à nouveau), colonne d'en-tête supprimée, référence d'étape modifiée ou inconnue, valeur de validation inconnue, « Validé par » manquant, date illisible, « Refusé » sans résultat constaté, ou validation qui contredit un résultat déjà saisi dans l'application (faire d'abord refaire l'étape). Un import n'efface jamais un résultat : pour refaire une étape, le pilote utilise « Refaire ». L'import est inscrit dans le journal de la MEP.
 
-Si la recette révèle un problème, que la MEP a un plan de retour arrière et que le point de non-retour n'est pas franchi, le pilote peut encore déclencher le retour arrière.
+Si la recette révèle un problème, le cadre **« Décision du pilote »** de **Plan › Recette** propose :
+
+- **« Revenir en exécution pour corriger »** (motif obligatoire) : la MEP repasse en exécution, on y ajoute des [étapes correctives](#ajouter-une-étape-corrective), puis on repasse en recette. Les tests en échec redeviennent « à faire » ;
+- **« Déclencher le retour arrière »**, si la MEP a un plan de retour arrière et que le point de non-retour n'est pas franchi ;
+- **« Clôturer en échec… »**, seulement quand le retour arrière est impossible et que le service ne peut pas être rétabli (voir ci-dessous).
 
 ## Retour arrière
 
 - **Déclencher le retour arrière** (pilote ou suppléant, motif obligatoire) arrête le déploiement. Un bandeau rouge l'indique à tous, avec son motif et son auteur (« Déclenchement automatique » s'il vient de l'échéance ou d'une résolution).
 - **Plan › Retour arrière** (la MEP s'y ouvre pendant un retour arrière) déroule son propre plan, étape par étape, comme l'exécution.
 - Quand toutes ses étapes ont réussi, le pilote clique **« Service rétabli : clôturer »** et rédige le bilan. La MEP est clôturée comme repliée.
+- Si une étape du retour arrière échoue et que le service ne peut pas être rétabli, l'encadré **« Retour arrière en échec »** propose de suivre la consigne « Si le retour arrière échoue » du plan, puis **« Clôturer en échec… »**.
+
+## Clôturer en échec
+
+« Clôturer en échec… » (pilote ou suppléant) demande l'**état du service laissé en production** (obligatoire, par exemple « Consultation en lecture seule, dépôt des courriers indisponible »), la **référence de l'incident** (facultative) et le **bilan** (« Ce qui a marché » et « Incidents » obligatoires, même si le bilan est désactivé). Aucune étape ne doit être en cours. La MEP est clôturée **« Clôturée : échec »**, en rouge ; le bilan et le rapport de fin rappellent l'état du service et l'incident.
+
+## Changer de pilote pendant la MEP
+
+Après le Go, le pilote ou un suppléant **passe le pilotage** depuis le menu « ⋯ Plus d'actions » (« Passer le pilotage… ») : choisir une personne de la MEP reliée à un compte, ou un compte qui n'y figure pas encore, et indiquer le motif. L'ancien pilote reste suppléant par défaut. Si ni le pilote ni les suppléants ne répondent, un administrateur peut prendre le **pilotage de secours** (voir [Cycle de vie](Cycle-de-vie.md#pilotage-de-secours-et-passation)) : un bandeau le signale à tous jusqu'à la clôture.
+
+Une personne (astreinte, renfort) s'ajoute aussi après le Go, par le pilote, un suppléant ou un administrateur, dans **Préparation › Personnes**.
 
 ## Le journal
 
-L'onglet **Journal** retrace tout, du plus récent au plus ancien, groupé par jour : qui a fait quoi et quand, motifs des prises de main, du no-go et du retour arrière, critères cochés au Go, résultats constatés des tests unitaires, résultats de recette. Une recherche et un filtre par type d'événement aident à s'y retrouver. **« Exporter en Excel »**, au bout de cette ligne, télécharge les événements affichés (filtres compris) et le suivi des tests unitaires ; les vues du plan s'exportent de la même façon (voir [Exporter en Excel](Préparer-une-MEP.md#exporter-en-excel)).
+L'onglet **Journal** retrace tout, du plus récent au plus ancien, groupé par jour : qui a fait quoi et quand, motifs des prises de main, du no-go, du report, des retours en préparation ou en exécution, de l'annulation, des changements de pilote et du retour arrière, critères cochés au Go, résultats constatés des tests unitaires, résultats de recette. Une recherche et un filtre par type d'événement aident à s'y retrouver. **« Exporter en Excel »**, au bout de cette ligne, télécharge les événements affichés (filtres compris) et le suivi des tests unitaires ; les vues du plan s'exportent de la même façon (voir [Exporter en Excel](Préparer-une-MEP.md#exporter-en-excel)).
 
 En tête du journal, l'encadré **Tests unitaires** compte les tests faits et non faits (et les simples vérifications) ; déplié, il donne pour chaque test le résultat attendu, le résultat constaté, l'exécutant et l'état (réussi, échec, non fait). Les étapes du retour arrière n'y figurent qu'une fois celui-ci déclenché. Une étape reprise après un échec redevient « non faite » jusqu'à sa nouvelle fin.
 

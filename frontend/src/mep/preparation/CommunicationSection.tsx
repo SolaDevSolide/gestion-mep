@@ -12,6 +12,7 @@ import { Checkbox } from '../../ui/Checkbox';
 import { Field, Input, Select, Textarea } from '../../ui/Input';
 import { Segmented } from '../../ui/Segmented';
 import { SectionCarte, vide } from './Formulaires';
+import { estTerminee } from '../../domaine';
 
 /** Heure « HH:MM:SS » du serveur pour un champ heure (« HH:MM »), et inversement. */
 const versHeure = (t: string | null) => (t ? t.slice(0, 5) : '');
@@ -22,7 +23,7 @@ const depuisHeure = (v: string) => (v ? `${v}:00` : null);
  * jusqu'à la clôture (preuve de validation, heure limite…).
  */
 export function peutModifierCommunication(mep: Mep, admin: boolean): boolean {
-  if (mep.phase === 'Cloturee') return false;
+  if (estTerminee(mep)) return false;
   if (mep.phase === 'Preparation') return mep.droits.peutEditerContenu;
   return mep.droits.estPilote || admin;
 }

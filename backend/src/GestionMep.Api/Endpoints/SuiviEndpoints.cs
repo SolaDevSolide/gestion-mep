@@ -47,7 +47,8 @@ public static class SuiviEndpoints
         }
 
         var annoncees = await db.Meps.AsNoTracking()
-            .Where(m => !m.EstModele && m.Phase == Phase.Preparation && m.Communication.DateAnnoncee != null)
+            // Une MEP reportée n'est plus prévue au créneau annoncé.
+            .Where(m => !m.EstModele && m.Phase == Phase.Preparation && m.Report == null && m.Communication.DateAnnoncee != null)
             .Select(m => new
             {
                 m.Id, m.Outil, m.VersionCible, m.Type, Date = m.Communication.DateAnnoncee!.Value, Heure = m.Communication.HeureDebutAnnoncee,

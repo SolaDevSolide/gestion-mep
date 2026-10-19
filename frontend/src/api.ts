@@ -1,7 +1,14 @@
 import type { CharteFichier } from './charte/charte';
 import type {
   ActiviteSysteme,
+  AnnulationSaisie,
   BilanSaisie,
+  ClotureEchecSaisie,
+  EtapeCorrectiveSaisie,
+  NoGoSaisie,
+  PilotageSaisie,
+  ReportSaisie,
+  SuppressionMepSaisie,
   HistoriqueSysteme,
   CritereGoNoGo,
   CritereGoNoGoSaisie,
@@ -226,7 +233,7 @@ function requete(valeurs: Record<string, string | undefined>): string {
 const get = <T>(p: string, options?: OptionsRequete) => request<T>('GET', p, undefined, options);
 const post = <T>(p: string, b?: unknown) => request<T>('POST', p, b ?? {});
 const put = <T>(p: string, b: unknown, options?: OptionsRequete) => request<T>('PUT', p, b, options);
-const del = <T>(p: string) => request<T>('DELETE', p);
+const del = <T>(p: string, b?: unknown) => request<T>('DELETE', p, b);
 
 export const api = {
   connexion: (login: string, motDePasse: string) => post<Utilisateur>('/auth/connexion', { login, motDePasse }),
@@ -373,8 +380,9 @@ export const api = {
   modifierPlanRepli: (id: string, s: PlanRepliSaisie) => put<Mep>(`/meps/${id}/plan-repli`, s),
   declencherRetourArriere: (id: string, motif: string) => post<Mep>(`/meps/${id}/retour-arriere`, { motif }),
   cloturer: (id: string, bilan?: BilanSaisie) => post<Mep>(`/meps/${id}/cloturer`, bilan ?? {}),
+  cloturerEnEchec: (id: string, s: ClotureEchecSaisie) => post<Mep>(`/meps/${id}/cloturer`, s),
   go: (id: string, criteresCoches: string[]) => post<Mep>(`/meps/${id}/phase`, { phase: 'Execution', criteresCoches }),
-  noGo: (id: string, motif: string) => post<Mep>(`/meps/${id}/no-go`, { motif }),
+  noGo: (id: string, s: NoGoSaisie) => post<Mep>(`/meps/${id}/no-go`, s),
   passerEnRecette: (id: string) => post<Mep>(`/meps/${id}/phase`, { phase: 'Recette' }),
   dupliquer: (id: string, s: DuplicationSaisie) => post<Mep>(`/meps/${id}/dupliquer`, s),
 
@@ -523,5 +531,16 @@ export const api = {
   supprimerResolution: (id: string) => del<void>(`/resolutions/${id}`),
 
   procedureRelue: (id: string, relue: boolean) => post<Mep>(`/meps/${id}/procedure-relue`, { relue }),
-  changerPhase: (id: string, phase: 'Preparation') => post<Mep>(`/meps/${id}/phase`, { phase }),
+  /** Retour en préparation (depuis l'exécution) ou en exécution (depuis la recette, « corriger en avant ») : motif obligatoire. */
+  changerPhase: (id: string, phase: 'Preparation' | 'Execution', motif: string) =>
+    post<Mep>(`/meps/${id}/phase`, { phase, motif }),
+
+  // Sorties du cycle de vie (#93).
+  annuler: (id: string, s: AnnulationSaisie) => post<Mep>(`/meps/${id}/annuler`, s),
+  reporter: (id: string, s: ReportSaisie) => post<Mep>(`/meps/${id}/reporter`, s),
+  reprendrePreparation: (id: string) => post<Mep>(`/meps/${id}/reprendre`),
+  ajouterEtapeCorrective: (id: string, s: EtapeCorrectiveSaisie) => post<Mep>(`/meps/${id}/etapes-correctives`, s),
+  changerPilote: (id: string, s: PilotageSaisie) => post<Mep>(`/meps/${id}/pilotage`, s),
+  /** Suppression définitive (administrateur, MEP jamais lancée) : motif et nom de la MEP saisi pour confirmer. */
+  supprimerMep: (id: string, s: SuppressionMepSaisie) => del<void>(`/meps/${id}`, s),
 };

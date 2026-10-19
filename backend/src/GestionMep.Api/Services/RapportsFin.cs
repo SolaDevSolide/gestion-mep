@@ -76,6 +76,9 @@ public class RapportsFin(MepDbContext db, ServiceMep svc)
         // État (réussie, avec incidents, repliée) relu du journal figé : un rapport figé avant que la MEP le porte l'obtient aussi.
         var echecs = c.Journal.Count(e => e.Type == Regles.EvenementEchecEtape);
         var mep = c.Mep with { Etat = Regles.EtatDe(c.Mep.Phase, c.Mep.Issue, echecs), EchecsSurvenus = echecs };
+        // Rapport figé avant la clôture en échec (#93) : champs de clôture absents du JSON.
+        if (mep.Cloture is { } cl && (cl.EtatService is null || cl.ReferenceIncident is null))
+            mep = mep with { Cloture = cl with { EtatService = cl.EtatService ?? "", ReferenceIncident = cl.ReferenceIncident ?? "" } };
         return new RapportFinDto(r.MepId, r.FigeLe, r.CalculeApres, c.Synthese, c.PointsBloquants, c.TestsUnitaires, mep, c.Journal);
     }
 
@@ -119,7 +122,10 @@ public class RapportsFin(MepDbContext db, ServiceMep svc)
             (int)Math.Round(Regles.CheminCritique(deploiement, e => e.DureeEstimeeMinutes ?? 0)),
             points.Count, points.Count(p => p.RepriseReussieLe is not null), mep.Resolutions.Count,
             tests.Count, tests.Count(t => t.Resultat == ResultatControle.Conforme), tests.Count(t => t.Resultat == ResultatControle.Echec),
-            mep.RetourArriereDeclencheLe is not null);
+            mep.RetourArriereDeclencheLe is not null,
+            mep.PremierGoLe is { } premier && premier != go ? premier : null,
+            chrono.Count(e => e.Type == "phase.preparation"),
+            deploiement.Count(e => e.AjouteeApresGo));
         return (synthese, points);
     }
 }

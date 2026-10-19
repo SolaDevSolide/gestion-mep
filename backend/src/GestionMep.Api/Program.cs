@@ -164,6 +164,7 @@ api.MapObjetsImpactes();
 api.MapEtapes();
 api.MapSections();
 api.MapPhase();
+api.MapCycleDeVie();
 api.MapCatalogue();
 api.MapResolutions();
 api.MapDeroule();

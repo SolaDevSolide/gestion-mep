@@ -111,6 +111,7 @@ function lignesEtapes({ mep, etapes }: { mep: Mep; etapes: Etape[] }) {
           {e.sectionId && titres.has(e.sectionId) && (
             <span className="block text-[12px] text-fg-subtle">{titres.get(e.sectionId)}</span>
           )}
+          {e.ajouteeApresGo && <span className="block text-[12px] text-accent-text">Ajoutée après le Go</span>}
         </td>
         <td className={td}>{LIBELLE_ETAT[e.etat]}</td>
         <td className={td}>
@@ -143,7 +144,7 @@ function Rapport({ r }: { r: RapportFin }) {
   const retour = useMemo(() => etapesDuPlan(mep, 'RetourArriere'), [mep]);
   const sections = useMemo(() => sectionsDuPlan(mep, 'Deploiement').filter((x) => x.placee), [mep]);
   const ensemble = useMemo(() => ({ bloquees: causesBlocage(deploiement) }), [deploiement]);
-  const phase = metaPhase(mep.phase, mep.etat);
+  const phase = metaPhase(mep.phase, mep.etat, mep.report?.dateVisee);
   const pilote = nomParticipant(mep, mep.piloteId);
   const codes = new Map(mep.etapes.map((e) => [e.id, e.code]));
   const systemes = new Map(mep.systemes.map((x) => [x.id, x.nom]));
@@ -175,6 +176,13 @@ function Rapport({ r }: { r: RapportFin }) {
         <div>
           <dt className="text-fg-subtle">Go</dt>
           <dd className="mt-0.5 font-medium tnum">{s.go ? formatDateHeure(s.go) : '—'}</dd>
+          {s.premierGo && s.premierGo !== s.go && (
+            <dd className="text-[12px] text-fg-subtle tnum">
+              premier Go le {formatDateHeure(s.premierGo)}
+              {s.retoursEnPreparation > 0 &&
+                ` · ${s.retoursEnPreparation} retour${s.retoursEnPreparation > 1 ? 's' : ''} en préparation`}
+            </dd>
+          )}
         </div>
         <div>
           <dt className="text-fg-subtle">Clôture</dt>
@@ -226,6 +234,20 @@ function Rapport({ r }: { r: RapportFin }) {
             detail={s.recetteTests === 0 ? 'aucun test' : `conformes · ${s.recetteEchecs} en échec`}
           />
         </div>
+        {mep.issue === 'Echec' && mep.cloture && (
+          <Alerte ton="danger" icone={XCircle} titre="Clôturée : échec (service dégradé)" className="mt-3">
+            État du service : {mep.cloture.etatService}
+            {mep.cloture.referenceIncident && ` · incident ${mep.cloture.referenceIncident}`}
+          </Alerte>
+        )}
+        {s.etapesAjouteesApresGo > 0 && (
+          <Alerte ton="run" icone={Wrench} className="mt-3">
+            {s.etapesAjouteesApresGo === 1
+              ? '1 étape corrective ajoutée après le Go'
+              : `${s.etapesAjouteesApresGo} étapes correctives ajoutées après le Go`}{' '}
+            (mention « Ajoutée après le Go » dans le détail des étapes).
+          </Alerte>
+        )}
         {s.retourArriere && mep.retourArriere && (
           <Alerte ton="rollback" icone={OctagonAlert} className="mt-3">
             Retour arrière déclenché le {formatDateHeure(mep.retourArriere.le)}

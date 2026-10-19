@@ -329,13 +329,64 @@
       ],
       "pilote": null,
       "personnes": ["Alice Martin", "alice", "Bob Leroy", "bob"]
+    },
+    {
+      "id": "m8",
+      "outil": "Notes de frais",
+      "versionCible": "1.0",
+      "objet": "",
+      "type": "Complete",
+      "phase": "Preparation",
+      "etat": "Reportee",
+      "jour": "2026-10-20",
+      "creeLe": "2026-10-05T08:00:00Z",
+      "echecsSurvenus": 0,
+      "equipeIds": [],
+      "systemes": [],
+      "intervenants": [],
+      "pilote": null,
+      "personnes": []
+    },
+    {
+      "id": "m9",
+      "outil": "Signature électronique",
+      "versionCible": "1.0",
+      "objet": "",
+      "type": "Complete",
+      "phase": "Annulee",
+      "etat": "Annulee",
+      "jour": "2026-06-01",
+      "creeLe": "2026-05-20T08:00:00Z",
+      "echecsSurvenus": 0,
+      "equipeIds": [],
+      "systemes": [],
+      "intervenants": [],
+      "pilote": null,
+      "personnes": []
+    },
+    {
+      "id": "m10",
+      "outil": "Archivage des courriers",
+      "versionCible": "1.0",
+      "objet": "",
+      "type": "Complete",
+      "phase": "Cloturee",
+      "etat": "Echec",
+      "jour": "2026-06-15",
+      "creeLe": "2026-06-01T08:00:00Z",
+      "echecsSurvenus": 0,
+      "equipeIds": [],
+      "systemes": [],
+      "intervenants": [],
+      "pilote": null,
+      "personnes": []
     }
   ],
   "cas": [
     {
       "nom": "Sans filtre : toutes, par jour décroissant puis création décroissante",
       "parametres": {},
-      "attendus": ["m3", "m5", "m1", "m2", "m7", "m6", "m4"]
+      "attendus": ["m8", "m3", "m5", "m1", "m2", "m7", "m6", "m4", "m10", "m9"]
     },
     {
       "nom": "Recherche sans accents ni casse",
@@ -488,7 +539,7 @@
       "parametres": {
         "role": "pilote"
       },
-      "attendus": ["m3", "m5", "m1", "m2", "m7", "m6", "m4"]
+      "attendus": ["m8", "m3", "m5", "m1", "m2", "m7", "m6", "m4", "m10", "m9"]
     },
     {
       "nom": "États : l'un ou l'autre ; « incidents » : réussie avec incidents",
@@ -505,11 +556,46 @@
       "attendus": ["m7"]
     },
     {
+      "nom": "Préparation : sans les MEP reportées (#93)",
+      "parametres": {
+        "etat": "preparation"
+      },
+      "attendus": ["m3"]
+    },
+    {
+      "nom": "Reportée : en préparation avec un report",
+      "parametres": {
+        "etat": "reportee"
+      },
+      "attendus": ["m8"]
+    },
+    {
+      "nom": "Annulée",
+      "parametres": {
+        "etat": "annulee"
+      },
+      "attendus": ["m9"]
+    },
+    {
+      "nom": "Clôturée en échec (service dégradé)",
+      "parametres": {
+        "etat": "echec"
+      },
+      "attendus": ["m10"]
+    },
+    {
+      "nom": "Phase annulée (adresses existantes)",
+      "parametres": {
+        "phase": "annulee"
+      },
+      "attendus": ["m9"]
+    },
+    {
       "nom": "Phase (adresses existantes)",
       "parametres": {
         "phase": "cloturee"
       },
-      "attendus": ["m1", "m2", "m6", "m4"]
+      "attendus": ["m1", "m2", "m6", "m4", "m10"]
     },
     {
       "nom": "Type de MEP",
@@ -531,14 +617,14 @@
       "parametres": {
         "du": "2026-09-25"
       },
-      "attendus": ["m3", "m5"]
+      "attendus": ["m8", "m3", "m5"]
     },
     {
       "nom": "Jusqu'à une date",
       "parametres": {
         "au": "2026-09-01"
       },
-      "attendus": ["m7", "m6", "m4"]
+      "attendus": ["m7", "m6", "m4", "m10", "m9"]
     },
     {
       "nom": "Filtres combinés",

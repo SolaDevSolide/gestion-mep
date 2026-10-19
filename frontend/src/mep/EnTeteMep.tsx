@@ -22,6 +22,7 @@ import {
   BoutonPasserRecette,
   BoutonRevenirPreparation,
 } from './ActionsPilote';
+import { BoutonCloturerEchec, BoutonReprendrePreparation, estApresGoEnCours, MenuPlusActions } from './CycleDeVie';
 import { DuplicationDialog } from './DuplicationDialog';
 import { NomSystemeMep } from './SystemeCliquable';
 import { CompteARebours } from './CompteARebours';
@@ -31,7 +32,7 @@ import { BadgeSimplifiee, estSimplifiee } from './typeMep';
 
 /** En-tête collant : identité, phase, personnes présentes, compte à rebours, progression, actions du pilote, onglets. */
 export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
-  const meta = metaPhase(mep.phase, mep.etat);
+  const meta = metaPhase(mep.phase, mep.etat, mep.report?.dateVisee);
   const pilote = nomParticipant(mep, mep.piloteId);
   const plan = planActif(mep.phase) ?? 'Deploiement';
   const etapes = etapesDuPlan(mep, plan);
@@ -100,6 +101,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                   <CalendarDays className="size-3.5 text-fg-subtle" aria-hidden />
                   Démarrée le {mep.demarrageAutorise ? formatDateHeure(mep.demarrageAutorise.le) : '—'}
                   {mep.cloture && ` · Terminée le ${formatDateHeure(mep.cloture.le)}`}
+                  {mep.annulation && ` · Annulée le ${formatDateHeure(mep.annulation.le)}`}
                 </span>
               )}
               <EnvironnementsMep mep={mep} />
@@ -107,6 +109,11 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                 <span className="inline-flex items-center gap-1.5">
                   <Avatar nom={pilote} taille="xs" />
                   Pilote : {pilote}
+                  {mep.pilotageSecours && estApresGoEnCours(mep) && (
+                    <Badge ton="warn" className="text-[11px]">
+                      secours
+                    </Badge>
+                  )}
                 </span>
               )}
             </p>
@@ -133,7 +140,12 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
             >
               {mep.estModele ? 'Créer une MEP depuis ce modèle' : 'Dupliquer'}
             </Button>
-            {pilotes && mep.phase === 'Preparation' && !mep.estModele && <BoutonGoNoGo />}
+            {pilotes && mep.phase === 'Preparation' && !mep.estModele && (
+              <>
+                {mep.report && <BoutonReprendrePreparation />}
+                <BoutonGoNoGo />
+              </>
+            )}
             {pilotes && mep.phase === 'Execution' && (
               <>
                 <BoutonRevenirPreparation />
@@ -147,11 +159,17 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                 <BoutonCloturer />
               </>
             )}
-            {pilotes && mep.phase === 'RetourArriere' && <BoutonCloturer />}
+            {pilotes && mep.phase === 'RetourArriere' && (
+              <>
+                {etapes.some((e) => e.etat === 'Echec') && <BoutonCloturerEchec />}
+                <BoutonCloturer />
+              </>
+            )}
+            <MenuPlusActions />
           </div>
         </div>
 
-        {mep.phase !== 'Preparation' && (
+        {mep.phase !== 'Preparation' && mep.phase !== 'Annulee' && (
           <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1">
             <ProgressBar className="min-w-48 flex-1" hauteur="h-1.5" segments={segmentsProgression(etapes)} />
             <p className="flex shrink-0 items-center gap-3 text-xs text-fg-subtle tnum">

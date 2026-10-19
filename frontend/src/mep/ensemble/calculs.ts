@@ -1,4 +1,5 @@
 import type { Ton } from '../../format';
+import { retourArriereEffectue } from '../../domaine';
 import type { Etape, Evenement, Mep, Presence, TypePlan } from '../../types';
 import { infoSection, type Section } from '../graphe/sections';
 
@@ -34,10 +35,8 @@ export const SURCOUT_DEPASSEMENT_MIN = 5;
 const MINUTE = 60_000;
 
 /** Plan suivi : le retour arrière une fois déclenché (y compris après la clôture d'une MEP repliée), sinon le déploiement. */
-export function planSuivi(mep: Pick<Mep, 'phase' | 'issue'>): TypePlan {
-  return mep.phase === 'RetourArriere' || (mep.phase === 'Cloturee' && mep.issue === 'Repliee')
-    ? 'RetourArriere'
-    : 'Deploiement';
+export function planSuivi(mep: Pick<Mep, 'phase' | 'issue' | 'retourArriere'>): TypePlan {
+  return retourArriereEffectue(mep) ? 'RetourArriere' : 'Deploiement';
 }
 
 /** MEP lancée : le Go a été donné et elle n'est pas clôturée (exécution, recette ou retour arrière). */

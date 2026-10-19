@@ -490,7 +490,7 @@ export default function VueEnsembleTab() {
   const bloquees = useMemo(() => causesBlocage(etapes), [etapes]);
   const ensemble = useMemo(() => ({ bloquees }), [bloquees]);
   const c = chiffres(mep, etapes, maintenant);
-  const phase = metaPhase(mep.phase, mep.etat);
+  const phase = metaPhase(mep.phase, mep.etat, mep.report?.dateVisee);
   const enDirect = estLancee(mep);
 
   const lateral = (
@@ -513,6 +513,11 @@ export default function VueEnsembleTab() {
         {mep.phase === 'Preparation' && (
           <Alerte ton="run" icone={Info}>
             MEP en préparation : la vue d’ensemble s’anime au Go (avancement, fin estimée, blocages).
+          </Alerte>
+        )}
+        {mep.phase === 'Annulee' && (
+          <Alerte ton="later" icone={Ban}>
+            MEP annulée{mep.annulation ? ` : ${mep.annulation.motif}` : ''}. La vue montre où en était l’exécution.
           </Alerte>
         )}
         {mep.phase === 'Cloturee' && (

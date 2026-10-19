@@ -1,10 +1,15 @@
 import {
+  ArrowRightLeft,
+  Ban,
+  CalendarClock,
   CheckCircle2,
   ClipboardCheck,
   FilePlus2,
   Flag,
   HandMetal,
+  History,
   Layers,
+  LifeBuoy,
   ListChecks,
   Package,
   Paperclip,
@@ -14,6 +19,7 @@ import {
   Siren,
   Trash2,
   Undo2,
+  UserPlus,
   UserRound,
   Wrench,
   XCircle,
@@ -49,6 +55,18 @@ function iconeEvenement(type: string): { Icone: LucideIcon; ton: Ton } {
       return { Icone: FilePlus2, ton: 'run' };
     case 'mep.cloturee':
       return { Icone: Flag, ton: 'done' };
+    case 'mep.annulee':
+      return { Icone: Ban, ton: 'later' };
+    case 'mep.reportee':
+      return { Icone: CalendarClock, ton: 'wait' };
+    case 'mep.reprise':
+      return { Icone: History, ton: 'wait' };
+    case 'pilotage.secours':
+      return { Icone: LifeBuoy, ton: 'warn' };
+    case 'pilotage.passe':
+      return { Icone: ArrowRightLeft, ton: 'wait' };
+    case 'participant.ajoute':
+      return { Icone: UserPlus, ton: 'wait' };
     case 'phase.execution':
       return { Icone: Play, ton: 'run' };
     case 'phase.preparation':

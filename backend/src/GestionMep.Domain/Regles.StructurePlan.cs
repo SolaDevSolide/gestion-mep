@@ -303,9 +303,10 @@ public static partial class Regles
     /// révision des étapes dont les préalables effectifs ont changé (sauf <paramref name="sauf"/>) et celle des sections modifiées
     /// augmentent une fois, puis les lignes du plan sont recalculées.
     /// </summary>
-    private static void Operer(Mep mep, TypePlan plan, Action action, Etape? sauf = null, bool figer = false)
+    private static void Operer(Mep mep, TypePlan plan, Action action, Etape? sauf = null, bool figer = false, bool apresGo = false)
     {
-        ExigerPreparation(mep);
+        // Seule exception à la préparation : l'étape corrective ajoutée pendant l'exécution (AjouterEtapeCorrective).
+        if (!apresGo) ExigerPreparation(mep);
         var etapes = mep.Etapes.ToList();
         var avant = etapes.ToDictionary(e => e, e => new Etat([.. e.Dependances], [.. e.DependancesDerivees], e.SectionId, [.. e.PortsAttendus]));
         // État des sections à remettre en place (mêmes objets) si l'opération est refusée.

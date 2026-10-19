@@ -74,7 +74,7 @@ public static class PiecesJointesEndpoints
 
     private static void ExigerNonCloturee(Mep mep)
     {
-        if (mep.Phase == Phase.Cloturee) throw new RegleMetierException("MEP clôturée : ses pièces jointes ne sont plus modifiables.");
+        if (Regles.EstTerminee(mep)) throw new RegleMetierException("MEP terminée (clôturée ou annulée) : ses pièces jointes ne sont plus modifiables.");
     }
 
     /// <summary>

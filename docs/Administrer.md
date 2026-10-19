@@ -4,6 +4,14 @@ Cette page s'adresse aux **administrateurs** de l'application. Tout ce qui se r�
 
 Être administrateur donne accès à la console et aux paramètres globaux, mais ne donne pas les droits du pilote dans une MEP (go / no-go, retour arrière, clôture…). Voir [Droits par rôle](Droits.md).
 
+Pour les MEP, un administrateur peut toutefois, depuis le menu « ⋯ Plus d'actions » de la MEP :
+
+- **annuler** une MEP en préparation, même s'il ne la pilote pas (motif obligatoire) ;
+- prendre le **pilotage de secours** après le Go, quand le pilote et les suppléants ne répondent plus : il prend le pilotage ou désigne un pilote, avec un motif, tracé au journal de la MEP et au journal d'administration, et un bandeau le rappelle à tous jusqu'à la clôture ;
+- **supprimer définitivement** une MEP qui n'a jamais eu de Go, ou un modèle, avec un motif et le nom de la MEP saisi pour confirmer. Seule une ligne « MEP supprimée » reste au journal d'administration ; une MEP lancée s'annule à la place. Il n'y a pas de commande de suppression en ligne de commande.
+
+Voir [Cycle de vie](Cycle-de-vie.md#annuler-une-mep).
+
 ## Le premier administrateur
 
 Il est créé au premier démarrage, sur une base vide, à partir des variables `ADMIN_LOGIN` et `ADMIN_MOT_DE_PASSE` du fichier `.env` (voir [Installer](Installer.md)). Sans `ADMIN_MOT_DE_PASSE`, un mot de passe provisoire est écrit dans le journal de l'application. Dans tous les cas, il est à changer à la première connexion. Il crée ensuite les autres comptes.
@@ -103,7 +111,7 @@ En ligne de commande : `gestion-mep charte afficher | exporter | importer | veri
 
 ### Journal
 
-Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, reliés à un autre compte de la même personne ou déliés, équipes créées, modifiées ou supprimées, mots de passe réinitialisés ou changés, paramètres, réglages du serveur, charte visuelle et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, environnements, catégories et objets de leur fiche modifiés, catégories par défaut modifiées, résolutions types supprimées, désactivées ou importées, modèles de recette et étapes modèles supprimés, modèles de texte créés, modifiés, rétablis ou supprimés, MEP exportées en ligne de commande, mises à jour demandées, contrôles des données après une mise à jour ou une importation, réinitialisation de la démonstration. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
+Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, reliés à un autre compte de la même personne ou déliés, équipes créées, modifiées ou supprimées, mots de passe réinitialisés ou changés, paramètres, réglages du serveur, charte visuelle et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, environnements, catégories et objets de leur fiche modifiés, catégories par défaut modifiées, résolutions types supprimées, désactivées ou importées, modèles de recette et étapes modèles supprimés, modèles de texte créés, modifiés, rétablis ou supprimés, MEP exportées en ligne de commande, MEP supprimées (avec leur nom et le motif), pilotages de secours (MEP, ancien et nouveau pilote, motif), mises à jour demandées, contrôles des données après une mise à jour ou une importation, réinitialisation de la démonstration. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
 
 L'application y signale aussi, avec l'auteur « Application », **20 échecs de connexion en moins d'une heure sur un même compte**, toutes adresses confondues : signe probable qu'on essaie de deviner son mot de passe.
 

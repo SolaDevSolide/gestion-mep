@@ -69,7 +69,7 @@ public sealed record FiltreMeps
     {
         ["preparation"] = EtatMep.Preparation, ["execution"] = EtatMep.Execution, ["recette"] = EtatMep.Recette,
         ["retour-arriere"] = EtatMep.RetourArriere, ["reussie"] = EtatMep.Reussie, ["incidents"] = EtatMep.AvecIncidents,
-        ["repliee"] = EtatMep.Repliee,
+        ["repliee"] = EtatMep.Repliee, ["reportee"] = EtatMep.Reportee, ["echec"] = EtatMep.Echec, ["annulee"] = EtatMep.Annulee,
     };
 
     public bool EstVide => this == Aucun || (Recherche.Trim().Length == 0 && Systemes.Count == 0 && Environnements.Count == 0
@@ -186,6 +186,9 @@ public sealed record FiltreMeps
         EtatMep.Reussie => "Réussie",
         EtatMep.AvecIncidents => "Réussie avec incidents",
         EtatMep.Repliee => "Repliée",
+        EtatMep.Reportee => "Reportée",
+        EtatMep.Echec => "Échec (service dégradé)",
+        EtatMep.Annulee => "Annulée",
         _ => e.ToString(),
     };
 

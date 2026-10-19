@@ -25,6 +25,9 @@ export const NOMS_ETATS = {
   reussie: 'Reussie',
   incidents: 'AvecIncidents',
   repliee: 'Repliee',
+  reportee: 'Reportee',
+  echec: 'Echec',
+  annulee: 'Annulee',
 } as const satisfies Record<string, EtatMep>;
 export type NomEtat = keyof typeof NOMS_ETATS;
 
@@ -45,11 +48,17 @@ export const LIBELLE_ETAT_MEP: Record<EtatMep, string> = {
   Reussie: 'Réussie',
   AvecIncidents: 'Réussie avec incidents',
   Repliee: 'Repliée',
+  Reportee: 'Reportée',
+  Echec: 'Échec (service dégradé)',
+  Annulee: 'Annulée',
 };
 
-export const ETATS_EN_COURS: NomEtat[] = ['preparation', 'execution', 'recette', 'retour-arriere'];
-export const ETATS_CLOTURES: NomEtat[] = ['reussie', 'incidents', 'repliee'];
-export const ETAT_CLOTURE = (e: EtatMep) => e === 'Reussie' || e === 'AvecIncidents' || e === 'Repliee';
+export const ETATS_EN_COURS: NomEtat[] = ['preparation', 'reportee', 'execution', 'recette', 'retour-arriere'];
+export const ETATS_CLOTURES: NomEtat[] = ['reussie', 'incidents', 'repliee', 'echec'];
+/** MEP arrêtées sans clôture (#93). */
+export const ETATS_ARRETES: NomEtat[] = ['annulee'];
+export const ETAT_CLOTURE = (e: EtatMep) =>
+  e === 'Reussie' || e === 'AvecIncidents' || e === 'Repliee' || e === 'Echec';
 
 export interface FiltreMeps {
   recherche: string;

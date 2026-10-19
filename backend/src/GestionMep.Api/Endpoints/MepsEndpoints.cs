@@ -47,7 +47,7 @@ public static class MepsEndpoints
                 NbReussies = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
                 NbEchecs = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
                 Systemes = m.Systemes.Select(s => new { s.Id, s.Nom, s.CatalogueId, s.Environnements }).ToList(),
-                m.EstModele, m.CreeLe, m.RetourArriereActive, m.Type,
+                m.EstModele, m.CreeLe, m.RetourArriereActive, m.Type, m.Report, m.Annulation,
                 Participants = m.Participants.Select(p => new { p.Id, p.Nom, p.UtilisateurId }).ToList(),
                 Executants = m.Etapes.Where(e => e.ExecutantId != null).Select(e => e.ExecutantId).Distinct().ToList(),
                 // Étapes à rattacher aux échecs survenus (code → systèmes).
@@ -86,12 +86,13 @@ public static class MepsEndpoints
                 [.. m.Participants.Select(p => p.Nom).Concat(comptes.SelectMany(annuaire.TermesDeRecherche)).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)],
                 m.Type,
                 // dateMep : date du Go (la date saisie n'existe plus depuis le jalon 4.2).
-                Regles.EtatDe(m.Phase, m.Issue, codes.Count), go ?? DateLocale(m.CreeLe, m.FuseauHoraire)!.Value,
+                Regles.EtatDe(m.Phase, m.Issue, codes.Count, m.Report is not null), go ?? DateLocale(m.CreeLe, m.FuseauHoraire)!.Value,
                 m.DemarrageAutoriseLe, m.ClotureeLe, codes.Count,
                 [.. m.Systemes.Select(s => new SystemeResumeDto(s.CatalogueId, s.Nom,
                     [.. s.Environnements.Select(e => new EnvironnementSystemeDto(e.Nom, e.Production))], EchecsDu(s.Id)))],
                 [.. intervenants.Select(i => new IntervenantDto(i.Key, annuaire.NomPersonne(i.Key) ?? "", [.. i.Value.Order()]))
-                    .OrderBy(i => i.Nom, StringComparer.CurrentCultureIgnoreCase)]);
+                    .OrderBy(i => i.Nom, StringComparer.CurrentCultureIgnoreCase)],
+                m.Phase == Phase.Preparation ? m.Report?.DateVisee : null, m.Annulation?.Le);
         }).ToList();
     }
 
@@ -260,7 +261,7 @@ public static class MepsEndpoints
             ServiceMep.ExigerEditeur(mep, acteur);
             // Ces informations servent de preuve (sauvegarde réalisée, restauration testée) : après la préparation, seuls le
             // pilote, ses suppléants ou un administrateur les complètent, et plus personne une fois la MEP clôturée.
-            if (mep.Phase == Phase.Cloturee) throw new RegleMetierException("La MEP est clôturée : les informations de sauvegarde ne se modifient plus.");
+            if (Regles.EstTerminee(mep)) throw new RegleMetierException("La MEP est terminée (clôturée ou annulée) : les informations de sauvegarde ne se modifient plus.");
             if (mep.Phase != Phase.Preparation)
                 ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Après la préparation, seuls le pilote, un suppléant ou un administrateur modifient les informations de sauvegarde.");
             ServiceMep.ExigerVersion(mep, corps.Version);
@@ -306,24 +307,7 @@ public static class MepsEndpoints
             return await svc.EnregistrerContenu(mep, acteur, "sauvegarde.modifiee", detail);
         })));
 
-        api.MapDelete("/meps/{id:guid}", async (Guid id, ClaimsPrincipal user, ServiceMep svc, MepDbContext db, StockagePiecesJointes stockage) =>
-        {
-            var acteur = Acteur.Depuis(user);
-            // Les fichiers ne sont effacés qu'une fois la suppression enregistrée (l'action peut être rejouée).
-            var pieces = await svc.Modifier(id, async mep =>
-            {
-                // Le créateur, qui n'est plus pilote d'office, peut supprimer sa MEP tant qu'elle est en préparation.
-                if (mep.CreeParUtilisateurId != acteur.Id)
-                    ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote, le créateur ou un administrateur peut supprimer une MEP.");
-                Regles.ExigerPreparation(mep);
-                var ids = await db.PiecesJointes.Where(p => p.MepId == id).Select(p => p.Id).ToListAsync();
-                db.Meps.Remove(mep);
-                await db.SaveChangesAsync(); // les lignes des pièces jointes partent en cascade
-                return ids;
-            });
-            foreach (var p in pieces) stockage.Supprimer(p);
-            return Results.NoContent();
-        });
+        // Suppression définitive (administrateur) : voir CycleDeVieEndpoints.
 
         api.MapGet("/meps/{id:guid}/journal", (Guid id, MepDbContext db) => Journal(db, id));
 

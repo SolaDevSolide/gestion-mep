@@ -10,6 +10,7 @@ import { BORDURE_TON, etatCarte, TEXTE_TON, type EtatCarte } from './etatCarte';
 import { ContexteGraphe } from './contexteGraphe';
 import { BandeauSystemes, systemesDe } from './systemes';
 import { estSimplifiee } from '../typeMep';
+import { BadgeAjouteeApresGo } from '../BadgesEtape';
 
 export type ModeGraphe = 'edition' | 'execution';
 
@@ -88,6 +89,7 @@ export function CarteEtape({ mep, etape: e, mode, descriptions, selectionnee, es
         <p className="text-[14px] leading-snug font-semibold">
           {e.action || <em className="font-normal text-fg-subtle">Action à décrire</em>}
         </p>
+        {e.ajouteeApresGo && <BadgeAjouteeApresGo className="justify-self-start" />}
         {causes && <p className="text-[11.5px] font-semibold text-danger-fg">{etat.detail}</p>}
         <div className="flex flex-wrap items-center gap-1.5 text-xs text-fg-muted">
           {nom && <Avatar nom={nom} taille="xs" />}
@@ -139,5 +141,6 @@ export function libelleCarte(mep: Mep, e: Etape, mode: ModeGraphe): string {
   if (sys) morceaux.push(sys);
   if (e.pointDeNonRetour) morceaux.push('point de non-retour');
   if (e.type === 'Sauvegarde') morceaux.push('sauvegarde');
+  if (e.ajouteeApresGo) morceaux.push('ajoutée après le Go');
   return morceaux.join(', ');
 }

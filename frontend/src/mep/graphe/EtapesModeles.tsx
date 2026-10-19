@@ -114,6 +114,7 @@ export function apercuDepuisModele(mep: Mep, plan: TypePlan, m: ModeleEtape): Et
     type: m.type,
     pointDeNonRetour: false,
     nonRetourAutorise: null,
+    ajouteeApresGo: false,
     fin: m.fin,
     resultatConstate: '',
     sauvegardeEmplacement: m.sauvegardeEmplacement,

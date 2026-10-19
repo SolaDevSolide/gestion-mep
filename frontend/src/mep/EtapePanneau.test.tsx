@@ -53,6 +53,7 @@ function rendre(
     etapes: [e],
     ...opts.m,
     droits: {
+      ...mep().droits,
       estPilote: opts.estPilote ?? false,
       estApprobateur: false,
       estResponsableTechnique: false,

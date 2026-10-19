@@ -97,8 +97,12 @@ describe('Vue d’ensemble : calculs (#61)', () => {
       retourArriere: { le: min(90), par: 'Alice', motif: 'Échec' },
     });
     expect(planSuivi(m)).toBe('RetourArriere');
-    expect(planSuivi({ phase: 'Cloturee', issue: 'Repliee' })).toBe('RetourArriere');
-    expect(planSuivi({ phase: 'Cloturee', issue: 'Reussie' })).toBe('Deploiement');
+    expect(planSuivi({ phase: 'Cloturee', issue: 'Repliee', retourArriere: null })).toBe('RetourArriere');
+    expect(planSuivi({ phase: 'Cloturee', issue: 'Reussie', retourArriere: null })).toBe('Deploiement');
+    // Échec après un retour arrière : on suit le retour arrière ; échec depuis la recette : le déploiement.
+    const repli = { motif: 'x', par: 'Alice', le: '2026-10-19T20:00:00Z' };
+    expect(planSuivi({ phase: 'Cloturee', issue: 'Echec', retourArriere: repli })).toBe('RetourArriere');
+    expect(planSuivi({ phase: 'Cloturee', issue: 'Echec', retourArriere: null })).toBe('Deploiement');
     const c = chiffres(m, [r1], GO + 95 * 60_000);
     expect(c.depart).toBe(GO + 90 * 60_000);
     expect(c.finPrevue).toBe(GO + 105 * 60_000);

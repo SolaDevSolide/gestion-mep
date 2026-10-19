@@ -135,7 +135,7 @@ public class ReglesJalon31Tests
         Regles.Demarrer(m, E(m, "E0007"), Bob, Maintenant);
         Regles.Terminer(m, E(m, "E0007"), EtatEtape.Reussie, "OK", true, Bob, Maintenant);
 
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.RevenirEnPreparation(m, Alice));
+        var ex = Assert.Throws<RegleMetierException>(() => Regles.RevenirEnPreparation(m, Alice, "Étape mal écrite"));
         Assert.Contains("E0007", ex.Message);
         Assert.Contains("point de non-retour", ex.Message);
         Assert.Equal(Phase.Execution, m.Phase);

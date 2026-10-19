@@ -8,6 +8,7 @@ import { Checkbox } from '../ui/Checkbox';
 import { Dialog } from '../ui/Dialog';
 import { Field, Textarea } from '../ui/Input';
 import { ProgressBar } from '../ui/ProgressBar';
+import { ChampDateVisee } from './CycleDeVie';
 
 interface Props {
   open: boolean;
@@ -21,7 +22,8 @@ interface Props {
   chargement?: boolean;
   /** Retourne true si la décision a abouti. */
   onGo: (criteresCoches: string[]) => Promise<boolean | void> | boolean | void;
-  onNoGo: (motif: string) => Promise<boolean | void> | boolean | void;
+  /** `report` : reporter aussi la MEP (#93), avec la date visée facultative (AAAA-MM-JJ, vide : sans date). */
+  onNoGo: (motif: string, report?: { dateVisee: string }) => Promise<boolean | void> | boolean | void;
 }
 
 /** Décision Go / no-go : liste de contrôle à cocher, Go tant que tout n'est pas coché est impossible, no-go avec motif. */
@@ -38,6 +40,8 @@ export function GoNoGoDialog({
   const [coches, setCoches] = useState<string[]>([]);
   const [noGo, setNoGo] = useState(false);
   const [motif, setMotif] = useState('');
+  const [reporter, setReporter] = useState(false);
+  const [dateVisee, setDateVisee] = useState('');
   const [envoi, setEnvoi] = useState<'go' | 'nogo' | null>(null);
 
   useEffect(() => {
@@ -45,6 +49,8 @@ export function GoNoGoDialog({
       setCoches([]);
       setNoGo(false);
       setMotif('');
+      setReporter(false);
+      setDateVisee('');
     }
   }, [open]);
 
@@ -54,7 +60,7 @@ export function GoNoGoDialog({
   async function decider(type: 'go' | 'nogo') {
     setEnvoi(type);
     try {
-      const r = type === 'go' ? await onGo(coches) : await onNoGo(motif.trim());
+      const r = type === 'go' ? await onGo(coches) : await onNoGo(motif.trim(), reporter ? { dateVisee } : undefined);
       if (r !== false) onOpenChange(false);
     } finally {
       setEnvoi(null);
@@ -89,7 +95,7 @@ export function GoNoGoDialog({
               disabled={!motif.trim()}
               onClick={() => void decider('nogo')}
             >
-              Confirmer le no-go
+              {reporter ? 'Confirmer le no-go et reporter' : 'Confirmer le no-go'}
             </Button>
           </>
         ) : (
@@ -118,21 +124,30 @@ export function GoNoGoDialog({
       }
     >
       {noGo ? (
-        <Field
-          label="Motif du no-go (obligatoire)"
-          hint="Expliquez ce qui empêche de démarrer : l’équipe le lira dans le journal."
-        >
-          {(id) => (
-            <Textarea
-              id={id}
-              rows={4}
-              value={motif}
-              onChange={(e) => setMotif(e.target.value)}
-              placeholder="ex. L’équipe base de données n’est pas joignable ce soir."
-              autoFocus
-            />
-          )}
-        </Field>
+        <div className="space-y-4">
+          <Field
+            label="Motif du no-go (obligatoire)"
+            hint="Expliquez ce qui empêche de démarrer : l’équipe le lira dans le journal."
+          >
+            {(id) => (
+              <Textarea
+                id={id}
+                rows={4}
+                value={motif}
+                onChange={(e) => setMotif(e.target.value)}
+                placeholder="ex. L’équipe base de données n’est pas joignable ce soir."
+                autoFocus
+              />
+            )}
+          </Field>
+          <Checkbox
+            checked={reporter}
+            onChange={setReporter}
+            label="Reporter la MEP"
+            description="Elle s’affichera « Reportée » dans la liste, avec ce motif."
+          />
+          {reporter && <ChampDateVisee valeur={dateVisee} onChange={setDateVisee} />}
+        </div>
       ) : (
         <div className="space-y-4">
           {erreursPlan.length > 0 && (

@@ -220,7 +220,8 @@ public class ApiTests : IDisposable
         Assert.Contains("préparation", await Message(modif));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { })).StatusCode);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync($"/api/meps/{id}/systemes", new { nom = "X" })).StatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.DeleteAsync($"/api/meps/{id}")).StatusCode);
+        // Une MEP qui a eu un Go ne se supprime plus, même par un administrateur : elle s'annule.
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await AidesApi.Supprimer(alice, id, "Portail de démonstration 2.0-démo")).StatusCode);
     }
 
     [Fact]
@@ -278,10 +279,12 @@ public class ApiTests : IDisposable
         Assert.Empty(Etape(placee, "E0002").GetProperty("dependances").EnumerateArray());
         Assert.Equal([EtapeId(mep, "E0002")], Etape(placee, "E0001").GetProperty("dependances").EnumerateArray().Select(d => d.GetGuid()));
 
-        // Un autre utilisateur ne peut pas supprimer la MEP ; son créateur le peut.
+        // Seul un administrateur supprime définitivement une MEP, même son créateur ne le peut pas (#93).
         var claire = await _api.ClientConnecte("claire");
-        Assert.Equal(HttpStatusCode.Forbidden, (await claire.DeleteAsync($"/api/meps/{id}")).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await bob.DeleteAsync($"/api/meps/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await AidesApi.Supprimer(claire, id, "Outil neuf")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await AidesApi.Supprimer(bob, id, "Outil neuf")).StatusCode);
+        var alice = await _api.ClientConnecte("alice");
+        Assert.Equal(HttpStatusCode.NoContent, (await AidesApi.Supprimer(alice, id, "Outil neuf")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await bob.GetAsync($"/api/meps/{id}")).StatusCode);
     }
 

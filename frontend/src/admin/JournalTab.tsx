@@ -44,6 +44,8 @@ export const LIBELLE_EVENEMENT_ADMIN: Record<string, string> = {
   'modele-texte.modifie': 'Modèle de texte modifié',
   'modele-texte.retabli': 'Modèle de texte rétabli',
   'modele-texte.supprime': 'Modèle de texte supprimé',
+  'mep.supprimee': 'MEP supprimée',
+  'mep.pilotage-secours': 'Pilotage de secours',
 };
 
 export function libelleEvenementAdmin(type: string): string {
@@ -55,10 +57,11 @@ function tonEvenement(type: string): Ton | undefined {
     type === 'compte.desactive' ||
     type === 'critere.supprime' ||
     type === 'equipe.supprimee' ||
+    type === 'mep.supprimee' ||
     type === 'donnees.controle-echoue'
   )
     return 'danger';
-  if (type === 'connexion.echecs' || type === 'demo.reinitialisee') return 'warn';
+  if (type === 'connexion.echecs' || type === 'demo.reinitialisee' || type === 'mep.pilotage-secours') return 'warn';
   if (type === 'compte.mdp-reinitialise') return 'warn';
   if (type === 'compte.cree' || type === 'compte.reactive') return 'ok';
   return undefined;

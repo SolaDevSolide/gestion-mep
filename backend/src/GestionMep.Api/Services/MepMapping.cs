@@ -45,6 +45,8 @@ public static class MepMapping
             par is null || le is null ? null : new ValidationDto(Nom(par) ?? "Inconnu", le.Value);
 
         var s = m.Sauvegarde;
+        var pilote = utilisateurId is { } moi && Regles.EstPilote(m, moi);
+        string? NomParticipant(Guid? id) => m.Participants.FirstOrDefault(p => p.Id == id)?.Nom;
         var participant = utilisateurId is null ? null : m.Participants.FirstOrDefault(p => p.UtilisateurId == utilisateurId);
 
         return new MepDto(
@@ -53,7 +55,7 @@ public static class MepMapping
             m.PiloteId, Regles.Suppleants(m), m.Phase, m.EcheanceRepli,
             m.Issue,
             m.RetourArriereDeclencheLe is { } declenche ? new RetourArriereDto(declenche, Nom(m.RetourArriereDeclenchePar), m.RetourArriereMotif) : null,
-            m.ClotureeLe is { } cloture ? new ClotureDto(cloture, Nom(m.ClotureeParId)) : null,
+            m.ClotureeLe is { } cloture ? new ClotureDto(cloture, Nom(m.ClotureeParId), m.EtatService, m.ReferenceIncident) : null,
             new PlanRepliDto(m.PlanRepli.QuandDeclencher, m.PlanRepli.DureeTesteeMinutes, m.PlanRepli.VersionARestaurer,
                 m.PlanRepli.DonneesDepuisSauvegarde, m.PlanRepli.SiRepliEchoue),
             new SauvegardeDto(s.Mode, s.Structure, s.Donnees, s.Configuration, s.ResponsableId, s.RealiseeLe, s.Procedure, s.Copies,
@@ -75,7 +77,7 @@ public static class MepMapping
                     new DisponibiliteDto(d.Statut, d.Libelle), e.Type, e.PointDeNonRetour, Validation(e.NonRetourAutoriseParId, e.NonRetourAutoriseLe),
                     e.Fin, e.ResultatConstate, e.SauvegardeEmplacement, e.SauvegardeMethodeRecuperation, e.ModeleEtapeId,
                     e.Environnements.Select(x => new EnvironnementEtapeDto(x.SystemeId, x.Nom)).ToList(), e.SectionId,
-                    [.. e.DependancesDerivees], [.. e.PortsAttendus], e.Rang, e.APlacer);
+                    [.. e.DependancesDerivees], [.. e.PortsAttendus], e.Rang, e.APlacer, e.AjouteeApresGo);
             }).ToList(),
             m.Resolutions.OrderBy(r => r.DemarreeLe).Select(r => new ExecutionResolutionDto(
                 r.Id, r.EtapeId, r.ResolutionTypeId, r.Titre, r.Symptomes, r.Diagnostic,
@@ -84,10 +86,18 @@ public static class MepMapping
                 r.VerificationInstruction, r.VerificationAttendu, r.VerificationResultat, r.VerificationObservation, r.Statut,
                 Nom(r.DemarreeParId) ?? "Inconnu", r.DemarreeLe, r.TermineeLe)).ToList(),
             Regles.ErreursPlan(m, maintenant, approbationsMinimum),
-            new DroitsDto(utilisateurId is { } u && Regles.EstPilote(m, u), m.Phase == Phase.Preparation, participant?.Id,
+            new DroitsDto(pilote, m.Phase == Phase.Preparation, participant?.Id,
                 utilisateurId is { } a && m.Approbations.Any(x => x.UtilisateurId == a),
                 utilisateurId is { } rt && Regles.EstResponsableTechnique(m, rt),
-                m.Phase == Phase.Preparation && utilisateurId is { } ed && Regles.PeutEditerContenu(m, ed, estAdmin)),
+                m.Phase == Phase.Preparation && utilisateurId is { } ed && Regles.PeutEditerContenu(m, ed, estAdmin),
+                estAdmin,
+                (pilote || estAdmin) && m.Phase == Phase.Preparation && !m.EstModele,
+                pilote && m.Phase == Phase.Preparation && !m.EstModele,
+                estAdmin && !Regles.ADejaEuUnGo(m),
+                (pilote || estAdmin) && Regles.EstApresGoEnCours(m),
+                m.Phase == Phase.Preparation
+                    ? utilisateurId is { } ap && Regles.PeutEditerContenu(m, ap, estAdmin)
+                    : (pilote || estAdmin) && Regles.EstApresGoEnCours(m)),
             m.EstModele, approbationsMinimum,
             m.Approbations.Select(a => new ApprobationDto(a.Id, a.UtilisateurId, Nom(a.UtilisateurId) ?? a.Nom, a.Decision, a.Commentaire, a.Le)).ToList(),
             m.GoNoGo.Select(c => new CritereValideDto(c.Libelle, Nom(c.ParId), c.Le)).ToList(),
@@ -104,6 +114,12 @@ public static class MepMapping
             Communication(m.Communication, pieces),
             m.Type,
             m.Sections.OrderBy(x => x.Plan).ThenBy(x => x.CreeLe).ThenBy(x => x.Titre, StringComparer.Ordinal).Select(x => VersDto(x, Nom(x.AuteurId))).ToList(),
-            Regles.EtatDe(m.Phase, m.Issue, echecsSurvenus), echecsSurvenus);
+            Regles.EtatDeLaMep(m, echecsSurvenus), echecsSurvenus,
+            m.Annulation is { } an ? new AnnulationDto(an.Motif, an.EtatProduction, Nom(an.ParId), an.Le) : null,
+            m.Report is { } r ? new ReportDto(r.Motif, r.DateVisee, Nom(r.ParId), r.Le) : null,
+            m.PremierGoLe,
+            m.PilotageSecours is { } ps
+                ? new PilotageSecoursDto(Nom(ps.ParId), ps.Le, ps.Motif, NomParticipant(ps.AncienPiloteId), NomParticipant(ps.NouveauPiloteId))
+                : null);
     }
 }

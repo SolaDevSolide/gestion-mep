@@ -93,7 +93,13 @@ export function BoutonGoNoGo({ taille = 'sm', lien = false }: { taille?: TailleB
         erreursPlan={mep.erreursPlan}
         avertissements={mep.avertissements}
         onGo={(ids) => run(() => api.go(mep.id, ids), 'Go : la MEP est en exécution.')}
-        onNoGo={(motif) => run(() => api.noGo(mep.id, motif), 'No-go enregistré : la MEP reste en préparation.')}
+        onNoGo={(motif, report) =>
+          run(
+            () =>
+              api.noGo(mep.id, { motif, ...(report ? { reporter: true, dateVisee: report.dateVisee || null } : {}) }),
+            report ? 'No-go enregistré : la MEP est reportée.' : 'No-go enregistré : la MEP reste en préparation.',
+          )
+        }
       />
     </>
   );
@@ -137,9 +143,11 @@ export function BoutonPasserRecette({ taille = 'sm' }: { taille?: TailleBouton }
   );
 }
 
+/** Retour en préparation depuis l'exécution : motif obligatoire, tracé au journal et repris dans le rapport de fin (X1). */
 export function BoutonRevenirPreparation({ taille = 'sm' }: { taille?: TailleBouton }) {
   const { mep, run } = useMep();
   const [ouvert, setOuvert] = useState(false);
+  const [motif, setMotif] = useState('');
   const bloque = mep.nonRetourFranchi !== null;
   const bouton = (
     <Button
@@ -164,12 +172,41 @@ export function BoutonRevenirPreparation({ taille = 'sm' }: { taille?: TailleBou
       )}
       <ConfirmDialog
         open={ouvert}
-        onOpenChange={setOuvert}
+        onOpenChange={(o) => {
+          setOuvert(o);
+          if (!o) setMotif('');
+        }}
         titre="Revenir en préparation ?"
         description="Les états des étapes sont conservés. Cela n’est possible que si aucune étape n’est en cours."
         libelleConfirmer="Revenir en préparation"
-        onConfirmer={() => run(() => api.changerPhase(mep.id, 'Preparation'), 'MEP revenue en préparation.')}
-      />
+        variante="secondaire"
+        desactive={!motif.trim()}
+        taille="md"
+        onConfirmer={async () => {
+          const ok = await run(
+            () => api.changerPhase(mep.id, 'Preparation', motif.trim()),
+            'MEP revenue en préparation.',
+          );
+          if (ok) setMotif('');
+          return ok;
+        }}
+      >
+        <Field
+          label="Motif (obligatoire)"
+          hint="Tracé au journal et repris dans le rapport de fin, avec l’heure du premier Go."
+        >
+          {(id) => (
+            <Textarea
+              id={id}
+              value={motif}
+              onChange={(e) => setMotif(e.target.value)}
+              rows={3}
+              placeholder="ex. E0005 en échec : l’écran doit être republié avec le bon jeton, on reprend la préparation."
+              autoFocus
+            />
+          )}
+        </Field>
+      </ConfirmDialog>
     </>
   );
 }

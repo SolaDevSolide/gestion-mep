@@ -229,9 +229,10 @@ public static class VariablesTexte
                 EtatMep.Reussie => "réussie",
                 EtatMep.AvecIncidents => "réussie avec incidents",
                 EtatMep.Repliee => "repliée (retour arrière effectué)",
+                EtatMep.Echec => "échec (service dégradé)",
                 _ => null,
             }),
-            ["avancement"] = V(mep.Phase == Phase.Preparation ? null : Regles.Avancement(mep)),
+            ["avancement"] = V(mep.Phase is Phase.Preparation or Phase.Annulee ? null : Regles.Avancement(mep)),
             ["fin_estimee"] = V(FinEstimee()),
 
             ["demarree_le"] = V(go is { } d1 ? Instant(d1) : null),

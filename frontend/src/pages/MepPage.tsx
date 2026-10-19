@@ -1,12 +1,13 @@
 import { Flag, OctagonAlert, Siren } from 'lucide-react';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
 import { AuthContext } from '../auth';
 import { etapesDuPlan } from '../domaine';
 import { ouvrirFlux } from '../flux';
 import { formatDateHeure } from '../format';
 import { BilanCarte } from '../mep/BilanCarte';
+import { BandeauxCycleDeVie } from '../mep/CycleDeVie';
 import { EnTeteMep } from '../mep/EnTeteMep';
 import EtapesTab from '../mep/EtapesTab';
 import ExecutionTab from '../mep/ExecutionTab';
@@ -176,15 +177,23 @@ export default function MepPage() {
    * Rechargement déclenché à distance : la MEP à jour s'affiche aussitôt. Une saisie en cours n'est pas perdue :
    * chaque formulaire garde son brouillon (`useDraft`) et signale si sa section a changé entre-temps.
    */
+  const navigate = useNavigate();
+  const supprimeeRef = useRef(false);
   const synchroniser = useCallback(
     async (silencieux = false) => {
       try {
         appliquer(await api.mep(id, silencieux));
-      } catch {
-        /* silencieux : prochain cycle */
+      } catch (e) {
+        // Supprimée par un administrateur pendant qu'elle était ouverte : retour à la liste (#93).
+        if (e instanceof ApiError && e.status === 404 && idRef.current === id && !supprimeeRef.current) {
+          supprimeeRef.current = true;
+          toast.erreur('Cette MEP a été supprimée par un administrateur.');
+          void navigate('/');
+        }
+        /* autres erreurs, silencieuses : prochain cycle */
       }
     },
-    [id, appliquer],
+    [id, appliquer, toast, navigate],
   );
 
   useEffect(() => {
@@ -344,7 +353,7 @@ export default function MepPage() {
                     {!mep.estModele && (
                       <TabsTrigger value="ensemble">
                         Vue d’ensemble
-                        {mep.phase !== 'Preparation' && mep.phase !== 'Cloturee' && (
+                        {mep.phase !== 'Preparation' && mep.phase !== 'Cloturee' && mep.phase !== 'Annulee' && (
                           <span
                             className="size-2 animate-pulse rounded-full bg-ok-solid"
                             role="img"
@@ -415,7 +424,11 @@ export default function MepPage() {
               </div>
             )}
 
-            {mep.phase === 'Cloturee' && mep.bilan && <BilanCarte bilan={mep.bilan} mepId={mep.id} />}
+            <BandeauxCycleDeVie />
+
+            {mep.phase === 'Cloturee' && mep.bilan && (
+              <BilanCarte bilan={mep.bilan} mepId={mep.id} echec={mep.issue === 'Echec' ? mep.cloture : null} />
+            )}
 
             <div className="flex-1">
               <TabsContent value="ensemble" className="outline-none">

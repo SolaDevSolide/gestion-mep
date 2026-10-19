@@ -162,6 +162,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("AjouteeApresGo")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasColumnType("text");
@@ -469,6 +472,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Annulation")
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("Approbations")
                         .IsRequired()
                         .HasColumnType("jsonb");
@@ -514,6 +520,10 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<bool>("EstModele")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("EtatService")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("FichesRecette")
                         .IsRequired()
                         .HasColumnType("jsonb");
@@ -553,14 +563,27 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<int>("Phase")
                         .HasColumnType("integer");
 
+                    b.Property<string>("PilotageSecours")
+                        .HasColumnType("jsonb");
+
                     b.Property<Guid?>("PiloteId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("PremierGoLe")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset?>("ProcedureRelueLe")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("ProcedureRelueParId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("ReferenceIncident")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Report")
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("ResponsablesTechniques")
                         .IsRequired()

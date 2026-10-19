@@ -1,4 +1,4 @@
-import { Play, Siren } from 'lucide-react';
+import { Ban, Play, Siren } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMep } from '../mepContext';
 import { Alerte } from '../ui/Alerte';
@@ -8,6 +8,17 @@ import { ExecutionVue } from './ExecutionVue';
 
 export default function ExecutionTab() {
   const { mep } = useMep();
+  if (mep.phase === 'Annulee' && !mep.premierGo) {
+    return (
+      <div className="mx-auto max-w-3xl px-6 py-10">
+        <EmptyState
+          icone={Ban}
+          titre="MEP annulée avant le Go"
+          description="Aucune étape n’a été exécutée. Dupliquez la MEP pour la reprogrammer."
+        />
+      </div>
+    );
+  }
   if (mep.phase === 'Preparation') {
     return (
       <div className="mx-auto max-w-3xl px-6 py-10">
