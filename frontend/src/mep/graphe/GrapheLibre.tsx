@@ -1,17 +1,14 @@
 import '@xyflow/react/dist/base.css';
 import {
-  MiniMap,
   ReactFlow,
   ReactFlowProvider,
   ViewportPortal,
   useReactFlow,
-  type Edge,
-  type Node,
   type NodeChange,
   type Connection,
   applyNodeChanges,
 } from '@xyflow/react';
-import { Map as IconeCarte, Maximize, Maximize2, Minimize2, Plus, Search, ZoomIn, ZoomOut } from 'lucide-react';
+import { Map as IconeCarte, Maximize, ZoomIn, ZoomOut } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import {
   useCallback,
@@ -24,12 +21,11 @@ import {
   type PointerEvent as PointerEventReact,
   type ReactNode,
 } from 'react';
-import { PresentsMep } from '../../presence';
 import type { Etape, Mep, ModeleEtape, TypePlan } from '../../types';
-import { BoutonIcone, Button } from '../../ui/Button';
+import { BoutonIcone } from '../../ui/Button';
 import { cn } from '../../ui/cn';
-import { mouvementReduit } from '../../ui/mouvement';
 import type { Deplacement, PlaceEtape } from './apiGraphe';
+import { BarreOutilsGraphe } from './BarreOutilsGraphe';
 import { CarteEtape, type ModeGraphe } from './CarteEtape';
 import {
   chercherCible,
@@ -43,58 +39,24 @@ import {
 import { deplacementPour, interpreterConnexion, placePour, type CibleDepot } from './connexions';
 import { ContexteBac, ContexteGraphe, type BacGraphe, type ValeurGraphe } from './contexteGraphe';
 import { EtapeFlottante } from './EtapesModeles';
-import { LiensEnMouvement, MarqueursLiens, TYPES_LIENS, type DonneesLien } from './LienGraphe';
+import { LiensEnMouvement, MarqueursLiens, TYPES_LIENS } from './LienGraphe';
 import { MenuLabel } from '../../ui/Menu';
 import { ContenuMenuLien, EntreesCreation, MenuAuPoint, type ChoixCreation } from './MenusGraphe';
-import { construireModele, idSection, type LienModele, type ModeleGraphe } from './modeleGraphe';
+import { MINI_CARTE, MiniCarte, useMiniCarte } from './MiniCarte';
+import { construireModele, idSection, type LienModele } from './modeleGraphe';
 import { TYPES_NOEUDS, type DonneesNoeud } from './NoeudsGraphe';
-import {
-  CARTE,
-  decalageAncrage,
-  tailleSectionRepliee,
-  GRILLE,
-  noeudAuCentre,
-  positionsAbsolues,
-  type Point,
-  type Rangement,
-  type Taille,
-} from './rangement';
-import { liensAuPoint, RAYON_COUDE } from './routage';
-import {
-  adoucir,
-  ancrageHaut,
-  cheminArrondi,
-  dansCadre,
-  decoupe,
-  DUREE_MOUVEMENT_MS,
-  etatA,
-  placeAncree,
-  rampeApparition,
-  rampeDisparition,
-  revelation,
-  routeSuivant,
-  type Ancrage,
-  type EtatNoeud,
-  type LienMouvement,
-  type PlaceDansCadre,
-  type SensCadre,
-} from './mouvementGraphe';
+import { GLISSABLE, noeudsDepuis, Z, ZOOM_MAX, ZOOM_MIN, type LienRf, type NoeudRf } from './noeudsRf';
+import { CARTE, tailleSectionRepliee, GRILLE, noeudAuCentre, type Taille } from './rangement';
+import { liensAuPoint } from './routage';
 import { sautsSansJonctions } from './routageBordure';
 import { SqueletteGraphe } from './SqueletteGraphe';
 import { infoSection, type Section } from './sections';
 import { useHauteurDisponible } from './hauteurDisponible';
-import { hoteMesure, mesuresManquantes, PREFIXE_MESURE, tailleRetenue, vueMontrant } from './mesuresGraphe';
+import { hoteMesure, mesuresManquantes, PREFIXE_MESURE, tailleRetenue } from './mesuresGraphe';
+import { useMontageAnime } from './useMontageAnime';
 import { useRangement } from './useRangement';
 
-export const ZOOM_MIN = 0.25;
-export const ZOOM_MAX = 1.6;
 const PAS_ZOOM = 1.2;
-/** Glissement du contenu d'un cadre qui s'ouvre (il descend à sa place) ou se ferme (il remonte en s'effaçant). */
-const GLISSE_CONTENU = 10;
-/** Secours seulement (cas anormal) : un nœud monté que React Flow ne mesure jamais n'empêche pas le mouvement. */
-const SECOURS_MONTAGE_MS = 3000;
-/** Hauteur minimale du graphe quand la fenêtre est très basse. */
-const MINI_CARTE = { largeur: 168, hauteur: 112 };
 
 /** Actions d'édition du graphe ; absentes en lecture ou en exécution. */
 export interface ActionsGraphe {
@@ -175,13 +137,10 @@ interface Props {
   };
 }
 
-type NoeudRf = Node<DonneesNoeud>;
-
 /** Menu ouvert sur le graphe : celui d'un lien (choisir parmi des liens fusionnés, insérer, supprimer) ou de création. */
 type MenuOuvert =
   | { type: 'lien'; point: { x: number; y: number }; ids: string[] }
   | { type: 'creation'; point: { x: number; y: number }; place: PlaceEtape; ancre: string | null; titre: string };
-type LienRf = Edge<DonneesLien>;
 
 /** Point du pointeur (souris ou doigt) d'un événement de glisser. */
 function pointDe(ev: MouseEvent | TouchEvent): { x: number; y: number } {
@@ -190,71 +149,6 @@ function pointDe(ev: MouseEvent | TouchEvent): { x: number; y: number } {
     return { x: t?.clientX ?? 0, y: t?.clientY ?? 0 };
   }
   return { x: ev.clientX, y: ev.clientY };
-}
-
-/** Position de repli tant que le rangement n'est pas calculé : grille par ligne et ordre. */
-function placeProvisoire(e: Etape | undefined, i: number) {
-  return e
-    ? { x: e.ordre * (CARTE.largeur + GRILLE * 2), y: e.ligne * (CARTE.hauteur + GRILLE * 3) }
-    : { x: i * GRILLE, y: i * GRILLE };
-}
-
-/**
- * Superposition (React Flow en mode manuel) : cadres des sections dépliées, puis liens (ceux mis en avant au-dessus des autres,
- * tronçons partagés compris), puis cartes, titres et cercles (un lien ne passe jamais sur une carte), et la carte glissée
- * au-dessus de tout.
- */
-const Z = { cadre: 0, lien: 1, lienEnAvant: 2, noeud: 3, glisse: 10 };
-
-/** Nœuds qu'on peut glisser : cartes (liens ou ordre) et sections (ordre seulement). */
-const GLISSABLE = new Set(['etape', 'section', 'cadre']);
-
-function noeudsDepuis(
-  modele: ModeleGraphe,
-  rangement: Rangement | null,
-  etapes: ReadonlyMap<string, Etape>,
-  edition: boolean,
-  precedents: ReadonlyMap<string, NoeudRf>,
-): NoeudRf[] {
-  return modele.noeuds.map((n, i) => {
-    const place = rangement?.places.get(n.id);
-    const avant = precedents.get(n.id);
-    const position = place ? { x: place.x, y: place.y } : (avant?.position ?? placeProvisoire(etapes.get(n.id), i));
-    const style =
-      n.nature === 'cadre'
-        ? { width: place?.largeur ?? 480, height: place?.hauteur ?? 240 }
-        : n.nature === 'section'
-          ? { width: place?.largeur ?? 288 }
-          : undefined;
-    return {
-      id: n.id,
-      type: n.nature,
-      position,
-      data: { etapeId: n.etapeId, sectionId: n.sectionId, cercleId: n.cercleId },
-      ...(n.parent ? { parentId: n.parent } : {}),
-      // Dans le plan, l'intérieur d'une section dépliée est en lecture seule : ses cartes ne se glissent pas.
-      draggable: edition && GLISSABLE.has(n.nature) && !n.parent,
-      selectable: false,
-      connectable: edition,
-      focusable: false,
-      zIndex: n.nature === 'cadre' ? Z.cadre : Z.noeud,
-      ...(style ? { style } : {}),
-      // Mesure reprise seulement pour le même genre de nœud (une section repliée n'a pas la taille de son cadre déplié).
-      ...(avant?.measured && avant.type === n.nature ? { measured: avant.measured } : {}),
-    } satisfies NoeudRf;
-  });
-}
-
-/** Préférence de mini-carte : affichée par défaut, sauf dans la vue d'ensemble (#61), qui a sa propre préférence. */
-const cleMiniCarte = (ensemble: boolean) => (ensemble ? 'graphe.miniCarte.ensemble' : 'graphe.miniCarte');
-
-function lireMiniCarte(ensemble: boolean): boolean {
-  try {
-    const v = window.localStorage.getItem(cleMiniCarte(ensemble));
-    return ensemble ? v === 'oui' : v !== 'non';
-  } catch {
-    return !ensemble;
-  }
 }
 
 /** Graphe libre (React Flow + rangement ELK) : cartes, sections, cercles ; création rapide, glisser par liens. */
@@ -343,16 +237,7 @@ function Graphe(props: Props) {
     window.addEventListener('keydown', echap);
     return () => window.removeEventListener('keydown', echap);
   }, [plein, setPlein]);
-  const [miniCarte, setMiniCarte] = useState(() => lireMiniCarte(!!props.ensemble));
-  const basculerMiniCarte = () =>
-    setMiniCarte((v) => {
-      try {
-        window.localStorage.setItem(cleMiniCarte(!!props.ensemble), v ? 'non' : 'oui');
-      } catch {
-        /* préférence non mémorisée */
-      }
-      return !v;
-    });
+  const [miniCarte, basculerMiniCarte] = useMiniCarte(!!props.ensemble);
 
   // ---------- Gestes en cours : gel du rangement (protection 1).
   const [glisse, setGlisse] = useState<string | null>(null);
@@ -378,37 +263,11 @@ function Graphe(props: Props) {
   const rangeRef = useRef(range);
   rangeRef.current = range;
 
-  // ---------- Nœuds affichés : ceux du dernier rangement appliqué, animés vers leur place.
+  // ---------- Nœuds affichés : ceux du dernier rangement appliqué, animés vers leur place (`useMontageAnime`).
   const [noeuds, setNoeuds] = useState<NoeudRf[]>([]);
   const noeudsRef = useRef<NoeudRf[]>([]);
   noeudsRef.current = noeuds;
   const modeleAffiche = range?.modele ?? modele;
-  const animation = useRef<number | undefined>(undefined);
-  // Phase d'un repli ou d'un dépli avant le mouvement (effacement des nœuds qui partent ; secours du montage).
-  const phase = useRef<number | undefined>(undefined);
-  // Montage invisible des nœuds qui vont paraître : ceux que React Flow n'a pas encore mesurés, et la suite.
-  const montage = useRef<{
-    ids: Set<string>;
-    mesures: Map<string, { width: number; height: number }>;
-    suite: (mesures: ReadonlyMap<string, { width: number; height: number }>) => void;
-  } | null>(null);
-  const terminerMontage = useCallback(() => {
-    const m = montage.current;
-    if (!m) return;
-    montage.current = null;
-    window.clearTimeout(phase.current);
-    m.suite(m.mesures);
-  }, []);
-  // Rangement des nœuds affichés (cercles sur le bord des sections repliées) : celui du mouvement en cours, pas un rangement
-  // arrivé pendant qu'on mesure encore les nœuds apparus.
-  const [rangeVisible, setRangeVisible] = useState(range);
-  const [anime, setAnime] = useState(false);
-  // Liens dessinés pendant un mouvement (ceux de React Flow sont alors masqués) : attachés aux nœuds qui bougent.
-  const [liensMouvement, setLiensMouvement] = useState<LienMouvement[] | null>(null);
-  const premier = useRef(true);
-  useLayoutEffect(() => {
-    premier.current = true;
-  }, [contexte]);
   // Rangement impossible (cas anormal) : le graphe se montre quand même.
   useEffect(() => {
     if (pret) return undefined;
@@ -521,321 +380,36 @@ function Graphe(props: Props) {
     .join(',');
   const sectionsRepli = useMemo(() => new Set(cleRepli ? cleRepli.split(',') : []), [cleRepli]);
 
-  useEffect(() => {
-    const precedents = new Map(noeudsRef.current.map((n) => [n.id, n]));
-    const cibles = noeudsDepuis(modeleAffiche, range?.rangement ?? null, parId, edition, precedents);
-    window.cancelAnimationFrame(animation.current ?? 0);
-    window.clearTimeout(phase.current);
-    montage.current = null;
-    // Premier rangement fait avec les tailles mesurées : posé sans animation, puis la vue d'arrivée.
-    const mesure =
-      !!range &&
-      range.modele.noeuds.every(
-        (n) => (n.nature !== 'etape' && n.nature !== 'section') || taillesRef.current.has(n.id),
-      );
-    if (!range || premier.current || precedents.size === 0) {
-      setRangeVisible(range);
-      setNoeuds(cibles);
-      setAnime(false);
-      setLiensMouvement(null);
-      // Rangement de la vue en cours (pas celui de la vue quittée), tailles mesurées : vue d'arrivée, puis le graphe paraît.
-      if (range && premier.current && mesure && range.modele === modele) {
-        premier.current = false;
-        // Vue d'arrivée posée après le rendu de ces nœuds (React Flow connaît alors leurs places), pas à l'image suivante.
-        const arriver = () => setArrivee(true);
-        // Tailles connues par les copies de mesure, mais nœuds pas encore mesurés par React Flow : la vue d'arrivée
-        // attend leurs mesures (sinon l'emprise du graphe serait fausse).
-        const nonMesures = cibles.filter((n) => !n.measured).map((n) => n.id);
-        if (nonMesures.length > 0) {
-          montage.current = { ids: new Set(nonMesures), mesures: new Map(), suite: arriver };
-          phase.current = window.setTimeout(() => terminerMontage(), SECOURS_MONTAGE_MS);
-        } else arriver();
-      }
-      return;
-    }
-    const reduit = mouvementReduit();
-    // Repli ou dépli d'une section, étapes reçues ou parties. Ce rangement est définitif : les nouveaux nœuds ont été
-    // mesurés avant, en invisible (`useRangement` attend leurs mesures), et rien n'a bougé d'ici là. Puis un seul
-    // mouvement, entièrement calculé avant sa première image (voir mouvementGraphe) : chaque nœud va de sa place affichée
-    // à sa nouvelle place, le cadre qui s'ouvre ou se ferme dévoile ou cache son intérieur (découpé par lui), la vue suit,
-    // et les liens restent attachés à leurs nœuds du début à la fin.
-    const idsCibles = new Set(cibles.map((n) => n.id));
-    const suite = (mesures: ReadonlyMap<string, { width: number; height: number }> = new Map()) => {
-      // Mesures prises par React Flow pendant le montage invisible : reprises, sinon il cacherait ces nœuds le temps de
-      // les mesurer à nouveau.
-      for (const n of cibles) {
-        const d = mesures.get(n.id);
-        if (!n.measured && d) n.measured = d;
-      }
-      animer();
-    };
-    // Nœuds qui vont paraître : d'abord montés invisibles (et mesurés par React Flow) sans que rien d'autre ne change à
-    // l'écran ; le mouvement part quand React Flow les a tous mesurés (pas après un délai fixe).
-    const nouveaux = cibles.filter((n) => !precedents.has(n.id));
-    if (nouveaux.length > 0) {
-      montage.current = { ids: new Set(nouveaux.map((n) => n.id)), mesures: new Map(), suite };
-      setNoeuds([...precedents.values(), ...nouveaux.map((n) => Object.assign({}, n, { className: 'noeud-cache' }))]);
-      // Secours (cas anormal) : un nœud que React Flow ne mesure pas n'empêche pas le mouvement.
-      phase.current = window.setTimeout(() => terminerMontage(), SECOURS_MONTAGE_MS);
-      return;
-    }
-    suite();
-
-    function animer() {
-      if (!range) return;
-      const ancien = rangeVisible;
-      setRangeVisible(range);
-      const parentsAvant = new Map([...precedents.values()].map((n) => [n.id, n.parentId ?? null]));
-      const absAvant = positionsAbsolues(
-        {
-          places: new Map(
-            [...precedents.values()].map((n) => [n.id, { x: n.position.x, y: n.position.y, largeur: 0, hauteur: 0 }]),
-          ),
-          cercles: new Map(),
-          routes: new Map(),
-        },
-        parentsAvant,
-      );
-      const absApres = positionsAbsolues(range.rangement, new Map(cibles.map((n) => [n.id, n.parentId ?? null])));
-      // Ancrage (protection 2) : le nœud regardé reste à sa place à l'écran ; le reste glisse vers sa nouvelle place.
-      const ancre = ancreCourante(absAvant);
-      const vp = rf.getViewport();
-      const { dx, dy } = decalageAncrage(absAvant, absApres, ancre, vp.zoom);
-      let vueFin = { x: vp.x + dx, y: vp.y + dy, zoom: vp.zoom };
-      // Section qu'on vient de déplier : montrée en entier dans le même mouvement (pas de second déplacement après).
-      const m = aMontrer.current;
-      if (m && performance.now() > m.jusqua) aMontrer.current = null;
-      const placeM = m ? range.rangement.places.get(m.id) : undefined;
-      const absM = m ? absApres.get(m.id) : undefined;
-      const el = zone.current;
-      if (m && placeM && absM && el && cibles.some((n) => n.id === m.id && n.type === 'cadre')) {
-        vueFin = vueMontrant(
-          vueFin,
-          { x: absM.x, y: absM.y, largeur: placeM.largeur, hauteur: placeM.hauteur },
-          { largeur: el.clientWidth, hauteur: el.clientHeight },
-          GRILLE,
-          ZOOM_MIN,
-        );
-        aMontrer.current = null;
-      }
-
-      // États de départ (affichés) et d'arrivée (nouveau rangement) de chaque nœud ; boîtes à leur taille visible.
-      const depart = new Map<string, EtatNoeud>();
-      const arrivee = new Map<string, EtatNoeud>();
-      for (const n of precedents.values()) {
-        const a = absAvant.get(n.id);
-        if (!a) continue;
-        const echelle = Number(n.style ? (Object.entries(n.style).find(([c]) => c === '--echelle')?.[1] ?? 1) : 1);
-        depart.set(n.id, {
-          boite: {
-            x: a.x,
-            y: a.y,
-            largeur: Number(n.style?.width ?? n.measured?.width ?? 0) * echelle,
-            hauteur: Number(n.style?.height ?? n.measured?.height ?? 0) * echelle,
-          },
-          opacite: n.className?.includes('noeud-cache') ? 0 : Number(n.style?.opacity ?? 1),
-          echelle,
-        });
-      }
-      for (const n of cibles) {
-        const a = absApres.get(n.id);
-        if (!a) continue;
-        const p = range.rangement.places.get(n.id);
-        arrivee.set(n.id, {
-          boite: {
-            x: a.x,
-            y: a.y,
-            largeur: p?.largeur ?? n.measured?.width ?? 0,
-            hauteur: p?.hauteur ?? n.measured?.height ?? 0,
-          },
-          opacite: 1,
-          echelle: 1,
-        });
-      }
-      // Ce qui paraît dans un cadre qui s'ouvre part de sa place, à l'échelle du cadre de départ ; ce qui part d'un cadre
-      // qui se ferme va à l'échelle du cadre d'arrivée. Le titre accompagne le cadre, à sa taille, visible du début à la
-      // fin ; les cercles de la bordure suivent la bordure, en fondu (sur le petit cadre de départ ou d'arrivée, ils
-      // couvriraient le titre).
-      const placeDans = (n: NoeudRf): PlaceDansCadre =>
-        n.type === 'titre' ? 'titre' : n.type === 'cercle' && !sectionVue ? 'bord' : 'contenu';
-      // Contenu (étapes) d'un cadre qui s'ouvre ou se ferme : à sa taille réelle, ancré au milieu du bord haut du cadre et
-      // découpé par lui, révélé rangée par rangée (voir `revelation`) ; il glisse un peu en paraissant ou en partant.
-      const reveles = new Map<
-        string,
-        { parent: string; ancrage: Ancrage; sens: SensCadre; largeur: number; hauteur: number }
-      >();
-      for (const n of cibles) {
-        const fin = arrivee.get(n.id);
-        if (depart.has(n.id) || !fin) continue;
-        const pd = n.parentId ? depart.get(n.parentId) : undefined;
-        const pa = n.parentId ? arrivee.get(n.parentId) : undefined;
-        const place = placeDans(n);
-        if (place === 'contenu' && pd && pa && n.parentId) {
-          const ancrage = ancrageHaut(fin.boite, pa.boite);
-          const { largeur, hauteur: haut } = fin.boite;
-          reveles.set(n.id, { parent: n.parentId, ancrage, sens: 'ouvre', largeur, hauteur: haut });
-          depart.set(n.id, { boite: placeAncree(ancrage, pd.boite, largeur, haut), opacite: 0, echelle: 1 });
-          continue;
-        }
-        const r = pd && pa ? dansCadre(fin.boite, pa.boite, pd.boite, place) : null;
-        depart.set(n.id, {
-          boite: r?.boite ?? fin.boite,
-          echelle: r?.echelle ?? 1,
-          // Le cadre ne paraît jamais vide : son intérieur, en réduction, est déjà visible au départ.
-          opacite: !r ? 0 : place === 'titre' ? 1 : place === 'contenu' ? 0.3 : 0,
-        });
-      }
-      const partants = [...precedents.values()].filter((n) => !idsCibles.has(n.id));
-      for (const n of partants) {
-        const deb = depart.get(n.id);
-        if (!deb) continue;
-        const pd = n.parentId ? depart.get(n.parentId) : undefined;
-        const pa = n.parentId ? arrivee.get(n.parentId) : undefined;
-        const place = placeDans(n);
-        if (place === 'contenu' && pd && pa && n.parentId) {
-          const ancrage = ancrageHaut(deb.boite, pd.boite);
-          const { largeur, hauteur: haut } = deb.boite;
-          reveles.set(n.id, { parent: n.parentId, ancrage, sens: 'ferme', largeur, hauteur: haut });
-          arrivee.set(n.id, {
-            boite: placeAncree(ancrage, pa.boite, largeur, haut),
-            opacite: 0,
-            echelle: deb.echelle,
-          });
-          continue;
-        }
-        const r = pd && pa ? dansCadre(deb.boite, pd.boite, pa.boite, place) : null;
-        arrivee.set(n.id, {
-          boite: r?.boite ?? deb.boite,
-          echelle: deb.echelle * (r?.echelle ?? 1),
-          // Symétrique du dépli : l'intérieur reste visible, en réduction, jusqu'à ce que la section reprenne sa place.
-          opacite: !r ? 0 : place === 'titre' ? deb.opacite : place === 'contenu' ? Math.min(deb.opacite, 0.3) : 0,
-        });
-      }
-      // Pendant le mouvement, une section qui se replie reste un cadre (qui se réduit) ; elle redevient une section à
-      // l'arrivée, à la même taille. Une section qui se déplie devient tout de suite un cadre, à sa taille de section.
-      const enMouvement = [
-        ...cibles.map((n) => {
-          const a = precedents.get(n.id);
-          return a && a.type === 'cadre' && n.type === 'section' ? a : n;
-        }),
-        ...partants,
-      ];
-      const idsNouveauxLiens = new Set(range.modele.liens.map((l) => l.id));
-      const idsAnciensLiens = new Set(ancien?.modele.liens.map((l) => l.id) ?? []);
-      const duree = reduit ? 1 : DUREE_MOUVEMENT_MS;
-      const debut = performance.now();
-      setAnime(true);
-      const pas = () => {
-        // Heure lue à chaque image (pas l'horodatage passé par requestAnimationFrame, qui peut précéder `debut`).
-        const t = Math.min(1, Math.max(0, (performance.now() - debut) / duree));
-        const k = adoucir(t);
-        void rf.setViewport({
-          x: vp.x + (vueFin.x - vp.x) * k,
-          y: vp.y + (vueFin.y - vp.y) * k,
-          zoom: vp.zoom + (vueFin.zoom - vp.zoom) * k,
-        });
-        if (t >= 1) {
-          setNoeuds(cibles);
-          setLiensMouvement(null);
-          setAnime(false);
-          return;
-        }
-        const etats = new Map<string, EtatNoeud>();
-        for (const [id, a] of depart) {
-          const b = arrivee.get(id);
-          if (b) etats.set(id, etatA(a, b, k));
-        }
-        const decoupes = new Map<string, string | null>();
-        for (const [id, r] of reveles) {
-          const p = etats.get(r.parent);
-          if (!p) continue;
-          const opacite = revelation(r.ancrage.ry, k, r.sens);
-          const b = placeAncree(r.ancrage, p.boite, r.largeur, r.hauteur);
-          b.y -= (1 - opacite) * GLISSE_CONTENU;
-          etats.set(id, { boite: b, opacite, echelle: 1 });
-          decoupes.set(id, decoupe(b, p.boite));
-        }
-        setNoeuds(
-          enMouvement.map((n) => {
-            const e = etats.get(n.id);
-            if (!e) return n;
-            const parent = n.parentId ? etats.get(n.parentId) : undefined;
-            const style: Record<string, unknown> = { ...n.style, opacity: e.opacite };
-            if (e.echelle !== 1) style['--echelle'] = e.echelle;
-            else delete style['--echelle'];
-            const coupe = decoupes.get(n.id);
-            if (coupe) style.clipPath = coupe;
-            else delete style.clipPath;
-            if (n.type === 'cadre' || n.type === 'section') {
-              style.width = e.boite.largeur / e.echelle;
-              style.height = e.boite.hauteur / e.echelle;
-            }
-            // Nœud qui change de genre (section repliée ↔ cadre déplié) : pas encore mesuré, React Flow le cacherait une
-            // image ; sa taille animée lui sert de mesure.
-            const w = style.width;
-            const h = style.height;
-            const mesureAnimee =
-              !n.measured && typeof w === 'number' && typeof h === 'number'
-                ? { measured: { width: w, height: h } }
-                : {};
-            return Object.assign({}, n, mesureAnimee, {
-              position: parent
-                ? { x: e.boite.x - parent.boite.x, y: e.boite.y - parent.boite.y }
-                : { x: e.boite.x, y: e.boite.y },
-              style,
-              className: e.echelle !== 1 ? 'noeud-echelle' : undefined,
-            });
-          }),
-        );
-        // Liens attachés à leurs nœuds : ceux qui restent, tels quels ; ceux qui changent de bout (section repliée ↔
-        // cercles de son cadre) passent en fondu de l'ancien tracé au nouveau.
-        const traces: LienMouvement[] = [];
-        const tracer = (l: LienModele, route: Point[] | undefined, ref: Map<string, EtatNoeud>, fondu: number) => {
-          const rs = ref.get(l.source)?.boite;
-          const rc = ref.get(l.cible)?.boite;
-          const s = etats.get(l.source);
-          const c = etats.get(l.cible);
-          if (!route || !rs || !rc || !s || !c) return;
-          const opacite = Math.min(s.opacite, c.opacite) * fondu;
-          if (opacite <= 0.01) return;
-          const r = reveles.get(l.source) ?? reveles.get(l.cible);
-          const dans = r ? etats.get(r.parent)?.boite : undefined;
-          traces.push({
-            id: l.id,
-            d: cheminArrondi(routeSuivant(route, rs, s.boite, rc, c.boite), RAYON_COUDE),
-            opacite,
-            ton: fait(l) ? 'ok' : 'neutre',
-            ...(dans ? { dans } : {}),
-          });
-        };
-        for (const l of range.modele.liens)
-          tracer(l, range.rangement.routes.get(l.id), arrivee, idsAnciensLiens.has(l.id) ? 1 : rampeApparition(k));
-        if (ancien)
-          for (const l of ancien.modele.liens)
-            if (!idsNouveauxLiens.has(l.id))
-              tracer(l, ancien.rangement.routes.get(l.id), depart, 1 - rampeDisparition(k));
-        setLiensMouvement(traces);
-        animation.current = window.requestAnimationFrame(pas);
-      };
-      // Première image tout de suite, avec le rangement affiché : jamais une image où ils ne vont pas ensemble.
-      pas();
-    }
-    // Rangement seulement : la sélection, la cible et les droits sont lus au moment de l'animation.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range, edition]);
-  useEffect(
-    () => () => {
-      window.cancelAnimationFrame(animation.current ?? 0);
-      window.clearTimeout(phase.current);
+  const fait = useCallback(
+    (l: LienModele) => {
+      if (mode !== 'execution') return false;
+      const de = l.logique?.de;
+      if (de && parId.has(de)) return parId.get(de)?.etat === 'Reussie';
+      const src = l.source.startsWith('s:') ? (etapesParSection.get(l.source.slice(2)) ?? []) : [parId.get(l.source)];
+      return src.length > 0 && src.every((e) => e?.etat === 'Reussie');
     },
-    [],
+    [mode, parId, etapesParSection],
   );
+  const { rangeVisible, anime, liensMouvement, arrivee, finArrivee, noterMesures } = useMontageAnime({
+    range,
+    modele,
+    edition,
+    parId,
+    sectionVue,
+    contexte,
+    noeudsRef,
+    setNoeuds,
+    taillesRef,
+    zone,
+    aMontrer,
+    ancreCourante,
+    fait,
+  });
 
   // Vue d'arrivée : après le rendu qui a donné à React Flow les nœuds rangés et mesurés.
-  const [arrivee, setArrivee] = useState(false);
   useEffect(() => {
     if (!arrivee) return;
-    setArrivee(false);
+    finArrivee();
     const sel = selection && rf.getInternalNode(selection);
     if (sel) {
       const abs = sel.internals.positionAbsolute;
@@ -854,14 +428,7 @@ function Graphe(props: Props) {
       );
       if (dims.length === 0) return;
       // Nœuds montés invisibles avant un mouvement : quand tous sont mesurés, le mouvement part.
-      const m = montage.current;
-      if (m) {
-        for (const c of dims) {
-          m.ids.delete(c.id);
-          if (c.dimensions) m.mesures.set(c.id, c.dimensions);
-        }
-        if (m.ids.size === 0) terminerMontage();
-      }
+      noterMesures(dims);
       // Taille retenue d'après le nœud tel qu'il est à l'écran au moment de la mesure (pas d'après l'état React, qui peut
       // déjà avoir changé) : voir `tailleRetenue`.
       const lues = dims.flatMap((c) => {
@@ -884,7 +451,7 @@ function Graphe(props: Props) {
         return change ? apres : avant;
       });
     },
-    [terminerMontage],
+    [noterMesures],
   );
 
   // ---------- Liens affichés : tracé d'ELK, sauts aux croisements, mise en avant.
@@ -907,16 +474,6 @@ function Graphe(props: Props) {
   const lienModifiable = useCallback(
     (l: LienModele) => edition && !!l.logique && !lienInterne(l),
     [edition, lienInterne],
-  );
-  const fait = useCallback(
-    (l: LienModele) => {
-      if (mode !== 'execution') return false;
-      const de = l.logique?.de;
-      if (de && parId.has(de)) return parId.get(de)?.etat === 'Reussie';
-      const src = l.source.startsWith('s:') ? (etapesParSection.get(l.source.slice(2)) ?? []) : [parId.get(l.source)];
-      return src.length > 0 && src.every((e) => e?.etat === 'Reussie');
-    },
-    [mode, parId, etapesParSection],
   );
   const poser = useCallback(
     (l: LienModele) => {
@@ -1438,30 +995,29 @@ function Graphe(props: Props) {
 
   // ---------- Navigation : zoom, ajuster, aller à une étape par son code.
   const [zoom, setZoom] = useState(1);
-  const [recherche, setRecherche] = useState('');
   const visees = useRef<string | null>(null);
-  const aller = (texte: string) => {
+  const aller = (texte: string): boolean => {
     const q = texte.trim().toLowerCase();
-    if (!q) return;
+    if (!q) return false;
     const e = etapes.find((x) => x.code.toLowerCase() === q) ?? etapes.find((x) => x.code.toLowerCase().includes(q));
     if (!e) {
       onMessage?.(`Aucune étape « ${texte.trim()} » dans ce plan.`);
-      return;
+      return false;
     }
     if (e.aPlacer) {
       onMessage?.(`${e.code} est dans le bac « Étapes à placer » : glissez-la dans le graphe pour la placer.`);
-      return;
+      return false;
     }
     const sid = infoSection(e).sectionId;
     if (!sectionVue && sid && parSection.get(sid)?.placee === false) {
       onMessage?.(`${e.code} est dans la section « ${parSection.get(sid)?.titre} », encore dans le bac.`);
-      return;
+      return false;
     }
     if (!sectionVue && sid && !deplies.has(sid)) onBasculer(sid);
     visees.current = e.id;
     derniereAncre.current = e.id;
     onSelection(e.id);
-    setRecherche('');
+    return true;
   };
   useEffect(() => {
     const id = visees.current;
@@ -1660,78 +1216,32 @@ function Graphe(props: Props) {
         role={plein ? 'region' : undefined}
         aria-label={plein ? 'Plan en plein écran' : undefined}
       >
-        <div
-          role="toolbar"
-          aria-label="Outils du graphe"
-          className="@container flex min-h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-line bg-surface-2/60 px-2 py-1.5"
-        >
-          {/* Boutons des étapes modèles : posés dans la barre (ils se placent d'eux-mêmes en absolu ailleurs). */}
-          {enTete && (
-            <div className="shrink-0 [&>div]:!static [&>div]:!shadow-none [&_button]:whitespace-nowrap">{enTete}</div>
-          )}
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            {/* Plein écran : qui est sur la MEP reste visible (la page en dessous est masquée). */}
-            {plein && <PresentsMep />}
-            {outils}
-            {edition && actions.ajouter && (
-              <Button
-                taille="sm"
-                icone={<Plus className="size-4" aria-hidden />}
-                aria-haspopup={placement || !creation ? undefined : 'menu'}
-                onClick={(e) =>
-                  placement
-                    ? actions.ajouter?.({})
-                    : demanderCreation(
-                        {},
-                        null,
-                        e.currentTarget,
-                        sectionVue ? 'Nouvelle étape dans la section' : 'Nouvelle étape à part',
-                      )
+        <BarreOutilsGraphe
+          plan={plan}
+          etapes={etapes}
+          enTete={enTete}
+          outils={outils}
+          boutonEtape={
+            edition && actions.ajouter
+              ? {
+                  placement,
+                  menu: !!creation,
+                  onClick: (el) =>
+                    placement
+                      ? actions.ajouter?.({})
+                      : demanderCreation(
+                          {},
+                          null,
+                          el,
+                          sectionVue ? 'Nouvelle étape dans la section' : 'Nouvelle étape à part',
+                        ),
                 }
-                title={placement ? 'Poser la copie à part, sans lien' : 'Créer une étape à part, sans lien'}
-              >
-                {placement ? 'Poser à part' : 'Étape'}
-              </Button>
-            )}
-            <form
-              role="search"
-              className="relative"
-              onSubmit={(e) => {
-                e.preventDefault();
-                aller(recherche);
-              }}
-            >
-              <Search
-                className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-fg-subtle"
-                aria-hidden
-              />
-              <input
-                type="search"
-                aria-label="Aller à une étape (code)"
-                placeholder="Aller à…"
-                list={`codes-${plan}`}
-                value={recherche}
-                onChange={(e) => setRecherche(e.target.value)}
-                className="h-8 w-36 rounded-lg border border-line bg-surface pr-2 pl-7 text-[13px] focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none @max-2xl:w-28"
-              />
-              <datalist id={`codes-${plan}`}>
-                {etapes.map((e) => (
-                  <option key={e.id} value={e.code}>
-                    {e.action}
-                  </option>
-                ))}
-              </datalist>
-            </form>
-            <BoutonIcone
-              label={plein ? 'Quitter le plein écran (Échap)' : 'Plan en plein écran'}
-              taille="sm"
-              aria-pressed={plein}
-              onClick={() => setPlein(!plein)}
-            >
-              {plein ? <Minimize2 className="size-4" aria-hidden /> : <Maximize2 className="size-4" aria-hidden />}
-            </BoutonIcone>
-          </div>
-        </div>
+              : undefined
+          }
+          plein={plein}
+          onPlein={setPlein}
+          onAller={aller}
+        />
 
         {bandeau && <div className="shrink-0 border-b border-line">{bandeau}</div>}
 
@@ -1869,27 +1379,7 @@ function Graphe(props: Props) {
                   />
                 </ViewportPortal>
               )}
-              {miniCarte && (
-                <MiniMap
-                  pannable
-                  zoomable
-                  position="bottom-left"
-                  ariaLabel="Mini-carte du graphe"
-                  style={{ width: MINI_CARTE.largeur, height: MINI_CARTE.hauteur }}
-                  className="!m-3 overflow-hidden rounded-lg border border-line !bg-surface-2 shadow-md"
-                  nodeColor={(n) =>
-                    n.id.startsWith(PREFIXE_MESURE)
-                      ? 'transparent'
-                      : n.type === 'cadre'
-                        ? 'var(--tertiaire-soft)'
-                        : n.type === 'cercle'
-                          ? 'var(--tertiaire)'
-                          : 'var(--line-strong)'
-                  }
-                  maskColor="color-mix(in srgb, var(--bg) 60%, transparent)"
-                  nodeBorderRadius={6}
-                />
-              )}
+              {miniCarte && <MiniCarte />}
             </ReactFlow>
 
             {(geste || enAttente) && (
