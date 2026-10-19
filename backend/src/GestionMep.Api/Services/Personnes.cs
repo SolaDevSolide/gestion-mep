@@ -27,10 +27,13 @@ public static class Personnes
 
     public static async Task<UtilisateurDto> Dto(MepDbContext db, Utilisateur u) => Dto(u, await Charger(db));
 
-    /// <summary>Tous les comptes (y compris désactivés et reliés), triés par nom affiché.</summary>
+    /// <summary>Tous les comptes (y compris désactivés et reliés), triés par nom affiché : console d'administration.</summary>
     public static async Task<List<UtilisateurDto>> Comptes(MepDbContext db)
     {
         var annuaire = await Charger(db);
         return (await db.Utilisateurs.AsNoTracking().OrderBy(u => u.NomAffiche).ToListAsync()).Select(u => Dto(u, annuaire)).ToList();
     }
+
+    /// <summary>Les mêmes comptes, réduits à ce que tout utilisateur connecté a besoin de voir (<see cref="CompteAnnuaireDto"/>).</summary>
+    public static async Task<List<CompteAnnuaireDto>> Annuaire(MepDbContext db) => (await Comptes(db)).Select(MepMapping.VersAnnuaire).ToList();
 }

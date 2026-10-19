@@ -34,12 +34,12 @@ public static partial class Regles
         {
             if (!retenus.Add(id)) continue;
             var version = (brut ?? "").Trim();
-            if (version.Length > 200) throw new RegleMetierException("Version ou correction : 200 caractères au plus.");
+            if (version.Length > 200) throw new SaisieInvalideException("Version ou correction : 200 caractères au plus.");
             var existant = actuels.FirstOrDefault(o => o.ObjetCatalogueId == id);
             var fiche = catalogue.Objets.FirstOrDefault(o => o.Id == id);
             if (existant is null)
             {
-                if (fiche is null) throw new RegleMetierException($"Objet inconnu dans la fiche {catalogue.Nom} du catalogue.");
+                if (fiche is null) throw new SaisieInvalideException($"Objet inconnu dans la fiche {catalogue.Nom} du catalogue.");
                 mep.ObjetsImpactes.Add(Copie(mep, systeme, fiche, version, repris: false));
                 ajoutes++;
                 continue;

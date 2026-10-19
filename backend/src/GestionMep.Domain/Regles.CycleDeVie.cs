@@ -11,7 +11,7 @@ public static partial class Regles
     public static void Annuler(Mep mep, Guid utilisateurId, bool estAdmin, string motif, string? etatProduction, DateTimeOffset maintenant)
     {
         if (!estAdmin && !EstPilote(mep, utilisateurId))
-            throw new RegleMetierException("Seul le pilote, un suppléant ou un administrateur peut annuler la MEP.");
+            throw new DroitInsuffisantException("Seul le pilote, un suppléant ou un administrateur peut annuler la MEP.");
         if (mep.EstModele) throw new RegleMetierException("Un modèle ne s'annule pas : un administrateur peut le supprimer.");
         switch (mep.Phase)
         {
@@ -54,7 +54,7 @@ public static partial class Regles
     /// </summary>
     public static void Reporter(Mep mep, Guid utilisateurId, string motif, DateOnly? dateVisee, DateTimeOffset maintenant)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut reporter la MEP.");
+        if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut reporter la MEP.");
         if (mep.EstModele) throw new RegleMetierException("Un modèle ne se reporte pas.");
         if (mep.Phase != Phase.Preparation) throw new RegleMetierException("Une MEP se reporte en préparation.");
         if (string.IsNullOrWhiteSpace(motif)) throw new RegleMetierException("Indiquer le motif du report.");
@@ -64,7 +64,7 @@ public static partial class Regles
     /// <summary>« Reprendre la préparation » : le pilote ou un suppléant lève le report (le Go le lève aussi).</summary>
     public static void ReprendrePreparation(Mep mep, Guid utilisateurId)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut reprendre la préparation.");
+        if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut reprendre la préparation.");
         if (mep.Phase != Phase.Preparation || mep.Report is null) throw new RegleMetierException("La MEP n'est pas reportée.");
         mep.Report = null;
     }
@@ -85,7 +85,7 @@ public static partial class Regles
     /// </summary>
     public static List<string> RevenirEnExecution(Mep mep, Guid utilisateurId, string motif)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut revenir en exécution.");
+        if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut revenir en exécution.");
         if (mep.Phase != Phase.Recette) throw new RegleMetierException("Le retour en exécution se fait depuis la recette.");
         if (string.IsNullOrWhiteSpace(motif)) throw new RegleMetierException("Indiquer le motif du retour en exécution.");
         var remis = new List<string>();
@@ -110,13 +110,13 @@ public static partial class Regles
     /// </summary>
     public static void AjouterEtapeCorrective(Mep mep, Etape etape, Guid utilisateurId)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut ajouter une étape corrective.");
+        if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut ajouter une étape corrective.");
         if (mep.Phase != Phase.Execution)
             throw new RegleMetierException("Une étape corrective s'ajoute pendant l'exécution (depuis la recette : revenir d'abord en exécution).");
         if (string.IsNullOrWhiteSpace(etape.Action) || etape.SystemeIds.Count == 0)
-            throw new RegleMetierException("Étape corrective : indiquer l'action et au moins un système.");
+            throw new SaisieInvalideException("Étape corrective : indiquer l'action et au moins un système.");
         if (string.IsNullOrWhiteSpace(etape.Instructions) || string.IsNullOrWhiteSpace(etape.ResultatAttendu))
-            throw new RegleMetierException("Étape corrective : indiquer les instructions et le résultat attendu.");
+            throw new SaisieInvalideException("Étape corrective : indiquer les instructions et le résultat attendu.");
         etape.Plan = TypePlan.Deploiement;
         etape.AjouteeApresGo = true;
         // Après le Go, on corrige là où la MEP agit : les environnements de production de chaque système (à défaut, tous ceux
@@ -157,7 +157,7 @@ public static partial class Regles
     {
         var pilote = EstPilote(mep, utilisateurId);
         if (!pilote && !estAdmin)
-            throw new RegleMetierException("Seul le pilote, un suppléant ou un administrateur (pilotage de secours) peut changer le pilote.");
+            throw new DroitInsuffisantException("Seul le pilote, un suppléant ou un administrateur (pilotage de secours) peut changer le pilote.");
         if (mep.Phase == Phase.Preparation)
             throw new RegleMetierException("En préparation, le pilote se change dans la section Personnes.");
         if (!EstApresGoEnCours(mep)) throw new RegleMetierException("La MEP est terminée : son pilote ne change plus.");
@@ -173,6 +173,8 @@ public static partial class Regles
             mep.SuppleantIds = gardes;
         }
         mep.PiloteId = nouveau.Id;
+        // Désigné pilote : ce n'est plus une simple personne ajoutée d'office (MEP simplifiée : suppléant implicite s'il est relevé).
+        nouveau.AjouteDOffice = false;
         mep.PilotageSecours = secours
             ? new PilotageSecours { ParId = utilisateurId, Le = maintenant, Motif = motif.Trim(), AncienPiloteId = ancien, NouveauPiloteId = nouveau.Id }
             : null;
@@ -192,6 +194,6 @@ public static partial class Regles
             throw new RegleMetierException("Cette MEP a déjà eu un Go : elle ne se supprime pas. L'annuler pour garder sa trace.");
         if (string.IsNullOrWhiteSpace(motif)) throw new RegleMetierException("Indiquer le motif de la suppression.");
         if (!string.Equals(nomSaisi.Trim(), NomComplet(mep), StringComparison.Ordinal))
-            throw new RegleMetierException($"Pour confirmer, saisir exactement le nom de la MEP : {NomComplet(mep)}.");
+            throw new SaisieInvalideException($"Pour confirmer, saisir exactement le nom de la MEP : {NomComplet(mep)}.");
     }
 }

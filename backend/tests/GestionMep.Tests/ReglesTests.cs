@@ -80,21 +80,23 @@ public class ReglesTests
         // Plus de responsable prévu : Claire démarre E0004 (prévue autrefois pour Alice).
         Regles.Demarrer(m, e4, Claire, Maintenant);
         Assert.Equal(m.Participants.Single(p => p.UtilisateurId == Claire).Id, e4.ExecutantId);
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "OK", true, Guid.NewGuid(), Maintenant));
+        // Refus de droits (403 dans l'API).
+        var ex = Assert.Throws<DroitInsuffisantException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "OK", true, Guid.NewGuid(), Maintenant));
         Assert.Contains("Prendre la main", ex.Message);
         // Le pilote (ou un suppléant) peut terminer à la place de l'exécutant.
         Regles.Terminer(m, e4, EtatEtape.Reussie, "OK", true, Alice, Maintenant);
         // Un compte qui n'est pas participant ne démarre pas (l'API en fait un participant s'il est administrateur).
-        var refus = Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0006"), Guid.NewGuid(), Maintenant));
+        var refus = Assert.ThrowsAny<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0006"), Guid.NewGuid(), Maintenant));
         Assert.Contains("participant relié à un compte", refus.Message);
         var sansCompte = new Participant { MepId = m.Id, Nom = "Eve" };
-        Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0006"), sansCompte, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0006"), sansCompte, Maintenant));
     }
 
     [Fact]
     public void Aucune_execution_en_preparation()
     {
         var m = Demo();
+        // Refus par l'état (règle métier, 422) : ni un refus de droits ni une saisie invalide.
         Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0004"), Alice, Maintenant));
     }
 
@@ -104,11 +106,11 @@ public class ReglesTests
         var m = Demo();
         Go(m);
         var e4 = E(m, "E0004");
-        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "ok", true, Alice, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "ok", true, Alice, Maintenant));
         Regles.Demarrer(m, e4, Alice, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "ok", false, Alice, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, "ok", false, Alice, Maintenant));
         // Un échec doit être décrit.
-        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Echec, "  ", false, Alice, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Echec, "  ", false, Alice, Maintenant));
         Regles.Terminer(m, e4, EtatEtape.Echec, "erreur 500", false, Alice, Maintenant);
         Assert.Equal(EtatEtape.Echec, e4.Etat);
         Assert.Equal(Maintenant, e4.FinReelle);
@@ -133,8 +135,8 @@ public class ReglesTests
         var m = Demo();
         Go(m);
         var e5 = E(m, "E0005");
-        Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, e5, Bob, Maintenant));
-        Assert.Throws<RegleMetierException>(() => Regles.AutoriserReprise(m, e5, Claire, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Demarrer(m, e5, Bob, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.AutoriserReprise(m, e5, Claire, Maintenant));
         Regles.AutoriserReprise(m, e5, Alice, Maintenant);
         Regles.Demarrer(m, e5, Bob, Maintenant);
         Assert.Equal(EtatEtape.EnCours, e5.Etat);
@@ -148,7 +150,7 @@ public class ReglesTests
         Regles.Demarrer(m, E(m, "E0004"), Alice, Maintenant);
         var apres = m.EcheanceRepli!.Value.AddMinutes(1);
         Assert.Equal(StatutDisponibilite.RetourArriere, Regles.Disponibilite(m, E(m, "E0006"), apres).Statut);
-        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, E(m, "E0004"), EtatEtape.Reussie, "ok", true, Alice, apres));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Terminer(m, E(m, "E0004"), EtatEtape.Reussie, "ok", true, Alice, apres));
         // Un échec reste déclarable après l'échéance.
         Regles.Terminer(m, E(m, "E0004"), EtatEtape.Echec, "trop tard", false, Alice, apres);
     }
@@ -158,9 +160,9 @@ public class ReglesTests
     {
         var m = Demo();
         Regles.Decider(m, Claire, DecisionApprobation.Approuvee, "", Maintenant);
-        Assert.Throws<RegleMetierException>(() => PasserEnExecution(m, Claire));
+        Assert.ThrowsAny<RegleMetierException>(() => PasserEnExecution(m, Claire));
         E(m, "E0006").Instructions = "";
-        var ex = Assert.Throws<RegleMetierException>(() => PasserEnExecution(m, Alice));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => PasserEnExecution(m, Alice));
         Assert.Contains("E0006 : compléter Instructions exactes", ex.Message);
         Assert.Equal(Phase.Preparation, m.Phase);
     }
@@ -171,7 +173,7 @@ public class ReglesTests
         var m = Demo();
         Go(m);
         Regles.Demarrer(m, E(m, "E0004"), Alice, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.RevenirEnPreparation(m, Alice, "Étape mal écrite"));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.RevenirEnPreparation(m, Alice, "Étape mal écrite"));
         Regles.Terminer(m, E(m, "E0004"), EtatEtape.Reussie, "ok", true, Alice, Maintenant);
         Regles.RevenirEnPreparation(m, Alice, "Étape mal écrite");
         Assert.Equal(EtatEtape.Reussie, E(m, "E0004").Etat);
@@ -182,10 +184,10 @@ public class ReglesTests
     {
         var m = Demo();
         var e1 = E(m, "E0001");
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.DefinirDependances(m, e1, [E(m, "E0004").Id]));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirDependances(m, e1, [E(m, "E0004").Id]));
         Assert.StartsWith("Opération refusée : elle créerait un cycle", ex.Message);
         Assert.Empty(e1.Dependances);
-        Assert.Throws<RegleMetierException>(() => Regles.DefinirDependances(m, e1, [e1.Id]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirDependances(m, e1, [e1.Id]));
     }
 
     [Fact]
@@ -197,7 +199,7 @@ public class ReglesTests
         Assert.Equal(2, E(m, "E0008").Ligne);
         Assert.Equal(3, E(m, "E0009").Ligne);
         m.Phase = Phase.Execution;
-        Assert.Throws<RegleMetierException>(() => Regles.RetirerEtape(m, E(m, "E0008")));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.RetirerEtape(m, E(m, "E0008")));
     }
 
     [Fact]
@@ -246,7 +248,7 @@ public class ReglesTests
         var m = Demo();
         Go(m);
         Assert.Equal(StatutDisponibilite.SiRetourArriere, Dispo(m, "R0001").Statut);
-        Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "R0001"), Bob, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Demarrer(m, E(m, "R0001"), Bob, Maintenant));
     }
 
     [Fact]
@@ -254,19 +256,19 @@ public class ReglesTests
     {
         var m = Demo();
         Go(m);
-        Assert.Throws<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Claire, "test", Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Claire, "test", Maintenant));
         Regles.DeclencherRetourArriere(m, Alice, "Incident bloquant", Maintenant);
         Assert.Equal(Phase.RetourArriere, m.Phase);
         Assert.Equal(StatutDisponibilite.RetourArriere, Dispo(m, "E0004").Statut);
         Assert.Equal(StatutDisponibilite.Terminee, Dispo(m, "E0001").Statut);
-        Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0004"), Alice, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0004"), Alice, Maintenant));
 
         Assert.Equal(StatutDisponibilite.Disponible, Dispo(m, "R0001").Statut);
         Assert.Equal(StatutDisponibilite.Disponible, Dispo(m, "R0002").Statut);
         Assert.Equal("Attend R0001", Dispo(m, "R0003").Libelle);
         Reussir(m, "R0001", Bob);
         Reussir(m, "R0002", Alice);
-        Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
         Reussir(m, "R0003", Claire);
         Regles.Cloturer(m, Alice, Maintenant, BilanOk);
         Assert.Equal(Phase.Cloturee, m.Phase);
@@ -297,16 +299,16 @@ public class ReglesTests
         var bob = m.Participants.Single(p => p.UtilisateurId == Bob);
         var claire = m.Participants.Single(p => p.UtilisateurId == Claire);
         // Pas encore démarrée : il suffit de la démarrer.
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, e6, bob, "Absent"));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.PrendreLaMain(m, e6, bob, "Absent"));
         Assert.Contains("n'est pas démarrée", ex.Message);
         Regles.Demarrer(m, e6, Claire, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, e6, claire, "Moi")); // déjà exécutante
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PrendreLaMain(m, e6, claire, "Moi")); // déjà exécutante
         var precedent = Regles.PrendreLaMain(m, e6, bob, "Claire est absente");
         Assert.Equal(claire.Id, precedent);
         Assert.Equal(bob.Id, e6.ExecutantId);
-        Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e6, EtatEtape.Reussie, "OK", true, Claire, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Terminer(m, e6, EtatEtape.Reussie, "OK", true, Claire, Maintenant));
         Regles.Terminer(m, e6, EtatEtape.Reussie, "WEB démo OK", true, Bob, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, e6, claire, "Absent"));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PrendreLaMain(m, e6, claire, "Absent"));
         // Une étape en échec démarrée par un autre se reprend aussi en main.
         Assert.Equal(EtatEtape.Echec, E(m, "E0005").Etat);
         Regles.PrendreLaMain(m, E(m, "E0005"), claire, "Bob est absent");
@@ -318,7 +320,7 @@ public class ReglesTests
     {
         var m = Demo();
         var bob = m.Participants.Single(p => p.UtilisateurId == Bob);
-        Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, E(m, "E0006"), bob, "Absent"));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PrendreLaMain(m, E(m, "E0006"), bob, "Absent"));
     }
 
     [Fact]
@@ -330,8 +332,8 @@ public class ReglesTests
         var e5 = E(m, "E0005");
         var exec = Regles.DemarrerResolution(m, e5, Fix(j), Bob, Maintenant);
         Assert.Equal(StatutDisponibilite.ResolutionEnCours, Dispo(m, "E0005").Statut);
-        Assert.Throws<RegleMetierException>(() => Regles.ValiderVerification(m, exec, ResultatControle.Conforme, "ok", Bob, Maintenant));
-        Assert.Throws<RegleMetierException>(() => Regles.ValiderCorrection(m, exec, 2, ResultatControle.Conforme, "", Bob, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ValiderVerification(m, exec, ResultatControle.Conforme, "ok", Bob, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ValiderCorrection(m, exec, 2, ResultatControle.Conforme, "", Bob, Maintenant));
         Regles.ValiderCorrection(m, exec, 1, ResultatControle.Conforme, "", Bob, Maintenant);
         Regles.ValiderVerification(m, exec, ResultatControle.Conforme, "réponse OK", Bob, Maintenant);
         Assert.Equal(StatutResolution.Reussie, exec.Statut);
@@ -346,7 +348,7 @@ public class ReglesTests
         var m = j.Mep;
         Go(m);
         var exec = Regles.DemarrerResolution(m, E(m, "E0005"), Fix(j), Bob, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.ValiderCorrection(m, exec, 1, ResultatControle.Echec, " ", Bob, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ValiderCorrection(m, exec, 1, ResultatControle.Echec, " ", Bob, Maintenant));
         Regles.ValiderCorrection(m, exec, 1, ResultatControle.Echec, "toujours aucune réponse", Bob, Maintenant);
         Assert.Equal(StatutResolution.Echouee, exec.Statut);
         Assert.Equal(Phase.RetourArriere, m.Phase);
@@ -359,7 +361,7 @@ public class ReglesTests
         var j = DonneesDemo.Creer(Alice, Bob, Claire, Maintenant);
         var m = j.Mep;
         Go(m);
-        Assert.Throws<RegleMetierException>(() => Regles.DemarrerResolution(m, E(m, "E0005"), j.Resolutions[1], Bob, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DemarrerResolution(m, E(m, "E0005"), j.Resolutions[1], Bob, Maintenant));
     }
 
     [Fact]
@@ -367,16 +369,16 @@ public class ReglesTests
     {
         var m = Demo();
         Go(m);
-        Assert.Throws<RegleMetierException>(() => Regles.PasserEnRecette(m, Alice, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnRecette(m, Alice, Maintenant));
         foreach (var e in m.EtapesDu(TypePlan.Deploiement)) e.Etat = EtatEtape.Reussie;
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
         Assert.Contains("Passer d'abord en recette", ex.Message);
-        Assert.Throws<RegleMetierException>(() => Regles.PasserEnRecette(m, Claire, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnRecette(m, Claire, Maintenant));
         Regles.PasserEnRecette(m, Alice, Maintenant);
         Assert.Equal(Phase.Recette, m.Phase);
         Assert.Equal(StatutDisponibilite.Terminee, Dispo(m, "E0004").Statut);
 
-        Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
         foreach (var f in m.FichesRecette)
             foreach (var t in f.Etapes) Regles.ValiderEtapeTest(m, f, t, ResultatControle.Conforme, "OK", Alice, false, Maintenant);
         Regles.Cloturer(m, Alice, Maintenant, BilanOk);
@@ -391,7 +393,7 @@ public class ReglesTests
     public void Dependance_vers_un_autre_plan_refusee()
     {
         var m = Demo();
-        Assert.Throws<RegleMetierException>(() => Regles.DefinirDependances(m, E(m, "R0001"), [E(m, "E0001").Id]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirDependances(m, E(m, "R0001"), [E(m, "E0001").Id]));
     }
 
     [Fact]

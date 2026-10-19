@@ -112,14 +112,16 @@ public class ApiJalon4Tests : IDisposable
         // Profil d'un autre : administrateur seulement.
         var idClaire = claire.GetProperty("id").GetGuid();
         var corps = new { role = "Testeuse", contact = "poste C", expertises = new[] { new { systemeCatalogueId = catalogue["WEB"], detail = "Portail" } } };
-        Assert.Equal(HttpStatusCode.Forbidden, (await bob.PutAsJsonAsync($"/api/utilisateurs/{idClaire}/profil", corps)).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await alice.PutAsJsonAsync($"/api/utilisateurs/{Guid.NewGuid()}/profil", corps)).StatusCode);
-        var modifiee = await Ok(await alice.PutAsJsonAsync($"/api/utilisateurs/{idClaire}/profil", corps));
+        Assert.Equal(HttpStatusCode.Forbidden, (await bob.PutAsJsonAsync($"/api/admin/utilisateurs/{idClaire}/profil", corps)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await alice.PutAsJsonAsync($"/api/admin/utilisateurs/{Guid.NewGuid()}/profil", corps)).StatusCode);
+        // L'ancienne route n'existe plus.
+        Assert.Equal(HttpStatusCode.NotFound, (await alice.PutAsJsonAsync($"/api/utilisateurs/{idClaire}/profil", corps)).StatusCode);
+        var modifiee = await Ok(await alice.PutAsJsonAsync($"/api/admin/utilisateurs/{idClaire}/profil", corps));
         Assert.Equal(("Claire", "Testeuse"), (modifiee.GetProperty("nomAffiche").GetString(), modifiee.GetProperty("role").GetString()));
 
         // Création d'un compte avec rôle et contact.
-        var dave = await Ok(await alice.PostAsJsonAsync("/api/utilisateurs",
-            new { login = "dave", nomAffiche = "Dave", motDePasse = "motdepasse", estAdmin = false, role = " Exploitant ", contact = "poste D" }));
+        var dave = (await Ok(await alice.PostAsJsonAsync("/api/admin/utilisateurs",
+            new { login = "dave", nomAffiche = "Dave", estAdmin = false, role = " Exploitant ", contact = "poste D" }))).GetProperty("utilisateur");
         Assert.Equal(("Exploitant", "poste D", 0), (dave.GetProperty("role").GetString(), dave.GetProperty("contact").GetString(), dave.GetProperty("expertises").GetArrayLength()));
     }
 
@@ -248,9 +250,7 @@ public class ApiJalon4Tests : IDisposable
         var (alice, id, _) = await Demo();
         var bob = await _api.ClientConnecte("bob");
         var claire = await _api.ClientConnecte("claire");
-        Assert.Equal(HttpStatusCode.Created, (await alice.PostAsJsonAsync("/api/utilisateurs",
-            new { login = "dave", nomAffiche = "Dave", motDePasse = "motdepasse", estAdmin = false })).StatusCode);
-        var dave = await _api.ClientConnecte("dave", "motdepasse");
+        var dave = await _api.NouveauCompte("dave", "Dave");
 
         var mep = await EnRecette(alice, id);
         Assert.Equal("Recette", mep.GetProperty("phase").GetString());
@@ -259,7 +259,7 @@ public class ApiJalon4Tests : IDisposable
         var (t1, t2) = (fiche.GetProperty("etapes")[0].GetProperty("id").GetGuid(), fiche.GetProperty("etapes")[1].GetProperty("id").GetGuid());
         string Url(Guid t, string action = "resultat") => $"/api/meps/{id}/fiches-recette/{fid}/etapes/{t}/{action}";
 
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await dave.PostAsJsonAsync(Url(t1), new { resultat = "Conforme", observation = "OK" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await dave.PostAsJsonAsync(Url(t1), new { resultat = "Conforme", observation = "OK" })).StatusCode);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await claire.PostAsJsonAsync(Url(t1), new { resultat = "Conforme", observation = " " })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await claire.PostAsJsonAsync(Url(t1), new { observation = "OK" })).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await claire.PostAsJsonAsync(Url(Guid.NewGuid()), new { resultat = "Conforme", observation = "OK" })).StatusCode);
@@ -276,7 +276,7 @@ public class ApiJalon4Tests : IDisposable
         Assert.Equal("Recette « Parcours de commande », étape 2 non conforme : clôture impossible.", await Message(refus));
 
         // Refaire : une étape puis toute la fiche (pilote ou suppléant).
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await claire.PostAsync(Url(t2, "refaire"), null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await claire.PostAsync(Url(t2, "refaire"), null)).StatusCode);
         mep = await Ok(await alice.PostAsync(Url(t2, "refaire"), null));
         Assert.Equal(JsonValueKind.Null, Fiche(mep, "Parcours de commande").GetProperty("etapes")[1].GetProperty("resultat").ValueKind);
         mep = await Ok(await bob.PostAsync($"/api/meps/{id}/fiches-recette/{fid}/refaire", null));
@@ -334,14 +334,14 @@ public class ApiJalon4Tests : IDisposable
         Assert.Contains(await Journal(alice, id), e => e.Type == "etape.creee" && e.Detail == "E0012 créée");
 
         var lienAbsent = await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { entre = new { de = EtapeId(mep, "E0001"), vers = EtapeId(mep, "E0009") } });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, lienAbsent.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, lienAbsent.StatusCode);
         Assert.StartsWith("Lien introuvable", await Message(lienAbsent));
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes",
             new { apres = EtapeId(mep, "E0001"), dependances = new[] { EtapeId(mep, "E0001") } })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes",
             new { apres = EtapeId(mep, "E0001"), paralleleA = EtapeId(mep, "E0002") })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { entre = new { de = EtapeId(mep, "E0001") } })).StatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { apres = Guid.NewGuid() })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { apres = Guid.NewGuid() })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { systemeIds = new[] { Guid.NewGuid() } })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { dureeEstimeeMinutes = -5 })).StatusCode);
     }
@@ -354,8 +354,8 @@ public class ApiJalon4Tests : IDisposable
         mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
         var url = $"/api/meps/{id}/etapes/{EtapeId(mep, "E0007")}/deplacer";
 
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync(url, new { })).StatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync(url, new { apres = EtapeId(mep, "E0007") })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync(url, new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync(url, new { apres = EtapeId(mep, "E0007") })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync(url, new { surLien = new { vers = EtapeId(mep, "E0009") } })).StatusCode);
 
         // E0007 lâchée sur le lien E0008 → E0009 : elle quitte sa place (E0008 attend ce qu'elle attendait), puis s'insère.
@@ -385,7 +385,7 @@ public class ApiJalon4Tests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, (await alice.PostAsJsonAsync($"/api/meps/{id}/liens", new { de = Guid.NewGuid(), vers = EtapeId(mep, "E0001") })).StatusCode);
         mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/liens/retirer", lien));
         Assert.Equal(["E0007"], Prealables(mep, "E0009"));
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync($"/api/meps/{id}/liens/retirer", lien)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/liens/retirer", lien)).StatusCode);
 
         // Supprimer E0008 : E0007 attend ce qu'E0008 attendait.
         mep = await Ok(await alice.DeleteAsync($"/api/meps/{id}/etapes/{EtapeId(mep, "E0008")}"));

@@ -43,13 +43,13 @@ public static partial class Regles
     public static void Ordonner(Mep mep, TypePlan plan, IReadOnlyList<Guid> ids)
     {
         ExigerPreparation(mep);
-        if (ids.Count == 0) throw new RegleMetierException("Indiquer l'ordre des éléments.");
-        if (ids.Distinct().Count() != ids.Count) throw new RegleMetierException("Un élément apparaît deux fois dans l'ordre.");
+        if (ids.Count == 0) throw new SaisieInvalideException("Indiquer l'ordre des éléments.");
+        if (ids.Distinct().Count() != ids.Count) throw new SaisieInvalideException("Un élément apparaît deux fois dans l'ordre.");
         var etapes = mep.EtapesDu(plan).ToDictionary(e => e.Id);
         var sections = mep.Sections.Where(s => s.Plan == plan).ToDictionary(s => s.Id);
         foreach (var id in ids)
             if (!etapes.ContainsKey(id) && !sections.ContainsKey(id))
-                throw new RegleMetierException("Élément introuvable dans ce plan : seules ses étapes et ses sections s'ordonnent.");
+                throw new SaisieInvalideException("Élément introuvable dans ce plan : seules ses étapes et ses sections s'ordonnent.");
         var rang = 0;
         foreach (var id in ids)
         {

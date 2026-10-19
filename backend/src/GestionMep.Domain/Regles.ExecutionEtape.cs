@@ -15,7 +15,7 @@ public static partial class Regles
     {
         ExigerPhaseDuPlan(mep, etape);
         if (executant?.UtilisateurId is null)
-            throw new RegleMetierException("Seul un participant relié à un compte, le pilote ou un administrateur peut démarrer une étape.");
+            throw new DroitInsuffisantException("Seul un participant relié à un compte, le pilote ou un administrateur peut démarrer une étape.");
         var dispo = Disponibilite(mep, etape, maintenant);
         if (dispo.Statut != StatutDisponibilite.Disponible)
             throw new RegleMetierException($"Démarrage impossible : {dispo.Libelle}");
@@ -40,7 +40,7 @@ public static partial class Regles
         string? commentaire = null, string? resultatConstate = null)
     {
         if (resultat is not (EtatEtape.Reussie or EtatEtape.Echec))
-            throw new RegleMetierException("Résultat attendu : Réussie ou Échec.");
+            throw new SaisieInvalideException("Résultat attendu : Réussie ou Échec.");
         ExigerExecution(mep, etape, utilisateurId);
         if (etape.Etat != EtatEtape.EnCours) throw new RegleMetierException("Démarrer l'action avant de déclarer son résultat.");
         if (etape.Plan == TypePlan.Deploiement && resultat == EtatEtape.Reussie && EcheanceAtteinte(mep, maintenant))
@@ -72,7 +72,7 @@ public static partial class Regles
         if (mep.Phase is not (Phase.Execution or Phase.Recette or Phase.RetourArriere))
             throw new RegleMetierException("Le commentaire d'exécution se saisit pendant l'exécution, la recette ou le retour arrière.");
         if (!estAdmin && !EstExecutant(mep, etape, utilisateurId) && !EstPilote(mep, utilisateurId))
-            throw new RegleMetierException("Seul l'exécutant de l'étape, le pilote, un suppléant ou un administrateur peut la commenter.");
+            throw new DroitInsuffisantException("Seul l'exécutant de l'étape, le pilote, un suppléant ou un administrateur peut la commenter.");
         etape.Commentaire = (commentaire ?? "").Trim();
         etape.Revision++;
     }
@@ -86,7 +86,7 @@ public static partial class Regles
     {
         ExigerPhaseDuPlan(mep, etape);
         if (string.IsNullOrWhiteSpace(motif)) throw new RegleMetierException("Indiquer pourquoi vous prenez la main.");
-        if (preneur.UtilisateurId is null) throw new RegleMetierException("Seul un participant relié à un compte peut prendre la main.");
+        if (preneur.UtilisateurId is null) throw new DroitInsuffisantException("Seul un participant relié à un compte peut prendre la main.");
         if (etape.Etat == EtatEtape.Reussie) throw new RegleMetierException($"{etape.Code} est déjà réussie.");
         if (etape.Etat == EtatEtape.AFaire || etape.ExecutantId is null)
             throw new RegleMetierException($"{etape.Code} n'est pas démarrée : il suffit de la démarrer.");
@@ -103,7 +103,7 @@ public static partial class Regles
     /// </summary>
     public static void AutoriserReprise(Mep mep, Etape etape, Guid utilisateurId, DateTimeOffset maintenant)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut autoriser une reprise.");
+        if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut autoriser une reprise.");
         ExigerPhaseDuPlan(mep, etape);
         if (etape.Etat != EtatEtape.Echec) throw new RegleMetierException("Seule une étape en échec peut être reprise.");
         if (ResolutionEnCours(mep, etape) is not null) throw new RegleMetierException("Une résolution est en cours sur cette étape.");
@@ -140,6 +140,6 @@ public static partial class Regles
     {
         ExigerPhaseDuPlan(mep, etape);
         if (!EstExecutant(mep, etape, utilisateurId) && !EstPilote(mep, utilisateurId))
-            throw new RegleMetierException(MessageAutreExecutant);
+            throw new DroitInsuffisantException(MessageAutreExecutant);
     }
 }

@@ -63,17 +63,23 @@ public class ApiTests : IDisposable
     }
 
     [Fact]
-    public async Task Creation_d_utilisateur_reservee_aux_admins()
+    public async Task Creation_d_utilisateur_reservee_aux_admins_par_la_console_seulement()
     {
         var bob = await _api.ClientConnecte("bob");
-        var corps = new { login = "dave", nomAffiche = "Dave", motDePasse = "motdepasse", estAdmin = false };
-        Assert.Equal(HttpStatusCode.Forbidden, (await bob.PostAsJsonAsync("/api/utilisateurs", corps)).StatusCode);
+        var corps = new { login = "dave", nomAffiche = "Dave", estAdmin = false };
+        Assert.Equal(HttpStatusCode.Forbidden, (await bob.PostAsJsonAsync("/api/admin/utilisateurs", corps)).StatusCode);
 
         var alice = await _api.ClientConnecte("alice");
-        Assert.Equal(HttpStatusCode.Created, (await alice.PostAsJsonAsync("/api/utilisateurs", corps)).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync("/api/utilisateurs", corps)).StatusCode);
+        // L'ancienne route, qui posait un mot de passe choisi et non provisoire, n'existe plus.
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await alice.PostAsJsonAsync("/api/utilisateurs", new { login = "dave", nomAffiche = "Dave", motDePasse = "motdepasse", estAdmin = false })).StatusCode);
+        var cree = await Ok(await alice.PostAsJsonAsync("/api/admin/utilisateurs", corps));
+        Assert.True(cree.GetProperty("utilisateur").GetProperty("doitChangerMotDePasse").GetBoolean());
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync("/api/admin/utilisateurs", corps)).StatusCode);
         Assert.Equal(4, (await Ok(await alice.GetAsync("/api/utilisateurs"))).GetArrayLength());
-        await _api.ClientConnecte("dave", "motdepasse");
+        // Mot de passe provisoire : la personne doit le changer avant de travailler.
+        var dave = await _api.ClientConnecte("dave", cree.GetProperty("motDePasseProvisoire").GetString()!);
+        Assert.Equal(HttpStatusCode.Forbidden, (await dave.GetAsync("/api/meps")).StatusCode);
     }
 
     // ---------- Lecture ----------
@@ -136,7 +142,7 @@ public class ApiTests : IDisposable
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(claire, id, mep, "E0004", "demarrer")).StatusCode);
         var refus = await Action(claire, id, mep, "E0004", "terminer",
             new { revision = Revision(mep, "E0004"), resultat = "Reussie", preuve = "x", resultatVerifie = true });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, refus.StatusCode);
         Assert.Contains("Prendre la main", await Message(refus));
         mep = await Ok(await Action(alice, id, mep, "E0004", "terminer",
             new { revision = Revision(mep, "E0004"), resultat = "Reussie", preuve = "Schéma migré", resultatVerifie = true }));
@@ -150,7 +156,7 @@ public class ApiTests : IDisposable
 
         // Étape en échec : pas de démarrage avant la reprise, autorisée par le pilote ou un suppléant seulement.
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(bob, id, mep, "E0005", "demarrer")).StatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(claire, id, mep, "E0005", "autoriser-reprise")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await Action(claire, id, mep, "E0005", "autoriser-reprise")).StatusCode);
         mep = await Ok(await Action(alice, id, mep, "E0005", "autoriser-reprise"));
         Assert.Equal("Disponible", Dispo(mep, "E0005"));
 

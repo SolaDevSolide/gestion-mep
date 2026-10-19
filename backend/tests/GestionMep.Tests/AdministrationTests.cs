@@ -52,7 +52,7 @@ public class AdministrationTests : IDisposable
         Assert.True((await Ok(await david.GetAsync("/api/auth/moi"))).GetProperty("doitChangerMotDePasse").GetBoolean());
 
         Assert.Equal(HttpStatusCode.BadRequest, (await david.PostAsJsonAsync("/api/auth/mot-de-passe", new { ancien = provisoire, nouveau = "court" })).StatusCode);
-        Assert.Equal((HttpStatusCode)422, (await david.PostAsJsonAsync("/api/auth/mot-de-passe", new { ancien = "faux", nouveau = "un mot de passe solide" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await david.PostAsJsonAsync("/api/auth/mot-de-passe", new { ancien = "faux", nouveau = "un mot de passe solide" })).StatusCode);
         var change = await Ok(await david.PostAsJsonAsync("/api/auth/mot-de-passe", new { ancien = provisoire, nouveau = "un mot de passe solide" }));
         Assert.False(change.GetProperty("doitChangerMotDePasse").GetBoolean());
         // La session courante reste ouverte (cookie réémis) et n'est plus bloquée.

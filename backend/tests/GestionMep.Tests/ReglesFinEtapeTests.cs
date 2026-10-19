@@ -28,7 +28,8 @@ public class ReglesFinEtapeTests
         Assert.Equal(FinEtape.Verification, E(m, "E0003").Fin);
         Regles.DefinirFin(E(m, "E0004"), FinEtape.Verification);
         Assert.Equal(FinEtape.Verification, E(m, "E0004").Fin);
-        Assert.Throws<RegleMetierException>(() => Regles.DefinirFin(E(m, "E0004"), (FinEtape)7));
+        // Valeur inconnue : saisie invalide (400 dans l'API).
+        Assert.Throws<SaisieInvalideException>(() => Regles.DefinirFin(E(m, "E0004"), (FinEtape)7));
     }
 
     [Fact]
@@ -38,7 +39,7 @@ public class ReglesFinEtapeTests
         Go(m);
         var e4 = E(m, "E0004");
         Regles.Demarrer(m, e4, Alice, Maintenant);
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, " ", true, Alice, Maintenant, resultatConstate: " "));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.Terminer(m, e4, EtatEtape.Reussie, " ", true, Alice, Maintenant, resultatConstate: " "));
         Assert.Equal("Test unitaire : saisir le résultat constaté.", ex.Message);
         Regles.Terminer(m, e4, EtatEtape.Reussie, "Sortie de psql jointe", true, Alice, Maintenant, resultatConstate: " 12 migrations appliquées ");
         Assert.Equal(("12 migrations appliquées", "Sortie de psql jointe"), (e4.ResultatConstate, e4.Preuve));
@@ -121,7 +122,7 @@ public class ReglesFinEtapeTests
         Assert.Equal("/sauvegardes/clients.sql", bdd.Sauvegarde.Emplacement);
 
         var criteres = DonneesDemo.CriteresGoNoGo();
-        var ex = Assert.Throws<RegleMetierException>(() =>
+        var ex = Assert.ThrowsAny<RegleMetierException>(() =>
             Regles.PasserEnExecution(m, Alice, criteres.Select(c => c.Id).ToList(), criteres, DonneesDemo.ApprobationsMinimum, Maintenant));
         Assert.Contains("Sauvegarde de BDD : compléter Méthode de récupération.", ex.Message);
 

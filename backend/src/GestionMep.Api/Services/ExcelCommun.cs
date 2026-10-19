@@ -13,24 +13,10 @@ public static class ExcelCommun
 
     /// <summary>Nouveau classeur ; <paramref name="palette"/> null : couleurs de l'application.</summary>
     public static ClasseurExcel Nouveau(string titre, DateTimeOffset maintenant, string? fuseau, PaletteExcel? palette, string? sujet = null) =>
-        new(new InfosClasseur(titre, Locale(maintenant, fuseau), VersionApplication.Courante) { Palette = palette, Sujet = sujet });
+        new(new InfosClasseur(titre, Fuseaux.Local(maintenant, fuseau), VersionApplication.Courante) { Palette = palette, Sujet = sujet });
 
-    /// <summary>Instant dans le fuseau donné (Europe/Paris par défaut, celui des MEP), sans indication de fuseau pour Excel.</summary>
-    public static DateTime Locale(DateTimeOffset instant, string? fuseau)
-    {
-        try
-        {
-            return DateTime.SpecifyKind(TimeZoneInfo.ConvertTime(instant, TimeZoneInfo.FindSystemTimeZoneById(fuseau ?? "Europe/Paris")).DateTime,
-                DateTimeKind.Unspecified);
-        }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            return DateTime.SpecifyKind(instant.UtcDateTime, DateTimeKind.Unspecified);
-        }
-    }
-
-    /// <summary>Instant facultatif dans le fuseau donné.</summary>
-    public static DateTime? Quand(DateTimeOffset? instant, string? fuseau) => instant is { } i ? Locale(i, fuseau) : null;
+    /// <summary>Instant facultatif dans le fuseau donné (<see cref="Fuseaux.ParDefaut"/> si null).</summary>
+    public static DateTime? Quand(DateTimeOffset? instant, string? fuseau) => instant is { } i ? Fuseaux.Local(i, fuseau) : null;
 
     /// <summary>Nom de la MEP dans les fichiers : outil et version cible (« MEP » si les deux sont vides).</summary>
     public static string NomMep(string outil, string versionCible)

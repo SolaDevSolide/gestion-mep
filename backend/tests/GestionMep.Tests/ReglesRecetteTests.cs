@@ -40,7 +40,7 @@ public class ReglesRecetteTests
     {
         var m = Demo();
         var fiche = m.FichesRecette[0];
-        var ex = Assert.Throws<RegleMetierException>(() => ModifierFicheRecette(m, fiche, S(m, "API").Id, "x", []));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => ModifierFicheRecette(m, fiche, S(m, "API").Id, "x", []));
         Assert.Equal("Une fiche de recette reste dans son système : créez une nouvelle fiche dans l'autre système.", ex.Message);
         ModifierFicheRecette(m, fiche, S(m, "WEB").Id, "Même système", []);
 
@@ -51,7 +51,7 @@ public class ReglesRecetteTests
         Assert.Null(fiche.SystemeId);
         ModifierFicheRecette(m, fiche, S(m, "BDD").Id, "Rattachée", []);
         Assert.Equal(S(m, "BDD").Id, fiche.SystemeId);
-        Assert.Throws<RegleMetierException>(() => AjouterFicheRecette(m, Guid.NewGuid(), "Système inconnu"));
+        Assert.ThrowsAny<RegleMetierException>(() => AjouterFicheRecette(m, Guid.NewGuid(), "Système inconnu"));
     }
 
     // ---------- Bibliothèque ----------
@@ -77,7 +77,7 @@ public class ReglesRecetteTests
         Assert.Contains("Ajouter au moins une étape de test.", ErreursModeleRecette(new ModeleRecette { Titre = "t" }));
 
         m.Phase = Phase.Execution;
-        Assert.Throws<RegleMetierException>(() => InsererModeleRecette(m, S(m, "BDD").Id, modele));
+        Assert.ThrowsAny<RegleMetierException>(() => InsererModeleRecette(m, S(m, "BDD").Id, modele));
     }
 
     // ---------- Version de la recette ----------
@@ -146,7 +146,7 @@ public class ReglesRecetteTests
         Assert.Contains(a.Erreurs, e => e.Contains("indiquer qui a validé", StringComparison.Ordinal));
         Assert.Contains(a.Erreurs, e => e.Contains("date illisible", StringComparison.Ordinal) && e.Contains("décrire le résultat constaté du refus", StringComparison.Ordinal));
 
-        var ex = Assert.Throws<RegleMetierException>(() => AppliquerValidation(m, a, Claire, false, Maintenant));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => AppliquerValidation(m, a, Claire, false, Maintenant));
         Assert.StartsWith("Fichier refusé", ex.Message);
         Assert.Null(lignes.Skip(4).Select(l => m.FichesRecette.SelectMany(x => x.Etapes).Single(t => t.Id == l.EtapeId)).First().Resultat);
     }
@@ -170,10 +170,10 @@ public class ReglesRecetteTests
     {
         var m = Demo();
         var a = AnalyserValidation(m, m.Id, VersionRecette(m), Avec(Lignes(m), 0, "Validé", "OK", "Marie"));
-        Assert.Throws<RegleMetierException>(() => AppliquerValidation(m, a, Claire, false, Maintenant)); // préparation
+        Assert.ThrowsAny<RegleMetierException>(() => AppliquerValidation(m, a, Claire, false, Maintenant)); // préparation
         m = EnRecette();
         a = AnalyserValidation(m, m.Id, VersionRecette(m), Avec(Lignes(m), 0, "Validé", "OK", "Marie"));
-        var ex = Assert.Throws<RegleMetierException>(() => AppliquerValidation(m, a, Dave, false, Maintenant));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => AppliquerValidation(m, a, Dave, false, Maintenant));
         Assert.Contains("participants", ex.Message);
         AppliquerValidation(m, a, Dave, true, Maintenant); // administrateur
     }

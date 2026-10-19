@@ -58,7 +58,7 @@ public class ReglesJalon42Tests
         Regles.PasserEnExecution(m, Alice, criteres.Select(c => c.Id).ToList(), criteres, 1, Maintenant);
         // E0005 a été exécutée par Bob ; Alice (pilote) lance et déroule la résolution.
         var exec = Regles.DemarrerResolution(m, E(m, "E0005"), j.Resolutions[0], Alice, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.ValiderCorrection(m, exec, 1, ResultatControle.Conforme, "", Claire, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ValiderCorrection(m, exec, 1, ResultatControle.Conforme, "", Claire, Maintenant));
         Regles.ValiderCorrection(m, exec, 1, ResultatControle.Conforme, "", Alice, Maintenant);
         Regles.ValiderVerification(m, exec, ResultatControle.Conforme, "OK", Bob, Maintenant); // exécutant et suppléant
         Assert.Equal(EtatEtape.AFaire, E(m, "E0005").Etat);
@@ -73,7 +73,7 @@ public class ReglesJalon42Tests
         var m = Demo();
         var e4 = E(m, "E0004");
         Assert.Equal("", e4.Commentaire);
-        Assert.Throws<RegleMetierException>(() => Regles.Commenter(m, e4, "Trop tôt", Alice, false)); // préparation
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Commenter(m, e4, "Trop tôt", Alice, false)); // préparation
         Regles.Decider(m, Claire, DecisionApprobation.Approuvee, "", Maintenant);
         var criteres = DonneesDemo.CriteresGoNoGo();
         Regles.PasserEnExecution(m, Alice, criteres.Select(c => c.Id).ToList(), criteres, 1, Maintenant);
@@ -83,7 +83,7 @@ public class ReglesJalon42Tests
         Assert.Equal("Verrou sur la table clients", e4.Commentaire);
         var revision = e4.Revision;
         // Exécutante, pilote / suppléant ou administrateur seulement.
-        Assert.Throws<RegleMetierException>(() => Regles.Commenter(m, e4, "x", Guid.NewGuid(), false));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Commenter(m, e4, "x", Guid.NewGuid(), false));
         Regles.Commenter(m, e4, " Verrou levé par le DBA ", Bob, false); // suppléant
         Assert.Equal(("Verrou levé par le DBA", revision + 1), (e4.Commentaire, e4.Revision));
         Regles.Commenter(m, e4, "Vu", Guid.NewGuid(), true); // administrateur
@@ -146,9 +146,7 @@ public class ApiJalon42Tests : IDisposable
     {
         var alice = await _api.ClientConnecte("alice");
         var id = await AidesApi.IdDemo(alice);
-        Assert.Equal(HttpStatusCode.Created, (await alice.PostAsJsonAsync("/api/utilisateurs",
-            new { login = "root", nomAffiche = "Root", motDePasse = "motdepasse", estAdmin = true })).StatusCode);
-        var root = await _api.ClientConnecte("root", "motdepasse");
+        var root = await _api.NouveauCompte("root", "Root", estAdmin: true);
 
         // responsableId envoyé : ignoré (ni contrôlé ni enregistré).
         var mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { action = "Nouvelle", responsableId = Guid.NewGuid(), dureeEstimeeMinutes = (int?)null }));

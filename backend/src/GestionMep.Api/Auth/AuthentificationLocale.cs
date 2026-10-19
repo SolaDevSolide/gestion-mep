@@ -18,6 +18,7 @@ public static class AuthentificationLocale
 {
     public const string Cookie = "gestion-mep.auth";
     public const string PolitiqueAdmin = "admin";
+    public const string MessageReserveAdmin = "Réservé aux administrateurs.";
     public const int LongueurMinimaleMotDePasse = 10;
 
     /// <param name="env">Hors Development, le cookie est toujours marqué Secure : derrière le reverse proxy HTTPS,
@@ -37,17 +38,21 @@ public static class AuthentificationLocale
                 o.ExpireTimeSpan = TimeSpan.FromHours(12);
                 o.SlidingExpiration = true;
                 // API : jamais de redirection vers une page de connexion.
-                o.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; };
-                o.Events.OnRedirectToAccessDenied = ctx =>
-                {
-                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    return ctx.Response.WriteAsJsonAsync(new { message = "Réservé aux administrateurs." });
-                };
+                o.Events.OnRedirectToLogin = ctx => ReponsesErreur.Ecrire(ctx.HttpContext, StatusCodes.Status401Unauthorized, "Authentification requise.");
+                o.Events.OnRedirectToAccessDenied = ctx => ReponsesErreur.Ecrire(ctx.HttpContext, StatusCodes.Status403Forbidden, MessageReserveAdmin);
                 o.Events.OnValidatePrincipal = ValiderSession;
             });
         services.AddAuthorizationBuilder().AddPolicy(PolitiqueAdmin, p => p.RequireRole(Acteur.RoleAdmin));
         return services;
     }
+
+    /// <summary>
+    /// Seule façon de réserver une route ou un groupe de routes aux administrateurs : politique « admin », contrôlée avant la
+    /// lecture du corps (403 <see cref="MessageReserveAdmin"/> sinon). Les droits qui combinent rôle et MEP (pilote ou
+    /// administrateur…) restent dans les règles métier.
+    /// </summary>
+    public static TBuilder ExigerAdmin<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder =>
+        builder.RequireAuthorization(PolitiqueAdmin);
 
     /// <summary>
     /// Cookie de session marqué Secure, sauf si le réglage <see cref="Reglages.HttpsObligatoire"/> est désactivé (mode
@@ -111,8 +116,7 @@ public static class AuthentificationLocale
                 && !(HttpMethods.IsGet(ctx.Request.Method) && chemin.Equals("/api/demo", StringComparison.OrdinalIgnoreCase))
                 && !(HttpMethods.IsGet(ctx.Request.Method) && chemin.StartsWithSegments("/api/charte")))
             {
-                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await ctx.Response.WriteAsJsonAsync(new { message = "Changez votre mot de passe provisoire avant de continuer." });
+                await ReponsesErreur.Ecrire(ctx, StatusCodes.Status403Forbidden, "Changez votre mot de passe provisoire avant de continuer.");
                 return;
             }
             await suivant();
@@ -175,9 +179,18 @@ public static class AuthentificationLocale
     /// </summary>
     public static async Task ExigerNomDisponible(MepDbContext db, string nom, Guid? compteId)
     {
-        var autres = await db.Utilisateurs.AsNoTracking().Where(u => u.Id != compteId).Select(u => new { u.NomAffiche, u.Login }).ToListAsync();
-        if (autres.Any(u => string.Equals(u.NomAffiche, nom, StringComparison.OrdinalIgnoreCase) || string.Equals(u.Login, nom, StringComparison.OrdinalIgnoreCase)))
+        if (!await NomDisponible(db, nom, compteId))
             throw Services.ErreurHttp.Saisie($"« {nom} » est déjà le nom ou le login d'un autre compte : choisissez un nom qui vous distingue.");
+    }
+
+    /// <summary>
+    /// Vrai si aucun autre compte que <paramref name="compteId"/> n'a ce nom affiché ou ce login (casse ignorée). Même règle pour
+    /// les comptes locaux, le profil et les comptes créés par la connexion unique.
+    /// </summary>
+    public static async Task<bool> NomDisponible(MepDbContext db, string nom, Guid? compteId)
+    {
+        var autres = await db.Utilisateurs.AsNoTracking().Where(u => u.Id != compteId).Select(u => new { u.NomAffiche, u.Login }).ToListAsync();
+        return !autres.Any(u => string.Equals(u.NomAffiche, nom, StringComparison.OrdinalIgnoreCase) || string.Equals(u.Login, nom, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>Vérifie le couple login / mot de passe ; renvoie l'utilisateur ou null.</summary>

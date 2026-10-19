@@ -96,7 +96,7 @@ public class SimulationEtOptimisationTests
         var redondants = Regles.LiensRedondants(m, TypePlan.Deploiement);
         Assert.Equal([new Regles.LienPlan(a.Id, c.Id)], redondants);
         // Liste différente de celle du plan : refus, rien ne change.
-        Assert.Throws<RegleMetierException>(() => Regles.OptimiserLiens(m, TypePlan.Deploiement, [new Regles.LienPlan(sortie.Id, c.Id)]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.OptimiserLiens(m, TypePlan.Deploiement, [new Regles.LienPlan(sortie.Id, c.Id)]));
         Assert.Contains(a.Id, Regles.Directes(c));
 
         Assert.Single(Regles.OptimiserLiens(m, TypePlan.Deploiement, redondants));
@@ -138,7 +138,7 @@ public class SimulationEtOptimisationTests
         Assert.Contains(new Regles.LienPlan(x.Id, z.Id), dansS);
         Assert.True(Regles.LiensRedondants(m, TypePlan.Deploiement).Except([new Regles.LienPlan(a.Id, c.Id)]).ToHashSet().SetEquals(dansS));
         // La liste du plan entier n'est pas celle de la section : refus.
-        Assert.Throws<RegleMetierException>(() =>
+        Assert.ThrowsAny<RegleMetierException>(() =>
             Regles.OptimiserLiens(m, TypePlan.Deploiement, Regles.LiensRedondants(m, TypePlan.Deploiement), s.Id));
 
         Assert.Equal(dansS.Count, Regles.OptimiserLiens(m, TypePlan.Deploiement, dansS, s.Id).Count);
@@ -146,7 +146,7 @@ public class SimulationEtOptimisationTests
         Assert.Contains(a.Id, Regles.Directes(c)); // le reste du plan n'est pas touché
         Assert.Empty(Regles.LiensRedondants(m, TypePlan.Deploiement, s.Id));
         Assert.Equal([new Regles.LienPlan(a.Id, c.Id)], Regles.LiensRedondants(m, TypePlan.Deploiement));
-        Assert.Throws<RegleMetierException>(() => Regles.LiensRedondants(m, TypePlan.RetourArriere, s.Id));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.LiensRedondants(m, TypePlan.RetourArriere, s.Id));
     }
 
     [Fact]

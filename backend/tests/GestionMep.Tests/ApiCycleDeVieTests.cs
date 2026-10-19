@@ -178,7 +178,7 @@ public class ApiCycleDeVieTests : IDisposable
 
         Assert.Equal(HttpStatusCode.Forbidden, (await claire.PostAsJsonAsync($"/api/meps/{id}/etapes-correctives", corrective)).StatusCode);
         var incomplete = await alice.PostAsJsonAsync($"/api/meps/{id}/etapes-correctives", new { action = "x", systemeIds = new[] { api } });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, incomplete.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, incomplete.StatusCode);
         mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes-correctives", corrective));
         var ajoutee = mep.GetProperty("etapes").EnumerateArray().Single(e => e.GetProperty("ajouteeApresGo").GetBoolean());
         var code = ajoutee.GetProperty("code").GetString()!;
@@ -284,6 +284,40 @@ public class ApiCycleDeVieTests : IDisposable
     }
 
     [Fact]
+    public async Task Un_administrateur_hors_mep_n_a_les_droits_du_pilote_qu_apres_le_pilotage_de_secours()
+    {
+        var alice = await _api.ClientConnecte("alice");
+        var dave = await _api.NouveauCompte("dave", "Dave", estAdmin: true);
+        var daveId = (await Ok(await dave.GetAsync("/api/auth/moi"))).GetProperty("id").GetGuid();
+        var id = await AidesApi.IdMep(alice, DonneesDemo.OutilExecution); // Alice pilote, Bob suppléant ; Dave n'y figure pas
+        var mep = await Ok(await dave.GetAsync($"/api/meps/{id}"));
+        Assert.False(Droit(mep, "estPilote"));
+        Assert.True(Droit(mep, "peutChangerPilote"));
+        // Être administrateur ne donne pas les droits du pilote : refus de droits (403), pas règle métier.
+        var refus = await dave.PostAsJsonAsync($"/api/meps/{id}/retour-arriere", new { motif = "Panne" });
+        Assert.Equal(HttpStatusCode.Forbidden, refus.StatusCode);
+        Assert.Equal("Seul le pilote ou un suppléant peut déclencher le retour arrière.", await Message(refus));
+        // Désignation incomplète ou compte inconnu : saisie invalide.
+        Assert.Equal(HttpStatusCode.BadRequest, (await dave.PostAsJsonAsync($"/api/meps/{id}/pilotage", new { motif = "Alice injoignable" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await dave.PostAsJsonAsync($"/api/meps/{id}/pilotage", new { utilisateurId = Guid.NewGuid(), motif = "Alice injoignable" })).StatusCode);
+
+        // Pilotage de secours en se désignant : Dave est ajouté à la MEP et en devient pilote.
+        mep = await Ok(await dave.PostAsJsonAsync($"/api/meps/{id}/pilotage", new { utilisateurId = daveId, motif = "Alice injoignable" }));
+        Assert.Equal(Participant(mep, "Dave"), mep.GetProperty("piloteId").GetGuid());
+        Assert.Equal("Dave", mep.GetProperty("pilotageSecours").GetProperty("par").GetString());
+        Assert.Contains(Participant(mep, "Alice"), mep.GetProperty("suppleantIds").EnumerateArray().Select(s => s.GetGuid()));
+        Assert.True(Droit(mep, "estPilote"));
+        var journal = await Journal(alice, id);
+        Assert.Contains(("participant.ajoute", "Participant ajouté après le Go : Dave"), journal);
+        Assert.Contains(journal, e => e.Type == "pilotage.secours" && e.Detail.StartsWith("Pilotage de secours par Dave : Dave remplace Alice comme pilote."));
+        // Il a maintenant les droits du pilote.
+        mep = await Ok(await dave.PostAsJsonAsync($"/api/meps/{id}/retour-arriere", new { motif = "Panne" }));
+        Assert.Equal("RetourArriere", mep.GetProperty("phase").GetString());
+        Assert.Equal("Dave", mep.GetProperty("retourArriere").GetProperty("par").GetString());
+    }
+
+    [Fact]
     public async Task Le_pilotage_se_confie_a_un_compte_hors_mep_et_se_refuse_une_fois_la_mep_terminee()
     {
         var alice = await _api.ClientConnecte("alice");
@@ -329,7 +363,7 @@ public class ApiCycleDeVieTests : IDisposable
         Assert.True(Droit(await Ok(await alice.GetAsync($"/api/meps/{id}")), "peutSupprimer"));
         Assert.Equal(HttpStatusCode.Forbidden, (await AidesApi.Supprimer(bob, id, nom)).StatusCode);
         var mauvaisNom = await AidesApi.Supprimer(alice, id, DonneesDemo.OutilIncomplete);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, mauvaisNom.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, mauvaisNom.StatusCode);
         Assert.Contains(nom, await Message(mauvaisNom));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await AidesApi.Supprimer(alice, id, nom, motif: " ")).StatusCode);
 

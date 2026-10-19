@@ -147,12 +147,12 @@ public static partial class VuesExcel
     /// sur un seul système.
     /// </summary>
     public static string NomFichierListe(bool modeles, DateTimeOffset maintenant, string? systeme = null) =>
-        systeme is { Length: > 0 } && !modeles ? ExcelCommun.NomFichier("meps", $"{systeme} {ExcelCommun.Locale(maintenant, null):yyyy-MM-dd}")
-            : $"{(modeles ? "modeles" : "meps")}-{ExcelCommun.Locale(maintenant, null):yyyy-MM-dd}.xlsx";
+        systeme is { Length: > 0 } && !modeles ? ExcelCommun.NomFichier("meps", $"{systeme} {Fuseaux.Local(maintenant, null):yyyy-MM-dd}")
+            : $"{(modeles ? "modeles" : "meps")}-{Fuseaux.Local(maintenant, null):yyyy-MM-dd}.xlsx";
 
     /// <summary>« historique-BDD-2026-10-14.xlsx ».</summary>
     public static string NomFichierHistorique(string systeme, DateTimeOffset maintenant) =>
-        ExcelCommun.NomFichier("historique", $"{systeme} {ExcelCommun.Locale(maintenant, null):yyyy-MM-dd}");
+        ExcelCommun.NomFichier("historique", $"{systeme} {Fuseaux.Local(maintenant, null):yyyy-MM-dd}");
 
     // ---------- Briques de mise en page ----------
 
@@ -210,7 +210,7 @@ public static partial class VuesExcel
         string.Join(", ", s.Environnements.Select(e =>
             e.Production && !e.Nom.Contains("prod", StringComparison.OrdinalIgnoreCase) ? $"{e.Nom} (production)" : e.Nom));
 
-    private static string Le(DateTimeOffset instant, string? fuseau) => $"{ExcelCommun.Locale(instant, fuseau):dd/MM/yyyy à HH:mm}";
+    private static string Le(DateTimeOffset instant, string? fuseau) => $"{Fuseaux.Local(instant, fuseau):dd/MM/yyyy à HH:mm}";
 
     private static int? MinutesEntre(DateTimeOffset? de, DateTimeOffset? a) =>
         de is { } d && a is { } f ? (int)Math.Round((f - d).TotalMinutes) : null;
@@ -246,7 +246,7 @@ public static partial class VuesExcel
                     ColIdentifiant()],
                 meps.Select(m => new object?[]
                 {
-                    m.Outil, m.Objet, m.NbEtapes, OuiNon(m.RetourArriereActive), Equipes(m), DateOnly.FromDateTime(ExcelCommun.Locale(m.CreeLe, null)),
+                    m.Outil, m.Objet, m.NbEtapes, OuiNon(m.RetourArriereActive), Equipes(m), Fuseaux.Jour(m.CreeLe, null),
                     m.Id.ToString(),
                 }),
                 "Aucun modèle ne correspond à ces critères.");
@@ -275,7 +275,7 @@ public static partial class VuesExcel
                     m.EchecsSurvenus, m.Pilote ?? "",
                 };
                 if (personne) ligne.Add(Roles(filtre.RolesDeLaPersonne(m)));
-                ligne.AddRange([Equipes(m), DateOnly.FromDateTime(ExcelCommun.Locale(m.CreeLe, null)), m.NbEtapes, m.NbReussies, m.NbEchecs,
+                ligne.AddRange([Equipes(m), Fuseaux.Jour(m.CreeLe, null), m.NbEtapes, m.NbReussies, m.NbEchecs,
                     OuiNon(m.RetourArriereActive), m.RetourArriereActive ? Quand(m.EcheanceRepli, null) : null, m.Id.ToString()]);
                 return ligne.ToArray();
             }),

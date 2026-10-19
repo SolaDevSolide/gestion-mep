@@ -28,7 +28,7 @@ public static partial class Regles
         {
             var nom = (brut ?? "").Trim();
             if (nom.Length == 0) continue;
-            if (nom.Length > 100) throw new RegleMetierException("Nom d'environnement trop long (100 caractères au plus).");
+            if (nom.Length > 100) throw new SaisieInvalideException("Nom d'environnement trop long (100 caractères au plus).");
             if (choisis.Any(c => c.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase))) continue;
             var deja = systeme.Environnements.FirstOrDefault(e => e.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase));
             if (catalogue is null)
@@ -39,7 +39,7 @@ public static partial class Regles
             var connu = catalogue.FirstOrDefault(e => e.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase));
             if (connu is not null) choisis.Add(new EnvironnementSysteme { Nom = connu.Nom, Production = connu.Production });
             else if (deja is not null) choisis.Add(new EnvironnementSysteme { Nom = deja.Nom, Production = deja.Production });
-            else throw new RegleMetierException($"L'environnement « {nom} » n'existe pas dans la fiche {systeme.Nom} du catalogue : l'y ajouter d'abord.");
+            else throw new SaisieInvalideException($"L'environnement « {nom} » n'existe pas dans la fiche {systeme.Nom} du catalogue : l'y ajouter d'abord.");
         }
         systeme.Environnements = choisis;
     }
@@ -58,13 +58,13 @@ public static partial class Regles
             var nom = (brut ?? "").Trim();
             if (nom.Length == 0) continue;
             var systeme = mep.Systemes.FirstOrDefault(s => s.Id == systemeId)
-                ?? throw new RegleMetierException("Environnement de l'étape : système inconnu dans cette MEP.");
+                ?? throw new SaisieInvalideException("Environnement de l'étape : système inconnu dans cette MEP.");
             if (!etape.SystemeIds.Contains(systemeId))
-                throw new RegleMetierException($"Environnement de l'étape : {systeme.Nom} n'est pas un système de l'étape.");
+                throw new SaisieInvalideException($"Environnement de l'étape : {systeme.Nom} n'est pas un système de l'étape.");
             if (choisis.Any(c => c.SystemeId == systemeId && c.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase))) continue;
             var connu = systeme.Environnements.FirstOrDefault(e => e.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase))?.Nom
                 ?? avant.FirstOrDefault(e => e.SystemeId == systemeId && e.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase))?.Nom
-                ?? throw new RegleMetierException($"L'environnement « {nom} » n'est pas choisi pour {systeme.Nom} dans cette MEP (Préparation › Systèmes).");
+                ?? throw new SaisieInvalideException($"L'environnement « {nom} » n'est pas choisi pour {systeme.Nom} dans cette MEP (Préparation › Systèmes).");
             choisis.Add(new EnvironnementEtape { SystemeId = systemeId, Nom = connu });
         }
         // Ordre stable : systèmes de l'étape, puis environnements dans l'ordre du système.

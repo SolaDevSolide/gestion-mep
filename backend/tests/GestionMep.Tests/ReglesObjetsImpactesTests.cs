@@ -40,7 +40,7 @@ public class ReglesObjetsImpactesTests
         var bdd = Sys(j.Mep, "BDD");
         Regles.DefinirEnvironnementsSysteme(j.Mep, bdd, ["préproduction", " Production ", "PRODUCTION", ""], Fiche(j, "BDD").Environnements);
         Assert.Equal([("Préproduction", false), ("Production", true)], bdd.Environnements.Select(e => (e.Nom, e.Production)).ToArray());
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.DefinirEnvironnementsSysteme(j.Mep, bdd, ["Formation"], Fiche(j, "BDD").Environnements));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirEnvironnementsSysteme(j.Mep, bdd, ["Formation"], Fiche(j, "BDD").Environnements));
         Assert.Contains("n'existe pas dans la fiche BDD", ex.Message);
 
         // Un environnement retiré de la fiche depuis reste admis s'il était déjà choisi.
@@ -73,10 +73,10 @@ public class ReglesObjetsImpactesTests
         Assert.Equal(["Préproduction", "Production"], etape.Environnements.Select(e => e.Nom).ToArray());
 
         Assert.Contains("n'est pas choisi pour BDD",
-            Assert.Throws<RegleMetierException>(() => Regles.DefinirEnvironnementsEtape(m, etape, [(bdd.Id, "Recette")])).Message);
+            Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirEnvironnementsEtape(m, etape, [(bdd.Id, "Recette")])).Message);
         var autre = m.Systemes.First(s => !etape.SystemeIds.Contains(s.Id));
         Assert.Contains("n'est pas un système de l'étape",
-            Assert.Throws<RegleMetierException>(() => Regles.DefinirEnvironnementsEtape(m, etape, [(autre.Id, "Production")])).Message);
+            Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirEnvironnementsEtape(m, etape, [(autre.Id, "Production")])).Message);
 
         // Le système quitte l'étape : ses environnements aussi.
         etape.SystemeIds = etape.SystemeIds.Where(s => s != bdd.Id).ToList();
@@ -135,10 +135,10 @@ public class ReglesObjetsImpactesTests
         Assert.Equal(["EDTPDF", "FACT01", "ancien"], m.ObjetsImpactes.Where(o => o.SystemeId == batch.Id).Select(o => o.Nom).Order(StringComparer.Ordinal).ToArray());
         Assert.Equal("Facturation du mois", m.ObjetsImpactes.Single(o => o.Nom == "FACT01").Libelle);
 
-        Assert.Throws<RegleMetierException>(() => Regles.DefinirObjetsSysteme(m, batch, fiche, [(Guid.NewGuid(), "")]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirObjetsSysteme(m, batch, fiche, [(Guid.NewGuid(), "")]));
         var libre = new Systeme { MepId = m.Id, Nom = "Libre" };
         m.Systemes.Add(libre);
-        Assert.Contains("n'est pas issu du catalogue", Assert.Throws<RegleMetierException>(() => Regles.DefinirObjetsSysteme(m, libre, fiche, [])).Message);
+        Assert.Contains("n'est pas issu du catalogue", Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirObjetsSysteme(m, libre, fiche, [])).Message);
     }
 
     [Fact]
@@ -164,13 +164,13 @@ public class ReglesObjetsImpactesTests
         var s = new SystemeCatalogue { Nom = "ERP" };
         Regles.DefinirEnvironnementsCatalogue(s, [("Recette", "erp-rec", null), ("Production", "erp-prd", null), ("Secours", "", true)]);
         Assert.Equal([false, true, true], s.Environnements.Select(e => e.Production).ToArray());
-        Assert.Throws<RegleMetierException>(() => Regles.DefinirEnvironnementsCatalogue(s, [("A", "", null), ("a", "", null)]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirEnvironnementsCatalogue(s, [("A", "", null), ("a", "", null)]));
 
         Assert.Equal(0, Regles.DefinirCategoriesCatalogue(s, [("Tables", null), ("Vues", null)]));
         var table = Regles.EnregistrerObjetCatalogue(s, null, "tables", "Table", " clients ", "Clients", "");
         Assert.Equal(("Tables", "clients"), (table.Categorie, table.Nom));
-        Assert.Contains("existe déjà", Assert.Throws<RegleMetierException>(() => Regles.EnregistrerObjetCatalogue(s, null, "Tables", "", "CLIENTS", "", "")).Message);
-        Assert.Contains("n'existe pas dans la fiche", Assert.Throws<RegleMetierException>(() => Regles.EnregistrerObjetCatalogue(s, null, "Index", "", "x", "", "")).Message);
+        Assert.Contains("existe déjà", Assert.ThrowsAny<RegleMetierException>(() => Regles.EnregistrerObjetCatalogue(s, null, "Tables", "", "CLIENTS", "", "")).Message);
+        Assert.Contains("n'existe pas dans la fiche", Assert.ThrowsAny<RegleMetierException>(() => Regles.EnregistrerObjetCatalogue(s, null, "Index", "", "x", "", "")).Message);
         var vue = Regles.EnregistrerObjetCatalogue(s, null, "Vues", "Vue", "v1", "", "");
         Regles.EnregistrerObjetCatalogue(s, vue.Id, "Vues", "Vue", "v_clients", "Vue des clients", "");
         Assert.Equal("v_clients", s.Objets.Single(o => o.Id == vue.Id).Nom);

@@ -33,7 +33,7 @@ public static class CharteEndpoints
         api.MapGet("/charte", (ServiceCharte charte) => ServiceCharte.Public(charte.Courant)).AllowAnonymous();
         api.MapGet("/charte/schema.json", () => Results.Text(Schema, "application/schema+json; charset=utf-8")).AllowAnonymous();
 
-        var admin = api.MapGroup("/admin/charte").RequireAuthorization(AuthentificationLocale.PolitiqueAdmin);
+        var admin = api.MapGroup("/admin/charte").ExigerAdmin();
 
         admin.MapGet("", async (ServiceCharte charte) =>
         {

@@ -76,7 +76,7 @@ public class ApiJalon2Tests : IDisposable
         Assert.Equal(participantBob, Etape(mep, "E0004").GetProperty("executantId").GetGuid());
 
         // Claire n'est plus l'exécutante (et n'est ni pilote ni suppléante).
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(claire, id, mep, "E0004", "terminer",
+        Assert.Equal(HttpStatusCode.Forbidden, (await Action(claire, id, mep, "E0004", "terminer",
             new { revision = Revision(mep, "E0004"), resultat = "Reussie", preuve = "x", resultatVerifie = true })).StatusCode);
 
         mep = await Ok(await Action(bob, id, mep, "E0004", "terminer",
@@ -95,16 +95,12 @@ public class ApiJalon2Tests : IDisposable
     public async Task Un_non_participant_ne_prend_pas_la_main_mais_un_administrateur_le_peut()
     {
         var (alice, id, mep) = await DemoEnExecution();
-        Assert.Equal(HttpStatusCode.Created, (await alice.PostAsJsonAsync("/api/utilisateurs",
-            new { login = "dave", nomAffiche = "Dave", motDePasse = "motdepasse", estAdmin = false })).StatusCode);
-        Assert.Equal(HttpStatusCode.Created, (await alice.PostAsJsonAsync("/api/utilisateurs",
-            new { login = "eve", nomAffiche = "Eve", motDePasse = "motdepasse", estAdmin = true })).StatusCode);
-        var dave = await _api.ClientConnecte("dave", "motdepasse");
-        var eve = await _api.ClientConnecte("eve", "motdepasse");
+        var dave = await _api.NouveauCompte("dave", "Dave");
+        var eve = await _api.NouveauCompte("eve", "Eve", estAdmin: true);
         Assert.Equal(JsonValueKind.Null, (await Ok(await dave.GetAsync($"/api/meps/{id}"))).GetProperty("droits").GetProperty("participantId").ValueKind);
 
         // Dave n'est pas participant : ni démarrage, ni prise de main (403, aucun participant créé).
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(dave, id, mep, "E0004", "demarrer")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await Action(dave, id, mep, "E0004", "demarrer")).StatusCode);
         var refus = await Action(dave, id, mep, "E0005", "prendre-la-main", new { revision = Revision(mep, "E0005"), motif = "Renfort" });
         Assert.Equal(HttpStatusCode.Forbidden, refus.StatusCode);
         Assert.Equal("Seuls les participants de la MEP, le pilote, ses suppléants ou un administrateur peuvent prendre la main.", await Message(refus));
@@ -149,7 +145,7 @@ public class ApiJalon2Tests : IDisposable
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await bob.PostAsJsonAsync($"/api/meps/{id}/resolutions/{rid}/verification",
             new { resultat = "Conforme", observation = "ok" })).StatusCode);
         var claire = await _api.ClientConnecte("claire");
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await claire.PostAsJsonAsync($"/api/meps/{id}/resolutions/{rid}/corrections/1",
+        Assert.Equal(HttpStatusCode.Forbidden, (await claire.PostAsJsonAsync($"/api/meps/{id}/resolutions/{rid}/corrections/1",
             new { resultat = "Conforme", observation = "ok" })).StatusCode);
 
         mep = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/resolutions/{rid}/corrections/1", new { resultat = "Conforme", observation = "Réponse fictive lue" }));
@@ -210,7 +206,7 @@ public class ApiJalon2Tests : IDisposable
         Assert.Equal("Si retour arrière", Dispo(mep, "R0001"));
 
         // Claire n'est ni pilote ni suppléante ; le motif est obligatoire.
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await claire.PostAsJsonAsync($"/api/meps/{id}/retour-arriere", new { motif = "Test" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await claire.PostAsJsonAsync($"/api/meps/{id}/retour-arriere", new { motif = "Test" })).StatusCode);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync($"/api/meps/{id}/retour-arriere", new { motif = " " })).StatusCode);
         // La clôture est impossible tant que rien n'est terminé.
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { })).StatusCode);
@@ -235,7 +231,7 @@ public class ApiJalon2Tests : IDisposable
         mep = await Reussir(bob, id, mep, "R0001", "version fictive 1.0 rétablie");
         mep = await Reussir(alice, id, mep, "R0002", "Base restaurée");
         mep = await Reussir(claire, id, mep, "R0003", "Service 1.0 OK");
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await claire.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await claire.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { })).StatusCode);
 
         // Bilan activé : obligatoire, aussi pour une MEP repliée.
         var sansBilan = await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { });
@@ -361,7 +357,7 @@ public class ApiJalon2Tests : IDisposable
 
         // Dépendance vers l'autre plan : 422.
         var croise = await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { plan = "RetourArriere", dependances = new[] { EtapeId(mep, "E0001") } });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, croise.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, croise.StatusCode);
         Assert.Contains("autre plan", await Message(croise));
         // Idem dans l'autre sens, sur une étape existante.
         var e2 = Etape(mep, "E0002");
@@ -370,7 +366,7 @@ public class ApiJalon2Tests : IDisposable
             revision = Revision(mep, "E0002"), action = "x", systemeIds = e2.GetProperty("systemeIds"), responsableId = e2.GetProperty("responsableId"),
             criticite = "Moderee", instructions = "i", resultatAttendu = "r", dependances = new[] { EtapeId(mep, "R0001") },
         });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, inverse.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, inverse.StatusCode);
 
         mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { plan = "RetourArriere", action = "Nouveau repli", apres = EtapeId(mep, "R0003") }));
         Assert.Equal("RetourArriere", Etape(mep, "R0004").GetProperty("plan").GetString());
@@ -378,7 +374,7 @@ public class ApiJalon2Tests : IDisposable
         Assert.Equal(0, Etape(mep, "R0004").GetProperty("ordre").GetInt32());
         Assert.Equal(EtapeId(mep, "R0003"), Etape(mep, "R0004").GetProperty("dependances").EnumerateArray().Single().GetGuid());
         // Une place dans l'autre plan : 422.
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { apres = EtapeId(mep, "R0001") })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { apres = EtapeId(mep, "R0001") })).StatusCode);
         // Sans place : étape isolée, en haut.
         mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/etapes", new { }));
         Assert.Equal(0, Etape(mep, "E0010").GetProperty("ligne").GetInt32());
@@ -456,7 +452,7 @@ public class ApiJalon2Tests : IDisposable
             titre = "", symptomes = "", corrections = new[] { new { ordre = 1, instruction = "x", resultatAttendu = "" } },
             verificationInstruction = "", verificationAttendu = "",
         });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalide.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, invalide.StatusCode);
         var erreurs = (await Lire(invalide)).GetProperty("erreurs").EnumerateArray().Select(e => e.GetString()!).ToList();
         Assert.Contains("Donner un titre à la résolution.", erreurs);
         Assert.Contains("Correction 1 : préciser l'instruction et le résultat attendu.", erreurs);
@@ -490,7 +486,7 @@ public class ApiJalon2Tests : IDisposable
         var perimee = await bob.PutAsJsonAsync($"/api/resolutions/{rid}", Saisie("Autre", 1, api));
         Assert.Equal(HttpStatusCode.Conflict, perimee.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await bob.PutAsJsonAsync($"/api/resolutions/{rid}", Saisie("Autre", null, api))).StatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await bob.PutAsJsonAsync($"/api/resolutions/{rid}", Saisie("", 2, api))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await bob.PutAsJsonAsync($"/api/resolutions/{rid}", Saisie("", 2, api))).StatusCode);
 
         Assert.Equal([api], modifiee.GetProperty("systemeCatalogueIds").EnumerateArray().Select(x => x.GetGuid()).ToArray()); // doublons ignorés
 

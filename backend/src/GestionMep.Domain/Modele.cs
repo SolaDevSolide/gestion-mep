@@ -337,6 +337,12 @@ public class Participant
     public string Role { get; set; } = "";
     public string Contact { get; set; } = "";
     public Guid? UtilisateurId { get; set; }
+    /// <summary>
+    /// Ajouté d'office : administrateur devenu personne de la MEP en démarrant une étape ou en prenant la main. Il n'est
+    /// qu'exécutant : jamais suppléant implicite d'une MEP simplifiée (voir <see cref="Regles.Suppleants"/>), sauf s'il est
+    /// ensuite désigné pilote.
+    /// </summary>
+    public bool AjouteDOffice { get; set; }
 }
 
 /// <summary>Responsable technique d'une MEP (participant) : ce qu'il a développé et comment le joindre le jour J.</summary>

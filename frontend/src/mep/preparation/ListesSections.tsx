@@ -6,7 +6,7 @@ import { AuthContext } from '../../auth';
 import { useMep } from '../../mepContext';
 import { filtrerParEquipe } from '../../personnes';
 import { ENVIRONNEMENTS, memeEnvironnement, nomDeProduction } from '../../environnements';
-import type { Equipe, Participant, Systeme, SystemeCatalogue, Utilisateur } from '../../types';
+import type { Equipe, Participant, Systeme, SystemeCatalogue, CompteAnnuaire } from '../../types';
 import { cn } from '../../ui/cn';
 import { Avatar } from '../../ui/Avatar';
 import { Badge } from '../../ui/StatusPill';
@@ -70,7 +70,7 @@ export function PersonnesSection() {
   const edition = mep.droits.peutEditerContenu;
   /** Après le Go, le pilote, un suppléant ou un administrateur ajoute encore une personne (astreinte, renfort). */
   const ajoutApresGo = !edition && mep.droits.peutAjouterPersonne;
-  const [utilisateurs, setUtilisateurs] = useState<Utilisateur[]>([]);
+  const [utilisateurs, setUtilisateurs] = useState<CompteAnnuaire[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [forme, setForme] = useState<{ existant?: Participant } | null>(null);
   const [suppr, setSuppr] = useState<Participant | null>(null);

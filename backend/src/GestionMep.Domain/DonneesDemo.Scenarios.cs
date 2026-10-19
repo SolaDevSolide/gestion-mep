@@ -279,20 +279,12 @@ public static partial class DonneesDemo
     // ---------- Construction commune ----------
 
     // Créneau annoncé aux utilisateurs (section Communication) : jour et heure à Paris, fuseau des MEP de démonstration.
-    private static readonly TimeZoneInfo Paris = TrouverParis();
-
-    private static TimeZoneInfo TrouverParis()
-    {
-        try { return TimeZoneInfo.FindSystemTimeZoneById("Europe/Paris"); }
-        catch (TimeZoneNotFoundException) { return TimeZoneInfo.Utc; }
-    }
-
-    private static DateOnly Jour(DateTimeOffset t) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(t, Paris).DateTime);
+    private static DateOnly Jour(DateTimeOffset t) => Fuseaux.Jour(t, Fuseaux.ParDefaut);
 
     /// <summary>Heure à la demi-heure inférieure, comme on l'annonce.</summary>
     private static TimeOnly Heure(DateTimeOffset t)
     {
-        var h = TimeOnly.FromDateTime(TimeZoneInfo.ConvertTime(t, Paris).DateTime);
+        var h = TimeOnly.FromDateTime(Fuseaux.Local(t, Fuseaux.ParDefaut));
         return new TimeOnly(h.Hour, h.Minute < 30 ? 0 : 30);
     }
 

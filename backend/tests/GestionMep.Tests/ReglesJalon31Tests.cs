@@ -49,11 +49,11 @@ public class ReglesJalon31Tests
     {
         var m = Demo();
         var bob = P(m, "Bob").Id;
-        var doublon = Assert.Throws<RegleMetierException>(() => Regles.DefinirResponsablesTechniques(m,
+        var doublon = Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirResponsablesTechniques(m,
             [new() { ParticipantId = bob }, new() { ParticipantId = bob }]));
         Assert.Contains("Bob", doublon.Message);
-        Assert.Throws<RegleMetierException>(() => Regles.DefinirResponsablesTechniques(m, [new() { ParticipantId = Guid.NewGuid() }]));
-        Assert.Throws<RegleMetierException>(() => Regles.DefinirResponsablesTechniques(m, [new() { ParticipantId = bob, SystemeIds = [Guid.NewGuid()] }]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirResponsablesTechniques(m, [new() { ParticipantId = Guid.NewGuid() }]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirResponsablesTechniques(m, [new() { ParticipantId = bob, SystemeIds = [Guid.NewGuid()] }]));
         Assert.Equal(2, m.ResponsablesTechniques.Count); // rien n'a changé
 
         Regles.DefinirResponsablesTechniques(m, [new() { ParticipantId = bob, Perimetre = "  API  ", ContactJourJ = " 06 00 " }]);
@@ -66,7 +66,7 @@ public class ReglesJalon31Tests
     {
         var m = Demo();
         m.Phase = Phase.Execution;
-        Assert.Throws<RegleMetierException>(() => Regles.DefinirResponsablesTechniques(m, []));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirResponsablesTechniques(m, []));
     }
 
     // ---------- Avertissements ----------
@@ -135,7 +135,7 @@ public class ReglesJalon31Tests
         Regles.Demarrer(m, E(m, "E0007"), Bob, Maintenant);
         Regles.Terminer(m, E(m, "E0007"), EtatEtape.Reussie, "OK", true, Bob, Maintenant);
 
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.RevenirEnPreparation(m, Alice, "Étape mal écrite"));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.RevenirEnPreparation(m, Alice, "Étape mal écrite"));
         Assert.Contains("E0007", ex.Message);
         Assert.Contains("point de non-retour", ex.Message);
         Assert.Equal(Phase.Execution, m.Phase);
@@ -152,7 +152,7 @@ public class ReglesJalon31Tests
         E(m, "E0006").ExecutantId = P(m, "Claire").Id;
         foreach (var motif in new[] { "", "   " })
         {
-            var ex = Assert.Throws<RegleMetierException>(() => Regles.PrendreLaMain(m, E(m, "E0006"), alice, motif));
+            var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.PrendreLaMain(m, E(m, "E0006"), alice, motif));
             Assert.Contains("pourquoi", ex.Message);
         }
         Assert.Equal(P(m, "Claire").Id, E(m, "E0006").ExecutantId);

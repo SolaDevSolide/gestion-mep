@@ -176,7 +176,7 @@ public class TextesCommunicationTests
 
         var maison = new ModeleTexte { EquipeId = equipe, Nom = "Maison", Corps = "x" };
         Assert.False(ModelesTexteFournis.EstModifie(maison));
-        Assert.Throws<RegleMetierException>(() => ModelesTexteFournis.Retablir(maison));
+        Assert.ThrowsAny<RegleMetierException>(() => ModelesTexteFournis.Retablir(maison));
     }
 
     [Fact]

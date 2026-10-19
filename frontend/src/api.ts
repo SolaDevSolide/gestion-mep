@@ -57,6 +57,7 @@ import type {
   SystemeSaisie,
   TypePlan,
   Utilisateur,
+  CompteAnnuaire,
   Equipe,
   EquipeSaisie,
   EquipeCommunicationSaisie,
@@ -165,7 +166,8 @@ async function envoyer<T>(method: string, path: string, body?: unknown): Promise
     let erreurs: string[] = [];
     try {
       const data = await res.json();
-      message = typeof data?.message === 'string' ? data.message : '';
+      // Corps « problem details » (RFC 9457) : `message` (repris de `detail`), et `erreurs` quand il y a plusieurs motifs.
+      message = typeof data?.message === 'string' ? data.message : typeof data?.detail === 'string' ? data.detail : '';
       if (Array.isArray(data?.erreurs))
         erreurs = data.erreurs.filter((e: unknown): e is string => typeof e === 'string');
     } catch {
@@ -250,7 +252,7 @@ export const api = {
   ssoEtat: () => get<SsoProfil>('/auth/sso/etat'),
   ssoLier: () => post<SsoLiaison>('/auth/sso/lier'),
   ssoDelierMoi: () => del<void>('/auth/sso/lien'),
-  utilisateurs: () => get<Utilisateur[]>('/utilisateurs'),
+  utilisateurs: () => get<CompteAnnuaire[]>('/utilisateurs'),
   modifierMonProfil: (s: ProfilSaisie) => put<Utilisateur>('/utilisateurs/moi/profil', s),
   changerMotDePasse: (s: ChangementMotDePasseSaisie) => post<Utilisateur>('/auth/mot-de-passe', s),
 

@@ -180,7 +180,7 @@ api.MapReglages();
 api.MapCharte();
 api.MapPiecesJointes();
 // Une route /api inconnue ne doit jamais retomber sur index.html.
-api.Map("{**reste}", () => Results.Json(new { message = "Route introuvable." }, statusCode: 404));
+api.Map("{**reste}", () => ReponsesErreur.Resultat(404, "Route introuvable."));
 
 app.MapFeuilleCharte();
 app.MapFallbackToFile("index.html", fichiersStatiques);

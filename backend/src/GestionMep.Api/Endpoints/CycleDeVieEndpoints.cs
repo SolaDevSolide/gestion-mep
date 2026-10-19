@@ -146,6 +146,6 @@ public static class CycleDeVieEndpoints
             // Les onglets ouverts sur la MEP rechargent, la trouvent supprimée et reviennent à la liste ; le suivi se met à jour.
             diffuseur.Notifier(id, version + 1);
             return Results.NoContent();
-        }).RequireAuthorization(AuthentificationLocale.PolitiqueAdmin);
+        }).ExigerAdmin();
     }
 }

@@ -36,10 +36,10 @@ public static partial class Regles
     public static string NomEquipe(string? nom, IEnumerable<Equipe> autres)
     {
         var n = (nom ?? "").Trim();
-        if (n.Length == 0) throw new RegleMetierException("Le nom de l'équipe est obligatoire.");
-        if (n.Length > LongueurMaxNomEquipe) throw new RegleMetierException($"Le nom de l'équipe ne doit pas dépasser {LongueurMaxNomEquipe} caractères.");
+        if (n.Length == 0) throw new SaisieInvalideException("Le nom de l'équipe est obligatoire.");
+        if (n.Length > LongueurMaxNomEquipe) throw new SaisieInvalideException($"Le nom de l'équipe ne doit pas dépasser {LongueurMaxNomEquipe} caractères.");
         if (autres.Any(e => string.Equals(e.Nom, n, StringComparison.OrdinalIgnoreCase)))
-            throw new RegleMetierException($"L'équipe « {n} » existe déjà.");
+            throw new SaisieInvalideException($"L'équipe « {n} » existe déjà.");
         return n;
     }
 

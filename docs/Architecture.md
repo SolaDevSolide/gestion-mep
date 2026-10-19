@@ -33,7 +33,8 @@ Aucune dépendance vers ASP.NET ni EF Core.
 
 - `Modele.cs` : entités (`Mep`, `Etape`, `Participant`, `Systeme`, `ResolutionType`, `FicheRecette`, `Approbation`…) et énumérations.
 - `Regles.cs` et `Regles.*.cs` : toutes les règles, en fonctions statiques pures d'une même classe partielle, un fichier par domaine (`Regles.Graphe.cs`, `Regles.StructurePlan.cs`, `Regles.Sections.cs` et `Regles.OptimisationLiens.cs` (réduction transitive : liens inutiles, ordre d'exécution vérifié inchangé) pour le graphe libre et les sections, `Regles.Disponibilite.cs`, `Regles.Droits.cs`, `Regles.Phases.cs`, `Regles.CycleDeVie.cs` (annulation, report, retour en exécution, étapes correctives, changement de pilote, suppression), `Regles.Recette.cs`, `Regles.Resolutions.cs`, `Regles.Bibliotheques.cs`, `Regles.TypeMep.cs`, `Regles.Suivi.cs` (plan suivi, plus long chemin, fin estimée et retard, avancement)…). Elles couvrent la disponibilité d'une étape, la validité du graphe, la vérification du plan, les transitions de phase, les approbations, le go / no-go, le point de non-retour, la recette, le retour arrière, les résolutions types, les étapes modèles et les compteurs d'utilisations des bibliothèques, la duplication et le type de MEP (complète ou simplifiée : suppléants implicites, résolutions proposées le jour J, changements de type).
-- Un refus lève `RegleMetierException` avec un message en français destiné à l'utilisateur. L'API le traduit en **422**.
+- Un refus lève `RegleMetierException` avec un message en français destiné à l'utilisateur. L'API le traduit en **422**, sauf ses deux sous-classes : `DroitInsuffisantException` (la personne n'a pas le droit : **403**) et `SaisieInvalideException` (valeur vide, inconnue, en double : **400**).
+- `Fuseaux.cs` : fuseaux horaires des MEP (identifiants IANA, identifiants Windows convertis), contrôle de la saisie et toutes les conversions entre instants et heures locales, changements d'heure compris.
 - L'heure courante est toujours passée en paramètre (`maintenant`) : les règles se testent sans horloge.
 - `AnnuairePersonnes.cs` : comptes vus comme des personnes. Des comptes reliés (`Utilisateur.ComptePrincipalId`, un seul niveau) forment une personne, nommée d'après son compte principal, dont les équipes sont celles de tous ses comptes. Rien n'est fusionné : chaque compte garde ses données, ses droits et son historique. Les règles de liaison et de nom d'équipe sont dans `Regles.Comptes.cs`.
 - `TextesCommunication.cs` : modèles de texte. `VariablesTexte` (catalogue des variables `{{cle}}` et leurs valeurs pour une MEP, dates et heures dans le fuseau de la MEP) et `ModelesTexteFournis` (les quatre modèles copiés dans chaque équipe, rétablissement). Le remplissage et la mise en forme (gras, puces, HTML copié) se font dans le navigateur (`frontend/src/textes`). Voir [Modèles de texte](Modèles-de-texte.md).
@@ -101,16 +102,7 @@ Brique commune, sans règle métier, pour écrire et relire des classeurs `.xlsx
 
 ### Codes d'erreur
 
-| Code | Sens |
-|---|---|
-| 400 | Saisie invalide (champ manquant, JSON mal formé). |
-| 401 | Pas de session. |
-| 403 | Droit insuffisant. |
-| 404 | Ressource introuvable. |
-| 409 | Conflit de version : la ressource a changé depuis sa lecture. |
-| 413 | Fichier ou requête trop volumineux. |
-| 429 | Trop de tentatives de connexion. |
-| 422 | Refus par une règle métier. |
+Les règles de choix des codes (400 saisie, 403 droits, 422 règle métier…) et le format des erreurs (*problem details*, `application/problem+json`) sont décrits dans [API](API.md#codes-de-réponse). Côté serveur : `ErreurHttp` (erreurs propres à l'API : `Saisie`, `Interdit`, `NonTrouve`, `Regle`…), les exceptions du domaine ci-dessus, et `ReponsesErreur`, qui écrit le corps de toutes les erreurs (intergiciel, refus d'authentification, limiteur de débit, protection CSRF, route inconnue). Une route réservée aux administrateurs se déclare par `.ExigerAdmin()`, jamais par un test dans son code.
 
 ### Base de données
 

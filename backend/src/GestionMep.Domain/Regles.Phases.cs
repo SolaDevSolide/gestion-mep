@@ -10,7 +10,7 @@ public static partial class Regles
     public static void PasserEnExecution(Mep mep, Guid utilisateurId, IReadOnlyCollection<Guid> criteresCoches,
         IReadOnlyCollection<CritereGoNoGo> criteres, int approbationsMinimum, DateTimeOffset maintenant)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut passer le plan en exécution.");
+        if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut passer le plan en exécution.");
         if (mep.EstModele) throw new RegleMetierException("Un modèle ne passe pas en exécution : le dupliquer pour créer une MEP.");
         if (mep.Phase != Phase.Preparation) throw new RegleMetierException("Le plan n'est pas en préparation.");
         var erreurs = ErreursPlan(mep, maintenant, approbationsMinimum);
@@ -30,7 +30,7 @@ public static partial class Regles
     /// <summary>Décision No-go : la MEP reste en préparation ; seul le motif est tracé (journal).</summary>
     public static void NoGo(Mep mep, Guid utilisateurId, string motif)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut décider d'un no-go.");
+        if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut décider d'un no-go.");
         if (mep.Phase != Phase.Preparation) throw new RegleMetierException("Le no-go se décide en préparation.");
         if (string.IsNullOrWhiteSpace(motif)) throw new RegleMetierException("Indiquer le motif du no-go.");
     }
@@ -41,7 +41,7 @@ public static partial class Regles
     /// </summary>
     public static void RevenirEnPreparation(Mep mep, Guid utilisateurId, string motif)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut revenir en préparation.");
+        if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut revenir en préparation.");
         if (mep.Phase != Phase.Execution) throw new RegleMetierException("Retour en préparation possible seulement depuis l'exécution.");
         if (string.IsNullOrWhiteSpace(motif)) throw new RegleMetierException("Indiquer le motif du retour en préparation.");
         if (EtapeNonRetourFranchie(mep) is { } franchie)
@@ -61,7 +61,7 @@ public static partial class Regles
     public static void DeclencherRetourArriere(Mep mep, Guid? utilisateurId, string motif, DateTimeOffset maintenant)
     {
         if (utilisateurId is { } u && !EstPilote(mep, u))
-            throw new RegleMetierException("Seul le pilote ou un suppléant peut déclencher le retour arrière.");
+            throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut déclencher le retour arrière.");
         if (mep.Phase is not (Phase.Execution or Phase.Recette))
             throw new RegleMetierException("Le retour arrière se déclenche pendant l'exécution ou la recette.");
         if (!mep.RetourArriereActive)
@@ -89,7 +89,7 @@ public static partial class Regles
     /// <summary>Fin du déploiement : le pilote passe la MEP en recette quand tout le déploiement est réussi.</summary>
     public static void PasserEnRecette(Mep mep, Guid utilisateurId, DateTimeOffset maintenant)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut passer la MEP en recette.");
+        if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut passer la MEP en recette.");
         if (mep.Phase != Phase.Execution) throw new RegleMetierException("Le passage en recette se fait depuis l'exécution.");
         var restant = mep.EtapesDu(TypePlan.Deploiement).FirstOrDefault(e => e.Etat != EtatEtape.Reussie);
         if (restant is not null) throw new RegleMetierException($"{restant.Code} n'est pas réussie : recette impossible.");
@@ -108,7 +108,7 @@ public static partial class Regles
     public static void Cloturer(Mep mep, Guid utilisateurId, DateTimeOffset maintenant, Bilan? bilan = null, bool echec = false,
         string? etatService = null, string? referenceIncident = null)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut clôturer la MEP.");
+        if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut clôturer la MEP.");
         IssueMep issue;
         if (echec)
         {

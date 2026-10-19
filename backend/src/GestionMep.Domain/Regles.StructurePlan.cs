@@ -82,7 +82,7 @@ public static partial class Regles
     }
 
     private static Noeud ExigerNoeud(Mep mep, TypePlan plan, Guid id) =>
-        TrouverNoeud(mep, plan, id) ?? throw new RegleMetierException("Étape ou cercle introuvable dans ce plan.");
+        TrouverNoeud(mep, plan, id) ?? throw new SaisieInvalideException("Étape ou cercle introuvable dans ce plan.");
 
     private static Noeud NoeudDe(Etape e) => new(e.Id, e, null, null);
 
@@ -154,7 +154,7 @@ public static partial class Regles
     {
         if (de.Etape is { } a && vers.Etape is { } b && !Directes(b).Contains(a.Id) && b.Dependances.Contains(a.Id))
             throw new RegleMetierException($"{b.Code} attend {a.Code} par un cercle de section : délier le cercle.");
-        if (!ExisteLien(de, vers)) throw new RegleMetierException($"Lien introuvable : {vers} n'attend pas {de}.");
+        if (!ExisteLien(de, vers)) throw new SaisieInvalideException($"Lien introuvable : {vers} n'attend pas {de}.");
         switch (de, vers)
         {
             case ({ Etape: { } x }, { Etape: { } y }):
@@ -374,10 +374,10 @@ public static partial class Regles
     private static PlaceResolue Resoudre(Mep mep, TypePlan plan, PlaceEtape place)
     {
         var options = (place.Apres is null ? 0 : 1) + (place.EntreDe is null && place.EntreVers is null ? 0 : 1) + (place.ParalleleA is null ? 0 : 1);
-        if (options > 1) throw new RegleMetierException("Choisir une seule place : après une carte, sur un lien, ou en parallèle d'une carte.");
-        if ((place.EntreDe is null) != (place.EntreVers is null)) throw new RegleMetierException("Un lien se désigne par ses deux extrémités.");
+        if (options > 1) throw new SaisieInvalideException("Choisir une seule place : après une carte, sur un lien, ou en parallèle d'une carte.");
+        if ((place.EntreDe is null) != (place.EntreVers is null)) throw new SaisieInvalideException("Un lien se désigne par ses deux extrémités.");
         var parallele = place.ParalleleA is { } p
-            ? ExigerNoeud(mep, plan, p).Etape ?? throw new RegleMetierException("En parallèle : choisir une étape, pas un cercle.")
+            ? ExigerNoeud(mep, plan, p).Etape ?? throw new SaisieInvalideException("En parallèle : choisir une étape, pas un cercle.")
             : null;
         return new(place.Apres is { } a ? ExigerNoeud(mep, plan, a) : null,
             place.EntreDe is { } d ? ExigerNoeud(mep, plan, d) : null,
@@ -422,7 +422,7 @@ public static partial class Regles
         else if (place.De is { } de)
         {
             var vers = place.Vers!;
-            if (!ExisteLien(de, vers)) throw new RegleMetierException($"Lien introuvable : {vers} n'attend pas {de}.");
+            if (!ExisteLien(de, vers)) throw new SaisieInvalideException($"Lien introuvable : {vers} n'attend pas {de}.");
             Delier(de, vers);
             Lier(de, moi);
             Lier(moi, vers);
@@ -451,7 +451,7 @@ public static partial class Regles
     }
 
     private static Section ExigerSection(Mep mep, TypePlan plan, Guid id) =>
-        mep.Sections.FirstOrDefault(s => s.Id == id && s.Plan == plan) ?? throw new RegleMetierException("Section introuvable dans ce plan.");
+        mep.Sections.FirstOrDefault(s => s.Id == id && s.Plan == plan) ?? throw new SaisieInvalideException("Section introuvable dans ce plan.");
 
     /// <summary>
     /// Ajoute une nouvelle étape (pas encore dans <see cref="Mep.Etapes"/>) à sa place dans le graphe. Section : celle donnée,
@@ -481,14 +481,14 @@ public static partial class Regles
         Operer(mep, etape.Plan, () =>
         {
             var resolue = Resoudre(mep, etape.Plan, place);
-            if (place.Vide && sectionId is null && !sortirDeSection) throw new RegleMetierException("Indiquer où déplacer l'étape.");
-            if (sectionId is not null && sortirDeSection) throw new RegleMetierException("Choisir : entrer dans une section ou en sortir.");
+            if (place.Vide && sectionId is null && !sortirDeSection) throw new SaisieInvalideException("Indiquer où déplacer l'étape.");
+            if (sectionId is not null && sortirDeSection) throw new SaisieInvalideException("Choisir : entrer dans une section ou en sortir.");
             if (resolue.Apres?.Id == etape.Id || resolue.Parallele == etape)
-                throw new RegleMetierException("Choisir une autre carte que celle qu'on déplace.");
+                throw new SaisieInvalideException("Choisir une autre carte que celle qu'on déplace.");
             if (resolue.De is { } de && resolue.Vers is { } vers)
             {
                 if (de.Id == etape.Id || vers.Id == etape.Id) return; // lâchée sur son propre lien
-                if (!ExisteLien(de, vers)) throw new RegleMetierException($"Lien introuvable : {vers} n'attend pas {de}.");
+                if (!ExisteLien(de, vers)) throw new SaisieInvalideException($"Lien introuvable : {vers} n'attend pas {de}.");
             }
             var section = sortirDeSection ? null
                 : sectionId is { } sid ? ExigerSection(mep, etape.Plan, sid).Id
@@ -523,7 +523,7 @@ public static partial class Regles
         Operer(mep, etape.Plan, () =>
         {
             var autrePlan = mep.Etapes.FirstOrDefault(e => nouvelles.Contains(e.Id) && e.Plan != etape.Plan);
-            if (autrePlan is not null) throw new RegleMetierException($"{autrePlan.Code} appartient à un autre plan.");
+            if (autrePlan is not null) throw new SaisieInvalideException($"{autrePlan.Code} appartient à un autre plan.");
             etape.Dependances = [.. nouvelles.Where(d => !etape.DependancesDerivees.Contains(d)), .. etape.DependancesDerivees];
         }, sauf: etape);
     }

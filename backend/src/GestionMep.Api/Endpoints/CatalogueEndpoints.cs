@@ -25,11 +25,6 @@ public static class CatalogueEndpoints
     private static async Task<SystemeCatalogue> Trouver(MepDbContext db, Guid id) =>
         await db.SystemesCatalogue.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Système du catalogue introuvable.");
 
-    private static void ExigerAdmin(ClaimsPrincipal user)
-    {
-        if (!Acteur.Depuis(user).EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
-    }
-
     private static async Task<string> NomUnique(MepDbContext db, string? nom, Guid? sauf)
     {
         var n = ServiceMep.Texte(nom);
@@ -183,27 +178,24 @@ public static class CatalogueEndpoints
         api.MapGet("/catalogue/systemes/activite", async (MepDbContext db) => (await HistoriqueSystemes.Activite(db)).AsEnumerable());
 
         api.MapGet("/catalogue/systemes/{id:guid}/historique", async (Guid id, MepDbContext db, TimeProvider temps) =>
-            await HistoriqueSystemes.Historique(db, id, DateOnly.FromDateTime(ExcelCommun.Locale(temps.GetUtcNow(), null))));
+            await HistoriqueSystemes.Historique(db, id, Fuseaux.Jour(temps.GetUtcNow(), null)));
 
         api.MapPost("/catalogue/systemes", async (SystemeCatalogueSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             var s = await Creer(db, Acteur.Depuis(user), c);
             return Results.Created($"/api/catalogue/systemes/{s.Id}", s);
-        });
+        }).ExigerAdmin();
 
         api.MapPut("/catalogue/systemes/{id:guid}", async (Guid id, SystemeCatalogueSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             return Results.Ok(await Modifier(db, Acteur.Depuis(user), id, c));
-        });
+        }).ExigerAdmin();
 
         api.MapDelete("/catalogue/systemes/{id:guid}", async (Guid id, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             await Supprimer(db, Acteur.Depuis(user), id);
             return Results.NoContent();
-        });
+        }).ExigerAdmin();
 
         // ---------- Fiche d'un système : environnements, catégories, objets ----------
         api.MapGet("/catalogue/systemes/{id:guid}/objets", async (Guid id, MepDbContext db) =>
@@ -214,44 +206,38 @@ public static class CatalogueEndpoints
 
         api.MapPut("/catalogue/systemes/{id:guid}/environnements", async (Guid id, EnvironnementsCatalogueSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             return Results.Ok(await DefinirEnvironnements(db, Acteur.Depuis(user), id, c));
-        });
+        }).ExigerAdmin();
 
         api.MapPut("/catalogue/systemes/{id:guid}/categories", async (Guid id, CategoriesSystemeSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             return Results.Ok(await DefinirCategories(db, Acteur.Depuis(user), id, c));
-        });
+        }).ExigerAdmin();
 
         api.MapPost("/catalogue/systemes/{id:guid}/objets", async (Guid id, ObjetCatalogueSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             var o = await EnregistrerObjet(db, Acteur.Depuis(user), id, null, c);
             return Results.Created($"/api/catalogue/systemes/{id}/objets/{o.Id}", o);
-        });
+        }).ExigerAdmin();
 
         api.MapPut("/catalogue/systemes/{id:guid}/objets/{oid:guid}", async (Guid id, Guid oid, ObjetCatalogueSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             return Results.Ok(await EnregistrerObjet(db, Acteur.Depuis(user), id, oid, c));
-        });
+        }).ExigerAdmin();
 
         api.MapDelete("/catalogue/systemes/{id:guid}/objets/{oid:guid}", async (Guid id, Guid oid, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             await SupprimerObjet(db, Acteur.Depuis(user), id, oid);
             return Results.NoContent();
-        });
+        }).ExigerAdmin();
 
         // ---------- Catégories d'objets par défaut ----------
         api.MapGet("/catalogue/categories", async (MepDbContext db) => (await CategoriesDefaut(db)).AsEnumerable());
 
         api.MapPut("/catalogue/categories", async (CategoriesDefautSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             return Results.Ok((await DefinirCategoriesDefaut(db, Acteur.Depuis(user), c)).AsEnumerable());
-        });
+        }).ExigerAdmin();
 
         api.MapPost("/meps/{id:guid}/systemes/depuis-catalogue", async (Guid id, DepuisCatalogueSaisie c, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) => Results.Ok(await svc.Modifier(id, async mep =>
         {

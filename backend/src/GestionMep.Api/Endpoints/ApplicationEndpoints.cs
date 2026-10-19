@@ -67,7 +67,7 @@ public static class ApplicationEndpoints
                 Installation.Mode);
         });
 
-        var admin = api.MapGroup("/admin/mises-a-jour").RequireAuthorization(AuthentificationLocale.PolitiqueAdmin);
+        var admin = api.MapGroup("/admin/mises-a-jour").ExigerAdmin();
 
         admin.MapPost("/verifier", async (VerificationMisesAJour verification, InstallationMiseAJour installation, CancellationToken ct) =>
             Dto(await verification.Verifier(ct), installation.Lire()));

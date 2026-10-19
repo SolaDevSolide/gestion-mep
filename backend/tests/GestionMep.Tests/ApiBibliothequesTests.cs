@@ -51,7 +51,7 @@ public class ApiBibliothequesTests : IDisposable
 
         // Bob (non administrateur) crée : sans système, refusé avec la liste des anomalies ; système inconnu : 400.
         var sansSysteme = await bob.PostAsJsonAsync("/api/etapes-modeles", Saisie(null, "", []));
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, sansSysteme.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, sansSysteme.StatusCode);
         Assert.Equal(2, (await Corps(sansSysteme)).GetProperty("erreurs").GetArrayLength());
         Assert.Equal(HttpStatusCode.BadRequest, (await bob.PostAsJsonAsync("/api/etapes-modeles", Saisie(null, "x", [Guid.NewGuid()]))).StatusCode);
         var cree = await bob.PostAsJsonAsync("/api/etapes-modeles", Saisie(null, " Vacuum de la base ", [cat("BDD"), cat("BDD")]));

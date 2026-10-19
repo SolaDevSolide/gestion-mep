@@ -281,7 +281,7 @@ public class HorsDemonstrationTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsync("/api/demo/reinitialiser", null)).StatusCode);
         // Même réponse qu'une route inconnue, même après de nombreux essais (aucune limite de débit propre à la démo).
         for (var i = 0; i < 30; i++) Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsJsonAsync("/api/demo/connexion", new { login = "alice" })).StatusCode);
-        Assert.Equal("{\"message\":\"Route introuvable.\"}", await (await client.GetAsync("/api/demo")).Content.ReadAsStringAsync());
+        Assert.Contains("\"message\":\"Route introuvable.\"", await (await client.GetAsync("/api/demo")).Content.ReadAsStringAsync());
 
         using var scope = _api.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MepDbContext>();

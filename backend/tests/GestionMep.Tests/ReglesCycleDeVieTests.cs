@@ -67,8 +67,8 @@ public class ReglesCycleDeVieTests
         Assert.Null(m.Report);
         Assert.Equal(EtatMep.Annulee, Regles.EtatDeLaMep(m, 0));
         Assert.True(Regles.EstTerminee(m));
-        Assert.Throws<RegleMetierException>(() => Regles.ExigerPreparation(m));
-        Assert.Throws<RegleMetierException>(() => Regles.Annuler(m, Alice, false, "Encore", null, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ExigerPreparation(m));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Annuler(m, Alice, false, "Encore", null, Maintenant));
         // Elle reste duplicable : la copie repart en préparation, sans annulation.
         var copie = Regles.Dupliquer(m, commeModele: false, Alice, Maintenant);
         Assert.Equal(Phase.Preparation, copie.Phase);
@@ -79,8 +79,8 @@ public class ReglesCycleDeVieTests
     public void Annuler_exige_un_motif_et_les_droits_du_pilote_ou_d_un_administrateur()
     {
         var m = Demo();
-        Assert.Contains("motif", Assert.Throws<RegleMetierException>(() => Regles.Annuler(m, Alice, false, " ", null, Maintenant)).Message);
-        Assert.Throws<RegleMetierException>(() => Regles.Annuler(m, Claire, estAdmin: false, "Motif", null, Maintenant));
+        Assert.Contains("motif", Assert.ThrowsAny<RegleMetierException>(() => Regles.Annuler(m, Alice, false, " ", null, Maintenant)).Message);
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Annuler(m, Claire, estAdmin: false, "Motif", null, Maintenant));
         // Un administrateur qui ne pilote pas la MEP peut l'annuler.
         Regles.Annuler(m, Dave, estAdmin: true, "Doublon de la MEP 4.0", null, Maintenant);
         Assert.Equal(Dave, m.Annulation!.ParId);
@@ -91,12 +91,12 @@ public class ReglesCycleDeVieTests
     {
         var go = Maintenant.AddHours(-2);
         var m = EnExecution(go);
-        var refus = Assert.Throws<RegleMetierException>(() => Regles.Annuler(m, Alice, false, "Abandon", "Rien", Maintenant));
+        var refus = Assert.ThrowsAny<RegleMetierException>(() => Regles.Annuler(m, Alice, false, "Abandon", "Rien", Maintenant));
         Assert.Contains("Revenir d'abord en préparation", refus.Message);
 
         Regles.RevenirEnPreparation(m, Alice, "Prestataire injoignable");
         Assert.Equal(go, m.PremierGoLe);
-        Assert.Contains("état laissé en production", Assert.Throws<RegleMetierException>(() => Regles.Annuler(m, Alice, false, "Abandon", " ", Maintenant)).Message);
+        Assert.Contains("état laissé en production", Assert.ThrowsAny<RegleMetierException>(() => Regles.Annuler(m, Alice, false, "Abandon", " ", Maintenant)).Message);
         Regles.Annuler(m, Alice, false, "Abandon", "Sauvegardes faites, rien de déployé.", Maintenant);
         Assert.Equal("Sauvegardes faites, rien de déployé.", m.Annulation!.EtatProduction);
         Assert.Equal("MEP annulée : Abandon. État laissé en production : Sauvegardes faites, rien de déployé.", Regles.DetailAnnulation(m.Annulation));
@@ -106,10 +106,10 @@ public class ReglesCycleDeVieTests
     public void Une_mep_cloturee_ou_un_modele_ne_s_annulent_pas()
     {
         var m = Cloturee();
-        Assert.Contains("clôturée", Assert.Throws<RegleMetierException>(() => Regles.Annuler(m, Alice, true, "x", "y", Maintenant)).Message);
+        Assert.Contains("clôturée", Assert.ThrowsAny<RegleMetierException>(() => Regles.Annuler(m, Alice, true, "x", "y", Maintenant)).Message);
         var modele = Demo();
         modele.EstModele = true;
-        Assert.Throws<RegleMetierException>(() => Regles.Annuler(modele, Alice, true, "x", null, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Annuler(modele, Alice, true, "x", null, Maintenant));
     }
 
     // ---------- Reporter, reprendre ----------
@@ -137,17 +137,17 @@ public class ReglesCycleDeVieTests
     public void Reprendre_la_preparation_leve_le_report_et_les_refus_sont_explicites()
     {
         var m = Demo();
-        Assert.Throws<RegleMetierException>(() => Regles.Reporter(m, Claire, "x", null, Maintenant));
-        Assert.Throws<RegleMetierException>(() => Regles.Reporter(m, Alice, "", null, Maintenant));
-        Assert.Contains("pas reportée", Assert.Throws<RegleMetierException>(() => Regles.ReprendrePreparation(m, Alice)).Message);
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Reporter(m, Claire, "x", null, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Reporter(m, Alice, "", null, Maintenant));
+        Assert.Contains("pas reportée", Assert.ThrowsAny<RegleMetierException>(() => Regles.ReprendrePreparation(m, Alice)).Message);
         Regles.Reporter(m, Alice, "Gel", null, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.ReprendrePreparation(m, Claire));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ReprendrePreparation(m, Claire));
         Regles.ReprendrePreparation(m, Bob);
         Assert.Null(m.Report);
         Assert.Equal(EtatMep.Preparation, Regles.EtatDeLaMep(m, 0));
 
         var x = EnExecution();
-        Assert.Contains("en préparation", Assert.Throws<RegleMetierException>(() => Regles.Reporter(x, Alice, "x", null, Maintenant)).Message);
+        Assert.Contains("en préparation", Assert.ThrowsAny<RegleMetierException>(() => Regles.Reporter(x, Alice, "x", null, Maintenant)).Message);
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class ReglesCycleDeVieTests
     {
         var premier = Maintenant.AddHours(-3);
         var m = EnExecution(premier);
-        Assert.Contains("motif", Assert.Throws<RegleMetierException>(() => Regles.RevenirEnPreparation(m, Alice, "  ")).Message);
+        Assert.Contains("motif", Assert.ThrowsAny<RegleMetierException>(() => Regles.RevenirEnPreparation(m, Alice, "  ")).Message);
         Regles.RevenirEnPreparation(m, Alice, "Étape mal écrite");
         Regles.PasserEnExecution(m, Alice, Criteres.Select(c => c.Id).ToList(), Criteres, 1, Maintenant);
         Assert.Equal(premier, m.PremierGoLe);
@@ -176,8 +176,8 @@ public class ReglesCycleDeVieTests
         var conforme = m.FichesRecette.OrderBy(f => f.Ordre).Last().Etapes.First();
         conforme.Resultat = ResultatControle.Conforme;
 
-        Assert.Throws<RegleMetierException>(() => Regles.RevenirEnExecution(m, Alice, ""));
-        Assert.Throws<RegleMetierException>(() => Regles.RevenirEnExecution(m, Claire, "Correctif"));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.RevenirEnExecution(m, Alice, ""));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.RevenirEnExecution(m, Claire, "Correctif"));
         var remis = Regles.RevenirEnExecution(m, Bob, "Index manquant");
         Assert.Equal(Phase.Execution, m.Phase);
         Assert.Equal([$"{Regles.NomRecette(fiche)}, étape {test.Ordre}"], remis);
@@ -185,7 +185,7 @@ public class ReglesCycleDeVieTests
         Assert.Null(relu.Resultat);
         Assert.Null(relu.ParId);
         Assert.Equal(ResultatControle.Conforme, m.FichesRecette.OrderBy(f => f.Ordre).Last().Etapes.First().Resultat);
-        Assert.Throws<RegleMetierException>(() => Regles.RevenirEnExecution(m, Alice, "Encore"));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.RevenirEnExecution(m, Alice, "Encore"));
     }
 
     [Fact]
@@ -212,15 +212,15 @@ public class ReglesCycleDeVieTests
         Assert.All(e.Environnements, x => Assert.Equal(api, x.SystemeId));
         Assert.NotEmpty(e.Environnements);
 
-        Assert.Throws<RegleMetierException>(() => Regles.AjouterEtapeCorrective(m, Corrective(), Claire));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.AjouterEtapeCorrective(m, Corrective(), Claire));
         var incomplete = Corrective();
         incomplete.ResultatAttendu = "";
-        Assert.Contains("résultat attendu", Assert.Throws<RegleMetierException>(() => Regles.AjouterEtapeCorrective(m, incomplete, Alice)).Message);
+        Assert.Contains("résultat attendu", Assert.ThrowsAny<RegleMetierException>(() => Regles.AjouterEtapeCorrective(m, incomplete, Alice)).Message);
         var preparation = Demo();
-        Assert.Throws<RegleMetierException>(() => Regles.AjouterEtapeCorrective(preparation, Corrective(), Alice));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.AjouterEtapeCorrective(preparation, Corrective(), Alice));
         var recette = EnRecette(nonRetourFranchi: false);
         Assert.Contains("revenir d'abord en exécution",
-            Assert.Throws<RegleMetierException>(() => Regles.AjouterEtapeCorrective(recette, Corrective(), Alice)).Message);
+            Assert.ThrowsAny<RegleMetierException>(() => Regles.AjouterEtapeCorrective(recette, Corrective(), Alice)).Message);
     }
 
     // ---------- Clôturer en échec ----------
@@ -230,7 +230,7 @@ public class ReglesCycleDeVieTests
     {
         var m = EnRecette(nonRetourFranchi: false);
         Assert.Null(Regles.RetourArriereImpossible(m));
-        var refus = Assert.Throws<RegleMetierException>(() =>
+        var refus = Assert.ThrowsAny<RegleMetierException>(() =>
             Regles.Cloturer(m, Alice, Maintenant, BilanComplet(), echec: true, "Service dégradé"));
         Assert.Contains("retour arrière est encore possible", refus.Message);
         Assert.Equal(Phase.Recette, m.Phase);
@@ -242,9 +242,9 @@ public class ReglesCycleDeVieTests
         var m = EnRecette(nonRetourFranchi: true);
         m.BilanActive = false;
         Assert.StartsWith("Point de non-retour franchi (E0007", Regles.RetourArriereImpossible(m));
-        Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanComplet(), echec: true, " "));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanComplet(), echec: true, " "));
         // Bilan obligatoire même s'il est désactivé pour cette MEP.
-        Assert.Contains("Bilan obligatoire", Assert.Throws<RegleMetierException>(() =>
+        Assert.Contains("Bilan obligatoire", Assert.ThrowsAny<RegleMetierException>(() =>
             Regles.Cloturer(m, Alice, Maintenant, null, echec: true, "Service dégradé")).Message);
         Regles.Cloturer(m, Alice, Maintenant, BilanComplet(), echec: true, " Lecture seule ", " INC-42 ");
         Assert.Equal((Phase.Cloturee, IssueMep.Echec), (m.Phase, m.Issue));
@@ -260,12 +260,12 @@ public class ReglesCycleDeVieTests
         Regles.DeclencherRetourArriere(m, Alice, "Échec du déploiement", Maintenant);
         var r1 = E(m, "R0001");
         r1.Etat = EtatEtape.EnCours;
-        Assert.Contains("encore en cours", Assert.Throws<RegleMetierException>(() =>
+        Assert.Contains("encore en cours", Assert.ThrowsAny<RegleMetierException>(() =>
             Regles.Cloturer(m, Alice, Maintenant, BilanComplet(), echec: true, "Dégradé")).Message);
         r1.Etat = EtatEtape.Echec;
         // Sans échec, le service n'est pas rétabli : la clôture « repliée » est refusée.
-        Assert.Contains("clôturer en échec", Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanComplet())).Message);
-        Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Claire, Maintenant, BilanComplet(), echec: true, "Dégradé"));
+        Assert.Contains("clôturer en échec", Assert.ThrowsAny<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanComplet())).Message);
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Cloturer(m, Claire, Maintenant, BilanComplet(), echec: true, "Dégradé"));
         Regles.Cloturer(m, Bob, Maintenant, BilanComplet(), echec: true, "Dégradé");
         Assert.Equal(IssueMep.Echec, m.Issue);
         Assert.Equal("", m.ReferenceIncident);
@@ -275,7 +275,7 @@ public class ReglesCycleDeVieTests
     public void Echec_refuse_en_execution()
     {
         var m = EnExecution();
-        Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanComplet(), echec: true, "Dégradé"));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanComplet(), echec: true, "Dégradé"));
     }
 
     // ---------- Pilotage ----------
@@ -302,7 +302,7 @@ public class ReglesCycleDeVieTests
         var m = EnExecution();
         var dave = new Participant { MepId = m.Id, Nom = "Dave", Role = "Astreinte", UtilisateurId = Dave };
         m.Participants.Add(dave);
-        Assert.Throws<RegleMetierException>(() => Regles.ChangerPilote(m, Dave, estAdmin: false, dave, true, null, "Secours", Maintenant, out _));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ChangerPilote(m, Dave, estAdmin: false, dave, true, null, "Secours", Maintenant, out _));
         Regles.ChangerPilote(m, Dave, estAdmin: true, dave, ancienPiloteSuppleant: true, null, " Alice et Bob injoignables ", Maintenant, out var secours);
         Assert.True(secours);
         Assert.Equal(dave.Id, m.PiloteId);
@@ -321,20 +321,20 @@ public class ReglesCycleDeVieTests
     public void Changer_de_pilote_est_refuse_en_preparation_une_fois_terminee_sans_motif_ou_sans_compte()
     {
         var preparation = Demo();
-        Assert.Contains("section Personnes", Assert.Throws<RegleMetierException>(() =>
+        Assert.Contains("section Personnes", Assert.ThrowsAny<RegleMetierException>(() =>
             Regles.ChangerPilote(preparation, Alice, false, P(preparation, Claire), true, null, "x", Maintenant, out _)).Message);
 
         var m = EnExecution();
-        Assert.Throws<RegleMetierException>(() => Regles.ChangerPilote(m, Alice, false, P(m, Claire), true, null, " ", Maintenant, out _));
-        Assert.Contains("déjà le pilote", Assert.Throws<RegleMetierException>(() =>
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ChangerPilote(m, Alice, false, P(m, Claire), true, null, " ", Maintenant, out _));
+        Assert.Contains("déjà le pilote", Assert.ThrowsAny<RegleMetierException>(() =>
             Regles.ChangerPilote(m, Alice, false, P(m, Alice), true, null, "x", Maintenant, out _)).Message);
         var sansCompte = new Participant { MepId = m.Id, Nom = "Prestataire" };
         m.Participants.Add(sansCompte);
-        Assert.Contains("aucun compte", Assert.Throws<RegleMetierException>(() =>
+        Assert.Contains("aucun compte", Assert.ThrowsAny<RegleMetierException>(() =>
             Regles.ChangerPilote(m, Alice, false, sansCompte, true, null, "x", Maintenant, out _)).Message);
 
         var close = Cloturee();
-        Assert.Contains("terminée", Assert.Throws<RegleMetierException>(() =>
+        Assert.Contains("terminée", Assert.ThrowsAny<RegleMetierException>(() =>
             Regles.ChangerPilote(close, Dave, true, P(close, Claire), true, null, "x", Maintenant, out _)).Message);
     }
 
@@ -346,16 +346,16 @@ public class ReglesCycleDeVieTests
         var m = Demo();
         var nom = Regles.NomComplet(m);
         Assert.Equal($"{m.Outil} {m.VersionCible}", nom);
-        Assert.Throws<RegleMetierException>(() => Regles.VerifierSuppression(m, " ", nom));
-        Assert.Contains("saisir exactement", Assert.Throws<RegleMetierException>(() => Regles.VerifierSuppression(m, "Erreur", m.Outil)).Message);
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.VerifierSuppression(m, " ", nom));
+        Assert.Contains("saisir exactement", Assert.ThrowsAny<RegleMetierException>(() => Regles.VerifierSuppression(m, "Erreur", m.Outil)).Message);
         Regles.VerifierSuppression(m, "Créée par erreur", $"  {nom} ");
 
         // Un Go, même suivi d'un retour en préparation puis d'une annulation, interdit la suppression.
         var lancee = EnExecution();
         Regles.RevenirEnPreparation(lancee, Alice, "Problème");
-        Assert.Contains("déjà eu un Go", Assert.Throws<RegleMetierException>(() => Regles.VerifierSuppression(lancee, "x", nom)).Message);
+        Assert.Contains("déjà eu un Go", Assert.ThrowsAny<RegleMetierException>(() => Regles.VerifierSuppression(lancee, "x", nom)).Message);
         Regles.Annuler(lancee, Alice, false, "Abandon", "Rien de déployé", Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.VerifierSuppression(lancee, "x", nom));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.VerifierSuppression(lancee, "x", nom));
 
         // Une MEP annulée sans avoir été lancée se supprime.
         var annulee = Demo();

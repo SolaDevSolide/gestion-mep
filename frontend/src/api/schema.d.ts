@@ -278,34 +278,13 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["UtilisateurDto"][];
+                        "application/json": components["schemas"]["CompteAnnuaireDto"][];
                     };
                 };
             };
         };
         put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["UtilisateurSaisie"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -325,45 +304,6 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["ProfilSaisie"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/utilisateurs/{uid}/profil": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    uid: string;
-                };
                 cookie?: never;
             };
             requestBody: {
@@ -6352,6 +6292,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/utilisateurs/{id}/profil": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ProfilSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/utilisateurs/{id}/desactiver": {
         parameters: {
             query?: never;
@@ -7099,6 +7078,24 @@ export interface components {
             /** Format: uuid */
             preuveValidationId: null | string;
         };
+        /**
+         * @description Compte tel que le voit tout utilisateur connecté (`GET /api/utilisateurs`) : de quoi choisir une personne (participant,
+         *     approbateur, nouveau pilote, recherche). Ni le rôle administrateur ni l'état du mot de passe, réservés à la console.
+         */
+        CompteAnnuaireDto: {
+            /** Format: uuid */
+            id: string;
+            login: string;
+            nomAffiche: string;
+            role: string;
+            contact: string;
+            expertises: components["schemas"]["ExpertiseDto"][];
+            actif: boolean;
+            /** Format: uuid */
+            comptePrincipalId: null | string;
+            nomPersonne: string;
+            equipeIds: string[];
+        };
         /** @description Compte de démonstration : `Description` donne son rôle dans les MEP de démonstration. */
         CompteDemoDto: {
             login: string;
@@ -7109,7 +7106,8 @@ export interface components {
         };
         CompteEtMotDePasseDto: {
             /**
-             * @description `ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom
+             * @description Compte complet : le sien (`/api/auth/moi`, profil) ou ceux de la console d'administration (`/api/admin/utilisateurs`).
+             *     `ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom
              *     affiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre.
              */
             utilisateur: {
@@ -7357,6 +7355,20 @@ export interface components {
             nom: null | string;
             description: null | string;
             membreIds: null | string[];
+        };
+        /**
+         * @description Corps de toute réponse d'erreur de l'API, au format « problem details » (RFC 9457, type `application/problem+json`) :
+         *     `status` reprend le code HTTP, `title` sa nature (« Droits insuffisants »…), `detail` et `message` le
+         *     message à afficher, en français ; `erreurs`, absent le plus souvent, liste chaque anomalie quand il y en a plusieurs.
+         */
+        ErreurDto: {
+            type: string;
+            title: string;
+            /** Format: int32 */
+            status: number;
+            detail: string;
+            message: string;
+            erreurs?: null | string[];
         };
         /** @description Étape corrective ajoutée pendant l'exécution (fiche complète : elle ne se modifie plus ensuite). */
         EtapeCorrectiveSaisie: {
@@ -11673,7 +11685,8 @@ export interface components {
          */
         UsageModeleTexte: "Annonce" | "Rappel" | "DemandeMep" | "CompteRendu" | "Autre";
         /**
-         * @description `ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom
+         * @description Compte complet : le sien (`/api/auth/moi`, profil) ou ceux de la console d'administration (`/api/admin/utilisateurs`).
+         *     `ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom
          *     affiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre.
          */
         UtilisateurDto: {
@@ -11691,14 +11704,6 @@ export interface components {
             comptePrincipalId: null | string;
             nomPersonne: string;
             equipeIds: string[];
-        };
-        UtilisateurSaisie: {
-            login: null | string;
-            nomAffiche: null | string;
-            motDePasse: null | string;
-            estAdmin: boolean;
-            role?: null | string;
-            contact?: null | string;
         };
         /** @description Valeur d'une variable pour une MEP : `Texte` ou `Liste` ; les deux null : information manquante. */
         ValeurVariableDto: {

@@ -40,8 +40,8 @@ public class RangsGrapheTests
         Regles.Ordonner(m, TypePlan.Deploiement, [c.Id, s.Id, b.Id]);
         Assert.Equal((1, 2, 3, 4), (c.Rang, s.Rang, b.Rang, a.Rang));
         Assert.Equal(liens, m.Etapes.Select(e => e.Dependances.ToList()).ToList());
-        Assert.Throws<RegleMetierException>(() => Regles.Ordonner(m, TypePlan.Deploiement, [c.Id, c.Id]));
-        Assert.Throws<RegleMetierException>(() => Regles.Ordonner(m, TypePlan.Deploiement, [Guid.NewGuid()]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Ordonner(m, TypePlan.Deploiement, [c.Id, c.Id]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Ordonner(m, TypePlan.Deploiement, [Guid.NewGuid()]));
     }
 
     [Fact]

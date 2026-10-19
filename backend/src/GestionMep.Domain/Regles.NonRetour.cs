@@ -28,7 +28,7 @@ public static partial class Regles
     /// <summary>Accord du pilote, pendant l'exécution, pour démarrer une étape point de non-retour.</summary>
     public static void AutoriserNonRetour(Mep mep, Etape etape, Guid utilisateurId, DateTimeOffset maintenant)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut autoriser le passage du point de non-retour.");
+        if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut autoriser le passage du point de non-retour.");
         if (!etape.PointDeNonRetour) throw new RegleMetierException($"{etape.Code} n'est pas un point de non-retour.");
         if (mep.Phase != Phase.Execution) throw new RegleMetierException("Le passage du point de non-retour s'autorise pendant l'exécution.");
         if (etape.Etat != EtatEtape.AFaire || etape.DebutReel is not null) throw new RegleMetierException($"{etape.Code} est déjà démarrée.");

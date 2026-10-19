@@ -81,7 +81,7 @@ public static partial class Regles
         var etape = mep.Etapes.Single(e => e.Id == execution.EtapeId);
         if (mep.Phase != Phase.Execution) throw new RegleMetierException("Le déploiement est arrêté : appliquer le retour arrière.");
         if (!EstExecutant(mep, etape, utilisateurId) && !EstPilote(mep, utilisateurId))
-            throw new RegleMetierException(MessageAutreExecutant);
+            throw new DroitInsuffisantException(MessageAutreExecutant);
         return etape;
     }
 

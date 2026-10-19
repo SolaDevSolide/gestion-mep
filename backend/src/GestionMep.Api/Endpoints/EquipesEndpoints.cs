@@ -99,7 +99,7 @@ public static class EquipesEndpoints
     {
         api.MapGet("/equipes", async (MepDbContext db) => await Lister(db));
 
-        var admin = api.MapGroup("/admin/equipes").RequireAuthorization(AuthentificationLocale.PolitiqueAdmin);
+        var admin = api.MapGroup("/admin/equipes").ExigerAdmin();
 
         admin.MapPost("", async (EquipeSaisie c, ClaimsPrincipal user, MepDbContext db, TimeProvider horloge) =>
         {

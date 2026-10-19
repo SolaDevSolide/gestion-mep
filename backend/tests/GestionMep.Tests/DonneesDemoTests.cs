@@ -232,7 +232,7 @@ public class DonneesDemoTests
         Assert.Contains(tests, t => t.Resultat == ResultatControle.Echec);
         Assert.Contains(tests, t => t.Resultat is null);
         Assert.All(tests.Where(t => t.Resultat is not null), t => Assert.False(string.IsNullOrWhiteSpace(t.Observation)));
-        Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, new Bilan { CeQuiAMarche = "x", Incidents = "y" }));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, new Bilan { CeQuiAMarche = "x", Incidents = "y" }));
     }
 
     [Fact]

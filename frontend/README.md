@@ -32,19 +32,19 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 
 Logique pure, testée sans DOM :
 
-| Module             | Rôle                                                                                                                                                                    |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `api.ts`           | Client HTTP : une fonction par route, erreurs converties en `ApiError` (statut + message français), en-tête anti-CSRF `X-Requested-With` sur chaque requête             |
-| `types.ts`         | Noms courts des types de l'API (`Mep`, `Etape`…), alias des types générés                                                                                               |
-| `api/schema.d.ts`  | Types générés depuis `docs/openapi.json` par `npm run api:types` ; ne jamais modifier à la main                                                                         |
-| `domaine.ts`       | Règles d'affichage : plan actif, étapes à vous, bloqueurs, progression, bilan de recette                                                                                |
-| `graphe.ts`        | Lignes du graphe (profondeur des étapes, ordre de l'export), liens du plan                                                                                              |
-| `personnes.ts`     | Comptes reliés regroupés par personne, équipes d'une personne, filtres par équipe, recherche des comptes, personnes proposées par la recherche des MEP                  |
-| `rechercheMeps.ts` | Recherche des MEP : critères lus et écrits dans l'adresse, mêmes règles que le serveur (`FiltreMeps.cs`), vérifiées par les cas partagés de `vecteurs-filtre-meps.json` |
-| `recherche.ts`     | Recherche insensible aux accents, score et surlignage                                                                                                                   |
-| `blocs.ts`         | Découpage des instructions en blocs Texte / Code et raccourcis de mise en forme markdown                                                                                |
-| `format.ts`        | Libellés, dates, durées, comptes à rebours                                                                                                                              |
-| `bibliotheque.ts`  | Bibliothèques (étapes, recettes, résolutions) : recherche à plusieurs mots (noms de systèmes reconnus), tri par utilisations puis création, types d'étape               |
+| Module             | Rôle                                                                                                                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `api.ts`           | Client HTTP : une fonction par route, erreurs (_problem details_) converties en `ApiError` (statut, message français, motifs `erreurs`), en-tête anti-CSRF `X-Requested-With` sur chaque requête |
+| `types.ts`         | Noms courts des types de l'API (`Mep`, `Etape`…), alias des types générés                                                                                                                        |
+| `api/schema.d.ts`  | Types générés depuis `docs/openapi.json` par `npm run api:types` ; ne jamais modifier à la main                                                                                                  |
+| `domaine.ts`       | Règles d'affichage : plan actif, étapes à vous, bloqueurs, progression, bilan de recette                                                                                                         |
+| `graphe.ts`        | Lignes du graphe (profondeur des étapes, ordre de l'export), liens du plan                                                                                                                       |
+| `personnes.ts`     | Comptes reliés regroupés par personne, équipes d'une personne, filtres par équipe, recherche des comptes, personnes proposées par la recherche des MEP                                           |
+| `rechercheMeps.ts` | Recherche des MEP : critères lus et écrits dans l'adresse, mêmes règles que le serveur (`FiltreMeps.cs`), vérifiées par les cas partagés de `vecteurs-filtre-meps.json`                          |
+| `recherche.ts`     | Recherche insensible aux accents, score et surlignage                                                                                                                                            |
+| `blocs.ts`         | Découpage des instructions en blocs Texte / Code et raccourcis de mise en forme markdown                                                                                                         |
+| `format.ts`        | Libellés, dates, durées, comptes à rebours                                                                                                                                                       |
+| `bibliotheque.ts`  | Bibliothèques (étapes, recettes, résolutions) : recherche à plusieurs mots (noms de systèmes reconnus), tri par utilisations puis création, types d'étape                                        |
 
 ## Principes
 

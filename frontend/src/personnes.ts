@@ -1,12 +1,12 @@
 // Personnes et équipes : des comptes reliés (`comptePrincipalId`) forment une seule personne, nommée d'après son compte
 // principal ; les équipes d'une personne sont celles de tous ses comptes. Logique pure, sans affichage.
 import { normaliser } from './recherche';
-import type { Utilisateur } from './types';
+import type { CompteAnnuaire } from './types';
 
-type Compte = Pick<Utilisateur, 'id' | 'login' | 'nomAffiche' | 'role' | 'comptePrincipalId' | 'equipeIds'>;
+type Compte = Pick<CompteAnnuaire, 'id' | 'login' | 'nomAffiche' | 'role' | 'comptePrincipalId' | 'equipeIds'>;
 
 /** Identifiant de la personne d'un compte : son compte principal, ou lui-même. */
-export const personneDe = (c: Pick<Utilisateur, 'id' | 'comptePrincipalId'>): string => c.comptePrincipalId ?? c.id;
+export const personneDe = (c: Pick<CompteAnnuaire, 'id' | 'comptePrincipalId'>): string => c.comptePrincipalId ?? c.id;
 
 /** Comptes regroupés par personne : le compte principal d'abord, puis ses comptes reliés. */
 export interface GroupeComptes<T extends Compte = Compte> {
@@ -56,7 +56,7 @@ export function groupeCorrespond(g: GroupeComptes, recherche: string): boolean {
 }
 
 /** Option d'un compte dans un sélecteur : nom de la personne, puis identifiant et état du compte. */
-export function optionCompte(u: Pick<Utilisateur, 'id' | 'login' | 'nomPersonne' | 'actif' | 'comptePrincipalId'>): {
+export function optionCompte(u: Pick<CompteAnnuaire, 'id' | 'login' | 'nomPersonne' | 'actif' | 'comptePrincipalId'>): {
   valeur: string;
   libelle: string;
   detail: string;
@@ -71,7 +71,7 @@ export function optionCompte(u: Pick<Utilisateur, 'id' | 'login' | 'nomPersonne'
  */
 export function personnesDeRecherche(
   comptes: Pick<
-    Utilisateur,
+    CompteAnnuaire,
     'id' | 'login' | 'nomPersonne' | 'nomAffiche' | 'role' | 'comptePrincipalId' | 'equipeIds'
   >[],
 ): { id: string; nom: string; detail: string }[] {
