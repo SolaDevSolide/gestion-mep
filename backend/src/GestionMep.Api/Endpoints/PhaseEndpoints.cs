@@ -63,8 +63,12 @@ public static class PhaseEndpoints
             {
                 var acteur = Acteur.Depuis(user);
                 var bilan = c is null ? null : new Bilan { CeQuiAMarche = ServiceMep.Texte(c.CeQuiAMarche), Incidents = ServiceMep.Texte(c.Incidents), Actions = ServiceMep.Texte(c.Actions) };
-                Regles.Cloturer(mep, acteur.Id, svc.Maintenant, bilan);
-                return await svc.Enregistrer(mep, acteur, "mep.cloturee", $"MEP clôturée : {Regles.IssueEnClair(mep, await svc.EchecsSurvenus(mep.Id))}");
+                var echec = c?.Echec == true;
+                Regles.Cloturer(mep, acteur.Id, svc.Maintenant, bilan, echec, c?.EtatService, c?.ReferenceIncident);
+                var detail = $"MEP clôturée : {Regles.IssueEnClair(mep, await svc.EchecsSurvenus(mep.Id))}";
+                if (echec)
+                    detail += $". État du service : {mep.EtatService}" + (mep.ReferenceIncident.Length > 0 ? $" (incident {mep.ReferenceIncident})" : "");
+                return await svc.Enregistrer(mep, acteur, "mep.cloturee", detail);
             });
             // Rapport de fin figé à la clôture, une fois celle-ci enregistrée (une écriture rejouée ne le fige pas deux fois). S'il
             // échoue, la clôture reste acquise : le rapport sera figé à sa première demande.
@@ -84,7 +88,10 @@ public static class PhaseEndpoints
             var acteur = Acteur.Depuis(user);
             var motif = ServiceMep.Texte(c.Motif);
             Regles.NoGo(mep, acteur.Id, motif);
-            return await svc.Enregistrer(mep, acteur, "gonogo.nogo", $"No-go : {motif}");
+            if (c.Reporter != true) return await svc.Enregistrer(mep, acteur, "gonogo.nogo", $"No-go : {motif}");
+            // Le no-go peut reporter la MEP dans la foulée, avec le même motif.
+            Regles.Reporter(mep, acteur.Id, motif, c.DateVisee, svc.Maintenant);
+            return await svc.Enregistrer(mep, acteur, [new("gonogo.nogo", $"No-go : {motif}"), new("mep.reportee", Regles.DetailReport(mep.Report!))]);
         })));
 
         api.MapPost("/meps/{id:guid}/phase", async (Guid id, PhaseSaisie corps, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
@@ -92,22 +99,29 @@ public static class PhaseEndpoints
             var acteur = Acteur.Depuis(user);
             switch (corps.Phase)
             {
+                case Phase.Execution when mep.Phase == Phase.Recette:
+                    // « Corriger en avant » : retour de la recette à l'exécution, motif obligatoire ; les tests en échec sont à refaire.
+                    var motifExecution = ServiceMep.Texte(corps.Motif);
+                    var remis = Regles.RevenirEnExecution(mep, acteur.Id, motifExecution);
+                    return await svc.Enregistrer(mep, acteur, "phase.execution", $"Retour en exécution pour corriger : {motifExecution}"
+                        + (remis.Count > 0 ? $". Tests à refaire : {string.Join(", ", remis)}" : ""));
                 case Phase.Execution:
                     // Décision Go : tous les critères go / no-go actifs doivent être cochés.
+                    var report = mep.Report;
                     Regles.PasserEnExecution(mep, acteur.Id, corps.CriteresCoches ?? [], await svc.CriteresGoNoGo(), await svc.ApprobationsMinimum(), svc.Maintenant);
                     var criteres = mep.GoNoGo.Count == 0 ? "" : " (" + string.Join(", ", mep.GoNoGo.Select(g => g.Libelle)) + ")";
-                    return await svc.Enregistrer(mep, acteur, [
-                        new("gonogo.go", $"Go{criteres}"),
-                        new("phase.execution", "Plan passé en exécution"),
-                    ]);
+                    List<ServiceMep.Evenement> evenements = [new("gonogo.go", $"Go{criteres}"), new("phase.execution", "Plan passé en exécution")];
+                    if (report is not null) evenements.Insert(0, new("mep.reprise", "Report levé par le Go"));
+                    return await svc.Enregistrer(mep, acteur, evenements);
                 case Phase.Recette:
                     Regles.PasserEnRecette(mep, acteur.Id, svc.Maintenant);
                     return await svc.Enregistrer(mep, acteur, "phase.recette", "MEP passée en recette");
                 case Phase.Preparation:
-                    Regles.RevenirEnPreparation(mep, acteur.Id);
-                    return await svc.Enregistrer(mep, acteur, "phase.preparation", "Retour en préparation");
+                    var motif = ServiceMep.Texte(corps.Motif);
+                    Regles.RevenirEnPreparation(mep, acteur.Id, motif);
+                    return await svc.Enregistrer(mep, acteur, "phase.preparation", $"Retour en préparation : {motif}");
                 default:
-                    throw ErreurHttp.Saisie("Phase attendue : Preparation, Execution ou Recette (le retour arrière et la clôture ont leurs propres routes).");
+                    throw ErreurHttp.Saisie("Phase attendue : Preparation, Execution ou Recette (le retour arrière, la clôture et l'annulation ont leurs propres routes).");
             }
         })));
     }

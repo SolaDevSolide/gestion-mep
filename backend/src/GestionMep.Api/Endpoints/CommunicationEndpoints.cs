@@ -129,7 +129,7 @@ public static class CommunicationEndpoints
             var acteur = Acteur.Depuis(user);
             ServiceMep.ExigerEditeur(mep, acteur);
             // Après le Go, le pilote complète encore la communication (preuve de validation, heure limite…), jusqu'à la clôture.
-            if (mep.Phase == Phase.Cloturee) throw new RegleMetierException("La MEP est clôturée : la communication ne se modifie plus.");
+            if (Regles.EstTerminee(mep)) throw new RegleMetierException("La MEP est terminée (clôturée ou annulée) : la communication ne se modifie plus.");
             if (mep.Phase != Phase.Preparation)
                 ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Après le Go, seuls le pilote, un suppléant ou un administrateur modifient la communication.");
             ServiceMep.ExigerVersion(mep, c.Version);

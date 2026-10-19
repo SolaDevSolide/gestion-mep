@@ -58,7 +58,7 @@ public static class ExcelCommun
     {
         ["Préparation"] = Ton.Attente, ["Exécution"] = Ton.EnCours, ["Recette"] = Ton.EnCours, ["Retour arrière"] = Ton.Echec,
         ["Clôturée : réussie"] = Ton.Succes, ["Clôturée : réussie avec incidents"] = Ton.Attention, ["Clôturée : repliée"] = Ton.Attention,
-        ["Modèle"] = Ton.Neutre,
+        ["Clôturée : échec"] = Ton.Echec, ["Annulée"] = Ton.Neutre, ["Reportée"] = Ton.Attente, ["Modèle"] = Ton.Neutre,
     };
 
     /// <summary>États de la recherche (#59) : phase en cours, puis issue (« Réussie avec incidents » en attention).</summary>
@@ -66,6 +66,7 @@ public static class ExcelCommun
     {
         ["Préparation"] = Ton.Attente, ["Exécution"] = Ton.EnCours, ["Recette"] = Ton.EnCours, ["Retour arrière"] = Ton.Echec,
         ["Réussie"] = Ton.Succes, ["Réussie avec incidents"] = Ton.Attention, ["Repliée"] = Ton.Attention,
+        ["Reportée"] = Ton.Attente, ["Échec (service dégradé)"] = Ton.Echec, ["Annulée"] = Ton.Neutre,
     };
 
     public static readonly IReadOnlyDictionary<string, Ton> TonsResolution = new Dictionary<string, Ton>

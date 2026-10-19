@@ -6,7 +6,8 @@ using GestionMep.Domain;
 namespace GestionMep.Api.Endpoints;
 
 /// <summary>
-/// Participants, responsables techniques et systèmes : modifiables uniquement en préparation (environnements et objets
+/// Participants, responsables techniques et systèmes : modifiables uniquement en préparation, sauf l'ajout d'une personne après
+/// le Go (pilote, suppléant ou administrateur) ; environnements et objets
 /// impactés des systèmes : <see cref="ObjetsImpactesEndpoints"/>).
 /// Chaque modification remet les approbations à zéro (<see cref="ServiceMep.EnregistrerContenu(Mep, Acteur, string, string)"/>).
 /// </summary>
@@ -21,14 +22,25 @@ public static class StructureEndpoints
     public static void MapStructure(this RouteGroupBuilder api)
     {
         // ---------- Participants ----------
+        // Après le Go (de l'exécution au retour arrière), le pilote, un suppléant ou un administrateur ajoute encore une personne
+        // (astreinte, renfort) : le plan, lui, ne change pas.
         api.MapPost("/meps/{id:guid}/participants", async (Guid id, ParticipantSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
         {
-            ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
-            Regles.ExigerPreparation(mep);
+            var acteur = Acteur.Depuis(user);
+            var apresGo = Regles.EstApresGoEnCours(mep);
+            if (apresGo)
+                ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Après le Go, seul le pilote, un suppléant ou un administrateur ajoute une personne à la MEP.");
+            else
+            {
+                ServiceMep.ExigerEditeur(mep, acteur);
+                Regles.ExigerPreparation(mep);
+            }
             var nom = Requis(c.Nom, "Le nom");
             await svc.ExigerUtilisateurExistant(c.UtilisateurId);
             mep.Participants.Add(new Participant { MepId = mep.Id, Nom = nom, Role = ServiceMep.Texte(c.Role), Contact = ServiceMep.Texte(c.Contact), UtilisateurId = c.UtilisateurId });
-            return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "participant.ajoute", $"Participant ajouté : {nom}");
+            return apresGo
+                ? await svc.Enregistrer(mep, acteur, "participant.ajoute", $"Participant ajouté après le Go : {nom}")
+                : await svc.EnregistrerContenu(mep, acteur, "participant.ajoute", $"Participant ajouté : {nom}");
         })));
 
         api.MapPut("/meps/{id:guid}/participants/{pid:guid}", async (Guid id, Guid pid, ParticipantSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>

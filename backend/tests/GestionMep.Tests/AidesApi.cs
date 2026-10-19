@@ -24,6 +24,10 @@ public static class AidesApi
         (await Ok(await c.GetAsync("/api/criteres-go-no-go"))).EnumerateArray()
             .Where(x => x.GetProperty("actif").GetBoolean()).Select(x => x.GetProperty("id").GetGuid()).ToList();
 
+    /// <summary>Suppression définitive d'une MEP (administrateur) : motif et nom de la MEP saisi pour confirmer, dans le corps.</summary>
+    public static Task<HttpResponseMessage> Supprimer(HttpClient c, Guid id, string nom, string motif = "Créée par erreur") =>
+        c.SendAsync(new HttpRequestMessage(HttpMethod.Delete, $"/api/meps/{id}") { Content = JsonContent.Create(new { motif, nom }) });
+
     /// <summary>Claire approuve la MEP (version courante).</summary>
     public static async Task<JsonElement> Approuver(ApiFixture api, Guid id)
     {

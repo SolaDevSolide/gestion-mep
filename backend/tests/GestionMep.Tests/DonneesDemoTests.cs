@@ -27,12 +27,12 @@ public class DonneesDemoTests
     public void Une_mep_par_etat_puis_l_historique_sans_modele()
     {
         var meps = Scenarios().Select(s => s.Mep).ToList();
-        Assert.Equal(12, meps.Count);
-        Assert.Equal(12, meps.Select(m => m.Outil).Distinct().Count());
+        Assert.Equal(15, meps.Count);
+        Assert.Equal(15, meps.Select(m => m.Outil).Distinct().Count());
         Assert.All(meps, m => Assert.False(m.EstModele));
         Assert.Equal(
             [Phase.Preparation, Phase.Preparation, Phase.Execution, Phase.Recette, Phase.RetourArriere, Phase.Cloturee, Phase.Cloturee, Phase.Execution,
-                Phase.Cloturee, Phase.Cloturee, Phase.Cloturee, Phase.Cloturee],
+                Phase.Preparation, Phase.Annulee, Phase.Cloturee, Phase.Cloturee, Phase.Cloturee, Phase.Cloturee, Phase.Cloturee],
             meps.Select(m => m.Phase).ToArray());
     }
 
@@ -40,7 +40,7 @@ public class DonneesDemoTests
     public void L_historique_couvre_les_mois_passes_avec_ses_issues()
     {
         var maintenant = new DateTimeOffset(2026, 10, 12, 8, 0, 0, TimeSpan.Zero);
-        var historique = Scenarios(maintenant).Skip(8).ToList();
+        var historique = Scenarios(maintenant).Skip(11).ToList();
         Assert.Equal([DonneesDemo.OutilHistoriqueReussie, DonneesDemo.OutilHistoriqueReferentiel, DonneesDemo.OutilHistoriqueIncidents, DonneesDemo.OutilHistoriqueRepliee],
             historique.Select(h => h.Mep.Outil));
         Assert.All(historique, h => Assert.True(h.Mep.DemarrageAutoriseLe < maintenant.AddDays(-14), h.Mep.Outil));

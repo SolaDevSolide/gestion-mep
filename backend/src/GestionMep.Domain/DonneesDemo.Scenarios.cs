@@ -32,6 +32,9 @@ public static partial class DonneesDemo
     public const string OutilReussie = "Gestion des stocks";
     public const string OutilRepliee = "Extranet partenaires";
     public const string OutilSimplifiee = "Formulaire de contact";
+    public const string OutilReportee = "Notes de frais";
+    public const string OutilAnnulee = "Signature électronique";
+    public const string OutilEchec = "Archivage des courriers";
 
     /// <summary>MEP de démonstration et son journal (horodatages relatifs au moment de l'amorçage).</summary>
     public record MepDemo(Mep Mep, List<EvenementJournal> Journal);
@@ -40,8 +43,9 @@ public static partial class DonneesDemo
 
     /// <summary>
     /// MEP de démonstration supplémentaires : préparation incomplète, prête pour le Go, exécution en cours, recette en cours,
-    /// retour arrière en cours, clôturée réussie, clôturée repliée, une MEP simplifiée en cours d'exécution, puis l'historique des
-    /// mois passés (<see cref="Historique"/>). Le catalogue, les résolutions types et les critères sont
+    /// retour arrière en cours, clôturée réussie, clôturée repliée, une MEP simplifiée en cours d'exécution, une MEP reportée, une
+    /// MEP annulée après un Go et une MEP clôturée en échec (<see cref="Reportee"/>, <see cref="Annulee"/>, <see cref="Echec"/>),
+    /// puis l'historique des mois passés (<see cref="Historique"/>). Le catalogue, les résolutions types et les critères sont
     /// ceux de <see cref="Creer"/> (mêmes identifiants) ; les comptes sont ceux de <see cref="Comptes"/>.
     /// </summary>
     public static List<MepDemo> Scenarios(Guid alice, Guid bob, Guid claire, IReadOnlyList<SystemeCatalogue> catalogue,
@@ -49,7 +53,7 @@ public static partial class DonneesDemo
     {
         var equipe = new Equipe(new Compte(alice, "Alice"), new Compte(bob, "Bob"), new Compte(claire, "Claire"));
         var c = new Contexte(equipe, catalogue, resolutions, criteres, maintenant);
-        return [Incomplete(c), Prete(c), EnExecution(c), EnRecette(c), EnRetourArriere(c), Reussie(c), Repliee(c), Simplifiee(c), .. Historique(c)];
+        return [Incomplete(c), Prete(c), EnExecution(c), EnRecette(c), EnRetourArriere(c), Reussie(c), Repliee(c), Simplifiee(c), Reportee(c), Annulee(c), Echec(c), .. Historique(c)];
     }
 
     private sealed record Compte(Guid Id, string Nom);
@@ -226,6 +230,47 @@ public static partial class DonneesDemo
         {
             Regles.Cloturer(Mep, qui.Id, T, new Bilan { CeQuiAMarche = ceQuiAMarche, Incidents = incidents, Actions = actions });
             Ev(qui, "mep.cloturee", $"MEP clôturée : {Regles.IssueEnClair(Mep, Journal.Count(e => e.Type == Regles.EvenementEchecEtape))}");
+        }
+
+        public void RevenirEnPreparation(Compte qui, string motif)
+        {
+            Regles.RevenirEnPreparation(Mep, qui.Id, motif);
+            Ev(qui, "phase.preparation", $"Retour en préparation : {motif}");
+        }
+
+        public void Annuler(Compte qui, bool estAdmin, string motif, string etatProduction)
+        {
+            Regles.Annuler(Mep, qui.Id, estAdmin, motif, etatProduction, T);
+            Ev(qui, "mep.annulee", Regles.DetailAnnulation(Mep.Annulation!));
+        }
+
+        public void NoGoEtReporter(Compte qui, string motif, DateOnly? dateVisee)
+        {
+            Regles.NoGo(Mep, qui.Id, motif);
+            Regles.Reporter(Mep, qui.Id, motif, dateVisee, T);
+            Ev(qui, "gonogo.nogo", $"No-go : {motif}");
+            Ev(qui, "mep.reportee", Regles.DetailReport(Mep.Report!), memeVersion: true);
+        }
+
+        /// <summary>Pilotage de secours par un administrateur : l'ancien pilote reste suppléant (ce qu'écrit la route /pilotage).</summary>
+        public void PilotageDeSecours(Compte admin, string motif)
+        {
+            var ancien = Mep.Participants.Single(p => p.Id == Mep.PiloteId).Nom;
+            var nouveau = Mep.Participants.Single(p => p.UtilisateurId == admin.Id);
+            Regles.ChangerPilote(Mep, admin.Id, estAdmin: true, nouveau, ancienPiloteSuppleant: true, null, motif, T, out var secours);
+            if (!secours) throw new InvalidOperationException("Pilotage de secours attendu.");
+            var suppleants = Regles.Suppleants(Mep).Select(s => Mep.Participants.Single(p => p.Id == s).Nom).ToList();
+            var suite = suppleants.Count == 0 ? "" : $" Suppléant(s) : {string.Join(", ", suppleants)}.";
+            Ev(admin, "pilotage.secours", $"Pilotage de secours par {admin.Nom} : {nouveau.Nom} remplace {ancien} comme pilote. Motif : {motif}.{suite}");
+        }
+
+        public void CloturerEnEchec(Compte qui, string etatService, string referenceIncident, string ceQuiAMarche, string incidents, string actions)
+        {
+            Regles.Cloturer(Mep, qui.Id, T, new Bilan { CeQuiAMarche = ceQuiAMarche, Incidents = incidents, Actions = actions }, echec: true,
+                etatService, referenceIncident);
+            var incident = referenceIncident.Length > 0 ? $" (incident {referenceIncident})" : "";
+            Ev(qui, "mep.cloturee",
+                $"MEP clôturée : {Regles.IssueEnClair(Mep, Journal.Count(e => e.Type == Regles.EvenementEchecEtape))}. État du service : {etatService}{incident}");
         }
 
         public MepDemo Fin() => new(Mep, Journal);

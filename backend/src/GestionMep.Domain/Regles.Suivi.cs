@@ -23,8 +23,15 @@ public static partial class Regles
         DateTimeOffset? FinEstimee, int RetardMinutes, bool Terminee, bool SansDuree);
 
     /// <summary>Plan suivi par la vue d'ensemble : le retour arrière dès qu'il est déclenché, sinon le déploiement.</summary>
-    public static TypePlan PlanSuivi(Mep mep) =>
-        mep.Phase == Phase.RetourArriere || (mep.Phase == Phase.Cloturee && mep.Issue == IssueMep.Repliee) ? TypePlan.RetourArriere : TypePlan.Deploiement;
+    public static TypePlan PlanSuivi(Mep mep) => RetourArriereEffectue(mep) ? TypePlan.RetourArriere : TypePlan.Deploiement;
+
+    /// <summary>
+    /// Le retour arrière a été déclenché et la MEP n'en est pas sortie : en cours, clôturée repliée, ou clôturée en échec après
+    /// un retour arrière.
+    /// </summary>
+    public static bool RetourArriereEffectue(Mep mep) =>
+        mep.Phase == Phase.RetourArriere
+        || (mep.Phase == Phase.Cloturee && (mep.Issue == IssueMep.Repliee || (mep.Issue == IssueMep.Echec && mep.RetourArriereDeclencheLe is not null)));
 
     /// <summary>
     /// Plus long chemin, en minutes, à travers les préalables (<see cref="Etape.Dependances"/>) : ce qui fixe la fin d'un plan dont

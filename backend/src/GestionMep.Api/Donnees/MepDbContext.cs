@@ -115,6 +115,10 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Sections).AsJson();
             e.Property(x => x.ElementsBibliothequeComptes).HasColumnType("uuid[]");
             e.Property(x => x.Bilan).AsJsonObjet();
+            // Cycle de vie (#93) : annulation, report et pilotage de secours.
+            e.Property(x => x.Annulation).AsJsonObjet();
+            e.Property(x => x.Report).AsJsonObjet();
+            e.Property(x => x.PilotageSecours).AsJsonObjet();
             e.HasIndex(x => x.EstModele);
             e.HasMany(x => x.Participants).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Systemes).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);

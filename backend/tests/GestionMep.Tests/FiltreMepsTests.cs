@@ -31,7 +31,7 @@ public class FiltreMepsTests
             var etat = Enum<EtatMep>(m.GetProperty("etat"));
             return new MepResumeDto(id, m.GetProperty("outil").GetString()!, m.GetProperty("versionCible").GetString()!, m.GetProperty("objet").GetString()!,
                 null, phase, null, m.GetProperty("pilote").GetString(), 0, 0, 0, false, false, m.GetProperty("creeLe").GetDateTimeOffset(),
-                etat == EtatMep.Repliee ? IssueMep.Repliee : phase == Phase.Cloturee ? IssueMep.Reussie : null, false,
+                etat == EtatMep.Repliee ? IssueMep.Repliee : etat == EtatMep.Echec ? IssueMep.Echec : phase == Phase.Cloturee ? IssueMep.Reussie : null, false,
                 [.. m.GetProperty("equipeIds").EnumerateArray().Select(e => e.GetGuid())], Textes(m.GetProperty("personnes")),
                 Enum<TypeMep>(m.GetProperty("type")), etat, DateOnly.Parse(m.GetProperty("jour").GetString()!, System.Globalization.CultureInfo.InvariantCulture),
                 null, null, m.GetProperty("echecsSurvenus").GetInt32(),
@@ -40,7 +40,7 @@ public class FiltreMepsTests
                     [.. s.GetProperty("environnements").EnumerateArray().Select(e => new EnvironnementSystemeDto(e.GetProperty("nom").GetString()!, e.GetProperty("production").GetBoolean()))],
                     s.GetProperty("echecs").GetInt32()))],
                 [.. m.GetProperty("intervenants").EnumerateArray().Select(i => new IntervenantDto(i.GetProperty("personneId").GetGuid(), i.GetProperty("nom").GetString()!,
-                    [.. i.GetProperty("roles").EnumerateArray().Select(Enum<RoleMep>)]))]);
+                    [.. i.GetProperty("roles").EnumerateArray().Select(Enum<RoleMep>)]))], null, null);
         }).ToList();
         return (meps, noms);
     }
@@ -64,7 +64,7 @@ public class FiltreMepsTests
     [InlineData("equipe", "dev", "Équipe « dev » invalide")]
     [InlineData("personne", "alice", "Personne « alice » invalide")]
     [InlineData("role", "chef", "Rôle « chef » inconnu : pilote, suppleant, responsable, executant, approbateur.")]
-    [InlineData("etat", "annulee", "État « annulee » inconnu")]
+    [InlineData("etat", "abandonnee", "État « abandonnee » inconnu")]
     [InlineData("du", "18/10/2026", "format AAAA-MM-JJ")]
     [InlineData("echec", "peut-etre", "« echec » attend 1 ou 0.")]
     [InlineData("phase", "demain", "Phase inconnue")]

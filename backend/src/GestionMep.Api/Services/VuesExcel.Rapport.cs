@@ -42,10 +42,14 @@ public static partial class VuesExcel
         [
             ("Objet", mep.Objet), ("Type de MEP", Libelle(mep.Type)), ("Issue", LibellePhase(mep)),
             ("Pilote", Participant(mep, mep.PiloteId)), ("Go", LeOuVide(s.Go)),
+            ("Premier Go", s.PremierGo is { } pg ? $"{Le(pg, f)} ({s.RetoursEnPreparation} retour(s) en préparation ensuite)" : ""),
             ("Clôture", mep.Cloture is { } c ? $"{Le(c.Le, f)}{(c.Par is null ? "" : $" par {c.Par}")}" : ""),
+            ("État du service laissé", mep.Cloture?.EtatService ?? ""),
+            ("Référence de l'incident", mep.Cloture?.ReferenceIncident ?? ""),
             ("Systèmes", string.Join(", ", mep.Systemes.Select(x => x.Nom))),
             ("Vue d'ensemble à la clôture", null),
-            ("Étapes de déploiement", $"{s.EtapesReussies}/{s.Etapes} réussies"),
+            ("Étapes de déploiement", $"{s.EtapesReussies}/{s.Etapes} réussies"
+                + (s.EtapesAjouteesApresGo > 0 ? $", dont {s.EtapesAjouteesApresGo} ajoutée(s) après le Go" : "")),
             ("Durée du déploiement", s.DureeReelleMinutes is { } d
                 ? VariablesTexte.Duree(d) + (s.DureePrevueMinutes > 0 ? $" (prévue {VariablesTexte.Duree(s.DureePrevueMinutes)})" : "")
                 : ""),
@@ -57,6 +61,8 @@ public static partial class VuesExcel
                 ? $"Déclenché le {Le(ra.Le, f)}{(ra.Par is null ? " (automatiquement)" : $" par {ra.Par}")}{(ra.Motif.Length > 0 ? $" : {ra.Motif}" : "")}"
                 : "Non"),
         ]);
+        // Lignes propres à certaines MEP (#93) : absentes quand elles ne s'appliquent pas.
+        synthese.RemoveAll(x => x.Item2 is "" && x.Item1 is "Premier Go" or "État du service laissé" or "Référence de l'incident");
         if (mep.Bilan is { } b)
             synthese.AddRange([("Bilan", null), ("Ce qui a marché", b.CeQuiAMarche), ("Incidents", b.Incidents), ("Actions", b.Actions),
                 ("Rédigé par", b.RedigePar ?? "")]);

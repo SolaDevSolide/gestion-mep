@@ -576,6 +576,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuppressionMepSaisie"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -2548,6 +2558,161 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PhaseSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/annuler": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnulationSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/reporter": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/reprendre": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/etapes-correctives": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EtapeCorrectiveSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/pilotage": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PilotageSaisie"
               }
             }
           },
@@ -5916,6 +6081,55 @@
         },
         "description": "Activité d'un système du catalogue : nombre de MEP et dernière MEP lancée (colonne « Dernière MEP » du catalogue)."
       },
+      "AnnulationDto": {
+        "required": [
+          "motif",
+          "etatProduction",
+          "par",
+          "le"
+        ],
+        "type": "object",
+        "properties": {
+          "motif": {
+            "type": "string"
+          },
+          "etatProduction": {
+            "type": "string"
+          },
+          "par": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "le": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Annulation : `EtatProduction`, état laissé en production (renseigné si la MEP avait eu un Go)."
+      },
+      "AnnulationSaisie": {
+        "required": [
+          "motif"
+        ],
+        "type": "object",
+        "properties": {
+          "motif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "etatProduction": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Annulation : `EtatProduction` obligatoire si la MEP a déjà eu un Go."
+      },
       "ApercuValidationDto": {
         "required": [
           "changements",
@@ -6350,7 +6564,9 @@
       "ClotureDto": {
         "required": [
           "le",
-          "par"
+          "par",
+          "etatService",
+          "referenceIncident"
         ],
         "type": "object",
         "properties": {
@@ -6363,8 +6579,15 @@
               "null",
               "string"
             ]
+          },
+          "etatService": {
+            "type": "string"
+          },
+          "referenceIncident": {
+            "type": "string"
           }
-        }
+        },
+        "description": "Clôture : `EtatService` et `ReferenceIncident` ne sont renseignés que pour une clôture en échec."
       },
       "ClotureSaisie": {
         "required": [
@@ -6391,8 +6614,27 @@
               "null",
               "string"
             ]
+          },
+          "echec": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "etatService": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "referenceIncident": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
-        }
+        },
+        "description": "Clôture et bilan. `Echec` : clôture en échec (depuis le retour arrière, ou la recette si le retour arrière est\nimpossible) ; `EtatService` est alors obligatoire, ainsi que le bilan ; `ReferenceIncident` facultative."
       },
       "CommentaireSaisie": {
         "required": [
@@ -7277,7 +7519,13 @@
           "participantId",
           "estApprobateur",
           "estResponsableTechnique",
-          "peutEditerContenu"
+          "peutEditerContenu",
+          "estAdmin",
+          "peutAnnuler",
+          "peutReporter",
+          "peutSupprimer",
+          "peutChangerPilote",
+          "peutAjouterPersonne"
         ],
         "type": "object",
         "properties": {
@@ -7302,8 +7550,27 @@
           },
           "peutEditerContenu": {
             "type": "boolean"
+          },
+          "estAdmin": {
+            "type": "boolean"
+          },
+          "peutAnnuler": {
+            "type": "boolean"
+          },
+          "peutReporter": {
+            "type": "boolean"
+          },
+          "peutSupprimer": {
+            "type": "boolean"
+          },
+          "peutChangerPilote": {
+            "type": "boolean"
+          },
+          "peutAjouterPersonne": {
+            "type": "boolean"
           }
-        }
+        },
+        "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`."
       },
       "DuplicationSaisie": {
         "required": [
@@ -7603,6 +7870,63 @@
         },
         "description": "Équipe créée ou modifiée ; `MembreIds` absent (null) : membres inchangés."
       },
+      "EtapeCorrectiveSaisie": {
+        "required": [
+          "action",
+          "systemeIds",
+          "instructions",
+          "resultatAttendu"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "systemeIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "instructions": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "resultatAttendu": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dureeEstimeeMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "criticite": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Criticite"
+              }
+            ]
+          }
+        },
+        "description": "Étape corrective ajoutée pendant l'exécution (fiche complète : elle ne se modifie plus ensuite)."
+      },
       "EtapeDto": {
         "required": [
           "id",
@@ -7640,7 +7964,8 @@
           "dependancesDerivees",
           "portsAttendus",
           "rang",
-          "aPlacer"
+          "aPlacer",
+          "ajouteeApresGo"
         ],
         "type": "object",
         "properties": {
@@ -7885,9 +8210,12 @@
           },
           "aPlacer": {
             "type": "boolean"
+          },
+          "ajouteeApresGo": {
+            "type": "boolean"
           }
         },
-        "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go)."
+        "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go).\n`AjouteeApresGo` : étape corrective ajoutée pendant l'exécution."
       },
       "EtapeModeleRecetteDto": {
         "required": [
@@ -8272,9 +8600,12 @@
           "RetourArriere",
           "Reussie",
           "AvecIncidents",
-          "Repliee"
+          "Repliee",
+          "Annulee",
+          "Reportee",
+          "Echec"
         ],
-        "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+        "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
       },
       "EtatsCharteFichier": {
         "type": [
@@ -8897,7 +9228,11 @@
               "type",
               "sections",
               "etat",
-              "echecsSurvenus"
+              "echecsSurvenus",
+              "annulation",
+              "report",
+              "premierGo",
+              "pilotageSecours"
             ],
             "type": "object",
             "properties": {
@@ -8975,9 +9310,10 @@
                   "Execution",
                   "RetourArriere",
                   "Cloturee",
-                  "Recette"
+                  "Recette",
+                  "Annulee"
                 ],
-                "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin."
+                "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin. Phase.Annulee : MEP arrêtée depuis la\npréparation (motif obligatoire, voir Annulation? Mep.Annulation), terminale et en lecture seule comme Phase.Cloturee."
               },
               "echeanceRepli": {
                 "type": [
@@ -8990,6 +9326,7 @@
                 "enum": [
                   "Reussie",
                   "Repliee",
+                  "Echec",
                   null
                 ]
               },
@@ -9023,7 +9360,9 @@
               "cloture": {
                 "required": [
                   "le",
-                  "par"
+                  "par",
+                  "etatService",
+                  "referenceIncident"
                 ],
                 "type": [
                   "null",
@@ -9039,8 +9378,15 @@
                       "null",
                       "string"
                     ]
+                  },
+                  "etatService": {
+                    "type": "string"
+                  },
+                  "referenceIncident": {
+                    "type": "string"
                   }
-                }
+                },
+                "description": "Clôture : `EtatService` et `ReferenceIncident` ne sont renseignés que pour une clôture en échec."
               },
               "planRepli": {
                 "required": [
@@ -9417,7 +9763,8 @@
                     "dependancesDerivees",
                     "portsAttendus",
                     "rang",
-                    "aPlacer"
+                    "aPlacer",
+                    "ajouteeApresGo"
                   ],
                   "type": "object",
                   "properties": {
@@ -9662,9 +10009,12 @@
                     },
                     "aPlacer": {
                       "type": "boolean"
+                    },
+                    "ajouteeApresGo": {
+                      "type": "boolean"
                     }
                   },
-                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go)."
+                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go).\n`AjouteeApresGo` : étape corrective ajoutée pendant l'exécution."
                 }
               },
               "resolutions": {
@@ -9813,7 +10163,13 @@
                   "participantId",
                   "estApprobateur",
                   "estResponsableTechnique",
-                  "peutEditerContenu"
+                  "peutEditerContenu",
+                  "estAdmin",
+                  "peutAnnuler",
+                  "peutReporter",
+                  "peutSupprimer",
+                  "peutChangerPilote",
+                  "peutAjouterPersonne"
                 ],
                 "type": "object",
                 "properties": {
@@ -9838,8 +10194,27 @@
                   },
                   "peutEditerContenu": {
                     "type": "boolean"
+                  },
+                  "estAdmin": {
+                    "type": "boolean"
+                  },
+                  "peutAnnuler": {
+                    "type": "boolean"
+                  },
+                  "peutReporter": {
+                    "type": "boolean"
+                  },
+                  "peutSupprimer": {
+                    "type": "boolean"
+                  },
+                  "peutChangerPilote": {
+                    "type": "boolean"
+                  },
+                  "peutAjouterPersonne": {
+                    "type": "boolean"
                   }
-                }
+                },
+                "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`."
               },
               "estModele": {
                 "type": "boolean"
@@ -10435,16 +10810,133 @@
                   "RetourArriere",
                   "Reussie",
                   "AvecIncidents",
-                  "Repliee"
+                  "Repliee",
+                  "Annulee",
+                  "Reportee",
+                  "Echec"
                 ],
-                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
               },
               "echecsSurvenus": {
                 "type": "integer",
                 "format": "int32"
+              },
+              "annulation": {
+                "required": [
+                  "motif",
+                  "etatProduction",
+                  "par",
+                  "le"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "motif": {
+                    "type": "string"
+                  },
+                  "etatProduction": {
+                    "type": "string"
+                  },
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "description": "Annulation : `EtatProduction`, état laissé en production (renseigné si la MEP avait eu un Go)."
+              },
+              "report": {
+                "required": [
+                  "motif",
+                  "dateVisee",
+                  "par",
+                  "le"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "motif": {
+                    "type": "string"
+                  },
+                  "dateVisee": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date"
+                  },
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "description": "Report d'une MEP en préparation : `DateVisee` facultative (null : reportée sans date)."
+              },
+              "premierGo": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "pilotageSecours": {
+                "required": [
+                  "par",
+                  "le",
+                  "motif",
+                  "ancienPilote",
+                  "nouveauPilote"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "motif": {
+                    "type": "string"
+                  },
+                  "ancienPilote": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "nouveauPilote": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  }
+                },
+                "description": "Pilotage repris par un administrateur après le Go : `Par`, l'administrateur ; pilotes avant et après (noms)."
               }
             },
-            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec)."
+            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`."
           },
           "ajoutes": {
             "type": "integer",
@@ -10666,6 +11158,7 @@
         "enum": [
           "Reussie",
           "Repliee",
+          "Echec",
           null
         ]
       },
@@ -10809,6 +11302,7 @@
             "enum": [
               "Reussie",
               "Repliee",
+              "Echec",
               null
             ]
           },
@@ -10820,9 +11314,12 @@
               "RetourArriere",
               "Reussie",
               "AvecIncidents",
-              "Repliee"
+              "Repliee",
+              "Annulee",
+              "Reportee",
+              "Echec"
             ],
-            "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+            "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
           },
           "clotureeLe": {
             "type": "string",
@@ -10923,7 +11420,11 @@
           "type",
           "sections",
           "etat",
-          "echecsSurvenus"
+          "echecsSurvenus",
+          "annulation",
+          "report",
+          "premierGo",
+          "pilotageSecours"
         ],
         "type": "object",
         "properties": {
@@ -11001,9 +11502,10 @@
               "Execution",
               "RetourArriere",
               "Cloturee",
-              "Recette"
+              "Recette",
+              "Annulee"
             ],
-            "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin."
+            "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin. Phase.Annulee : MEP arrêtée depuis la\npréparation (motif obligatoire, voir Annulation? Mep.Annulation), terminale et en lecture seule comme Phase.Cloturee."
           },
           "echeanceRepli": {
             "type": [
@@ -11016,6 +11518,7 @@
             "enum": [
               "Reussie",
               "Repliee",
+              "Echec",
               null
             ]
           },
@@ -11049,7 +11552,9 @@
           "cloture": {
             "required": [
               "le",
-              "par"
+              "par",
+              "etatService",
+              "referenceIncident"
             ],
             "type": [
               "null",
@@ -11065,8 +11570,15 @@
                   "null",
                   "string"
                 ]
+              },
+              "etatService": {
+                "type": "string"
+              },
+              "referenceIncident": {
+                "type": "string"
               }
-            }
+            },
+            "description": "Clôture : `EtatService` et `ReferenceIncident` ne sont renseignés que pour une clôture en échec."
           },
           "planRepli": {
             "required": [
@@ -11443,7 +11955,8 @@
                 "dependancesDerivees",
                 "portsAttendus",
                 "rang",
-                "aPlacer"
+                "aPlacer",
+                "ajouteeApresGo"
               ],
               "type": "object",
               "properties": {
@@ -11688,9 +12201,12 @@
                 },
                 "aPlacer": {
                   "type": "boolean"
+                },
+                "ajouteeApresGo": {
+                  "type": "boolean"
                 }
               },
-              "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go)."
+              "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go).\n`AjouteeApresGo` : étape corrective ajoutée pendant l'exécution."
             }
           },
           "resolutions": {
@@ -11839,7 +12355,13 @@
               "participantId",
               "estApprobateur",
               "estResponsableTechnique",
-              "peutEditerContenu"
+              "peutEditerContenu",
+              "estAdmin",
+              "peutAnnuler",
+              "peutReporter",
+              "peutSupprimer",
+              "peutChangerPilote",
+              "peutAjouterPersonne"
             ],
             "type": "object",
             "properties": {
@@ -11864,8 +12386,27 @@
               },
               "peutEditerContenu": {
                 "type": "boolean"
+              },
+              "estAdmin": {
+                "type": "boolean"
+              },
+              "peutAnnuler": {
+                "type": "boolean"
+              },
+              "peutReporter": {
+                "type": "boolean"
+              },
+              "peutSupprimer": {
+                "type": "boolean"
+              },
+              "peutChangerPilote": {
+                "type": "boolean"
+              },
+              "peutAjouterPersonne": {
+                "type": "boolean"
               }
-            }
+            },
+            "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`."
           },
           "estModele": {
             "type": "boolean"
@@ -12461,16 +13002,133 @@
               "RetourArriere",
               "Reussie",
               "AvecIncidents",
-              "Repliee"
+              "Repliee",
+              "Annulee",
+              "Reportee",
+              "Echec"
             ],
-            "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+            "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
           },
           "echecsSurvenus": {
             "type": "integer",
             "format": "int32"
+          },
+          "annulation": {
+            "required": [
+              "motif",
+              "etatProduction",
+              "par",
+              "le"
+            ],
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "motif": {
+                "type": "string"
+              },
+              "etatProduction": {
+                "type": "string"
+              },
+              "par": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "le": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "description": "Annulation : `EtatProduction`, état laissé en production (renseigné si la MEP avait eu un Go)."
+          },
+          "report": {
+            "required": [
+              "motif",
+              "dateVisee",
+              "par",
+              "le"
+            ],
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "motif": {
+                "type": "string"
+              },
+              "dateVisee": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date"
+              },
+              "par": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "le": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "description": "Report d'une MEP en préparation : `DateVisee` facultative (null : reportée sans date)."
+          },
+          "premierGo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "pilotageSecours": {
+            "required": [
+              "par",
+              "le",
+              "motif",
+              "ancienPilote",
+              "nouveauPilote"
+            ],
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "par": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "le": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "motif": {
+                "type": "string"
+              },
+              "ancienPilote": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "nouveauPilote": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              }
+            },
+            "description": "Pilotage repris par un administrateur après le Go : `Par`, l'administrateur ; pilotes avant et après (noms)."
           }
         },
-        "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec)."
+        "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`."
       },
       "MepHistoriqueDto": {
         "required": [
@@ -12772,7 +13430,9 @@
           "clotureeLe",
           "echecsSurvenus",
           "systemes",
-          "intervenants"
+          "intervenants",
+          "reporteeAu",
+          "annuleeLe"
         ],
         "type": "object",
         "properties": {
@@ -12899,6 +13559,20 @@
             "items": {
               "$ref": "#/components/schemas/IntervenantDto"
             }
+          },
+          "reporteeAu": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "annuleeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;\n`RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).\n`ToucheProduction` : l'un des systèmes de la MEP touche un environnement de production.\n`EquipeIds` : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait\npartie, par l'un de ses comptes reliés). `Personnes` : noms des personnes de la MEP et, pour celles qui ont un compte,\nnoms et logins de tous leurs comptes reliés (pour la recherche). `Type` : MEP complète ou simplifiée."
@@ -13526,8 +14200,22 @@
               "null",
               "string"
             ]
+          },
+          "reporter": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "dateVisee": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
-        }
+        },
+        "description": "No-go ; `Reporter` : reporter aussi la MEP, avec le même motif et la `DateVisee` facultative."
       },
       "ObjetCatalogueDto": {
         "required": [
@@ -13924,9 +14612,10 @@
           "Execution",
           "RetourArriere",
           "Cloturee",
-          "Recette"
+          "Recette",
+          "Annulee"
         ],
-        "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin."
+        "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin. Phase.Annulee : MEP arrêtée depuis la\npréparation (motif obligatoire, voir Annulation? Mep.Annulation), terminale et en lecture seule comme Phase.Cloturee."
       },
       "PhaseSaisie": {
         "required": [
@@ -13953,8 +14642,15 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "motif": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
-        }
+        },
+        "description": "Changement de phase. `Motif` : obligatoire pour revenir en préparation (depuis l'exécution) et pour revenir en\nexécution (depuis la recette, « corriger en avant »)."
       },
       "PieceJointeDto": {
         "required": [
@@ -14036,6 +14732,91 @@
             "format": "date-time"
           }
         }
+      },
+      "PilotageSaisie": {
+        "required": [
+          "participantId",
+          "utilisateurId",
+          "motif"
+        ],
+        "type": "object",
+        "properties": {
+          "participantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "utilisateurId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "motif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ancienPiloteSuppleant": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "suppleantsGardes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "description": "Changement de pilote après le Go : un participant (`ParticipantId`) ou un compte (`UtilisateurId`, ajouté à la MEP\ns'il n'en fait pas partie). `AncienPiloteSuppleant` : l'ancien pilote devient suppléant (absent : oui) ; `SuppleantsGardes` :\nsuppléants qui le restent (absent : tous)."
+      },
+      "PilotageSecoursDto": {
+        "required": [
+          "par",
+          "le",
+          "motif",
+          "ancienPilote",
+          "nouveauPilote"
+        ],
+        "type": "object",
+        "properties": {
+          "par": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "le": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "motif": {
+            "type": "string"
+          },
+          "ancienPilote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nouveauPilote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Pilotage repris par un administrateur après le Go : `Par`, l'administrateur ; pilotes avant et après (noms)."
       },
       "PlacementEtapeSaisie": {
         "type": "object",
@@ -14590,7 +15371,10 @@
               "recetteTests",
               "recetteConformes",
               "recetteEchecs",
-              "retourArriere"
+              "retourArriere",
+              "premierGo",
+              "retoursEnPreparation",
+              "etapesAjouteesApresGo"
             ],
             "type": "object",
             "properties": {
@@ -14653,9 +15437,24 @@
               },
               "retourArriere": {
                 "type": "boolean"
+              },
+              "premierGo": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "retoursEnPreparation": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "etapesAjouteesApresGo": {
+                "type": "integer",
+                "format": "int32"
               }
             },
-            "description": "Chiffres du rapport : étapes du déploiement, Go et fin de l'exécution du déploiement (dernière étape terminée), durées réelle\net prévue (plus long chemin des durées estimées, 0 sans durées), échecs d'étape (tous plans) et ceux repris avec succès,\nrésolutions exécutées, tests de recette, retour arrière déclenché."
+            "description": "Chiffres du rapport : étapes du déploiement, Go et fin de l'exécution du déploiement (dernière étape terminée), durées réelle\net prévue (plus long chemin des durées estimées, 0 sans durées), échecs d'étape (tous plans) et ceux repris avec succès,\nrésolutions exécutées, tests de recette, retour arrière déclenché. `PremierGo` : premier Go, s'il diffère du dernier\n(retour en préparation entre-temps) ; `RetoursEnPreparation` et `EtapesAjouteesApresGo` (étapes correctives)."
           },
           "pointsBloquants": {
             "type": "array",
@@ -14885,7 +15684,11 @@
               "type",
               "sections",
               "etat",
-              "echecsSurvenus"
+              "echecsSurvenus",
+              "annulation",
+              "report",
+              "premierGo",
+              "pilotageSecours"
             ],
             "type": "object",
             "properties": {
@@ -14963,9 +15766,10 @@
                   "Execution",
                   "RetourArriere",
                   "Cloturee",
-                  "Recette"
+                  "Recette",
+                  "Annulee"
                 ],
-                "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin."
+                "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin. Phase.Annulee : MEP arrêtée depuis la\npréparation (motif obligatoire, voir Annulation? Mep.Annulation), terminale et en lecture seule comme Phase.Cloturee."
               },
               "echeanceRepli": {
                 "type": [
@@ -14978,6 +15782,7 @@
                 "enum": [
                   "Reussie",
                   "Repliee",
+                  "Echec",
                   null
                 ]
               },
@@ -15011,7 +15816,9 @@
               "cloture": {
                 "required": [
                   "le",
-                  "par"
+                  "par",
+                  "etatService",
+                  "referenceIncident"
                 ],
                 "type": [
                   "null",
@@ -15027,8 +15834,15 @@
                       "null",
                       "string"
                     ]
+                  },
+                  "etatService": {
+                    "type": "string"
+                  },
+                  "referenceIncident": {
+                    "type": "string"
                   }
-                }
+                },
+                "description": "Clôture : `EtatService` et `ReferenceIncident` ne sont renseignés que pour une clôture en échec."
               },
               "planRepli": {
                 "required": [
@@ -15405,7 +16219,8 @@
                     "dependancesDerivees",
                     "portsAttendus",
                     "rang",
-                    "aPlacer"
+                    "aPlacer",
+                    "ajouteeApresGo"
                   ],
                   "type": "object",
                   "properties": {
@@ -15650,9 +16465,12 @@
                     },
                     "aPlacer": {
                       "type": "boolean"
+                    },
+                    "ajouteeApresGo": {
+                      "type": "boolean"
                     }
                   },
-                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go)."
+                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go).\n`AjouteeApresGo` : étape corrective ajoutée pendant l'exécution."
                 }
               },
               "resolutions": {
@@ -15801,7 +16619,13 @@
                   "participantId",
                   "estApprobateur",
                   "estResponsableTechnique",
-                  "peutEditerContenu"
+                  "peutEditerContenu",
+                  "estAdmin",
+                  "peutAnnuler",
+                  "peutReporter",
+                  "peutSupprimer",
+                  "peutChangerPilote",
+                  "peutAjouterPersonne"
                 ],
                 "type": "object",
                 "properties": {
@@ -15826,8 +16650,27 @@
                   },
                   "peutEditerContenu": {
                     "type": "boolean"
+                  },
+                  "estAdmin": {
+                    "type": "boolean"
+                  },
+                  "peutAnnuler": {
+                    "type": "boolean"
+                  },
+                  "peutReporter": {
+                    "type": "boolean"
+                  },
+                  "peutSupprimer": {
+                    "type": "boolean"
+                  },
+                  "peutChangerPilote": {
+                    "type": "boolean"
+                  },
+                  "peutAjouterPersonne": {
+                    "type": "boolean"
                   }
-                }
+                },
+                "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`."
               },
               "estModele": {
                 "type": "boolean"
@@ -16423,16 +17266,133 @@
                   "RetourArriere",
                   "Reussie",
                   "AvecIncidents",
-                  "Repliee"
+                  "Repliee",
+                  "Annulee",
+                  "Reportee",
+                  "Echec"
                 ],
-                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
               },
               "echecsSurvenus": {
                 "type": "integer",
                 "format": "int32"
+              },
+              "annulation": {
+                "required": [
+                  "motif",
+                  "etatProduction",
+                  "par",
+                  "le"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "motif": {
+                    "type": "string"
+                  },
+                  "etatProduction": {
+                    "type": "string"
+                  },
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "description": "Annulation : `EtatProduction`, état laissé en production (renseigné si la MEP avait eu un Go)."
+              },
+              "report": {
+                "required": [
+                  "motif",
+                  "dateVisee",
+                  "par",
+                  "le"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "motif": {
+                    "type": "string"
+                  },
+                  "dateVisee": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date"
+                  },
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "description": "Report d'une MEP en préparation : `DateVisee` facultative (null : reportée sans date)."
+              },
+              "premierGo": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "pilotageSecours": {
+                "required": [
+                  "par",
+                  "le",
+                  "motif",
+                  "ancienPilote",
+                  "nouveauPilote"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "motif": {
+                    "type": "string"
+                  },
+                  "ancienPilote": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "nouveauPilote": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  }
+                },
+                "description": "Pilotage repris par un administrateur après le Go : `Par`, l'administrateur ; pilotes avant et après (noms)."
               }
             },
-            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec)."
+            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`."
           },
           "journal": {
             "type": "array",
@@ -16598,6 +17558,59 @@
           }
         },
         "description": "Résultat de la réinitialisation de la démonstration : MEP recréées et fichiers de pièces jointes supprimés."
+      },
+      "ReportDto": {
+        "required": [
+          "motif",
+          "dateVisee",
+          "par",
+          "le"
+        ],
+        "type": "object",
+        "properties": {
+          "motif": {
+            "type": "string"
+          },
+          "dateVisee": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "par": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "le": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Report d'une MEP en préparation : `DateVisee` facultative (null : reportée sans date)."
+      },
+      "ReportSaisie": {
+        "required": [
+          "motif"
+        ],
+        "type": "object",
+        "properties": {
+          "motif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dateVisee": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        }
       },
       "ResolutionTypeDto": {
         "required": [
@@ -16887,7 +17900,9 @@
           "repliees",
           "echecs",
           "echecsRepris",
-          "derniereMepId"
+          "derniereMepId",
+          "enEchec",
+          "annulees"
         ],
         "type": "object",
         "properties": {
@@ -16933,9 +17948,17 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "enEchec": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "annulees": {
+            "type": "integer",
+            "format": "int32"
           }
         },
-        "description": "Chiffres de l'historique : MEP au total et sur les 12 derniers mois, en cours (non clôturées), clôturées par issue, échecs\nd'étape sur ce système (repris ou non), dernière MEP lancée (Go donné ; à défaut la plus récente)."
+        "description": "Chiffres de l'historique : MEP au total et sur les 12 derniers mois, en cours (ni clôturées ni annulées), clôturées par\nissue (`EnEchec` : clôturées en échec), annulées, échecs d'étape sur ce système (repris ou non), dernière MEP lancée\n(Go donné ; à défaut la plus récente)."
       },
       "RetouchesCharteFichier": {
         "type": [
@@ -17367,7 +18390,11 @@
               "type",
               "sections",
               "etat",
-              "echecsSurvenus"
+              "echecsSurvenus",
+              "annulation",
+              "report",
+              "premierGo",
+              "pilotageSecours"
             ],
             "type": "object",
             "properties": {
@@ -17445,9 +18472,10 @@
                   "Execution",
                   "RetourArriere",
                   "Cloturee",
-                  "Recette"
+                  "Recette",
+                  "Annulee"
                 ],
-                "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin."
+                "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin. Phase.Annulee : MEP arrêtée depuis la\npréparation (motif obligatoire, voir Annulation? Mep.Annulation), terminale et en lecture seule comme Phase.Cloturee."
               },
               "echeanceRepli": {
                 "type": [
@@ -17460,6 +18488,7 @@
                 "enum": [
                   "Reussie",
                   "Repliee",
+                  "Echec",
                   null
                 ]
               },
@@ -17493,7 +18522,9 @@
               "cloture": {
                 "required": [
                   "le",
-                  "par"
+                  "par",
+                  "etatService",
+                  "referenceIncident"
                 ],
                 "type": [
                   "null",
@@ -17509,8 +18540,15 @@
                       "null",
                       "string"
                     ]
+                  },
+                  "etatService": {
+                    "type": "string"
+                  },
+                  "referenceIncident": {
+                    "type": "string"
                   }
-                }
+                },
+                "description": "Clôture : `EtatService` et `ReferenceIncident` ne sont renseignés que pour une clôture en échec."
               },
               "planRepli": {
                 "required": [
@@ -17887,7 +18925,8 @@
                     "dependancesDerivees",
                     "portsAttendus",
                     "rang",
-                    "aPlacer"
+                    "aPlacer",
+                    "ajouteeApresGo"
                   ],
                   "type": "object",
                   "properties": {
@@ -18132,9 +19171,12 @@
                     },
                     "aPlacer": {
                       "type": "boolean"
+                    },
+                    "ajouteeApresGo": {
+                      "type": "boolean"
                     }
                   },
-                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go)."
+                  "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go).\n`AjouteeApresGo` : étape corrective ajoutée pendant l'exécution."
                 }
               },
               "resolutions": {
@@ -18283,7 +19325,13 @@
                   "participantId",
                   "estApprobateur",
                   "estResponsableTechnique",
-                  "peutEditerContenu"
+                  "peutEditerContenu",
+                  "estAdmin",
+                  "peutAnnuler",
+                  "peutReporter",
+                  "peutSupprimer",
+                  "peutChangerPilote",
+                  "peutAjouterPersonne"
                 ],
                 "type": "object",
                 "properties": {
@@ -18308,8 +19356,27 @@
                   },
                   "peutEditerContenu": {
                     "type": "boolean"
+                  },
+                  "estAdmin": {
+                    "type": "boolean"
+                  },
+                  "peutAnnuler": {
+                    "type": "boolean"
+                  },
+                  "peutReporter": {
+                    "type": "boolean"
+                  },
+                  "peutSupprimer": {
+                    "type": "boolean"
+                  },
+                  "peutChangerPilote": {
+                    "type": "boolean"
+                  },
+                  "peutAjouterPersonne": {
+                    "type": "boolean"
                   }
-                }
+                },
+                "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`."
               },
               "estModele": {
                 "type": "boolean"
@@ -18905,16 +19972,133 @@
                   "RetourArriere",
                   "Reussie",
                   "AvecIncidents",
-                  "Repliee"
+                  "Repliee",
+                  "Annulee",
+                  "Reportee",
+                  "Echec"
                 ],
-                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
               },
               "echecsSurvenus": {
                 "type": "integer",
                 "format": "int32"
+              },
+              "annulation": {
+                "required": [
+                  "motif",
+                  "etatProduction",
+                  "par",
+                  "le"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "motif": {
+                    "type": "string"
+                  },
+                  "etatProduction": {
+                    "type": "string"
+                  },
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "description": "Annulation : `EtatProduction`, état laissé en production (renseigné si la MEP avait eu un Go)."
+              },
+              "report": {
+                "required": [
+                  "motif",
+                  "dateVisee",
+                  "par",
+                  "le"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "motif": {
+                    "type": "string"
+                  },
+                  "dateVisee": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date"
+                  },
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "description": "Report d'une MEP en préparation : `DateVisee` facultative (null : reportée sans date)."
+              },
+              "premierGo": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "pilotageSecours": {
+                "required": [
+                  "par",
+                  "le",
+                  "motif",
+                  "ancienPilote",
+                  "nouveauPilote"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "par": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "le": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "motif": {
+                    "type": "string"
+                  },
+                  "ancienPilote": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "nouveauPilote": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  }
+                },
+                "description": "Pilotage repris par un administrateur après le Go : `Par`, l'administrateur ; pilotes avant et après (noms)."
               }
             },
-            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec)."
+            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`."
           }
         },
         "description": "Section créée (`SectionId`) et MEP à jour."
@@ -19460,7 +20644,11 @@
                 "type",
                 "sections",
                 "etat",
-                "echecsSurvenus"
+                "echecsSurvenus",
+                "annulation",
+                "report",
+                "premierGo",
+                "pilotageSecours"
               ],
               "type": "object",
               "properties": {
@@ -19538,9 +20726,10 @@
                     "Execution",
                     "RetourArriere",
                     "Cloturee",
-                    "Recette"
+                    "Recette",
+                    "Annulee"
                   ],
-                  "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin."
+                  "description": "Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin. Phase.Annulee : MEP arrêtée depuis la\npréparation (motif obligatoire, voir Annulation? Mep.Annulation), terminale et en lecture seule comme Phase.Cloturee."
                 },
                 "echeanceRepli": {
                   "type": [
@@ -19553,6 +20742,7 @@
                   "enum": [
                     "Reussie",
                     "Repliee",
+                    "Echec",
                     null
                   ]
                 },
@@ -19586,7 +20776,9 @@
                 "cloture": {
                   "required": [
                     "le",
-                    "par"
+                    "par",
+                    "etatService",
+                    "referenceIncident"
                   ],
                   "type": [
                     "null",
@@ -19602,8 +20794,15 @@
                         "null",
                         "string"
                       ]
+                    },
+                    "etatService": {
+                      "type": "string"
+                    },
+                    "referenceIncident": {
+                      "type": "string"
                     }
-                  }
+                  },
+                  "description": "Clôture : `EtatService` et `ReferenceIncident` ne sont renseignés que pour une clôture en échec."
                 },
                 "planRepli": {
                   "required": [
@@ -19980,7 +21179,8 @@
                       "dependancesDerivees",
                       "portsAttendus",
                       "rang",
-                      "aPlacer"
+                      "aPlacer",
+                      "ajouteeApresGo"
                     ],
                     "type": "object",
                     "properties": {
@@ -20225,9 +21425,12 @@
                       },
                       "aPlacer": {
                         "type": "boolean"
+                      },
+                      "ajouteeApresGo": {
+                        "type": "boolean"
                       }
                     },
-                    "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go)."
+                    "description": "`Ligne` : profondeur dans le graphe (0 en haut) ; `Ordre` : position dans la ligne (0 à gauche). Lecture seule :\nrecalculés après chaque opération sur le graphe, ils servent d'indice d'ordre au rangement. `Dependances` : préalables\neffectifs (seuls utilisés par l'exécution) ; `DependancesDerivees` : ceux qui viennent des cercles de section (les autres\nsont directs). `SectionId` : section de l'étape (null : hors section) ; `PortsAttendus` : cercles de sortie d'autres\nsections que l'étape attend. `Fin` : test unitaire\n(le résultat attendu est l'instruction de test, `ResultatConstate` se saisit en terminant l'étape) ou simple vérification.\n`SauvegardeEmplacement` et `SauvegardeMethodeRecuperation` : étape de type Sauvegarde seulement.\n`ModeleEtapeId` : étape modèle dont l'étape est une copie (null : saisie dans la MEP).\n`Environnements` : environnements où agit l'étape, système par système.\n`Rang` : ordre gauche-droite choisi dans le graphe, partagé avec les sections du plan (0 : jamais réordonné).\n`APlacer` : retirée du graphe, dans le bac « Étapes à placer » (sans aucun lien ; bloque le Go).\n`AjouteeApresGo` : étape corrective ajoutée pendant l'exécution."
                   }
                 },
                 "resolutions": {
@@ -20376,7 +21579,13 @@
                     "participantId",
                     "estApprobateur",
                     "estResponsableTechnique",
-                    "peutEditerContenu"
+                    "peutEditerContenu",
+                    "estAdmin",
+                    "peutAnnuler",
+                    "peutReporter",
+                    "peutSupprimer",
+                    "peutChangerPilote",
+                    "peutAjouterPersonne"
                   ],
                   "type": "object",
                   "properties": {
@@ -20401,8 +21610,27 @@
                     },
                     "peutEditerContenu": {
                       "type": "boolean"
+                    },
+                    "estAdmin": {
+                      "type": "boolean"
+                    },
+                    "peutAnnuler": {
+                      "type": "boolean"
+                    },
+                    "peutReporter": {
+                      "type": "boolean"
+                    },
+                    "peutSupprimer": {
+                      "type": "boolean"
+                    },
+                    "peutChangerPilote": {
+                      "type": "boolean"
+                    },
+                    "peutAjouterPersonne": {
+                      "type": "boolean"
                     }
-                  }
+                  },
+                  "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`."
                 },
                 "estModele": {
                   "type": "boolean"
@@ -20998,16 +22226,133 @@
                     "RetourArriere",
                     "Reussie",
                     "AvecIncidents",
-                    "Repliee"
+                    "Repliee",
+                    "Annulee",
+                    "Reportee",
+                    "Echec"
                   ],
-                  "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+                  "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
                 },
                 "echecsSurvenus": {
                   "type": "integer",
                   "format": "int32"
+                },
+                "annulation": {
+                  "required": [
+                    "motif",
+                    "etatProduction",
+                    "par",
+                    "le"
+                  ],
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "properties": {
+                    "motif": {
+                      "type": "string"
+                    },
+                    "etatProduction": {
+                      "type": "string"
+                    },
+                    "par": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "le": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "description": "Annulation : `EtatProduction`, état laissé en production (renseigné si la MEP avait eu un Go)."
+                },
+                "report": {
+                  "required": [
+                    "motif",
+                    "dateVisee",
+                    "par",
+                    "le"
+                  ],
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "properties": {
+                    "motif": {
+                      "type": "string"
+                    },
+                    "dateVisee": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date"
+                    },
+                    "par": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "le": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "description": "Report d'une MEP en préparation : `DateVisee` facultative (null : reportée sans date)."
+                },
+                "premierGo": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                },
+                "pilotageSecours": {
+                  "required": [
+                    "par",
+                    "le",
+                    "motif",
+                    "ancienPilote",
+                    "nouveauPilote"
+                  ],
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "properties": {
+                    "par": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "le": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "motif": {
+                      "type": "string"
+                    },
+                    "ancienPilote": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "nouveauPilote": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  },
+                  "description": "Pilotage repris par un administrateur après le Go : `Par`, l'administrateur ; pilotes avant et après (noms)."
                 }
               },
-              "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec)."
+              "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`."
             }
           },
           "prevues": {
@@ -21168,6 +22513,7 @@
                   "enum": [
                     "Reussie",
                     "Repliee",
+                    "Echec",
                     null
                   ]
                 },
@@ -21179,9 +22525,12 @@
                     "RetourArriere",
                     "Reussie",
                     "AvecIncidents",
-                    "Repliee"
+                    "Repliee",
+                    "Annulee",
+                    "Reportee",
+                    "Echec"
                   ],
-                  "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+                  "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
                 },
                 "clotureeLe": {
                   "type": "string",
@@ -21204,6 +22553,28 @@
         },
         "description": "Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur\navancement par le navigateur ; MEP prévues aujourd'hui ou demain (date annoncée) et la prochaine à venir ; MEP clôturées\ndepuis moins de 24 heures. `Maintenant` : heure du serveur."
       },
+      "SuppressionMepSaisie": {
+        "required": [
+          "motif",
+          "nom"
+        ],
+        "type": "object",
+        "properties": {
+          "motif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Suppression définitive : motif, et nom de la MEP saisi pour confirmer (outil et version cible)."
+      },
       "SyntheseRapportDto": {
         "required": [
           "etapes",
@@ -21218,7 +22589,10 @@
           "recetteTests",
           "recetteConformes",
           "recetteEchecs",
-          "retourArriere"
+          "retourArriere",
+          "premierGo",
+          "retoursEnPreparation",
+          "etapesAjouteesApresGo"
         ],
         "type": "object",
         "properties": {
@@ -21281,9 +22655,24 @@
           },
           "retourArriere": {
             "type": "boolean"
+          },
+          "premierGo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "retoursEnPreparation": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "etapesAjouteesApresGo": {
+            "type": "integer",
+            "format": "int32"
           }
         },
-        "description": "Chiffres du rapport : étapes du déploiement, Go et fin de l'exécution du déploiement (dernière étape terminée), durées réelle\net prévue (plus long chemin des durées estimées, 0 sans durées), échecs d'étape (tous plans) et ceux repris avec succès,\nrésolutions exécutées, tests de recette, retour arrière déclenché."
+        "description": "Chiffres du rapport : étapes du déploiement, Go et fin de l'exécution du déploiement (dernière étape terminée), durées réelle\net prévue (plus long chemin des durées estimées, 0 sans durées), échecs d'étape (tous plans) et ceux repris avec succès,\nrésolutions exécutées, tests de recette, retour arrière déclenché. `PremierGo` : premier Go, s'il diffère du dernier\n(retour en préparation entre-temps) ; `RetoursEnPreparation` et `EtapesAjouteesApresGo` (étapes correctives)."
       },
       "SystemeCatalogueDto": {
         "required": [

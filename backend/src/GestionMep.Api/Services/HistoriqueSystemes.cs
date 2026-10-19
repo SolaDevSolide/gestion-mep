@@ -73,12 +73,16 @@ public static class HistoriqueSystemes
         }).ToList();
         var tous = lignes.SelectMany(l => l.Echecs).ToList();
         var resume = new ResumeHistoriqueDto(lignes.Count, lignes.Count(l => l.Jour > aujourdhui.AddMonths(-12)),
-            lignes.Count(l => l.Etat is not (EtatMep.Reussie or EtatMep.AvecIncidents or EtatMep.Repliee)),
-            lignes.Count(l => l.Etat is EtatMep.Reussie or EtatMep.AvecIncidents or EtatMep.Repliee),
+            lignes.Count(l => !Terminee(l.Etat)),
+            lignes.Count(l => l.Etat is EtatMep.Reussie or EtatMep.AvecIncidents or EtatMep.Repliee or EtatMep.Echec),
             lignes.Count(l => l.Etat == EtatMep.Reussie), lignes.Count(l => l.Etat == EtatMep.AvecIncidents), lignes.Count(l => l.Etat == EtatMep.Repliee),
-            tous.Count, tous.Count(e => e.Repris), Derniere(meps)?.Id);
+            tous.Count, tous.Count(e => e.Repris), Derniere(meps)?.Id,
+            lignes.Count(l => l.Etat == EtatMep.Echec), lignes.Count(l => l.Etat == EtatMep.Annulee));
         return new HistoriqueSystemeDto(systeme.Id, systeme.Nom, resume, lignes);
     }
+
+    /// <summary>MEP clôturée (quelle que soit son issue) ou annulée : elle n'est plus en cours.</summary>
+    private static bool Terminee(EtatMep e) => e is EtatMep.Reussie or EtatMep.AvecIncidents or EtatMep.Repliee or EtatMep.Echec or EtatMep.Annulee;
 
     /// <summary>Activité de chaque système du catalogue (même ceux sans MEP) : nombre de MEP et dernière MEP lancée.</summary>
     public static async Task<List<ActiviteSystemeDto>> Activite(MepDbContext db)

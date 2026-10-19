@@ -1,10 +1,16 @@
 namespace GestionMep.Domain;
 
-/// <summary>Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin.</summary>
-public enum Phase { Preparation, Execution, RetourArriere, Cloturee, Recette }
+/// <summary>
+/// Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin. <see cref="Annulee"/> : MEP arrêtée depuis la
+/// préparation (motif obligatoire, voir <see cref="Mep.Annulation"/>), terminale et en lecture seule comme <see cref="Cloturee"/>.
+/// </summary>
+public enum Phase { Preparation, Execution, RetourArriere, Cloturee, Recette, Annulee }
 
-/// <summary>Issue d'une MEP clôturée.</summary>
-public enum IssueMep { Reussie, Repliee }
+/// <summary>
+/// Issue d'une MEP clôturée. Stockée en entier : toute nouvelle valeur s'ajoute à la fin. <see cref="Echec"/> : ni la recette
+/// ni le retour arrière n'ont rétabli le service (état laissé en production : <see cref="Mep.EtatService"/>).
+/// </summary>
+public enum IssueMep { Reussie, Repliee, Echec }
 
 /// <summary>Plan auquel appartient une étape : le déploiement, ou la procédure de retour arrière.</summary>
 public enum TypePlan { Deploiement, RetourArriere }
@@ -141,6 +147,22 @@ public class Mep
     public string RetourArriereMotif { get; set; } = "";
     public DateTimeOffset? ClotureeLe { get; set; }
     public Guid? ClotureeParId { get; set; }
+    /// <summary>Clôture en échec : état du service laissé en production (obligatoire), vide pour les autres issues.</summary>
+    public string EtatService { get; set; } = "";
+    /// <summary>Clôture en échec : référence de l'incident ouvert (facultative).</summary>
+    public string ReferenceIncident { get; set; } = "";
+    /// <summary>MEP annulée (<see cref="Phase.Annulee"/>) : par qui, quand, pourquoi et état laissé en production.</summary>
+    public Annulation? Annulation { get; set; }
+    /// <summary>
+    /// Report d'une MEP en préparation (motif, date visée facultative) : la phase reste <see cref="Phase.Preparation"/>, le plan
+    /// reste modifiable. Levé par « Reprendre la préparation » ou par le Go.
+    /// </summary>
+    public Report? Report { get; set; }
+    /// <summary>
+    /// Pilotage de secours par un administrateur après le Go (pilote et suppléants injoignables) : affiché à tous jusqu'à la
+    /// clôture. Effacé si le pilotage est ensuite passé normalement.
+    /// </summary>
+    public PilotageSecours? PilotageSecours { get; set; }
 
     /// <summary>
     /// Développeurs / sachants de la MEP (le pilote peut en faire partie) : ils ont les droits d'édition du contenu et sont à appeler
@@ -171,7 +193,10 @@ public class Mep
     public Guid? ProcedureRelueParId { get; set; }
     public DateTimeOffset? ProcedureRelueLe { get; set; }
     public Guid? DemarrageAutoriseParId { get; set; }
+    /// <summary>Dernier Go (un retour en préparation suivi d'un nouveau Go le remplace).</summary>
     public DateTimeOffset? DemarrageAutoriseLe { get; set; }
+    /// <summary>Premier Go de la MEP, gardé après un retour en préparation (null : jamais lancée).</summary>
+    public DateTimeOffset? PremierGoLe { get; set; }
 
     public DateTimeOffset CreeLe { get; set; } = DateTimeOffset.UtcNow;
     public Guid? CreeParUtilisateurId { get; set; }
@@ -206,6 +231,35 @@ public class Mep
 
     /// <summary>Toutes les étapes, triées par plan, ligne et ordre.</summary>
     public IEnumerable<Etape> EtapesTriees() => Etapes.OrderBy(e => e.Plan).ThenBy(e => e.Ligne).ThenBy(e => e.Ordre);
+}
+
+/// <summary>Annulation d'une MEP (depuis la préparation).</summary>
+public class Annulation
+{
+    public string Motif { get; set; } = "";
+    /// <summary>État laissé en production : obligatoire si la MEP a déjà eu un Go (vide sinon).</summary>
+    public string EtatProduction { get; set; } = "";
+    public Guid? ParId { get; set; }
+    public DateTimeOffset Le { get; set; }
+}
+
+/// <summary>Report d'une MEP en préparation : motif et date visée facultative (indicative, le Go reste la décision du pilote).</summary>
+public class Report
+{
+    public string Motif { get; set; } = "";
+    public DateOnly? DateVisee { get; set; }
+    public Guid? ParId { get; set; }
+    public DateTimeOffset Le { get; set; }
+}
+
+/// <summary>Pilotage repris par un administrateur après le Go : qui, quand, pourquoi, et les participants pilotes avant et après.</summary>
+public class PilotageSecours
+{
+    public Guid? ParId { get; set; }
+    public DateTimeOffset Le { get; set; }
+    public string Motif { get; set; } = "";
+    public Guid? AncienPiloteId { get; set; }
+    public Guid? NouveauPiloteId { get; set; }
 }
 
 public class PlanRepli
@@ -558,6 +612,8 @@ public class Etape
     /// étape seule dans son plan, ou posée à part, reste dans le graphe.
     /// </summary>
     public bool APlacer { get; set; }
+    /// <summary>Étape corrective ajoutée pendant l'exécution, après le Go (signalée dans le plan et dans le rapport de fin).</summary>
+    public bool AjouteeApresGo { get; set; }
     public string Action { get; set; } = "";
     /// <summary>Systèmes de la MEP concernés par l'étape (un ou plusieurs).</summary>
     public List<Guid> SystemeIds { get; set; } = [];

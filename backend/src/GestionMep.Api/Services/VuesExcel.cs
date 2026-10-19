@@ -27,6 +27,7 @@ public static partial class VuesExcel
         Phase.Recette => "Recette",
         Phase.RetourArriere => "Retour arrière",
         Phase.Cloturee => "Clôturée",
+        Phase.Annulee => "Annulée",
         _ => p.ToString(),
     };
 
@@ -36,6 +37,8 @@ public static partial class VuesExcel
         EtatMep.Reussie => "Clôturée : réussie",
         EtatMep.AvecIncidents => "Clôturée : réussie avec incidents",
         EtatMep.Repliee => "Clôturée : repliée",
+        EtatMep.Echec => "Clôturée : échec",
+        EtatMep.Reportee => "Reportée",
         _ => Libelle(mep.Phase),
     };
 

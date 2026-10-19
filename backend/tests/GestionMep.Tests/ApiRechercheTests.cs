@@ -96,9 +96,9 @@ public class ApiRechercheTests : IDisposable
         Assert.Empty((await Ok(await bob.GetAsync("/api/meps?du=2000-01-01&au=2000-12-31"))).EnumerateArray());
         Assert.Contains(DonneesDemo.OutilHistoriqueReussie, Outils(await Ok(await bob.GetAsync("/api/meps?recherche=portail&etat=reussie"))));
 
-        var refus = await bob.GetAsync("/api/meps?etat=annulee");
+        var refus = await bob.GetAsync("/api/meps?etat=abandonnee");
         Assert.Equal(HttpStatusCode.BadRequest, refus.StatusCode);
-        Assert.Contains("État « annulee » inconnu", await refus.Content.ReadAsStringAsync());
+        Assert.Contains("État « abandonnee » inconnu", await refus.Content.ReadAsStringAsync());
     }
 
     [Fact]
@@ -195,8 +195,9 @@ public class ApiRechercheTests : IDisposable
         var (code, sortie, _) = await Cli("meps", "lister", "--systeme", "bdd", "--echec", "--personne", "alice", "--role", "pilote", "--json");
         Assert.Equal(0, code);
         var meps = JsonDocument.Parse(sortie).RootElement.EnumerateArray().Select(m => m.GetProperty("outil").GetString()!).ToList();
-        // Portail RH : migration réparée par une résolution type ; Batch de nuit comptable : migration reprise, il y a sept semaines.
-        Assert.Equal([DonneesDemo.OutilRecette, DonneesDemo.OutilHistoriqueIncidents], meps);
+        // Portail RH : migration réparée par une résolution type ; Archivage des courriers : restauration en échec, Alice pilote en
+        // secours ; Batch de nuit comptable : migration reprise, il y a sept semaines.
+        Assert.Equal([DonneesDemo.OutilRecette, DonneesDemo.OutilEchec, DonneesDemo.OutilHistoriqueIncidents], meps);
 
         (code, sortie, _) = await Cli("meps", "lister", "--etat", "repliee", "--du", "2000-01-01");
         Assert.Equal(0, code);

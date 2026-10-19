@@ -113,8 +113,9 @@ public static partial class LigneDeCommande
                                   [--du AAAA-MM-JJ] [--au AAAA-MM-JJ] [--type complete|simplifiee] [--phase <phase>]
                                   [--modeles] [--excel fichier.xlsx]
                                                               Mêmes filtres que la page d'accueil, les plus récentes d'abord.
-                                                              États : preparation, execution, recette, retour-arriere, reussie,
-                                                              incidents, repliee ; rôles : pilote, suppleant, responsable,
+                                                              États : preparation, reportee, execution, recette,
+                                                              retour-arriere, reussie, incidents, repliee, echec, annulee ;
+                                                              rôles : pilote, suppleant, responsable,
                                                               executant, approbateur ; --echec : un échec d'étape survenu (sur
                                                               les systèmes filtrés) ; période sur le jour du Go (à défaut, de
                                                               la création) ; --excel : la liste filtrée et ses échecs en Excel

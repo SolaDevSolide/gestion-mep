@@ -15,14 +15,18 @@ public static partial class Regles
 
         if (etape.Plan == TypePlan.Deploiement)
         {
-            if (etape.Etat == EtatEtape.Reussie && mep.Phase is Phase.RetourArriere or Phase.Cloturee or Phase.Recette)
+            if (etape.Etat == EtatEtape.Reussie && mep.Phase is Phase.RetourArriere or Phase.Cloturee or Phase.Recette or Phase.Annulee)
                 return new(StatutDisponibilite.Terminee, "Terminée");
-            if (mep.Phase == Phase.RetourArriere || mep.Issue == IssueMep.Repliee)
+            if (RetourArriereEffectue(mep))
                 return new(StatutDisponibilite.RetourArriere, "Retour arrière déclenché");
             // L'échéance, facultative, ne s'applique ni sans plan de retour arrière ni une fois le point de non-retour franchi.
-            if (EcheanceApplicable(mep) && maintenant >= mep.EcheanceRepli && mep.Phase != Phase.Cloturee)
+            if (EcheanceApplicable(mep) && maintenant >= mep.EcheanceRepli && !EstTerminee(mep))
                 return new(StatutDisponibilite.RetourArriere, "RETOUR ARRIÈRE");
         }
+
+        // MEP annulée : plus rien ne s'exécute.
+        if (mep.Phase == Phase.Annulee && etape.Etat is not (EtatEtape.Reussie or EtatEtape.Echec))
+            return new(StatutDisponibilite.Attend, "MEP annulée");
 
         if (string.IsNullOrWhiteSpace(etape.Action) || etape.SystemeIds.Count == 0 || (etape.Criticite is null && !EstSimplifiee(mep)))
             return new(StatutDisponibilite.FicheACompleter, "Fiche à compléter");

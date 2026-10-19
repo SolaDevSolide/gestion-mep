@@ -171,9 +171,9 @@ public class ReglesTests
         var m = Demo();
         Go(m);
         Regles.Demarrer(m, E(m, "E0004"), Alice, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.RevenirEnPreparation(m, Alice));
+        Assert.Throws<RegleMetierException>(() => Regles.RevenirEnPreparation(m, Alice, "Étape mal écrite"));
         Regles.Terminer(m, E(m, "E0004"), EtatEtape.Reussie, "ok", true, Alice, Maintenant);
-        Regles.RevenirEnPreparation(m, Alice);
+        Regles.RevenirEnPreparation(m, Alice, "Étape mal écrite");
         Assert.Equal(EtatEtape.Reussie, E(m, "E0004").Etat);
     }
 
