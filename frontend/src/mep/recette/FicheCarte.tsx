@@ -36,7 +36,7 @@ export function FicheCarte({ fiche }: { fiche: FicheRecette }) {
           {bilan &&
             (echecs > 0 ? (
               <StatusPill ton="danger" icone={XCircle} taille="sm">
-                {echecs} en échec
+                {echecs} non conforme{echecs > 1 ? 's' : ''}
               </StatusPill>
             ) : terminee ? (
               <StatusPill ton="ok" icone={Check} taille="sm">

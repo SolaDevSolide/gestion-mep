@@ -36,7 +36,7 @@ function EtapeTestLigne({
   async function valider(resultat: 'Conforme' | 'Echec') {
     const ok = await run(
       () => api.resultatEtapeTest(mep.id, fiche.id, etape.id, resultat, observation.trim()),
-      resultat === 'Conforme' ? `Étape ${numero} conforme.` : `Étape ${numero} en échec.`,
+      resultat === 'Conforme' ? `Étape ${numero} conforme.` : `Étape ${numero} non conforme.`,
     );
     if (ok) setObservation('');
   }

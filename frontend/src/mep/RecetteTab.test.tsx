@@ -369,7 +369,7 @@ describe('Onglet Recette', () => {
       });
       rendre(enRecette([f]));
       expect(screen.getAllByText(/1\/3 conforme/).length).toBeGreaterThan(0);
-      expect(screen.getByText('Une étape de test est en échec')).toBeInTheDocument();
+      expect(screen.getByText('Une étape de test est non conforme')).toBeInTheDocument();
     });
   });
 

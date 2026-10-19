@@ -232,7 +232,11 @@ function Rapport({ r }: { r: RapportFin }) {
           <Chiffre
             titre="Recette"
             valeur={s.recetteTests === 0 ? '—' : `${s.recetteConformes}/${s.recetteTests}`}
-            detail={s.recetteTests === 0 ? 'aucun test' : `conformes · ${s.recetteEchecs} en échec`}
+            detail={
+              s.recetteTests === 0
+                ? 'aucun test'
+                : `conformes · ${s.recetteEchecs} non conforme${s.recetteEchecs > 1 ? 's' : ''}`
+            }
           />
         </div>
         {mep.issue === 'Echec' && mep.cloture && (
