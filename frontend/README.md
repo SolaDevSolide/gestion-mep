@@ -29,7 +29,7 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 | `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version », repli temporaire du menu latéral (`menuLateral.ts`)                                                   |
 | `src/charte`          | Charte visuelle : calculs des couleurs (`charte.ts`, `couleurs.ts`, mêmes résultats que le serveur), sélecteur de couleur, aperçus                                                |
 | `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                                                                                                |
-| `src/test`            | Configuration Vitest et fabrique de données de test                                                                                                                               |
+| `src/test`            | Configuration Vitest (les données partagées de `referentiels.ts` sont oubliées après chaque test : l'ordre des tests est indifférent) et fabrique de données de test              |
 
 Dans `src/mep/graphe`, `GrapheLibre.tsx` s'appuie sur `BarreOutilsGraphe.tsx` (barre d'outils), `MiniCarte.tsx`, `useMontageAnime.ts` (mouvement des nœuds après un rangement) et `noeudsRf.ts` (nœuds React Flow) ; `moteurElk.ts` exécute ELK dans un Web Worker (délai, reprise après échec) et `petitEcran.ts` règle la vue compacte (fenêtre de moins de 800 px de haut).
 
@@ -102,5 +102,9 @@ Le serveur sert la charte en vigueur dans `/charte.css` (lien `<link id="charte"
 
 - Couleurs, ombres et rayons sont des **jetons CSS** définis dans `src/index.css` (`--bg`, `--surface`, `--fg`, `--accent`…), redéfinis pour le thème sombre (`:root.dark`). La charte visuelle les remplace par `/charte.css` : un nouveau jeton qui dépend de la primaire, de la secondaire ou de la tertiaire doit aussi être calculé dans `charte/charte.ts` et `CharteVisuelle.cs`. Le menu latéral utilise ses propres jetons (`--nav-*`), la page de connexion les siens (`--connexion-*`). Les tons de statut (`ok`, `run`, `wait`, `danger`, `warn`, `rollback`…) ont chacun un fond, un texte, une bordure et une couleur pleine.
 - Les classes Tailwind utilisent ces jetons (`bg-surface`, `text-fg-muted`). Pas de couleur en dur.
-- `ui/cn.ts` fusionne les classes (`clsx` + `tailwind-merge`).
+- Texte sur une couleur pleine : le jeton apparié (`bg-ok-solid text-ok-solid-fg`, `TON[ton].texteSolide`), jamais `text-white`. `--X-solid-fg` vaut blanc ou encre selon le contraste (`texteSur()` de `charte/charte.ts`, recalculé par la charte) ; `text-ok-text` et `text-warn-text` écrivent le vert et l'orange sur un fond clair. Couleur d'une personne : `stylePersonne(nom)` de `ui/Avatar.tsx`. Voile des dialogues : `bg-voile`.
+- Tailles de texte : l'échelle Tailwind complétée de `text-2xs` (11 px, le minimum), `text-ui` (13 px) et `text-md` (15 px), définies dans `@theme` ; pas de `text-[…px]`.
+- Étages (z-index) : `z-graphe` (graphe plein écran) < `z-panneau` (tiroir, espace d'une étape) < `z-dialogue` < `z-menu` (menus, info-bulles, ouverts au-dessus d'un dialogue) < `z-toast` (notifications, dialogue « session expirée ») ; pas de `z-[…]`. Les classes numériques de Tailwind (`z-1` à `z-40`) restent pour ordonner les éléments d'une page ou d'un composant (en-têtes collants, commandes du graphe), jamais au-dessus d'un étage.
+- `charte/echelles.test.ts` échoue si `text-[…px]`, `text-white`, `bg-black/…`, une couleur nommée de Tailwind ou un `z-[…]` revient dans le code (hors aperçu et sélecteur de la charte, qui dessinent sur la couleur choisie).
+- `ui/cn.ts` fusionne les classes (`clsx` + `tailwind-merge`, qui connaît les tailles et les étages ajoutés : `text-ui` n'efface pas `text-fg`).
 - Le thème (clair, sombre, système) est géré par `theme.tsx`.
