@@ -9,9 +9,11 @@ lancée en administrateur.
                                       retéléchargée
 
 Une fois installé, le script est aussi dans C:\Program Files\GestionMep\installer.ps1 (mises à jour, retour à une version
-précédente). Mise à jour : sauvegarde de la base et des pièces jointes, arrêt, bascule, démarrage, contrôle de santé ; si
-la nouvelle version ne démarre pas, retour automatique à la précédente avec ses données. PostgreSQL n'est pas installé
-par ce script.
+précédente). Mise à jour : arrêt, sauvegarde de la base et des pièces jointes, bascule, migration de la base (attendue
+jusqu'au bout), démarrage, contrôle « prête » ; si la nouvelle version ne migre pas ou ne démarre pas, retour automatique
+à la précédente avec ses données. PostgreSQL n'est pas installé par ce script.
+Variables : GESTION_MEP_ATTENTE_SANTE (secondes d'attente du démarrage, 600 par défaut), GESTION_MEP_DEPOT (dépôt GitHub
+des versions, pour un miroir).
 #>
 [CmdletBinding()]
 param(
@@ -27,7 +29,7 @@ $Donnees = Join-Path $env:ProgramData 'GestionMep'
 $Conf = Join-Path $Donnees 'gestion-mep.conf'
 $Service = 'GestionMep'
 $Compte = 'NT AUTHORITY\LocalService'
-$AttenteSante = if ($env:GESTION_MEP_ATTENTE_SANTE) { [int]$env:GESTION_MEP_ATTENTE_SANTE } else { 180 }
+$AttenteSante = if ($env:GESTION_MEP_ATTENTE_SANTE) { [int]$env:GESTION_MEP_ATTENTE_SANTE } else { 600 }
 $VersionsGardees = 3
 
 # Accents lisibles : console en UTF-8, pour ce script comme pour les commandes de l'application qu'il lance.
@@ -175,6 +177,13 @@ try {
         & sc.exe failure $Service reset= 86400 actions= restart/10000/restart/10000/restart/60000 | Out-Null
         Info "Service $Service créé (compte $Compte)."
     }
+    # Source du journal d'événements de l'application : le compte LocalService n'a pas le droit de la créer, et sans elle
+    # l'application n'écrit rien dans l'Observateur d'événements (mot de passe provisoire de l'administrateur compris).
+    $sourceJournal = 'GestionMep.Api'
+    if (-not [Diagnostics.EventLog]::SourceExists($sourceJournal)) {
+        [Diagnostics.EventLog]::CreateEventSource($sourceJournal, 'Application')
+        Info "Source $sourceJournal créée dans le journal Application de l'Observateur d'événements."
+    }
 
     $config = Get-Content $Conf
     if ($nouvelleConf -or ($config | Where-Object { $_ -match '^BASE_DE_DONNEES=.*Password=;?\s*$' })) {
@@ -190,12 +199,14 @@ try {
     }
 
     $exe = Join-Path $actuelle 'GestionMep.Api.exe'
+    # Attend que l'application soit prête (sonde « prête » : base joignable et au bon schéma ; une version antérieure ne
+    # connaît que --sante et fait le premier contrôle).
     function Sante {
         $limite = (Get-Date).AddSeconds($AttenteSante)
         while ((Get-Date) -lt $limite) {
             $etat = (Get-Service $Service).Status
             if ($etat -eq 'Running') {
-                & $exe --sante | Out-Null
+                & $exe --sante --prete | Out-Null
                 if ($LASTEXITCODE -eq 0) { return $true }
             }
             elseif ($etat -eq 'Stopped') { return $false }
@@ -225,10 +236,21 @@ try {
 
     Stop-Service $Service -ErrorAction SilentlyContinue
     Basculer $Cible
-    Etape "Démarrage de la version $Nouvelle"
-    Info 'Migration de la base si nécessaire, puis vérification que l''application répond (3 minutes au plus).'
-    Start-Service $Service -ErrorAction SilentlyContinue
-    if (Sante) {
+    # Migration hors du service (service arrêté) : attendue jusqu'au bout, quelle que soit sa durée. Lancée par le service,
+    # elle dépasserait le délai de démarrage de Windows (environ 30 secondes) sur une grosse base.
+    $migree = $true
+    if ($Sauvegarde) {
+        Etape "Migration de la base par la version $Nouvelle"
+        Info 'Avec sa propre sauvegarde automatique ; attendue jusqu''au bout, quelle que soit sa durée.'
+        & $exe migrer | ForEach-Object { Write-Host "     $_" }
+        $migree = $LASTEXITCODE -eq 0
+    }
+    if ($migree) {
+        Etape "Démarrage de la version $Nouvelle"
+        Info "Vérification que l'application est prête ($([int]($AttenteSante / 60)) minutes au plus, GESTION_MEP_ATTENTE_SANTE pour changer)."
+        Start-Service $Service -ErrorAction SilentlyContinue
+    }
+    if ($migree -and (Sante)) {
         Succes "Version $Nouvelle installée et en marche."
         Get-ChildItem (Join-Path $Racine 'versions') -Directory | Sort-Object LastWriteTime -Descending |
             Where-Object { $_.FullName -ne $Cible -and $_.FullName -ne $Precedente } |
@@ -246,19 +268,24 @@ try {
         exit 0
     }
 
+    $raison = if ($migree) { "la version $Nouvelle ne démarre pas" } else { "la migration de la base par la version $Nouvelle a échoué" }
     if (-not $Sauvegarde) {
-        Erreur "la version $Nouvelle ne démarre pas : voir l'observateur d'événements (journal Application) et $Conf."
+        Erreur "$raison : voir l'observateur d'événements (journal Application) et $Conf."
     }
     Etape 'Retour à la version précédente'
-    Attention "La version $Nouvelle ne démarre pas : retour à la version précédente et à ses données."
+    Attention "$raison : retour à la version précédente et à ses données."
     Stop-Service $Service -ErrorAction SilentlyContinue
     Basculer $Precedente
     & $exe sauvegardes restaurer $Sauvegarde --oui
+    if ($LASTEXITCODE -ne 0) {
+        # Base peut-être déjà migrée : l'ancienne version ne doit pas tourner dessus.
+        Erreur "$raison, et la restauration de la sauvegarde a échoué (message ci-dessus) : service laissé arrêté. Version précédente remise ; recharger à la main « gestion-mep sauvegardes restaurer $Sauvegarde --oui », puis « Start-Service $Service »."
+    }
     Start-Service $Service -ErrorAction SilentlyContinue
     if (Sante) {
-        Erreur "la version $Nouvelle n'a pas démarré : version précédente remise, avec les données d'avant la mise à jour. Voir l'observateur d'événements avant de réessayer."
+        Erreur "$raison : version précédente remise, avec les données d'avant la mise à jour (sauvegarde rechargée). Voir l'observateur d'événements avant de réessayer."
     }
-    Erreur "la version $Nouvelle n'a pas démarré et la version précédente non plus : voir docs/Installer-sans-Docker.md ; sauvegarde d'avant la mise à jour : $Sauvegarde"
+    Erreur "$raison, et la version précédente ne démarre pas non plus (données d'avant la mise à jour pourtant rechargées) : voir docs/Installer-sans-Docker.md ; sauvegarde d'avant la mise à jour : $Sauvegarde"
 }
 finally {
     Remove-Item -Recurse -Force $Travail -ErrorAction SilentlyContinue
