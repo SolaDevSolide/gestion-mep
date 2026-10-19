@@ -11,3 +11,5 @@ TestResults/
 backend/src/GestionMep.Api/pieces-jointes/
 backend/src/GestionMep.Api/sauvegardes/
 frontend/*.tsbuildinfo
+frontend/test-results/
+frontend/playwright-report/
