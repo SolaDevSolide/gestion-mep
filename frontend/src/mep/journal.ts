@@ -34,6 +34,11 @@ export interface JournalLu {
   /** false tant que les événements affichés sont ceux de filtres précédents (les nouveaux arrivent). */
   aJour: boolean;
   erreur: string;
+  /** Erreur reçue telle quelle (null sans erreur), pour `ErreurChargement`. */
+  echec: unknown;
+  /** Relit la première page (« Réessayer ») ; `rechargement` : relecture en cours. */
+  recharger: () => void;
+  rechargement: boolean;
   /** Des événements plus anciens restent à lire. */
   suite: boolean;
   chargementSuite: boolean;
@@ -62,8 +67,9 @@ export function useJournal(
   const recherche = filtre.recherche?.trim() ?? '';
   const cle = `${mepId}\n${type}\n${recherche}\n${limite}`;
   const [etat, setEtat] = useState<Etat | null>(null);
-  const [erreur, setErreur] = useState<{ cle: string; message: string } | null>(null);
+  const [erreur, setErreur] = useState<{ cle: string; echec: unknown } | null>(null);
   const [chargementSuite, setChargementSuite] = useState(false);
+  const [rechargement, setRechargement] = useState(false);
 
   const cleRef = useRef(cle);
   const etatRef = useRef<Etat | null>(null);
@@ -93,7 +99,7 @@ export function useJournal(
         setErreur(null);
       } catch (e) {
         if (cleRef.current === pour)
-          setErreur({ cle: pour, message: e instanceof Error ? e.message : 'Chargement du journal impossible.' });
+          setErreur({ cle: pour, echec: e ?? new Error('Chargement du journal impossible.') });
       }
     },
     [mepId, type, recherche, limite, ecrire],
@@ -138,18 +144,28 @@ export function useJournal(
         });
       } catch (err) {
         if (cleRef.current === pour)
-          setErreur({ cle: pour, message: err instanceof Error ? err.message : 'Chargement du journal impossible.' });
+          setErreur({ cle: pour, echec: err ?? new Error('Chargement du journal impossible.') });
       } finally {
         setChargementSuite(false);
       }
     });
   }, [mepId, type, recherche, limite, enFile, ecrire]);
 
+  const recharger = useCallback(() => {
+    const pour = cleRef.current;
+    setRechargement(true);
+    enFile(() => premierePage(pour).finally(() => setRechargement(false)));
+  }, [enFile, premierePage]);
+
   const courant = etat && etat.mepId === mepId ? etat : null;
+  const echec = erreur?.cle === cle ? erreur.echec : null;
   return {
     evenements: courant?.evenements ?? null,
     aJour: courant?.cle === cle,
-    erreur: erreur?.cle === cle ? erreur.message : '',
+    erreur: echec === null ? '' : echec instanceof Error ? echec.message : 'Chargement du journal impossible.',
+    echec,
+    recharger,
+    rechargement,
     suite: courant?.cle === cle && courant.suite,
     chargementSuite,
     afficherPlus,

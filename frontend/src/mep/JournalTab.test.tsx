@@ -1,12 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type * as moduleApi from '../api';
 import { api } from '../api';
 import { telecharger } from '../telechargement';
 import JournalTab from './JournalTab';
 
 vi.mock('../api', async (importOriginal) => {
-  const { api: vraie } = await importOriginal<{ api: typeof api }>();
-  return { api: { journal: vi.fn(), testsUnitaires: vi.fn(), urlExportJournal: vraie.urlExportJournal } };
+  const vrai = await importOriginal<typeof moduleApi>();
+  return {
+    ApiError: vrai.ApiError,
+    api: { journal: vi.fn(), testsUnitaires: vi.fn(), urlExportJournal: vrai.api.urlExportJournal },
+  };
 });
 vi.mock('../telechargement', () => ({ telecharger: vi.fn() }));
 
@@ -66,5 +70,27 @@ describe('JournalTab', () => {
     expect(await screen.findByText('Événement 49')).toBeInTheDocument();
     // Dernière page : plus de bouton.
     expect(screen.queryByRole('button', { name: 'Afficher plus' })).not.toBeInTheDocument();
+  });
+
+  it('montre une erreur de chargement avec « Réessayer », qui relit la première page', async () => {
+    vi.mocked(api.testsUnitaires).mockResolvedValue({ faits: 0, nonFaits: 0, verifications: 0, tests: [] });
+    vi.mocked(api.journal).mockReset();
+    vi.mocked(api.journal).mockRejectedValueOnce(new Error('Erreur 500.'));
+    render(<JournalTab mepId="m1" tick={0} />);
+    expect(await screen.findByText('Impossible de charger le journal')).toBeInTheDocument();
+    vi.mocked(api.journal).mockResolvedValueOnce([
+      {
+        id: 1,
+        quand: '2026-10-09T20:00:00Z',
+        auteur: 'Bob',
+        type: 'mep.creee',
+        detail: 'MEP créée',
+        auteurLogin: null,
+      },
+    ]);
+    await userEvent.click(screen.getByRole('button', { name: /Réessayer/ }));
+    expect(await screen.findByText('MEP créée')).toBeInTheDocument();
+    expect(screen.queryByText('Impossible de charger le journal')).not.toBeInTheDocument();
+    expect(api.journal).toHaveBeenCalledTimes(2);
   });
 });

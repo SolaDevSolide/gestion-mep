@@ -37,14 +37,14 @@ import {
   type Ton,
 } from '../format';
 import type { Evenement } from '../types';
-import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Avatar } from '../ui/Avatar';
 import { BoutonExportExcel } from '../ui/BoutonExportExcel';
 import { cn } from '../ui/cn';
 import { EmptyState } from '../ui/EmptyState';
 import { Input, Select } from '../ui/Input';
 import { TON } from '../ui/tons';
-import { Code2, OctagonAlert } from 'lucide-react';
+import { Code2 } from 'lucide-react';
 import { EnChargement, SqueletteChronologie } from '../ui/Squelette';
 import { Button } from '../ui/Button';
 import { useJournal } from './journal';
@@ -227,10 +227,14 @@ export default function JournalTab({ mepId, tick }: { mepId: string; tick: numbe
         />
       </div>
 
-      {erreur && (
-        <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-4">
-          {erreur}
-        </Alerte>
+      {journal.echec !== null && (
+        <ErreurChargement
+          className="mt-4"
+          erreur={journal.echec}
+          titre="Impossible de charger le journal"
+          onReessayer={journal.recharger}
+          enCours={journal.rechargement}
+        />
       )}
 
       {donnees === null && !erreur && (

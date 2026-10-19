@@ -41,7 +41,7 @@ import { sectionsDuPlan } from '../mep/graphe/sections';
 import { BadgeSimplifiee, estSimplifiee } from '../mep/typeMep';
 import { metaPhase } from '../statuts';
 import type { Mep, MepCloturee, MepPrevue, Suivi } from '../types';
-import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Apparition } from '../ui/Apparition';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
@@ -387,7 +387,7 @@ function ListeCloturees({ cloturees }: { cloturees: MepCloturee[] }) {
  */
 export default function SuiviPage() {
   const maintenant = useNow(30_000);
-  const { donnees: suivi, erreur, recharger } = useAsync(() => api.suivi(), []);
+  const { donnees: suivi, erreur, echec, chargement, recharger } = useAsync(() => api.suivi(), []);
   // Cartes relues une à une depuis le dernier chargement complet (`base`) : elles remplacent celles de `suivi`.
   const [cartes, setCartes] = useState<{ base: Suivi | null; meps: Map<string, Mep> }>({ base: null, meps: new Map() });
   const rechargerRef = useRef(recharger);
@@ -498,10 +498,14 @@ export default function SuiviPage() {
         </div>
       </div>
 
-      {erreur && (
-        <Alerte ton="danger" icone={TriangleAlert} role="alert" className="mt-6">
-          {erreur}
-        </Alerte>
+      {echec !== null && (
+        <ErreurChargement
+          className="mt-6"
+          erreur={echec}
+          titre="Impossible de charger le suivi en direct"
+          onReessayer={recharger}
+          enCours={chargement}
+        />
       )}
 
       <Apparition pret={suivi !== null || erreur !== ''} libelle="Chargement du suivi…" squelette={<SqueletteSuivi />}>
