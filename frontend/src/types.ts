@@ -252,7 +252,6 @@ export type MepIdentiteSaisie = SaisieVerifiee<
     | 'indisponibiliteMinutes'
     | 'piloteId'
     | 'suppleantIds'
-    | 'echeanceRepli'
   > & { bilanActive?: boolean; retourArriereActive?: boolean }
 >;
 
@@ -273,6 +272,12 @@ export type SauvegardeSystemeSaisie = SaisieVerifiee<
   S['SauvegardeSystemeSaisie'],
   SauvegardeSysteme & { version: number }
 >;
+/** Échéance de retour arrière (#94) : `echeanceRepli` null la retire ; motif obligatoire sauf première saisie en préparation. */
+export type EcheanceSaisie = SaisieVerifiee<
+  S['EcheanceSaisie'],
+  { version: number; echeanceRepli: string | null; motif: string }
+>;
+export type ResolutionFigee = S['ResolutionFigeeDto'];
 export type PlanRepliSaisie = SaisieVerifiee<S['PlanRepliSaisie'], PlanRepli & { version: number }>;
 export type ResponsableTechniqueSaisie = SaisieVerifiee<S['ResponsableTechniqueSaisie'], ResponsableTechnique>;
 

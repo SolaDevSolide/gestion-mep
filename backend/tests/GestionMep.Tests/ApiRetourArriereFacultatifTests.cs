@@ -41,14 +41,20 @@ public class ApiRetourArriereFacultatifTests : IDisposable
         var resume = (await Ok(await alice.GetAsync("/api/meps"))).EnumerateArray().Single(m => m.GetProperty("id").GetGuid() == id);
         Assert.True(resume.GetProperty("retourArriereActive").GetBoolean());
 
-        // Désactivation, sans échéance : un événement de journal dédié, et rien n'est plus réclamé pour le retour arrière.
+        // Désactivation : un événement de journal dédié, et rien n'est plus réclamé pour le retour arrière. L'échéance envoyée
+        // (null) est ignorée : elle se change par PUT /meps/{id}/echeance (#94) ; sans plan de retour arrière, elle ne s'applique pas.
+        var echeance = mep.GetProperty("echeanceRepli").GetDateTimeOffset();
         mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}", Identite(mep, null, false)));
         Assert.False(mep.GetProperty("retourArriereActive").GetBoolean());
-        Assert.Equal(JsonValueKind.Null, mep.GetProperty("echeanceRepli").ValueKind);
+        Assert.Equal(echeance, mep.GetProperty("echeanceRepli").GetDateTimeOffset());
+        Assert.False(mep.GetProperty("droits").GetProperty("peutModifierEcheance").GetBoolean());
         Assert.DoesNotContain(Erreurs(mep), e => e.Contains("retour arrière", StringComparison.OrdinalIgnoreCase));
         var journal = await Journal(alice, id);
         Assert.Contains(journal.Take(2), e => e == ("repli.desactive", "Alice", "Plan de retour arrière désactivé : ni plan ni échéance réclamés, aucun déclenchement"));
-        Assert.Contains(journal.Take(2), e => e.Type == "mep.modifiee" && e.Detail == "MEP modifiée : échéance de retour arrière");
+        Assert.Contains(journal.Take(2), e => e.Type == "procedure.reinitialisee");
+        Assert.DoesNotContain(journal, e => e.Type == "mep.modifiee");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PutAsJsonAsync($"/api/meps/{id}/echeance",
+            new { version = mep.GetProperty("version").GetInt32(), echeanceRepli = (DateTimeOffset?)null, motif = "Sans retour arrière" })).StatusCode);
 
         // Clé absente : inchangé.
         mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}", Identite(mep, null, null)));
@@ -81,9 +87,12 @@ public class ApiRetourArriereFacultatifTests : IDisposable
         var id = await AidesApi.IdDemo(alice);
         var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
         var echeance = mep.GetProperty("echeanceRepli").GetDateTimeOffset();
-        await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}", Identite(mep, echeance.AddHours(1), false)));
+        var corps = JsonSerializer.SerializeToNode(Identite(mep, echeance.AddHours(1), false))!;
+        corps["objet"] = "Objet revu";
+        mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}", corps));
+        Assert.Equal(echeance, mep.GetProperty("echeanceRepli").GetDateTimeOffset()); // échéance : ignorée ici
         var journal = await Journal(alice, id);
         Assert.Contains(journal, e => e.Type == "repli.desactive");
-        Assert.Contains(journal, e => e.Type == "mep.modifiee" && e.Detail == "MEP modifiée : échéance de retour arrière");
+        Assert.Contains(journal, e => e.Type == "mep.modifiee" && e.Detail == "MEP modifiée : objet");
     }
 }

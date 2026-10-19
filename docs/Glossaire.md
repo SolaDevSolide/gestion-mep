@@ -4,7 +4,7 @@
 
 **Anomalie** : point qui empêche de donner le Go, listé par « Vérifier le plan ». À distinguer d'un avertissement.
 
-**Approbation** : accord donné sur le plan par un approbateur désigné, avant le Go. Toute modification du contenu efface les approbations.
+**Approbation** : accord donné sur le plan par un approbateur désigné, avant le Go. Toute modification du contenu efface les approbations (et la relecture de la procédure). Le pilote, ses suppléants et les responsables techniques n'approuvent pas : voir **Séparation des tâches**.
 
 **Avertissement** : point signalé par « Vérifier le plan » qui n'empêche pas le Go (par exemple un système sans recette).
 
@@ -30,7 +30,7 @@
 
 **Étape corrective** : étape ajoutée au plan de déploiement pendant l'exécution, après le Go, par le pilote ou un suppléant, pour corriger en avant. Elle porte la mention « Ajoutée après le Go » et est comptée dans le rapport de fin.
 
-**Échéance de retour arrière** : date et heure limites de l'intervention. Une fois atteinte, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi.
+**Échéance de retour arrière** : date et heure limites de l'intervention, saisies et affichées à l'heure du fuseau de la MEP. Atteinte pendant l'exécution, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi ; atteinte pendant la recette, elle est seulement signalée et le pilote décide (retour arrière manuel ou report). Chaque changement demande un motif et garde l'ancienne valeur au journal.
 
 **Environnement** : instance d'un système (recette, préproduction, production…), décrite dans sa fiche. Une MEP choisit les environnements de chacun de ses systèmes, puis chaque étape ceux où elle s'exécute.
 
@@ -38,7 +38,7 @@
 
 **Équipe** : groupe de personnes géré par les administrateurs, qui sert à filtrer les comptes et les MEP, et qui a ses modèles de texte. Une personne peut appartenir à plusieurs équipes ; une MEP appartient à une équipe dès qu'une de ses personnes en fait partie.
 
-**État d'une MEP** : ce que la recherche des MEP retient d'une MEP : sa phase tant qu'elle n'est pas clôturée (préparation, **reportée**, exécution, recette, retour arrière en cours), puis son issue : **réussie** (sans aucun échec d'étape), **réussie avec incidents** (au moins un échec d'étape, même repris ensuite), **repliée** (clôturée après un retour arrière) ou **échec** (service dégradé) ; enfin **annulée**. Une MEP réussie avec incidents s'affiche « Clôturée : réussie avec incidents » partout où son issue apparaît (en-tête, Suivi en direct, rapport de fin, exports). Voir [Rechercher des MEP](Suivre-une-MEP.md#rechercher-des-mep).
+**État d'une MEP** : ce que la recherche des MEP retient d'une MEP : sa phase tant qu'elle n'est pas clôturée (préparation, **reportée**, exécution, recette, retour arrière en cours), puis son issue : **réussie** (sans aucun échec d'étape ni de test de recette), **réussie avec incidents** (au moins un échec d'étape ou un test de recette en échec, même repris ensuite), **repliée** (clôturée après un retour arrière) ou **échec** (service dégradé) ; enfin **annulée**. Une MEP réussie avec incidents s'affiche « Clôturée : réussie avec incidents » partout où son issue apparaît (en-tête, Suivi en direct, rapport de fin, exports). Voir [Rechercher des MEP](Suivre-une-MEP.md#rechercher-des-mep).
 
 **Étape** : action unitaire du plan, avec des instructions et un résultat attendu. Codes `E0001…` pour le déploiement, `R0001…` pour le retour arrière.
 
@@ -96,13 +96,15 @@
 
 **Reportée** : MEP en préparation dont le Go est repoussé, avec un motif et une date visée facultative. Elle se prépare normalement ; « Reprendre la préparation » ou le Go lève le report. Voir [Reporter une MEP](Cycle-de-vie.md#reporter-une-mep).
 
-**Résolution type** : fiche de dépannage réutilisable (symptômes, diagnostic, corrections, vérification finale) liée aux étapes qui peuvent échouer.
+**Résolution type** : fiche de dépannage réutilisable (symptômes, diagnostic, corrections, vérification finale) liée aux étapes qui peuvent échouer. Les résolutions liées sont **figées** dans la MEP à l'approbation (titre, contenu, version) : le jour J, c'est cette copie qui s'applique. Une résolution en échec laisse l'étape en échec : le pilote décide de la suite.
 
 **Responsable technique** : développeur ou sachant qui a préparé une partie du changement et reste joignable le jour J.
 
 **Résultat constaté** : réponse d'un test unitaire, saisie par l'exécutant en terminant l'étape.
 
 **Section** : groupe d'étapes du plan sous un titre, avec des systèmes et des cercles. C'est un repère : elle ne s'exécute pas, seuls ses cercles donnent des préalables à ses étapes.
+
+**Séparation des tâches** : celui qui écrit ou lance le plan ne l'approuve pas : ni le pilote, ni ses suppléants, ni les responsables techniques ne peuvent être approbateurs de la MEP, même avec un compte relié au leur.
 
 **Simple vérification** : fin d'une étape où l'exécutant confirme le résultat attendu sans saisir de résultat constaté.
 

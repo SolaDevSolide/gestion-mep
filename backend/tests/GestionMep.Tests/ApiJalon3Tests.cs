@@ -142,7 +142,7 @@ public class ApiJalon3Tests : IDisposable
         var mep = await Ok(await claire.GetAsync($"/api/meps/{id}"));
 
         var nonDesigne = await bob.PostAsJsonAsync($"/api/meps/{id}/approbation", new { version = Version(mep), decision = "Approuvee", commentaire = "" });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, nonDesigne.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, nonDesigne.StatusCode);
         Assert.Contains("approbateur désigné", await Message(nonDesigne));
         Assert.Equal(HttpStatusCode.Conflict,
             (await claire.PostAsJsonAsync($"/api/meps/{id}/approbation", new { version = Version(mep) - 1, decision = "Approuvee", commentaire = "" })).StatusCode);
@@ -161,9 +161,12 @@ public class ApiJalon3Tests : IDisposable
             donneesDepuisSauvegarde = "Sauvegarde E0001", siRepliEchoue = "Astreinte",
         }));
         Assert.Equal(JsonValueKind.Null, mep.GetProperty("approbations")[0].GetProperty("decision").ValueKind);
-        Assert.Equal(["Il faut 1 approbation(s)."], Erreurs(mep));
+        // … et la relecture de la procédure (#94) : le plan modifié est à relire, le journal le dit.
+        Assert.Equal(JsonValueKind.Null, mep.GetProperty("procedureRelue").ValueKind);
+        Assert.Equal(["La procédure doit être relue par un opérateur.", "Il faut 1 approbation(s)."], Erreurs(mep));
         var journal = await Journal(alice, id);
-        Assert.Equal(("approbations.reinitialisees", "Alice", "Approbations à refaire : la MEP a été modifiée"), journal[0]);
+        Assert.Equal(("procedure.reinitialisee", "Alice", "Relecture de la procédure à refaire : la MEP a été modifiée"), journal[0]);
+        Assert.Equal(("approbations.reinitialisees", "Alice", "Approbations à refaire : la MEP a été modifiée"), journal[1]);
         Assert.Contains(journal, e => e.Type == "approbation.refusee" && e.Detail == "MEP refusée par Claire : Préciser le repli");
 
         // Sans décision à effacer, une modification n'écrit rien de plus.
@@ -171,23 +174,29 @@ public class ApiJalon3Tests : IDisposable
         mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/systemes/{sid}/environnements", new { noms = new[] { "Recette", "Production" } }));
         Assert.Equal("systeme.environnements", (await Journal(alice, id))[0].Type);
 
+        await AidesApi.Relire(_api, id);
+        mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
         mep = await Ok(await claire.PostAsJsonAsync($"/api/meps/{id}/approbation", new { version = Version(mep), decision = "Approuvee", commentaire = "OK" }));
         Assert.Empty(Erreurs(mep));
         Assert.Contains(await Journal(alice, id), e => e.Type == "approbation.approuvee" && e.Detail == "MEP approuvée par Claire : OK");
 
-        // Changer les approbateurs : le pilote est refusé, Bob est ajouté et la décision de Claire est effacée.
+        // Changer les approbateurs : le pilote et Bob (suppléant) sont refusés ; la décision de Claire est effacée, la relecture reste.
         var utilisateurs = (await Ok(await alice.GetAsync("/api/utilisateurs"))).EnumerateArray()
             .ToDictionary(u => u.GetProperty("login").GetString()!, u => u.GetProperty("id").GetGuid());
         var refus = await alice.PutAsJsonAsync($"/api/meps/{id}/approbateurs", new { version = Version(mep), utilisateurIds = new[] { utilisateurs["alice"] } });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
-        Assert.Contains("Alice est le pilote", await Message(refus));
+        Assert.StartsWith("Alice ne peut pas approuver cette MEP (pilote).", await Message(refus));
+        refus = await alice.PutAsJsonAsync($"/api/meps/{id}/approbateurs", new { version = Version(mep), utilisateurIds = new[] { utilisateurs["claire"], utilisateurs["bob"] } });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
+        Assert.StartsWith("Bob ne peut pas approuver cette MEP (suppléant du pilote).", await Message(refus));
         Assert.Equal(HttpStatusCode.BadRequest,
             (await alice.PutAsJsonAsync($"/api/meps/{id}/approbateurs", new { version = Version(mep), utilisateurIds = new[] { Guid.NewGuid() } })).StatusCode);
         mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/approbateurs",
-            new { version = Version(mep), utilisateurIds = new[] { utilisateurs["claire"], utilisateurs["bob"] } }));
-        Assert.Equal(["Claire", "Bob"], mep.GetProperty("approbations").EnumerateArray().Select(a => a.GetProperty("nom").GetString()!).ToArray());
+            new { version = Version(mep), utilisateurIds = new[] { utilisateurs["claire"] } }));
+        Assert.Equal(["Claire"], mep.GetProperty("approbations").EnumerateArray().Select(a => a.GetProperty("nom").GetString()!).ToArray());
         Assert.All(mep.GetProperty("approbations").EnumerateArray(), a => Assert.Equal(JsonValueKind.Null, a.GetProperty("decision").ValueKind));
-        Assert.Contains(await Journal(alice, id), e => e.Detail == "Approbateurs : Claire, Bob");
+        Assert.NotEqual(JsonValueKind.Null, mep.GetProperty("procedureRelue").ValueKind);
+        Assert.Contains(await Journal(alice, id), e => e.Detail == "Approbateurs : Claire");
 
         mep = await AidesApi.Go(_api, alice, id);
         Assert.Equal("Execution", mep.GetProperty("phase").GetString());

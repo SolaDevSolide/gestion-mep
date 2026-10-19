@@ -5,8 +5,9 @@ using Microsoft.EntityFrameworkCore;
 namespace GestionMep.Api.Services;
 
 /// <summary>
-/// Vérifie chaque minute les MEP en exécution ou en recette dont l'échéance de retour arrière est atteinte et les fait basculer
-/// (la bascule est enregistrée, journalisée et notifiée par <see cref="ServiceMep.Charger"/>). Chaque passage réussi est
+/// Vérifie chaque minute les MEP en exécution dont l'échéance de retour arrière est atteinte et les fait basculer en retour
+/// arrière, et signale une fois celles en recette (sans retour arrière automatique : le pilote décide). La bascule ou le
+/// signalement est enregistré, journalisé et notifié par <see cref="ServiceMep.Charger"/>. Chaque passage réussi est
 /// signalé à <see cref="SantePrete"/> : la sonde « prête » échoue si la surveillance s'arrête.
 /// </summary>
 public class SurveillanceEcheances(IServiceScopeFactory scopes, TimeProvider temps, ILogger<SurveillanceEcheances> journal,
@@ -25,7 +26,7 @@ public class SurveillanceEcheances(IServiceScopeFactory scopes, TimeProvider tem
         catch (OperationCanceledException) { /* arrêt du serveur */ }
     }
 
-    /// <summary>Une passe de surveillance ; renvoie le nombre de MEP basculées en retour arrière.</summary>
+    /// <summary>Une passe de surveillance ; renvoie le nombre de MEP basculées en retour arrière (les signalements en recette ne comptent pas).</summary>
     public async Task<int> Verifier(CancellationToken arret)
     {
         var bascules = 0;
@@ -36,7 +37,8 @@ public class SurveillanceEcheances(IServiceScopeFactory scopes, TimeProvider tem
             {
                 var db = scope.ServiceProvider.GetRequiredService<MepDbContext>();
                 var maintenant = temps.GetUtcNow();
-                ids = await db.Meps.AsNoTracking().Where(m => (m.Phase == Phase.Execution || m.Phase == Phase.Recette) && m.RetourArriereActive && m.EcheanceRepli != null && m.EcheanceRepli <= maintenant)
+                ids = await db.Meps.AsNoTracking().Where(m => (m.Phase == Phase.Execution || (m.Phase == Phase.Recette && m.EcheanceSignaleeLe == null))
+                        && m.RetourArriereActive && m.EcheanceRepli != null && m.EcheanceRepli <= maintenant)
                     .Select(m => m.Id).ToListAsync(arret);
             }
             foreach (var id in ids)

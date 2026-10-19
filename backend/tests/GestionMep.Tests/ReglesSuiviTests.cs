@@ -112,7 +112,7 @@ public class ReglesSuiviTests
         var demo = DonneesDemo.Scenarios(alice, bob, claire, jeu.Systemes, jeu.Resolutions, jeu.Criteres, maintenant)
             .Single(s => s.Mep.Outil == DonneesDemo.OutilReussie);
         long id = 0;
-        var journal = demo.Journal.Select(e => new EvenementDto(++id, e.Quand, e.Auteur, e.Type, e.Detail, null)).Reverse().ToList();
+        var journal = demo.Journal.Select(e => new EvenementDto(++id, e.Quand, e.Auteur, e.Type, e.Detail, null, e.EtapeId)).Reverse().ToList();
 
         var (synthese, points) = RapportsFin.Calculer(demo.Mep, journal);
         var p = Assert.Single(points);

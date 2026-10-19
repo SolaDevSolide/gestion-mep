@@ -55,7 +55,7 @@ export function metaEtape(e: Pick<Etape, 'etat' | 'disponibilite'>): MetaStatut 
 
 /**
  * Phase d'une MEP, puis son issue une fois clôturée (en-tête, cartes, suivi, rapport) : `etat` vient de l'API (même règle
- * que la recherche, #91). « Réussie avec incidents » : clôturée réussie alors qu'une étape a échoué en route. Une MEP
+ * que la recherche, #91). « Réussie avec incidents » : clôturée réussie alors qu'une étape ou un test de recette a échoué en route. Une MEP
  * reportée reste en préparation : « Reportée · 05/11/2026 » avec la date visée si elle est connue (#93).
  */
 export function metaPhase(phase: Phase, etat: EtatMep, dateReport?: string | null): MetaStatut {
@@ -87,7 +87,7 @@ export function metaPhase(phase: Phase, etat: EtatMep, dateReport?: string | nul
 
 /**
  * État d'une MEP dans la recherche et l'historique (#59) : la phase, puis l'issue une fois clôturée. « Avec incidents » :
- * clôturée réussie alors qu'une étape a échoué en route. `court` : libellé des puces et des tableaux.
+ * clôturée réussie alors qu'une étape ou un test de recette a échoué en route. `court` : libellé des puces et des tableaux.
  */
 export function metaEtatMep(e: EtatMep): MetaStatut & { court: string } {
   switch (e) {

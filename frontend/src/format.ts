@@ -179,6 +179,66 @@ export function depuisInputDateTime(v: string): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+/** Fuseau IANA utilisable par Intl ; UTC sinon (même repli que le serveur). */
+export function fuseauValide(fuseau: string | null | undefined): string {
+  if (!fuseau) return 'UTC';
+  try {
+    // Lève une RangeError pour un fuseau inconnu.
+    return Intl.DateTimeFormat('fr-FR', { timeZone: fuseau }).resolvedOptions().timeZone ? fuseau : 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+/** Composantes date et heure d'un instant dans un fuseau (minutes près). */
+function composantes(d: Date, fuseau: string) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: fuseau,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(d);
+  const v = (t: string) => parts.find((x) => x.type === t)?.value ?? '00';
+  return { annee: v('year'), mois: v('month'), jour: v('day'), heure: v('hour'), minute: v('minute') };
+}
+
+/** « 23/10/2026 23:00 » dans le fuseau de la MEP (UTC si le fuseau est inconnu). */
+export function formatDateHeureFuseau(iso: string | null | undefined, fuseau: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const c = composantes(d, fuseauValide(fuseau));
+  return `${c.jour}/${c.mois}/${c.annee} ${c.heure}:${c.minute}`;
+}
+
+/** Valeur pour <input type="datetime-local"> dans le fuseau de la MEP, et non celui du navigateur. */
+export function versInputDateTimeFuseau(iso: string | null | undefined, fuseau: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const c = composantes(d, fuseauValide(fuseau));
+  return `${c.annee}-${c.mois}-${c.jour}T${c.heure}:${c.minute}`;
+}
+
+/** Heure saisie dans le fuseau de la MEP (« 2026-10-23T23:00 ») → instant ISO UTC ; null si la saisie est vide ou invalide. */
+export function depuisInputDateTimeFuseau(v: string, fuseau: string | null | undefined): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(v);
+  if (!m) return null;
+  const zone = fuseauValide(fuseau);
+  const murale = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]));
+  // Décalage du fuseau à cet instant, recalculé une fois pour les changements d'heure.
+  const decalage = (t: number) => {
+    const c = composantes(new Date(t), zone);
+    return Date.UTC(+c.annee, +c.mois - 1, +c.jour, +c.heure, +c.minute) - t;
+  };
+  let t = murale - decalage(murale);
+  t = murale - decalage(t);
+  return Number.isNaN(t) ? null : new Date(t).toISOString();
+}
+
 export type NiveauCompteARebours = 'aucun' | 'normal' | 'attention' | 'depasse';
 
 export interface CompteARebours {
@@ -187,14 +247,25 @@ export interface CompteARebours {
   msRestants: number | null;
 }
 
-/** Compte à rebours jusqu'à l'échéance : orange sous 1 h, rouge une fois dépassée. */
-export function calculerCompteARebours(echeance: string | null | undefined, maintenant: number): CompteARebours {
+/**
+ * Compte à rebours jusqu'à l'échéance : orange sous 1 h, rouge une fois dépassée. En recette, l'échéance dépassée n'entraîne
+ * aucun retour arrière automatique : « ÉCHÉANCE DÉPASSÉE », le pilote décide.
+ */
+export function calculerCompteARebours(
+  echeance: string | null | undefined,
+  maintenant: number,
+  recette = false,
+): CompteARebours {
   if (!echeance) return { niveau: 'aucun', texte: 'Échéance non renseignée', msRestants: null };
   const cible = new Date(echeance).getTime();
   if (Number.isNaN(cible)) return { niveau: 'aucun', texte: 'Échéance non renseignée', msRestants: null };
   const reste = cible - maintenant;
   if (reste <= 0) {
-    return { niveau: 'depasse', texte: 'RETOUR ARRIÈRE OBLIGATOIRE', msRestants: reste };
+    return {
+      niveau: 'depasse',
+      texte: recette ? 'ÉCHÉANCE DÉPASSÉE' : 'RETOUR ARRIÈRE OBLIGATOIRE',
+      msRestants: reste,
+    };
   }
   const niveau: NiveauCompteARebours = reste < 3_600_000 ? 'attention' : 'normal';
   return { niveau, texte: formatDuree(reste), msRestants: reste };

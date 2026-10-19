@@ -92,7 +92,7 @@ public class MigrationCycleDeVieTests
             Assert.Equal("", m.ReferenceIncident);
         });
         Assert.False(meps[relancee].Etapes.Single().AjouteeApresGo);
-        Assert.Equal(EtatMep.Repliee, Regles.EtatDeLaMep(meps[repliee], 0));
-        Assert.Equal(EtatMep.Preparation, Regles.EtatDeLaMep(meps[jamais], 0));
+        Assert.Equal(EtatMep.Repliee, Regles.EtatDeLaMep(meps[repliee]));
+        Assert.Equal(EtatMep.Preparation, Regles.EtatDeLaMep(meps[jamais]));
     }
 }

@@ -1,6 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using GestionMep.Api.Donnees;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GestionMep.Tests;
 
@@ -163,13 +166,16 @@ public class ApiJalon2Tests : IDisposable
         Assert.Equal("EnCours", Etat(mep, "E0005"));
 
         var journal = await Journal(alice, id);
-        Assert.Contains(journal, e => e.Type == "resolution.demarree" && e.Detail == $"Résolution « {type.GetProperty("titre").GetString()} » démarrée sur E0005");
+        // Copie figée à l'approbation (#94) : le journal donne la version appliquée.
+        Assert.Contains(journal, e => e.Type == "resolution.demarree"
+            && e.Detail == $"Résolution « {type.GetProperty("titre").GetString()} » (version {type.GetProperty("version").GetInt32()} figée) démarrée sur E0005");
+        Assert.Contains(journal, e => e.Type == "resolutions.figees" && e.Detail.Contains($"« {type.GetProperty("titre").GetString()} » v"));
         Assert.Contains(journal, e => e.Type == "resolution.correction" && e.Detail.StartsWith("Correction 1 conforme"));
         Assert.Contains(journal, e => e.Type == "resolution.reussie");
     }
 
     [Fact]
-    public async Task Resolution_en_echec_declenche_le_retour_arriere()
+    public async Task Resolution_en_echec_laisse_l_etape_en_echec_et_le_pilote_decide()
     {
         var (alice, id, mep) = await DemoEnExecution();
         var bob = await _api.ClientConnecte("bob");
@@ -184,16 +190,21 @@ public class ApiJalon2Tests : IDisposable
         mep = await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/resolutions/{rid}/corrections/1",
             new { resultat = "Echec", observation = "Toujours pas de réponse" }));
 
-        Assert.Equal("RetourArriere", mep.GetProperty("phase").GetString());
+        // #94 : plus de retour arrière automatique ; l'étape reste en échec et le pilote décide.
+        Assert.Equal("Execution", mep.GetProperty("phase").GetString());
         Assert.Equal("Echouee", mep.GetProperty("resolutions")[0].GetProperty("statut").GetString());
-        var repli = mep.GetProperty("retourArriere");
-        Assert.Equal(JsonValueKind.Null, repli.GetProperty("par").ValueKind);
-        Assert.Contains("correction 1 en échec", repli.GetProperty("motif").GetString());
-        Assert.Equal("Disponible", Dispo(mep, "R0001"));
+        Assert.Equal("Echec", Etat(mep, "E0005"));
+        Assert.Equal(JsonValueKind.Null, mep.GetProperty("retourArriere").ValueKind);
 
         var journal = await Journal(alice, id);
-        Assert.Contains(journal, e => e.Type == "resolution.echouee");
-        Assert.Contains(journal, e => e.Type == "repli.declenche" && e.Auteur == "Système" && e.Detail.StartsWith("Retour arrière déclenché automatiquement : "));
+        Assert.Contains(journal, e => e.Type == "resolution.echouee" && e.Detail.EndsWith("sur E0005 : l'étape reste en échec, le pilote décide (retour arrière ou nouvelle tentative)"));
+        Assert.DoesNotContain(journal, e => e.Type == "repli.declenche");
+
+        // Le pilote décide : retour arrière à la main, avec un motif.
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/retour-arriere", new { motif = "Résolution inefficace" }));
+        Assert.Equal("RetourArriere", mep.GetProperty("phase").GetString());
+        Assert.Equal("Alice", mep.GetProperty("retourArriere").GetProperty("par").GetString());
+        Assert.Equal("Disponible", Dispo(mep, "R0001"));
     }
 
     // ---------- Retour arrière manuel et clôture ----------
@@ -297,16 +308,20 @@ public class ApiJalon2Tests : IDisposable
     public async Task Echeance_depassee_bascule_automatiquement_a_la_lecture()
     {
         var (alice, id, mep) = await DemoEnExecution();
-        var echeance = DateTimeOffset.UtcNow.AddHours(-1);
-        var identite = new
+        // Une échéance passée ne se saisit pas (#94) : on la rapproche, puis le temps passe (base modifiée directement).
+        var passee = await alice.PutAsJsonAsync($"/api/meps/{id}/echeance",
+            new { version = mep.GetProperty("version").GetInt32(), echeanceRepli = DateTimeOffset.UtcNow.AddHours(-1), motif = "Test" });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, passee.StatusCode);
+        var proche = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/echeance",
+            new { version = mep.GetProperty("version").GetInt32(), echeanceRepli = DateTimeOffset.UtcNow.AddMinutes(30), motif = "Fenêtre raccourcie" }));
+        Assert.Equal("Execution", proche.GetProperty("phase").GetString());
+        using (var scope = _api.Services.CreateScope())
         {
-            version = mep.GetProperty("version").GetInt32(), outil = mep.GetProperty("outil"), versionActuelle = mep.GetProperty("versionActuelle"),
-            versionCible = mep.GetProperty("versionCible"), objet = mep.GetProperty("objet"), impacts = mep.GetProperty("impacts"),
-            dateMep = mep.GetProperty("dateMep"), heureDebut = mep.GetProperty("heureDebut"), heureFin = mep.GetProperty("heureFin"),
-            fuseauHoraire = mep.GetProperty("fuseauHoraire"), indisponibiliteMinutes = mep.GetProperty("indisponibiliteMinutes"),
-            piloteId = mep.GetProperty("piloteId"), suppleantIds = mep.GetProperty("suppleantIds"), echeanceRepli = echeance,
-        };
-        Assert.Equal("Execution", (await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}", identite))).GetProperty("phase").GetString());
+            var db = scope.ServiceProvider.GetRequiredService<MepDbContext>();
+            var m = await db.Meps.SingleAsync(x => x.Id == id);
+            m.EcheanceRepli = DateTimeOffset.UtcNow.AddHours(-1);
+            await db.SaveChangesAsync();
+        }
 
         // La lecture suivante applique l'échéance avant de répondre.
         var lu = await Ok(await alice.GetAsync($"/api/meps/{id}"));

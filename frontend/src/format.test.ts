@@ -1,6 +1,10 @@
 import {
   calculerCompteARebours,
   compte,
+  depuisInputDateTimeFuseau,
+  formatDateHeureFuseau,
+  fuseauValide,
+  versInputDateTimeFuseau,
   familleEvenement,
   formatDate,
   formatDuree,
@@ -66,6 +70,11 @@ describe('compte à rebours', () => {
     expect(c.niveau).toBe('depasse');
     expect(c.texte).toBe('RETOUR ARRIÈRE OBLIGATOIRE');
   });
+  it('en recette, une échéance dépassée est seulement signalée (#94)', () => {
+    const c = calculerCompteARebours('2026-10-09T19:59:59Z', t0, true);
+    expect(c.niveau).toBe('depasse');
+    expect(c.texte).toBe('ÉCHÉANCE DÉPASSÉE');
+  });
   it('sans échéance', () => {
     expect(calculerCompteARebours(null, t0).niveau).toBe('aucun');
   });
@@ -101,5 +110,24 @@ describe('utilitaires', () => {
     expect(formatMinutes(90)).toBe('1 h 30');
     expect(formatMinutes(120)).toBe('2 h');
     expect(formatMinutes(null)).toBe('—');
+  });
+});
+
+describe('heures dans le fuseau de la MEP (#94)', () => {
+  it('affiche et saisit à l’heure du fuseau, changements d’heure compris', () => {
+    // 23/10 : heure d'été à Paris (UTC+2) ; 26/10 : heure d'hiver (UTC+1).
+    expect(formatDateHeureFuseau('2026-10-23T21:00:00Z', 'Europe/Paris')).toBe('23/10/2026 23:00');
+    expect(formatDateHeureFuseau('2026-10-26T01:00:00Z', 'Europe/Paris')).toBe('26/10/2026 02:00');
+    expect(versInputDateTimeFuseau('2026-10-23T21:00:00Z', 'Europe/Paris')).toBe('2026-10-23T23:00');
+    expect(depuisInputDateTimeFuseau('2026-10-23T23:00', 'Europe/Paris')).toBe('2026-10-23T21:00:00.000Z');
+    expect(depuisInputDateTimeFuseau('2026-10-26T02:00', 'Europe/Paris')).toBe('2026-10-26T01:00:00.000Z');
+    expect(depuisInputDateTimeFuseau('2026-10-23T23:00', 'America/New_York')).toBe('2026-10-24T03:00:00.000Z');
+  });
+  it('fuseau inconnu ou vide : UTC, comme le serveur', () => {
+    expect(fuseauValide('Zone/Inconnue')).toBe('UTC');
+    expect(fuseauValide('')).toBe('UTC');
+    expect(formatDateHeureFuseau('2026-10-23T21:00:00Z', 'Zone/Inconnue')).toBe('23/10/2026 21:00');
+    expect(depuisInputDateTimeFuseau('', 'Europe/Paris')).toBeNull();
+    expect(formatDateHeureFuseau(null, 'Europe/Paris')).toBe('—');
   });
 });

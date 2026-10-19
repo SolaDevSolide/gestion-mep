@@ -74,6 +74,10 @@ export function mep(p: Partial<Mep> = {}): Mep {
     issue: null,
     etat: 'Execution',
     echecsSurvenus: 0,
+    echecsRecette: 0,
+    echeanceSignalee: null,
+    resolutionsFigees: [],
+    resolutionsFigeesLe: null,
     retourArriere: null,
     cloture: null,
     planRepli: {
@@ -157,6 +161,7 @@ export function mep(p: Partial<Mep> = {}): Mep {
       peutSupprimer: false,
       peutChangerPilote: false,
       peutAjouterPersonne: false,
+      peutModifierEcheance: false,
     },
     sections: [],
     annulation: null,
@@ -256,6 +261,7 @@ export function mepResume(p: Partial<MepResume> = {}): MepResume {
     intervenants: [],
     reporteeAu: null,
     annuleeLe: null,
+    echecsRecette: 0,
     ...p,
   };
 }

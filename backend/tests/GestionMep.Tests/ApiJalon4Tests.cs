@@ -200,7 +200,7 @@ public class ApiJalon4Tests : IDisposable
         Assert.Equal([t2, t1], fiche.GetProperty("etapes").EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).ToArray());
         Assert.Equal([1, 2], fiche.GetProperty("etapes").EnumerateArray().Select(t => t.GetProperty("ordre").GetInt32()).ToArray());
         Assert.Equal(web, fiche.GetProperty("systemeId").GetGuid());
-        Assert.Equal(["Il faut 1 approbation(s)."], Liste(mep, "erreursPlan"));
+        Assert.Equal(["La procédure doit être relue par un opérateur.", "Il faut 1 approbation(s)."], Liste(mep, "erreursPlan"));
 
         // Suppression : les fiches restantes sont renumérotées.
         var premiere = mep.GetProperty("fichesRecette")[0].GetProperty("id").GetGuid();

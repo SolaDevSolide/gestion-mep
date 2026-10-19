@@ -48,6 +48,8 @@ public class DonneesDemoTests
         // Échecs du journal : un repris sur BDD (réussie avec incidents), un sur API (repliée).
         int Echecs(DonneesDemo.MepDemo h) => h.Journal.Count(e => e.Type == Regles.EvenementEchecEtape);
         Assert.Equal([0, 0, 1, 1], historique.Select(Echecs));
+        // Les compteurs de la MEP (#94) suivent le journal.
+        Assert.Equal([0, 0, 1, 1], historique.Select(h => h.Mep.EchecsEtapes));
         Assert.Equal(EtatMep.AvecIncidents, Regles.EtatDe(historique[2].Mep.Phase, historique[2].Mep.Issue, Echecs(historique[2])));
         var bdd = historique[2].Mep.Systemes.Single(s => s.Nom == "BDD").Id;
         Assert.Contains(bdd, historique[2].Mep.Etapes.Single(e => e.Code == "E0002").SystemeIds);
@@ -200,9 +202,13 @@ public class DonneesDemoTests
         Assert.All(m.Etapes, e => Assert.NotEmpty(e.Environnements));
         Assert.Equal(["messagerie-api.jar 1.8.1", "parametres adresse du support corrigée", "portail-web.tar.gz formulaire corrigé"],
             m.ObjetsImpactes.Select(o => $"{o.Nom} {o.Version}").Order(StringComparer.Ordinal));
-        // Claire pilote ; Alice et Bob sont suppléants sans avoir été choisis.
+        // Claire pilote ; Bob est suppléant sans avoir été choisi. Alice, qui approuve, n'est pas une personne de la MEP : dans une
+        // MEP simplifiée, toutes le sont suppléantes et ne peuvent pas approuver (séparation des tâches).
         Assert.Equal(Claire, Regles.CompteDuPilote(m));
-        Assert.True(Regles.EstPilote(m, Alice) && Regles.EstPilote(m, Bob));
+        Assert.True(Regles.EstPilote(m, Bob));
+        Assert.False(Regles.EstPilote(m, Alice));
+        Assert.All(m.Approbations, a => Assert.Null(Regles.EmpechementApprobation(m, a.UtilisateurId)));
+        Assert.Equal(DecisionApprobation.Approuvee, Assert.Single(m.Approbations).Decision);
         Assert.All(m.Etapes, e =>
         {
             Assert.Null(e.Criticite);
@@ -236,12 +242,15 @@ public class DonneesDemoTests
     }
 
     [Fact]
-    public void Retour_arriere_en_cours_declenche_par_une_resolution_en_echec()
+    public void Retour_arriere_en_cours_declenche_par_le_pilote_apres_une_resolution_en_echec()
     {
         var m = Mep(DonneesDemo.OutilRetourArriere);
         Assert.Equal(Phase.RetourArriere, m.Phase);
-        Assert.Null(m.RetourArriereDeclenchePar);
-        Assert.Contains("Résolution", m.RetourArriereMotif, StringComparison.Ordinal);
+        // #94 : l'échec de la résolution laisse l'étape en échec, c'est le pilote qui décide du retour arrière.
+        Assert.Equal(Alice, m.RetourArriereDeclenchePar);
+        Assert.Contains("résolution type en échec", m.RetourArriereMotif, StringComparison.Ordinal);
+        Assert.Contains(Scenarios().Single(s => s.Mep.Outil == DonneesDemo.OutilRetourArriere).Journal,
+            j => j.Type == "resolution.echouee" && j.Detail.Contains("le pilote décide"));
         Assert.Equal(StatutResolution.Echouee, Assert.Single(m.Resolutions).Statut);
         Assert.Equal(EtatEtape.Reussie, E(m, "R0001").Etat);
         Assert.Equal(EtatEtape.EnCours, E(m, "R0002").Etat);

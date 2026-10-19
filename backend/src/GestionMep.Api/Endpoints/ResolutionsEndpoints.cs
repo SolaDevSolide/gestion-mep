@@ -172,8 +172,11 @@ public static class ResolutionsEndpoints
             if (c.ResolutionTypeId is null) throw ErreurHttp.Saisie("La résolution type est obligatoire.");
             var type = await db.ResolutionsTypes.AsNoTracking().FirstOrDefaultAsync(r => r.Id == c.ResolutionTypeId)
                 ?? throw ErreurHttp.Saisie("Résolution type inconnue.");
+            // Copie figée dans la MEP à l'approbation ou au Go si elle existe, sinon la résolution de la bibliothèque.
+            var figee = mep.ResolutionsFigees.Any(f => f.ResolutionTypeId == type.Id);
             var execution = Regles.DemarrerResolution(mep, etape, type, acteur.Id, svc.Maintenant);
-            return await svc.Enregistrer(mep, acteur, "resolution.demarree", $"Résolution « {execution.Titre} » démarrée sur {etape.Code}");
+            var version = figee ? $" (version {Regles.ResolutionAAppliquer(mep, type).Version} figée)" : "";
+            return await svc.Enregistrer(mep, acteur, "resolution.demarree", $"Résolution « {execution.Titre} »{version} démarrée sur {etape.Code}", etape.Id);
         })));
 
         api.MapPost("/meps/{id:guid}/resolutions/{rid:guid}/corrections/{ordre:int}", async (Guid id, Guid rid, int ordre, ControleSaisie c,
@@ -212,13 +215,11 @@ public static class ResolutionsEndpoints
     }
 
     /// <summary>
-    /// Journal d'une résolution en échec : la résolution échoue, puis le retour arrière se déclenche automatiquement,
-    /// sauf point de non-retour franchi (l'étape reste en échec).
+    /// Journal d'une résolution en échec : la résolution échoue, l'étape reste en échec et le pilote décide (retour arrière ou
+    /// nouvelle tentative) ; rien n'est déclenché automatiquement.
     /// </summary>
     private static IEnumerable<ServiceMep.Evenement> EvenementsEchec(Mep mep, ExecutionResolution execution, Etape etape)
     {
-        yield return new("resolution.echouee", $"Résolution « {execution.Titre} » en échec sur {etape.Code}");
-        if (mep.Phase == Phase.RetourArriere)
-            yield return new("repli.declenche", ServiceMep.DetailRetourArriere(mep, null), Systeme: true);
+        yield return new("resolution.echouee", Regles.DetailResolutionEchouee(mep, execution, etape), EtapeId: etape.Id);
     }
 }

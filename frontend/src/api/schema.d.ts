@@ -726,6 +726,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meps/{id}/echeance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EcheanceSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meps/{id}/type": {
         parameters: {
             query?: never;
@@ -6925,6 +6964,11 @@ export interface components {
             version: null | number;
             utilisateurIds: null | string[];
         };
+        /**
+         * @description `Empechement` (#94) : rôle qui interdit à cet approbateur d'approuver la MEP (« pilote », « suppléant du pilote »,
+         *     « responsable technique », éventuellement « , par un compte relié ») ; sa décision ne compte pas et le Go reste bloqué tant
+         *     qu'il figure parmi les approbateurs. Null s'il peut approuver.
+         */
         ApprobationDto: {
             /** Format: uuid */
             id: string;
@@ -6936,6 +6980,7 @@ export interface components {
             commentaire: string;
             /** Format: date-time */
             le: null | string;
+            empechement: null | string;
         };
         BilanDto: {
             ceQuiAMarche: string;
@@ -7264,6 +7309,8 @@ export interface components {
          * @description Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en
          *     préparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :
          *     passation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`.
+         *     `PeutModifierEcheance` (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en
+         *     recette, pilote, suppléant ou administrateur.
          */
         DroitsDto: {
             estPilote: boolean;
@@ -7279,10 +7326,22 @@ export interface components {
             peutSupprimer: boolean;
             peutChangerPilote: boolean;
             peutAjouterPersonne: boolean;
+            peutModifierEcheance: boolean;
         };
         /** @description Duplication : la copie reprend les systèmes avec leurs environnements, modifiables ensuite. */
         DuplicationSaisie: {
             commeModele: boolean;
+        };
+        /**
+         * @description Échéance de retour arrière (#94) : `EcheanceRepli`, instant visé (null : retirer l'échéance), saisi dans le fuseau de la
+         *     MEP ; `Motif`, obligatoire sauf pour la première saisie en préparation (tracé au journal avec l'ancienne valeur).
+         */
+        EcheanceSaisie: {
+            /** Format: int32 */
+            version: null | number;
+            /** Format: date-time */
+            echeanceRepli: null | string;
+            motif: null | string;
         };
         /** @description Échec d'une étape d'un système pendant une MEP : motif, reprise réussie ou non, dernière résolution lancée. */
         EchecSystemeDto: {
@@ -7564,7 +7623,8 @@ export interface components {
         EtatEtape: "AFaire" | "EnCours" | "Reussie" | "Echec";
         /**
          * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
-         *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+         *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+         *     de recette a été en échec (même refait ensuite).
          *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
          *     Toute nouvelle valeur s'ajoute à la fin.
          * @enum {unknown}
@@ -7597,7 +7657,10 @@ export interface components {
             detail: string;
             auteurLogin: null | string;
         };
-        /** @description `AuteurLogin` : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte supprimé. */
+        /**
+         * @description `AuteurLogin` : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte
+         *     supprimé. `EtapeId` (#94) : étape concernée par un événement d'exécution (démarrage, réussite, échec…), null sinon.
+         */
         EvenementDto: {
             /** Format: int64 */
             id: number;
@@ -7607,6 +7670,8 @@ export interface components {
             type: string;
             detail: string;
             auteurLogin: null | string;
+            /** Format: uuid */
+            etapeId?: null | string;
         };
         ExecutionResolutionDto: {
             /** Format: uuid */
@@ -7730,9 +7795,13 @@ export interface components {
              *     personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
              *     résolutions liées.
              *     `Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;
-             *     `EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).
+             *     `EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de
+             *     recette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».
              *     Cycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier
              *     Go est `DemarrageAutorise`) et `PilotageSecours`.
+             *     Approbation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière
+             *     automatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou
+             *     au Go (vides avant).
              */
             mep: {
                 /** Format: uuid */
@@ -7992,6 +8061,8 @@ export interface components {
                  * @description Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en
                  *     préparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :
                  *     passation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`.
+                 *     `PeutModifierEcheance` (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en
+                 *     recette, pilote, suppléant ou administrateur.
                  */
                 droits: {
                     estPilote: boolean;
@@ -8007,6 +8078,7 @@ export interface components {
                     peutSupprimer: boolean;
                     peutChangerPilote: boolean;
                     peutAjouterPersonne: boolean;
+                    peutModifierEcheance: boolean;
                 };
                 estModele: boolean;
                 /** Format: int32 */
@@ -8022,6 +8094,7 @@ export interface components {
                     commentaire: string;
                     /** Format: date-time */
                     le: null | string;
+                    empechement: null | string;
                 }[];
                 goNoGo: {
                     libelle: string;
@@ -8182,7 +8255,8 @@ export interface components {
                 }[];
                 /**
                  * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
-                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+                 *     de recette a été en échec (même refait ensuite).
                  *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
                  *     Toute nouvelle valeur s'ajoute à la fin.
                  * @enum {unknown}
@@ -8218,6 +8292,30 @@ export interface components {
                     ancienPilote: null | string;
                     nouveauPilote: null | string;
                 };
+                /** Format: int32 */
+                echecsRecette: number;
+                /** Format: date-time */
+                echeanceSignalee: null | string;
+                resolutionsFigees: {
+                    /** Format: uuid */
+                    resolutionTypeId: string;
+                    /** Format: int32 */
+                    version: number;
+                    titre: string;
+                    symptomes: string;
+                    diagnostic: string;
+                    systemeCatalogueIds: string[];
+                    corrections: {
+                        /** Format: int32 */
+                        ordre: number;
+                        instruction: string;
+                        resultatAttendu: string;
+                    }[];
+                    verificationInstruction: string;
+                    verificationAttendu: string;
+                }[];
+                /** Format: date-time */
+                resolutionsFigeesLe: null | string;
             };
             /** Format: int32 */
             ajoutes: number;
@@ -8338,7 +8436,8 @@ export interface components {
             issue: "Reussie" | "Repliee" | "Echec" | null;
             /**
              * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
-             *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+             *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+             *     de recette a été en échec (même refait ensuite).
              *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
              *     Toute nouvelle valeur s'ajoute à la fin.
              * @enum {unknown}
@@ -8365,9 +8464,13 @@ export interface components {
          *     personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
          *     résolutions liées.
          *     `Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;
-         *     `EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).
+         *     `EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de
+         *     recette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».
          *     Cycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier
          *     Go est `DemarrageAutorise`) et `PilotageSecours`.
+         *     Approbation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière
+         *     automatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou
+         *     au Go (vides avant).
          */
         MepDto: {
             /** Format: uuid */
@@ -8627,6 +8730,8 @@ export interface components {
              * @description Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en
              *     préparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :
              *     passation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`.
+             *     `PeutModifierEcheance` (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en
+             *     recette, pilote, suppléant ou administrateur.
              */
             droits: {
                 estPilote: boolean;
@@ -8642,6 +8747,7 @@ export interface components {
                 peutSupprimer: boolean;
                 peutChangerPilote: boolean;
                 peutAjouterPersonne: boolean;
+                peutModifierEcheance: boolean;
             };
             estModele: boolean;
             /** Format: int32 */
@@ -8657,6 +8763,7 @@ export interface components {
                 commentaire: string;
                 /** Format: date-time */
                 le: null | string;
+                empechement: null | string;
             }[];
             goNoGo: {
                 libelle: string;
@@ -8817,7 +8924,8 @@ export interface components {
             }[];
             /**
              * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
-             *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+             *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+             *     de recette a été en échec (même refait ensuite).
              *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
              *     Toute nouvelle valeur s'ajoute à la fin.
              * @enum {unknown}
@@ -8853,6 +8961,30 @@ export interface components {
                 ancienPilote: null | string;
                 nouveauPilote: null | string;
             };
+            /** Format: int32 */
+            echecsRecette: number;
+            /** Format: date-time */
+            echeanceSignalee: null | string;
+            resolutionsFigees: {
+                /** Format: uuid */
+                resolutionTypeId: string;
+                /** Format: int32 */
+                version: number;
+                titre: string;
+                symptomes: string;
+                diagnostic: string;
+                systemeCatalogueIds: string[];
+                corrections: {
+                    /** Format: int32 */
+                    ordre: number;
+                    instruction: string;
+                    resultatAttendu: string;
+                }[];
+                verificationInstruction: string;
+                verificationAttendu: string;
+            }[];
+            /** Format: date-time */
+            resolutionsFigeesLe: null | string;
         };
         /**
          * @description MEP de l'historique d'un système : `Environnements` touchés sur ce système, `AutresSystemes` de la MEP,
@@ -8903,8 +9035,6 @@ export interface components {
             /** Format: uuid */
             piloteId: null | string;
             suppleantIds: null | string[];
-            /** Format: date-time */
-            echeanceRepli: null | string;
             bilanActive?: null | boolean;
             retourArriereActive?: null | boolean;
         };
@@ -8981,6 +9111,8 @@ export interface components {
             reporteeAu: null | string;
             /** Format: date-time */
             annuleeLe: null | string;
+            /** Format: int32 */
+            echecsRecette: number;
         };
         /**
          * @description Dernière version publiée sur GitHub. `Disponible` : elle est plus récente que la version en cours (toujours faux
@@ -9562,9 +9694,13 @@ export interface components {
              *     personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
              *     résolutions liées.
              *     `Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;
-             *     `EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).
+             *     `EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de
+             *     recette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».
              *     Cycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier
              *     Go est `DemarrageAutorise`) et `PilotageSecours`.
+             *     Approbation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière
+             *     automatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou
+             *     au Go (vides avant).
              */
             mep: {
                 /** Format: uuid */
@@ -9824,6 +9960,8 @@ export interface components {
                  * @description Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en
                  *     préparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :
                  *     passation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`.
+                 *     `PeutModifierEcheance` (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en
+                 *     recette, pilote, suppléant ou administrateur.
                  */
                 droits: {
                     estPilote: boolean;
@@ -9839,6 +9977,7 @@ export interface components {
                     peutSupprimer: boolean;
                     peutChangerPilote: boolean;
                     peutAjouterPersonne: boolean;
+                    peutModifierEcheance: boolean;
                 };
                 estModele: boolean;
                 /** Format: int32 */
@@ -9854,6 +9993,7 @@ export interface components {
                     commentaire: string;
                     /** Format: date-time */
                     le: null | string;
+                    empechement: null | string;
                 }[];
                 goNoGo: {
                     libelle: string;
@@ -10014,7 +10154,8 @@ export interface components {
                 }[];
                 /**
                  * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
-                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+                 *     de recette a été en échec (même refait ensuite).
                  *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
                  *     Toute nouvelle valeur s'ajoute à la fin.
                  * @enum {unknown}
@@ -10050,6 +10191,30 @@ export interface components {
                     ancienPilote: null | string;
                     nouveauPilote: null | string;
                 };
+                /** Format: int32 */
+                echecsRecette: number;
+                /** Format: date-time */
+                echeanceSignalee: null | string;
+                resolutionsFigees: {
+                    /** Format: uuid */
+                    resolutionTypeId: string;
+                    /** Format: int32 */
+                    version: number;
+                    titre: string;
+                    symptomes: string;
+                    diagnostic: string;
+                    systemeCatalogueIds: string[];
+                    corrections: {
+                        /** Format: int32 */
+                        ordre: number;
+                        instruction: string;
+                        resultatAttendu: string;
+                    }[];
+                    verificationInstruction: string;
+                    verificationAttendu: string;
+                }[];
+                /** Format: date-time */
+                resolutionsFigeesLe: null | string;
             };
             journal: {
                 /** Format: int64 */
@@ -10060,6 +10225,8 @@ export interface components {
                 type: string;
                 detail: string;
                 auteurLogin: null | string;
+                /** Format: uuid */
+                etapeId?: null | string;
             }[];
         };
         /** @description Réglage tel que l'affichent la console et la ligne de commande. */
@@ -10107,6 +10274,25 @@ export interface components {
             motif: null | string;
             /** Format: date */
             dateVisee?: null | string;
+        };
+        /** @description Copie d'une résolution type figée dans la MEP à l'approbation ou au Go (#94) : c'est elle que le déroulé applique. */
+        ResolutionFigeeDto: {
+            /** Format: uuid */
+            resolutionTypeId: string;
+            /** Format: int32 */
+            version: number;
+            titre: string;
+            symptomes: string;
+            diagnostic: string;
+            systemeCatalogueIds: string[];
+            corrections: {
+                /** Format: int32 */
+                ordre: number;
+                instruction: string;
+                resultatAttendu: string;
+            }[];
+            verificationInstruction: string;
+            verificationAttendu: string;
         };
         /**
          * @description `Utilisations` : nombre de MEP où la résolution a été liée à une étape (une fois par MEP) ; `CreeeLe` : création.
@@ -10316,9 +10502,13 @@ export interface components {
              *     personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
              *     résolutions liées.
              *     `Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;
-             *     `EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).
+             *     `EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de
+             *     recette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».
              *     Cycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier
              *     Go est `DemarrageAutorise`) et `PilotageSecours`.
+             *     Approbation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière
+             *     automatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou
+             *     au Go (vides avant).
              */
             mep: {
                 /** Format: uuid */
@@ -10578,6 +10768,8 @@ export interface components {
                  * @description Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en
                  *     préparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :
                  *     passation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`.
+                 *     `PeutModifierEcheance` (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en
+                 *     recette, pilote, suppléant ou administrateur.
                  */
                 droits: {
                     estPilote: boolean;
@@ -10593,6 +10785,7 @@ export interface components {
                     peutSupprimer: boolean;
                     peutChangerPilote: boolean;
                     peutAjouterPersonne: boolean;
+                    peutModifierEcheance: boolean;
                 };
                 estModele: boolean;
                 /** Format: int32 */
@@ -10608,6 +10801,7 @@ export interface components {
                     commentaire: string;
                     /** Format: date-time */
                     le: null | string;
+                    empechement: null | string;
                 }[];
                 goNoGo: {
                     libelle: string;
@@ -10768,7 +10962,8 @@ export interface components {
                 }[];
                 /**
                  * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
-                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+                 *     de recette a été en échec (même refait ensuite).
                  *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
                  *     Toute nouvelle valeur s'ajoute à la fin.
                  * @enum {unknown}
@@ -10804,6 +10999,30 @@ export interface components {
                     ancienPilote: null | string;
                     nouveauPilote: null | string;
                 };
+                /** Format: int32 */
+                echecsRecette: number;
+                /** Format: date-time */
+                echeanceSignalee: null | string;
+                resolutionsFigees: {
+                    /** Format: uuid */
+                    resolutionTypeId: string;
+                    /** Format: int32 */
+                    version: number;
+                    titre: string;
+                    symptomes: string;
+                    diagnostic: string;
+                    systemeCatalogueIds: string[];
+                    corrections: {
+                        /** Format: int32 */
+                        ordre: number;
+                        instruction: string;
+                        resultatAttendu: string;
+                    }[];
+                    verificationInstruction: string;
+                    verificationAttendu: string;
+                }[];
+                /** Format: date-time */
+                resolutionsFigeesLe: null | string;
             };
         };
         /**
@@ -11202,6 +11421,8 @@ export interface components {
                  * @description Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en
                  *     préparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :
                  *     passation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`.
+                 *     `PeutModifierEcheance` (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en
+                 *     recette, pilote, suppléant ou administrateur.
                  */
                 droits: {
                     estPilote: boolean;
@@ -11217,6 +11438,7 @@ export interface components {
                     peutSupprimer: boolean;
                     peutChangerPilote: boolean;
                     peutAjouterPersonne: boolean;
+                    peutModifierEcheance: boolean;
                 };
                 estModele: boolean;
                 /** Format: int32 */
@@ -11232,6 +11454,7 @@ export interface components {
                     commentaire: string;
                     /** Format: date-time */
                     le: null | string;
+                    empechement: null | string;
                 }[];
                 goNoGo: {
                     libelle: string;
@@ -11392,7 +11615,8 @@ export interface components {
                 }[];
                 /**
                  * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
-                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+                 *     de recette a été en échec (même refait ensuite).
                  *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
                  *     Toute nouvelle valeur s'ajoute à la fin.
                  * @enum {unknown}
@@ -11428,6 +11652,30 @@ export interface components {
                     ancienPilote: null | string;
                     nouveauPilote: null | string;
                 };
+                /** Format: int32 */
+                echecsRecette: number;
+                /** Format: date-time */
+                echeanceSignalee: null | string;
+                resolutionsFigees: {
+                    /** Format: uuid */
+                    resolutionTypeId: string;
+                    /** Format: int32 */
+                    version: number;
+                    titre: string;
+                    symptomes: string;
+                    diagnostic: string;
+                    systemeCatalogueIds: string[];
+                    corrections: {
+                        /** Format: int32 */
+                        ordre: number;
+                        instruction: string;
+                        resultatAttendu: string;
+                    }[];
+                    verificationInstruction: string;
+                    verificationAttendu: string;
+                }[];
+                /** Format: date-time */
+                resolutionsFigeesLe: null | string;
             }[];
             prevues: {
                 /** Format: uuid */
@@ -11491,7 +11739,8 @@ export interface components {
                 issue: "Reussie" | "Repliee" | "Echec" | null;
                 /**
                  * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
-                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+                 *     de recette a été en échec (même refait ensuite).
                  *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
                  *     Toute nouvelle valeur s'ajoute à la fin.
                  * @enum {unknown}

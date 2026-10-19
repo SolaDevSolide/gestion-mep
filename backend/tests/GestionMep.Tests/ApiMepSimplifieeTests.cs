@@ -124,6 +124,12 @@ public class ApiMepSimplifieeTests : IDisposable
         var alice = await _api.ClientConnecte("alice");
         var id = await AidesApi.IdDemo(alice);
         var mep = await Ok(await ChangerType(alice, await Ok(await alice.GetAsync($"/api/meps/{id}")), "Simplifiee"));
+        // MEP simplifiée : Claire, personne de la MEP, est suppléante implicite et ne peut plus approuver (#94).
+        Assert.Equal("suppléant du pilote", mep.GetProperty("approbations")[0].GetProperty("empechement").GetString());
+        Assert.Contains(mep.GetProperty("erreursPlan").EnumerateArray(), e => e.GetString() == "Claire ne peut pas approuver cette MEP (suppléant du pilote). Le retirer des approbateurs.");
+        // Son compte n'est plus relié à la personne « Claire » de la MEP : elle approuve de l'extérieur.
+        await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/participants/{Participant(mep, "Claire")}",
+            new { nom = "Claire", role = "Opératrice", contact = "", utilisateurId = (Guid?)null }));
         // Les criticités effacées ne bloquent pas le Go.
         mep = await AidesApi.Go(_api, alice, id);
         Assert.Equal("Execution", mep.GetProperty("phase").GetString());
@@ -146,7 +152,10 @@ public class ApiMepSimplifieeTests : IDisposable
     {
         var alice = await _api.ClientConnecte("alice");
         var id = await AidesApi.IdDemo(alice);
-        await Ok(await ChangerType(alice, await Ok(await alice.GetAsync($"/api/meps/{id}")), "Simplifiee"));
+        var simplifiee = await Ok(await ChangerType(alice, await Ok(await alice.GetAsync($"/api/meps/{id}")), "Simplifiee"));
+        // Claire, suppléante implicite, n'approuverait pas (#94) : son compte n'est plus relié à la personne de la MEP.
+        await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/participants/{Participant(simplifiee, "Claire")}",
+            new { nom = "Claire", role = "Opératrice", contact = "", utilisateurId = (Guid?)null }));
         var mep = await AidesApi.Go(_api, alice, id);
         var eve = await _api.NouveauCompte("eve", "Eve", estAdmin: true);
 

@@ -81,13 +81,17 @@ public static partial class Regles
     /// <summary>
     /// « Corriger en avant » : retour de la recette à l'exécution, par le pilote ou un suppléant, motif obligatoire. Les
     /// résultats de test en échec redeviennent « à faire » (l'historique reste au journal). Renvoie les tests remis à faire
-    /// (« Fiche, étape n »).
+    /// (« Fiche, étape n »). Refusé si l'échéance de retour arrière est dépassée (<paramref name="maintenant"/> donné) : en
+    /// exécution, elle déclencherait aussitôt le retour arrière ; la reporter d'abord.
     /// </summary>
-    public static List<string> RevenirEnExecution(Mep mep, Guid utilisateurId, string motif)
+    public static List<string> RevenirEnExecution(Mep mep, Guid utilisateurId, string motif, DateTimeOffset? maintenant = null)
     {
         if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut revenir en exécution.");
         if (mep.Phase != Phase.Recette) throw new RegleMetierException("Le retour en exécution se fait depuis la recette.");
         if (string.IsNullOrWhiteSpace(motif)) throw new RegleMetierException("Indiquer le motif du retour en exécution.");
+        if (maintenant is { } instant && EcheanceDepassee(mep, instant))
+            throw new RegleMetierException("L'échéance de retour arrière est dépassée : en exécution, elle déclencherait aussitôt le retour arrière. "
+                + "Reporter d'abord l'échéance (avec un motif), ou déclencher le retour arrière.");
         var remis = new List<string>();
         foreach (var f in mep.FichesRecette.OrderBy(f => f.Ordre))
             foreach (var t in f.Etapes.OrderBy(t => t.Ordre).Where(t => t.Resultat == ResultatControle.Echec))

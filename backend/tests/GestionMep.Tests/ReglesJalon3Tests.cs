@@ -142,11 +142,11 @@ public class ReglesJalon3Tests
     {
         var m = Demo();
         var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirApprobateurs(m, [(Claire, "Claire"), (Alice, "Alice")]));
-        Assert.Contains("Alice est le pilote", ex.Message);
+        Assert.Contains("Alice ne peut pas approuver cette MEP (pilote).", ex.Message);
         // Si le pilote devient approbateur autrement (compte relié après coup), la décision est refusée et le plan le signale.
         m.Approbations.Add(new Approbation { UtilisateurId = Alice, Nom = "Alice" });
         Assert.ThrowsAny<RegleMetierException>(() => Regles.Decider(m, Alice, DecisionApprobation.Approuvee, "", Maintenant));
-        Assert.Contains("Alice ne peut pas approuver : c'est le pilote.", Regles.ErreursApprobation(m, 1));
+        Assert.Contains("Alice ne peut pas approuver cette MEP (pilote). Le retirer des approbateurs.", Regles.ErreursApprobation(m, 1));
     }
 
     [Fact]
@@ -318,15 +318,19 @@ public class ReglesJalon3Tests
     }
 
     [Fact]
-    public void En_recette_l_echeance_et_le_pilote_peuvent_declencher_le_retour_arriere()
+    public void En_recette_l_echeance_est_signalee_et_le_pilote_declenche_le_retour_arriere()
     {
         // Sans point de non-retour dans le plan (celui de la démo est franchi une fois le déploiement terminé).
         var m = EnRecette();
         E(m, "E0007").PointDeNonRetour = false;
-        Assert.False(Regles.AppliquerEcheance(m, Maintenant));
-        Assert.True(Regles.AppliquerEcheance(m, m.EcheanceRepli!.Value));
-        Assert.Equal(Phase.RetourArriere, m.Phase);
-        Assert.Equal(Regles.MotifEcheance, m.RetourArriereMotif);
+        // Échéance atteinte en recette : aucun retour arrière automatique, un seul signalement (#94).
+        Assert.False(Regles.AppliquerEcheance(m, m.EcheanceRepli!.Value));
+        Assert.Equal(Phase.Recette, m.Phase);
+        Assert.False(Regles.SignalerEcheance(m, Maintenant));
+        Assert.True(Regles.SignalerEcheance(m, m.EcheanceRepli!.Value));
+        Assert.Equal(m.EcheanceRepli, m.EcheanceSignaleeLe);
+        Assert.False(Regles.SignalerEcheance(m, m.EcheanceRepli!.Value.AddMinutes(5)));
+        Assert.Equal(Phase.Recette, m.Phase);
 
         m = EnRecette();
         E(m, "E0007").PointDeNonRetour = false;

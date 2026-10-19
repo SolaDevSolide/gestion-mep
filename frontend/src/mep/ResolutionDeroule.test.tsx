@@ -40,15 +40,17 @@ describe('ResolutionDeroule', () => {
     expect(actions.controlerCorrection).toHaveBeenCalledWith(expect.objectContaining({ id: 'r1' }), 1, 'Conforme', '');
   });
 
-  it('Échec : demande d’abord le constat, puis confirme (retour arrière)', async () => {
+  it('Échec : demande d’abord le constat, puis confirme (l’étape reste en échec, le pilote décide)', async () => {
     const actions = rendre(resolution());
     await userEvent.click(screen.getByRole('button', { name: 'Échec' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Décrivez ce que vous avez constaté');
     expect(actions.controlerCorrection).not.toHaveBeenCalled();
     await userEvent.type(screen.getByLabelText(/Ce que vous constatez/), 'Le service ne repart pas');
     await userEvent.click(screen.getByRole('button', { name: 'Échec' }));
-    expect(screen.getByText('Cela déclenchera le retour arrière.')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /Échec : déclencher le retour arrière/ }));
+    expect(screen.getByText('La résolution s’arrêtera en échec.')).toBeInTheDocument();
+    expect(screen.getByText(/le pilote décide du retour arrière ou d’une nouvelle/)).toBeInTheDocument();
+    expect(screen.queryByText(/déclenchera le retour arrière/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Déclarer l’échec' }));
     expect(actions.controlerCorrection).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'r1' }),
       1,

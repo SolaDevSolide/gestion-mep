@@ -134,8 +134,8 @@ public static class VariablesTexte
     /// Valeur de chaque variable de <see cref="Toutes"/> pour la MEP et l'équipe (null : aucune équipe, les variables d'équipe
     /// manquent). <paramref name="lienMep"/> : adresse complète de la MEP, ou null si l'adresse du serveur est inconnue.
     /// <paramref name="nomsPieces"/> : noms des pièces jointes de la MEP (preuve de validation). <paramref name="maintenant"/> :
-    /// heure de la fin estimée (absente sans elle). <paramref name="echecsSurvenus"/> : échecs d'étape tirés du journal (issue
-    /// « réussie avec incidents », voir <see cref="Regles.EtatDe"/>).
+    /// heure de la fin estimée (absente sans elle). <paramref name="echecsSurvenus"/> : incidents survenus, échecs d'étape et
+    /// de recette (issue « réussie avec incidents », voir <see cref="Regles.Incidents"/> et <see cref="Regles.EtatDe"/>).
     /// </summary>
     public static Dictionary<string, ValeurVariable> Valeurs(Mep mep, Equipe? equipe, string? lienMep, IReadOnlyDictionary<Guid, string> nomsPieces,
         DateTimeOffset? maintenant = null, int echecsSurvenus = 0)

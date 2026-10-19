@@ -1,6 +1,6 @@
 # Documentation de Gestion MEP
 
-Gestion MEP est une application web pour préparer et exécuter les mises en production (MEP). L'équipe qui a développé un changement décrit l'intervention une fois : systèmes touchés, sauvegardes, étapes à suivre, contrôles et retour arrière. Le jour J, n'importe quel opérateur peut dérouler la MEP pas à pas sans avoir participé au développement. Tout est tracé dans un journal, et l'application déclenche elle-même le retour arrière si l'intervention dépasse son échéance. Retour arrière et échéance sont facultatifs pour les environnements qui n'en ont pas besoin.
+Gestion MEP est une application web pour préparer et exécuter les mises en production (MEP). L'équipe qui a développé un changement décrit l'intervention une fois : systèmes touchés, sauvegardes, étapes à suivre, contrôles et retour arrière. Le jour J, n'importe quel opérateur peut dérouler la MEP pas à pas sans avoir participé au développement. Tout est tracé dans un journal, et l'application déclenche elle-même le retour arrière si le déploiement dépasse son échéance (pendant la recette, elle la signale et le pilote décide). Retour arrière et échéance sont facultatifs pour les environnements qui n'en ont pas besoin.
 
 Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQL, fourni dans le même fichier, ou sans Docker, comme un service Linux ou Windows.
 
@@ -24,7 +24,7 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 
 ## En bref
 
-- **Préparation** : identité de l'intervention, personnes, systèmes et leurs environnements, objets impactés choisis dans la fiche de chaque système, sauvegarde de chaque système, plan d'étapes en graphe (les étapes d'une même ligne peuvent se dérouler en parallèle), plan de retour arrière, fiches de recette, relecture et approbations.
+- **Préparation** : identité de l'intervention, personnes, systèmes et leurs environnements, objets impactés choisis dans la fiche de chaque système, sauvegarde de chaque système, plan d'étapes en graphe (les étapes d'une même ligne peuvent se dérouler en parallèle), plan de retour arrière, fiches de recette, relecture et approbations (par d'autres que le pilote, ses suppléants et les responsables techniques).
 - **Exécution** : chacun voit ce qui est disponible, démarre une étape, la termine avec une preuve, ou applique une résolution guidée en cas d'échec. Les écrans se mettent à jour en direct pour tous.
 - **Suivi** : vue d'ensemble de chaque MEP (plan coloré, fin estimée, blocages, qui fait quoi), tableau de bord « Suivi en direct » de toutes les MEP lancées, rapport de fin figé à la clôture (Excel, PDF par l'impression du navigateur).
 - **Sécurité de l'intervention** : go / no-go sur critères, point de non-retour soumis à l'accord du pilote, échéance de retour arrière surveillée en permanence, recette avant clôture, bilan.

@@ -191,7 +191,7 @@ public static class EtapesEndpoints
 
             var avant = mep.Participants.FirstOrDefault(p => p.Id == precedent)?.Nom;
             var detail = $"{acteur.Nom} a pris la main sur {e.Code}" + (avant is null ? "" : $" (à la place de {avant})") + $" : {motif}";
-            return await svc.Enregistrer(mep, acteur, "etape.prise-en-main", detail);
+            return await svc.Enregistrer(mep, acteur, "etape.prise-en-main", detail, e.Id);
         })));
 
         // ---------- Exécution ----------
@@ -208,7 +208,7 @@ public static class EtapesEndpoints
                 : null);
             Regles.Demarrer(mep, e, executant, svc.Maintenant);
             if (existant is null && executant is not null) mep.Participants.Add(executant);
-            return await svc.Enregistrer(mep, acteur, "etape.demarree", $"{e.Code} démarrée par {executant!.Nom}");
+            return await svc.Enregistrer(mep, acteur, "etape.demarree", $"{e.Code} démarrée par {executant!.Nom}", e.Id);
         })));
 
         api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/terminer", async (Guid id, Guid eid, TerminerSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
@@ -223,8 +223,8 @@ public static class EtapesEndpoints
             var constate = e.Fin == FinEtape.TestUnitaire && e.ResultatConstate != preuve ? $"(test unitaire, constaté : {e.ResultatConstate})" : "";
             var detail = string.Join(" ", new[] { preuve, constate }.Where(t => t.Length > 0));
             return c.Resultat == EtatEtape.Reussie
-                ? await svc.Enregistrer(mep, acteur, "etape.reussie", $"{e.Code} réussie : {detail}")
-                : await svc.Enregistrer(mep, acteur, "etape.echec", $"{e.Code} en échec : {detail}");
+                ? await svc.Enregistrer(mep, acteur, "etape.reussie", $"{e.Code} réussie : {detail}", e.Id)
+                : await svc.Enregistrer(mep, acteur, "etape.echec", $"{e.Code} en échec : {detail}", e.Id);
         })));
 
         // Commentaire facultatif sur l'exécution (exécution, recette ou retour arrière).
@@ -236,7 +236,7 @@ public static class EtapesEndpoints
             Regles.Commenter(mep, e, ServiceMep.Texte(c.Commentaire), acteur.Id, acteur.EstAdmin);
             var texte = e.Commentaire.Length > 200 ? e.Commentaire[..200] + "…" : e.Commentaire;
             return await svc.Enregistrer(mep, acteur, "etape.commentaire",
-                texte.Length == 0 ? $"Commentaire sur {e.Code} effacé" : $"Commentaire sur {e.Code} : {texte}");
+                texte.Length == 0 ? $"Commentaire sur {e.Code} effacé" : $"Commentaire sur {e.Code} : {texte}", e.Id);
         })));
 
         api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/autoriser-non-retour", async (Guid id, Guid eid, RevisionSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
@@ -245,7 +245,7 @@ public static class EtapesEndpoints
             var e = ServiceMep.TrouverEtape(mep, eid);
             ServiceMep.ExigerRevision(e, c.Revision);
             Regles.AutoriserNonRetour(mep, e, acteur.Id, svc.Maintenant);
-            return await svc.Enregistrer(mep, acteur, "etape.non-retour-autorise", $"Passage du point de non-retour {e.Code} autorisé");
+            return await svc.Enregistrer(mep, acteur, "etape.non-retour-autorise", $"Passage du point de non-retour {e.Code} autorisé", e.Id);
         })));
 
         api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/autoriser-reprise", async (Guid id, Guid eid, RevisionSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
@@ -254,7 +254,7 @@ public static class EtapesEndpoints
             var e = ServiceMep.TrouverEtape(mep, eid);
             ServiceMep.ExigerRevision(e, c.Revision);
             Regles.AutoriserReprise(mep, e, acteur.Id, svc.Maintenant);
-            return await svc.Enregistrer(mep, acteur, "etape.reprise", $"Reprise de {e.Code} autorisée");
+            return await svc.Enregistrer(mep, acteur, "etape.reprise", $"Reprise de {e.Code} autorisée", e.Id);
         })));
     }
 }

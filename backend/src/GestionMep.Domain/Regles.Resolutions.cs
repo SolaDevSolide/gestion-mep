@@ -3,9 +3,13 @@ namespace GestionMep.Domain;
 // Règles métier : résolutions types.
 public static partial class Regles
 {
-    /// <summary>Démarre une résolution type sur une étape de déploiement en échec, à partir d'une copie figée de la résolution.</summary>
-    public static ExecutionResolution DemarrerResolution(Mep mep, Etape etape, ResolutionType resolution, Guid utilisateurId, DateTimeOffset maintenant)
+    /// <summary>
+    /// Démarre une résolution type sur une étape de déploiement en échec, à partir d'une copie de la résolution : celle figée
+    /// dans la MEP à l'approbation ou au Go (<see cref="Mep.ResolutionsFigees"/>), à défaut celle de la bibliothèque.
+    /// </summary>
+    public static ExecutionResolution DemarrerResolution(Mep mep, Etape etape, ResolutionType bibliotheque, Guid utilisateurId, DateTimeOffset maintenant)
     {
+        var resolution = ResolutionAAppliquer(mep, bibliotheque);
         if (etape.Plan != TypePlan.Deploiement) throw new RegleMetierException("Les résolutions s'appliquent aux étapes de déploiement.");
         ExigerExecution(mep, etape, utilisateurId);
         if (etape.Etat != EtatEtape.Echec) throw new RegleMetierException("Une résolution s'applique à une étape en échec.");
@@ -32,7 +36,10 @@ public static partial class Regles
         return execution;
     }
 
-    /// <summary>Valide la prochaine correction dans l'ordre. Un échec clôt la résolution et déclenche le retour arrière (s'il est possible).</summary>
+    /// <summary>
+    /// Valide la prochaine correction dans l'ordre. Un échec clôt la résolution en échec : l'étape reste en échec et le pilote
+    /// décide (retour arrière, nouvelle tentative), rien n'est déclenché automatiquement.
+    /// </summary>
     public static void ValiderCorrection(Mep mep, ExecutionResolution execution, int ordre, ResultatControle resultat, string observation, Guid utilisateurId, DateTimeOffset maintenant)
     {
         var etape = ExigerResolutionEnCours(mep, execution, utilisateurId);
@@ -47,12 +54,12 @@ public static partial class Regles
         suivante.Le = maintenant;
         etape.Revision++;
         if (resultat == ResultatControle.Echec)
-            EchouerResolution(mep, execution, etape, $"correction {ordre} en échec", maintenant);
+            EchouerResolution(execution, maintenant);
     }
 
     /// <summary>
     /// Vérification finale. Conforme : la résolution est validée et l'étape peut être reprise.
-    /// Échec : la résolution échoue et le retour arrière est déclenché.
+    /// Échec : la résolution échoue, l'étape reste en échec et le pilote décide.
     /// </summary>
     public static void ValiderVerification(Mep mep, ExecutionResolution execution, ResultatControle resultat, string observation, Guid utilisateurId, DateTimeOffset maintenant)
     {
@@ -71,7 +78,7 @@ public static partial class Regles
         }
         else
         {
-            EchouerResolution(mep, execution, etape, "vérification finale en échec", maintenant);
+            EchouerResolution(execution, maintenant);
         }
     }
 
@@ -86,14 +93,21 @@ public static partial class Regles
     }
 
     /// <summary>
-    /// Résolution en échec : déclenche le retour arrière, sauf point de non-retour franchi ou MEP sans plan de retour arrière
-    /// (l'étape reste en échec ; le pilote peut autoriser une reprise).
+    /// Résolution en échec : elle se termine, l'étape reste en échec. Le retour arrière n'est plus déclenché automatiquement
+    /// (un seul échec de correction, parfois une faute de frappe, ne doit pas défaire toute la MEP) : le pilote décide de le
+    /// déclencher (motif obligatoire) ou d'autoriser une nouvelle tentative (<see cref="AutoriserReprise"/>).
     /// </summary>
-    private static void EchouerResolution(Mep mep, ExecutionResolution execution, Etape etape, string cause, DateTimeOffset maintenant)
+    private static void EchouerResolution(ExecutionResolution execution, DateTimeOffset maintenant)
     {
         execution.Statut = StatutResolution.Echouee;
         execution.TermineeLe = maintenant;
-        if (RetourArrierePossible(mep))
-            DeclencherRetourArriere(mep, null, $"Résolution « {execution.Titre} » sur {etape.Code} : {cause}.", maintenant);
     }
+
+    /// <summary>
+    /// Détail du journal d'une résolution en échec : « Résolution « X » en échec sur E0003 : l'étape reste en échec, le pilote
+    /// décide (retour arrière ou nouvelle tentative) » ; sans retour arrière possible, seule la nouvelle tentative est proposée.
+    /// </summary>
+    public static string DetailResolutionEchouee(Mep mep, ExecutionResolution execution, Etape etape) =>
+        $"Résolution « {execution.Titre} » en échec sur {etape.Code} : l'étape reste en échec, le pilote décide "
+        + (RetourArrierePossible(mep) ? "(retour arrière ou nouvelle tentative)" : "(nouvelle tentative ou correction en avant)");
 }

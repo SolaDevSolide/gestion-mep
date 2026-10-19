@@ -20,14 +20,17 @@ public static class MepsEndpoints
     /// </summary>
     public static async Task<List<MepResumeDto>> Lister(MepDbContext db, bool? modele) => await Resumes(db, modele, await Personnes.Charger(db));
 
-    /// <summary>Échecs d'étape survenus (événements « etape.echec » du journal), par MEP : code de l'étape, une entrée par échec.</summary>
-    private static async Task<ILookup<Guid, string>> EchecsSurvenus(MepDbContext db) =>
-        (await db.Journal.AsNoTracking().Where(e => e.Type == Regles.EvenementEchecEtape).Select(e => new { e.MepId, e.Detail }).ToListAsync())
-        .ToLookup(e => e.MepId, e => Regles.CodeEvenementEtape(e.Detail));
+    /// <summary>
+    /// Étapes des échecs survenus (événements « etape.echec » du journal, par leur étape enregistrée), par MEP : une entrée par
+    /// échec, pour rattacher les échecs aux systèmes. Le nombre d'échecs de la MEP est son compteur (<see cref="Mep.EchecsEtapes"/>).
+    /// </summary>
+    private static async Task<ILookup<Guid, Guid>> EtapesEnEchec(MepDbContext db) =>
+        (await db.Journal.AsNoTracking().Where(e => e.Type == Regles.EvenementEchecEtape && e.EtapeId != null).Select(e => new { e.MepId, e.EtapeId }).ToListAsync())
+        .ToLookup(e => e.MepId, e => e.EtapeId!.Value);
 
     private static async Task<List<MepResumeDto>> Resumes(MepDbContext db, bool? modele, AnnuairePersonnes annuaire)
     {
-        var echecs = await EchecsSurvenus(db);
+        var echecs = await EtapesEnEchec(db);
         var lignes = await db.Meps.AsNoTracking().Where(m => modele == null || m.EstModele == modele).OrderByDescending(m => m.CreeLe)
             .Select(m => new
             {
@@ -39,19 +42,19 @@ public static class MepsEndpoints
                 NbReussies = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
                 NbEchecs = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
                 Systemes = m.Systemes.Select(s => new { s.Id, s.Nom, s.CatalogueId, s.Environnements }).ToList(),
-                m.EstModele, m.CreeLe, m.RetourArriereActive, m.Type, m.Report, m.Annulation,
+                m.EstModele, m.CreeLe, m.RetourArriereActive, m.Type, m.Report, m.Annulation, m.EchecsEtapes, m.EchecsRecette,
                 Participants = m.Participants.Select(p => new { p.Id, p.Nom, p.UtilisateurId, p.AjouteDOffice }).ToList(),
                 Executants = m.Etapes.Where(e => e.ExecutantId != null).Select(e => e.ExecutantId).Distinct().ToList(),
-                // Étapes à rattacher aux échecs survenus (code → systèmes).
-                Etapes = m.Etapes.Select(e => new { e.Code, e.SystemeIds }).ToList(),
+                // Étapes à rattacher aux échecs survenus (étape → systèmes).
+                Etapes = m.Etapes.Select(e => new { e.Id, e.SystemeIds }).ToList(),
             })
             .ToListAsync();
         return lignes.Select(m =>
         {
             var comptes = m.Participants.Where(p => p.UtilisateurId != null).Select(p => p.UtilisateurId!.Value).ToList();
-            var codes = echecs[m.Id].ToList();
-            var systemesDesEtapes = m.Etapes.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.First().SystemeIds);
-            int EchecsDu(Guid systeme) => codes.Count(c => systemesDesEtapes.TryGetValue(c, out var ids) && ids.Contains(systeme));
+            var etapesEnEchec = echecs[m.Id].ToList();
+            var systemesDesEtapes = m.Etapes.ToDictionary(e => e.Id, e => e.SystemeIds);
+            int EchecsDu(Guid systeme) => etapesEnEchec.Count(e => systemesDesEtapes.TryGetValue(e, out var ids) && ids.Contains(systeme));
             // Rôles : la règle du domaine, sur une MEP réduite à ce qu'elle lit.
             var reduite = new Mep
             {
@@ -78,13 +81,13 @@ public static class MepsEndpoints
                 [.. m.Participants.Select(p => p.Nom).Concat(comptes.SelectMany(annuaire.TermesDeRecherche)).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)],
                 m.Type,
                 // dateMep : date du Go (la date saisie n'existe plus depuis le jalon 4.2).
-                Regles.EtatDe(m.Phase, m.Issue, codes.Count, m.Report is not null), go ?? Fuseaux.Jour(m.CreeLe, m.FuseauHoraire),
-                m.DemarrageAutoriseLe, m.ClotureeLe, codes.Count,
+                Regles.EtatDe(m.Phase, m.Issue, m.EchecsEtapes + m.EchecsRecette, m.Report is not null), go ?? Fuseaux.Jour(m.CreeLe, m.FuseauHoraire),
+                m.DemarrageAutoriseLe, m.ClotureeLe, m.EchecsEtapes,
                 [.. m.Systemes.Select(s => new SystemeResumeDto(s.CatalogueId, s.Nom,
                     [.. s.Environnements.Select(e => new EnvironnementSystemeDto(e.Nom, e.Production))], EchecsDu(s.Id)))],
                 [.. intervenants.Select(i => new IntervenantDto(i.Key, annuaire.NomPersonne(i.Key) ?? "", [.. i.Value.Order()]))
                     .OrderBy(i => i.Nom, StringComparer.CurrentCultureIgnoreCase)],
-                m.Phase == Phase.Preparation ? m.Report?.DateVisee : null, m.Annulation?.Le);
+                m.Phase == Phase.Preparation ? m.Report?.DateVisee : null, m.Annulation?.Le, m.EchecsRecette);
         }).ToList();
     }
 
@@ -94,7 +97,7 @@ public static class MepsEndpoints
         if (!await db.Meps.AnyAsync(m => m.Id == id)) throw ErreurHttp.NonTrouve("MEP introuvable.");
         return await db.Journal.AsNoTracking().Where(e => e.MepId == id).OrderByDescending(e => e.Id)
             .Select(e => new EvenementDto(e.Id, e.Quand, e.Auteur, e.Type, e.Detail,
-                db.Utilisateurs.Where(u => u.Id == e.UtilisateurId).Select(u => u.Login).FirstOrDefault())).ToListAsync();
+                db.Utilisateurs.Where(u => u.Id == e.UtilisateurId).Select(u => u.Login).FirstOrDefault(), e.EtapeId)).ToListAsync();
     }
 
     public static void MapMeps(this RouteGroupBuilder api)
@@ -147,7 +150,7 @@ public static class MepsEndpoints
         api.MapGet("/meps/{id:guid}", async (Guid id, ClaimsPrincipal user, ServiceMep svc) =>
             Results.Ok(await svc.VersDto(await svc.Charger(id), Acteur.Depuis(user).Id)));
 
-        api.MapPut("/meps/{id:guid}", async (Guid id, MepIdentiteSaisie corps, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
+        api.MapPut("/meps/{id:guid}", async (Guid id, MepIdentiteSaisie corps, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) => Results.Ok(await svc.Modifier(id, async mep =>
         {
             var acteur = Acteur.Depuis(user);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
@@ -199,20 +202,18 @@ public static class MepsEndpoints
                 Regles.ExigerPreparation(mep);
                 Regles.VerifierSuppleants(mep, corps.PiloteId, suppleants);
                 var comptePilote = mep.Participants.FirstOrDefault(p => p.Id == corps.PiloteId)?.UtilisateurId;
-                var approbateur = mep.Approbations.FirstOrDefault(a => a.UtilisateurId == comptePilote);
-                if (corps.PiloteId != mep.PiloteId && comptePilote is not null && approbateur is not null)
-                    throw new RegleMetierException($"{approbateur.Nom} est approbateur : le retirer des approbateurs avant d'en faire le pilote.");
+                if (corps.PiloteId != mep.PiloteId && comptePilote is { } cp && mep.Approbations.Count > 0)
+                {
+                    // Comptes reliés compris : la même personne ne pilote pas une MEP qu'elle approuve.
+                    var annuaire = await Personnes.Charger(db, avecEquipes: false);
+                    if (mep.Approbations.FirstOrDefault(a => annuaire.Personne(a.UtilisateurId) == annuaire.Personne(cp)) is { } approbateur)
+                        throw new RegleMetierException($"{approbateur.Nom} est approbateur : le retirer des approbateurs avant d'en faire le pilote.");
+                }
                 foreach (var m in modifs) m.Appliquer();
             }
 
-            var echeance = corps.EcheanceRepli?.ToUniversalTime();
+            // L'échéance de retour arrière se modifie par PUT /meps/{id}/echeance (motif, ancienne valeur au journal).
             var noms = modifs.Select(m => m.Nom).ToList();
-            if (mep.EcheanceRepli != echeance)
-            {
-                ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote ou son suppléant peut modifier l'échéance de retour arrière.");
-                mep.EcheanceRepli = echeance;
-                noms.Add("échéance de retour arrière");
-            }
             if (noms.Count == 0) return await svc.VersDto(mep, acteur.Id);
             var evenements = new List<ServiceMep.Evenement>();
             if (retourArriere is { } activation)
@@ -224,6 +225,24 @@ public static class MepsEndpoints
             }
             if (noms.Count > 0) evenements.Add(new("mep.modifiee", "MEP modifiée : " + string.Join(", ", noms)));
             return await svc.EnregistrerContenu(mep, acteur, evenements);
+        })));
+
+        // Échéance de retour arrière (#94) : en préparation tout éditeur, ensuite pilote, suppléant ou administrateur ; motif obligatoire (sauf première saisie en
+        // préparation), ancienne et nouvelle valeur au journal, dans le fuseau de la MEP ; refusée une fois la MEP terminée.
+        api.MapPut("/meps/{id:guid}/echeance", async (Guid id, EcheanceSaisie corps, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
+        {
+            var acteur = Acteur.Depuis(user);
+            // En préparation, l'échéance fait partie du plan (tout éditeur) ; après le Go, elle est au pilote.
+            if (mep.Phase == Phase.Preparation) ServiceMep.ExigerEditeur(mep, acteur);
+            else ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote, un suppléant ou un administrateur peut modifier l'échéance de retour arrière.");
+            ServiceMep.ExigerVersion(mep, corps.Version);
+            var motif = ServiceMep.Texte(corps.Motif);
+            var nouvelle = corps.EcheanceRepli?.ToUniversalTime();
+            var ancienne = Regles.ModifierEcheance(mep, nouvelle, motif, svc.Maintenant);
+            if (ancienne == nouvelle) return await svc.VersDto(mep, acteur.Id);
+            var evenements = new List<ServiceMep.Evenement> { new("echeance.modifiee", Regles.DetailEcheance(ancienne, nouvelle, mep.FuseauHoraire, motif)) };
+            // En préparation, les approbations sont à refaire ; la procédure, elle, n'a pas changé : sa relecture reste acquise.
+            return await svc.EnregistrerContenu(mep, acteur, evenements, relecture: false);
         })));
 
         // Type de MEP, en préparation : simplifiée → complète (tout est conservé) ou complète → simplifiée (destructif).

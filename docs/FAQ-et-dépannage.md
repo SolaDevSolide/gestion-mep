@@ -24,10 +24,16 @@ L'étape se termine par un test unitaire : saisir le résultat constaté. Si l'�
 Toute sauvegarde requise (avant ou pendant la MEP) et toute étape de type Sauvegarde doivent dire où se trouve la sauvegarde et comment la récupérer. Sans ces deux informations, le Go est refusé.
 
 **Mes approbations ont disparu.**
-Toute modification du contenu en préparation efface les approbations : le plan approuvé n'est plus le même. Les approbateurs doivent se prononcer de nouveau.
+Toute modification du contenu en préparation efface les approbations : le plan approuvé n'est plus le même. Les approbateurs doivent se prononcer de nouveau. La case « Procédure relue » est aussi effacée : le plan modifié est à relire.
+
+**« Bob ne peut pas approuver cette MEP (suppléant du pilote) ».**
+Séparation des tâches : le pilote, ses suppléants et les responsables techniques (comptes reliés compris) n'approuvent pas la MEP. Bob est devenu suppléant ou responsable technique après avoir été désigné approbateur : sa décision ne compte pas et le Go est refusé. Le retirer des approbateurs et en désigner un autre.
 
 **Le retour arrière s'est déclenché tout seul.**
-Soit l'échéance de retour arrière était atteinte, soit une correction ou la vérification finale d'une résolution a échoué. Le bandeau rouge et le journal donnent le motif. Pour éviter le premier cas, le pilote peut repousser ou retirer l'échéance pendant l'exécution (sans échéance, pas de déclenchement automatique).
+L'échéance de retour arrière était atteinte pendant l'exécution. Le bandeau rouge et le journal donnent le motif. Pour l'éviter, le pilote peut repousser ou retirer l'échéance avant (« Modifier l'échéance », motif obligatoire ; sans échéance, pas de déclenchement automatique). L'échec d'une résolution ne déclenche jamais le retour arrière : l'étape reste en échec et le pilote décide. En recette, l'échéance atteinte est seulement signalée.
+
+**L'échéance affichée n'est pas à mon heure.**
+L'échéance de retour arrière se saisit et s'affiche à l'heure du fuseau horaire de la MEP (section « Intervention »), indiqué entre parenthèses : c'est l'heure du site où se fait l'intervention, pas celle de votre ordinateur.
 
 **La MEP n'a pas de sous-onglet Plan › Retour arrière.**
 La case « Plan de retour arrière » de la section « Intervention » a été décochée : la MEP n'a pas de retour arrière (le journal indique qui l'a désactivé et quand). La recocher, en préparation, fait revenir le sous-onglet et les étapes déjà saisies.

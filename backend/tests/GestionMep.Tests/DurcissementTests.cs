@@ -34,7 +34,7 @@ public class DurcissementTests : IDisposable
         var alice = await _api.ClientConnecte("alice");
         var claire = await _api.ClientConnecte("claire");
         var id = await AidesApi.IdDemo(alice);
-        var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        var mep = await AidesApi.ClaireResponsableTechnique(alice, id);
         var pilote = Participant(mep, "Alice");
         var compteClaire = Participant(mep, "Claire").GetProperty("utilisateurId").GetGuid();
         var saisie = new { nom = "Alice", role = pilote.GetProperty("role").GetString(), contact = "", utilisateurId = compteClaire };
@@ -53,7 +53,7 @@ public class DurcissementTests : IDisposable
         var alice = await _api.ClientConnecte("alice");
         var claire = await _api.ClientConnecte("claire");
         var id = await AidesApi.IdDemo(alice);
-        var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        var mep = await AidesApi.ClaireResponsableTechnique(alice, id);
         JsonNode Saisie(JsonElement m, string preuve)
         {
             var corps = JsonNode.Parse(m.GetProperty("sauvegarde").GetRawText())!;

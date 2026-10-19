@@ -339,6 +339,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("EtapeId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("MepId")
                         .HasColumnType("uuid");
 
@@ -509,6 +512,15 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<DateTimeOffset?>("EcheanceRepli")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("EcheanceSignaleeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EchecsEtapes")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EchecsRecette")
+                        .HasColumnType("integer");
+
                     b.PrimitiveCollection<List<Guid>>("ElementsBibliothequeComptes")
                         .IsRequired()
                         .HasColumnType("uuid[]");
@@ -584,6 +596,13 @@ namespace GestionMep.Api.Donnees.Migrations
 
                     b.Property<string>("Report")
                         .HasColumnType("jsonb");
+
+                    b.Property<string>("ResolutionsFigees")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset?>("ResolutionsFigeesLe")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ResponsablesTechniques")
                         .IsRequired()

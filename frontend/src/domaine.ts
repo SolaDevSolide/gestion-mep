@@ -1,4 +1,14 @@
-import type { Etape, EtapeTest, FicheRecette, Mep, Participant, Phase, ResponsableTechnique, TypePlan } from './types';
+import type {
+  Etape,
+  EtapeTest,
+  FicheRecette,
+  Mep,
+  Participant,
+  Phase,
+  ResolutionType,
+  ResponsableTechnique,
+  TypePlan,
+} from './types';
 import type { Segment } from './ui/ProgressBar';
 
 /** Ordre du graphe : par ligne, puis par position dans la ligne. */
@@ -134,3 +144,23 @@ export const deploiementReussi = (mep: Mep): boolean => {
   const e = etapesDuPlan(mep, 'Deploiement');
   return e.length > 0 && e.every((x) => x.etat === 'Reussie');
 };
+
+/**
+ * Résolution type telle que le déroulé l'appliquera : la copie figée dans la MEP à l'approbation ou au Go (titre, contenu,
+ * version) si elle existe, sinon celle de la bibliothèque. Une modification ultérieure de la bibliothèque n'y change rien.
+ */
+export function avecCopieFigee(mep: Pick<Mep, 'resolutionsFigees'>, r: ResolutionType): ResolutionType {
+  const f = mep.resolutionsFigees.find((x) => x.resolutionTypeId === r.id);
+  if (!f) return r;
+  return {
+    ...r,
+    titre: f.titre,
+    symptomes: f.symptomes,
+    diagnostic: f.diagnostic,
+    systemeCatalogueIds: f.systemeCatalogueIds,
+    corrections: f.corrections,
+    verificationInstruction: f.verificationInstruction,
+    verificationAttendu: f.verificationAttendu,
+    version: f.version,
+  };
+}

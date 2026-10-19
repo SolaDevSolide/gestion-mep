@@ -53,10 +53,10 @@ public static class SuiviEndpoints
             {
                 m.Id, m.Outil, m.VersionCible, m.Type, m.Phase, m.Issue, ClotureeLe = m.ClotureeLe!.Value,
                 Pilote = m.Participants.Where(p => p.Id == m.PiloteId).Select(p => p.Nom).FirstOrDefault(),
-                Echecs = db.Journal.Count(e => e.MepId == m.Id && e.Type == Regles.EvenementEchecEtape),
+                Incidents = m.EchecsEtapes + m.EchecsRecette,
             })
             .ToListAsync())
-            .Select(m => new MepClotureeDto(m.Id, m.Outil, m.VersionCible, m.Type, m.Issue, Regles.EtatDe(m.Phase, m.Issue, m.Echecs), m.ClotureeLe, m.Pilote))
+            .Select(m => new MepClotureeDto(m.Id, m.Outil, m.VersionCible, m.Type, m.Issue, Regles.EtatDe(m.Phase, m.Issue, m.Incidents), m.ClotureeLe, m.Pilote))
             .ToList();
 
         return new SuiviDto(enCours, [.. prevues.Where(x => x.Dto.Date >= x.Jour && x.Dto.Date <= x.Jour.AddDays(1)).Select(x => x.Dto)],

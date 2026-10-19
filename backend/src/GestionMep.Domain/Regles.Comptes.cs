@@ -44,17 +44,14 @@ public static partial class Regles
     }
 
     /// <summary>
-    /// Approbateurs : une même personne (comptes reliés) n'approuve qu'une fois, et jamais avec un compte relié à celui du pilote.
+    /// Approbateurs : une même personne (comptes reliés) n'est désignée qu'une fois. Le pilote, ses suppléants et les
+    /// responsables techniques, comptes reliés compris, sont refusés par <see cref="DefinirApprobateurs"/>.
     /// </summary>
-    public static void ExigerApprobateursDistincts(Mep mep, IReadOnlyList<Guid> approbateurs, AnnuairePersonnes annuaire)
+    public static void ExigerApprobateursDistincts(IReadOnlyList<Guid> approbateurs, AnnuairePersonnes annuaire)
     {
         var doublon = approbateurs.GroupBy(annuaire.Personne).FirstOrDefault(g => g.Count() > 1);
         if (doublon is not null)
-            throw new RegleMetierException($"{annuaire.NomPersonne(doublon.Key)} figure plusieurs fois parmi les approbateurs avec des comptes reliés : "
+            throw new SaisieInvalideException($"{annuaire.NomPersonne(doublon.Key)} figure plusieurs fois parmi les approbateurs avec des comptes reliés : "
                 + "une personne n'approuve qu'une fois.");
-        if (CompteDuPilote(mep) is not { } pilote) return;
-        var relie = approbateurs.Where(a => a != pilote && annuaire.Personne(a) == annuaire.Personne(pilote)).Select(a => (Guid?)a).FirstOrDefault();
-        if (relie is { } r)
-            throw new RegleMetierException($"{annuaire.NomPersonne(r)} est le pilote (avec un compte relié) : il ne peut pas approuver sa propre MEP.");
     }
 }

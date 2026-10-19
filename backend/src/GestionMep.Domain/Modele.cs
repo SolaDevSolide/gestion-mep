@@ -138,8 +138,14 @@ public class Mep
     /// Les étapes et informations déjà saisies sont gardées et reviennent si on le réactive.
     /// </summary>
     public bool RetourArriereActive { get; set; } = true;
-    /// <summary>Échéance de retour arrière, facultative : sans elle, ni compte à rebours ni déclenchement automatique.</summary>
+    /// <summary>
+    /// Échéance de retour arrière, facultative : sans elle, ni compte à rebours ni déclenchement automatique. Atteinte pendant
+    /// l'exécution, elle déclenche le retour arrière ; pendant la recette, elle est seulement signalée (voir
+    /// <see cref="EcheanceSignaleeLe"/>) et le pilote décide. Se modifie par <see cref="Regles.ModifierEcheance"/> (motif, journal).
+    /// </summary>
     public DateTimeOffset? EcheanceRepli { get; set; }
+    /// <summary>Échéance atteinte pendant la recette : signalée (journal, bandeau) à cet instant, sans retour arrière automatique.</summary>
+    public DateTimeOffset? EcheanceSignaleeLe { get; set; }
     public IssueMep? Issue { get; set; }
     public DateTimeOffset? RetourArriereDeclencheLe { get; set; }
     /// <summary>Utilisateur ayant déclenché le retour arrière ; null si déclenchement automatique.</summary>
@@ -197,6 +203,22 @@ public class Mep
     public DateTimeOffset? DemarrageAutoriseLe { get; set; }
     /// <summary>Premier Go de la MEP, gardé après un retour en préparation (null : jamais lancée).</summary>
     public DateTimeOffset? PremierGoLe { get; set; }
+
+    /// <summary>
+    /// Résolutions types liées aux étapes, copiées (titre, contenu, version) à la première approbation, à défaut au Go : le
+    /// déroulé applique ces copies, une modification de la bibliothèque ne change plus la MEP approuvée. Effacées quand les
+    /// approbations sont remises à zéro (<see cref="Regles.ReinitialiserApprobations"/>). MEP simplifiée : aucune (les
+    /// résolutions des systèmes sont lues dans la bibliothèque le jour J).
+    /// </summary>
+    public List<ResolutionFigee> ResolutionsFigees { get; set; } = [];
+    /// <summary>Moment où les résolutions ont été figées (null : pas encore figées).</summary>
+    public DateTimeOffset? ResolutionsFigeesLe { get; set; }
+
+    // Compteurs tenus à jour par les règles quand l'événement survient (jamais recalculés depuis le texte du journal).
+    /// <summary>Échecs d'étape survenus (une étape reprise puis réussie garde son échec).</summary>
+    public int EchecsEtapes { get; set; }
+    /// <summary>Résultats de recette en échec survenus (saisis dans l'application ou importés d'Excel), même refaits ensuite.</summary>
+    public int EchecsRecette { get; set; }
 
     public DateTimeOffset CreeLe { get; set; } = DateTimeOffset.UtcNow;
     public Guid? CreeParUtilisateurId { get; set; }
@@ -508,6 +530,36 @@ public class Correction
     public int Ordre { get; set; }
     public string Instruction { get; set; } = "";
     public string ResultatAttendu { get; set; } = "";
+}
+
+/// <summary>Copie d'une résolution type figée dans une MEP (voir <see cref="Mep.ResolutionsFigees"/>).</summary>
+public class ResolutionFigee
+{
+    public Guid ResolutionTypeId { get; set; }
+    public int Version { get; set; }
+    public string Titre { get; set; } = "";
+    public string Symptomes { get; set; } = "";
+    public string Diagnostic { get; set; } = "";
+    public List<Guid> SystemeCatalogueIds { get; set; } = [];
+    public List<Correction> Corrections { get; set; } = [];
+    public string VerificationInstruction { get; set; } = "";
+    public string VerificationAttendu { get; set; } = "";
+
+    public static ResolutionFigee De(ResolutionType r) => new()
+    {
+        ResolutionTypeId = r.Id, Version = r.Version, Titre = r.Titre, Symptomes = r.Symptomes, Diagnostic = r.Diagnostic,
+        SystemeCatalogueIds = [.. r.SystemeCatalogueIds],
+        Corrections = r.Corrections.Select(c => new Correction { Ordre = c.Ordre, Instruction = c.Instruction, ResultatAttendu = c.ResultatAttendu }).ToList(),
+        VerificationInstruction = r.VerificationInstruction, VerificationAttendu = r.VerificationAttendu,
+    };
+
+    /// <summary>La copie vue comme une résolution type (même identifiant et version), pour la contrôler ou l'appliquer.</summary>
+    public ResolutionType VersResolutionType(bool actif = true) => new()
+    {
+        Id = ResolutionTypeId, Version = Version, Titre = Titre, Symptomes = Symptomes, Diagnostic = Diagnostic,
+        SystemeCatalogueIds = [.. SystemeCatalogueIds], Corrections = [.. Corrections], VerificationInstruction = VerificationInstruction,
+        VerificationAttendu = VerificationAttendu, Actif = actif,
+    };
 }
 
 /// <summary>Application d'une résolution type à une étape en échec, avec une copie figée de la résolution.</summary>
@@ -928,6 +980,8 @@ public class EvenementJournal
 {
     public long Id { get; set; }
     public Guid MepId { get; set; }
+    /// <summary>Étape concernée par un événement d'exécution (démarrage, réussite, échec…), null sinon : rien ne se relit dans <see cref="Detail"/>.</summary>
+    public Guid? EtapeId { get; set; }
     public DateTimeOffset Quand { get; set; } = DateTimeOffset.UtcNow;
     public Guid? UtilisateurId { get; set; }
     public string Auteur { get; set; } = "";

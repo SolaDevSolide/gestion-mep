@@ -4,7 +4,7 @@ import { api } from '../../api';
 import { useAuth } from '../../auth';
 import { anomaliesHorsApprobation, participantPar } from '../../domaine';
 import { formatDateHeure } from '../../format';
-import { optionCompte } from '../../personnes';
+import { optionCompte, personneDe } from '../../personnes';
 import { useAsync, useDraft, useReportDirty } from '../../hooks';
 import { useMep } from '../../mepContext';
 import type { DecisionApprobation } from '../../types';
@@ -103,7 +103,10 @@ export function ApprobationsBloc() {
   const enPreparation = mep.phase === 'Preparation';
   // Modèle : seule la liste des approbateurs compte (reprise dans chaque MEP créée) ; aucune décision ne s'y prend.
   const modele = mep.estModele;
-  const compteDuPilote = participantPar(mep, mep.piloteId)?.utilisateurId ?? null;
+  // Séparation des tâches : ni le pilote, ni un suppléant, ni un responsable technique (comptes reliés compris) n'approuve.
+  const comptesExclus = [mep.piloteId, ...mep.suppleantIds, ...mep.responsablesTechniques.map((r) => r.participantId)]
+    .map((id) => participantPar(mep, id)?.utilisateurId)
+    .filter((c): c is string => !!c);
   const idsDesignes = useMemo(() => mep.approbations.map((a) => a.utilisateurId), [mep.approbations]);
   const d = useDraft(idsDesignes);
   useReportDirty(d.dirty, 'Approbateurs');
@@ -112,8 +115,14 @@ export function ApprobationsBloc() {
   // Comptes désactivés : plus proposés (ceux déjà désignés restent affichés). Le détail porte l'identifiant, l'état et les
   // équipes : la recherche du sélecteur filtre aussi par équipe.
   const nomsEquipes = new Map((equipes ?? []).map((e) => [e.id, e.nom]));
+  const personnesExclues = new Set(
+    comptesExclus.map((c) => {
+      const u = (utilisateurs ?? []).find((x) => x.id === c);
+      return u ? personneDe(u) : c;
+    }),
+  );
   const options = (utilisateurs ?? [])
-    .filter((u) => u.id !== compteDuPilote && (u.actif || d.value.includes(u.id)))
+    .filter((u) => (!personnesExclues.has(personneDe(u)) && u.actif) || d.value.includes(u.id))
     .map((u) => {
       const o = optionCompte(u);
       const noms = u.equipeIds.map((id) => nomsEquipes.get(id)).filter(Boolean);
@@ -170,9 +179,9 @@ export function ApprobationsBloc() {
             hint={
               modele
                 ? 'Choisis parmi les comptes. Ils seront repris dans chaque MEP créée depuis ce modèle.'
-                : compteDuPilote
-                  ? 'Choisis parmi les comptes. Le compte du pilote est exclu : on n’approuve pas sa propre MEP.'
-                  : 'Choisis parmi les comptes.'
+                : comptesExclus.length > 0
+                  ? 'Choisis parmi les comptes. Le pilote, ses suppléants et les responsables techniques (comptes reliés compris) sont exclus : on n’approuve pas son propre plan.'
+                  : 'Choisis parmi les comptes. Le pilote, ses suppléants et les responsables techniques ne pourront pas approuver.'
             }
           >
             {(id) => (
@@ -238,12 +247,21 @@ export function ApprobationsBloc() {
                     {a.commentaire.trim() && (
                       <p className="mt-1 text-sm whitespace-pre-line text-fg-muted">« {a.commentaire} »</p>
                     )}
+                    {a.empechement && (
+                      <p className="mt-1 text-sm text-warn-fg">
+                        {a.nom} ne peut pas approuver ({a.empechement})
+                        {a.decision ? ' : sa décision ne compte pas' : ''}.{' '}
+                        {mep.droits.peutEditerContenu
+                          ? 'Le retirer des approbateurs pour permettre le Go.'
+                          : 'Le pilote doit le retirer des approbateurs pour permettre le Go.'}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <StatusPill taille="md" ton={st.ton} icone={st.Icone}>
                   {st.libelle}
                 </StatusPill>
-                {moi && enPreparation && a.decision === null && (
+                {moi && enPreparation && a.decision === null && !a.empechement && (
                   <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                     <Button
                       variante="succes"
@@ -275,7 +293,7 @@ export function ApprobationsBloc() {
         enPreparation &&
         !modele &&
         bloquees.length > 0 &&
-        mep.approbations.some((a) => a.utilisateurId === utilisateur?.id && a.decision === null) && (
+        mep.approbations.some((a) => a.utilisateurId === utilisateur?.id && a.decision === null && !a.empechement) && (
           <Alerte
             ton="wait"
             icone={ShieldCheck}

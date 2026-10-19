@@ -61,6 +61,8 @@ public static partial class Regles
         etape.FinReelle = maintenant;
         etape.Etat = resultat;
         etape.Revision++;
+        // Compteur tenu à jour à l'événement : l'échec reste compté même si l'étape est reprise puis réussie.
+        if (resultat == EtatEtape.Echec) mep.EchecsEtapes++;
     }
 
     /// <summary>

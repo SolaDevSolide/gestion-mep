@@ -4,6 +4,7 @@ import { couleurSysteme } from '../../couleursSysteme';
 import { LIBELLE_FIN } from '../../format';
 import type { Etape, ExecutionResolution, Mep, ResolutionType } from '../../types';
 import { Alerte } from '../../ui/Alerte';
+import { BoutonDeclencherRepli } from '../ActionsPilote';
 import { Button } from '../../ui/Button';
 import { Instructions, Markdown } from '../../ui/Instructions';
 import type { DroitsEtape } from '../droitsEtape';
@@ -145,6 +146,7 @@ interface Props {
 export function EtapeInstructions({ mep, etape, droits, liees, groupes = null, enCours, actions }: Props) {
   const { peutDemarrer, peutAgirResolution, enEchec, resolutionReussie, resolutionEchouee } = droits;
   const pilote = mep.droits.estPilote;
+  const repliPossible = mep.retourArriereActive && mep.nonRetourFranchi === null;
 
   return (
     <>
@@ -169,27 +171,47 @@ export function EtapeInstructions({ mep, etape, droits, liees, groupes = null, e
           {!peutDemarrer && etape.disponibilite.libelle}
         </Alerte>
       )}
-      {resolutionEchouee && (
+      {resolutionEchouee && mep.phase === 'RetourArriere' && (
         <Alerte
           ton="danger"
           icone={OctagonAlert}
           role="alert"
-          titre={
-            mep.phase === 'RetourArriere' ? 'Résolution en échec : retour arrière déclenché.' : 'Résolution en échec.'
-          }
+          titre="Résolution en échec : retour arrière déclenché."
           action={
-            mep.phase === 'RetourArriere' ? (
-              <Link to="?onglet=plan&plan=retour" className="font-semibold underline">
-                Ouvrir l’onglet Retour arrière
-              </Link>
+            <Link to="?onglet=plan&plan=retour" className="font-semibold underline">
+              Ouvrir l’onglet Retour arrière
+            </Link>
+          }
+        >
+          Le déploiement est arrêté : suivez le plan de retour arrière.
+        </Alerte>
+      )}
+      {resolutionEchouee && mep.phase !== 'RetourArriere' && (
+        <Alerte
+          ton="danger"
+          icone={OctagonAlert}
+          role="alert"
+          titre={pilote ? 'Résolution en échec : à vous de décider.' : 'Résolution en échec : le pilote décide.'}
+          action={
+            pilote && mep.phase === 'Execution' ? (
+              <div className="flex flex-wrap gap-2">
+                {repliPossible && <BoutonDeclencherRepli />}
+                <Button
+                  taille="sm"
+                  icone={<Play className="size-4" aria-hidden />}
+                  action={() => actions.autoriserReprise(etape)}
+                >
+                  Autoriser une nouvelle tentative
+                </Button>
+              </div>
             ) : undefined
           }
         >
-          {mep.phase === 'RetourArriere'
-            ? 'Le déploiement est arrêté : suivez le plan de retour arrière.'
-            : mep.retourArriereActive
-              ? 'Point de non-retour franchi : l’étape reste en échec, prévenez le pilote.'
-              : 'Pas de plan de retour arrière : l’étape reste en échec, prévenez le pilote.'}
+          {pilote
+            ? repliPossible
+              ? 'L’étape reste en échec. Déclenchez le retour arrière, ou autorisez une nouvelle tentative de l’étape.'
+              : 'L’étape reste en échec. Autorisez une nouvelle tentative, ou corrigez en avant.'
+            : 'L’étape reste en échec : prévenez le pilote, il décide du retour arrière ou d’une nouvelle tentative.'}
         </Alerte>
       )}
       {enEchec ? (
@@ -205,12 +227,7 @@ export function EtapeInstructions({ mep, etape, droits, liees, groupes = null, e
             </Alerte>
           )}
           {enCours ? (
-            <ResolutionDeroule
-              resolution={enCours}
-              peutAgir={peutAgirResolution}
-              actions={actions}
-              repli={mep.retourArriereActive && mep.nonRetourFranchi === null}
-            />
+            <ResolutionDeroule resolution={enCours} peutAgir={peutAgirResolution} actions={actions} />
           ) : (
             !resolutionEchouee &&
             (liees.length > 0 ? (

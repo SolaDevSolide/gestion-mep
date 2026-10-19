@@ -31,10 +31,12 @@ public static class DerouleEndpoints
             if (comptes.Values.FirstOrDefault(u => !u.Actif && mep.Approbations.All(a => a.UtilisateurId != u.Id)) is { } inactif)
                 throw new RegleMetierException($"Le compte {inactif.NomAffiche} ({inactif.Login}) est désactivé : il ne peut pas être désigné approbateur.");
             var annuaire = await Personnes.Charger(db, avecEquipes: false);
-            Regles.ExigerApprobateursDistincts(mep, ids, annuaire);
-            Regles.DefinirApprobateurs(mep, ids.Select(i => (i, annuaire.NomPersonne(i) ?? comptes[i].NomAffiche)).ToList());
+            Regles.ExigerApprobateursDistincts(ids, annuaire);
+            // Séparation des tâches : ni le pilote, ni un suppléant, ni un responsable technique (comptes reliés compris).
+            Regles.DefinirApprobateurs(mep, ids.Select(i => (i, annuaire.NomPersonne(i) ?? comptes[i].NomAffiche)).ToList(), annuaire);
             var noms = mep.Approbations.Count == 0 ? "aucun" : string.Join(", ", mep.Approbations.Select(a => a.Nom));
-            return await svc.EnregistrerContenu(mep, acteur, "approbateurs.modifies", $"Approbateurs : {noms}");
+            // Le plan ne change pas : la relecture de la procédure reste acquise (les décisions, elles, sont à refaire).
+            return await svc.EnregistrerContenu(mep, acteur, [new("approbateurs.modifies", $"Approbateurs : {noms}")], relecture: false);
         })));
 
         api.MapPost("/meps/{id:guid}/approbation", async (Guid id, DecisionSaisie c, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>
@@ -42,11 +44,16 @@ public static class DerouleEndpoints
             var acteur = Acteur.Depuis(user);
             ServiceMep.ExigerVersion(mep, c.Version);
             if (c.Decision is null) throw ErreurHttp.Saisie("La décision (Approuvee ou Refusee) est obligatoire.");
-            var a = Regles.Decider(mep, acteur.Id, c.Decision.Value, ServiceMep.Texte(c.Commentaire), svc.Maintenant);
+            var contexte = await svc.Contexte(mep);
+            var figeesAvant = mep.ResolutionsFigeesLe;
+            // Une approbation fige les résolutions types liées (copie appliquée le jour J) si elles ne le sont pas encore.
+            var a = Regles.Decider(mep, acteur.Id, c.Decision.Value, ServiceMep.Texte(c.Commentaire), svc.Maintenant, contexte.Annuaire, contexte.Resolutions);
             var suite = a.Commentaire.Length == 0 ? "" : $" : {a.Commentaire}";
-            return a.Decision == DecisionApprobation.Approuvee
-                ? await svc.Enregistrer(mep, acteur, "approbation.approuvee", $"MEP approuvée par {acteur.Nom}{suite}")
-                : await svc.Enregistrer(mep, acteur, "approbation.refusee", $"MEP refusée par {acteur.Nom}{suite}");
+            List<ServiceMep.Evenement> evenements = a.Decision == DecisionApprobation.Approuvee
+                ? [new("approbation.approuvee", $"MEP approuvée par {acteur.Nom}{suite}")]
+                : [new("approbation.refusee", $"MEP refusée par {acteur.Nom}{suite}")];
+            evenements.AddRange(ServiceMep.EvenementsFigees(mep, figeesAvant));
+            return await svc.Enregistrer(mep, acteur, evenements);
         })));
 
         // ---------- Fiches de recette : préparation ----------

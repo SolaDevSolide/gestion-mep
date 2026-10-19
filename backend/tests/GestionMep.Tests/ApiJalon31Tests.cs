@@ -32,10 +32,11 @@ public class ApiJalon31Tests : IDisposable
     {
         var (_, _, mep) = await Demo();
         var rts = mep.GetProperty("responsablesTechniques").EnumerateArray().ToList();
-        Assert.Equal(2, rts.Count);
-        var bob = rts.Single(r => r.GetProperty("participantId").GetGuid() == Participant(mep, "Bob"));
+        // Séparation des tâches (#94) : Claire approuve, Bob est seul responsable technique (API, MDM et WEB).
+        var bob = Assert.Single(rts);
+        Assert.Equal(Participant(mep, "Bob"), bob.GetProperty("participantId").GetGuid());
         Assert.Equal("Joignable", bob.GetProperty("disponibilite").GetString());
-        Assert.Equal(2, bob.GetProperty("systemeIds").GetArrayLength());
+        Assert.Equal(3, bob.GetProperty("systemeIds").GetArrayLength());
         Assert.Empty(Liste(mep, "avertissements"));
         Assert.False(mep.GetProperty("droits").GetProperty("estResponsableTechnique").GetBoolean()); // Alice, pilote
         Assert.True(mep.GetProperty("droits").GetProperty("peutEditerContenu").GetBoolean());
@@ -109,7 +110,8 @@ public class ApiJalon31Tests : IDisposable
     [Fact]
     public async Task Un_responsable_technique_ne_peut_pas_etre_supprime_des_participants()
     {
-        var (alice, id, mep) = await Demo();
+        var (alice, id, _) = await Demo();
+        var mep = await AidesApi.ClaireResponsableTechnique(alice, id);
         var rep = await alice.DeleteAsync($"/api/meps/{id}/participants/{Participant(mep, "Claire")}");
         Assert.Equal(HttpStatusCode.UnprocessableEntity, rep.StatusCode);
         Assert.Contains("responsable technique", await Message(rep));
@@ -158,6 +160,8 @@ public class ApiJalon31Tests : IDisposable
     {
         var (alice, id, mep) = await Demo();
         var claire = await _api.ClientConnecte("claire");
+        Assert.Equal(HttpStatusCode.Forbidden, (await claire.PostAsJsonAsync($"/api/meps/{id}/etapes", new { })).StatusCode);
+        await AidesApi.ClaireResponsableTechnique(alice, id);
         Assert.True((await Ok(await claire.PostAsJsonAsync($"/api/meps/{id}/etapes", new { }))).GetProperty("etapes").GetArrayLength() > 0);
 
         mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
@@ -228,7 +232,7 @@ public class ApiJalon31Tests : IDisposable
         var copie = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/dupliquer", new { commeModele = false }));
         Assert.Equal("Portail de démonstration (copie)", copie.GetProperty("outil").GetString());
         Assert.True(copie.GetProperty("systemes").EnumerateArray().All(s => s.GetProperty("environnements").GetArrayLength() > 0));
-        Assert.Equal(2, copie.GetProperty("responsablesTechniques").GetArrayLength());
+        Assert.Equal(1, copie.GetProperty("responsablesTechniques").GetArrayLength());
         Assert.Equal(Participant(copie, "Bob"), copie.GetProperty("responsablesTechniques")[0].GetProperty("participantId").GetGuid());
 
         // Un non-participant qui duplique devient responsable technique de sa copie (il peut donc la modifier).

@@ -43,7 +43,7 @@ public class DroitsAccesTests : IDisposable
         var bob = await _api.ClientConnecte("bob");
         var claire = await _api.ClientConnecte("claire");
         var id = await AidesApi.IdDemo(alice);
-        var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        var mep = await AidesApi.ClaireResponsableTechnique(alice, id);
         Guid pAlice = Participant(mep, "Alice"), pBob = Participant(mep, "Bob"), pClaire = Participant(mep, "Claire");
 
         // Claire est responsable technique (éditrice) mais ni pilote ni suppléante.

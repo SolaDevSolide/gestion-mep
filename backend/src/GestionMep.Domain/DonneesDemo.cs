@@ -522,11 +522,11 @@ public static partial class DonneesDemo
             HeureFinAnnoncee = new TimeOnly(23, 0),
         };
 
-        // Responsables techniques : Bob (API, MDM) et Claire (WEB), joignables ; Alice reste pilote.
+        // Responsable technique : Bob (API, MDM, WEB), joignable ; Alice reste pilote. Claire, qui approuve, n'est ni pilote, ni
+        // suppléante, ni responsable technique (séparation des tâches) : elle exécute les étapes du portail.
         mep.ResponsablesTechniques =
         [
-            new() { ParticipantId = pBob.Id, SystemeIds = [api.Id, mdm.Id], Perimetre = "Service commandes et flux MDM", Disponibilite = DisponibiliteJourJ.Joignable, ContactJourJ = "Fictif — poste B" },
-            new() { ParticipantId = pClaire.Id, SystemeIds = [web.Id], Perimetre = "Portail client", Disponibilite = DisponibiliteJourJ.Joignable, ContactJourJ = "Fictif — poste C" },
+            new() { ParticipantId = pBob.Id, SystemeIds = [api.Id, mdm.Id, web.Id], Perimetre = "Service commandes, flux MDM et portail client", Disponibilite = DisponibiliteJourJ.Joignable, ContactJourJ = "Fictif — poste B" },
         ];
 
         const string simulation = "SIMULATION : lire sans rien lancer.\n\n";

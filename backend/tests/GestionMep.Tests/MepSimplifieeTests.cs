@@ -21,7 +21,9 @@ public class MepSimplifieeTests
 
     private static void Go(Mep m)
     {
-        Regles.Decider(m, Claire, DecisionApprobation.Approuvee, "", Maintenant);
+        // MEP simplifiée : toutes les personnes de la MEP sont suppléantes, l'approbateur est extérieur (séparation des tâches).
+        Regles.DefinirApprobateurs(m, [(Dave, "Dave")]);
+        Regles.Decider(m, Dave, DecisionApprobation.Approuvee, "", Maintenant);
         Regles.PasserEnExecution(m, Alice, Criteres.Select(c => c.Id).ToList(), Criteres, 1, Maintenant);
     }
 
@@ -132,7 +134,7 @@ public class MepSimplifieeTests
         Assert.Equal(StatutDisponibilite.Disponible, Regles.Disponibilite(m, E(m, "E0004"), Maintenant).Statut);
 
         // Responsable technique absent : pas d'avertissement sur les résolutions liées.
-        m.ResponsablesTechniques[1].Disponibilite = DisponibiliteJourJ.Absent;
+        m.ResponsablesTechniques[0].Disponibilite = DisponibiliteJourJ.Absent;
         Assert.DoesNotContain(Regles.Avertissements(m), a => a.Contains("résolution", StringComparison.OrdinalIgnoreCase));
 
         // Une MEP complète sans criticité est incomplète.

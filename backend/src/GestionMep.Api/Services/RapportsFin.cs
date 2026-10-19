@@ -15,8 +15,12 @@ namespace GestionMep.Api.Services;
 /// </summary>
 public class RapportsFin(MepDbContext db, ServiceMep svc)
 {
-    /// <summary>Version du format du contenu enregistré (<see cref="RapportFin.Format"/>).</summary>
-    public const int FormatActuel = 1;
+    /// <summary>
+    /// Version du format du contenu enregistré (<see cref="RapportFin.Format"/>). 2 (#94) : la MEP figée porte ses compteurs
+    /// d'incidents (échecs d'étape et de recette) et son état en tient compte ; un rapport au format 1 prend les compteurs de la
+    /// MEP (repris du journal une fois pour toutes par la migration).
+    /// </summary>
+    public const int FormatActuel = 2;
 
     public const string MessageNonCloturee = "Le rapport de fin existe une fois la MEP clôturée.";
 
@@ -33,7 +37,10 @@ public class RapportsFin(MepDbContext db, ServiceMep svc)
     public async Task<RapportFinDto> Lire(Guid mepId)
     {
         var rapport = await db.RapportsFin.AsNoTracking().FirstOrDefaultAsync(r => r.MepId == mepId) ?? await Figer(mepId, calculeApres: true);
-        return VersDto(rapport);
+        // Format 1 : la MEP figée n'avait pas ses compteurs d'incidents ; ceux de la MEP font foi (le rapport est supprimé avec elle).
+        var compteurs = rapport.Format >= 2 ? null
+            : await db.Meps.AsNoTracking().Where(m => m.Id == mepId).Select(m => new { m.EchecsEtapes, m.EchecsRecette }).FirstOrDefaultAsync();
+        return VersDto(rapport, compteurs is null ? null : (compteurs.EchecsEtapes, compteurs.EchecsRecette));
     }
 
     /// <summary>
@@ -69,13 +76,15 @@ public class RapportsFin(MepDbContext db, ServiceMep svc)
         }
     }
 
-    private static RapportFinDto VersDto(RapportFin r)
+    private static RapportFinDto VersDto(RapportFin r, (int Etapes, int Recette)? compteurs)
     {
         var c = JsonSerializer.Deserialize<Contenu>(r.Contenu, Options)
             ?? throw new InvalidOperationException($"Rapport de fin illisible pour la MEP {r.MepId}.");
-        // État (réussie, avec incidents, repliée) relu du journal figé : un rapport figé avant que la MEP le porte l'obtient aussi.
-        var echecs = c.Journal.Count(e => e.Type == Regles.EvenementEchecEtape);
-        var mep = c.Mep with { Etat = Regles.EtatDe(c.Mep.Phase, c.Mep.Issue, echecs), EchecsSurvenus = echecs };
+        var mep = c.Mep;
+        // Rapport figé avant les compteurs d'incidents (format 1) : état (réussie, avec incidents, repliée) d'après les compteurs
+        // de la MEP, échecs de recette compris ; aucun texte du journal n'est relu.
+        if (compteurs is { } n)
+            mep = mep with { Etat = Regles.EtatDe(mep.Phase, mep.Issue, n.Etapes + n.Recette), EchecsSurvenus = n.Etapes, EchecsRecette = n.Recette };
         // Rapport figé avant la clôture en échec (#93) : champs de clôture absents du JSON.
         if (mep.Cloture is { } cl && (cl.EtatService is null || cl.ReferenceIncident is null))
             mep = mep with { Cloture = cl with { EtatService = cl.EtatService ?? "", ReferenceIncident = cl.ReferenceIncident ?? "" } };
@@ -84,26 +93,27 @@ public class RapportsFin(MepDbContext db, ServiceMep svc)
 
     /// <summary>
     /// Synthèse et points bloquants d'une MEP, d'après son état et son journal (du plus récent au plus ancien, comme l'API le
-    /// donne). Les échecs viennent du journal (« E0003 en échec : motif ») : une étape refaite garde ainsi son premier échec.
+    /// donne). Les échecs sont les événements « etape.echec » du journal, rattachés à leur étape par <see cref="EvenementDto.EtapeId"/> :
+    /// une étape refaite garde ainsi son premier échec, et un changement de libellé ne change rien.
     /// </summary>
     public static (SyntheseRapportDto Synthese, List<PointBloquantDto> PointsBloquants) Calculer(Mep mep, IReadOnlyList<EvenementDto> journal)
     {
         var chrono = journal.OrderBy(e => e.Quand).ThenBy(e => e.Id).ToList();
-        var parCode = mep.Etapes.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.First());
-        static string Code(EvenementDto e) => e.Detail.Split(' ', 2)[0];
+        var parId = mep.Etapes.ToDictionary(e => e.Id);
         int Minutes(DateTimeOffset de, DateTimeOffset a) => (int)Math.Round((a - de).TotalMinutes);
 
         var points = new List<PointBloquantDto>();
         foreach (var echec in chrono.Where(e => e.Type == Regles.EvenementEchecEtape))
         {
-            var code = Code(echec);
-            if (!parCode.TryGetValue(code, out var etape)) continue;
-            var apres = chrono.Where(e => e.Quand >= echec.Quand && e.Id != echec.Id && Code(e) == code).ToList();
+            if (echec.EtapeId is not { } etapeId || !parId.TryGetValue(etapeId, out var etape)) continue;
+            var code = etape.Code;
+            var apres = chrono.Where(e => e.Quand >= echec.Quand && e.Id != echec.Id && e.EtapeId == etapeId).ToList();
             var reprise = apres.FirstOrDefault(e => e.Type == "etape.demarree")?.Quand;
             var reussite = reprise is { } r ? apres.FirstOrDefault(e => e.Type == "etape.reussie" && e.Quand >= r)?.Quand : null;
             var resolution = mep.Resolutions
                 .Where(x => x.EtapeId == etape.Id && x.DemarreeLe >= echec.Quand && (reprise is null || x.DemarreeLe <= reprise))
                 .OrderBy(x => x.DemarreeLe).LastOrDefault();
+            // Motif : le détail sans le rappel de l'étape (le détail entier si son libellé a changé).
             var marque = $"{code} en échec : ";
             var motif = echec.Detail.StartsWith(marque, StringComparison.Ordinal) ? echec.Detail[marque.Length..] : echec.Detail;
             points.Add(new PointBloquantDto(etape.Plan, code, etape.Action, echec.Quand, echec.Auteur, motif, resolution?.Titre, resolution?.Statut,

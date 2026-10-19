@@ -72,10 +72,11 @@ public class ReglesComptesTests
         mep.Participants.Add(pilote);
         mep.PiloteId = pilote.Id;
 
-        Regles.ExigerApprobateursDistincts(mep, [claire.Id], annuaire);
-        var e = Assert.ThrowsAny<RegleMetierException>(() => Regles.ExigerApprobateursDistincts(mep, [sso.Id], annuaire));
-        Assert.Contains("JEAN est le pilote", e.Message);
+        Regles.ExigerApprobateursDistincts([claire.Id], annuaire);
+        Regles.DefinirApprobateurs(mep, [(claire.Id, "Claire")], annuaire);
+        var e = Assert.Throws<RegleMetierException>(() => Regles.DefinirApprobateurs(mep, [(sso.Id, "JEAN")], annuaire));
+        Assert.StartsWith("JEAN ne peut pas approuver cette MEP (pilote, par un compte relié).", e.Message);
         mep.PiloteId = null;
-        Assert.ThrowsAny<RegleMetierException>(() => Regles.ExigerApprobateursDistincts(mep, [jean.Id, sso.Id], annuaire));
+        Assert.Throws<SaisieInvalideException>(() => Regles.ExigerApprobateursDistincts([jean.Id, sso.Id], annuaire));
     }
 }

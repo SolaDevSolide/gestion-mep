@@ -119,6 +119,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Annulation).AsJsonObjet();
             e.Property(x => x.Report).AsJsonObjet();
             e.Property(x => x.PilotageSecours).AsJsonObjet();
+            // Approbation et traçabilité (#94) : résolutions types figées à l'approbation ou au Go.
+            e.Property(x => x.ResolutionsFigees).AsJson();
             e.HasIndex(x => x.EstModele);
             e.HasMany(x => x.Participants).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Systemes).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
@@ -251,6 +253,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.HasIndex(x => new { x.MepId, x.Id });
             // Recherche avancée (#59) : échecs d'étape survenus (« etape.echec »), toutes MEP confondues.
             e.HasIndex(x => new { x.Type, x.MepId });
+            // Étape d'un événement d'exécution (#94) : simple repère, sans clé étrangère (le journal garde la trace d'une étape supprimée).
         });
 
         // Rapport de fin figé à la clôture : un par MEP, supprimé avec elle.
