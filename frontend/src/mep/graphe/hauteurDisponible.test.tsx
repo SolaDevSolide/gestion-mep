@@ -16,9 +16,9 @@ let numeroImage = 0;
 let observateurs: ResizeObserverCallback[] = [];
 let ligneMesurable = true;
 
-function Graphe() {
+function Graphe({ fenetre = false }: { fenetre?: boolean }) {
   const cadre = useRef<HTMLDivElement>(null);
-  const hauteur = useHauteurDisponible(cadre, true);
+  const hauteur = useHauteurDisponible(cadre, true, fenetre);
   useLayoutEffect(() => {
     etat.hauteur = hauteur;
   });
@@ -125,5 +125,19 @@ describe('useHauteurDisponible', () => {
     const vues = simuler();
     expect(new Set(vues.slice(-6)).size).toBe(1);
     expect(hauteurPage()).toBeLessThanOrEqual(FENETRE);
+  });
+
+  it('vue compacte : la hauteur de la fenêtre moins 24 px, moins ce qui reste collé en haut', () => {
+    render(<Graphe fenetre />);
+    expect(etat.hauteur).toBe(FENETRE - 24);
+    // En-tête de la MEP collant (fenêtre assez haute) : sa hauteur est retirée aussi.
+    const entete = document.createElement('header');
+    entete.dataset.enteteMep = '';
+    entete.style.position = 'sticky';
+    vi.spyOn(entete, 'offsetHeight', 'get').mockReturnValue(180);
+    document.body.append(entete);
+    act(() => window.dispatchEvent(new Event('resize')));
+    expect(etat.hauteur).toBe(FENETRE - 24 - 180);
+    entete.remove();
   });
 });

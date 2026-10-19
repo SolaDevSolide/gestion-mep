@@ -57,6 +57,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
   return (
     <header
       ref={ref}
+      data-entete-mep
       className="z-30 border-b border-line bg-surface/95 backdrop-blur-md [@media(min-height:760px)]:sticky [@media(min-height:760px)]:top-[var(--bandeau-demo,0px)]"
     >
       <div className="px-6 pt-3">
