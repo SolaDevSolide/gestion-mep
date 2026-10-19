@@ -82,7 +82,7 @@ export default function SsoTab() {
   const identites = useAsync(() => api.ssoIdentites(), []);
   const maintenant = useNow(60_000);
   const d = useDraft<Brouillon | null>(donnees ? depuis(donnees) : null);
-  useReportDirty(d.dirty, 'Réglages de la connexion unique');
+  useReportDirty(d.dirty, 'Réglages de la connexion unique', d);
   const [envoi, setEnvoi] = useState(false);
   const [test, setTest] = useState<SsoTest | null>(null);
   const [testEnCours, setTestEnCours] = useState(false);

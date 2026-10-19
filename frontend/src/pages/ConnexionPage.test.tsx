@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { api } from '../api';
 import { AuthContext } from '../auth';
+import { SESSION_ACTIVE } from '../test/fabrique';
 import ConnexionPage from './ConnexionPage';
 
 vi.mock('../api', () => ({ api: { optionsConnexion: vi.fn(), demo: vi.fn(), connexionDemo: vi.fn() } }));
@@ -13,6 +14,7 @@ const auth = {
   connecter: vi.fn(),
   deconnecter: vi.fn(),
   majUtilisateur: vi.fn(),
+  ...SESSION_ACTIVE,
 };
 
 function rendre(url = '/connexion') {
@@ -150,5 +152,46 @@ describe('Page de connexion : mode démonstration', () => {
     vi.mocked(api.demo).mockResolvedValue({ actif: true, comptes });
     rendre('/connexion?demo=reinitialisee');
     expect(await screen.findByText(/La démonstration a été réinitialisée/)).toBeInTheDocument();
+  });
+});
+
+describe('Page de connexion : retour à la page demandée', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.demo).mockResolvedValue(null);
+    vi.mocked(api.optionsConnexion).mockResolvedValue({ ssoActif: false, ssoLibelle: null });
+  });
+
+  function rendreDepuis(from: unknown) {
+    render(
+      <AuthContext.Provider value={auth}>
+        <MemoryRouter initialEntries={[{ pathname: '/connexion', state: { from } }]}>
+          <Routes>
+            <Route path="/connexion" element={<ConnexionPage />} />
+            <Route path="/" element={<p>Accueil</p>} />
+            <Route path="/meps/:id" element={<p>Page de la MEP</p>} />
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>,
+    );
+  }
+
+  async function seConnecter() {
+    await userEvent.type(await screen.findByLabelText('Identifiant'), 'alice');
+    await userEvent.type(screen.getByLabelText('Mot de passe'), 'demo');
+    await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
+  }
+
+  it('rouvre la page qui avait conduit à l’écran de connexion', async () => {
+    rendreDepuis({ pathname: '/meps/m1', search: '?vue=graphe', hash: '' });
+    await seConnecter();
+    expect(auth.connecter).toHaveBeenCalledWith('alice', 'demo');
+    expect(await screen.findByText('Page de la MEP')).toBeInTheDocument();
+  });
+
+  it('ignore une adresse hors de l’application et revient à l’accueil', async () => {
+    rendreDepuis({ pathname: '//exemple.org/piege', search: '', hash: '' });
+    await seConnecter();
+    expect(await screen.findByText('Accueil')).toBeInTheDocument();
   });
 });

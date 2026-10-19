@@ -255,7 +255,7 @@ export function PanneauEdition(props: Props) {
   const { run } = useMep();
   const navigate = useNavigate();
   const d = useDraft<Fiche>(ficheDepuis(etape));
-  useReportDirty(d.dirty, `Étape ${etape.code}`);
+  useReportDirty(d.dirty, `Étape ${etape.code}`, d);
   useEffect(() => onDirty?.(d.dirty), [onDirty, d.dirty]);
   // Présence : l'étape ouverte en édition est signalée aux autres, et on voit qui d'autre la modifie.
   usePresenceElement(`etape:${etape.id}`, ecriture);

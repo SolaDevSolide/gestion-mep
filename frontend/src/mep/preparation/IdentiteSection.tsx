@@ -34,7 +34,7 @@ export function IdentiteSection() {
     retourArriereActive: mep.retourArriereActive,
   };
   const d = useDraft(source);
-  useReportDirty(d.dirty, 'Intervention');
+  useReportDirty(d.dirty, 'Intervention', d);
   const v = d.value;
   const [confirmerDesactivation, setConfirmerDesactivation] = useState(false);
   const retourArriere = v.retourArriereActive ?? true;

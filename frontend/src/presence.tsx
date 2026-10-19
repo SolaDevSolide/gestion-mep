@@ -108,12 +108,15 @@ export function ZonePresence({ cle, className, children }: { cle: string; classN
   const [focus, setFocus] = useState(false);
   const registre = useMemo<DirtyRegistry>(
     () => ({
-      set: (id, dirty, libelle) => {
-        parent.set(id, dirty, libelle);
+      set: (id, dirty, libelle, lire) => {
+        parent.set(id, dirty, libelle, lire);
         if (dirty) sales.current.add(id);
         else sales.current.delete(id);
         setSale(sales.current.size > 0);
       },
+      libelles: () => parent.libelles(),
+      brouillons: () => parent.brouillons(),
+      abandonner: () => parent.abandonner(),
     }),
     [parent],
   );

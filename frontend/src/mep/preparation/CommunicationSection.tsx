@@ -33,7 +33,7 @@ export function CommunicationSection() {
   const { mep, run } = useMep();
   const admin = useAuth().utilisateur?.estAdmin ?? false;
   const d = useDraft<Communication>(mep.communication);
-  useReportDirty(d.dirty, 'Communication');
+  useReportDirty(d.dirty, 'Communication', d);
   const v = d.value;
   const edition = peutModifierCommunication(mep, admin);
   const lecture = !edition;

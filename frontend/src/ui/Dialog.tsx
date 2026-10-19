@@ -15,6 +15,8 @@ interface DialogProps {
   pied?: ReactNode;
   children?: ReactNode;
   className?: string;
+  /** Faux : ni bouton Fermer, ni Échap, ni clic à côté (le dialogue attend une réponse : session expirée). */
+  fermable?: boolean;
 }
 
 export function Dialog({
@@ -26,7 +28,9 @@ export function Dialog({
   pied,
   children,
   className,
+  fermable = true,
 }: DialogProps) {
+  const retenir = fermable ? undefined : (e: Event) => e.preventDefault();
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
@@ -38,6 +42,9 @@ export function Dialog({
               className,
             )}
             aria-describedby={description ? undefined : undefined}
+            onEscapeKeyDown={retenir}
+            onPointerDownOutside={retenir}
+            onInteractOutside={retenir}
           >
             <div className="flex items-start justify-between gap-4 px-6 pt-5">
               <div className="min-w-0">
@@ -50,11 +57,13 @@ export function Dialog({
                   </D.Description>
                 )}
               </div>
-              <D.Close asChild>
-                <BoutonIcone label="Fermer" taille="sm" className="-mt-1 -mr-2">
-                  <X className="size-4" aria-hidden />
-                </BoutonIcone>
-              </D.Close>
+              {fermable && (
+                <D.Close asChild>
+                  <BoutonIcone label="Fermer" taille="sm" className="-mt-1 -mr-2">
+                    <X className="size-4" aria-hidden />
+                  </BoutonIcone>
+                </D.Close>
+              )}
             </div>
             <div className="px-6 py-5">{children}</div>
             {pied && (

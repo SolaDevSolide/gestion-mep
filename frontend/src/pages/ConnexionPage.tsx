@@ -1,11 +1,13 @@
 import { CircleCheck, Loader2, LogIn, Rocket, ShieldCheck, Timer, Undo2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
+import { retenirRetour } from '../brouillons';
 import { useAsync } from '../hooks';
 import type { CompteDemo } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { IconeMicrosoft } from '../ui/IconeMicrosoft';
 import { Apparition } from '../ui/Apparition';
 import { Squelette, SqueletteFormulaire } from '../ui/Squelette';
 import { Avatar } from '../ui/Avatar';
@@ -88,18 +90,6 @@ const ERREURS_SSO: Record<string, string> = {
 };
 const ERREUR_SSO_INCONNUE = 'La connexion a échoué. Réessayez ou contactez un administrateur.';
 
-/** Logo à quatre carrés, en couleurs fixes (marque du fournisseur). */
-function IconeMicrosoft() {
-  return (
-    <svg viewBox="0 0 21 21" className="size-4" aria-hidden>
-      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-    </svg>
-  );
-}
-
 /** Place réservée du formulaire (identifiant, mot de passe, bouton) pendant la lecture des options de connexion. */
 function SqueletteConnexion() {
   return (
@@ -110,9 +100,22 @@ function SqueletteConnexion() {
   );
 }
 
+/** Page demandée avant la connexion (lien ouvert sans session, session abandonnée), passée par `Protege`. */
+function pageDemandee(etat: unknown): string {
+  if (typeof etat !== 'object' || etat === null || !('from' in etat)) return '/';
+  const from = etat.from;
+  if (typeof from !== 'object' || from === null || !('pathname' in from) || typeof from.pathname !== 'string')
+    return '/';
+  const search = 'search' in from && typeof from.search === 'string' ? from.search : '';
+  const hash = 'hash' in from && typeof from.hash === 'string' ? from.hash : '';
+  const adresse = from.pathname + search + hash;
+  return adresse.startsWith('/') && !adresse.startsWith('//') && !adresse.startsWith('/connexion') ? adresse : '/';
+}
+
 export default function ConnexionPage() {
   const { utilisateur, chargement, connecter, majUtilisateur } = useAuth();
   const navigate = useNavigate();
+  const cible = pageDemandee(useLocation().state);
   const [login, setLogin] = useState('');
   const [mdp, setMdp] = useState('');
   const [erreur, setErreur] = useState('');
@@ -132,14 +135,14 @@ export default function ConnexionPage() {
   const erreurSso = codeSso ? (ERREURS_SSO[codeSso] ?? ERREUR_SSO_INCONNUE) : '';
   const reinitialisee = params.get('demo') === 'reinitialisee';
 
-  if (!chargement && utilisateur) return <Navigate to="/" replace />;
+  if (!chargement && utilisateur) return <Navigate to={cible} replace />;
 
   async function connexionRapide(compte: string) {
     setErreur('');
     setRapide(compte);
     try {
       majUtilisateur(await api.connexionDemo(compte));
-      void navigate('/', { replace: true });
+      void navigate(cible, { replace: true });
     } catch (err) {
       setErreur(err instanceof Error ? err.message : 'Connexion impossible.');
     } finally {
@@ -153,7 +156,7 @@ export default function ConnexionPage() {
     setEnvoi(true);
     try {
       await connecter(login.trim(), mdp);
-      void navigate('/', { replace: true });
+      void navigate(cible, { replace: true });
     } catch (err) {
       setErreur(err instanceof Error ? err.message : 'Connexion impossible.');
     } finally {
@@ -247,7 +250,11 @@ export default function ConnexionPage() {
                   taille="lg"
                   className="w-full"
                   icone={<IconeMicrosoft />}
-                  onClick={() => window.location.assign('/api/auth/sso/connexion')}
+                  onClick={() => {
+                    // Le fournisseur renvoie sur « / » : la page demandée est rouverte au retour.
+                    if (cible !== '/') retenirRetour(cible);
+                    window.location.assign('/api/auth/sso/connexion');
+                  }}
                 >
                   {options.ssoLibelle || 'Se connecter avec Microsoft'}
                 </Button>

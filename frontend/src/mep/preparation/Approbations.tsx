@@ -116,7 +116,7 @@ export function ApprobationsBloc() {
     .filter((c): c is string => !!c);
   const idsDesignes = useMemo(() => mep.approbations.map((a) => a.utilisateurId), [mep.approbations]);
   const d = useDraft(idsDesignes);
-  useReportDirty(d.dirty, 'Approbateurs');
+  useReportDirty(d.dirty, 'Approbateurs', d);
 
   const { donnees: equipes } = useReferentiel('equipes');
   // Comptes désactivés : plus proposés (ceux déjà désignés restent affichés). Le détail porte l'identifiant, l'état et les

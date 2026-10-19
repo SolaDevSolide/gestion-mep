@@ -1,15 +1,18 @@
-import { lazy, Suspense, type ReactNode } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { lazy, Suspense, useEffect, type ReactNode } from 'react';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { api } from './api';
 import { useAuth } from './auth';
+import { brouillonsEnAttente, prendreRetour } from './brouillons';
 import { useAsync } from './hooks';
 import { BandeauDemo } from './layout/BandeauDemo';
 import { GardeModifications } from './layout/GardeModifications';
 import { NouvelleVersion } from './layout/NouvelleVersion';
+import { SessionExpiree } from './layout/SessionExpiree';
 import { ChargementPage, Shell } from './layout/Shell';
 import ConnexionPage from './pages/ConnexionPage';
 import MotDePasseObligatoirePage from './pages/MotDePasseObligatoirePage';
 import { EnChargement, Squelette, SqueletteCartes, SqueletteLignes } from './ui/Squelette';
+import { useToast } from './ui/Toast';
 
 // Pages chargées à la demande : l'écran de connexion n'attend pas le code de l'éditeur, de l'exécution ou de la console.
 const AdminPage = lazy(() => import('./admin/AdminPage'));
@@ -66,16 +69,37 @@ function page(route: string, contenu: ReactNode) {
   );
 }
 
+/**
+ * Retour d'une connexion Microsoft (le fournisseur renvoie sur « / ») : rouvre la page d'où l'on était parti, dont les
+ * formulaires reprennent la saisie copiée avant la redirection.
+ */
+function RetourApresConnexion() {
+  const navigate = useNavigate();
+  const toast = useToast();
+  useEffect(() => {
+    const adresse = prendreRetour();
+    if (!adresse) return;
+    if (brouillonsEnAttente()) toast.succes('Reconnecté. Votre saisie est intacte.');
+    if (adresse !== window.location.pathname + window.location.search + window.location.hash)
+      void navigate(adresse, { replace: true });
+  }, [navigate, toast]);
+  return null;
+}
+
 function Protege() {
   const { utilisateur, chargement } = useAuth();
+  const location = useLocation();
   // Le bandeau de démonstration paraît en même temps que le reste (pas de page qui descend d'un cran).
   const demo = useAsync(() => api.demo(), []);
   if (chargement || demo.chargement) return <Chargement />;
-  if (!utilisateur) return <Navigate to="/connexion" replace />;
+  // Lien ouvert sans session : l'écran de connexion y revient après l'identification.
+  if (!utilisateur) return <Navigate to="/connexion" replace state={{ from: location }} />;
   if (utilisateur.doitChangerMotDePasse) return <MotDePasseObligatoirePage />;
   return (
     <GardeModifications>
+      <RetourApresConnexion />
       <Shell />
+      <SessionExpiree />
     </GardeModifications>
   );
 }

@@ -7,7 +7,7 @@ import { AuthContext } from '../auth';
 import { useReportDirty } from '../hooks';
 import { GardeModifications } from '../layout/GardeModifications';
 import { ZonePresence } from '../presence';
-import { etape, mep, utilisateur } from '../test/fabrique';
+import { SESSION_ACTIVE, etape, mep, utilisateur } from '../test/fabrique';
 import type { Mep } from '../types';
 import { ToastProvider } from '../ui/Toast';
 import { TooltipProvider } from '../ui/Tooltip';
@@ -86,7 +86,14 @@ async function rendre(m: Mep, adresse = '/meps/m1') {
   );
   render(
     <AuthContext.Provider
-      value={{ utilisateur: moi, chargement: false, connecter: vi.fn(), deconnecter: vi.fn(), majUtilisateur: vi.fn() }}
+      value={{
+        utilisateur: moi,
+        chargement: false,
+        connecter: vi.fn(),
+        deconnecter: vi.fn(),
+        majUtilisateur: vi.fn(),
+        ...SESSION_ACTIVE,
+      }}
     >
       <TooltipProvider>
         <ToastProvider>

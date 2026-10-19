@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { api } from '../api';
 import { AuthContext } from '../auth';
-import { utilisateur } from '../test/fabrique';
+import { SESSION_ACTIVE, utilisateur } from '../test/fabrique';
 import type { SsoProfil, SystemeCatalogue, Utilisateur } from '../types';
 import ProfilPage from './ProfilPage';
 
@@ -34,7 +34,14 @@ function rendre(u: Utilisateur, sso?: Partial<SsoProfil>, url = '/profil') {
   });
   render(
     <AuthContext.Provider
-      value={{ utilisateur: u, chargement: false, connecter: vi.fn(), deconnecter: vi.fn(), majUtilisateur }}
+      value={{
+        utilisateur: u,
+        chargement: false,
+        connecter: vi.fn(),
+        deconnecter: vi.fn(),
+        majUtilisateur,
+        ...SESSION_ACTIVE,
+      }}
     >
       <MemoryRouter initialEntries={[url]}>
         <ProfilPage />

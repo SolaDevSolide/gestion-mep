@@ -29,13 +29,19 @@ export function changeDeVue(
  * Nécessite un routeur de données (`createBrowserRouter`).
  */
 export function GardeModifications({ children }: { children: ReactNode }) {
-  const sales = useRef(new Map<string, string | undefined>());
+  const sales = useRef(new Map<string, { libelle?: string; lire?: () => unknown }>());
   const registre = useMemo<DirtyRegistry>(
     () => ({
-      set: (id, dirty, libelle) => {
-        if (dirty) sales.current.set(id, libelle);
+      set: (id, dirty, libelle, lire) => {
+        if (dirty) sales.current.set(id, { libelle, lire });
         else sales.current.delete(id);
       },
+      libelles: () => [...new Set([...sales.current.values()].map((e) => e.libelle ?? 'Une saisie en cours'))],
+      brouillons: () =>
+        [...sales.current.values()].flatMap((e) =>
+          e.libelle && e.lire ? [{ libelle: e.libelle, valeur: e.lire() }] : [],
+        ),
+      abandonner: () => sales.current.clear(),
     }),
     [],
   );
@@ -46,11 +52,7 @@ export function GardeModifications({ children }: { children: ReactNode }) {
     // Session expirée : le retour à l'écran de connexion n'est pas retenu (rien ne pourrait plus être enregistré).
     if (nextLocation.pathname === '/connexion') return false;
     if (sales.current.size === 0 || !changeDeVue(currentLocation, nextLocation)) return false;
-    setPerdus(
-      [...new Set([...sales.current.values()].map((l) => l ?? 'Une saisie en cours'))].sort((a, b) =>
-        a.localeCompare(b, 'fr'),
-      ),
-    );
+    setPerdus(registre.libelles().sort((a, b) => a.localeCompare(b, 'fr')));
     return true;
   });
 
