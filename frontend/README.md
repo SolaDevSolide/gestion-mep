@@ -68,7 +68,16 @@ await run(() => api.demarrerEtape(mep.id, etape.id, etape.revision), 'Étape dé
 - `useDraft(source)` (`hooks.ts`) garde la saisie d'un formulaire : tant que l'utilisateur n'a rien modifié, le formulaire suit la source ; dès qu'il tape, sa saisie prime.
 - Le brouillon mémorise aussi la source au début de la saisie. Si elle change ensuite (modification d'un collègue reçue entre-temps), `conflit` passe à vrai : `ui/AvisConflit.tsx` affiche « Modifié pendant votre saisie » et bloque l'enregistrement jusqu'à ce que l'utilisateur abandonne sa saisie ou la garde (`garderSaisie`). La source ne doit contenir que les champs du formulaire, pas la version de la MEP.
 - `useReportDirty(dirty, libelle)` signale une saisie non enregistrée (`DirtyContext`) à `layout/GardeModifications.tsx`, qui entoure les pages connectées. Quitter la vue (autre page, onglet ou sous-onglet, voir `changeDeVue`) ouvre alors « Quitter sans enregistrer ? » avec la liste des libellés ; fermer ou recharger le navigateur déclenche son avertissement (`beforeunload`). La garde utilise `useBlocker` : l'application tourne dans un routeur de données (`createBrowserRouter`, `main.tsx`) et ses tests dans `createMemoryRouter`.
+- Passer aussi le brouillon (`useReportDirty(d.dirty, 'Intervention', d)`) : avant une reconnexion Microsoft (session expirée), la saisie est copiée dans `sessionStorage` (`brouillons.ts`), puis reprise au retour sur la même page par le formulaire de même libellé.
+- Session expirée : un 401 ouvre `layout/SessionExpiree.tsx` par-dessus la page ; la requête attend la reconnexion (`setUnauthorizedHandler`, `auth.tsx`) puis repart une fois. Les saisies restent en mémoire.
 - Une MEP relue (modification d'un collègue) s'affiche aussitôt : les formulaires gardent leur brouillon et `AvisConflit` signale un changement de leur section.
+
+### Chargements et erreurs
+
+- Listes communes : `useReferentiel('catalogue' | 'resolutions' | 'comptes' | 'equipes')` et `useDonneePartagee(cle, charger)` (`referentiels.ts`) lisent une clé une seule fois pour toute la page et renvoient `{ donnees, erreur, pret, enCours, recharger }`. Ne jamais remplacer une erreur par une liste vide (`.catch(() => [])`) : « Aucun… » ne s'affiche que sur une réponse vide.
+- `useAsync` expose `echec` (l'erreur reçue) en plus du message `erreur`.
+- `ui/ErreurChargement.tsx` affiche l'erreur (`variante` `bloc`, `ligne` ou `page`), sa cause, « Réessayer » (`onReessayer`, `enCours`) et, pour un administrateur, les détails techniques. Un 401 n'affiche rien : la reconnexion s'en charge.
+- Un écran qui dépend de plusieurs listes montre un seul squelette puis tout d'un coup (`ui/Apparition.tsx`), comme l'onglet Préparation (`usePreparation`).
 
 ### Temps réel
 

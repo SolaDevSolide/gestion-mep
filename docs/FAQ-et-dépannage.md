@@ -44,6 +44,12 @@ Quelqu'un d'autre a enregistré cette section pendant que vous la modifiiez. « 
 **« Quitter sans enregistrer ? » s'ouvre quand je change d'onglet.**
 Un formulaire de la vue a des modifications non enregistrées, listées dans la fenêtre. « Rester » permet de les enregistrer d'abord ; « Quitter sans enregistrer » les abandonne.
 
+**Une partie de l'écran affiche « non chargé » avec un bouton « Réessayer ».**
+Une liste n'a pas pu être lue ; le message en donne la cause. « Le serveur ne répond pas (502) » arrive pendant une mise à jour de Gestion MEP : patienter un instant puis cliquer « Réessayer ». « Le serveur est injoignable » : vérifier la connexion réseau. Le reste de l'écran reste utilisable : par exemple, une personne s'ajoute sans compte si la liste des comptes n'est pas chargée. Une liste vide (« Aucun… ») veut toujours dire que le serveur a répondu qu'il n'y avait rien. Pour un administrateur, « Détails techniques » donne la requête, le code et l'heure, à copier dans un signalement.
+
+**« Session expirée » s'ouvre pendant que je travaille.**
+La session a pris fin (déconnexion depuis un autre onglet, redémarrage du serveur sans conservation des clés, longue inactivité). La page reste affichée derrière, avec votre saisie : saisir le mot de passe et cliquer « Se reconnecter ». Ce qui était en cours d'envoi repart alors une fois, et le message « Reconnecté. Votre saisie est intacte. » le confirme. Avec la connexion Microsoft, le navigateur passe par la page de Microsoft puis revient sur la même page, saisie reprise. « Changer de compte » abandonne la saisie, après confirmation.
+
 **Un bandeau propose une nouvelle version de l'application.**
 L'application a été mise à jour sur le serveur (nouveau numéro de version, ou nouvelle construction de l'interface, par exemple une image reconstruite depuis une branche) : cliquer « Recharger ». Un onglet resté ouvert garde sinon l'ancienne interface.
 
@@ -60,6 +66,9 @@ Après 5 échecs consécutifs depuis votre poste, le compte y est bloqué quelqu
 
 **Le dépôt d'une pièce jointe est refusé (« limite de pièces jointes », « 24 heures », « espace disque »).**
 Des plafonds protègent le serveur : total par MEP, dépôts d'un compte sur 24 heures, espace disque minimal. Supprimer des pièces inutiles, réessayer plus tard, ou demander à un administrateur de relever le plafond (console, onglet Paramètres ; voir aussi [Installer](Installer.md#configuration)).
+
+**J'ai ouvert un lien vers une MEP et l'écran de connexion s'est affiché.**
+Après la connexion, l'application ouvre la page du lien (aussi avec Microsoft).
 
 **La connexion semble réussir mais je reste sur la page de connexion.**
 L'application doit être servie en HTTPS (sauf sur `http://localhost`) : le cookie de session n'est pas envoyé en HTTP. Voir [Installer](Installer.md#proxy-inverse-https). Pour un simple essai depuis un autre poste, sans proxy : voir [Essayer depuis un autre poste](Installer.md#essayer-depuis-un-autre-poste-sans-https).

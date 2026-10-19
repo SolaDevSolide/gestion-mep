@@ -72,6 +72,10 @@ Sans redirection, `--secret-stdin` demande le secret au clavier sans l'afficher 
 - **Rôle administrateur** : sans rôle d'application réglé, il se gère dans l'onglet Comptes, comme pour un compte local. Avec un rôle réglé (`MEP.Admin`), il est relu à chaque connexion par Microsoft : présent, la personne devient administrateur ; absent, elle ne l'est plus. Le dernier administrateur actif garde toujours son rôle.
 - Désactiver un compte dans l'application bloque aussi sa connexion par Microsoft. Supprimer la personne de l'annuaire Entra l'empêche de se connecter par Microsoft ; pensez à désactiver aussi son compte dans l'application s'il a un mot de passe.
 
+## Session expirée
+
+Si la session prend fin pendant le travail, le dialogue « Session expirée » propose aussi le bouton Microsoft. Les saisies non enregistrées de la page sont copiées dans l'onglet du navigateur (stockage de session, effacé à sa fermeture, gardé une heure au plus), puis le navigateur passe par Microsoft et revient sur la même page, où chaque formulaire reprend sa saisie. De même, un lien ouvert sans session rouvre sa page après la connexion par Microsoft.
+
 ## Sécurité
 
 - Flux OpenID Connect « code d'autorisation » avec PKCE ; jeton d'identité vérifié (émetteur, audience, signature, nonce). L'annuaire est celui de l'entreprise : `common` ou `organizations`, qui ouvriraient l'application à tous les comptes Microsoft, sont refusés.
