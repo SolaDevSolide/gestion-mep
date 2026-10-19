@@ -55,7 +55,7 @@ Quand une MEP est clôturée, son **rapport de fin** est figé : ce qu'il montre
 
 Il contient :
 
-1. la **vue d'ensemble à la clôture** : étapes réussies, durée réelle du déploiement et durée prévue, échecs (et combien ont été repris avec succès), recette, et le plan coloré tel qu'à la clôture ;
+1. la **vue d'ensemble à la clôture** : l'issue (« réussie », « réussie avec incidents » si une étape a échoué en route, ou « repliée »), étapes réussies, durée réelle du déploiement et durée prévue, échecs (et combien ont été repris avec succès), recette, et le plan coloré tel qu'à la clôture ;
 2. les **points bloquants** : chaque échec d'étape, tiré du journal (une étape refaite garde son échec), avec son motif, la personne, la résolution type utilisée et sa durée, l'heure de reprise et de réussite, et le temps d'arrêt (de l'échec à la reprise) ;
 3. les **résolutions utilisées**, avec corrections et vérification ;
 4. les **tests unitaires** : résultat attendu et constaté de chaque étape terminée par un test ;

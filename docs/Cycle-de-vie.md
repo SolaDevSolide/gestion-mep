@@ -77,6 +77,8 @@ Quand toutes les étapes de retour arrière ont réussi, le pilote clôture avec
 
 À la clôture, si l'option « Bilan de clôture » est active (c'est le défaut), le pilote rédige un bilan : « Ce qui a marché » et « Incidents » sont obligatoires (« Rien à signaler » est accepté), « Actions » est facultatif. La MEP clôturée est en lecture seule ; le moment de la clôture devient sa date de fin. Son [rapport de fin](Suivre-une-MEP.md#rapport-de-fin) est figé au même moment.
 
+Une MEP clôturée réussie alors qu'au moins une étape a échoué en route, même reprise ensuite avec succès, s'affiche **« Clôturée : réussie avec incidents »**, en orange avec un triangle d'alerte, partout où son issue apparaît : en-tête de la MEP, vue d'ensemble, liste et recherche des MEP, Suivi en direct, rapport de fin, exports Excel, journal (« MEP clôturée : réussie avec incidents ») et variable `{{issue}}` des modèles de texte. Les échecs comptés sont ceux du journal : une étape reprise redevient réussie, mais son échec reste. Sans aucun échec, elle reste « Clôturée : réussie ».
+
 ## Modèles
 
 Un modèle est une MEP qui sert de point de départ. On le crée directement (« Nouveau modèle » dans la vue Modèles) ou en dupliquant une MEP avec « En faire un modèle », et on l'utilise avec « Nouvelle MEP depuis un modèle » ou « Créer une MEP depuis ce modèle ». Un modèle ne passe jamais en exécution : il n'a ni phase, ni pilote, ni échéance, ni Go, ni onglet Exécution (ses onglets sont Préparation, Plan et Journal). Voir [Préparer une MEP](Préparer-une-MEP.md#partir-dune-mep-existante).

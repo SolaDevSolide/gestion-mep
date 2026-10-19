@@ -16,7 +16,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { LIBELLE_DISPONIBILITE, tonDisponibilite, type Ton } from './format';
-import type { Etape, EtatMep, IssueMep, Phase } from './types';
+import type { Etape, EtatMep, Phase } from './types';
 
 export interface MetaStatut {
   ton: Ton;
@@ -51,7 +51,11 @@ export function metaEtape(e: Pick<Etape, 'etat' | 'disponibilite'>): MetaStatut 
   }
 }
 
-export function metaPhase(phase: Phase, issue: IssueMep | null): MetaStatut {
+/**
+ * Phase d'une MEP, puis son issue une fois clôturée (en-tête, cartes, suivi, rapport) : `etat` vient de l'API (même règle
+ * que la recherche, #91). « Réussie avec incidents » : clôturée réussie alors qu'une étape a échoué en route.
+ */
+export function metaPhase(phase: Phase, etat: EtatMep): MetaStatut {
   switch (phase) {
     case 'Preparation':
       return { ton: 'wait', libelle: 'Préparation', Icone: ClipboardList };
@@ -62,9 +66,10 @@ export function metaPhase(phase: Phase, issue: IssueMep | null): MetaStatut {
     case 'RetourArriere':
       return { ton: 'rollback', libelle: 'Retour arrière', Icone: Siren };
     case 'Cloturee':
-      return issue === 'Repliee'
-        ? { ton: 'later', libelle: 'Clôturée : repliée', Icone: Undo2 }
-        : { ton: 'done', libelle: 'Clôturée : réussie', Icone: CheckCircle2 };
+      if (etat === 'Repliee') return { ton: 'later', libelle: 'Clôturée : repliée', Icone: Undo2 };
+      if (etat === 'AvecIncidents')
+        return { ton: 'warn', libelle: 'Clôturée : réussie avec incidents', Icone: TriangleAlert };
+      return { ton: 'done', libelle: 'Clôturée : réussie', Icone: CheckCircle2 };
   }
 }
 

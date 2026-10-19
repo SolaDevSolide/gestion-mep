@@ -57,7 +57,8 @@ public static class ExcelCommun
     public static readonly IReadOnlyDictionary<string, Ton> TonsPhase = new Dictionary<string, Ton>
     {
         ["Préparation"] = Ton.Attente, ["Exécution"] = Ton.EnCours, ["Recette"] = Ton.EnCours, ["Retour arrière"] = Ton.Echec,
-        ["Clôturée : réussie"] = Ton.Succes, ["Clôturée : repliée"] = Ton.Attention, ["Modèle"] = Ton.Neutre,
+        ["Clôturée : réussie"] = Ton.Succes, ["Clôturée : réussie avec incidents"] = Ton.Attention, ["Clôturée : repliée"] = Ton.Attention,
+        ["Modèle"] = Ton.Neutre,
     };
 
     /// <summary>États de la recherche (#59) : phase en cours, puis issue (« Réussie avec incidents » en attention).</summary>

@@ -40,7 +40,7 @@ public static partial class VuesExcel
         if (!simplifiee) synthese.Add(("Versions", $"{mep.VersionActuelle} → {mep.VersionCible}"));
         synthese.AddRange(
         [
-            ("Objet", mep.Objet), ("Type de MEP", Libelle(mep.Type)), ("Issue", Libelle(mep.Phase, mep.Issue)),
+            ("Objet", mep.Objet), ("Type de MEP", Libelle(mep.Type)), ("Issue", LibellePhase(mep)),
             ("Pilote", Participant(mep, mep.PiloteId)), ("Go", LeOuVide(s.Go)),
             ("Clôture", mep.Cloture is { } c ? $"{Le(c.Le, f)}{(c.Par is null ? "" : $" par {c.Par}")}" : ""),
             ("Systèmes", string.Join(", ", mep.Systemes.Select(x => x.Nom))),

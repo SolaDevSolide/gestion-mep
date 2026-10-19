@@ -225,7 +225,7 @@ public static partial class DonneesDemo
         public void Cloturer(Compte qui, string ceQuiAMarche, string incidents, string actions)
         {
             Regles.Cloturer(Mep, qui.Id, T, new Bilan { CeQuiAMarche = ceQuiAMarche, Incidents = incidents, Actions = actions });
-            Ev(qui, "mep.cloturee", $"MEP clôturée : {(Mep.Issue == IssueMep.Reussie ? "réussie" : "repliée")}");
+            Ev(qui, "mep.cloturee", $"MEP clôturée : {Regles.IssueEnClair(Mep, Journal.Count(e => e.Type == Regles.EvenementEchecEtape))}");
         }
 
         public MepDemo Fin() => new(Mep, Journal);

@@ -213,6 +213,8 @@ public record DroitsDto(bool EstPilote, bool PeutModifierPlan, Guid? Participant
 /// <c>Type</c> : MEP complète ou simplifiée. MEP simplifiée : <c>SuppleantIds</c> liste les suppléants implicites (toutes les
 /// personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
 /// résolutions liées.
+/// <c>Etat</c> : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;
+/// <c>EchecsSurvenus</c> : échecs d'étape tirés du journal (une étape reprise garde son échec).
 /// </summary>
 public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle, string VersionCible, string Objet, string Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string FuseauHoraire, int? IndisponibiliteMinutes,
@@ -224,7 +226,7 @@ public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle,
     bool EstModele, int ApprobationsMinimum, List<ApprobationDto> Approbations, List<CritereValideDto> GoNoGo,
     List<FicheRecetteDto> FichesRecette, bool BilanActive, BilanDto? Bilan, string? NonRetourFranchi, List<PieceJointeDto> PiecesJointes,
     List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements, bool RetourArriereActive, CommunicationDto Communication, TypeMep Type,
-    List<SectionDto> Sections);
+    List<SectionDto> Sections, EtatMep Etat, int EchecsSurvenus);
 
 /// <summary>
 /// Section Communication de la MEP (tout est facultatif). <c>PreuveValidationId</c> : pièce jointe de la MEP qui prouve la
@@ -270,7 +272,8 @@ public record SuiviDto(List<MepDto> EnCours, List<MepPrevueDto> Prevues, MepPrev
 public record MepPrevueDto(Guid Id, string Outil, string VersionCible, TypeMep Type, DateOnly Date, TimeOnly? Heure, DateTimeOffset Debut,
     string FuseauHoraire, string? Pilote);
 
-public record MepClotureeDto(Guid Id, string Outil, string VersionCible, TypeMep Type, IssueMep? Issue, DateTimeOffset ClotureeLe, string? Pilote);
+/// <summary>MEP clôturée depuis moins de 24 heures ; <c>Etat</c> : son issue (réussie, avec incidents, repliée).</summary>
+public record MepClotureeDto(Guid Id, string Outil, string VersionCible, TypeMep Type, IssueMep? Issue, EtatMep Etat, DateTimeOffset ClotureeLe, string? Pilote);
 
 /// <summary>
 /// Rapport de fin d'une MEP, figé à la clôture (<c>FigeLe</c>) ou, pour une MEP clôturée avant son existence, à la première

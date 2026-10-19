@@ -30,6 +30,14 @@ public static partial class Regles
         _ => issue == IssueMep.Repliee ? EtatMep.Repliee : echecsSurvenus > 0 ? EtatMep.AvecIncidents : EtatMep.Reussie,
     };
 
+    /// <summary>Issue d'une MEP clôturée pour le journal : « réussie », « réussie avec incidents » ou « repliée ».</summary>
+    public static string IssueEnClair(Mep mep, int echecsSurvenus) => EtatDe(mep.Phase, mep.Issue, echecsSurvenus) switch
+    {
+        EtatMep.AvecIncidents => "réussie avec incidents",
+        EtatMep.Repliee => "repliée",
+        _ => "réussie",
+    };
+
     /// <summary>
     /// Rôles de chaque participant de la MEP : pilote, suppléants (implicites pour une MEP simplifiée), responsables
     /// techniques, exécutants (ont démarré ou repris au moins une étape). Les approbateurs sont des comptes, pas des

@@ -10,7 +10,6 @@ import {
   LIBELLE_DISPONIBILITE,
   LIBELLE_ETAT,
   LIBELLE_FIN,
-  LIBELLE_ISSUE,
   LIBELLE_PHASE,
   ressembleCommande,
   tonDisponibilite,
@@ -46,7 +45,6 @@ describe('énumérations', () => {
   it('traduit les énumérations du jalon 2', () => {
     expect(LIBELLE_PHASE.RetourArriere).toBe('Retour arrière');
     expect(LIBELLE_PHASE.Cloturee).toBe('Clôturée');
-    expect(LIBELLE_ISSUE.Repliee).toBe('Clôturée : repliée');
     expect(LIBELLE_DISPONIBILITE.SiRetourArriere).toBe('Si retour arrière');
     expect(LIBELLE_DISPONIBILITE.ResolutionEnCours).toBe('Résolution en cours');
   });

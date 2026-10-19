@@ -73,7 +73,10 @@ public class RapportsFin(MepDbContext db, ServiceMep svc)
     {
         var c = JsonSerializer.Deserialize<Contenu>(r.Contenu, Options)
             ?? throw new InvalidOperationException($"Rapport de fin illisible pour la MEP {r.MepId}.");
-        return new RapportFinDto(r.MepId, r.FigeLe, r.CalculeApres, c.Synthese, c.PointsBloquants, c.TestsUnitaires, c.Mep, c.Journal);
+        // État (réussie, avec incidents, repliée) relu du journal figé : un rapport figé avant que la MEP le porte l'obtient aussi.
+        var echecs = c.Journal.Count(e => e.Type == Regles.EvenementEchecEtape);
+        var mep = c.Mep with { Etat = Regles.EtatDe(c.Mep.Phase, c.Mep.Issue, echecs), EchecsSurvenus = echecs };
+        return new RapportFinDto(r.MepId, r.FigeLe, r.CalculeApres, c.Synthese, c.PointsBloquants, c.TestsUnitaires, mep, c.Journal);
     }
 
     /// <summary>
@@ -88,7 +91,7 @@ public class RapportsFin(MepDbContext db, ServiceMep svc)
         int Minutes(DateTimeOffset de, DateTimeOffset a) => (int)Math.Round((a - de).TotalMinutes);
 
         var points = new List<PointBloquantDto>();
-        foreach (var echec in chrono.Where(e => e.Type == "etape.echec"))
+        foreach (var echec in chrono.Where(e => e.Type == Regles.EvenementEchecEtape))
         {
             var code = Code(echec);
             if (!parCode.TryGetValue(code, out var etape)) continue;

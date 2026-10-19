@@ -91,6 +91,10 @@ public class SuiviEtRapportTests : IDisposable
         var rapport = await Ok(await bob.GetAsync($"/api/meps/{id}/rapport"));
         Assert.False(rapport.GetProperty("calculeApres").GetBoolean());
         Assert.Equal("Cloturee", rapport.GetProperty("mep").GetProperty("phase").GetString());
+        // Même issue que la MEP elle-même et que le tableau de bord (réussie, ou avec incidents si une étape a échoué).
+        var etat = (await Ok(await bob.GetAsync($"/api/meps/{id}"))).GetProperty("etat").GetString();
+        Assert.Contains(etat, new[] { "Reussie", "AvecIncidents" });
+        Assert.Equal(etat, rapport.GetProperty("mep").GetProperty("etat").GetString());
         Assert.Equal("Tout", rapport.GetProperty("mep").GetProperty("bilan").GetProperty("ceQuiAMarche").GetString());
         Assert.Equal("mep.cloturee", rapport.GetProperty("journal")[0].GetProperty("type").GetString());
         var synthese = rapport.GetProperty("synthese");
@@ -99,9 +103,33 @@ public class SuiviEtRapportTests : IDisposable
         Assert.Equal(JsonValueKind.Null, rapport.GetProperty("mep").GetProperty("droits").GetProperty("participantId").ValueKind);
 
         // Clôturée depuis moins de 24 heures : elle apparaît au tableau de bord, et le rapport ne change plus.
-        Assert.Contains(DonneesDemo.OutilRecette, Outils((await Ok(await bob.GetAsync("/api/suivi"))).GetProperty("cloturees")));
+        var cloturees = (await Ok(await bob.GetAsync("/api/suivi"))).GetProperty("cloturees");
+        Assert.Contains(DonneesDemo.OutilRecette, Outils(cloturees));
+        Assert.Equal(etat, cloturees.EnumerateArray().Single(m => m.GetProperty("id").GetGuid() == id).GetProperty("etat").GetString());
         var encore = await Ok(await alice.GetAsync($"/api/meps/{id}/rapport"));
         Assert.Equal(rapport.GetProperty("figeLe").GetDateTimeOffset(), encore.GetProperty("figeLe").GetDateTimeOffset());
+    }
+
+    [Fact]
+    public async Task Un_rapport_fige_sans_l_etat_de_la_mep_le_retrouve_dans_son_journal()
+    {
+        var bob = await _api.ClientConnecte("bob");
+        var id = await AidesApi.IdMep(bob, DonneesDemo.OutilReussie);
+        await Ok(await bob.GetAsync($"/api/meps/{id}/rapport"));
+        // Rapport figé avant que la MEP porte son état (#91) : ni « etat » ni « echecsSurvenus » dans l'instantané.
+        using (var scope = _api.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MepDbContext>();
+            var fige = await db.RapportsFin.SingleAsync(r => r.MepId == id);
+            var contenu = System.Text.Json.Nodes.JsonNode.Parse(fige.Contenu)!;
+            Assert.True(contenu["mep"]!.AsObject().Remove("etat"));
+            Assert.True(contenu["mep"]!.AsObject().Remove("echecsSurvenus"));
+            fige.Contenu = contenu.ToJsonString();
+            await db.SaveChangesAsync();
+        }
+        var mep = (await Ok(await bob.GetAsync($"/api/meps/{id}/rapport"))).GetProperty("mep");
+        Assert.Equal("AvecIncidents", mep.GetProperty("etat").GetString());
+        Assert.Equal(1, mep.GetProperty("echecsSurvenus").GetInt32());
     }
 
     [Fact]
@@ -116,6 +144,9 @@ public class SuiviEtRapportTests : IDisposable
         Assert.Equal("API : réponse de test absente", point.GetProperty("resolution").GetString());
         Assert.Equal(8, point.GetProperty("arretMinutes").GetInt32());
         Assert.Equal(5, rapport.GetProperty("testsUnitaires").GetProperty("tests").GetArrayLength());
+        // E0003 a échoué puis a été refaite : réussie avec incidents (#91).
+        Assert.Equal("AvecIncidents", rapport.GetProperty("mep").GetProperty("etat").GetString());
+        Assert.Equal(1, rapport.GetProperty("mep").GetProperty("echecsSurvenus").GetInt32());
         Assert.Equal(rapport.GetProperty("figeLe").GetDateTimeOffset(),
             (await Ok(await bob.GetAsync($"/api/meps/{id}/rapport"))).GetProperty("figeLe").GetDateTimeOffset());
 
@@ -128,6 +159,8 @@ public class SuiviEtRapportTests : IDisposable
             c.Worksheets.Select(f => f.Name));
         Assert.Equal("E0003", c.Worksheet("Points bloquants").Cell(5, 1).GetString());
         Assert.Contains(c.Worksheet("Synthèse").Column(2).CellsUsed(), x => x.GetString() == "1 (dont 1 repris avec succès)");
+        Assert.Equal("Clôturée : réussie avec incidents",
+            c.Worksheet("Synthèse").Column(1).CellsUsed().Single(x => x.GetString() == "Issue").CellRight().GetString());
         Assert.Equal(("Exécutant", "Bob"), (c.Worksheet("Étapes").Cell(4, 4).GetString(), c.Worksheet("Étapes").Cell(7, 4).GetString()));
 
         // MEP repliée : l'annexe du retour arrière s'ajoute.

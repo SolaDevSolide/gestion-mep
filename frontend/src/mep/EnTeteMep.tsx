@@ -31,7 +31,7 @@ import { BadgeSimplifiee, estSimplifiee } from './typeMep';
 
 /** En-tête collant : identité, phase, personnes présentes, compte à rebours, progression, actions du pilote, onglets. */
 export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
-  const meta = metaPhase(mep.phase, mep.issue);
+  const meta = metaPhase(mep.phase, mep.etat);
   const pilote = nomParticipant(mep, mep.piloteId);
   const plan = planActif(mep.phase) ?? 'Deploiement';
   const etapes = etapesDuPlan(mep, plan);

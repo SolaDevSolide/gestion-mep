@@ -61,11 +61,17 @@ public static class SuiviEndpoints
         var prochaine = prevues.FirstOrDefault(x => x.Dto.Heure is null ? x.Dto.Date >= x.Jour : x.Dto.Debut >= maintenant).Dto;
 
         var depuis = maintenant.AddHours(-24);
-        var cloturees = await db.Meps.AsNoTracking()
+        var cloturees = (await db.Meps.AsNoTracking()
             .Where(m => !m.EstModele && m.Phase == Phase.Cloturee && m.ClotureeLe >= depuis).OrderByDescending(m => m.ClotureeLe)
-            .Select(m => new MepClotureeDto(m.Id, m.Outil, m.VersionCible, m.Type, m.Issue, m.ClotureeLe!.Value,
-                m.Participants.Where(p => p.Id == m.PiloteId).Select(p => p.Nom).FirstOrDefault()))
-            .ToListAsync();
+            .Select(m => new
+            {
+                m.Id, m.Outil, m.VersionCible, m.Type, m.Phase, m.Issue, ClotureeLe = m.ClotureeLe!.Value,
+                Pilote = m.Participants.Where(p => p.Id == m.PiloteId).Select(p => p.Nom).FirstOrDefault(),
+                Echecs = db.Journal.Count(e => e.MepId == m.Id && e.Type == Regles.EvenementEchecEtape),
+            })
+            .ToListAsync())
+            .Select(m => new MepClotureeDto(m.Id, m.Outil, m.VersionCible, m.Type, m.Issue, Regles.EtatDe(m.Phase, m.Issue, m.Echecs), m.ClotureeLe, m.Pilote))
+            .ToList();
 
         return new SuiviDto(enCours, [.. prevues.Where(x => x.Dto.Date >= x.Jour && x.Dto.Date <= x.Jour.AddDays(1)).Select(x => x.Dto)],
             prochaine, cloturees, maintenant);

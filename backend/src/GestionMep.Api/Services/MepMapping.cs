@@ -36,8 +36,9 @@ public static class MepMapping
             c.DateAnnoncee, c.HeureDebutAnnoncee, c.HeureFinAnnoncee, c.ValideeParUtilisateurs, c.ValideePar, c.ValideeLe,
             c.PreuveValidationId is { } p && pieces.Any(x => x.Id == p) ? p : null);
 
+    /// <summary><paramref name="echecsSurvenus"/> : échecs d'étape tirés du journal (voir <see cref="Regles.EtatDe"/>).</summary>
     public static MepDto VersDto(Mep m, Guid? utilisateurId, IReadOnlyDictionary<Guid, string> nomsUtilisateurs, DateTimeOffset maintenant,
-        int approbationsMinimum, IReadOnlyList<PieceJointe> pieces, bool estAdmin = false)
+        int approbationsMinimum, IReadOnlyList<PieceJointe> pieces, int echecsSurvenus, bool estAdmin = false)
     {
         string? Nom(Guid? id) => id is { } g && nomsUtilisateurs.TryGetValue(g, out var n) ? n : null;
         ValidationDto? Validation(Guid? par, DateTimeOffset? le) =>
@@ -102,6 +103,7 @@ public static class MepMapping
             m.RetourArriereActive,
             Communication(m.Communication, pieces),
             m.Type,
-            m.Sections.OrderBy(x => x.Plan).ThenBy(x => x.CreeLe).ThenBy(x => x.Titre, StringComparer.Ordinal).Select(x => VersDto(x, Nom(x.AuteurId))).ToList());
+            m.Sections.OrderBy(x => x.Plan).ThenBy(x => x.CreeLe).ThenBy(x => x.Titre, StringComparer.Ordinal).Select(x => VersDto(x, Nom(x.AuteurId))).ToList(),
+            Regles.EtatDe(m.Phase, m.Issue, echecsSurvenus), echecsSurvenus);
     }
 }

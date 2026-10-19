@@ -71,6 +71,8 @@ export function mep(p: Partial<Mep> = {}): Mep {
     piecesJointes: [],
     phase: 'Execution',
     issue: null,
+    etat: 'Execution',
+    echecsSurvenus: 0,
     retourArriere: null,
     cloture: null,
     planRepli: {
