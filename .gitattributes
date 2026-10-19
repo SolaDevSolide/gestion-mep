@@ -1,4 +1,16 @@
+# Fins de ligne : LF dans le dépôt et à l'extraction, quel que soit le poste (y compris sous Windows avec
+# core.autocrlf=true). Le front l'exige (Prettier, empreinte CSP du script en ligne de index.html), les scripts aussi.
+* text=auto eol=lf
 # Scripts d'installation sans Docker : fins de ligne fixes quel que soit le poste qui les extrait.
 *.sh text eol=lf
 installation/gestion-mep.service text eol=lf
+# Windows PowerShell 5.1 : CRLF (et UTF-8 avec BOM, à garder en enregistrant le fichier).
 *.ps1 text eol=crlf
+# Binaires : jamais convertis.
+*.png binary
+*.jpg binary
+*.ico binary
+*.xlsx binary
+*.gz binary
+*.zip binary
+*.woff2 binary

@@ -19,14 +19,17 @@ public static partial class EnTetesSecurite
 {
     /// <summary>
     /// Construit la politique de contenu. Le script en ligne de <c>index.html</c> (thème appliqué avant l'affichage) est
-    /// autorisé par son empreinte SHA-256, calculée au démarrage sur le fichier réellement servi.
+    /// autorisé par son empreinte SHA-256, calculée au démarrage sur le fichier réellement servi. Les fins de ligne sont
+    /// d'abord ramenées à LF, comme le fait le navigateur avant de calculer l'empreinte : un index.html en CRLF (dépôt
+    /// extrait sous Windows) garde son script de thème.
     /// </summary>
     public static string PolitiqueContenu(string? cheminIndex)
     {
         var scripts = "'self'";
         if (cheminIndex is not null && File.Exists(cheminIndex))
         {
-            foreach (Match m in ScriptEnLigne().Matches(File.ReadAllText(cheminIndex)))
+            var contenu = File.ReadAllText(cheminIndex).Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+            foreach (Match m in ScriptEnLigne().Matches(contenu))
                 scripts += $" 'sha256-{Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(m.Groups[1].Value)))}'";
         }
         return string.Join("; ",

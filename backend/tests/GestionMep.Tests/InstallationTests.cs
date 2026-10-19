@@ -76,4 +76,21 @@ public class InstallationTests : IDisposable
         if (Installation.EstDocker) Assert.StartsWith("docker compose exec app", commande);
         Assert.Contains("1.4.0", Installation.CommandeMiseAJour("1.4.0"));
     }
+
+    [Fact]
+    public void La_restauration_affichee_sous_docker_lance_bien_la_commande_et_non_l_application_web()
+    {
+        // L'image lance « dotnet GestionMep.Api.dll <arguments> » : ce qui suit le nom du service dans « docker compose run »
+        // doit être reconnu comme une commande, sinon l'application web démarre dans un conteneur sans port publié.
+        var (arreter, lancer, executer) = Installation.ServicePour(Installation.Docker);
+        Assert.Equal(("docker compose stop app", "docker compose up -d app"), (arreter, lancer));
+        var affichee = $"{executer} sauvegardes restaurer sauvegarde.tar.gz --oui";
+        const string Prefixe = "docker compose run --rm app ";
+        Assert.StartsWith(Prefixe, affichee);
+        Assert.True(GestionMep.Api.Cli.LigneDeCommande.EstCommande(affichee[Prefixe.Length..].Split(' ')));
+        // Le préfixe « gestion-mep » recopié de « docker compose exec app gestion-mep … » est toléré.
+        Assert.True(GestionMep.Api.Cli.LigneDeCommande.EstCommande(["gestion-mep", "sauvegardes", "restaurer", "x.tar.gz", "--oui"]));
+        Assert.True(GestionMep.Api.Cli.LigneDeCommande.EstCommande(["gestion-mep"]));
+        Assert.False(GestionMep.Api.Cli.LigneDeCommande.EstCommande(["--urls", "http://+:8080"]));
+    }
 }

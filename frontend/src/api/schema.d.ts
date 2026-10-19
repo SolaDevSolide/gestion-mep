@@ -37,6 +37,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sante/prete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SantePreteDto"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SantePreteDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/version": {
         parameters: {
             query?: never;
@@ -9720,6 +9764,17 @@ export interface components {
          * @enum {unknown}
          */
         RoleMep: "Pilote" | "Suppleant" | "ResponsableTechnique" | "Executant" | "Approbateur";
+        /**
+         * @description Réponse de la sonde « prête » : `statut` « prete » ou « indisponible », puis chaque contrôle : `base` (« ok »,
+         *     « injoignable »), `schema` (« ok », « migrations-en-attente », « plus-recent », « inconnu »), `echeances`
+         *     (« ok », « en-retard », « desactivee »).
+         */
+        SantePreteDto: {
+            statut: string;
+            base: string;
+            schema: string;
+            echeances: string;
+        };
         SauvegardeDto: {
             /**
              * @description Sauvegarde réalisée avant la MEP (fiche Sauvegarde) ou pendant, par une étape de déploiement dédiée.

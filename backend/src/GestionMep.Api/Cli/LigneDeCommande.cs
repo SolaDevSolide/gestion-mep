@@ -152,7 +152,8 @@ public static partial class LigneDeCommande
                                                               des sauvegardes ou chemin) ; application arrêtée, voir ci-dessous
           gestion-mep importer <fichier.tar.gz>               Comme « sauvegardes restaurer », sans confirmation (déménagement)
           gestion-mep mettre-a-jour [--oui] [--version x.y.z] Dernière version publiée ; avec --oui, demande son installation au
-                                                              service de mise à jour (refusée pendant une MEP en cours)
+                                                              service de mise à jour (refusée pendant une MEP en cours) ;
+                                                              --version : une autre version plus récente (registre interne)
           gestion-mep version                                 Version de l'application
 
         Mode démonstration (DEMO=true uniquement)
@@ -175,7 +176,7 @@ public static partial class LigneDeCommande
         Installation.Docker => """
             Dans Docker : docker compose exec app gestion-mep <commande>
             Restaurer (application arrêtée) : docker compose stop app
-                                              docker compose run --rm app gestion-mep sauvegardes restaurer <archive> --oui
+                                              docker compose run --rm app sauvegardes restaurer <archive> --oui
                                               docker compose up -d app
             Secret depuis un fichier : docker compose exec -T app gestion-mep sso configurer --secret-stdin < secret.txt
             Fichier depuis l'hôte : docker compose exec -T app gestion-mep resolutions importer - < resolutions.json
@@ -211,10 +212,18 @@ public static partial class LigneDeCommande
         Converters = { new JsonStringEnumConverter(allowIntegerValues: false) },
     };
 
-    public static bool EstCommande(string[] args) => args.FirstOrDefault(a => a != "--json") is { } c && Commandes.Contains(c);
+    /// <summary>
+    /// « gestion-mep » en premier argument est ignoré : l'image lance directement l'application, si bien que
+    /// « docker compose run --rm app gestion-mep sauvegardes … » (préfixe recopié de « docker compose exec ») doit faire
+    /// la même chose que « docker compose run --rm app sauvegardes … », et non démarrer l'application web.
+    /// </summary>
+    private static string[] SansPrefixe(string[] args) => args is ["gestion-mep", .. var reste] ? (reste.Length == 0 ? ["aide"] : reste) : args;
+
+    public static bool EstCommande(string[] args) => SansPrefixe(args).FirstOrDefault(a => a != "--json") is { } c && Commandes.Contains(c);
 
     public static async Task<int> Executer(string[] arguments)
     {
+        arguments = SansPrefixe(arguments);
         SortieJson.Value = arguments.Contains("--json");
         var args = arguments.Where(a => a != "--json").ToArray();
         try

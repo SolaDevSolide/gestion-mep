@@ -23,8 +23,10 @@ public static class ApplicationEndpoints
 
     /// <summary>
     /// Demande au service « mise-a-jour » d'installer <paramref name="version"/> (console et <c>gestion-mep mettre-a-jour</c> ;
-    /// acteur null : ligne de commande). Refusée (422) si le service est absent ou occupé, si la version n'est pas la dernière
-    /// publiée plus récente que la version en cours, ou pendant une MEP en cours.
+    /// acteur null : ligne de commande). Refusée (422) si le service est absent ou occupé, si la version n'est pas un numéro
+    /// publié (1.2.3) plus récent que la version en cours, s'il dépasse la dernière version publiée connue, ou pendant une
+    /// MEP en cours. Sans vérification sur GitHub (registre interne, serveur sans Internet), toute version plus récente peut
+    /// être demandée : le service vérifie qu'elle existe dans son registre (MEP_DEPOT_IMAGE) avant de rien changer.
     /// </summary>
     public static async Task<MiseAJourDto> DemanderInstallation(MepDbContext db, Acteur? acteur, string? version, EtatMiseAJour etat,
         InstallationMiseAJour installation)
@@ -37,8 +39,11 @@ public static class ApplicationEndpoints
             throw ErreurHttp.Regle(["Le service de mise à jour n'est pas actif : l'équipe informatique doit l'activer (documentation Exploiter)."]);
         if (installateur.Statut == "en-cours")
             throw ErreurHttp.Regle(["Une mise à jour est déjà en cours."]);
-        if (version is null || version != etat.DerniereVersion || !VersionApplication.EstPlusRecente(version, VersionApplication.Courante))
-            throw ErreurHttp.Regle(["Seule la dernière version publiée, plus récente que la version en cours, peut être installée."]);
+        if (version is null || version.Split('.') is not [{ Length: > 0 } a, { Length: > 0 } b, { Length: > 0 } c]
+            || !$"{a}{b}{c}".All(char.IsAsciiDigit) || !VersionApplication.EstPlusRecente(version, VersionApplication.Courante))
+            throw ErreurHttp.Regle([$"Numéro de version attendu (1.2.3), plus récent que la version en cours ({VersionApplication.Courante})."]);
+        if (etat.DerniereVersion is { } derniere && VersionApplication.EstPlusRecente(version, derniere))
+            throw ErreurHttp.Regle([$"La version {version} n'est pas publiée : la dernière version publiée est {derniere}."]);
         var enCours = await db.Meps.CountAsync(m => !m.EstModele && PhasesEnCours.Contains(m.Phase));
         if (enCours > 0)
             throw ErreurHttp.Regle([$"{enCours} MEP en cours (exécution, recette ou retour arrière) : mettre à jour une fois terminée(s)."]);
