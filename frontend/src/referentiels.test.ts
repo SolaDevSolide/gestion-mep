@@ -1,9 +1,9 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { api } from './api';
-import { oublierReferentiels, useReferentiels } from './referentiels';
+import { oublierReferentiels, useReferentiel, useReferentiels } from './referentiels';
 import type { ResolutionType, SystemeCatalogue } from './types';
 
-vi.mock('./api', () => ({ api: { catalogueSystemes: vi.fn(), resolutions: vi.fn() } }));
+vi.mock('./api', () => ({ api: { catalogueSystemes: vi.fn(), resolutions: vi.fn(), utilisateurs: vi.fn() } }));
 
 const catalogue = [
   { id: 'c-api', nom: 'API', description: 'Service API', cible: '', actif: true },
@@ -39,5 +39,38 @@ describe('useReferentiels', () => {
     const { result } = renderHook(() => useReferentiels());
     await waitFor(() => expect(result.current.pret).toBe(true));
     expect(result.current.catalogue).toEqual([]);
+  });
+});
+
+describe('useReferentiel', () => {
+  beforeEach(() => {
+    oublierReferentiels();
+    vi.mocked(api.utilisateurs).mockReset();
+  });
+
+  it('une seule requête pour tous les composants qui demandent la même liste', async () => {
+    vi.mocked(api.utilisateurs).mockResolvedValue([]);
+    const a = renderHook(() => useReferentiel('comptes'));
+    const b = renderHook(() => useReferentiel('comptes'));
+    await waitFor(() => expect(a.result.current.pret).toBe(true));
+    expect(b.result.current.pret).toBe(true);
+    expect(api.utilisateurs).toHaveBeenCalledTimes(1);
+  });
+
+  it('une panne reste une erreur, jamais une liste vide ; « Réessayer » relit la liste', async () => {
+    const panne = new Error('hors ligne');
+    vi.mocked(api.utilisateurs).mockRejectedValueOnce(panne).mockResolvedValueOnce([]);
+    const { result } = renderHook(() => useReferentiel('comptes'));
+    await waitFor(() => expect(result.current.pret).toBe(true));
+    expect(result.current.erreur).toBe(panne);
+    expect(result.current.donnees).toBeNull();
+    act(() => result.current.recharger());
+    await waitFor(() => expect(result.current.donnees).toEqual([]));
+    expect(result.current.erreur).toBeNull();
+  });
+
+  it('inactif : aucune requête', () => {
+    renderHook(() => useReferentiel('comptes', false));
+    expect(api.utilisateurs).not.toHaveBeenCalled();
   });
 });
