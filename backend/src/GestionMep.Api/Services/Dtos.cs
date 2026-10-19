@@ -58,7 +58,7 @@ public record PageMepsDto(List<MepResumeDto> Meps, int Total, int Ensemble, stri
 /// <summary>
 /// Comptes de la barre de filtres de la liste (<c>GET /meps/facettes</c>), avec les filtres en cours : pour chaque valeur d'un
 /// critère, le nombre de MEP qu'on obtiendrait en la choisissant à la place des valeurs choisies de ce critère.
-/// <c>Systemes</c> : par valeur du filtre <c>systeme</c> (identifiant du catalogue en minuscules, ou <c>libre:Nom</c>) ;
+/// <c>Systemes</c> : par valeur du filtre <c>systeme</c> (identifiant du catalogue en minuscules, ou <c>libre:</c> et le nom normalisé) ;
 /// <c>Environnements</c> : par nom normalisé (sans casse ni accents) ; <c>Equipes</c>, <c>Personnes</c> : par identifiant ;
 /// <c>Etats</c> : par état. <c>Libres</c> : noms des systèmes saisis à la main dans les MEP ; <c>EnvironnementsProposes</c> :
 /// environnements des systèmes retenus par le filtre <c>systeme</c>. <c>Sans</c> : pour chaque critère actif (<c>recherche</c>,

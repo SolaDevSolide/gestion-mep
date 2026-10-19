@@ -323,7 +323,9 @@ public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? te
             lock (_abonne)
             {
                 var liste = _abonne.Liste || _abonne.Cartes.Count > MaxCartesParEnvoi;
-                var envoi = new Envoi(_abonne.Version, _abonne.Presence, _abonne.Verrous, liste ? [] : [.. _abonne.Cartes], liste);
+                // Sans carte à relire : null (un envoi de présence ou de verrous reste égal à Envoi(null, true)).
+                var envoi = new Envoi(_abonne.Version, _abonne.Presence, _abonne.Verrous,
+                    liste || _abonne.Cartes.Count == 0 ? null : [.. _abonne.Cartes], liste);
                 _abonne.Version = null;
                 _abonne.Cartes.Clear();
                 _abonne.Liste = false;

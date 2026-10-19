@@ -9463,7 +9463,7 @@
             }
           }
         },
-        "description": "Comptes de la barre de filtres de la liste (`GET /meps/facettes`), avec les filtres en cours : pour chaque valeur d'un\ncritère, le nombre de MEP qu'on obtiendrait en la choisissant à la place des valeurs choisies de ce critère.\n`Systemes` : par valeur du filtre `systeme` (identifiant du catalogue en minuscules, ou `libre:Nom`) ;\n`Environnements` : par nom normalisé (sans casse ni accents) ; `Equipes`, `Personnes` : par identifiant ;\n`Etats` : par état. `Libres` : noms des systèmes saisis à la main dans les MEP ; `EnvironnementsProposes` :\nenvironnements des systèmes retenus par le filtre `systeme`. `Sans` : pour chaque critère actif (`recherche`,\n`systeme`, `environnement`, `equipe`, `personne`, `etat`, `periode`), le nombre de MEP sans lui."
+        "description": "Comptes de la barre de filtres de la liste (`GET /meps/facettes`), avec les filtres en cours : pour chaque valeur d'un\ncritère, le nombre de MEP qu'on obtiendrait en la choisissant à la place des valeurs choisies de ce critère.\n`Systemes` : par valeur du filtre `systeme` (identifiant du catalogue en minuscules, ou `libre:` et le nom normalisé) ;\n`Environnements` : par nom normalisé (sans casse ni accents) ; `Equipes`, `Personnes` : par identifiant ;\n`Etats` : par état. `Libres` : noms des systèmes saisis à la main dans les MEP ; `EnvironnementsProposes` :\nenvironnements des systèmes retenus par le filtre `systeme`. `Sans` : pour chaque critère actif (`recherche`,\n`systeme`, `environnement`, `equipe`, `personne`, `etat`, `periode`), le nombre de MEP sans lui."
       },
       "FicheRecetteCreationSaisie": {
         "required": [

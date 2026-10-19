@@ -141,7 +141,7 @@ public class PaginationTests : IDisposable
             Assert.Equal(toutes.Count, facettes.GetProperty("ensemble").GetInt32());
             int Lu(string critere, string cle) => facettes.GetProperty(critere).TryGetProperty(cle, out var v) ? v.GetInt32() : 0;
 
-            foreach (var s in toutes.SelectMany(m => m.Systemes).Select(s => s.CatalogueId is { } id ? id.ToString() : FiltreMeps.PrefixeLibre + s.Nom.Trim()).Distinct())
+            foreach (var s in toutes.SelectMany(m => m.Systemes).Select(s => s.CatalogueId is { } id ? id.ToString() : FiltreMeps.PrefixeLibre + VuesExcel.Normaliser(s.Nom.Trim())).Distinct())
                 Assert.Equal(Compter(f with { Systemes = [s] }), Lu("systemes", s));
             foreach (var e in toutes.SelectMany(m => m.Systemes).SelectMany(s => s.Environnements).Select(e => VuesExcel.Normaliser(e.Nom.Trim())).Distinct())
                 Assert.Equal(Compter(f with { Environnements = [e] }), Lu("environnements", e));

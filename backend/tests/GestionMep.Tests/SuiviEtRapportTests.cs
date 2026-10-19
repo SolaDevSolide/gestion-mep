@@ -83,7 +83,7 @@ public class SuiviEtRapportTests : IDisposable
         diffuseur.Notifier(b, 3, DiffuseurMep.PorteeSuivi.Liste);
         envoi = suivi.Prendre();
         Assert.True(envoi.Liste);
-        Assert.Empty(envoi.Cartes!);
+        Assert.Null(envoi.Cartes);
         // Trop de cartes d'un coup : tout relire coûte moins cher.
         for (var n = 0; n <= DiffuseurMep.MaxCartesParEnvoi; n++) diffuseur.Notifier(Guid.NewGuid(), 1, DiffuseurMep.PorteeSuivi.Carte);
         Assert.True(suivi.Prendre().Liste);

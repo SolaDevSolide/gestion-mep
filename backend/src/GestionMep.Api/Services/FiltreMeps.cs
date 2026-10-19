@@ -250,8 +250,9 @@ public sealed record FiltreMeps
                             (proposes.GetValueOrDefault(cle)?.Production ?? false) || e.Production);
                     }
             }
-            foreach (var cle in m.Systemes.Select(s => s.CatalogueId is { } id ? id.ToString() : PrefixeLibre + s.Nom.Trim())
-                         .Distinct(StringComparer.OrdinalIgnoreCase))
+            // Système saisi à la main : par nom normalisé (« libre:ged » compte GED, Ged…, comme le filtre).
+            foreach (var cle in m.Systemes.Select(s => s.CatalogueId is { } id ? id.ToString() : PrefixeLibre + VuesExcel.Normaliser(s.Nom.Trim()))
+                         .Distinct())
                 if ((this with { Systemes = [cle] }).Correspond(m)) Ajouter(systemes, cle);
             foreach (var cle in SystemesRetenus(m).SelectMany(s => s.Environnements).Select(e => VuesExcel.Normaliser(e.Nom.Trim())).Distinct())
                 if ((this with { Environnements = [cle] }).Correspond(m)) Ajouter(environnements, cle);
