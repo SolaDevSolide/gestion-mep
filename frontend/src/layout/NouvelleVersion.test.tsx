@@ -59,4 +59,15 @@ describe('NouvelleVersion', () => {
     expect(screen.queryByText(/nouvelle version/)).toBeNull();
     document.head.querySelectorAll('link').forEach((l) => l.remove());
   });
+
+  it('prévient aussitôt quand un fichier chargé à la demande a disparu du serveur (vite:preloadError)', async () => {
+    servir('0.0.0-dev', '/assets/index-ancien.js');
+    render(<NouvelleVersion />);
+    await vider();
+    expect(screen.queryByText(/nouvelle version/)).toBeNull();
+    act(() => {
+      window.dispatchEvent(new Event('vite:preloadError'));
+    });
+    expect(screen.getByText(/nouvelle version de l’application/)).toBeInTheDocument();
+  });
 });

@@ -25,6 +25,7 @@ import type { Etape, Mep, ModeleEtape, TypePlan } from '../../types';
 import { BoutonIcone } from '../../ui/Button';
 import { cn } from '../../ui/cn';
 import type { Deplacement, PlaceEtape } from './apiGraphe';
+import { AvisRangement } from './AvisRangement';
 import { BarreOutilsGraphe } from './BarreOutilsGraphe';
 import { CarteEtape, type ModeGraphe } from './CarteEtape';
 import {
@@ -259,7 +260,9 @@ function Graphe(props: Props) {
   }
   // Graphe affiché : un repli, un dépli ou une étape reçue n'est rangé qu'une fois les nouveaux nœuds mesurés (en
   // invisible), en un seul rangement définitif ; d'ici là, le graphe affiché reste tel quel, liens compris.
-  const { range, enAttente } = useRangement(modele, tailles, gele, jeton, pret);
+  const { range, enAttente, indisponible, reessayer } = useRangement(modele, tailles, gele, jeton, pret);
+  // Rangement impossible : le graphe se montre aussitôt à ses places actuelles, avec le message « Réessayer ».
+  const montre = pret || indisponible !== null;
   const rangeRef = useRef(range);
   rangeRef.current = range;
 
@@ -1260,12 +1263,12 @@ function Graphe(props: Props) {
             className="relative min-w-0 flex-1"
           >
             <MarqueursLiens />
-            {!pret && <SqueletteGraphe />}
+            {!montre && <SqueletteGraphe />}
             <ReactFlow<NoeudRf, LienRf>
               // Vue quittée (plan ↔ section) : cachée aussitôt, jamais montrée sous l'en-tête de la vue suivante ; la
               // nouvelle paraît en fondu une fois rangée.
-              className={cn(pret ? 'transition-opacity duration-200 ease-out' : 'opacity-0')}
-              aria-busy={!pret || undefined}
+              className={cn(montre ? 'transition-opacity duration-200 ease-out' : 'opacity-0')}
+              aria-busy={!montre || undefined}
               nodes={noeudsAffiches}
               edges={liens}
               zIndexMode="manual"
@@ -1382,6 +1385,7 @@ function Graphe(props: Props) {
               {miniCarte && <MiniCarte />}
             </ReactFlow>
 
+            <AvisRangement cause={indisponible} onReessayer={reessayer} />
             {(geste || enAttente) && (
               <span
                 role="status"

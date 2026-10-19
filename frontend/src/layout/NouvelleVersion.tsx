@@ -43,6 +43,7 @@ async function lireEntree(): Promise<string | null> {
  * l'application d'une seule page garde sinon l'ancien code jusqu'à un rechargement complet. Deux signes : le numéro de
  * version du serveur a changé, ou l'interface servie n'est plus celle de l'onglet (nouvelle construction, même sans
  * nouveau numéro : image reconstruite depuis une branche, numéro « 0.0.0-dev »).
+ * Troisième signe, aussitôt : un fichier chargé à la demande a disparu du serveur (`vite:preloadError`).
  * La même vérification applique la charte visuelle modifiée entre-temps (console, fichier, ligne de commande), sans
  * rechargement : au plus une minute après le changement, ou dès le retour sur l'onglet.
  */
@@ -66,11 +67,16 @@ export function NouvelleVersion() {
     void verifier();
     const minuteur = window.setInterval(() => void verifier(), INTERVALLE_MS);
     const auFocus = () => void verifier();
+    // Un fichier de l'interface chargé à la demande a disparu du serveur (rangement du graphe, page) : l'onglet tourne sur
+    // une version remplacée depuis.
+    const fichierDisparu = () => setDisponible(true);
     window.addEventListener('focus', auFocus);
+    window.addEventListener('vite:preloadError', fichierDisparu);
     return () => {
       actif = false;
       window.clearInterval(minuteur);
       window.removeEventListener('focus', auFocus);
+      window.removeEventListener('vite:preloadError', fichierDisparu);
     };
   }, []);
 
