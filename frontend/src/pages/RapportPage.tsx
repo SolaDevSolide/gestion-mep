@@ -143,7 +143,7 @@ function Rapport({ r }: { r: RapportFin }) {
   const retour = useMemo(() => etapesDuPlan(mep, 'RetourArriere'), [mep]);
   const sections = useMemo(() => sectionsDuPlan(mep, 'Deploiement').filter((x) => x.placee), [mep]);
   const ensemble = useMemo(() => ({ bloquees: causesBlocage(deploiement) }), [deploiement]);
-  const phase = metaPhase(mep.phase, mep.issue);
+  const phase = metaPhase(mep.phase, mep.etat);
   const pilote = nomParticipant(mep, mep.piloteId);
   const codes = new Map(mep.etapes.map((e) => [e.id, e.code]));
   const systemes = new Map(mep.systemes.map((x) => [x.id, x.nom]));

@@ -54,6 +54,8 @@ function suivi(p: Partial<Suivi> = {}): Suivi {
         versionCible: '6.3',
         type: 'Complete',
         issue: 'Reussie',
+        // Une étape a échoué en route (#91).
+        etat: 'AvecIncidents',
         clotureeLe: '2026-10-16T08:00:00Z',
         pilote: 'Alice',
       },
@@ -103,6 +105,7 @@ describe('SuiviPage (#61)', () => {
     // Prévues et clôturées : un lien vers chaque MEP, et vers le rapport des clôturées.
     expect(screen.getByRole('link', { name: 'Annuaire → 2.0' })).toHaveAttribute('href', '/meps/p1');
     expect(screen.getByRole('link', { name: /Rapport/ })).toHaveAttribute('href', '/meps/c1/rapport');
+    expect(screen.getByText('Clôturée : réussie avec incidents')).toBeInTheDocument();
     expect(screen.getByText('Prochaine MEP').parentElement).toHaveTextContent('Aucune MEP annoncée');
   });
 

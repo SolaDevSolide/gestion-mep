@@ -64,8 +64,7 @@ public static class PhaseEndpoints
                 var acteur = Acteur.Depuis(user);
                 var bilan = c is null ? null : new Bilan { CeQuiAMarche = ServiceMep.Texte(c.CeQuiAMarche), Incidents = ServiceMep.Texte(c.Incidents), Actions = ServiceMep.Texte(c.Actions) };
                 Regles.Cloturer(mep, acteur.Id, svc.Maintenant, bilan);
-                var issue = mep.Issue == IssueMep.Reussie ? "réussie" : "repliée";
-                return await svc.Enregistrer(mep, acteur, "mep.cloturee", $"MEP clôturée : {issue}");
+                return await svc.Enregistrer(mep, acteur, "mep.cloturee", $"MEP clôturée : {Regles.IssueEnClair(mep, await svc.EchecsSurvenus(mep.Id))}");
             });
             // Rapport de fin figé à la clôture, une fois celle-ci enregistrée (une écriture rejouée ne le fige pas deux fois). S'il
             // échoue, la clôture reste acquise : le rapport sera figé à sa première demande.

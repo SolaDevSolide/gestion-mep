@@ -76,7 +76,7 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
   const parSection = etapesParSection(etapes, sections);
   const bloquees = causesBlocage(etapes);
   const c = chiffres(mep, etapes, maintenant);
-  const phase = metaPhase(mep.phase, mep.issue);
+  const phase = metaPhase(mep.phase, mep.etat);
   const pilote = nomParticipant(mep, mep.piloteId);
   const echecs = etapes.filter((e) => e.etat === 'Echec');
   const actifs = etapes.filter((e) => e.etat === 'EnCours');
@@ -349,7 +349,7 @@ function ListeCloturees({ cloturees }: { cloturees: MepCloturee[] }) {
       ) : (
         <ul className="mt-2 divide-y divide-line">
           {cloturees.map((m) => {
-            const phase = metaPhase('Cloturee', m.issue);
+            const phase = metaPhase('Cloturee', m.etat);
             return (
               <li key={m.id} className="flex items-center justify-between gap-3 py-2 text-[13px]">
                 <span className="flex min-w-0 items-center gap-2">

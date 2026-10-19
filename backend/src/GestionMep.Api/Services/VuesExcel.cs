@@ -30,11 +30,13 @@ public static partial class VuesExcel
         _ => p.ToString(),
     };
 
-    private static string Libelle(Phase p, IssueMep? issue) => issue switch
+    /// <summary>Phase, puis issue une fois clôturée (« réussie avec incidents » : une étape a échoué en route, voir <see cref="Regles.EtatDe"/>).</summary>
+    private static string LibellePhase(MepDto mep) => mep.Etat switch
     {
-        IssueMep.Reussie => "Clôturée : réussie",
-        IssueMep.Repliee => "Clôturée : repliée",
-        _ => Libelle(p),
+        EtatMep.Reussie => "Clôturée : réussie",
+        EtatMep.AvecIncidents => "Clôturée : réussie avec incidents",
+        EtatMep.Repliee => "Clôturée : repliée",
+        _ => Libelle(mep.Phase),
     };
 
     private static string Libelle(EtatEtape e) => e switch
@@ -195,7 +197,7 @@ public static partial class VuesExcel
 
     /// <summary>Ligne de contexte d'une MEP : objet et phase (le nom de la MEP est dans le titre).</summary>
     private static string Contexte(MepDto mep) =>
-        string.Join(" · ", new[] { mep.Objet, mep.EstModele ? "Modèle" : Libelle(mep.Phase, mep.Issue) }.Where(s => s.Length > 0));
+        string.Join(" · ", new[] { mep.Objet, mep.EstModele ? "Modèle" : LibellePhase(mep) }.Where(s => s.Length > 0));
 
     private static string Participant(MepDto mep, Guid? id) => mep.Participants.FirstOrDefault(p => p.Id == id)?.Nom ?? "";
 
@@ -345,7 +347,7 @@ public static partial class VuesExcel
             ("Plan de retour arrière", OuiNon(mep.RetourArriereActive)),
         ]);
         if (mep.RetourArriereActive) intervention.Add(("Échéance de retour arrière", (object?)Quand(mep.EcheanceRepli, f) ?? ""));
-        intervention.AddRange([("Phase", mep.EstModele ? "Modèle" : Libelle(mep.Phase, mep.Issue)), ("Démarrée le", mep.DateMep is { } d ? d : "")]);
+        intervention.AddRange([("Phase", mep.EstModele ? "Modèle" : LibellePhase(mep)), ("Démarrée le", mep.DateMep is { } d ? d : "")]);
         Fiche(classeur, "Intervention", $"Intervention · {nom}", contexte, intervention);
 
         Tableau(classeur, "Personnes", $"Personnes · {nom}", contexte,

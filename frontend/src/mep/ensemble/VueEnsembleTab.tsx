@@ -490,7 +490,7 @@ export default function VueEnsembleTab() {
   const bloquees = useMemo(() => causesBlocage(etapes), [etapes]);
   const ensemble = useMemo(() => ({ bloquees }), [bloquees]);
   const c = chiffres(mep, etapes, maintenant);
-  const phase = metaPhase(mep.phase, mep.issue);
+  const phase = metaPhase(mep.phase, mep.etat);
   const enDirect = estLancee(mep);
 
   const lateral = (

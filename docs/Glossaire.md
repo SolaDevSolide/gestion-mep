@@ -32,7 +32,7 @@
 
 **Équipe** : groupe de personnes géré par les administrateurs, qui sert à filtrer les comptes et les MEP, et qui a ses modèles de texte. Une personne peut appartenir à plusieurs équipes ; une MEP appartient à une équipe dès qu'une de ses personnes en fait partie.
 
-**État d'une MEP** : ce que la recherche des MEP retient d'une MEP : sa phase tant qu'elle n'est pas clôturée (préparation, exécution, recette, retour arrière en cours), puis son issue : **réussie** (sans aucun échec d'étape), **réussie avec incidents** (au moins un échec d'étape, même repris ensuite) ou **repliée** (clôturée après un retour arrière). Voir [Rechercher des MEP](Suivre-une-MEP.md#rechercher-des-mep).
+**État d'une MEP** : ce que la recherche des MEP retient d'une MEP : sa phase tant qu'elle n'est pas clôturée (préparation, exécution, recette, retour arrière en cours), puis son issue : **réussie** (sans aucun échec d'étape), **réussie avec incidents** (au moins un échec d'étape, même repris ensuite) ou **repliée** (clôturée après un retour arrière). Une MEP réussie avec incidents s'affiche « Clôturée : réussie avec incidents » partout où son issue apparaît (en-tête, Suivi en direct, rapport de fin, exports). Voir [Rechercher des MEP](Suivre-une-MEP.md#rechercher-des-mep).
 
 **Étape** : action unitaire du plan, avec des instructions et un résultat attendu. Codes `E0001…` pour le déploiement, `R0001…` pour le retour arrière.
 

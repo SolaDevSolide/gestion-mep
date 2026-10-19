@@ -2,7 +2,6 @@ import type {
   Criticite,
   EtatEtape,
   FinEtape,
-  IssueMep,
   Phase,
   ResultatControle,
   StatutDisponibilite,
@@ -17,11 +16,6 @@ export const LIBELLE_PHASE: Record<Phase, string> = {
   Recette: 'Recette',
   RetourArriere: 'Retour arrière',
   Cloturee: 'Clôturée',
-};
-
-export const LIBELLE_ISSUE: Record<IssueMep, string> = {
-  Reussie: 'Clôturée : réussie',
-  Repliee: 'Clôturée : repliée',
 };
 
 export const LIBELLE_ETAT: Record<EtatEtape, string> = {

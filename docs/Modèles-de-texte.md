@@ -119,7 +119,7 @@ Mêmes chiffres que la [vue d'ensemble](Suivre-une-MEP.md) au moment où le text
 
 | Variable | Libellé | Contenu |
 |---|---|---|
-| `{{issue}}` | Issue | « réussie » ou « repliée (retour arrière effectué) », une fois la MEP clôturée |
+| `{{issue}}` | Issue | « réussie », « réussie avec incidents » (une étape a échoué en route, même reprise ensuite) ou « repliée (retour arrière effectué) », une fois la MEP clôturée |
 | `{{demarree_le}}` | Démarrée le | Date et heure du Go |
 | `{{terminee_le}}` | Terminée le | Date et heure de la clôture |
 | `{{bilan}}` | Bilan de clôture | Liste : ce qui a marché, incidents, actions |

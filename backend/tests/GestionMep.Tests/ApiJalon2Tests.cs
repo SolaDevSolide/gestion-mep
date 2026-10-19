@@ -263,6 +263,13 @@ public class ApiJalon2Tests : IDisposable
         var (alice, id, mep) = await DemoEnExecution();
         var bob = await _api.ClientConnecte("bob");
         var claire = await _api.ClientConnecte("claire");
+        // E0004 échoue puis est reprise avec succès : la MEP sera « réussie avec incidents » (#91).
+        mep = await Ok(await Action(alice, id, mep, "E0004", "demarrer"));
+        mep = await Ok(await Action(alice, id, mep, "E0004", "terminer",
+            new { revision = Revision(mep, "E0004"), resultat = "Echec", preuve = "Verrou sur la table", resultatVerifie = false }));
+        Assert.Equal("Execution", mep.GetProperty("etat").GetString());
+        Assert.Equal(1, mep.GetProperty("echecsSurvenus").GetInt32());
+        mep = await Ok(await Action(alice, id, mep, "E0004", "autoriser-reprise"));
         mep = await Reussir(alice, id, mep, "E0004", "Schéma migré");
         mep = await Ok(await Action(alice, id, mep, "E0005", "autoriser-reprise"));
         mep = await Reussir(bob, id, mep, "E0005", "Incident corrigé");
@@ -283,7 +290,10 @@ public class ApiJalon2Tests : IDisposable
         mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/cloturer", new { ceQuiAMarche = "Tout", incidents = "Rien à signaler" }));
         Assert.Equal("Reussie", mep.GetProperty("issue").GetString());
         Assert.Equal("Cloturee", mep.GetProperty("phase").GetString());
-        Assert.Contains(await Journal(alice, id), e => e.Detail == "MEP clôturée : réussie");
+        // Réussie avec incidents (#91), jusque dans le journal.
+        Assert.Equal("AvecIncidents", mep.GetProperty("etat").GetString());
+        Assert.Equal(1, mep.GetProperty("echecsSurvenus").GetInt32());
+        Assert.Contains(await Journal(alice, id), e => e.Detail == "MEP clôturée : réussie avec incidents");
     }
 
     // ---------- Échéance automatique ----------

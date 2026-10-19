@@ -30,6 +30,9 @@ function rapport(): RapportFin {
   const m = mep({
     phase: 'Cloturee',
     issue: 'Reussie',
+    // E0003 a échoué puis a été reprise (#91).
+    etat: 'AvecIncidents',
+    echecsSurvenus: 1,
     outil: 'Gestion des stocks',
     versionActuelle: '6.2',
     versionCible: '6.3',
@@ -119,6 +122,7 @@ describe('RapportPage (#61)', () => {
     vi.mocked(api.rapport).mockResolvedValue(rapport());
     rendre();
     expect(await screen.findByRole('heading', { name: /Gestion des stocks/ })).toBeInTheDocument();
+    expect(screen.getByText('Clôturée : réussie avec incidents')).toBeInTheDocument();
     expect(screen.getByText('1 h 17')).toBeInTheDocument();
     expect(screen.getByText('prévue 1 h 15')).toBeInTheDocument();
     expect(screen.getByText('Plan coloré de 1 étapes')).toBeInTheDocument();

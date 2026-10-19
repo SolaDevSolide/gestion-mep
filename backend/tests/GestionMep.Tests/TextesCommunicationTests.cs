@@ -104,6 +104,11 @@ public class TextesCommunicationTests
         Assert.Equal("23h40", v["heure_fin"].Texte);
         Assert.Equal("mardi 20 octobre 2026 à 20h05", v["demarree_le"].Texte);
         Assert.Equal("repliée (retour arrière effectué)", v["issue"].Texte);
+        mep.Issue = IssueMep.Reussie;
+        Assert.Equal("réussie", Valeurs(mep)["issue"].Texte);
+        // Une étape a échoué en route (journal) : réussie avec incidents (#91).
+        Assert.Equal("réussie avec incidents",
+            VariablesTexte.Valeurs(mep, null, null, new Dictionary<Guid, string>(), echecsSurvenus: 1)["issue"].Texte);
         Assert.Equal(["Ce qui a marché : La bascule", "Actions : Revoir le script"], v["bilan"].Liste!);
         Assert.True(v["niveau_risque"].EstManquante);
         Assert.Equal("non", v["arret_applicatif"].Texte);

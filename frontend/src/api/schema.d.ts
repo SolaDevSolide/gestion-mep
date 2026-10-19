@@ -7430,6 +7430,8 @@ export interface components {
              *     `Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les
              *     personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
              *     résolutions liées.
+             *     `Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;
+             *     `EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).
              */
             mep: {
                 /** Format: uuid */
@@ -7861,6 +7863,14 @@ export interface components {
                     /** Format: int32 */
                     rang: number;
                 }[];
+                /**
+                 * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+                 * @enum {unknown}
+                 */
+                etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee";
+                /** Format: int32 */
+                echecsSurvenus: number;
             };
             /** Format: int32 */
             ajoutes: number;
@@ -7963,6 +7973,7 @@ export interface components {
             /** Format: uuid */
             systemeCatalogueId: null | string;
         };
+        /** @description MEP clôturée depuis moins de 24 heures ; `Etat` : son issue (réussie, avec incidents, repliée). */
         MepClotureeDto: {
             /** Format: uuid */
             id: string;
@@ -7978,6 +7989,12 @@ export interface components {
             type: "Complete" | "Simplifiee";
             /** @enum {unknown} */
             issue: "Reussie" | "Repliee" | null;
+            /**
+             * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+             *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+             * @enum {unknown}
+             */
+            etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee";
             /** Format: date-time */
             clotureeLe: string;
             pilote: null | string;
@@ -7998,6 +8015,8 @@ export interface components {
          *     `Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les
          *     personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
          *     résolutions liées.
+         *     `Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;
+         *     `EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).
          */
         MepDto: {
             /** Format: uuid */
@@ -8429,6 +8448,14 @@ export interface components {
                 /** Format: int32 */
                 rang: number;
             }[];
+            /**
+             * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+             *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+             * @enum {unknown}
+             */
+            etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee";
+            /** Format: int32 */
+            echecsSurvenus: number;
         };
         /**
          * @description MEP de l'historique d'un système : `Environnements` touchés sur ce système, `AutresSystemes` de la MEP,
@@ -9093,6 +9120,8 @@ export interface components {
              *     `Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les
              *     personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
              *     résolutions liées.
+             *     `Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;
+             *     `EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).
              */
             mep: {
                 /** Format: uuid */
@@ -9524,6 +9553,14 @@ export interface components {
                     /** Format: int32 */
                     rang: number;
                 }[];
+                /**
+                 * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+                 * @enum {unknown}
+                 */
+                etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee";
+                /** Format: int32 */
+                echecsSurvenus: number;
             };
             journal: {
                 /** Format: int64 */
@@ -9759,6 +9796,8 @@ export interface components {
              *     `Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les
              *     personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
              *     résolutions liées.
+             *     `Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;
+             *     `EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).
              */
             mep: {
                 /** Format: uuid */
@@ -10190,6 +10229,14 @@ export interface components {
                     /** Format: int32 */
                     rang: number;
                 }[];
+                /**
+                 * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+                 * @enum {unknown}
+                 */
+                etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee";
+                /** Format: int32 */
+                echecsSurvenus: number;
             };
         };
         /**
@@ -10760,6 +10807,14 @@ export interface components {
                     /** Format: int32 */
                     rang: number;
                 }[];
+                /**
+                 * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+                 * @enum {unknown}
+                 */
+                etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee";
+                /** Format: int32 */
+                echecsSurvenus: number;
             }[];
             prevues: {
                 /** Format: uuid */
@@ -10821,6 +10876,12 @@ export interface components {
                 type: "Complete" | "Simplifiee";
                 /** @enum {unknown} */
                 issue: "Reussie" | "Repliee" | null;
+                /**
+                 * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+                 * @enum {unknown}
+                 */
+                etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee";
                 /** Format: date-time */
                 clotureeLe: string;
                 pilote: null | string;

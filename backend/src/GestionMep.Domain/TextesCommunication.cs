@@ -74,7 +74,8 @@ public static class VariablesTexte
             "Heure de fin estimée de l'exécution, comme la vue d'ensemble (plus long chemin des durées restantes), avec le retard. "
             + "Ex. « 16h33 (prévue à 15h18, +1 h 15) ». Absente avant le Go et pour une MEP sans durées estimées."),
 
-        new("issue", "Issue", GroupeFin, "« réussie » ou « repliée (retour arrière effectué) », une fois la MEP clôturée."),
+        new("issue", "Issue", GroupeFin,
+            "« réussie », « réussie avec incidents » (une étape a échoué en route) ou « repliée (retour arrière effectué) », une fois la MEP clôturée."),
         new("demarree_le", "Démarrée le", GroupeFin, "Date et heure du Go."),
         new("terminee_le", "Terminée le", GroupeFin, "Date et heure de la clôture."),
         new("bilan", "Bilan de clôture", GroupeFin, "Ce qui a marché, incidents et actions du bilan.", Liste: true),
@@ -140,10 +141,11 @@ public static class VariablesTexte
     /// Valeur de chaque variable de <see cref="Toutes"/> pour la MEP et l'équipe (null : aucune équipe, les variables d'équipe
     /// manquent). <paramref name="lienMep"/> : adresse complète de la MEP, ou null si l'adresse du serveur est inconnue.
     /// <paramref name="nomsPieces"/> : noms des pièces jointes de la MEP (preuve de validation). <paramref name="maintenant"/> :
-    /// heure de la fin estimée (absente sans elle).
+    /// heure de la fin estimée (absente sans elle). <paramref name="echecsSurvenus"/> : échecs d'étape tirés du journal (issue
+    /// « réussie avec incidents », voir <see cref="Regles.EtatDe"/>).
     /// </summary>
     public static Dictionary<string, ValeurVariable> Valeurs(Mep mep, Equipe? equipe, string? lienMep, IReadOnlyDictionary<Guid, string> nomsPieces,
-        DateTimeOffset? maintenant = null)
+        DateTimeOffset? maintenant = null, int echecsSurvenus = 0)
     {
         var c = mep.Communication;
         var go = mep.DemarrageAutoriseLe is { } g ? Local(g, mep.FuseauHoraire) : (DateTime?)null;
@@ -222,10 +224,11 @@ public static class VariablesTexte
             ["heure_limite"] = V(c.HeureLimite is { } hl ? Heure(hl) : null),
             ["validation_utilisateurs"] = V(Validation()),
 
-            ["issue"] = V(mep.Issue switch
+            ["issue"] = V(mep.Issue is null ? null : Regles.EtatDe(Phase.Cloturee, mep.Issue, echecsSurvenus) switch
             {
-                IssueMep.Reussie => "réussie",
-                IssueMep.Repliee => "repliée (retour arrière effectué)",
+                EtatMep.Reussie => "réussie",
+                EtatMep.AvecIncidents => "réussie avec incidents",
+                EtatMep.Repliee => "repliée (retour arrière effectué)",
                 _ => null,
             }),
             ["avancement"] = V(mep.Phase == Phase.Preparation ? null : Regles.Avancement(mep)),

@@ -525,7 +525,7 @@ export default function ListeMepPage() {
           )}
         >
           {filtrees.map((m) => {
-            const meta = metaPhase(m.phase, m.issue);
+            const meta = metaPhase(m.phase, m.etat);
             return (
               <li
                 key={m.id}

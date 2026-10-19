@@ -84,6 +84,30 @@ public class ApiExportsExcelTests : IDisposable
     }
 
     [Fact]
+    public async Task Une_mep_reussie_apres_un_echec_d_etape_est_reussie_avec_incidents_dans_la_mep_et_ses_exports()
+    {
+        var bob = await _api.ClientConnecte("bob");
+        // Batch de nuit comptable : E0002 a échoué puis a été reprise avec succès (#91) ; Portail clients : aucun échec.
+        foreach (var (outil, etat, echecs, libelle) in new[]
+        {
+            (DonneesDemo.OutilHistoriqueIncidents, "AvecIncidents", 1, "Clôturée : réussie avec incidents"),
+            (DonneesDemo.OutilHistoriqueReussie, "Reussie", 0, "Clôturée : réussie"),
+        })
+        {
+            var id = await AidesApi.IdMep(bob, outil);
+            var mep = await Ok(await bob.GetAsync($"/api/meps/{id}"));
+            Assert.Equal("Reussie", mep.GetProperty("issue").GetString());
+            Assert.Equal(etat, mep.GetProperty("etat").GetString());
+            Assert.Equal(echecs, mep.GetProperty("echecsSurvenus").GetInt32());
+            using var c = await Classeur(bob, $"/api/meps/{id}/preparation/excel");
+            var intervention = c.Worksheet("Intervention");
+            var phase = intervention.Column(1).CellsUsed().Single(x => x.GetString() == "Phase").CellRight();
+            Assert.Equal(libelle, phase.GetString());
+            Assert.Contains(intervention.Row(2).CellsUsed(), x => x.GetString().EndsWith(libelle, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
     public async Task La_preparation_s_exporte_section_par_section()
     {
         var bob = await _api.ClientConnecte("bob");

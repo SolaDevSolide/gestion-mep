@@ -8866,7 +8866,9 @@
               "retourArriereActive",
               "communication",
               "type",
-              "sections"
+              "sections",
+              "etat",
+              "echecsSurvenus"
             ],
             "type": "object",
             "properties": {
@@ -10395,9 +10397,25 @@
                   },
                   "description": "Section d'un plan : repère qui regroupe des étapes (`EtapeDto.SectionId`). `Placee` faux : dans le bac.\n`Revision` : augmente à chaque modification de la section ou de ses cercles. `Auteur` : nom du compte auteur.\n`Rang` : ordre gauche-droite dans le graphe, partagé avec les étapes du plan (0 : jamais réordonné)."
                 }
+              },
+              "etat": {
+                "enum": [
+                  "Preparation",
+                  "Execution",
+                  "Recette",
+                  "RetourArriere",
+                  "Reussie",
+                  "AvecIncidents",
+                  "Repliee"
+                ],
+                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+              },
+              "echecsSurvenus": {
+                "type": "integer",
+                "format": "int32"
               }
             },
-            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées."
+            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec)."
           },
           "ajoutes": {
             "type": "integer",
@@ -10735,6 +10753,7 @@
           "versionCible",
           "type",
           "issue",
+          "etat",
           "clotureeLe",
           "pilote"
         ],
@@ -10764,6 +10783,18 @@
               null
             ]
           },
+          "etat": {
+            "enum": [
+              "Preparation",
+              "Execution",
+              "Recette",
+              "RetourArriere",
+              "Reussie",
+              "AvecIncidents",
+              "Repliee"
+            ],
+            "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+          },
           "clotureeLe": {
             "type": "string",
             "format": "date-time"
@@ -10774,7 +10805,8 @@
               "string"
             ]
           }
-        }
+        },
+        "description": "MEP clôturée depuis moins de 24 heures ; `Etat` : son issue (réussie, avec incidents, repliée)."
       },
       "MepCreationSaisie": {
         "required": [
@@ -10860,7 +10892,9 @@
           "retourArriereActive",
           "communication",
           "type",
-          "sections"
+          "sections",
+          "etat",
+          "echecsSurvenus"
         ],
         "type": "object",
         "properties": {
@@ -12389,9 +12423,25 @@
               },
               "description": "Section d'un plan : repère qui regroupe des étapes (`EtapeDto.SectionId`). `Placee` faux : dans le bac.\n`Revision` : augmente à chaque modification de la section ou de ses cercles. `Auteur` : nom du compte auteur.\n`Rang` : ordre gauche-droite dans le graphe, partagé avec les étapes du plan (0 : jamais réordonné)."
             }
+          },
+          "etat": {
+            "enum": [
+              "Preparation",
+              "Execution",
+              "Recette",
+              "RetourArriere",
+              "Reussie",
+              "AvecIncidents",
+              "Repliee"
+            ],
+            "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+          },
+          "echecsSurvenus": {
+            "type": "integer",
+            "format": "int32"
           }
         },
-        "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées."
+        "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec)."
       },
       "MepHistoriqueDto": {
         "required": [
@@ -14804,7 +14854,9 @@
               "retourArriereActive",
               "communication",
               "type",
-              "sections"
+              "sections",
+              "etat",
+              "echecsSurvenus"
             ],
             "type": "object",
             "properties": {
@@ -16333,9 +16385,25 @@
                   },
                   "description": "Section d'un plan : repère qui regroupe des étapes (`EtapeDto.SectionId`). `Placee` faux : dans le bac.\n`Revision` : augmente à chaque modification de la section ou de ses cercles. `Auteur` : nom du compte auteur.\n`Rang` : ordre gauche-droite dans le graphe, partagé avec les étapes du plan (0 : jamais réordonné)."
                 }
+              },
+              "etat": {
+                "enum": [
+                  "Preparation",
+                  "Execution",
+                  "Recette",
+                  "RetourArriere",
+                  "Reussie",
+                  "AvecIncidents",
+                  "Repliee"
+                ],
+                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+              },
+              "echecsSurvenus": {
+                "type": "integer",
+                "format": "int32"
               }
             },
-            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées."
+            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec)."
           },
           "journal": {
             "type": "array",
@@ -17244,7 +17312,9 @@
               "retourArriereActive",
               "communication",
               "type",
-              "sections"
+              "sections",
+              "etat",
+              "echecsSurvenus"
             ],
             "type": "object",
             "properties": {
@@ -18773,9 +18843,25 @@
                   },
                   "description": "Section d'un plan : repère qui regroupe des étapes (`EtapeDto.SectionId`). `Placee` faux : dans le bac.\n`Revision` : augmente à chaque modification de la section ou de ses cercles. `Auteur` : nom du compte auteur.\n`Rang` : ordre gauche-droite dans le graphe, partagé avec les étapes du plan (0 : jamais réordonné)."
                 }
+              },
+              "etat": {
+                "enum": [
+                  "Preparation",
+                  "Execution",
+                  "Recette",
+                  "RetourArriere",
+                  "Reussie",
+                  "AvecIncidents",
+                  "Repliee"
+                ],
+                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+              },
+              "echecsSurvenus": {
+                "type": "integer",
+                "format": "int32"
               }
             },
-            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées."
+            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec)."
           }
         },
         "description": "Section créée (`SectionId`) et MEP à jour."
@@ -19319,7 +19405,9 @@
                 "retourArriereActive",
                 "communication",
                 "type",
-                "sections"
+                "sections",
+                "etat",
+                "echecsSurvenus"
               ],
               "type": "object",
               "properties": {
@@ -20848,9 +20936,25 @@
                     },
                     "description": "Section d'un plan : repère qui regroupe des étapes (`EtapeDto.SectionId`). `Placee` faux : dans le bac.\n`Revision` : augmente à chaque modification de la section ou de ses cercles. `Auteur` : nom du compte auteur.\n`Rang` : ordre gauche-droite dans le graphe, partagé avec les étapes du plan (0 : jamais réordonné)."
                   }
+                },
+                "etat": {
+                  "enum": [
+                    "Preparation",
+                    "Execution",
+                    "Recette",
+                    "RetourArriere",
+                    "Reussie",
+                    "AvecIncidents",
+                    "Repliee"
+                  ],
+                  "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+                },
+                "echecsSurvenus": {
+                  "type": "integer",
+                  "format": "int32"
                 }
               },
-              "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées."
+              "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec)."
             }
           },
           "prevues": {
@@ -20984,6 +21088,7 @@
                 "versionCible",
                 "type",
                 "issue",
+                "etat",
                 "clotureeLe",
                 "pilote"
               ],
@@ -21013,6 +21118,18 @@
                     null
                   ]
                 },
+                "etat": {
+                  "enum": [
+                    "Preparation",
+                    "Execution",
+                    "Recette",
+                    "RetourArriere",
+                    "Reussie",
+                    "AvecIncidents",
+                    "Repliee"
+                  ],
+                  "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+                },
                 "clotureeLe": {
                   "type": "string",
                   "format": "date-time"
@@ -21023,7 +21140,8 @@
                     "string"
                   ]
                 }
-              }
+              },
+              "description": "MEP clôturée depuis moins de 24 heures ; `Etat` : son issue (réussie, avec incidents, repliée)."
             }
           },
           "maintenant": {

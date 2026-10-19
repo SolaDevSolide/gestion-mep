@@ -183,8 +183,12 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         var noms = await Personnes.Noms(db);
         var pieces = await db.PiecesJointes.AsNoTracking().Where(p => p.MepId == mep.Id).ToListAsync();
         var estAdmin = utilisateurId is { } u && await db.Utilisateurs.AsNoTracking().AnyAsync(x => x.Id == u && x.EstAdmin);
-        return MepMapping.VersDto(mep, utilisateurId, noms, Maintenant, await ApprobationsMinimum(), pieces, estAdmin);
+        return MepMapping.VersDto(mep, utilisateurId, noms, Maintenant, await ApprobationsMinimum(), pieces, await EchecsSurvenus(mep.Id), estAdmin);
     }
+
+    /// <summary>Échecs d'étape survenus dans la MEP (événements « etape.echec » du journal) : une étape reprise garde son échec.</summary>
+    public async Task<int> EchecsSurvenus(Guid mepId) =>
+        await db.Journal.AsNoTracking().CountAsync(e => e.MepId == mepId && e.Type == Regles.EvenementEchecEtape);
 
     /// <summary>Paramètre global <see cref="ParametresGlobaux.ApprobationsMinimum"/> (1 si la ligne manque).</summary>
     public async Task<int> ApprobationsMinimum() =>
