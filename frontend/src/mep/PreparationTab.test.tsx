@@ -37,16 +37,19 @@ vi.mock('../api', () => ({
 
 const SESSION = { utilisateur: utilisateur({ id: 'u3' }) } as never;
 
-function rendre() {
-  const m = mep({
+const CTX = {
+  mep: mep({
     phase: 'Preparation',
     droits: { ...mep().droits, peutEditerContenu: true, peutModifierPlan: true },
-  });
-  const ctx = { mep: m, run: vi.fn() };
+  }),
+  run: vi.fn(),
+};
+
+function rendre() {
   render(
     <AuthContext.Provider value={SESSION}>
       <MemoryRouter>
-        <MepContext.Provider value={ctx}>
+        <MepContext.Provider value={CTX}>
           <TooltipProvider>
             <PreparationTab />
           </TooltipProvider>
