@@ -76,6 +76,16 @@ describe('useReferentiel', () => {
     expect(result.current.erreur).toBeNull();
   });
 
+  it('un composant monté juste après une panne montre l’erreur sans relancer la lecture en cachette', async () => {
+    const panne = new Error('hors ligne');
+    vi.mocked(api.utilisateurs).mockRejectedValue(panne);
+    const onglet = renderHook(() => useReferentiel('comptes'));
+    await waitFor(() => expect(onglet.result.current.erreur).toBe(panne));
+    const section = renderHook(() => useReferentiel('comptes'));
+    expect(section.result.current.erreur).toBe(panne);
+    expect(api.utilisateurs).toHaveBeenCalledTimes(1);
+  });
+
   it('inactif : aucune requête', () => {
     renderHook(() => useReferentiel('comptes', false));
     expect(api.utilisateurs).not.toHaveBeenCalled();

@@ -18,7 +18,7 @@ interface Entree {
   relancer: boolean;
   /** Dernière valeur de `relire` (version de la MEP) pour laquelle la donnée a été relue. */
   marque?: unknown;
-  /** Heure de la dernière réponse (`Date.now()`). */
+  /** Heure de la dernière réponse ou de la dernière erreur (`Date.now()`). */
   recueLe: number;
 }
 
@@ -74,6 +74,7 @@ function demander(cle: string, charger: () => Promise<unknown>, forcer = false) 
     },
     (err: unknown) => {
       courante.erreur = err ?? new Error('Chargement impossible.');
+      courante.recueLe = Date.now();
       terminer();
     },
   );
@@ -137,10 +138,12 @@ function useAbonnement(cles: string[], charger: (cle: string) => Promise<unknown
     const actives = liste ? liste.split('\n') : [];
     for (const c of actives) {
       abonnes.set(c, (abonnes.get(c) ?? 0) + 1);
-      // Un montage relit la donnée (mise à jour d'un onglet rouvert), sauf réponse toute récente ; une lecture en cours
-      // sert à tous.
+      // Un montage relit la donnée (mise à jour d'un onglet rouvert), sauf réponse ou erreur toute récente (une erreur
+      // se relance par « Réessayer », pas en cachette par la section montée juste après) ; une lecture en cours sert à
+      // tous.
       const e = entrees.get(c);
-      if (!e?.recue || Date.now() - e.recueLe > FRAICHEUR_MS) demander(c, () => charger(c));
+      const lue = !!e && (e.recue || e.erreur !== null);
+      if (!lue || Date.now() - e.recueLe > FRAICHEUR_MS) demander(c, () => charger(c));
     }
     return () => {
       for (const c of actives) {
