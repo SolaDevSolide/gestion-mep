@@ -8,6 +8,7 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `npm run dev`                             | Serveur de développement sur http://localhost:5173 ; `/api` est relayé vers http://localhost:5080 |
 | `npm test`                                | Tests Vitest (jsdom)                                                                              |
+| `npm run e2e`                             | Tests de bout en bout Playwright (voir plus bas)                                                  |
 | `npm run lint`                            | Oxlint avec analyse des types                                                                     |
 | `npm run format` / `npm run format:check` | Prettier                                                                                          |
 | `npm run typecheck`                       | `tsc --noEmit`                                                                                    |
@@ -25,10 +26,12 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 | `src/mep/preparation` | Sections de l'onglet Préparation                                                                                                                                                  |
 | `src/parametres`      | Paramètres globaux : catalogue des systèmes (et historique des MEP d'un système), résolutions types, bibliothèques d'étapes et de recettes, critères go / no-go, modèles de texte |
 | `src/textes`          | Textes à copier : remplissage des modèles de texte (`modelesTexte.ts`, logique pure), aperçu, copie mise en forme ou simple                                                       |
-| `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version »                                                                                                        |
+| `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version », repli temporaire du menu latéral (`menuLateral.ts`)                                                   |
 | `src/charte`          | Charte visuelle : calculs des couleurs (`charte.ts`, `couleurs.ts`, mêmes résultats que le serveur), sélecteur de couleur, aperçus                                                |
 | `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                                                                                                |
 | `src/test`            | Configuration Vitest et fabrique de données de test                                                                                                                               |
+
+Dans `src/mep/graphe`, `GrapheLibre.tsx` s'appuie sur `BarreOutilsGraphe.tsx` (barre d'outils), `MiniCarte.tsx`, `useMontageAnime.ts` (mouvement des nœuds après un rangement) et `noeudsRf.ts` (nœuds React Flow) ; `moteurElk.ts` exécute ELK dans un Web Worker (délai, reprise après échec) et `petitEcran.ts` règle la vue compacte (fenêtre de moins de 800 px de haut).
 
 Logique pure, testée sans DOM :
 
@@ -85,7 +88,11 @@ await run(() => api.demarrerEtape(mep.id, etape.id, etape.revision), 'Étape dé
 
 ### Nouvelle version
 
-`/api/version` renvoie l'empreinte du `index.html` servi. `layout/NouvelleVersion.tsx` la compare périodiquement à celle chargée et propose de recharger après un déploiement.
+`/api/version` renvoie l'empreinte du `index.html` servi. `layout/NouvelleVersion.tsx` la compare périodiquement à celle chargée et propose de recharger après un déploiement. Il le propose aussi sur l'événement `vite:preloadError` : un fichier chargé à la demande (une page, le moteur ELK) a disparu du serveur après un déploiement.
+
+### Tests de bout en bout
+
+`npm run e2e` lance Playwright (`playwright.config.ts`, fichiers `e2e/*.e2e.ts`) sur une instance déjà démarrée en mode démonstration (`DEMO=true`) : `E2E_URL` donne son adresse (par défaut http://localhost:5173, le serveur de développement). `e2e/petit-ecran.e2e.ts` vérifie, sur une fenêtre de 1366 × 641, que le graphe de la vue d'une section garde au moins 480 px de haut et reste visible, avec la carte de l'étape, quand l'étape est ouverte en tiroir. Le navigateur Chromium de Playwright doit être installé (`npx playwright install chromium`).
 
 ### Charte visuelle
 

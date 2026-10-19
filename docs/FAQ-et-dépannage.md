@@ -50,8 +50,14 @@ Une liste n'a pas pu être lue ; le message en donne la cause. « Le serveur ne 
 **« Session expirée » s'ouvre pendant que je travaille.**
 La session a pris fin (déconnexion depuis un autre onglet, redémarrage du serveur sans conservation des clés, longue inactivité). La page reste affichée derrière, avec votre saisie : saisir le mot de passe et cliquer « Se reconnecter ». Ce qui était en cours d'envoi repart alors une fois, et le message « Reconnecté. Votre saisie est intacte. » le confirme. Avec la connexion Microsoft, le navigateur passe par la page de Microsoft puis revient sur la même page, saisie reprise. « Changer de compte » abandonne la saisie, après confirmation.
 
+**« Rangement automatique indisponible » s'affiche en haut du plan.**
+Le rangement des cartes a échoué ou a pris plus de 15 secondes. Les cartes restent à leurs places et le plan se modifie normalement. « Réessayer » relance le rangement ; si le message revient, recharger la page.
+
+**Sur mon portable, le plan d'étapes est très petit.**
+Sur une fenêtre de moins de 800 px de haut, le plan passe en vue compacte : la page défile jusqu'au graphe, qui prend toute la hauteur, et une étape s'ouvre en tiroir par-dessus le graphe. Le plein écran du plan (bouton en haut à droite du graphe) donne encore plus de place. Voir [Sur un petit écran](Préparer-une-MEP.md#sur-un-petit-écran).
+
 **Un bandeau propose une nouvelle version de l'application.**
-L'application a été mise à jour sur le serveur (nouveau numéro de version, ou nouvelle construction de l'interface, par exemple une image reconstruite depuis une branche) : cliquer « Recharger ». Un onglet resté ouvert garde sinon l'ancienne interface.
+L'application a été mise à jour sur le serveur (nouveau numéro de version, ou nouvelle construction de l'interface, par exemple une image reconstruite depuis une branche) : cliquer « Recharger ». Un onglet resté ouvert garde sinon l'ancienne interface ; le bandeau s'affiche aussi quand une partie de l'interface ne se charge plus parce que le serveur a été mis à jour.
 
 **Après avoir reconstruit l'image, l'application semble inchangée.**
 `docker compose up -d` réutilise l'image déjà construite : reconstruire avec `docker compose up -d --build` (ou `docker compose build app` puis `docker compose up -d`), puis recharger la page (le bandeau ci-dessus le propose aussi dans les onglets ouverts).
