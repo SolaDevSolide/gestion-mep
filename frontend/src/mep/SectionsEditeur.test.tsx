@@ -429,6 +429,94 @@ describe('Sections du plan', () => {
   });
 });
 
+describe('Vue compacte : fenêtre de moins de 800 px de haut', () => {
+  let largeur = 1366;
+  beforeEach(() => {
+    largeur = 1366;
+    // Portable 1366 × 768 : fenêtre utile d'environ 1366 × 641.
+    vi.stubGlobal('matchMedia', (requete: string) => ({
+      matches: requete.includes('max-height: 799') || (requete.includes('max-width: 1439') && largeur < 1440),
+      media: requete,
+      onchange: null,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      dispatchEvent: () => false,
+    }));
+    vi.stubGlobal('scrollTo', vi.fn());
+    // Espace d'une étape en panneau (préférence par défaut) : en vue compacte, il devient un tiroir.
+    changerModeEspace('panneau');
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('bandeau de section d’une ligne : « Plan », titre, entrées et sorties ; le reste dans « Détails »', async () => {
+    rendre(planAvecSections(), '/meps/m1?section=sb');
+    const bandeau = screen.getByRole('region', { name: 'Section « Bascule BDD »' });
+    expect(within(bandeau).getByRole('button', { name: 'Retour au plan' })).toHaveTextContent('Plan');
+    expect(within(bandeau).getByLabelText('Titre de la section')).toHaveValue('Bascule BDD');
+    expect(bandeau).toHaveTextContent('1 entrée');
+    expect(bandeau).toHaveTextContent('1 sortie');
+    // Description, systèmes, cercles, auteur et actions : dans « Détails ».
+    expect(screen.queryByLabelText('Description de la section')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remettre dans le bac' })).toBeNull();
+    await userEvent.click(within(bandeau).getByRole('button', { name: 'Détails de la section' }));
+    const details = await screen.findByRole('dialog');
+    expect(within(details).getByLabelText('Description de la section')).toBeInTheDocument();
+    expect(details).toHaveTextContent('Créée par Bob');
+    expect(within(details).getByRole('button', { name: /Début/ })).toBeInTheDocument();
+    await userEvent.click(within(details).getByRole('button', { name: 'Remettre dans le bac' }));
+    expect(apiGraphe.placerSection).toHaveBeenCalledWith('m1', 'sb', false);
+  });
+
+  it('titre modifié sur place : la saisie reste si la section change entre-temps, Échap l’abandonne', async () => {
+    const { rerendre } = rendre(planAvecSections(), '/meps/m1?section=sb');
+    const titre = screen.getByLabelText('Titre de la section');
+    await userEvent.clear(titre);
+    await userEvent.type(titre, 'Bascule base');
+    // Un collègue change la description : la saisie en cours n'est pas écrasée.
+    const m = planAvecSections();
+    m.sections = m.sections.map((x) => (x.id === 'sb' ? { ...x, description: 'Nouvelle', revision: 2 } : x));
+    rerendre(m, null);
+    expect(screen.getByLabelText('Titre de la section')).toHaveValue('Bascule base');
+    await userEvent.type(screen.getByLabelText('Titre de la section'), '{Escape}');
+    expect(screen.getByLabelText('Titre de la section')).toHaveValue('Bascule BDD');
+    expect(apiGraphe.modifierSection).not.toHaveBeenCalled();
+  });
+
+  it('barre d’outils : résumé du plan ; export et aide dans le menu « ⋯ »', async () => {
+    rendre(planAvecSections(), '/meps/m1?section=sb', null, () => (
+      <EtapesEditeur plan="Deploiement" exporter={{ url: '/api/export', title: 'Une ligne par étape' }} />
+    ));
+    const barre = screen.getByRole('toolbar', { name: 'Outils du graphe' });
+    expect(barre).toHaveTextContent('2 étapes');
+    expect(screen.queryByRole('button', { name: 'Exporter en Excel' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Aide du graphe' })).toBeNull();
+    await userEvent.click(within(barre).getByRole('button', { name: 'Plus d’actions du graphe' }));
+    expect(await screen.findByRole('menuitem', { name: 'Exporter en Excel' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Aide du graphe' }));
+    expect(await screen.findByRole('dialog', { name: 'Aide du graphe' })).toHaveTextContent('Aller à…');
+  });
+
+  it('étape ouverte en tiroir dans le cadre du graphe, sous le bandeau ; bac en rail', async () => {
+    rendre(planAvecSections(), '/meps/m1?section=sb&etape=e2');
+    await waitFor(() =>
+      expect(document.querySelector('.graphe-libre [data-emplacement-tiroir] [data-tiroir-etape]')).not.toBeNull(),
+    );
+    expect(await screen.findByLabelText('Action')).toHaveValue('Arrêt');
+    // Bac replié en rail (fenêtre de moins de 1440 px de large).
+    const bac = screen.getByRole('complementary', { name: 'Bac des éléments à placer' });
+    expect(bac).toHaveTextContent('À placer (0)');
+  });
+
+  it('écran large : le bac reste ouvert', () => {
+    largeur = 1600;
+    rendre(planAvecSections(), '/meps/m1?section=sb');
+    const bac = screen.getByRole('complementary', { name: 'Bac des éléments à placer' });
+    expect(within(bac).getByRole('heading', { name: /Étapes à placer/ })).toBeInTheDocument();
+  });
+});
+
 describe('Sections en exécution', () => {
   it('section repliée avec son avancement « 1/2, 1 en échec » ; un clic la déplie', async () => {
     const m = planAvecSections({ phase: 'Execution', droits: { ...droits, peutEditerContenu: false } });

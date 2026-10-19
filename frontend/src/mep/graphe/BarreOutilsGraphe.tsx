@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { PresentsMep } from '../../presence';
 import type { Etape, TypePlan } from '../../types';
 import { BoutonIcone, Button } from '../../ui/Button';
+import { cn } from '../../ui/cn';
 
 /** « + Étape » de la barre : création à part (menu de création) ou pose à part de la copie d'une étape modèle. */
 export interface BoutonEtapeBarre {
@@ -15,7 +16,8 @@ export interface BoutonEtapeBarre {
 
 /**
  * Barre d'outils du graphe libre, en haut de son cadre : étapes modèles (`enTete`) à gauche ; à droite, outils de l'écran
- * (`outils`), « + Étape », « Aller à… » (code d'une étape) et plein écran.
+ * (`outils`), « + Étape », « Aller à… » (code d'une étape), menu « ⋯ » (`menu`) et plein écran.
+ * Vue compacte (`compact`) : une ligne de 44 px, avec le résumé du plan (`resume`) après les étapes modèles.
  */
 export function BarreOutilsGraphe({
   plan,
@@ -26,6 +28,9 @@ export function BarreOutilsGraphe({
   plein,
   onPlein,
   onAller,
+  compact = false,
+  resume,
+  menu,
 }: {
   plan: TypePlan;
   /** Étapes proposées par « Aller à… ». */
@@ -38,17 +43,30 @@ export function BarreOutilsGraphe({
   onPlein: (plein: boolean) => void;
   /** Va à l'étape de ce code ; vrai si elle est trouvée (le champ se vide). */
   onAller: (texte: string) => boolean;
+  compact?: boolean;
+  /** Résumé du plan (« 2 étapes · 35 min ») et messages, dans la barre en vue compacte. */
+  resume?: ReactNode;
+  /** Menu « ⋯ » (export, aide), avant le bouton plein écran. */
+  menu?: ReactNode;
 }) {
   const [recherche, setRecherche] = useState('');
   return (
     <div
       role="toolbar"
       aria-label="Outils du graphe"
-      className="@container flex min-h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-line bg-surface-2/60 px-2 py-1.5"
+      className={cn(
+        '@container flex shrink-0 items-center gap-2 overflow-x-auto border-b border-line bg-surface-2/60 px-2',
+        compact ? 'h-11' : 'min-h-12 py-1.5',
+      )}
     >
       {/* Boutons des étapes modèles : posés dans la barre (ils se placent d'eux-mêmes en absolu ailleurs). */}
       {enTete && (
         <div className="shrink-0 [&>div]:!static [&>div]:!shadow-none [&_button]:whitespace-nowrap">{enTete}</div>
+      )}
+      {resume && (
+        <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden whitespace-nowrap [&>p]:min-w-0 [&>p]:truncate">
+          {resume}
+        </div>
       )}
       <div className="ml-auto flex shrink-0 items-center gap-2">
         {/* Plein écran : qui est sur la MEP reste visible (la page en dessous est masquée). */}
@@ -94,6 +112,7 @@ export function BarreOutilsGraphe({
             ))}
           </datalist>
         </form>
+        {menu}
         <BoutonIcone
           label={plein ? 'Quitter le plein écran (Échap)' : 'Plan en plein écran'}
           taille="sm"

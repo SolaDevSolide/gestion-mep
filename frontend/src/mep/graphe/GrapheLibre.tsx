@@ -55,6 +55,8 @@ import { infoSection, type Section } from './sections';
 import { useHauteurDisponible } from './hauteurDisponible';
 import { hoteMesure, mesuresManquantes, PREFIXE_MESURE, tailleRetenue } from './mesuresGraphe';
 import { useMontageAnime } from './useMontageAnime';
+import { hautCollant, largeurTiroir, MARGE_CADRE } from './petitEcran';
+import { mouvementReduit } from '../../ui/mouvement';
 import { useRangement } from './useRangement';
 
 const PAS_ZOOM = 1.2;
@@ -114,8 +116,8 @@ interface Props {
   enTete?: ReactNode;
   /** Contrôles ajoutés à droite de la barre d'outils (Tout replier, Étape…). */
   outils?: ReactNode;
-  /** Panneau latéral intérieur, à droite du graphe (bac des sections), avec son propre défilement. */
-  /** Panneau latéral (bac) : il lit le dépôt et le glisser de ses étapes par `useBacGraphe`. */
+  /** Panneau latéral intérieur, à droite du graphe (bac des sections), avec son propre défilement ; il lit le dépôt et le
+   * glisser de ses étapes par `useBacGraphe`. */
   lateral?: ReactNode;
   /** Espace d'une étape ouvert en panneau à droite : le plein écran lui laisse sa place. */
   retraitDroit?: boolean;
@@ -136,6 +138,20 @@ interface Props {
     /** Ouvre la bibliothèque ; l'étape choisie sera posée à cette place. */
     parcourir: (place: PlaceEtape) => void;
   };
+  /**
+   * Vue compacte (fenêtre de moins de 800 px de haut ; sans effet en plein écran) : cadre à la hauteur de la fenêtre moins
+   * 24 px, la page défile jusqu'à lui quand on ouvre une section ou une étape ; barre d'outils d'une ligne avec `resume`.
+   */
+  compact?: boolean;
+  /** Vue compacte : résumé du plan et messages, dans la barre d'outils. */
+  resume?: ReactNode;
+  /** Menu « ⋯ » de la barre d'outils (export, aide). */
+  menu?: ReactNode;
+  /**
+   * Vue compacte : étape ouverte en tiroir par-dessus le graphe, sous le bandeau. `emplacement` reçoit l'élément où l'écran
+   * affiche le tiroir (`EmplacementTiroir`) ; `ouvert` : une étape y est ouverte (le graphe se recentre sur sa carte).
+   */
+  tiroir?: { emplacement: (el: HTMLElement | null) => void; ouvert: boolean } | null;
 }
 
 /** Menu ouvert sur le graphe : celui d'un lien (choisir parmi des liens fusionnés, insérer, supprimer) ou de création. */
@@ -197,6 +213,9 @@ function Graphe(props: Props) {
     bandeau,
     creation,
     retraits = null,
+    resume,
+    menu: menuPlus,
+    tiroir = null,
   } = props;
   const edition = mode === 'edition' && modifiable;
   const placement = edition && !!flottante;
@@ -226,7 +245,9 @@ function Graphe(props: Props) {
   const plein = props.plein ?? pleinLocal;
   const onPlein = props.onPlein;
   const setPlein = useCallback((v: boolean) => (onPlein ? onPlein(v) : setPleinLocal(v)), [onPlein]);
-  const hauteur = useHauteurDisponible(cadre, !plein);
+  const compact = !!props.compact && !plein;
+  const tiroirOuvert = compact && !!tiroir?.ouvert;
+  const hauteur = useHauteurDisponible(cadre, !plein, compact);
   useEffect(() => {
     if (!plein) return undefined;
     const echap = (ev: globalThis.KeyboardEvent) => {
@@ -263,6 +284,19 @@ function Graphe(props: Props) {
   const { range, enAttente, indisponible, reessayer } = useRangement(modele, tailles, gele, jeton, pret);
   // Rangement impossible : le graphe se montre aussitôt à ses places actuelles, avec le message « Réessayer ».
   const montre = pret || indisponible !== null;
+  // Vue compacte : ouvrir une section ou une étape fait défiler la page jusqu'au cadre (12 px au-dessus) ; l'en-tête de la
+  // MEP reste à un défilement. Encore une fois quand le graphe paraît : ce qui est au-dessus a pu changer de hauteur.
+  useEffect(() => {
+    if (!compact || (!sectionVue && !tiroirOuvert)) return undefined;
+    const image = window.requestAnimationFrame(() => {
+      const el = cadre.current;
+      if (!el) return;
+      const haut = el.getBoundingClientRect().top - hautCollant() - MARGE_CADRE;
+      if (Math.abs(haut) > 1)
+        window.scrollTo({ top: window.scrollY + haut, behavior: mouvementReduit() ? 'auto' : 'smooth' });
+    });
+    return () => window.cancelAnimationFrame(image);
+  }, [compact, sectionVue, tiroirOuvert, montre]);
   const rangeRef = useRef(range);
   rangeRef.current = range;
 
@@ -324,6 +358,19 @@ function Graphe(props: Props) {
       y: m.haut + (ajuste >= 0.8 ? hauteurUtile / 2 - (b.y + b.height / 2) * z : -b.y * z),
       zoom: z,
     });
+  };
+  /**
+   * Centre la vue sur une carte (vue d'arrivée, « Aller à… », étape ouverte en tiroir) : dans la partie du graphe que le
+   * tiroir laisse visible quand il est ouvert.
+   */
+  const centrerSur = (id: string, options: { zoom: number; duration?: number }) => {
+    const n = rf.getInternalNode(id);
+    if (!n) return false;
+    const p = n.internals.positionAbsolute;
+    const el = zone.current;
+    const cache = tiroirOuvert && el ? Math.min(largeurTiroir(), el.clientWidth / 2) : 0;
+    void rf.setCenter(p.x + CARTE.largeur / 2 + cache / 2 / options.zoom, p.y + CARTE.hauteur / 2, options);
+    return true;
   };
   const ajuster = () => {
     const m = marges();
@@ -413,11 +460,7 @@ function Graphe(props: Props) {
   useEffect(() => {
     if (!arrivee) return;
     finArrivee();
-    const sel = selection && rf.getInternalNode(selection);
-    if (sel) {
-      const abs = sel.internals.positionAbsolute;
-      void rf.setCenter(abs.x + CARTE.largeur / 2, abs.y + CARTE.hauteur / 2, { zoom: 1 });
-    } else vueInitiale();
+    if (!selection || !centrerSur(selection, { zoom: 1 })) vueInitiale();
     setPret(true);
     // Une fois par arrivée : la sélection et les marges sont lues à ce moment.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -930,9 +973,10 @@ function Graphe(props: Props) {
       rectBac.current = null;
       setCible(null);
       if (!lacher || surLeBac) return;
-      const dansGraphe = document
-        .elementsFromPoint(e.clientX, e.clientY)
-        .some((el) => el.closest('[data-graphe-libre]'));
+      const pile = document.elementsFromPoint(e.clientX, e.clientY);
+      // Lâchée sur le tiroir d'une étape (vue compacte) : pas dans le graphe, même s'il est dessous.
+      const dansGraphe =
+        !pile[0]?.closest('[data-tiroir-etape]') && pile.some((el) => el.closest('[data-graphe-libre]'));
       const place = c ? placePour(c) : null;
       if (place) deposer(place);
       else if (dansGraphe) deposer({});
@@ -1025,12 +1069,19 @@ function Graphe(props: Props) {
   useEffect(() => {
     const id = visees.current;
     if (!id) return;
-    const n = rf.getInternalNode(id);
-    if (!n) return;
+    if (!centrerSur(id, { zoom: Math.max(zoom, 0.8), duration: 300 })) return;
     visees.current = null;
-    const p = n.internals.positionAbsolute;
-    void rf.setCenter(p.x + CARTE.largeur / 2, p.y + CARTE.hauteur / 2, { zoom: Math.max(zoom, 0.8), duration: 300 });
+    // La recherche suit les nœuds affichés ; `centrerSur` lit la vue au moment du centrage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [noeuds, rf, zoom]);
+  // Vue compacte : l'étape ouverte en tiroir (ou une autre choisie pendant qu'il est ouvert) est recentrée dans la partie
+  // visible du graphe, qui ne se rétrécit pas.
+  useEffect(() => {
+    if (!tiroirOuvert || !selection || !pret) return;
+    centrerSur(selection, { zoom: Math.max(rf.getViewport().zoom, 0.8), duration: 250 });
+    // Une fois par ouverture ou changement d'étape.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tiroirOuvert, selection]);
 
   function clavier(ev: KeyboardEvent<HTMLDivElement>) {
     if (ev.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName)) return;
@@ -1244,11 +1295,14 @@ function Graphe(props: Props) {
           plein={plein}
           onPlein={setPlein}
           onAller={aller}
+          compact={compact}
+          resume={compact ? resume : undefined}
+          menu={menuPlus}
         />
 
         {bandeau && <div className="shrink-0 border-b border-line">{bandeau}</div>}
 
-        <div className="flex min-h-0 flex-1">
+        <div className="relative flex min-h-0 flex-1">
           {/* Raccourcis délégués (Entrée, Suppr, Échap) : les touches viennent des liens focusables du graphe. Survol des
               liens calculé sur leurs tracés (un tronçon partagé désigne tous les liens qui y passent). */}
           {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
@@ -1461,6 +1515,14 @@ function Graphe(props: Props) {
             )}
           </div>
           <ContexteBac.Provider value={bac}>{lateral}</ContexteBac.Provider>
+          {/* Vue compacte : emplacement du tiroir de l'étape ouverte, par-dessus le graphe et le bac, sous le bandeau. */}
+          {compact && tiroir && (
+            <div
+              ref={tiroir.emplacement}
+              data-emplacement-tiroir
+              className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
+            />
+          )}
         </div>
       </div>
       {menu && (
