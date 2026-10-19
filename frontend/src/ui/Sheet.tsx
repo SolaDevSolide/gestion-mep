@@ -19,10 +19,10 @@ export function Sheet({ open, onOpenChange, titre, description, pied, children, 
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-50 bg-voile data-[state=open]:animate-fade-in" />
+        <D.Overlay className="fixed inset-0 z-panneau bg-voile data-[state=open]:animate-fade-in" />
         <D.Content
           className={cn(
-            'fixed inset-y-0 right-0 z-50 flex w-full max-w-[560px] flex-col border-l border-line bg-surface shadow-lg outline-none data-[state=open]:animate-slide-in',
+            'fixed inset-y-0 right-0 z-panneau flex w-full max-w-[560px] flex-col border-l border-line bg-surface shadow-lg outline-none data-[state=open]:animate-slide-in',
             className,
           )}
         >

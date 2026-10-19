@@ -103,6 +103,16 @@
   --connexion-ok: oklch(84.5% 0.143 164.978);
   --connexion-attention: oklch(87.9% 0.169 91.605);
   --connexion-alerte: oklch(81% 0.117 11.638);
+
+  /* Étages (z-index) des éléments qui passent par-dessus la page, du plus bas au plus haut : graphe en plein écran,
+     panneaux et tiroirs, dialogues (palette de commandes comprise), menus, listes et infobulles (au-dessus d'un dialogue
+     qui les ouvre), puis messages : toasts, nouvelle version, session expirée (au-dessus de tout, palette comprise).
+     Classes z-graphe … z-toast ; les valeurs entières (z-10…) ne servent qu'à l'intérieur d'un composant. */
+  --z-graphe: 40;
+  --z-panneau: 45;
+  --z-dialogue: 50;
+  --z-menu: 60;
+  --z-toast: 80;
 }
 
 :root.dark {
@@ -268,6 +278,11 @@
   --color-connexion-attention: var(--connexion-attention);
   --color-connexion-alerte: var(--connexion-alerte);
   --color-voile: var(--voile);
+  --z-index-graphe: var(--z-graphe);
+  --z-index-panneau: var(--z-panneau);
+  --z-index-dialogue: var(--z-dialogue);
+  --z-index-menu: var(--z-menu);
+  --z-index-toast: var(--z-toast);
   --animate-fade-in: fade-in 150ms ease-out;
   --animate-pop-in: pop-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
   --animate-slide-in: slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1);

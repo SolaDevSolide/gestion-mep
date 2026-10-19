@@ -69,13 +69,13 @@ export function MarquePresence({
     <>
       <span
         aria-hidden
-        className={cn('pointer-events-none absolute -inset-1 z-[3] rounded-[inherit] border-2', className)}
+        className={cn('pointer-events-none absolute -inset-1 z-3 rounded-[inherit] border-2', className)}
         style={{ borderColor: couleur }}
       />
       <span
         role="status"
         className={cn(
-          'pointer-events-none absolute -top-3 left-2 z-[4] inline-flex max-w-[calc(100%-1rem)] items-center gap-1 truncate rounded-full px-2 py-0.5 text-2xs leading-none font-semibold shadow-sm',
+          'pointer-events-none absolute -top-3 left-2 z-4 inline-flex max-w-[calc(100%-1rem)] items-center gap-1 truncate rounded-full px-2 py-0.5 text-2xs leading-none font-semibold shadow-sm',
           etiquette,
         )}
         style={stylePersonne(editeurs[0].nom)}

@@ -86,7 +86,7 @@ export function Surcouche({
       }}
     >
       <D.Portal container={tiroir ? emplacement : undefined}>
-        {plein && <D.Overlay className="fixed inset-0 z-40 bg-voile data-[state=open]:animate-fade-in" />}
+        {plein && <D.Overlay className="fixed inset-0 z-panneau bg-voile data-[state=open]:animate-fade-in" />}
         <D.Content
           aria-describedby={undefined}
           data-tiroir-etape={tiroir || undefined}
@@ -97,7 +97,7 @@ export function Surcouche({
             'flex flex-col overflow-hidden border border-line bg-surface shadow-lg outline-none data-[state=open]:animate-slide-in',
             tiroir
               ? 'pointer-events-auto absolute inset-y-0 right-0 max-w-full rounded-none border-y-0 border-r-0'
-              : 'fixed inset-y-2 right-2 z-50 rounded-2xl',
+              : 'fixed inset-y-2 right-2 z-panneau rounded-2xl',
             plein && 'w-[calc(100vw-1rem)] min-[1100px]:w-[92vw]',
           )}
         >

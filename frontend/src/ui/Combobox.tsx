@@ -100,7 +100,7 @@ export function MultiSelect({
     <Popover open={ouvert} onOpenChange={setOuvert}>
       <PopoverAnchor asChild>
         <div className={cn(DECLENCHEUR, 'relative', disabled && 'cursor-not-allowed opacity-60')}>
-          <span className="pointer-events-none relative z-[1] flex min-w-0 flex-1 flex-wrap gap-1">
+          <span className="pointer-events-none relative z-1 flex min-w-0 flex-1 flex-wrap gap-1">
             {valeurs.length === 0 && <span className="text-fg-subtle">{placeholder}</span>}
             {valeurs.map((v) => {
               const o = options.find((x) => x.valeur === v);

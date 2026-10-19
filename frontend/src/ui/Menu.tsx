@@ -18,7 +18,7 @@ export function MenuContent({ className, align = 'end', sideOffset = 8, ...rest 
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          'z-[60] min-w-56 rounded-xl border border-line bg-surface p-1 shadow-lg data-[state=open]:animate-fade-in',
+          'z-menu min-w-56 rounded-xl border border-line bg-surface p-1 shadow-lg data-[state=open]:animate-fade-in',
           className,
         )}
         {...rest}

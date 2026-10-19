@@ -1262,7 +1262,7 @@ function Graphe(props: Props) {
         ref={cadre}
         className={cn(
           'graphe-libre flex min-w-0 flex-col overflow-hidden bg-surface shadow-sm',
-          plein ? 'fixed inset-0 z-40 rounded-none' : 'relative rounded-xl',
+          plein ? 'fixed inset-0 z-graphe rounded-none' : 'relative rounded-xl',
           plein && retraitDroit && 'min-[1100px]:right-[608px]',
           plan === 'RetourArriere' ? 'border-2 border-rollback-solid' : !plein && 'border border-line',
         )}
@@ -1545,7 +1545,7 @@ function Graphe(props: Props) {
             aria-hidden
             data-copie-glissee
             className={cn(
-              'pointer-events-none fixed top-0 left-0 z-50 rounded-lg shadow-lg transition-opacity duration-100 will-change-transform',
+              'pointer-events-none fixed top-0 left-0 z-panneau rounded-lg shadow-lg transition-opacity duration-100 will-change-transform',
               // Une cible visée : la copie s'efface pour laisser voir l'aperçu de sa place.
               cible ? 'opacity-35' : 'opacity-90',
             )}

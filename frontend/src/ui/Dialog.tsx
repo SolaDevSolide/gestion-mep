@@ -17,7 +17,7 @@ interface DialogProps {
   className?: string;
   /** Faux : ni bouton Fermer, ni Échap, ni clic à côté (le dialogue attend une réponse : session expirée). */
   fermable?: boolean;
-  /** Au-dessus de tout, palette de commandes comprise (session expirée et sa confirmation). */
+  /** Au-dessus de tout, palette de commandes comprise (session expirée et sa confirmation) : étage des messages. */
   auPremierPlan?: boolean;
 }
 
@@ -40,7 +40,7 @@ export function Dialog({
         <D.Overlay
           className={cn(
             'fixed inset-0 grid place-items-center overflow-y-auto bg-voile p-4 backdrop-blur-[2px] data-[state=open]:animate-fade-in',
-            auPremierPlan ? 'z-[100]' : 'z-50',
+            auPremierPlan ? 'z-toast' : 'z-dialogue',
           )}
         >
           <D.Content

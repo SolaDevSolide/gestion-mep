@@ -454,7 +454,7 @@ export function BacPlan({
             <div
               aria-hidden
               className={cn(
-                'pointer-events-none fixed z-50 w-56 -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 bg-surface px-3 py-2 text-sm font-semibold shadow-lg',
+                'pointer-events-none fixed z-panneau w-56 -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 bg-surface px-3 py-2 text-sm font-semibold shadow-lg',
                 glisse.dessus ? 'border-accent' : 'border-dashed border-line-strong opacity-80',
               )}
               style={{ left: glisse.x, top: glisse.y }}

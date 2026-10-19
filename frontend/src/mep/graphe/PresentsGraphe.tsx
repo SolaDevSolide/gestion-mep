@@ -55,7 +55,7 @@ function Pile({ presents, lieu, className }: { presents: Present[]; lieu: string
       role="group"
       aria-label={presents.map((p) => titrePresent(p, lieu)).join(' ; ')}
       data-presents={presents.map((p) => prenom(p.nom)).join(',')}
-      className={cn('pointer-events-auto absolute z-[5] flex -space-x-1.5', className)}
+      className={cn('pointer-events-auto absolute z-5 flex -space-x-1.5', className)}
     >
       {visibles.map((p) => (
         <span key={p.utilisateurId} className="relative">
