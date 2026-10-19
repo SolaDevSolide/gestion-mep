@@ -217,7 +217,7 @@ const GRIS_TEINTES = ['bg', 'surface-2', 'sunken', 'line', 'line-strong'];
 /** Familles qui ont une couleur pleine, et donc un texte posé dessus (`-solid-fg`). */
 const FAMILLES_PLEINES = ['ok', 'run', 'wait', 'done', 'danger', 'warn', 'later', 'rollback'];
 /** Familles dont la couleur sert aussi de texte (`-text`). */
-const FAMILLES_TEXTE = ['ok', 'warn'];
+const FAMILLES_TEXTE = new Set(['ok', 'warn']);
 /**
  * Icônes de la page de connexion (Tailwind emerald, amber et rose 300) : changées seulement si elles n'atteignent pas 3:1
  * sur une secondaire personnalisée.
@@ -300,7 +300,7 @@ export function jetons(c: Charte, mode: Mode): Record<string, string> {
   // Texte posé sur les couleurs pleines ; vert et orange employés comme texte (couleurs d'état personnalisées).
   for (const f of FAMILLES_PLEINES) t[`${f}-solid-fg`] = texteSur(t[`${f}-solid`]);
   for (const e of ETATS)
-    if (c.etats[e.etat] && FAMILLES_TEXTE.includes(e.famille))
+    if (c.etats[e.etat] && FAMILLES_TEXTE.has(e.famille))
       t[`${e.famille}-text`] = ajusterPourContraste(
         ajusterPourContraste(t[`${e.famille}-solid`], t[`${e.famille}-bg`], 4.5),
         t.surface,
