@@ -16,7 +16,14 @@ interface Entree {
   enCours: boolean;
   /** Relecture demandée pendant une lecture en cours (la donnée a changé entre-temps) : relancée à sa fin. */
   relancer: boolean;
+  /** Dernière valeur de `relire` (version de la MEP) pour laquelle la donnée a été relue. */
+  marque?: unknown;
+  /** Heure de la dernière réponse (`Date.now()`). */
+  recueLe: number;
 }
+
+/** Une réponse plus récente que ce délai sert telle quelle à un nouveau composant (sections montées après l'onglet). */
+const FRAICHEUR_MS = 10_000;
 
 const entrees = new Map<string, Entree>();
 const abonnes = new Map<string, number>();
@@ -35,7 +42,7 @@ function notifier() {
 function demander(cle: string, charger: () => Promise<unknown>, forcer = false) {
   let e = entrees.get(cle);
   if (!e) {
-    e = { donnees: null, recue: false, erreur: null, enCours: false, relancer: false };
+    e = { donnees: null, recue: false, erreur: null, enCours: false, relancer: false, recueLe: 0 };
     entrees.set(cle, e);
   }
   if (e.enCours) {
@@ -61,6 +68,7 @@ function demander(cle: string, charger: () => Promise<unknown>, forcer = false) 
     (d) => {
       courante.donnees = d;
       courante.recue = true;
+      courante.recueLe = Date.now();
       courante.erreur = null;
       terminer();
     },
@@ -82,6 +90,19 @@ const lireVersion = () => version;
 /** Pour les tests : repart d'un état sans données partagées (sans prévenir les composants, déjà démontés). */
 export function oublierReferentiels() {
   entrees.clear();
+  abonnes.clear();
+}
+
+/**
+ * Pour les tests, entre deux tests : garde les réponses reçues (affichées aussitôt au montage suivant, comme un onglet
+ * rouvert) mais les rend anciennes (relues au montage) et oublie erreurs et lectures en cours.
+ */
+export function vieillirReferentiels() {
+  for (const [cle, e] of entrees) {
+    if (!e.recue) entrees.delete(cle);
+    else
+      entrees.set(cle, { donnees: e.donnees, recue: true, erreur: null, enCours: false, relancer: false, recueLe: 0 });
+  }
   abonnes.clear();
 }
 
@@ -116,8 +137,10 @@ function useAbonnement(cles: string[], charger: (cle: string) => Promise<unknown
     const actives = liste ? liste.split('\n') : [];
     for (const c of actives) {
       abonnes.set(c, (abonnes.get(c) ?? 0) + 1);
-      // Chaque montage relit la donnée (mise à jour d'un onglet rouvert) ; une lecture en cours sert à tous.
-      demander(c, () => charger(c));
+      // Un montage relit la donnée (mise à jour d'un onglet rouvert), sauf réponse toute récente ; une lecture en cours
+      // sert à tous.
+      const e = entrees.get(c);
+      if (!e?.recue || Date.now() - e.recueLe > FRAICHEUR_MS) demander(c, () => charger(c));
     }
     return () => {
       for (const c of actives) {
@@ -143,10 +166,17 @@ export function useDonneePartagee<T>(
   relire?: unknown,
 ): DonneePartagee<T> {
   useAbonnement(cle ? [cle] : [], () => charger());
+  // Relecture quand `relire` change, une fois pour tous les composants (pas au premier montage : l'abonnement vient de
+  // lancer la lecture).
   useEffect(() => {
-    if (cle && relire !== undefined && entrees.get(cle)?.recue) demander(cle, charger, true);
+    if (!cle || relire === undefined) return;
+    const e = entrees.get(cle);
+    if (!e || Object.is(e.marque, relire)) return;
+    const premiere = e.marque === undefined;
+    e.marque = relire;
+    if (!premiere && e.recue) demander(cle, charger, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [relire]);
+  }, [cle, relire]);
   if (!cle) return { donnees: null, erreur: null, pret: true, enCours: false, recharger: () => undefined };
   return etat(cle, charger);
 }

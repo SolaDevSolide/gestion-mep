@@ -2,13 +2,15 @@ import { Code2, Pencil, Phone, Plus, Sparkles, Trash2, UserCheck, UserX } from '
 import { useEffect, useState, type FormEvent } from 'react';
 import { api } from '../../api';
 import { useMep } from '../../mepContext';
-import type { DisponibiliteJourJ, ResponsableTechnique, CompteAnnuaire } from '../../types';
+import { useReferentiel } from '../../referentiels';
+import type { DisponibiliteJourJ, ResponsableTechnique } from '../../types';
 import { Alerte } from '../../ui/Alerte';
 import { Avatar } from '../../ui/Avatar';
 import { BoutonIcone, Button } from '../../ui/Button';
 import { MultiSelect } from '../../ui/Combobox';
 import { ConfirmDialog, Dialog } from '../../ui/Dialog';
 import { EmptyState } from '../../ui/EmptyState';
+import { ErreurChargement } from '../../ui/ErreurChargement';
 import { Field, Input, Select, Textarea } from '../../ui/Input';
 import { Segmented } from '../../ui/Segmented';
 import { Badge } from '../../ui/StatusPill';
@@ -52,15 +54,9 @@ export function ResponsablesTechniquesSection() {
   const [suppr, setSuppr] = useState<ResponsableTechnique | null>(null);
   const [brouillon, setBrouillon] = useState<ResponsableTechnique>(VIDE);
   const [envoi, setEnvoi] = useState(false);
-  const [utilisateurs, setUtilisateurs] = useState<CompteAnnuaire[]>([]);
+  const comptes = useReferentiel('comptes');
   const [ajoutEnCours, setAjoutEnCours] = useState<string | null>(null);
-  useEffect(() => {
-    api
-      .utilisateurs()
-      .then(setUtilisateurs)
-      .catch(() => setUtilisateurs([]));
-  }, []);
-  const suggestions = suggestionsResponsablesTechniques(mep, utilisateurs);
+  const suggestions = suggestionsResponsablesTechniques(mep, comptes.donnees ?? []);
 
   const nom = (id: string) => mep.participants.find((p) => p.id === id)?.nom ?? 'Participant inconnu';
   const dejaResponsables = new Set(mep.responsablesTechniques.map((r) => r.participantId));
@@ -206,6 +202,16 @@ export function ResponsablesTechniquesSection() {
         </ul>
       )}
 
+      {comptes.erreur != null && (
+        <ErreurChargement
+          variante="ligne"
+          className="mt-5"
+          erreur={comptes.erreur}
+          titre="Suggestions d’après les systèmes non chargées"
+          onReessayer={comptes.recharger}
+          enCours={comptes.enCours}
+        />
+      )}
       {suggestions.length > 0 && (
         <section
           aria-labelledby="suggestions-rt"

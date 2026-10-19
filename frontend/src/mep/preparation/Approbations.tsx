@@ -5,13 +5,15 @@ import { useAuth } from '../../auth';
 import { anomaliesHorsApprobation, participantPar } from '../../domaine';
 import { formatDateHeure } from '../../format';
 import { optionCompte, personneDe } from '../../personnes';
-import { useAsync, useDraft, useReportDirty } from '../../hooks';
+import { useDraft, useReportDirty } from '../../hooks';
+import { useReferentiel } from '../../referentiels';
 import { useMep } from '../../mepContext';
-import { useJournal } from '../journal';
 import type { DecisionApprobation } from '../../types';
+import { useJournalMep } from './donnees';
 import { Alerte } from '../../ui/Alerte';
 import { Avatar } from '../../ui/Avatar';
 import { AvisConflit } from '../../ui/AvisConflit';
+import { ErreurChargement } from '../../ui/ErreurChargement';
 import { Button } from '../../ui/Button';
 import { MultiSelect } from '../../ui/Combobox';
 import { Dialog } from '../../ui/Dialog';
@@ -97,9 +99,12 @@ const STATUT = {
 export function ApprobationsBloc() {
   const { mep, run } = useMep();
   const { utilisateur } = useAuth();
-  const { donnees: utilisateurs } = useAsync(() => api.utilisateurs(), []);
-  // Décisions du journal (famille « approbation »), puis seulement les nouvelles à chaque version (#96).
-  const { evenements: journal } = useJournal(mep.id, mep.version, { type: 'approbation' });
+  const comptes = useReferentiel('comptes');
+  const utilisateurs = comptes.donnees;
+  // Décisions du journal (famille « approbation »), lues une fois pour l'onglet, puis seulement les nouvelles à chaque
+  // version (#96).
+  const journalLu = useJournalMep(mep, 'approbation');
+  const journal = journalLu.donnees;
   const [decision, setDecision] = useState<DecisionApprobation | null>(null);
 
   const enPreparation = mep.phase === 'Preparation';
@@ -113,7 +118,7 @@ export function ApprobationsBloc() {
   const d = useDraft(idsDesignes);
   useReportDirty(d.dirty, 'Approbateurs');
 
-  const { donnees: equipes } = useAsync(() => api.equipes(), []);
+  const { donnees: equipes } = useReferentiel('equipes');
   // Comptes désactivés : plus proposés (ceux déjà désignés restent affichés). Le détail porte l'identifiant, l'état et les
   // équipes : la recherche du sélecteur filtre aussi par équipe.
   const nomsEquipes = new Map((equipes ?? []).map((e) => [e.id, e.nom]));
@@ -170,6 +175,16 @@ export function ApprobationsBloc() {
         )}
       </div>
 
+      {journalLu.erreur != null && enPreparation && !modele && (
+        <ErreurChargement
+          variante="ligne"
+          className="mt-3"
+          erreur={journalLu.erreur}
+          titre="Historique des approbations non chargé"
+          onReessayer={journalLu.recharger}
+          enCours={journalLu.enCours}
+        />
+      )}
       {aReinitialiser && enPreparation && !modele && (
         <Alerte ton="warn" icone={RotateCcw} role="status" className="mt-3" titre="Approbations à refaire">
           La MEP a été modifiée : les décisions précédentes ont été effacées et chaque approbateur doit se prononcer de
@@ -199,6 +214,17 @@ export function ApprobationsBloc() {
                 placeholderRecherche="Rechercher un compte…"
                 vide="Aucun compte."
                 libelleInconnu="Compte inconnu"
+                remplacement={
+                  comptes.erreur != null ? (
+                    <ErreurChargement
+                      variante="ligne"
+                      erreur={comptes.erreur}
+                      titre="Comptes non chargés"
+                      onReessayer={comptes.recharger}
+                      enCours={comptes.enCours}
+                    />
+                  ) : undefined
+                }
               />
             )}
           </Field>

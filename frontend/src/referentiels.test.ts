@@ -28,10 +28,17 @@ describe('useReferentiels', () => {
     const premier = renderHook(() => useReferentiels());
     await waitFor(() => expect(premier.result.current.pret).toBe(true));
     premier.unmount();
+    // Rouvert aussitôt : la réponse toute récente sert telle quelle.
+    renderHook(() => useReferentiels()).unmount();
+    expect(api.catalogueSystemes).toHaveBeenCalledTimes(1);
+    // Rouvert plus tard : affiché aussitôt, puis mis à jour.
+    const maintenant = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(maintenant + 60_000);
     const second = renderHook(() => useReferentiels());
     expect(second.result.current.pret).toBe(true);
     expect(second.result.current.catalogue).toEqual(catalogue);
     await waitFor(() => expect(api.catalogueSystemes).toHaveBeenCalledTimes(2));
+    vi.restoreAllMocks();
   });
 
   it('laisse afficher l’onglet si un référentiel ne se charge pas', async () => {

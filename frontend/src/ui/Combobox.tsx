@@ -21,9 +21,10 @@ interface ListeProps {
   placeholderRecherche: string;
   vide: string;
   pied?: ReactNode;
+  remplacement?: ReactNode;
 }
 
-function Liste({ options, selection, onToggle, placeholderRecherche, vide, pied }: ListeProps) {
+function Liste({ options, selection, onToggle, placeholderRecherche, vide, pied, remplacement }: ListeProps) {
   return (
     <Command filter={filtre} className="w-[min(24rem,calc(100vw-3rem))]">
       <Command.Input
@@ -31,7 +32,11 @@ function Liste({ options, selection, onToggle, placeholderRecherche, vide, pied 
         className="h-10 w-full border-b border-line bg-transparent px-3 text-sm text-fg outline-none placeholder:text-fg-subtle"
       />
       <Command.List className="max-h-64 overflow-y-auto p-1">
-        <Command.Empty className="px-3 py-6 text-center text-sm text-fg-subtle">{vide}</Command.Empty>
+        {remplacement ? (
+          <div className="p-1">{remplacement}</div>
+        ) : (
+          <Command.Empty className="px-3 py-6 text-center text-sm text-fg-subtle">{vide}</Command.Empty>
+        )}
         {options.map((o) => {
           const coche = selection.includes(o.valeur);
           return (
@@ -71,6 +76,8 @@ interface MultiProps {
   pied?: ReactNode;
   /** Libellé affiché dans les puces pour les valeurs absentes des options. */
   libelleInconnu?: string;
+  /** À la place des options : erreur de chargement de la liste (`ErreurChargement` en ligne). */
+  remplacement?: ReactNode;
 }
 
 export function MultiSelect({
@@ -84,6 +91,7 @@ export function MultiSelect({
   disabled,
   pied,
   libelleInconnu = 'Inconnu',
+  remplacement,
 }: MultiProps) {
   const [ouvert, setOuvert] = useState(false);
   const basculer = (v: string) => onChange(valeurs.includes(v) ? valeurs.filter((x) => x !== v) : [...valeurs, v]);
@@ -140,6 +148,7 @@ export function MultiSelect({
           placeholderRecherche={placeholderRecherche}
           vide={vide}
           pied={pied}
+          remplacement={remplacement}
         />
       </PopoverContent>
     </Popover>
@@ -155,6 +164,8 @@ interface SimpleProps {
   placeholderRecherche?: string;
   vide?: string;
   disabled?: boolean;
+  /** À la place des options : erreur de chargement de la liste (`ErreurChargement` en ligne). */
+  remplacement?: ReactNode;
 }
 
 /** Sélection unique avec recherche. */
@@ -167,6 +178,7 @@ export function Combobox({
   placeholderRecherche = 'Rechercher…',
   vide = 'Aucun résultat.',
   disabled,
+  remplacement,
 }: SimpleProps) {
   const [ouvert, setOuvert] = useState(false);
   const courant = options.find((o) => o.valeur === valeur);
@@ -188,6 +200,7 @@ export function Combobox({
           }}
           placeholderRecherche={placeholderRecherche}
           vide={vide}
+          remplacement={remplacement}
         />
       </PopoverContent>
     </Popover>

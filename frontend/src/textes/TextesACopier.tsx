@@ -1,14 +1,16 @@
-import { Copy, ExternalLink, FileText, Mail, OctagonAlert, Settings2, TriangleAlert, UsersRound } from 'lucide-react';
+import { Copy, ExternalLink, FileText, Mail, Settings2, TriangleAlert, UsersRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAsync } from '../hooks';
+import { useReferentiel } from '../referentiels';
 import type { Mep } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { cn } from '../ui/cn';
 import { EmptyState } from '../ui/EmptyState';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Select } from '../ui/Input';
 import { Segmented } from '../ui/Segmented';
 import { Badge } from '../ui/StatusPill';
@@ -42,7 +44,7 @@ export function TextesACopierContenu({ mep }: { mep: Pick<Mep, 'id' | 'version'>
   const [choisi, setChoisi] = useState<string | null>(null);
   const [format, setFormat] = useState<FormatTexte>('forme');
 
-  const equipes = useAsync(() => api.equipes(), []);
+  const equipes = useReferentiel('equipes');
   const catalogue = useAsync(() => api.variablesModelesTexte(), []);
   // Valeurs recalculées à chaque version de la MEP (une modification de la section Communication se voit aussitôt).
   const valeurs = useAsync(() => api.variablesTexte(mep.id, equipe ?? undefined), [mep.id, mep.version, equipe]);
@@ -85,12 +87,20 @@ export function TextesACopierContenu({ mep }: { mep: Pick<Mep, 'id' | 'version'>
     }
   }
 
-  const erreur = equipes.erreur || valeurs.erreur || modeles.erreur || catalogue.erreur;
-  if (erreur)
+  const echec = equipes.erreur ?? valeurs.echec ?? modeles.echec ?? catalogue.echec;
+  if (echec)
     return (
-      <Alerte ton="danger" icone={OctagonAlert} role="alert">
-        {erreur}
-      </Alerte>
+      <ErreurChargement
+        erreur={echec}
+        titre="Impossible de charger les textes à copier"
+        onReessayer={() => {
+          if (equipes.erreur) equipes.recharger();
+          if (valeurs.echec) valeurs.recharger();
+          if (modeles.echec) modeles.recharger();
+          if (catalogue.echec) catalogue.recharger();
+        }}
+        enCours={equipes.enCours || valeurs.chargement || modeles.chargement || catalogue.chargement}
+      />
     );
   if (equipes.donnees !== null && equipes.donnees.length === 0)
     return (

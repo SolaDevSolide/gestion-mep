@@ -15,6 +15,7 @@ import { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { useMep } from '../../mepContext';
+import { useReferentiel } from '../../referentiels';
 import { telecharger } from '../../telechargement';
 import type { ImportObjets, ObjetCatalogue, ObjetImpacte, Systeme, SystemeCatalogue } from '../../types';
 import { Alerte } from '../../ui/Alerte';
@@ -22,13 +23,16 @@ import { BoutonIcone, Button } from '../../ui/Button';
 import { cn } from '../../ui/cn';
 import { ConfirmDialog, Dialog } from '../../ui/Dialog';
 import { EmptyState } from '../../ui/EmptyState';
+import { ErreurChargement } from '../../ui/ErreurChargement';
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from '../../ui/Menu';
 import { PastilleEnvironnement } from '../../ui/PastilleEnvironnement';
+import { Squelette } from '../../ui/Squelette';
 import { Badge } from '../../ui/StatusPill';
 import { Tooltip } from '../../ui/Tooltip';
 import { PuceSysteme } from '../graphe/systemes';
 import { ChoixObjetsDialog } from './ChoixObjetsDialog';
 import { SectionCarte } from './Formulaires';
+import { useObjetsCatalogue } from './donnees';
 import { nommerCategorie, parCategorie, resumeObjets } from './objets';
 
 /** Fiche du catalogue d'un système de la MEP et ses objets. */
@@ -42,36 +46,37 @@ interface Fiche {
  * d'objets ; un clic ouvre son détail. Les objets se choisissent dans la fiche du système au catalogue (dialogue de
  * choix) ou s'importent d'Excel ; rien ne se crée ici.
  */
+/** Fiche d'un système de la MEP au catalogue : prête, en chargement ou en erreur (avec de quoi réessayer). */
+interface EtatFiche {
+  fiche: Fiche | null;
+  pret: boolean;
+  erreur: unknown;
+  enCours: boolean;
+  recharger: () => void;
+}
+
 export function ObjetsImpactesSection() {
   const { mep } = useMep();
   const edition = mep.droits.peutEditerContenu;
-  const [fiches, setFiches] = useState<Map<string, Fiche>>(new Map());
   const [importer, setImporter] = useState(false);
-  const cles = [...new Set(mep.systemes.map((s) => s.catalogueId).filter((x): x is string => !!x))].sort().join(',');
+  const catalogue = useReferentiel('catalogue');
+  const objets = useObjetsCatalogue(mep);
 
-  useEffect(() => {
-    let actif = true;
-    const ids = cles ? cles.split(',') : [];
-    if (ids.length === 0) {
-      setFiches(new Map());
-      return;
-    }
-    void Promise.all([
-      api.catalogueSystemes().catch(() => [] as SystemeCatalogue[]),
-      ...ids.map((id) => api.objetsCatalogue(id).catch(() => [] as ObjetCatalogue[])),
-    ]).then(([catalogue, ...objets]) => {
-      if (!actif) return;
-      const m = new Map<string, Fiche>();
-      ids.forEach((id, i) => {
-        const fiche = catalogue.find((c) => c.id === id);
-        if (fiche) m.set(id, { fiche, objets: objets[i] });
-      });
-      setFiches(m);
-    });
-    return () => {
-      actif = false;
+  function etatFiche(catalogueId: string): EtatFiche {
+    const o = objets.get(catalogueId);
+    const fiche = catalogue.donnees?.find((c) => c.id === catalogueId);
+    const erreur = catalogue.erreur ?? o?.erreur ?? null;
+    return {
+      fiche: fiche && o?.donnees ? { fiche, objets: o.donnees } : null,
+      pret: catalogue.pret && (o?.pret ?? true),
+      erreur,
+      enCours: catalogue.enCours || (o?.enCours ?? false),
+      recharger: () => {
+        if (catalogue.erreur != null) catalogue.recharger();
+        if (o?.erreur != null) o.recharger();
+      },
     };
-  }, [cles]);
+  }
 
   const sansSysteme = mep.objetsImpactes.filter((o) => !mep.systemes.some((s) => s.id === o.systemeId));
 
@@ -118,7 +123,7 @@ export function ObjetsImpactesSection() {
             <BlocSysteme
               key={s.id}
               systeme={s}
-              fiche={s.catalogueId ? (fiches.get(s.catalogueId) ?? null) : null}
+              etat={s.catalogueId ? etatFiche(s.catalogueId) : null}
               edition={edition}
             />
           ))}
@@ -132,8 +137,9 @@ export function ObjetsImpactesSection() {
 
 /* ------------------------------------------------------------------ Bloc d'un système */
 
-function BlocSysteme({ systeme, fiche, edition }: { systeme: Systeme; fiche: Fiche | null; edition: boolean }) {
+function BlocSysteme({ systeme, etat, edition }: { systeme: Systeme; etat: EtatFiche | null; edition: boolean }) {
   const { mep, run } = useMep();
+  const fiche = etat?.fiche ?? null;
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [choix, setChoix] = useState<{ categorie?: string } | null>(null);
   const [retrait, setRetrait] = useState<string | null>(null);
@@ -166,6 +172,7 @@ function BlocSysteme({ systeme, fiche, edition }: { systeme: Systeme; fiche: Fic
         <span className="min-w-0 flex-1 text-sm text-fg-muted">
           {categories.length > 0 ? resumeObjets(categories) : 'Aucun objet impacté'}
         </span>
+        {edition && etat && !etat.pret && <Squelette className="h-8 w-48" />}
         {edition && fiche && (
           <Menu>
             <MenuTrigger asChild>
@@ -203,6 +210,16 @@ function BlocSysteme({ systeme, fiche, edition }: { systeme: Systeme; fiche: Fic
       </header>
 
       <div className="space-y-4 px-4 py-3">
+        {etat?.erreur != null && (
+          <ErreurChargement
+            variante="ligne"
+            erreur={etat.erreur}
+            titre={`Fiche de ${systeme.nom} au catalogue non chargée`}
+            complement="Les objets déjà retenus restent affichés."
+            onReessayer={etat.recharger}
+            enCours={etat.enCours}
+          />
+        )}
         {!systeme.catalogueId && (
           <p className="text-sm text-fg-subtle">
             Système ajouté librement : ses objets impactés se choisissent dans la fiche d’un système du catalogue.
