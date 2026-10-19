@@ -99,7 +99,7 @@ function Destination() {
   );
 }
 
-function rendre(m: Mep) {
+async function rendre(m: Mep) {
   const run = vi.fn(async (action: () => Promise<unknown>) => {
     await action();
     return true;
@@ -117,6 +117,8 @@ function rendre(m: Mep) {
     </MemoryRouter>
   );
   const { rerender } = render(arbre(m));
+  // Référentiels (systèmes, résolutions) lus au montage : le plan s'affiche une fois leurs réponses reçues.
+  await act(async () => {});
   return { run, rerendre: (mm: Mep) => rerender(arbre(mm)) };
 }
 
@@ -139,7 +141,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('graphe libre : cartes, liens, création rapide et contrôles de vue', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     await waitFor(() => expect(api.resolutions).toHaveBeenCalled());
     expect(carte(/^E0001 Sauvegarde BDD/)).toBeInTheDocument();
     expect(await screen.findByRole('group', { name: 'Lien E0001 vers E0003' })).toBeInTheDocument();
@@ -153,7 +155,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('Entrée sur une fiche ouvre l’espace d’édition ; un préalable s’ajoute', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     carte(/^E0003/).focus();
     await userEvent.keyboard('{Enter}');
     expect(screen.getByLabelText('Action')).toHaveValue('Contrôle final');
@@ -163,14 +165,14 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(apiGraphe.lier).toHaveBeenCalledWith('m1', 'e2', 'e3');
   });
 
-  it('un lecteur d’écran ouvre une fiche (clic sans pointeur)', () => {
-    rendre(planExemple());
+  it('un lecteur d’écran ouvre une fiche (clic sans pointeur)', async () => {
+    await rendre(planExemple());
     fireEvent.click(carte(/^E0003/));
     expect(screen.getByLabelText('Action')).toHaveValue('Contrôle final');
   });
 
   it('création rapide : après une carte, en parallèle, isolée ; chaque fois « Étape vierge » ou « Depuis un modèle »', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape après E0001' }));
     const menu = await screen.findByRole('menu', { name: 'Créer une étape' });
     expect(within(menu).getByText('Nouvelle étape après E0001')).toBeInTheDocument();
@@ -188,7 +190,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('insertion sur un lien : son menu propose « Insérer une étape » (vierge ou depuis un modèle)', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     await ouvrirLien('Lien E0001 vers E0003');
     const menu = screen.getByRole('menu', { name: 'Actions du lien' });
     expect(within(menu).getByText('E0001 → E0003')).toBeInTheDocument();
@@ -207,7 +209,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
     vi.mocked(apiGraphe.creerEtape).mockImplementationOnce(
       () => new Promise<Mep>((ok) => (finir = () => ok(planExemple()))),
     );
-    rendre(planExemple());
+    await rendre(planExemple());
     await userEvent.click(screen.getByRole('button', { name: /^Étape$/ }));
     await userEvent.dblClick(await screen.findByRole('menuitem', { name: 'Étape vierge' }));
     await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape après E0001' }));
@@ -221,7 +223,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
 
   it('fiche modifiée par ailleurs pendant la saisie : avertissement avant d’écraser', async () => {
     const m = planExemple();
-    const { rerendre } = rendre(m);
+    const { rerendre } = await rendre(m);
     fireEvent.click(carte(/^E0003/));
     await userEvent.type(screen.getByLabelText('Action'), ' bis');
     // Un collègue modifie le résultat attendu ; la MEP est rechargée par une autre action.
@@ -245,7 +247,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('retire un préalable', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     fireEvent.click(carte(/^E0003/));
     await userEvent.click(screen.getByRole('button', { name: 'Retirer le préalable E0001' }));
     expect(apiGraphe.delier).toHaveBeenCalledWith('m1', 'e1', 'e3');
@@ -253,7 +255,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
 
   it('enregistre la fiche (systèmes multiples, durée, instructions en blocs) ; indicateur de saisie', async () => {
     const base = mep().systemes[0];
-    rendre(planExemple({ systemes: [base, { ...base, id: 's2', nom: 'BDD' }] }));
+    await rendre(planExemple({ systemes: [base, { ...base, id: 's2', nom: 'BDD' }] }));
     fireEvent.click(carte(/^E0001/));
     await userEvent.click(screen.getByRole('button', { name: 'BDD', pressed: false }));
     expect(screen.getByRole('status')).toHaveTextContent('Non enregistré');
@@ -276,7 +278,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('fin de l’étape et sauvegarde : emplacement et méthode de récupération réclamés pour une étape de sauvegarde', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     fireEvent.click(carte(/^E0001/));
     const espace = screen.getByRole('dialog');
     expect(
@@ -301,7 +303,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('tout est visible sans onglets : fiche, instructions, liens, résolutions ; points à compléter résumés', async () => {
-    rendre(
+    await rendre(
       planExemple({
         etapes: [
           etape({
@@ -334,7 +336,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('bascule plein écran / panneau latéral, mémorisée', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     fireEvent.click(carte(/^E0003/));
     await userEvent.click(screen.getByRole('button', { name: 'Afficher en panneau latéral' }));
     expect(window.localStorage.getItem('mep.espace.mode')).toBe('panneau');
@@ -347,7 +349,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('fermer avec des modifications non enregistrées : garde', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     fireEvent.click(carte(/^E0003/));
     await userEvent.type(screen.getByLabelText('Action'), ' bis');
     await userEvent.keyboard('{Escape}');
@@ -361,7 +363,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('ouvrir une autre étape avec des modifications non enregistrées : garde, puis changement', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     fireEvent.click(carte(/^E0003/));
     await userEvent.type(screen.getByLabelText('Action'), ' bis');
     fireEvent.click(carte(/^E0001/));
@@ -376,7 +378,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('résolutions : recherche sans accents, même système en tête, Entrée pour lier', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     fireEvent.click(carte(/^E0003/));
     const liste = await screen.findByRole('listbox', { name: 'Résolutions trouvées' });
     // Filtre présélectionné sur le système de l'étape (API) : WEB est masqué, la fiche « tous systèmes » reste.
@@ -403,7 +405,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('résolutions : les correspondances masquées par le filtre de systèmes sont proposées', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     fireEvent.click(carte(/^E0003/));
     await userEvent.type(await screen.findByRole('combobox', { name: 'Ajouter une résolution' }), 'purge');
     await userEvent.click(screen.getByRole('button', { name: /1 autre dans d’autres systèmes/ }));
@@ -413,7 +415,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('résolutions : créer une fiche avec le texte cherché comme titre', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     fireEvent.click(carte(/^E0003/));
     await userEvent.type(await screen.findByRole('combobox', { name: 'Ajouter une résolution' }), 'LDAP muet');
     await userEvent.click(screen.getByRole('button', { name: /Nouvelle fiche de résolution « LDAP muet »/ }));
@@ -423,7 +425,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('suppression : confirmation intégrée au panneau', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     fireEvent.click(carte(/^E0003/));
     await userEvent.click(screen.getByRole('button', { name: 'Supprimer l’étape' }));
     const confirmation = screen.getByRole('alertdialog', { name: 'Supprimer E0003' });
@@ -435,7 +437,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('un lien choisi ouvre son menu : « Supprimer le lien »', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     // Plus de bouton au survol : les actions passent par le menu du lien.
     expect(screen.queryByRole('button', { name: 'Insérer une étape sur ce lien' })).not.toBeInTheDocument();
     await ouvrirLien('Lien E0001 vers E0003');
@@ -444,7 +446,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('touche Suppr sur un lien sélectionné', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     const lien = await ouvrirLien('Lien E0001 vers E0003');
     fireEvent.keyDown(lien, { key: 'Delete' });
     expect(apiGraphe.delier).toHaveBeenCalledWith('m1', 'e1', 'e3');
@@ -457,7 +459,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
     vi.mocked(apiGraphe.creerEtape).mockResolvedValueOnce(apres);
     // Panneau latéral : le graphe reste utilisable pendant la saisie.
     changerModeEspace('panneau');
-    const { rerendre } = rendre(m);
+    const { rerendre } = await rendre(m);
     fireEvent.click(carte(/^E0003/));
     await userEvent.type(screen.getByLabelText('Action'), ' bis');
     await userEvent.click(screen.getByRole('button', { name: 'Ajouter une étape après E0001' }));
@@ -472,8 +474,8 @@ describe('EtapesEditeur : graphe en préparation', () => {
     expect(screen.getByLabelText('Action')).toHaveFocus();
   });
 
-  it('pas de barre des systèmes au-dessus du plan (ils se gèrent en Préparation) ; bac des sections dans le cadre', () => {
-    rendre(planExemple());
+  it('pas de barre des systèmes au-dessus du plan (ils se gèrent en Préparation) ; bac des sections dans le cadre', async () => {
+    await rendre(planExemple());
     expect(screen.queryByRole('button', { name: 'Retirer API de la MEP' })).not.toBeInTheDocument();
     const bac = screen.getByRole('complementary', { name: 'Bac des éléments à placer' });
     expect(bac.closest('.graphe-libre')).not.toBeNull();
@@ -482,7 +484,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
 
   it('environnements par système : pastilles sur la fiche (barrée si retirée du système), choix dans l’édition', async () => {
     const base = mep().systemes[0];
-    rendre(
+    await rendre(
       planExemple({
         systemes: [
           { ...base, id: 's1', nom: 'API', environnements: [{ nom: 'Production', production: true }] },
@@ -543,7 +545,7 @@ describe('EtapesEditeur : graphe en préparation', () => {
   });
 
   it('lecture seule : ni « + », ni poignées actives, ni bac modifiable ; panneau en lecture', async () => {
-    rendre(planExemple({ phase: 'Execution', droits: { ...droitsEdition, peutEditerContenu: false } }));
+    await rendre(planExemple({ phase: 'Execution', droits: { ...droitsEdition, peutEditerContenu: false } }));
     expect(screen.queryByRole('button', { name: /^Étape$/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Ajouter une étape après/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Nouvelle section' })).toBeNull();
@@ -589,7 +591,7 @@ describe('EtapesEditeur : étapes modèles', () => {
   });
 
   it('menu des plus utilisées pour les systèmes de la MEP ; la copie flotte, puis se pose après une carte', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     await waitFor(() => expect(api.etapesModeles).toHaveBeenCalled());
     await userEvent.click(screen.getByRole('button', { name: /Étape modèle/ }));
     const menu = await screen.findByRole('menu');
@@ -614,7 +616,7 @@ describe('EtapesEditeur : étapes modèles', () => {
   });
 
   it('Échap annule l’insertion : rien n’est écrit', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     await waitFor(() => expect(api.etapesModeles).toHaveBeenCalled());
     await userEvent.click(screen.getByRole('button', { name: /Étape modèle/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: /Contrôle de santé/ }));
@@ -627,7 +629,7 @@ describe('EtapesEditeur : étapes modèles', () => {
   });
 
   it('« Parcourir la bibliothèque » : systèmes de la MEP d’abord, aperçu, avertissement si un système manque', async () => {
-    rendre(planExemple());
+    await rendre(planExemple());
     await waitFor(() => expect(api.etapesModeles).toHaveBeenCalled());
     await userEvent.click(screen.getByRole('button', { name: 'Parcourir la bibliothèque' }));
     const dialogue = await screen.findByRole('dialog');
@@ -645,7 +647,7 @@ describe('EtapesEditeur : étapes modèles', () => {
 
   it('« Transformer en étape modèle » depuis l’espace d’une étape, nom modifiable', async () => {
     vi.mocked(api.etapeModeleDepuisEtape).mockResolvedValue(modeleEtape({ id: 'md', action: 'Contrôle type' }));
-    rendre(planExemple());
+    await rendre(planExemple());
     fireEvent.click(carte(/^E0002/));
     await userEvent.click(await screen.findByRole('button', { name: 'Transformer en étape modèle' }));
     const dialogue = await screen.findByRole('dialog', { name: 'Transformer E0002 en étape modèle ?' });
@@ -660,7 +662,7 @@ describe('EtapesEditeur : étapes modèles', () => {
   it('une copie d’étape modèle le dit dans son espace, pas sur la fiche du graphe', async () => {
     const plan = planExemple();
     plan.etapes[2] = { ...plan.etapes[2], modeleEtapeId: 'ma' };
-    rendre(plan);
+    await rendre(plan);
     await waitFor(() => expect(api.etapesModeles).toHaveBeenCalled());
     expect(carte(/^E0003/)).not.toHaveTextContent(/modèle/i);
     fireEvent.click(carte(/^E0003/));

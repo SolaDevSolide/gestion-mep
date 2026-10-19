@@ -89,22 +89,12 @@ function abonner(f: () => void) {
 }
 const lireVersion = () => version;
 
-/** Pour les tests : repart d'un état sans données partagées (sans prévenir les composants, déjà démontés). */
+/**
+ * Pour les tests (appelée après chaque test par test/setup.ts) : repart d'un état sans données partagées, sans prévenir
+ * les composants, déjà démontés. Une lecture encore en cours d'un test fini ne remplit plus rien.
+ */
 export function oublierReferentiels() {
   entrees.clear();
-  abonnes.clear();
-}
-
-/**
- * Pour les tests, entre deux tests : garde les réponses reçues (affichées aussitôt au montage suivant, comme un onglet
- * rouvert) mais les rend anciennes (relues au montage) et oublie erreurs et lectures en cours.
- */
-export function vieillirReferentiels() {
-  for (const [cle, e] of entrees) {
-    if (!e.recue) entrees.delete(cle);
-    else
-      entrees.set(cle, { donnees: e.donnees, recue: true, erreur: null, enCours: false, relancer: false, recueLe: 0 });
-  }
   abonnes.clear();
 }
 

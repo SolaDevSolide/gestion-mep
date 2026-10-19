@@ -4,7 +4,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { api, ApiError } from '../api';
 import { AuthContext } from '../auth';
 import { MepContext } from '../mepContext';
-import { oublierReferentiels } from '../referentiels';
 import { mep, utilisateur } from '../test/fabrique';
 import type { CompteAnnuaire } from '../types';
 import { TooltipProvider } from '../ui/Tooltip';
@@ -71,7 +70,6 @@ function differee<T>() {
 describe('Onglet Préparation : un squelette, puis tout d’un coup', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    oublierReferentiels();
   });
 
   it('affiche le sommaire tout de suite et les sections ensemble, une fois les listes arrivées', async () => {
