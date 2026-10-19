@@ -163,7 +163,7 @@ public class ApiJalon3Tests : IDisposable
         Assert.Equal(JsonValueKind.Null, mep.GetProperty("approbations")[0].GetProperty("decision").ValueKind);
         // … et la relecture de la procédure (#94) : le plan modifié est à relire, le journal le dit.
         Assert.Equal(JsonValueKind.Null, mep.GetProperty("procedureRelue").ValueKind);
-        Assert.Equal(["La procédure doit être relue par un opérateur.", "Il faut 1 approbation(s)."], Erreurs(mep));
+        Assert.Equal(["La procédure doit être relue par une personne de la MEP.", "Il faut 1 approbation(s)."], Erreurs(mep));
         var journal = await Journal(alice, id);
         Assert.Equal(("procedure.reinitialisee", "Alice", "Relecture de la procédure à refaire : la MEP a été modifiée"), journal[0]);
         Assert.Equal(("approbations.reinitialisees", "Alice", "Approbations à refaire : la MEP a été modifiée"), journal[1]);

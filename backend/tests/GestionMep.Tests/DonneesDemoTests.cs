@@ -123,7 +123,7 @@ public class DonneesDemoTests
                      "Retour arrière : préciser quand le déclencher.",
                      "Sauvegarde : indiquer si BATCH doit être sauvegardé.", "Sauvegarde de WEB non requise : justifier.",
                      "E0003 : compléter Instructions exactes.", "E0005 : remplacer l'action d'exemple par une action réelle.",
-                     "Recette « Export nocturne » : ajouter au moins une étape de test.", "La procédure doit être relue par un opérateur.",
+                     "Recette « Export nocturne » : ajouter au moins une étape de test.", "La procédure doit être relue par une personne de la MEP.",
                      "Il faut 1 approbation(s).",
                      "Section « Contrôles de bout en bout » dans le bac : la placer dans le plan ou la supprimer.",
                  })

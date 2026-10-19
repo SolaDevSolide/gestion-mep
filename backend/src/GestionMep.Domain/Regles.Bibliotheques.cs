@@ -63,7 +63,7 @@ public static partial class Regles
     {
         ExigerPreparation(mep);
         if (plan == TypePlan.RetourArriere && modele.Type != TypeEtape.Standard)
-            throw new RegleMetierException("Le plan de retour arrière n'accepte pas d'étape de sauvegarde : choisir une étape modèle normale.");
+            throw new RegleMetierException("Le plan de retour arrière n'accepte pas d'étape de sauvegarde : choisir une étape modèle standard.");
         var systemes = modele.SystemeCatalogueIds
             .Select(c => (Catalogue: c, Systeme: mep.Systemes.FirstOrDefault(s => s.CatalogueId == c)))
             .ToList();

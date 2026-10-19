@@ -140,7 +140,7 @@ public class ReglesTracabiliteTests
         Assert.Null(m.ProcedureRelueParId);
         Assert.Null(m.ProcedureRelueLe);
         Assert.False(Regles.ReinitialiserRelecture(m)); // rien à effacer : rien à journaliser
-        Assert.Contains("La procédure doit être relue par un opérateur.", Regles.ErreursPlan(m, Maintenant, 0));
+        Assert.Contains("La procédure doit être relue par une personne de la MEP.", Regles.ErreursPlan(m, Maintenant, 0));
 
         m.ProcedureRelueParId = Bob;
         m.Phase = Phase.Execution;

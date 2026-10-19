@@ -45,13 +45,13 @@ public static partial class Regles
     public static EtatMep EtatDeLaMep(Mep mep) => EtatDe(mep.Phase, mep.Issue, Incidents(mep), mep.Report is not null);
 
     /// <summary>
-    /// Issue d'une MEP clôturée pour le journal : « réussie », « réussie avec incidents », « repliée » ou « échec (service
-    /// dégradé) ».
+    /// Issue d'une MEP clôturée pour le journal : « réussie », « réussie avec incidents », « après retour arrière » ou
+    /// « échec (service dégradé) ».
     /// </summary>
     public static string IssueEnClair(Mep mep) => EtatDe(mep.Phase, mep.Issue, Incidents(mep)) switch
     {
         EtatMep.AvecIncidents => "réussie avec incidents",
-        EtatMep.Repliee => "repliée",
+        EtatMep.Repliee => "après retour arrière",
         EtatMep.Echec => "échec (service dégradé)",
         _ => "réussie",
     };

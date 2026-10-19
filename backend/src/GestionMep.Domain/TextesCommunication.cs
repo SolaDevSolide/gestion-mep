@@ -69,15 +69,15 @@ public static class VariablesTexte
         new("heure_limite", "Heure limite", GroupeCommunication, "Heure limite de l'action demandée."),
         new("validation_utilisateurs", "Validation par les utilisateurs", GroupeCommunication, "« validée par … le … (preuve : fichier) »."),
 
-        new("avancement", "Avancement", GroupeSuivi, "Étapes faites du plan suivi (le retour arrière une fois déclenché). Ex. « 4/14 étapes faites (29 %) »."),
+        new("avancement", "Avancement", GroupeSuivi, "Étapes réussies du plan suivi (le retour arrière une fois déclenché). Ex. « 4/14 étapes réussies (29 %) »."),
         new("fin_estimee", "Fin estimée", GroupeSuivi,
             "Heure de fin estimée de l'exécution, comme la vue d'ensemble (plus long chemin des durées restantes), avec le retard. "
             + "Ex. « 16h33 (prévue à 15h18, +1 h 15) ». Absente avant le Go et pour une MEP sans durées estimées."),
 
         new("issue", "Issue", GroupeFin,
-            "« réussie », « réussie avec incidents » (une étape a échoué en route) ou « repliée (retour arrière effectué) », une fois la MEP clôturée."),
+            "« réussie », « réussie avec incidents » (une étape a échoué en route) ou « clôturée après retour arrière », une fois la MEP clôturée."),
         new("demarree_le", "Démarrée le", GroupeFin, "Date et heure du Go."),
-        new("terminee_le", "Terminée le", GroupeFin, "Date et heure de la clôture."),
+        new("terminee_le", "Clôturée le", GroupeFin, "Date et heure de la clôture."),
         new("bilan", "Bilan de clôture", GroupeFin, "Ce qui a marché, incidents et actions du bilan.", Liste: true),
         new("lien_rapport", "Lien vers le rapport de fin", GroupeFin, "Adresse du rapport de fin, une fois la MEP clôturée."),
 
@@ -221,7 +221,7 @@ public static class VariablesTexte
             {
                 EtatMep.Reussie => "réussie",
                 EtatMep.AvecIncidents => "réussie avec incidents",
-                EtatMep.Repliee => "repliée (retour arrière effectué)",
+                EtatMep.Repliee => "clôturée après retour arrière",
                 EtatMep.Echec => "échec (service dégradé)",
                 _ => null,
             }),

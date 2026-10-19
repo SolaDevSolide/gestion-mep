@@ -481,7 +481,7 @@ public static partial class LigneDeCommande
         }
         var r = h.Resume;
         Console.WriteLine($"{h.Nom} : {r.Total} MEP ({r.DouzeMois} sur les 12 derniers mois), {r.EnCours} en cours, {r.Reussies} réussie(s), "
-            + $"{r.AvecIncidents} avec incidents, {r.Repliees} repliée(s), {r.EnEchec} en échec, {r.Annulees} annulée(s) ; "
+            + $"{r.AvecIncidents} avec incidents, {r.Repliees} après retour arrière, {r.EnEchec} en échec, {r.Annulees} annulée(s) ; "
             + $"{r.Echecs} échec(s) d'étape sur ce système, {r.EchecsRepris} repris.");
         if (h.Meps.Count == 0) return 0;
         Console.WriteLine();

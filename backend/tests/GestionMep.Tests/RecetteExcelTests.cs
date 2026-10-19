@@ -158,7 +158,7 @@ public class RecetteExcelTests : IDisposable
 
         var sommaire = c.Worksheet("Sommaire");
         Assert.Equal("Sommaire de la recette · Portail RH 3.0", sommaire.Cell(1, 1).GetString());
-        Assert.Equal(["Système", "Fiche", "Étapes", "Validées", "Refusées", "Restantes", "Aller à"],
+        Assert.Equal(["Système", "Fiche", "Étapes", "Conformes", "Non conformes", "Restantes", "Aller à"],
             Enumerable.Range(1, 7).Select(i => sommaire.Cell(4, i).GetString()).ToArray());
         Assert.Equal(4, Enumerable.Range(5, 10).Count(l => !sommaire.Cell(l, 2).IsEmpty()));
         var ligneApi = Enumerable.Range(5, 4).Single(l => sommaire.Cell(l, 1).GetString() == "API");
@@ -180,8 +180,8 @@ public class RecetteExcelTests : IDisposable
         Assert.Equal("curl -fsS https://rh.exemple.invalid/api/sante", api.Cell(5, 3).GetString());
         Assert.Equal("Consolas", api.Cell(5, 3).GetRichText().First().FontName);
         Assert.Equal("Réponse 200 « conges 3.0 ».", api.Cell(5, 4).GetString());
-        Assert.Equal(("Validé", "200 conges 3.0", "Bob"), (api.Cell(5, 6).GetString(), api.Cell(5, 5).GetString(), api.Cell(5, 7).GetString()));
-        Assert.Equal("Refusé", api.Cell(6, 6).GetString());
+        Assert.Equal(("Conforme", "200 conges 3.0", "Bob"), (api.Cell(5, 6).GetString(), api.Cell(5, 5).GetString(), api.Cell(5, 7).GetString()));
+        Assert.Equal("Non conforme", api.Cell(6, 6).GetString());
         Assert.False(api.Cell(5, 6).Style.Protection.Locked);
         Assert.True(api.Cell(5, 4).Style.Protection.Locked);
         Assert.Contains(api.DataValidations, v => v.AllowedValues == XLAllowedValues.List && v.MinValue.Contains("Listes!", StringComparison.Ordinal)
@@ -206,7 +206,8 @@ public class RecetteExcelTests : IDisposable
         var rempli = Remplir(xlsx, c =>
         {
             var etapes = Etapes(c);
-            Saisir(c, etapes.Single(e => e.Etape == soldes), "1 250 soldes", "Validé", "Marie (paie)", new DateTime(2026, 10, 18, 0, 0, 0, DateTimeKind.Unspecified));
+            Saisir(c, etapes.Single(e => e.Etape == soldes), "1 250 soldes", "Conforme", "Marie (paie)", new DateTime(2026, 10, 18, 0, 0, 0, DateTimeKind.Unspecified));
+            // « Refusé », libellé des fichiers d'avant « Non conforme » : encore accepté.
             Saisir(c, etapes.Single(e => e.Etape == acces2), "Bouton Valider absent", "Refusé", "Hugo");
         });
 
@@ -237,7 +238,7 @@ public class RecetteExcelTests : IDisposable
         using var c2 = new XLWorkbook(new MemoryStream(await (await alice.GetAsync($"/api/meps/{id}/recette/excel")).Content.ReadAsByteArrayAsync()));
         var s2 = Etapes(c2).Single(e => e.Etape == soldes);
         var f2 = c2.Worksheet(s2.Onglet);
-        Assert.Equal(("1 250 soldes", "Validé", "Marie (paie)", new DateTime(2026, 10, 18, 0, 0, 0, DateTimeKind.Unspecified)),
+        Assert.Equal(("1 250 soldes", "Conforme", "Marie (paie)", new DateTime(2026, 10, 18, 0, 0, 0, DateTimeKind.Unspecified)),
             (f2.Cell(s2.Ligne, Col(f2, "Résultat constaté")).GetString(), f2.Cell(s2.Ligne, Col(f2, "Validation")).GetString(),
                 f2.Cell(s2.Ligne, Col(f2, "Validé par")).GetString(), f2.Cell(s2.Ligne, Col(f2, "Date")).GetDateTime()));
     }
@@ -321,7 +322,7 @@ public class RecetteExcelTests : IDisposable
         Assert.Contains(erreurs, e => e.StartsWith("Onglet BDD, ligne 5 (« Soldes de congés », étape 1) : validation « Bof » inconnue (colonne « Validation »",
             StringComparison.Ordinal));
         Assert.Contains(erreurs, e => e.StartsWith("Onglet LDAP, ligne", StringComparison.Ordinal)
-            && e.Contains("décrire le résultat constaté du refus (colonne « Résultat constaté »)", StringComparison.Ordinal));
+            && e.Contains("décrire le résultat constaté d'une étape non conforme (colonne « Résultat constaté »)", StringComparison.Ordinal));
         Assert.Contains(erreurs, e => e.StartsWith("Onglet WEB, ligne 5, colonne « Réf. » : référence modifiée", StringComparison.Ordinal));
         // Colonne supprimée.
         Assert.Contains("colonne « Validation » introuvable", Assert.Single(await Refus(Remplir(xlsx, c =>

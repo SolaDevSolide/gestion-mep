@@ -83,7 +83,7 @@ public static class RecetteExcel
         new(ColAttendu, 34),
         new(ColConstate, 34) { ASaisir = true, Note = "À remplir : ce que vous avez observé. Obligatoire pour un refus." },
         new(ColValidation, 12, TypeColonne.Court) { ASaisir = true, Tons = ExcelCommun.TonsValidation,
-            Note = $"À remplir : {Regles.LibelleValide} ou {Regles.LibelleRefuse}, dans la liste. Laisser vide si l'étape n'a pas été testée." },
+            Note = $"À remplir : {Regles.LibelleConforme} ou {Regles.LibelleNonConforme}, dans la liste. Laisser vide si l'étape n'a pas été testée." },
         new(ColPar, 18) { ASaisir = true, Note = "À remplir : nom de la personne qui a testé." },
         new(ColDate, 12, TypeColonne.Date) { ASaisir = true, Note = "À remplir : date du test (jour/mois/année)." },
         new(ColRef, 20, TypeColonne.Code) { Masquee = true },
@@ -138,8 +138,8 @@ public static class RecetteExcel
                         fait ? t.Observation : null,
                         t.Resultat switch
                         {
-                            ResultatControle.Conforme => Regles.LibelleValide,
-                            ResultatControle.Echec => Regles.LibelleRefuse,
+                            ResultatControle.Conforme => Regles.LibelleConforme,
+                            ResultatControle.Echec => Regles.LibelleNonConforme,
                             _ => null,
                         },
                         fait ? par : null, fait ? date : null, $"{fiche.Id};{t.Id}",
@@ -164,8 +164,8 @@ public static class RecetteExcel
                 var n = derniere - premiere + 1;
                 string Compte(string valeur) => n == 0 ? "0"
                     : $"COUNTIFS({tableau.Adresse(ColFiche)},\"{Critere(TitreFiche(fiche))}\",{tableau.Adresse(ColValidation)},\"{valeur}\")";
-                var validees = Compte(Regles.LibelleValide);
-                var refusees = Compte(Regles.LibelleRefuse);
+                var validees = Compte(Regles.LibelleConforme);
+                var refusees = Compte(Regles.LibelleNonConforme);
                 var cibleLien = n == 0 ? LigneEnTetes : premiere;
                 lignesSommaire.Add(
                 [
@@ -177,7 +177,7 @@ public static class RecetteExcel
         }
 
         // Listes déroulantes (onglet masqué « Listes »), posées une fois tous les onglets créés.
-        var listeValidation = classeur.Liste("Validation", [Regles.LibelleValide, Regles.LibelleRefuse]);
+        var listeValidation = classeur.Liste("Validation", [Regles.LibelleConforme, Regles.LibelleNonConforme]);
         var listePersonnes = classeur.Liste("Personnes", mep.Participants.Select(p => p.Nom).Concat(nomsSaisis).Order(StringComparer.CurrentCulture));
         foreach (var t in tableaux.Where(t => t.Nom is not null))
         {
@@ -185,7 +185,7 @@ public static class RecetteExcel
             var (v, p, d, c) = (t.Colonne(ColValidation), t.Colonne(ColPar), t.Colonne(ColDate), t.Colonne(ColConstate));
             if (listeValidation is not null)
                 f.ListeDeroulante(t.PremiereLigne, v, t.DerniereLigne, v, listeValidation, stricte: true, "Validation",
-                    $"{Regles.LibelleValide} ou {Regles.LibelleRefuse}. Laisser vide si l'étape n'a pas été testée.");
+                    $"{Regles.LibelleConforme} ou {Regles.LibelleNonConforme}. Laisser vide si l'étape n'a pas été testée.");
             if (listePersonnes is not null)
                 f.ListeDeroulante(t.PremiereLigne, p, t.DerniereLigne, p, listePersonnes, stricte: false, "Validé par",
                     "Votre nom : le choisir dans la liste ou le saisir.");
@@ -196,8 +196,8 @@ public static class RecetteExcel
 
         // Sommaire : une ligne par fiche, compteurs calculés par Excel, lien vers la fiche.
         var ts = sommaire.Tableau(LigneEnTetes, "Sommaire",
-            [new("Système", 14), new("Fiche", 36), new("Étapes", 9, TypeColonne.Entier), new("Validées", 10, TypeColonne.Entier),
-                new("Refusées", 10, TypeColonne.Entier), new("Restantes", 10, TypeColonne.Entier) { Note = "Étapes sans validation." },
+            [new("Système", 14), new("Fiche", 36), new("Étapes", 9, TypeColonne.Entier), new("Conformes", 10, TypeColonne.Entier),
+                new("Non conformes", 12, TypeColonne.Entier), new("Restantes", 10, TypeColonne.Entier) { Note = "Étapes sans validation." },
                 new("Aller à", 20) { SurUneLigne = true }],
             lignesSommaire, "Aucune fiche de recette.");
         for (var i = 0; i < liens.Count; i++)
@@ -205,7 +205,7 @@ public static class RecetteExcel
                 format: styles.Cellule with { RetourALaLigne = false });
         if (liens.Count > 0)
         {
-            var (refus, restantes, etapes) = (ts.Colonne("Refusées"), ts.Colonne("Restantes"), ts.Colonne("Étapes"));
+            var (refus, restantes, etapes) = (ts.Colonne("Non conformes"), ts.Colonne("Restantes"), ts.Colonne("Étapes"));
             sommaire.Signaler(ts.PremiereLigne, refus, ts.DerniereLigne, refus, $"{Cellule(ts.PremiereLigne, refus)}>0", Ton.Echec);
             sommaire.Signaler(ts.PremiereLigne, restantes, ts.DerniereLigne, restantes,
                 $"AND({Cellule(ts.PremiereLigne, restantes)}=0,{Cellule(ts.PremiereLigne, etapes)}>0)", Ton.Succes);
@@ -232,7 +232,7 @@ public static class RecetteExcel
         aide.Section("Comment remplir ce classeur");
         aide.Point("1", "Ouvrez l'onglet de chaque système : une ligne par étape de test, les fiches à la suite. L'onglet « Sommaire » montre l'avancement.");
         aide.Point("2", "Pour chaque étape, suivez le déroulé du test et comparez avec le résultat attendu.");
-        aide.Point("3", $"Remplissez les cases jaunes : résultat constaté, validation ({Regles.LibelleValide} ou {Regles.LibelleRefuse}, dans la liste), "
+        aide.Point("3", $"Remplissez les cases jaunes : résultat constaté, validation ({Regles.LibelleConforme} ou {Regles.LibelleNonConforme}, dans la liste), "
             + "votre nom et la date du test.");
         aide.Point("4", "Un refus doit décrire ce qui a été constaté. Une étape laissée sans validation n'est pas prise en compte.");
         aide.Point("5", $"Enregistrez le fichier (format .xlsx) et renvoyez-le {renvoi}, qui l'importe dans l'application.");
@@ -246,12 +246,12 @@ public static class RecetteExcel
 
         aide.Section("Légende");
         aide.Legende();
-        aide.Point(Regles.LibelleValide, "Étape conforme au résultat attendu.", f.Styles.Etat(Ton.Succes));
-        aide.Point(Regles.LibelleRefuse, "Étape non conforme : décrire le résultat constaté.", f.Styles.Etat(Ton.Echec));
+        aide.Point(Regles.LibelleConforme, "Étape conforme au résultat attendu.", f.Styles.Etat(Ton.Succes));
+        aide.Point(Regles.LibelleNonConforme, "Étape non conforme : décrire le résultat constaté.", f.Styles.Etat(Ton.Echec));
 
         aide.Section("Exemple de ligne remplie (à ne pas recopier)");
         aide.Exemple(ColConstate, "Connexion réussie, tableau de bord affiché en 2 secondes.");
-        aide.Exemple(ColValidation, Regles.LibelleValide);
+        aide.Exemple(ColValidation, Regles.LibelleConforme);
         aide.Exemple(ColPar, "Marie Martin");
         aide.Exemple(ColDate, new DateOnly(2026, 10, 18));
         aide.Terminer();

@@ -103,7 +103,7 @@ public class TextesCommunicationTests
         Assert.Equal("20h05", v["heure_debut"].Texte);
         Assert.Equal("23h40", v["heure_fin"].Texte);
         Assert.Equal("mardi 20 octobre 2026 à 20h05", v["demarree_le"].Texte);
-        Assert.Equal("repliée (retour arrière effectué)", v["issue"].Texte);
+        Assert.Equal("clôturée après retour arrière", v["issue"].Texte);
         mep.Issue = IssueMep.Reussie;
         Assert.Equal("réussie", Valeurs(mep)["issue"].Texte);
         // Une étape a échoué en route (journal) : réussie avec incidents (#91).
@@ -224,7 +224,7 @@ public class TextesCommunicationTests
         mep.Phase = Phase.Execution;
         mep.DemarrageAutoriseLe = go;
         var v = VariablesTexte.Valeurs(mep, null, "https://mep.exemple.invalid/meps/1", new Dictionary<Guid, string>(), go.AddMinutes(40));
-        Assert.Equal("1/2 étapes faites (50 %)", v["avancement"].Texte);
+        Assert.Equal("1/2 étapes réussies (50 %)", v["avancement"].Texte);
         // Paris (UTC+2) : prévue à 21h15 ; E0002 en échec compte 45 + 10 min depuis 20h40, soit 21h35.
         Assert.Equal("21h35 (prévue à 21h15, +20 min)", v["fin_estimee"].Texte);
         Assert.True(v["lien_rapport"].EstManquante);

@@ -22,7 +22,7 @@ public static partial class VuesExcel
         [
             ("Système", h.Nom),
             ("MEP au total", r.Total), ("Sur les 12 derniers mois", r.DouzeMois), ("En cours", r.EnCours), ("Clôturées", r.Cloturees),
-            ("Réussies", r.Reussies), ("Réussies avec incidents", r.AvecIncidents), ("Repliées", r.Repliees),
+            ("Réussies", r.Reussies), ("Réussies avec incidents", r.AvecIncidents), ("Après retour arrière", r.Repliees),
             ("Échecs d'étape sur ce système", r.Echecs), ("Dont repris avec succès", r.EchecsRepris),
             ("Dernière MEP", derniere is null ? "" : $"{ExcelCommun.NomMep(derniere.Outil, derniere.VersionCible)} · {derniere.Jour:dd/MM/yyyy} · {FiltreMeps.Libelle(derniere.Etat)}"),
         ]);
