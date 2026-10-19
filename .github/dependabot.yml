@@ -27,6 +27,7 @@ updates:
       interval: weekly
 
   - package-ecosystem: docker
-    directory: /
+    # Image de l'application et service de mise à jour
+    directories: [/, /mise-a-jour]
     schedule:
       interval: weekly

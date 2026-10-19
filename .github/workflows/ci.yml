@@ -26,6 +26,12 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
+      # Paquets NuGet en cache : la restauration ne retélécharge que ce qui a changé.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj', 'backend/Directory.Build.props', 'backend/global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
       - name: Tests .NET
         working-directory: backend
         run: dotnet test
@@ -109,7 +115,8 @@ jobs:
   archives:
     needs: [backend, frontend]
     runs-on: ubuntu-latest
-    # Installation sans Docker (installation/) : archives Linux x64 et Windows x64 autonomes, jointes à chaque version publiée.
+    # Installation sans Docker (installation/) : archives Linux x64 et Windows x64 autonomes, jointes à chaque version publiée,
+    # avec les fichiers de l'installation Docker de la version (docker-compose.yml, env.example).
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -120,6 +127,12 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
+      # Publication autonome (linux-x64, win-x64) : paquets d'exécution en plus, cache à part.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-archives-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj', 'backend/Directory.Build.props', 'backend/global.json') }}
+          restore-keys: nuget-archives-${{ runner.os }}-
       - name: Front
         working-directory: frontend
         run: npm ci && npm run build
@@ -133,11 +146,147 @@ jobs:
           path: archives/
           retention-days: 7
 
+  # Analyse du code (C# et TypeScript) : alertes dans l'onglet Security du dépôt.
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        langage: [csharp, javascript-typescript]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        if: matrix.langage == 'csharp'
+        with:
+          dotnet-version: "10.0.x"
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.langage }}
+          build-mode: none
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.langage }}
+
+  # Dépendances vulnérables connues : échec dès une vulnérabilité « high » ou plus côté npm, et dès une vulnérabilité
+  # signalée côté NuGet (paquets directs et transitifs).
+  dependances:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      # Paquets NuGet en cache : la restauration ne retélécharge que ce qui a changé.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj', 'backend/Directory.Build.props', 'backend/global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - name: Audit npm
+        working-directory: frontend
+        run: npm audit --audit-level=high
+      - name: Audit NuGet
+        working-directory: backend
+        run: |
+          dotnet list package --vulnerable --include-transitive --format json > vulnerables.json
+          # shellcheck disable=SC2016 # filtre jq, pas une expression du shell
+          filtre='[.projects[] | .path as $p | .frameworks[]? | (.topLevelPackages[]?, .transitivePackages[]?)
+            | select(.vulnerabilities) | "\($p | split("/") | last) : \(.id) \(.resolvedVersion) (\([.vulnerabilities[].severity] | join(", ")))"]'
+          if [ "$(jq "$filtre | length" vulnerables.json)" != 0 ]; then
+            jq -r "$filtre | .[]" vulnerables.json
+            echo "::error::Paquets NuGet vulnérables : les mettre à jour (dotnet list package --vulnerable --include-transitive)."
+            exit 1
+          fi
+          echo "Aucun paquet NuGet vulnérable connu."
+
+  # Scripts d'installation et de mise à jour : ShellCheck, syntaxe PowerShell (BOM et CRLF exigés par Windows PowerShell
+  # 5.1), fichier Compose valide.
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: ShellCheck
+        run: shellcheck -s sh -S warning installation/installer.sh mise-a-jour/mise-a-jour.sh .github/scripts/archives.sh
+      - name: PowerShell
+        shell: pwsh
+        run: |
+          $f = (Resolve-Path 'installation/installer.ps1').Path
+          $erreurs = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($f, [ref]$null, [ref]$erreurs)
+          if ($erreurs) { $erreurs | ForEach-Object { Write-Host "::error file=installation/installer.ps1,line=$($_.Extent.StartLineNumber)::$($_.Message)" }; exit 1 }
+          $octets = [IO.File]::ReadAllBytes($f)
+          if ($octets[0] -ne 0xEF -or $octets[1] -ne 0xBB -or $octets[2] -ne 0xBF) { Write-Host '::error::installer.ps1 doit être enregistré en UTF-8 avec BOM.'; exit 1 }
+          if ([IO.File]::ReadAllText($f) -match "(?<!`r)`n") { Write-Host '::error::installer.ps1 doit avoir des fins de ligne CRLF.'; exit 1 }
+          Write-Host 'installer.ps1 : syntaxe, BOM et CRLF corrects.'
+      - name: Compose
+        run: |
+          docker compose --env-file .env.example config --quiet
+          COMPOSE_PROFILES=mise-a-jour docker compose --env-file .env.example config --quiet
+
+  # Image construite sur place (sans publication) : analyse des vulnérabilités, puis démarrage réel contre PostgreSQL
+  # jusqu'à la sonde « prête », et commandes ponctuelles de l'image.
+  image-controles:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      BASE: Host=localhost;Port=5432;Database=gestion_mep;Username=postgres;Password=postgres
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          push: false
+          tags: gestion-mep:essai
+      # Échec seulement sur une vulnérabilité critique ou élevée qui a un correctif (image de base à reconstruire,
+      # dépendance à mettre à jour).
+      - name: Analyse de l'image (Trivy)
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          image-ref: gestion-mep:essai
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Démarrage de l'image jusqu'à la sonde « prête »
+        run: |
+          docker run -d --name essai --network host -e "ConnectionStrings__Mep=$BASE" -e Admin__Login=admin gestion-mep:essai
+          prete=false
+          for _ in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080/api/sante/prete; then prete=true; echo; break; fi
+            sleep 2
+          done
+          docker logs essai
+          [ "$prete" = true ] || { echo "::error::L'image ne répond pas sur /api/sante/prete après 2 minutes."; exit 1; }
+          # Sonde du HEALTHCHECK, et commande d'exploitation dans le conteneur en marche.
+          docker exec essai dotnet GestionMep.Api.dll --sante --prete
+          docker exec essai gestion-mep sauvegarder
+          docker exec essai gestion-mep config verifier || true
+      - name: Commandes ponctuelles (docker compose run)
+        run: |
+          # Avec ou sans le préfixe gestion-mep, la commande s'exécute puis rend la main (l'application web ne démarre pas).
+          timeout 60 docker run --rm --network host -e "ConnectionStrings__Mep=$BASE" gestion-mep:essai sauvegardes lister
+          timeout 60 docker run --rm --network host -e "ConnectionStrings__Mep=$BASE" gestion-mep:essai gestion-mep version
+      - if: always()
+        run: docker rm -f essai || true
+
   publication:
-    needs: [image, archives]
+    needs: [image, archives, image-controles]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    # Crée la version GitHub que l'indicateur de mise à jour de l'application consulte.
+    # Crée la version GitHub que l'indicateur de mise à jour de l'application consulte, avec les archives sans Docker et
+    # les fichiers de l'installation Docker de la version (docker-compose.yml, env.example) ; SHA256SUMS les couvre tous.
     permissions:
       contents: write
     steps:
