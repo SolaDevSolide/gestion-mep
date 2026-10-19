@@ -1,6 +1,6 @@
 # Exécuter une MEP
 
-Cette page s'adresse au **pilote**, à ses **suppléants** et aux **opérateurs** qui déroulent une MEP le jour J. Le pilote et les suppléants ont exactement les mêmes droits. Pour les phases et leurs conditions, voir [Cycle de vie](Cycle-de-vie.md).
+Cette page s'adresse au **pilote**, à ses **suppléants** et aux **exécutants** qui déroulent une MEP le jour J. Le pilote et les suppléants ont exactement les mêmes droits. Pour les phases et leurs conditions, voir [Cycle de vie](Cycle-de-vie.md).
 
 ## Avant de commencer
 
@@ -20,7 +20,7 @@ Le plan s'affiche en graphe, dans un cadre qui tient dans la hauteur de la fenê
 | Disponible | Ses préalables sont réussis : on peut la démarrer. |
 | Attend Exxxx | Une étape préalable n'est pas encore réussie. |
 | En cours | Quelqu'un l'a démarrée. |
-| Réussie / Terminée | Terminée avec succès. |
+| Réussie | Terminée avec succès. |
 | Échec | Déclarée en échec : voir [Quand une étape échoue](#quand-une-étape-échoue). |
 | Résolution en cours | Une résolution guidée est en train d'être appliquée. |
 
@@ -97,16 +97,16 @@ Pendant l'exécution, le pilote ou un suppléant clique **« Ajouter une étape 
 ## Recette et clôture
 
 1. Quand toutes les étapes de déploiement ont réussi, le pilote clique **« Passer en recette »**.
-2. Dans **Plan › Recette** (la MEP s'y ouvre pendant la recette), ouvrir chaque fiche : chaque étape de test est déclarée « Conforme » ou « Échec » avec une observation, par toute personne de la MEP reliée à un compte. Le pilote peut faire refaire un test ou une fiche. Les équipes métier peuvent aussi valider dans Excel (voir ci-dessous).
+2. Dans **Plan › Recette** (la MEP s'y ouvre pendant la recette), ouvrir chaque fiche : chaque étape de test est déclarée « Conforme » ou « Non conforme » avec une observation, par toute personne de la MEP reliée à un compte. Le pilote peut faire refaire un test ou une fiche. Les équipes métier peuvent aussi valider dans Excel (voir ci-dessous).
 3. Quand tout est conforme, le pilote clique **« Clôturer : MEP réussie »** et rédige le bilan. Le [rapport de fin](Suivre-une-MEP.md#rapport-de-fin) est alors figé (bouton « Rapport de fin » du bilan). Si une étape ou un test de recette a échoué en route, même repris ensuite, la MEP s'affiche « Clôturée : réussie avec incidents » (voir [Cycle de vie](Cycle-de-vie.md#clôture-et-bilan)).
 
 ### Valider la recette dans Excel
 
-**« Exporter en Excel »**, en haut de **Plan › Recette**, télécharge un classeur à envoyer aux équipes métier : l'onglet « À lire » (mode d'emploi, légende, exemple de saisie), un sommaire avec l'avancement de chaque fiche (étapes validées, refusées, restantes, recalculées par Excel à chaque saisie) et un lien vers elle, puis un onglet par système : un tableau avec une ligne par étape de test (fiche, numéro, déroulé avec le code en police à chasse fixe, résultat attendu), qu'on peut trier et filtrer. Seules les cases jaunes se remplissent : résultat constaté, validation (liste « Validé » / « Refusé »), validé par (liste des personnes de la MEP, autre nom accepté) et date ; une note sur chaque en-tête rappelle quoi saisir, et le reste est protégé. Des feuilles masquées identifient la MEP, la version de la recette exportée et chaque ligne (colonne « Réf. » masquée).
+**« Exporter en Excel »**, en haut de **Plan › Recette**, télécharge un classeur à envoyer aux équipes métier : l'onglet « À lire » (mode d'emploi, légende, exemple de saisie), un sommaire avec l'avancement de chaque fiche (étapes conformes, non conformes, restantes, recalculées par Excel à chaque saisie) et un lien vers elle, puis un onglet par système : un tableau avec une ligne par étape de test (fiche, numéro, déroulé avec le code en police à chasse fixe, résultat attendu), qu'on peut trier et filtrer. Seules les cases jaunes se remplissent : résultat constaté, validation (liste « Conforme » / « Non conforme »), validé par (liste des personnes de la MEP, autre nom accepté) et date ; une note sur chaque en-tête rappelle quoi saisir, et le reste est protégé. Des feuilles masquées identifient la MEP, la version de la recette exportée et chaque ligne (colonne « Réf. » masquée).
 
-Une fois le fichier rempli, le pilote ou un suppléant clique **« Importer la validation »** (en phase de recette). L'application affiche d'abord ce qui va changer, étape par étape, puis l'applique sur confirmation : « Validé » rend l'étape conforme, « Refusé » la met en échec, avec le résultat constaté comme observation, la personne et la date indiquées dans le fichier. Les lignes sans validation sont ignorées. Trier, filtrer, réordonner les lignes ou les colonnes ne gêne pas l'import (chaque ligne est retrouvée par sa référence, chaque colonne par son en-tête) ; « validé », « Validée » ou « REFUSÉ » sont acceptés, les espaces autour ignorés. Un fichier exporté par la version précédente de l'application est toujours accepté. Chaque motif de refus indique l'onglet, la ligne, l'étape et la colonne en cause.
+Une fois le fichier rempli, le pilote ou un suppléant clique **« Importer la validation »** (en phase de recette). L'application affiche d'abord ce qui va changer, étape par étape, puis l'applique sur confirmation : « Conforme » rend l'étape conforme, « Non conforme » la met en échec, avec le résultat constaté comme observation, la personne et la date indiquées dans le fichier. Les lignes sans validation sont ignorées. Trier, filtrer, réordonner les lignes ou les colonnes ne gêne pas l'import (chaque ligne est retrouvée par sa référence, chaque colonne par son en-tête) ; la casse, les accents et les espaces autour sont ignorés (« non-conforme » est accepté), et « Validé » / « Refusé », libellés des fichiers exportés avant, restent acceptés. Un fichier exporté par la version précédente de l'application est toujours accepté. Chaque motif de refus indique l'onglet, la ligne, l'étape et la colonne en cause.
 
-Le fichier est **refusé en entier**, sans rien modifier, avec la liste des motifs, s'il est incohérent : fichier d'une autre MEP, recette modifiée depuis l'export (exporter à nouveau), colonne d'en-tête supprimée, référence d'étape modifiée ou inconnue, valeur de validation inconnue, « Validé par » manquant, date illisible, « Refusé » sans résultat constaté, ou validation qui contredit un résultat déjà saisi dans l'application (faire d'abord refaire l'étape). Un import n'efface jamais un résultat : pour refaire une étape, le pilote utilise « Refaire ». L'import est inscrit dans le journal de la MEP.
+Le fichier est **refusé en entier**, sans rien modifier, avec la liste des motifs, s'il est incohérent : fichier d'une autre MEP, recette modifiée depuis l'export (exporter à nouveau), colonne d'en-tête supprimée, référence d'étape modifiée ou inconnue, valeur de validation inconnue, « Validé par » manquant, date illisible, « Non conforme » sans résultat constaté, ou validation qui contredit un résultat déjà saisi dans l'application (faire d'abord refaire l'étape). Un import n'efface jamais un résultat : pour refaire une étape, le pilote utilise « Refaire ». L'import est inscrit dans le journal de la MEP.
 
 Si la recette révèle un problème, le cadre **« Décision du pilote »** de **Plan › Recette** propose :
 
@@ -120,7 +120,7 @@ Si l'**échéance de retour arrière** est atteinte pendant la recette, le retou
 
 - **Déclencher le retour arrière** (pilote ou suppléant, motif obligatoire) arrête le déploiement. Un bandeau rouge l'indique à tous, avec son motif et son auteur (« Déclenchement automatique » s'il vient de l'échéance, en exécution).
 - **Plan › Retour arrière** (la MEP s'y ouvre pendant un retour arrière) déroule son propre plan, étape par étape, comme l'exécution.
-- Quand toutes ses étapes ont réussi, le pilote clique **« Service rétabli : clôturer »** et rédige le bilan. La MEP est clôturée comme repliée.
+- Quand toutes ses étapes ont réussi, le pilote clique **« Service rétabli : clôturer »** et rédige le bilan. La MEP est clôturée après retour arrière.
 - Si une étape du retour arrière échoue et que le service ne peut pas être rétabli, l'encadré **« Retour arrière en échec »** propose de suivre la consigne « Si le retour arrière échoue » du plan, puis **« Clôturer en échec… »**.
 
 ## Clôturer en échec

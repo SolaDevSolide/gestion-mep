@@ -1,6 +1,6 @@
 # Préparer une MEP
 
-Cette page s'adresse aux développeurs et aux **responsables techniques** qui décrivent une intervention. L'objectif : qu'un opérateur qui n'a pas travaillé sur le changement puisse la dérouler seul, et que l'équipe sache revenir en arrière.
+Cette page s'adresse aux développeurs et aux **responsables techniques** qui décrivent une intervention. L'objectif : qu'un exécutant qui n'a pas travaillé sur le changement puisse la dérouler seul, et que l'équipe sache revenir en arrière.
 
 Peuvent modifier une MEP en préparation : son pilote, ses suppléants, ses responsables techniques et les administrateurs (voir [Droits par rôle](Droits.md)).
 
@@ -250,7 +250,7 @@ Une résolution type est une fiche de dépannage réutilisable pour un problème
 
 Une MEP simplifiée n'a pas de résolutions liées : le jour J, toutes les résolutions des systèmes de l'étape sont proposées.
 
-Le jour J, une étape en échec propose ses résolutions liées et guide l'opérateur pas à pas (voir [Exécuter une MEP](Exécuter-une-MEP.md#quand-une-étape-échoue)).
+Le jour J, une étape en échec propose ses résolutions liées et guide l'exécutant pas à pas (voir [Exécuter une MEP](Exécuter-une-MEP.md#quand-une-étape-échoue)).
 
 ## Vérifier le plan
 
@@ -267,7 +267,7 @@ Dans une MEP simplifiée, « Vérifier le plan » ne réclame ni criticité ni v
 
 Dans la section Validation :
 
-- **Procédure relue** : à cocher par une personne de la MEP reliée à un compte, idéalement un opérateur qui n'a pas écrit le plan. Toute modification du plan l'efface (« Relecture de la procédure à refaire » au journal) : le plan modifié est à relire. Changer seulement les approbateurs ou l'échéance de retour arrière ne l'efface pas.
+- **Procédure relue** : à cocher par une personne de la MEP reliée à un compte, idéalement un exécutant qui n'a pas écrit le plan. Toute modification du plan l'efface (« Relecture de la procédure à refaire » au journal) : le plan modifié est à relire. Changer seulement les approbateurs ou l'échéance de retour arrière ne l'efface pas.
 - **Approbations** : les approbateurs désignés approuvent ou refusent (commentaire obligatoire en cas de refus). **Séparation des tâches** : le pilote, ses suppléants (dans une MEP simplifiée, toutes les autres personnes de la MEP) et les responsables techniques ne peuvent pas être approbateurs, même avec un compte relié au leur ; ils ne sont pas proposés. Un approbateur déjà désigné qui le devient ensuite reste affiché avec la raison (« Bob ne peut pas approuver cette MEP (suppléant du pilote) ») : il ne peut plus se prononcer, sa décision ne compte pas, et le Go est refusé tant qu'il n'est pas retiré. Le nombre minimum d'approbations est un paramètre global (1 par défaut). Un approbateur ne peut se prononcer que lorsqu'il ne reste plus d'autre anomalie.
 - Toute modification du contenu après une approbation l'efface : « Approbations à refaire ».
 - À la première approbation, les **résolutions types liées** sont figées dans la MEP (titre, contenu, version) : le jour J, c'est cette copie qui est appliquée, même si la bibliothèque change entre-temps. Une résolution liée désactivée, supprimée ou incomplète est une anomalie qui bloque l'approbation et le Go.

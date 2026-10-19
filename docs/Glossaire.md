@@ -1,5 +1,24 @@
 # Glossaire
 
+## Lexique : un mot par idée
+
+L'application et la documentation emploient un seul mot pour chaque idée. Les valeurs de l'API (`Reussie`, `Repliee`, `Standard`, `participants`…) ne changent pas : seuls les libellés suivent ce lexique.
+
+| Idée | Mot retenu | Ne plus dire |
+|---|---|---|
+| Étape réussie | Réussie | « Terminée », « Faite » |
+| Section dont toutes les étapes ont réussi | Réussie | « Faite » |
+| Date de clôture d'une MEP | Clôturée le | « Terminée le » (la variable de texte garde son nom `{{terminee_le}}`) |
+| Type d'étape | Standard (ou Sauvegarde) | « Normale » |
+| Issue d'une MEP clôturée après un retour arrière | Clôturée après retour arrière ; en court : Après retour arrière | « Repliée », « Clôturée : repliée » |
+| Afficher ou masquer le détail d'une section, du menu, du bac | Replier / Déplier | — (ce mot n'a plus que ce sens) |
+| Plan de secours | Retour arrière | « repli », « étapes de repli » (« repli » reste un mot-clé de recherche de la palette de commandes) |
+| Résultat d'un test de recette | Conforme / Non conforme | « Échec » ; « Validé / Refusé » dans le classeur Excel (encore acceptés à l'import) |
+| Qui déroule une étape | Exécutant | « opérateur » |
+| Personne ajoutée à une MEP | Personne (de la MEP) | « participant » (l'API garde `participants`) |
+
+## Définitions
+
 **Annulée** : MEP arrêtée définitivement depuis la préparation, avec un motif (et l'état laissé en production si elle avait déjà eu un Go). Elle est en lecture seule, reste visible dans la liste et la recherche, et se duplique. Voir [Cycle de vie](Cycle-de-vie.md#annuler-une-mep).
 
 **Anomalie** : point qui empêche de donner le Go, listé par « Vérifier le plan ». À distinguer d'un avertissement.
@@ -38,13 +57,13 @@
 
 **Équipe** : groupe de personnes géré par les administrateurs, qui sert à filtrer les comptes et les MEP, et qui a ses modèles de texte. Une personne peut appartenir à plusieurs équipes ; une MEP appartient à une équipe dès qu'une de ses personnes en fait partie.
 
-**État d'une MEP** : ce que la recherche des MEP retient d'une MEP : sa phase tant qu'elle n'est pas clôturée (préparation, **reportée**, exécution, recette, retour arrière en cours), puis son issue : **réussie** (sans aucun échec d'étape ni de test de recette), **réussie avec incidents** (au moins un échec d'étape ou un test de recette en échec, même repris ensuite), **repliée** (clôturée après un retour arrière) ou **échec** (service dégradé) ; enfin **annulée**. Une MEP réussie avec incidents s'affiche « Clôturée : réussie avec incidents » partout où son issue apparaît (en-tête, Suivi en direct, rapport de fin, exports). Voir [Rechercher des MEP](Suivre-une-MEP.md#rechercher-des-mep).
+**État d'une MEP** : ce que la recherche des MEP retient d'une MEP : sa phase tant qu'elle n'est pas clôturée (préparation, **reportée**, exécution, recette, retour arrière en cours), puis son issue : **réussie** (sans aucun échec d'étape ni de test de recette), **réussie avec incidents** (au moins un échec d'étape ou un test de recette en échec, même repris ensuite), **clôturée après retour arrière** (« Après retour arrière » dans les puces et les tableaux) ou **échec** (service dégradé) ; enfin **annulée**. Une MEP réussie avec incidents s'affiche « Clôturée : réussie avec incidents » partout où son issue apparaît (en-tête, Suivi en direct, rapport de fin, exports). Voir [Rechercher des MEP](Suivre-une-MEP.md#rechercher-des-mep).
 
 **Étape** : action unitaire du plan, avec des instructions et un résultat attendu. Codes `E0001…` pour le déploiement, `R0001…` pour le retour arrière.
 
 **Étape modèle** : étape type de la bibliothèque d'étapes (fiche complète, sans point de non-retour). L'insérer dans une MEP en fait une copie indépendante, posée à la main dans le graphe ; on peut aussi transformer une étape d'une MEP en étape modèle.
 
-**Exécutant** : personne qui a démarré une étape, ou qui a pris la main dessus.
+**Exécutant** : personne qui a démarré une étape, ou qui a pris la main dessus. C'est le mot employé partout pour qui déroule les étapes (et non « opérateur »).
 
 **Bibliothèque d'étapes** : étapes modèles rattachées à un ou plusieurs systèmes du catalogue, insérées par copie dans le plan des MEP. Voir aussi *Étape modèle*.
 

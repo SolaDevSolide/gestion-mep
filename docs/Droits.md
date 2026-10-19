@@ -14,8 +14,8 @@ Deux sortes de rôles se combinent.
 - **Pilote** : responsable de la mise en production, il décide des changements de phase.
 - **Suppléant** : mêmes droits que le pilote. Le pilote ne peut pas être son propre suppléant. Dans une [MEP simplifiée](Préparer-une-MEP.md#mep-complète-ou-simplifiée), toutes les personnes de la MEP sauf le pilote sont suppléantes, sans avoir à les choisir (dès qu'un pilote est désigné), à une exception près : un administrateur ajouté à la MEP parce qu'il a démarré une étape ou pris la main n'y est qu'exécutant.
 - **Responsable technique** : développeur ou sachant, il prépare le contenu. Le créateur d'une MEP le devient automatiquement.
-- **Approbateur** : approuve ou refuse le plan. Séparation des tâches : le pilote, ses suppléants (tous les autres participants d'une MEP simplifiée) et les responsables techniques ne peuvent pas l'être, même avec un autre compte relié au leur ; une personne n'est désignée qu'une fois. Un compte désactivé ne peut plus être désigné. Un approbateur qui devient ensuite suppléant ou responsable technique reste affiché avec la raison (« Bob ne peut pas approuver cette MEP (suppléant du pilote) ») : sa décision ne compte pas et le Go est refusé tant qu'il n'est pas retiré des approbateurs. Qui n'est pas approbateur désigné, ou l'est mais en est empêché, ne peut pas se prononcer (« Droits insuffisants »).
-- **Participant** : toute personne de la MEP. Reliée à un compte, elle peut exécuter des étapes.
+- **Approbateur** : approuve ou refuse le plan. Séparation des tâches : le pilote, ses suppléants (toutes les autres personnes d'une MEP simplifiée) et les responsables techniques ne peuvent pas l'être, même avec un autre compte relié au leur ; une personne n'est désignée qu'une fois. Un compte désactivé ne peut plus être désigné. Un approbateur qui devient ensuite suppléant ou responsable technique reste affiché avec la raison (« Bob ne peut pas approuver cette MEP (suppléant du pilote) ») : sa décision ne compte pas et le Go est refusé tant qu'il n'est pas retiré des approbateurs. Qui n'est pas approbateur désigné, ou l'est mais en est empêché, ne peut pas se prononcer (« Droits insuffisants »).
+- **Personne de la MEP** : toute personne ajoutée à la MEP (l'API la nomme « participant »). Reliée à un compte, elle peut exécuter des étapes.
 
 Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable technique ou un administrateur.
 
@@ -31,12 +31,12 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Activer ou désactiver le plan de retour arrière | Éditeur, en préparation |
 | Passer une MEP simplifiée en complète, ou une MEP complète en simplifiée | Pilote, suppléant ou administrateur, en préparation (tout éditeur tant qu'aucun pilote n'est désigné) |
 | Modifier l'échéance de retour arrière (MEP avec plan de retour arrière ; motif obligatoire, sauf première saisie en préparation ; plus possible une fois le retour arrière déclenché ou la MEP clôturée ou annulée) | Éditeur en préparation ; pilote, suppléant ou administrateur en exécution et en recette |
-| Cocher « Procédure relue » | Participant relié à un compte |
+| Cocher « Procédure relue » | Personne de la MEP reliée à un compte |
 | Approuver ou refuser | Approbateur désigné, qui n'est ni pilote, ni suppléant, ni responsable technique de la MEP (comptes reliés compris) |
 | Go / no-go | Pilote ou suppléant |
-| Démarrer une étape disponible | Participant relié à un compte, ou administrateur |
+| Démarrer une étape disponible | Personne de la MEP reliée à un compte, ou administrateur |
 | Terminer une étape, appliquer une résolution | Exécutant de l'étape, pilote ou suppléant |
-| Prendre la main sur une étape | Participant relié à un compte, ou administrateur (motif obligatoire) |
+| Prendre la main sur une étape | Personne de la MEP reliée à un compte, ou administrateur (motif obligatoire) |
 | Autoriser le passage d'un point de non-retour, autoriser une reprise | Pilote ou suppléant |
 | Revenir en préparation (motif), passer en recette, déclencher le retour arrière, clôturer | Pilote ou suppléant |
 | Reporter une MEP (motif, date visée facultative), reprendre la préparation | Pilote ou suppléant, en préparation |
@@ -48,7 +48,7 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Pilotage de secours (motif) | Administrateur qui n'est ni pilote ni suppléant, de l'exécution au retour arrière |
 | Ajouter une personne à la MEP après le Go | Pilote, suppléant ou administrateur, de l'exécution au retour arrière |
 | Supprimer définitivement une MEP (motif, nom saisi) | Administrateur, pour une MEP qui n'a jamais eu de Go ou un modèle |
-| Saisir un résultat de recette | Participant relié à un compte, ou administrateur |
+| Saisir un résultat de recette | Personne de la MEP reliée à un compte, ou administrateur |
 | Faire refaire un test de recette | Pilote ou suppléant |
 | Exporter la recette en Excel | Tout utilisateur qui voit la MEP |
 | Exporter en Excel la liste des MEP, la préparation, les étapes, le retour arrière, les objets impactés ou le journal | Tout utilisateur qui voit la MEP |
