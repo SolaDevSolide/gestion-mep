@@ -14,8 +14,12 @@ Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_NOLOGO=1
 Restart=on-failure
 RestartSec=10
-TimeoutStartSec=300
-# Durcissement : seul le dossier des données est modifiable.
+# « Prêt » n'est signalé qu'après la migration éventuelle de la base. Le script d'installation migre avant de démarrer le
+# service, mais un démarrage peut rester long (sauvegarde avant migration d'une grosse base) : délai à allonger au besoin
+# par « sudo systemctl edit gestion-mep » ([Service] TimeoutStartSec=1h).
+TimeoutStartSec=15min
+# Durcissement : seul le dossier des données est modifiable (un DOSSIER_DONNEES personnalisé est ajouté par le script
+# d'installation dans /etc/systemd/system/gestion-mep.service.d/donnees.conf).
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict

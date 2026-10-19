@@ -61,6 +61,8 @@ public class LigneDeCommandeTests : IDisposable
     {
         var aide = await Cli("aide");
         Assert.Equal(0, aide.Code);
+        // Préfixe « gestion-mep » toléré (docker compose run --rm app gestion-mep …).
+        Assert.Equal(aide.Sortie, (await Cli("gestion-mep", "aide")).Sortie);
         foreach (var commande in new[] { "comptes modifier", "comptes expertises", "systemes ajouter", "criteres modifier", "reglages definir",
                      "resolutions importer", "meps exporter", "equipes ajouter", "comptes relier", "journal [--depuis", "sauvegardes restaurer", "mettre-a-jour", "config afficher", "charte importer", "charte retablir" })
             Assert.Contains($"gestion-mep {commande}", aide.Sortie);
@@ -493,7 +495,10 @@ public class LigneDeCommandeTests : IDisposable
         Assert.Contains("MEP en cours", enCours.Message);
         mep.Phase = phase;
         await db.SaveChangesAsync();
-        await Assert.ThrowsAsync<ErreurHttp>(() => ApplicationEndpoints.DemanderInstallation(db, null, "98.0.0", publiee, installation));
+        // Au-delà de la dernière version publiée connue, ou pas plus récente que la version en cours : refusée.
+        Assert.Contains("n'est pas publiée", (await Assert.ThrowsAsync<ErreurHttp>(() => ApplicationEndpoints.DemanderInstallation(db, null, "100.0.0", publiee, installation))).Message);
+        Assert.Contains("plus récent", (await Assert.ThrowsAsync<ErreurHttp>(() => ApplicationEndpoints.DemanderInstallation(db, null, "0.0.1", publiee, installation))).Message);
+        await Assert.ThrowsAsync<ErreurHttp>(() => ApplicationEndpoints.DemanderInstallation(db, null, "v99.0.0", publiee, installation));
 
         var demande = await ApplicationEndpoints.DemanderInstallation(db, null, "99.0.0", publiee, installation);
         Assert.Equal("demandee", demande.Installateur.Statut);

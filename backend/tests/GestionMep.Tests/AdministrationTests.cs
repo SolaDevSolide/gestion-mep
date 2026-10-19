@@ -194,16 +194,21 @@ public class AdministrationTests : IDisposable
         // Sans Docker (tests lancés hors conteneur), le message donne la commande du script d'installation.
         Assert.Contains(Installation.EstDocker ? "pas actif" : "Installation sans Docker", await Message(absent));
 
-        // Service présent (battement récent) : la version doit être la dernière publiée, inconnue ici (vérification coupée).
+        // Service présent (battement récent) : la version doit être un numéro plus récent que la version en cours.
         Directory.CreateDirectory(_api.DossierMiseAJour);
         File.WriteAllText(Path.Combine(_api.DossierMiseAJour, "etat.json"),
             $$"""{"statut":"pret","version":"","message":"Service de mise à jour prêt.","le":"{{DateTimeOffset.UtcNow:O}}","battement":"{{DateTimeOffset.UtcNow:O}}"}""");
         var installateur = (await Ok(await alice.GetAsync("/api/application"))).GetProperty("miseAJour").GetProperty("installateur");
         Assert.True(installateur.GetProperty("present").GetBoolean());
         Assert.Equal("pret", installateur.GetProperty("statut").GetString());
-        var refus = await installer();
+        var refus = await alice.PostAsJsonAsync("/api/admin/mises-a-jour/installer", new { version = "0.0.1" });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
-        Assert.Contains("dernière version publiée", await Message(refus));
+        Assert.Contains("plus récent que la version en cours", await Message(refus));
+        // Vérification coupée (registre interne, serveur sans Internet) : une version plus récente peut être demandée,
+        // ici refusée seulement parce que des MEP de démonstration sont en cours.
+        var enCours = await installer();
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, enCours.StatusCode);
+        Assert.Contains("MEP en cours", await Message(enCours));
         Assert.False(File.Exists(Path.Combine(_api.DossierMiseAJour, "demande.json")));
 
         var bob = await _api.ClientConnecte("bob");

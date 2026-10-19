@@ -9,6 +9,8 @@
 # Base PostgreSQL (version 16 ou plus), à créer avant le premier démarrage (voir docs/Installer.md).
 BASE_DE_DONNEES=Host=localhost;Port=5432;Database=gestion_mep;Username=mep;Password=
 # Dossier des données : pièces jointes, clés de session, sauvegardes (Windows : C:\ProgramData\GestionMep\donnees).
+# Linux : chemin absolu sans espace, hors de /home ; relancer « sudo /opt/gestion-mep/installer.sh » après l'avoir changé
+# (il crée le dossier et l'ouvre au service), puis y déplacer les données de l'ancien dossier, service arrêté.
 DOSSIER_DONNEES=/var/lib/gestion-mep
 # Adresse et port d'écoute. 127.0.0.1 (défaut) : joignable seulement depuis cette machine, donc par un reverse proxy HTTPS
 # installé ici. Mettre l'adresse de la carte réseau (ou 0.0.0.0) si le proxy est sur une autre machine.
@@ -46,3 +48,6 @@ ADMIN_MOT_DE_PASSE=
 # (Linux : /etc/gestion-mep/charte.json ; Windows : C:\ProgramData\GestionMep\charte.json). Relu sans redémarrage ;
 # la charte enregistrée dans la console (onglet Charte visuelle) le remplace. Autre emplacement :
 # CHARTE_FICHIER=/chemin/vers/charte.json
+# Windows : l'Observateur d'événements ne reçoit par défaut que les avertissements et les erreurs (dont le mot de passe
+# provisoire). Pour y voir aussi les messages d'information (sauvegardes, migrations) :
+# Logging__EventLog__LogLevel__Default=Information

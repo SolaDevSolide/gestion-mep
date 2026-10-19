@@ -18,10 +18,12 @@ if (OperatingSystem.IsWindows())
     try { Console.OutputEncoding = new System.Text.UTF8Encoding(false); } catch (IOException) { }
 }
 
-// HEALTHCHECK de l'image Docker : « dotnet GestionMep.Api.dll --sante ».
+// Sondes en ligne de commande : « --sante » (l'application répond) et « --sante --prete » (elle peut servir : base, schéma,
+// échéances), utilisée par le HEALTHCHECK de l'image Docker et les scripts d'installation. Une version antérieure qui ne
+// connaît pas --prete fait le premier contrôle.
 if (args.Contains("--sante"))
 {
-    Environment.ExitCode = await ProtectionsHttp.VerifierSante();
+    Environment.ExitCode = await ProtectionsHttp.VerifierSante(prete: args.Contains("--prete"));
     return;
 }
 
@@ -70,6 +72,7 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 builder.Services.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = true);
 
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<SantePrete>();
 builder.Services.AddSingleton<DiffuseurMep>();
 builder.Services.AddScoped<ServiceMep>();
 builder.Services.AddScoped<RapportsFin>();
@@ -140,7 +143,12 @@ app.UseRateLimiter();
 
 var api = app.MapGroup("/api").RequireAuthorization();
 api.MapOpenApi(DocumentationOpenApi.Chemin);
+// Sondes : « vivant » (le processus répond, sans rien vérifier d'autre) et « prête » (base joignable au schéma de cette
+// version, surveillance des échéances active ; 503 sinon). La seconde sert au HEALTHCHECK et aux répartiteurs de charge.
 api.MapGet("/sante", () => Results.Ok(new { statut = "ok" })).AllowAnonymous();
+api.MapGet("/sante/prete", async (SantePrete disponibilite, MepDbContext db, CancellationToken arret) =>
+        await disponibilite.Verifier(db, arret) is var etat && etat.Statut == "prete" ? Results.Ok(etat) : Results.Json(etat, statusCode: StatusCodes.Status503ServiceUnavailable))
+    .Produces<SantePreteDto>().Produces<SantePreteDto>(StatusCodes.Status503ServiceUnavailable).AllowAnonymous();
 // Version du front servi (empreinte de index.html) : un onglet ouvert la compare pour proposer de recharger après un déploiement.
 // Empreinte de la charte : quand elle change, l'onglet recharge seulement /charte.css (nouvelles couleurs sans recharger la page).
 var versionFront = VersionFront(app.Environment);

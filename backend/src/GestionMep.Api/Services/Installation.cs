@@ -26,10 +26,17 @@ public static class Installation
         _ => $"gestion-mep {arguments}",
     };
 
-    /// <summary>Arrêt, puis redémarrage de l'application (restauration d'une sauvegarde, application arrêtée).</summary>
-    public static (string Arreter, string Lancer, string Executer) Service => Mode switch
+    /// <summary>
+    /// Arrêt, puis redémarrage de l'application (restauration d'une sauvegarde, application arrêtée), et commande à lancer
+    /// pendant l'arrêt. Sous Docker, « docker compose run » démarre un conteneur ponctuel de l'image, qui lance directement
+    /// l'application : la commande y est passée sans le préfixe « gestion-mep » (il est toléré, voir LigneDeCommande).
+    /// </summary>
+    public static (string Arreter, string Lancer, string Executer) Service => ServicePour(Mode);
+
+    /// <inheritdoc cref="Service"/>
+    public static (string Arreter, string Lancer, string Executer) ServicePour(string mode) => mode switch
     {
-        Docker => ("docker compose stop app", "docker compose up -d app", "docker compose run --rm app gestion-mep"),
+        Docker => ("docker compose stop app", "docker compose up -d app", "docker compose run --rm app"),
         Linux => ("sudo systemctl stop gestion-mep", "sudo systemctl start gestion-mep", "sudo gestion-mep"),
         _ => ("Stop-Service GestionMep", "Start-Service GestionMep", "gestion-mep"),
     };

@@ -89,18 +89,18 @@ public static class ProtectionsHttp
             await suivant();
         });
 
-    /// <summary>
-    /// Mode « --sante » de l'image Docker : interroge /api/sante et renvoie 0 si l'application répond
-    /// (l'image aspnet n'a ni curl ni wget pour le HEALTHCHECK).
-    /// </summary>
     /// <summary>Adresse de l'application vue de la machine : celle du fichier d'installation autonome, sinon le port de l'image Docker.</summary>
     private static string AdresseLocale() =>
         (FichierInstallation.AdresseEcoute(FichierInstallation.Lire(FichierInstallation.Chemin)) ?? "http://localhost:8080")
             .Replace("://0.0.0.0:", "://127.0.0.1:").Replace("://[::]:", "://[::1]:");
 
-    public static async Task<int> VerifierSante()
+    /// <summary>
+    /// Mode « --sante » : interroge /api/sante (ou /api/sante/prete avec <paramref name="prete"/>) et renvoie 0 si la
+    /// réponse est 200 (l'image aspnet n'a ni curl ni wget pour le HEALTHCHECK). SANTE_URL remplace l'adresse complète.
+    /// </summary>
+    public static async Task<int> VerifierSante(bool prete = false)
     {
-        var url = Environment.GetEnvironmentVariable("SANTE_URL") ?? $"{AdresseLocale()}/api/sante";
+        var url = Environment.GetEnvironmentVariable("SANTE_URL") ?? $"{AdresseLocale()}/api/sante{(prete ? "/prete" : "")}";
         try
         {
             using var client = new HttpClient(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(4) };

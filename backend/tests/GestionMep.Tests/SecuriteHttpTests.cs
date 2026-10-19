@@ -53,6 +53,32 @@ public class SecuriteHttpTests : IDisposable
     }
 
     [Fact]
+    public void Index_html_en_crlf_garde_l_empreinte_du_script_tel_que_le_navigateur_le_lit()
+    {
+        // Dépôt extrait sous Windows (core.autocrlf) : le navigateur ramène CRLF et CR seuls à LF avant de calculer
+        // l'empreinte du script ; le serveur doit faire de même, sinon le script de thème est bloqué.
+        var dossier = Directory.CreateTempSubdirectory("gestion-mep-csp-");
+        try
+        {
+            const string scriptLf = "\n  const t = 1;\n  document.documentElement.classList.add('dark');\n";
+            var index = Path.Combine(dossier.FullName, "index.html");
+            var lf = $"<html>\n<head>\n<script>{scriptLf}</script>\n</head>\n</html>\n";
+            File.WriteAllText(index, lf.Replace("\n", "\r\n", StringComparison.Ordinal));
+            var empreinte = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(scriptLf)));
+
+            Assert.Contains($"script-src 'self' 'sha256-{empreinte}';", EnTetesSecurite.PolitiqueContenu(index), StringComparison.Ordinal);
+
+            // Retour chariot seul : même lecture.
+            File.WriteAllText(index, lf.Replace("\n", "\r", StringComparison.Ordinal));
+            Assert.Contains($"'sha256-{empreinte}'", EnTetesSecurite.PolitiqueContenu(index), StringComparison.Ordinal);
+        }
+        finally
+        {
+            dossier.Delete(true);
+        }
+    }
+
+    [Fact]
     public async Task Corps_json_de_plus_d_un_mo_refuse_en_413()
     {
         // La limite est appliquée par Kestrel : le serveur de test en mémoire l'ignore, on démarre donc un vrai serveur

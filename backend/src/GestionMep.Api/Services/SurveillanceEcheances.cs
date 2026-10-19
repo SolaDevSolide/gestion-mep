@@ -6,15 +6,18 @@ namespace GestionMep.Api.Services;
 
 /// <summary>
 /// Vérifie chaque minute les MEP en exécution ou en recette dont l'échéance de retour arrière est atteinte et les fait basculer
-/// (la bascule est enregistrée, journalisée et notifiée par <see cref="ServiceMep.Charger"/>).
+/// (la bascule est enregistrée, journalisée et notifiée par <see cref="ServiceMep.Charger"/>). Chaque passage réussi est
+/// signalé à <see cref="SantePrete"/> : la sonde « prête » échoue si la surveillance s'arrête.
 /// </summary>
-public class SurveillanceEcheances(IServiceScopeFactory scopes, TimeProvider temps, ILogger<SurveillanceEcheances> journal) : BackgroundService
+public class SurveillanceEcheances(IServiceScopeFactory scopes, TimeProvider temps, ILogger<SurveillanceEcheances> journal,
+    SantePrete? disponibilite = null) : BackgroundService
 {
     public static readonly TimeSpan Periode = TimeSpan.FromMinutes(1);
 
     protected override async Task ExecuteAsync(CancellationToken arret)
     {
         using var minuteur = new PeriodicTimer(Periode, temps);
+        disponibilite?.SurveillanceActive();
         try
         {
             while (await minuteur.WaitForNextTickAsync(arret)) await Verifier(arret);
@@ -52,6 +55,7 @@ public class SurveillanceEcheances(IServiceScopeFactory scopes, TimeProvider tem
                     journal.LogError(ex, "Échec de la surveillance de l'échéance de la MEP {MepId}.", id);
                 }
             }
+            disponibilite?.SurveillanceActive();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

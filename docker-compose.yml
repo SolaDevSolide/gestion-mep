@@ -65,16 +65,23 @@ services:
 
   # Facultatif : mise à jour depuis la console d'administration. Désactivé par défaut ; l'activer avec
   # COMPOSE_PROFILES=mise-a-jour dans .env. Il a accès à Docker (socket) pour remplacer le conteneur « app ».
+  # Image (MEP_IMAGE_MISE_A_JOUR) : celle de la version installée, déjà fixée dans les fichiers joints à chaque version
+  # publiée ; le service la fait suivre lui-même à chaque mise à jour. Le fichier du dépôt la construit sur place.
   mise-a-jour:
-    image: ${MEP_IMAGE_MISE_A_JOUR:-ghcr.io/soladevsolide/gestion-mep-mise-a-jour:latest}
+    image: ${MEP_IMAGE_MISE_A_JOUR:-gestion-mep-mise-a-jour:local}
     build: ./mise-a-jour
     profiles: [mise-a-jour]
     environment:
+      # Seul dépôt d'images installé (registre interne possible)
       MEP_DEPOT_IMAGE: ${MEP_DEPOT_IMAGE:-ghcr.io/soladevsolide/gestion-mep}
+      # Secondes d'attente de la sonde « prête » après le démarrage de la nouvelle version (la sauvegarde et la migration,
+      # faites avant, sont attendues sans limite)
+      MEP_ATTENTE_SANTE: ${MEP_ATTENTE_SANTE:-300}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./docker-compose.yml:/projet/docker-compose.yml:ro
-      - ./.env:/projet/.env
+      # Dossier de ce fichier (.env, docker-compose.override.yml, charte.json…) : la recréation de l'application y lit
+      # les mêmes fichiers et y résout les chemins relatifs comme un « docker compose up -d » lancé à la main.
+      - .:/projet
       - mise-a-jour:/echange
     restart: unless-stopped
 

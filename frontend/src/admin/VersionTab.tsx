@@ -231,7 +231,7 @@ export default function VersionTab() {
         open={confirmer}
         onOpenChange={setConfirmer}
         titre={`Mettre à jour vers la version ${etat?.derniereVersion ?? ''} ?`}
-        description="L’application redémarre : les personnes connectées sont déconnectées environ une minute. Une sauvegarde de la base et des pièces jointes est faite avant toute migration. Si la nouvelle version ne démarre pas, la version actuelle est remise. Refusé tant qu’une MEP est en cours."
+        description="L’application s’arrête le temps de sauvegarder la base et les pièces jointes, de migrer la base, puis de redémarrer : les personnes connectées sont déconnectées pendant ce temps (quelques minutes sur une grosse base). Si la nouvelle version ne migre pas ou ne démarre pas, la version actuelle est remise avec les données de la sauvegarde. Refusé tant qu’une MEP est en cours."
         libelleConfirmer="Mettre à jour"
         onConfirmer={installer}
       />

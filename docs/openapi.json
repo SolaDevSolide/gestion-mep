@@ -18,6 +18,35 @@
         }
       }
     },
+    "/api/sante/prete": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SantePreteDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SantePreteDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/version": {
       "get": {
         "tags": [
@@ -16996,6 +17025,30 @@
           "Approbateur"
         ],
         "description": "Rôle d'une personne dans une MEP (une personne peut en cumuler plusieurs ; sans rôle, elle est simple participante)."
+      },
+      "SantePreteDto": {
+        "required": [
+          "statut",
+          "base",
+          "schema",
+          "echeances"
+        ],
+        "type": "object",
+        "properties": {
+          "statut": {
+            "type": "string"
+          },
+          "base": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "echeances": {
+            "type": "string"
+          }
+        },
+        "description": "Réponse de la sonde « prête » : `statut` « prete » ou « indisponible », puis chaque contrôle : `base` (« ok »,\n« injoignable »), `schema` (« ok », « migrations-en-attente », « plus-recent », « inconnu »), `echeances`\n(« ok », « en-retard », « desactivee »)."
       },
       "SauvegardeDto": {
         "required": [
