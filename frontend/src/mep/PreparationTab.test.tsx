@@ -23,7 +23,7 @@ vi.mock('../api', () => ({
     urlExportPreparation: (id: string) => `/api/meps/${id}/preparation/excel`,
     urlObjetsExcel: () => '',
   },
-  ApiError: class ApiError extends Error {
+  ApiError: class ErreurApi extends Error {
     status: number;
     erreurs: string[] = [];
     requete = '';
