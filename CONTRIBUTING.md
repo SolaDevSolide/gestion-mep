@@ -54,7 +54,7 @@ La CI lance les mêmes vérifications sur chaque pull request.
 
 ### Back-end
 
-- **Une règle métier va dans `Regles`** (`GestionMep.Domain`, un fichier `Regles.<Domaine>.cs` par domaine), en fonction statique pure qui lève `RegleMetierException` (traduite en 422). Un handler ne contient pas de règle métier : il charge, vérifie les droits et la version, appelle `Regles`, puis enregistre.
+- **Une règle métier va dans `Regles`** (`GestionMep.Domain`, un fichier `Regles.<Domaine>.cs` par domaine), en fonction statique pure qui lève `RegleMetierException` (traduite en 422), `DroitInsuffisantException` pour un refus de droits (403) ou `SaisieInvalideException` pour une valeur vide, inconnue ou en double (400) : voir les règles des [codes de réponse](docs/API.md#codes-de-réponse). Une route réservée aux administrateurs se déclare par `.ExigerAdmin()`. Les heures locales passent par `Fuseaux` (domaine), jamais par `TimeZoneInfo` directement. Un handler ne contient pas de règle métier : il charge, vérifie les droits et la version, appelle `Regles`, puis enregistre.
 - L'heure courante passe par `TimeProvider` côté API et par un paramètre `maintenant` côté domaine.
 - Toute écriture passe par `ServiceMep.Enregistrer` (version, journal, notification temps réel). Une modification du contenu en préparation passe par `EnregistrerContenu`, qui remet les approbations à zéro.
 - Les codes d'étape (`E0001`, `R0001`) ne sont jamais renumérotés.
@@ -72,7 +72,7 @@ La CI lance les mêmes vérifications sur chaque pull request.
 ### Tests
 
 - Une nouvelle règle métier a son test dans `backend/tests` (fichiers `Regles…Tests.cs` pour les règles pures, `Api…Tests.cs` pour l'API de bout en bout).
-- Un nouveau droit a aussi son test négatif : l'appel refusé renvoie bien 403 ou 422.
+- Un nouveau droit a aussi son test négatif : l'appel refusé renvoie bien 403.
 - Les noms de tests sont des phrases : `Demo_plan_valide_en_attente_de_l_approbation_de_claire`.
 
 ## Créer une migration

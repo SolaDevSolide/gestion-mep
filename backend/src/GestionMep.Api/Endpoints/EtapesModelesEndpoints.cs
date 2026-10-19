@@ -35,12 +35,12 @@ public static class EtapesModelesEndpoints
                 throw ErreurHttp.Saisie("Résolution type inconnue ou désactivée.");
     }
 
-    /// <summary>Contrôle l'étape modèle (422 avec la liste des anomalies), puis note la date et l'auteur.</summary>
+    /// <summary>Contrôle l'étape modèle (400 avec la liste des anomalies), puis note la date et l'auteur.</summary>
     private static void Valider(ModeleEtape m, Acteur acteur, DateTimeOffset maintenant)
     {
         Regles.NormaliserModeleEtape(m);
         var erreurs = Regles.ErreursModeleEtape(m);
-        if (erreurs.Count > 0) throw ErreurHttp.Regle(erreurs);
+        if (erreurs.Count > 0) throw ErreurHttp.Saisie(erreurs);
         m.ModifieLe = maintenant;
         m.ModifieParId = acteur.Id;
     }
@@ -127,13 +127,12 @@ public static class EtapesModelesEndpoints
         api.MapDelete("/etapes-modeles/{id:guid}", async (Guid id, ClaimsPrincipal user, MepDbContext db) =>
         {
             var acteur = Acteur.Depuis(user);
-            if (!acteur.EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
             var m = await Trouver(db, id);
             db.ModelesEtape.Remove(m);
             JournalAdmin.Ecrire(db, acteur, "etape-modele.supprimee", $"Étape modèle « {m.Action} » supprimée de la bibliothèque");
             await db.SaveChangesAsync();
             return Results.NoContent();
-        });
+        }).ExigerAdmin();
 
         // Insertion d'une copie dans le plan : même droits et même phase que l'ajout d'une étape.
         api.MapPost("/meps/{id:guid}/etapes/depuis-modele", async (Guid id, InsertionEtapeModeleSaisie c, ClaimsPrincipal user, ServiceMep svc,

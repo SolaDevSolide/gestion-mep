@@ -12,7 +12,7 @@ Deux sortes de rôles se combinent.
 **Dans une MEP** :
 
 - **Pilote** : responsable de la mise en production, il décide des changements de phase.
-- **Suppléant** : mêmes droits que le pilote. Le pilote ne peut pas être son propre suppléant. Dans une [MEP simplifiée](Préparer-une-MEP.md#mep-complète-ou-simplifiée), toutes les personnes de la MEP sauf le pilote sont suppléantes, sans avoir à les choisir (dès qu'un pilote est désigné).
+- **Suppléant** : mêmes droits que le pilote. Le pilote ne peut pas être son propre suppléant. Dans une [MEP simplifiée](Préparer-une-MEP.md#mep-complète-ou-simplifiée), toutes les personnes de la MEP sauf le pilote sont suppléantes, sans avoir à les choisir (dès qu'un pilote est désigné), à une exception près : un administrateur ajouté à la MEP parce qu'il a démarré une étape ou pris la main n'y est qu'exécutant.
 - **Responsable technique** : développeur ou sachant, il prépare le contenu. Le créateur d'une MEP le devient automatiquement.
 - **Approbateur** : approuve ou refuse le plan. Le pilote ne peut pas l'être, même avec un autre compte relié au sien, et une personne n'est désignée qu'une fois. Un compte désactivé ne peut plus être désigné.
 - **Participant** : toute personne de la MEP. Reliée à un compte, elle peut exécuter des étapes.
@@ -69,7 +69,9 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Comptes et console d'administration, équipes, comptes reliés d'une même personne | Administrateur (équipes : lecture pour tous) |
 | Modifier son propre profil et son mot de passe | Chacun |
 
-Un administrateur n'a **pas** les droits du pilote : pour donner le Go ou déclencher un retour arrière, il doit être pilote ou suppléant de la MEP. Après le Go, il peut le devenir avec le [pilotage de secours](Cycle-de-vie.md#pilotage-de-secours-et-passation) : motif obligatoire, trace au journal de la MEP et au journal d'administration, bandeau visible de tous. Il peut aussi annuler une MEP en préparation sans la piloter.
+Un administrateur n'a **pas** les droits du pilote : pour donner le Go ou déclencher un retour arrière, il doit être pilote ou suppléant de la MEP. Après le Go, il peut le devenir avec le [pilotage de secours](Cycle-de-vie.md#pilotage-de-secours-et-passation) : motif obligatoire, trace au journal de la MEP et au journal d'administration, bandeau visible de tous. Il peut aussi annuler une MEP en préparation sans la piloter. Démarrer une étape ou prendre la main sur une étape d'une MEP dont il ne fait pas partie l'y ajoute comme **exécutant** seulement, y compris dans une MEP simplifiée : il ne devient pas suppléant (s'il l'était déjà, il le reste). Désigné pilote, il devient une personne de la MEP à part entière.
+
+**Refus** : une action refusée faute de droit répond « Droits insuffisants » (403 dans l'[API](API.md#codes-de-réponse)), avec la phrase qui dit qui peut la faire ; une action permise mais impossible dans l'état de la MEP est une règle métier (422).
 
 ## Traçabilité
 

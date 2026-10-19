@@ -33,7 +33,7 @@ public static class ResolutionsEndpoints
         db.VersionsResolutionType.Add(VersionResolutionType.De(r, action));
     }
 
-    /// <summary>Applique la saisie à la résolution : 400 si un système est inconnu, 422 (liste des anomalies) si elle est incomplète.</summary>
+    /// <summary>Applique la saisie à la résolution : 400 si un système est inconnu ou si elle est incomplète (liste des anomalies).</summary>
     public static async Task Appliquer(MepDbContext db, ResolutionType r, ResolutionTypeSaisie c)
     {
         var systemes = (c.SystemeCatalogueIds ?? []).Distinct().ToList();
@@ -52,7 +52,7 @@ public static class ResolutionsEndpoints
         r.VerificationInstruction = ServiceMep.Texte(c.VerificationInstruction);
         r.VerificationAttendu = ServiceMep.Texte(c.VerificationAttendu);
         var erreurs = Regles.ErreursResolutionType(r);
-        if (erreurs.Count > 0) throw ErreurHttp.Regle(erreurs);
+        if (erreurs.Count > 0) throw ErreurHttp.Saisie(erreurs);
     }
 
     private static ExecutionResolution TrouverResolution(Mep mep, Guid rid) =>
@@ -158,10 +158,9 @@ public static class ResolutionsEndpoints
         api.MapDelete("/resolutions/{id:guid}", async (Guid id, ClaimsPrincipal user, MepDbContext db, TimeProvider temps, StockagePiecesJointes stockage) =>
         {
             var acteur = Acteur.Depuis(user);
-            if (!acteur.EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
             await Supprimer(db, acteur, id, temps.GetUtcNow(), stockage);
             return Results.NoContent();
-        });
+        }).ExigerAdmin();
 
         // ---------- Exécution ----------
         api.MapPost("/meps/{id:guid}/etapes/{eid:guid}/resolutions", async (Guid id, Guid eid, DemarrerResolutionSaisie c, ClaimsPrincipal user,

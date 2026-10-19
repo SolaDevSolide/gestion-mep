@@ -183,8 +183,9 @@ public static class EtapesEndpoints
             ServiceMep.ExigerRevision(e, c.Revision);
             var motif = ServiceMep.Texte(c.Motif);
 
-            // Un administrateur qui n'est pas encore participant le devient (créé seulement si la prise de main aboutit).
-            var preneur = existant ?? new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Prise en main", UtilisateurId = acteur.Id };
+            // Un administrateur qui n'est pas encore participant le devient (créé seulement si la prise de main aboutit), d'office :
+            // exécutant seulement, jamais suppléant implicite d'une MEP simplifiée.
+            var preneur = existant ?? new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Prise en main", UtilisateurId = acteur.Id, AjouteDOffice = true };
             var precedent = Regles.PrendreLaMain(mep, e, preneur, motif);
             if (existant is null) mep.Participants.Add(preneur);
 
@@ -199,10 +200,11 @@ public static class EtapesEndpoints
             var acteur = Acteur.Depuis(user);
             var e = ServiceMep.TrouverEtape(mep, eid);
             ServiceMep.ExigerRevision(e, c.Revision);
-            // Un administrateur non participant le devient (créé seulement si le démarrage aboutit).
+            // Un administrateur non participant le devient (créé seulement si le démarrage aboutit), d'office : exécutant
+            // seulement, jamais suppléant implicite d'une MEP simplifiée.
             var existant = mep.Participants.FirstOrDefault(p => p.UtilisateurId == acteur.Id);
             var executant = existant ?? (acteur.EstAdmin
-                ? new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Exécutant", UtilisateurId = acteur.Id }
+                ? new Participant { MepId = mep.Id, Nom = acteur.Nom, Role = "Exécutant", UtilisateurId = acteur.Id, AjouteDOffice = true }
                 : null);
             Regles.Demarrer(mep, e, executant, svc.Maintenant);
             if (existant is null && executant is not null) mep.Participants.Add(executant);

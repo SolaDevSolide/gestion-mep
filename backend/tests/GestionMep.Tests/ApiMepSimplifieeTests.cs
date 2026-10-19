@@ -140,4 +140,43 @@ public class ApiMepSimplifieeTests : IDisposable
         mep = await Ok(await alice.PostAsJsonAsync(url, new { resolutionTypeId = Resolution("API : réponse de test absente"), revision = e5.GetProperty("revision").GetInt32() }));
         Assert.Equal("EnCours", mep.GetProperty("resolutions").EnumerateArray().Single().GetProperty("statut").GetString());
     }
+
+    [Fact]
+    public async Task Un_administrateur_qui_demarre_une_etape_n_est_qu_executant_et_pas_suppleant()
+    {
+        var alice = await _api.ClientConnecte("alice");
+        var id = await AidesApi.IdDemo(alice);
+        await Ok(await ChangerType(alice, await Ok(await alice.GetAsync($"/api/meps/{id}")), "Simplifiee"));
+        var mep = await AidesApi.Go(_api, alice, id);
+        var eve = await _api.NouveauCompte("eve", "Eve", estAdmin: true);
+
+        // Eve, administratrice hors MEP, démarre E0004 : ajoutée d'office comme exécutante, pas comme suppléante implicite.
+        var e4 = Etape(mep, "E0004");
+        mep = await Ok(await eve.PostAsJsonAsync($"/api/meps/{id}/etapes/{e4.GetProperty("id").GetGuid()}/demarrer", new { revision = e4.GetProperty("revision").GetInt32() }));
+        var pEve = Participant(mep, "Eve");
+        Assert.Equal(pEve, Etape(mep, "E0004").GetProperty("executantId").GetGuid());
+        Assert.DoesNotContain(pEve, Suppleants(mep));
+        Assert.Contains(Participant(mep, "Bob"), Suppleants(mep));
+        var droits = (await Ok(await eve.GetAsync($"/api/meps/{id}"))).GetProperty("droits");
+        Assert.False(droits.GetProperty("estPilote").GetBoolean());
+        Assert.Equal(pEve, droits.GetProperty("participantId").GetGuid());
+        // Droits du pilote refusés ; elle termine l'étape qu'elle exécute.
+        Assert.Equal(HttpStatusCode.Forbidden, (await eve.PostAsJsonAsync($"/api/meps/{id}/retour-arriere", new { motif = "Panne" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await eve.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Recette" })).StatusCode);
+        e4 = Etape(mep, "E0004");
+        mep = await Ok(await eve.PostAsJsonAsync($"/api/meps/{id}/etapes/{e4.GetProperty("id").GetGuid()}/terminer",
+            new { revision = e4.GetProperty("revision").GetInt32(), resultat = "Reussie", preuve = "Fait", resultatVerifie = true }));
+        Assert.Equal("Reussie", Etape(mep, "E0004").GetProperty("etat").GetString());
+        // Recherche : exécutante, pas suppléante.
+        var resume = (await Ok(await alice.GetAsync("/api/meps?modele=false"))).EnumerateArray().Single(m => m.GetProperty("id").GetGuid() == id);
+        var roles = resume.GetProperty("intervenants").EnumerateArray().Single(i => i.GetProperty("nom").GetString() == "Eve").GetProperty("roles")
+            .EnumerateArray().Select(r => r.GetString()).ToList();
+        Assert.Equal(["Executant"], roles);
+
+        // Pilotage de secours : désignée pilote, elle devient une personne à part entière ; relevée par Alice, elle reste suppléante.
+        mep = await Ok(await eve.PostAsJsonAsync($"/api/meps/{id}/pilotage", new { participantId = pEve, motif = "Alice injoignable" }));
+        Assert.Equal(pEve, mep.GetProperty("piloteId").GetGuid());
+        mep = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/pilotage", new { participantId = Participant(mep, "Alice"), motif = "De retour" }));
+        Assert.Contains(pEve, Suppleants(mep));
+    }
 }

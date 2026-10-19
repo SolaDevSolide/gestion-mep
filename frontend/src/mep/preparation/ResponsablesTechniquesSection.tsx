@@ -2,7 +2,7 @@ import { Code2, Pencil, Phone, Plus, Sparkles, Trash2, UserCheck, UserX } from '
 import { useEffect, useState, type FormEvent } from 'react';
 import { api } from '../../api';
 import { useMep } from '../../mepContext';
-import type { DisponibiliteJourJ, ResponsableTechnique, Utilisateur } from '../../types';
+import type { DisponibiliteJourJ, ResponsableTechnique, CompteAnnuaire } from '../../types';
 import { Alerte } from '../../ui/Alerte';
 import { Avatar } from '../../ui/Avatar';
 import { BoutonIcone, Button } from '../../ui/Button';
@@ -52,7 +52,7 @@ export function ResponsablesTechniquesSection() {
   const [suppr, setSuppr] = useState<ResponsableTechnique | null>(null);
   const [brouillon, setBrouillon] = useState<ResponsableTechnique>(VIDE);
   const [envoi, setEnvoi] = useState(false);
-  const [utilisateurs, setUtilisateurs] = useState<Utilisateur[]>([]);
+  const [utilisateurs, setUtilisateurs] = useState<CompteAnnuaire[]>([]);
   const [ajoutEnCours, setAjoutEnCours] = useState<string | null>(null);
   useEffect(() => {
     api

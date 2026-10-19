@@ -393,7 +393,7 @@ public class RecetteExcelTests : IDisposable
 
         // Modification avec verrou optimiste ; un modèle incomplet est refusé avec la liste des anomalies.
         var incomplet = await bob.PutAsJsonAsync($"/api/modeles-recette/{mid}", new { version = 1, titre = "", systemeCatalogueId = Cat("WEB"), etapes = Array.Empty<object>() });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, incomplet.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, incomplet.StatusCode);
         Assert.Equal(2, (await Corps(incomplet)).GetProperty("erreurs").GetArrayLength());
         modele = await Ok(await bob.PutAsJsonAsync($"/api/modeles-recette/{mid}", new
         {

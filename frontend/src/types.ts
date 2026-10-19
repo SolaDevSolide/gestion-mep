@@ -49,6 +49,8 @@ export type TypeMep = NonNullable<S['TypeMep']>;
 /** Expertise d'un compte sur un système du catalogue (« Expert de la zone facturation »). */
 export type Expertise = S['ExpertiseDto'];
 export type Utilisateur = S['UtilisateurDto'];
+/** Compte tel que l'annuaire le donne à tous (choix d'une personne) : sans les droits ni l'état du mot de passe. */
+export type CompteAnnuaire = S['CompteAnnuaireDto'];
 export type EvenementAdmin = S['EvenementAdminDto'];
 /** Réponse à la création ou à la réinitialisation : le mot de passe provisoire n'est donné qu'une fois. */
 export type CompteAvecMotDePasse = S['CompteEtMotDePasseDto'];
@@ -69,6 +71,7 @@ export type TypeEvenementAdmin =
   | 'sso.active'
   | 'sso.desactive'
   | 'sso.delie'
+  | 'sso.refuse'
   | 'sso.lie'
   | 'donnees.controle-reussi'
   | 'donnees.controle-echoue'

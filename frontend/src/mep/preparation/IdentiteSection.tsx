@@ -154,7 +154,7 @@ export function IdentiteSection() {
             </p>
           </div>
         )}
-        <Field label="Fuseau horaire">
+        <Field label="Fuseau horaire" hint="Identifiant IANA, par exemple Europe/Paris ou America/New_York.">
           {(id) => (
             <Input
               id={id}

@@ -46,7 +46,7 @@ public class ConnexionUniqueTests : IDisposable
     {
         var alice = await _api.ClientConnecte("alice");
         var refus = await alice.PutAsJsonAsync("/api/admin/sso", Reglages(annuaire: "common"));
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, refus.StatusCode);
         Assert.Contains("tous les comptes Microsoft", await refus.Content.ReadAsStringAsync());
 
         // Activer sans secret est refusé.
@@ -81,7 +81,7 @@ public class ConnexionUniqueTests : IDisposable
         // Connexion active : changer d'annuaire sans nouveau secret est refusé (l'ancien ne partira pas vers un autre émetteur).
         var autre = "99999999-8888-7777-6666-555555555555";
         var refus = await alice.PutAsJsonAsync("/api/admin/sso", Reglages(annuaire: autre, secret: ""));
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, refus.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, refus.StatusCode);
         Assert.Contains("secret client est obligatoire", await refus.Content.ReadAsStringAsync());
 
         // Connexion désactivée : le changement passe et l'ancien secret est effacé.
@@ -164,12 +164,41 @@ public class ConnexionUniqueTests : IDisposable
         Assert.Equal(JsonValueKind.Null, etat.GetProperty("identifiant").ValueKind);
     }
 
-    private async Task<(ConnexionUnique.Resultat, MepDbContext, IServiceScope)> Resoudre(ConfigurationSso c, string sujet, string identifiant, Guid? lier = null, params string[] roles)
+    private Task<(ConnexionUnique.Resultat, MepDbContext, IServiceScope)> Resoudre(ConfigurationSso c, string sujet, string identifiant, Guid? lier = null, params string[] roles) =>
+        ResoudreNomme(c, sujet, identifiant, NomDe(identifiant), lier, roles);
+
+    /// <summary>Nom donné par le fournisseur : « Dana Martin » pour dana.martin@…, propre à chaque identifiant sinon.</summary>
+    private static string NomDe(string identifiant) => identifiant.StartsWith("dana.", StringComparison.OrdinalIgnoreCase) ? "Dana Martin" : $"Personne {identifiant}";
+
+    private async Task<(ConnexionUnique.Resultat, MepDbContext, IServiceScope)> ResoudreNomme(ConfigurationSso c, string sujet, string identifiant, string nom,
+        Guid? lier = null, params string[] roles)
     {
         var scope = _api.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MepDbContext>();
-        var r = await ConnexionUnique.Resoudre(db, c, new ConnexionUnique.Identite(Emetteur, sujet, identifiant, "Dana Martin", roles), lier, DateTimeOffset.UtcNow);
+        var r = await ConnexionUnique.Resoudre(db, c, new ConnexionUnique.Identite(Emetteur, sujet, identifiant, nom, roles), lier, DateTimeOffset.UtcNow);
         return (r, db, scope);
+    }
+
+    [Fact]
+    public async Task Une_premiere_connexion_dont_le_nom_reprend_celui_d_un_autre_compte_est_refusee_et_journalisee()
+    {
+        var c = new ConfigurationSso { Active = true, CreationAutomatique = true };
+        // « Alice » (nom affiché d'Alice, casse ignorée) puis « bob » (login de Bob) : refusés, aucun compte créé.
+        foreach (var (sujet, identifiant, nom) in new[] { ("oid-a2", "alice.autre@entreprise.fr", "alice"), ("oid-b2", "robert@entreprise.fr", "Bob") })
+        {
+            var (r, db, s) = await ResoudreNomme(c, sujet, identifiant, nom);
+            using (s)
+            {
+                Assert.Equal("nom-existant", r.Erreur);
+                Assert.Null(r.Compte);
+                Assert.False(await db.Utilisateurs.AnyAsync(u => u.Login == identifiant));
+                Assert.False(await db.IdentitesExternes.AnyAsync(x => x.Sujet == sujet));
+                Assert.Contains(await db.JournalAdmin.ToListAsync(), e => e.Type == "sso.refuse" && e.Detail.Contains(identifiant, StringComparison.Ordinal));
+            }
+        }
+        // Sans nom chez le fournisseur, le login sert de nom : accepté s'il est libre.
+        var (sansNom, _, s3) = await ResoudreNomme(c, "oid-c2", "camille@entreprise.fr", " ");
+        using (s3) Assert.Equal("camille@entreprise.fr", sansNom.Compte!.NomAffiche);
     }
 
     [Fact]

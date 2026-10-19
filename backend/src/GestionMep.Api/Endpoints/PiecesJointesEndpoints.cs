@@ -216,14 +216,13 @@ public static class PiecesJointesEndpoints
         api.MapDelete("/resolutions/{id:guid}/pieces-jointes/{pid:guid}", async (Guid id, Guid pid, ClaimsPrincipal user, MepDbContext db,
             StockagePiecesJointes stockage) =>
         {
-            if (!Acteur.Depuis(user).EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
             var piece = await db.PiecesJointes.FirstOrDefaultAsync(p => p.Id == pid && p.ResolutionTypeId == id)
                 ?? throw ErreurHttp.NonTrouve("Pièce jointe introuvable.");
             db.PiecesJointes.Remove(piece);
             await db.SaveChangesAsync();
             stockage.Supprimer(piece.Id);
             return Results.NoContent();
-        }).AccepterFichier(limiteDepot);
+        }).AccepterFichier(limiteDepot).ExigerAdmin();
 
         // ---------- Téléchargement ----------
         api.MapGet("/pieces-jointes/{pid:guid}/contenu", async (Guid pid, HttpContext ctx, MepDbContext db, StockagePiecesJointes stockage) =>

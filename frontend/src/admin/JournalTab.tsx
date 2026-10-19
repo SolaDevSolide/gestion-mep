@@ -32,6 +32,7 @@ export const LIBELLE_EVENEMENT_ADMIN: Record<string, string> = {
   'sso.desactive': 'Connexion unique désactivée',
   'sso.delie': 'Liaison supprimée',
   'sso.lie': 'Compte relié à la connexion unique',
+  'sso.refuse': 'Première connexion unique refusée',
   'donnees.controle-reussi': 'Contrôle des données réussi',
   'donnees.controle-echoue': 'Contrôle des données en échec',
   'demo.reinitialisee': 'Démonstration réinitialisée',

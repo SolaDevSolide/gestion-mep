@@ -22,7 +22,7 @@ import { etapesDuPlan, nomParticipant } from '../domaine';
 import { formatDate, formatJourLong, LIBELLE_CRITICITE, LIBELLE_ETAT } from '../format';
 import { useMep } from '../mepContext';
 import { useAutresPresents } from '../presence';
-import type { Criticite, Etape, Mep, Utilisateur } from '../types';
+import type { Criticite, Etape, Mep, CompteAnnuaire } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { BoutonIcone, Button, type TailleBouton } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
@@ -391,7 +391,7 @@ export function PilotageDialog({ open, onOpenChange }: DialogueProps) {
   const [ancienSuppleant, setAncienSuppleant] = useState(true);
   const [gardes, setGardes] = useState<string[]>([]);
   const [motif, setMotif] = useState('');
-  const [comptes, setComptes] = useState<Utilisateur[] | null>(null);
+  const [comptes, setComptes] = useState<CompteAnnuaire[] | null>(null);
   const [erreurComptes, setErreurComptes] = useState('');
   const simplifiee = estSimplifiee(mep);
   const ancien = nomParticipant(mep, mep.piloteId);

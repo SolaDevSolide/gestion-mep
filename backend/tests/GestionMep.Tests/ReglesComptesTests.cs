@@ -17,15 +17,15 @@ public class ReglesComptesTests
         Regles.Relier(sso, jean, [jean, sso, autre]);
         Assert.Equal(jean.Id, sso.ComptePrincipalId);
 
-        Assert.Throws<RegleMetierException>(() => Regles.Relier(sso, jean, [jean, sso]));
-        Assert.Throws<RegleMetierException>(() => Regles.Relier(autre, sso, [jean, sso, autre]));
-        var e = Assert.Throws<RegleMetierException>(() => Regles.Relier(jean, autre, [jean, sso, autre]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Relier(sso, jean, [jean, sso]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Relier(autre, sso, [jean, sso, autre]));
+        var e = Assert.ThrowsAny<RegleMetierException>(() => Regles.Relier(jean, autre, [jean, sso, autre]));
         Assert.Contains("compte principal de jean.sso", e.Message);
-        Assert.Throws<RegleMetierException>(() => Regles.Relier(autre, autre, [autre]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Relier(autre, autre, [autre]));
 
         Regles.Delier(sso);
         Assert.Null(sso.ComptePrincipalId);
-        Assert.Throws<RegleMetierException>(() => Regles.Delier(sso));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Delier(sso));
     }
 
     [Fact]
@@ -55,9 +55,9 @@ public class ReglesComptesTests
     {
         var existantes = new[] { new Equipe { Nom = "Exploitation" } };
         Assert.Equal("Réseau", Regles.NomEquipe("  Réseau ", existantes));
-        Assert.Throws<RegleMetierException>(() => Regles.NomEquipe("EXPLOITATION", existantes));
-        Assert.Throws<RegleMetierException>(() => Regles.NomEquipe(" ", existantes));
-        Assert.Throws<RegleMetierException>(() => Regles.NomEquipe(new string('x', Regles.LongueurMaxNomEquipe + 1), existantes));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.NomEquipe("EXPLOITATION", existantes));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.NomEquipe(" ", existantes));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.NomEquipe(new string('x', Regles.LongueurMaxNomEquipe + 1), existantes));
     }
 
     [Fact]
@@ -73,9 +73,9 @@ public class ReglesComptesTests
         mep.PiloteId = pilote.Id;
 
         Regles.ExigerApprobateursDistincts(mep, [claire.Id], annuaire);
-        var e = Assert.Throws<RegleMetierException>(() => Regles.ExigerApprobateursDistincts(mep, [sso.Id], annuaire));
+        var e = Assert.ThrowsAny<RegleMetierException>(() => Regles.ExigerApprobateursDistincts(mep, [sso.Id], annuaire));
         Assert.Contains("JEAN est le pilote", e.Message);
         mep.PiloteId = null;
-        Assert.Throws<RegleMetierException>(() => Regles.ExigerApprobateursDistincts(mep, [jean.Id, sso.Id], annuaire));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ExigerApprobateursDistincts(mep, [jean.Id, sso.Id], annuaire));
     }
 }

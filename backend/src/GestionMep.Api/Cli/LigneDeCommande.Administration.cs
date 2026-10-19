@@ -473,7 +473,7 @@ public static partial class LigneDeCommande
             Console.WriteLine($"Historique de {s.Nom} exporté dans {classeur}.");
             return 0;
         }
-        var h = await HistoriqueSystemes.Historique(db, s.Id, DateOnly.FromDateTime(ExcelCommun.Locale(DateTimeOffset.UtcNow, null)));
+        var h = await HistoriqueSystemes.Historique(db, s.Id, Fuseaux.Jour(DateTimeOffset.UtcNow, null));
         if (EnJson)
         {
             EcrireJson(h);

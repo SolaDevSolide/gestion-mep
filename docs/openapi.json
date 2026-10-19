@@ -147,31 +147,11 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/UtilisateurDto"
+                    "$ref": "#/components/schemas/CompteAnnuaireDto"
                   }
                 }
               }
             }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "GestionMep.Api"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UtilisateurSaisie"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
           }
         }
       }
@@ -180,39 +160,6 @@
       "put": {
         "tags": [
           "GestionMep.Api"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProfilSaisie"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/utilisateurs/{uid}/profil": {
-      "put": {
-        "tags": [
-          "GestionMep.Api"
-        ],
-        "parameters": [
-          {
-            "name": "uid",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
         ],
         "requestBody": {
           "content": {
@@ -5606,6 +5553,39 @@
         }
       }
     },
+    "/api/admin/utilisateurs/{id}/profil": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfilSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/admin/utilisateurs/{id}/desactiver": {
       "post": {
         "tags": [
@@ -6870,6 +6850,66 @@
         },
         "description": "Section Communication, remplacée en entier (champs absents : vides)."
       },
+      "CompteAnnuaireDto": {
+        "required": [
+          "id",
+          "login",
+          "nomAffiche",
+          "role",
+          "contact",
+          "expertises",
+          "actif",
+          "comptePrincipalId",
+          "nomPersonne",
+          "equipeIds"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "login": {
+            "type": "string"
+          },
+          "nomAffiche": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "contact": {
+            "type": "string"
+          },
+          "expertises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpertiseDto"
+            }
+          },
+          "actif": {
+            "type": "boolean"
+          },
+          "comptePrincipalId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "nomPersonne": {
+            "type": "string"
+          },
+          "equipeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "description": "Compte tel que le voit tout utilisateur connecté (`GET /api/utilisateurs`) : de quoi choisir une personne (participant,\napprobateur, nouveau pilote, recherche). Ni le rôle administrateur ni l'état du mot de passe, réservés à la console."
+      },
       "CompteDemoDto": {
         "required": [
           "login",
@@ -6984,7 +7024,7 @@
                 }
               }
             },
-            "description": "`ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom\naffiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre."
+            "description": "Compte complet : le sien (`/api/auth/moi`, profil) ou ceux de la console d'administration (`/api/admin/utilisateurs`).\n`ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom\naffiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre."
           },
           "motDePasseProvisoire": {
             "type": "string"
@@ -7869,6 +7909,44 @@
           }
         },
         "description": "Équipe créée ou modifiée ; `MembreIds` absent (null) : membres inchangés."
+      },
+      "ErreurDto": {
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "erreurs": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Corps de toute réponse d'erreur de l'API, au format « problem details » (RFC 9457, type `application/problem+json`) :\n`status` reprend le code HTTP, `title` sa nature (« Droits insuffisants »…), `detail` et `message` le\nmessage à afficher, en français ; `erreurs`, absent le plus souvent, liste chaque anomalie quand il y en a plusieurs."
       },
       "EtapeCorrectiveSaisie": {
         "required": [
@@ -23181,51 +23259,7 @@
             }
           }
         },
-        "description": "`ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom\naffiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre."
-      },
-      "UtilisateurSaisie": {
-        "required": [
-          "login",
-          "nomAffiche",
-          "motDePasse",
-          "estAdmin"
-        ],
-        "type": "object",
-        "properties": {
-          "login": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "nomAffiche": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "motDePasse": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "estAdmin": {
-            "type": "boolean"
-          },
-          "role": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "contact": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
+        "description": "Compte complet : le sien (`/api/auth/moi`, profil) ou ceux de la console d'administration (`/api/admin/utilisateurs`).\n`ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom\naffiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre."
       },
       "ValeurVariableDto": {
         "required": [

@@ -8,8 +8,8 @@ public static partial class Regles
     private static string Nettoyer(string? texte, string champ, bool obligatoire, int max = LongueurNomMax)
     {
         var t = (texte ?? "").Trim();
-        if (obligatoire && t.Length == 0) throw new RegleMetierException($"{champ} est obligatoire.");
-        if (t.Length > max) throw new RegleMetierException($"{champ} : {max} caractères au plus.");
+        if (obligatoire && t.Length == 0) throw new SaisieInvalideException($"{champ} est obligatoire.");
+        if (t.Length > max) throw new SaisieInvalideException($"{champ} : {max} caractères au plus.");
         return t;
     }
 
@@ -24,7 +24,7 @@ public static partial class Regles
         {
             var n = Nettoyer(nom, "Le nom de l'environnement", obligatoire: true, max: 100);
             if (liste.Any(e => e.Nom.Equals(n, StringComparison.OrdinalIgnoreCase)))
-                throw new RegleMetierException($"L'environnement « {n} » est en double.");
+                throw new SaisieInvalideException($"L'environnement « {n} » est en double.");
             liste.Add(new EnvironnementCatalogue { Nom = n, Cible = Nettoyer(cible, "La cible", obligatoire: false, max: 500), Production = production ?? NomDeProduction(n) });
         }
         systeme.Environnements = liste;
@@ -43,7 +43,7 @@ public static partial class Regles
         {
             var n = Nettoyer(nom, "Le nom de la catégorie", obligatoire: true, max: 100);
             if (noms.Any(x => x.Equals(n, StringComparison.OrdinalIgnoreCase)))
-                throw new RegleMetierException($"La catégorie « {n} » est en double.");
+                throw new SaisieInvalideException($"La catégorie « {n} » est en double.");
             noms.Add(n);
             var a = (ancien ?? "").Trim();
             var source = a.Length > 0 ? a : n;
@@ -56,7 +56,7 @@ public static partial class Regles
             .Select(o => new ObjetCatalogue { Id = o.Id, Categorie = renommages[o.Categorie], Type = o.Type, Nom = o.Nom, Libelle = o.Libelle, Precision = o.Precision })
             .ToList();
         foreach (var g in systeme.Objets.GroupBy(o => (o.Categorie.ToUpperInvariant(), o.Nom.ToUpperInvariant())).Where(g => g.Count() > 1))
-            throw new RegleMetierException($"Deux objets « {g.First().Nom} » se retrouveraient dans la catégorie {g.First().Categorie}.");
+            throw new SaisieInvalideException($"Deux objets « {g.First().Nom} » se retrouveraient dans la catégorie {g.First().Categorie}.");
         systeme.Categories = noms;
         return avant - systeme.Objets.Count;
     }
@@ -67,10 +67,10 @@ public static partial class Regles
     {
         var c = Nettoyer(categorie, "La catégorie", obligatoire: true, max: 100);
         var cat = systeme.Categories.FirstOrDefault(x => x.Equals(c, StringComparison.OrdinalIgnoreCase))
-            ?? throw new RegleMetierException($"La catégorie « {c} » n'existe pas dans la fiche {systeme.Nom} : l'ajouter d'abord.");
+            ?? throw new SaisieInvalideException($"La catégorie « {c} » n'existe pas dans la fiche {systeme.Nom} : l'ajouter d'abord.");
         var n = Nettoyer(nom, "Le nom de l'objet", obligatoire: true);
         if (systeme.Objets.Any(o => o.Id != id && o.Categorie == cat && o.Nom.Equals(n, StringComparison.OrdinalIgnoreCase)))
-            throw new RegleMetierException($"L'objet « {n} » existe déjà dans la catégorie {cat} de {systeme.Nom}.");
+            throw new SaisieInvalideException($"L'objet « {n} » existe déjà dans la catégorie {cat} de {systeme.Nom}.");
         var objet = new ObjetCatalogue
         {
             Id = id ?? Guid.NewGuid(), Categorie = cat, Type = Nettoyer(type, "Le type", obligatoire: false, max: 100), Nom = n,

@@ -93,6 +93,23 @@ public class ApiFixture : IDisposable
         return client;
     }
 
+    /// <summary>
+    /// Nouveau compte créé comme dans la console d'administration (mot de passe provisoire, par Alice), puis mot de passe
+    /// choisi par la personne : renvoie son client connecté, prêt à travailler.
+    /// </summary>
+    public async Task<HttpClient> NouveauCompte(string login, string nomAffiche, bool estAdmin = false, string motDePasse = "motdepasse",
+        string role = "", string contact = "")
+    {
+        var admin = await ClientConnecte("alice");
+        var creation = await admin.PostAsJsonAsync("/api/admin/utilisateurs", new { login, nomAffiche, estAdmin, role, contact });
+        var corps = await creation.Content.ReadAsStringAsync();
+        if (!creation.IsSuccessStatusCode) throw new InvalidOperationException($"Création du compte {login} : {(int)creation.StatusCode} {corps}");
+        var provisoire = System.Text.Json.JsonDocument.Parse(corps).RootElement.GetProperty("motDePasseProvisoire").GetString()!;
+        var client = await ClientConnecte(login, provisoire);
+        (await client.PostAsJsonAsync("/api/auth/mot-de-passe", new { ancien = provisoire, nouveau = motDePasse })).EnsureSuccessStatusCode();
+        return client;
+    }
+
     public void Dispose()
     {
         _racine.Dispose();

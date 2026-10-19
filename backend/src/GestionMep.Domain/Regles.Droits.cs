@@ -36,13 +36,13 @@ public static partial class Regles
         if (doublon is not null)
         {
             var nom = mep.Participants.FirstOrDefault(p => p.Id == doublon.Key)?.Nom ?? "Ce participant";
-            throw new RegleMetierException($"{nom} est déjà responsable technique : un participant n'apparaît qu'une fois.");
+            throw new SaisieInvalideException($"{nom} est déjà responsable technique : un participant n'apparaît qu'une fois.");
         }
         foreach (var r in liste)
         {
-            if (mep.Participants.All(p => p.Id != r.ParticipantId)) throw new RegleMetierException("Responsable technique : participant inconnu dans cette MEP.");
-            if (!Enum.IsDefined(r.Disponibilite)) throw new RegleMetierException("Responsable technique : disponibilité inconnue.");
-            if (r.SystemeIds.Any(s => mep.Systemes.All(x => x.Id != s))) throw new RegleMetierException("Responsable technique : système inconnu dans cette MEP.");
+            if (mep.Participants.All(p => p.Id != r.ParticipantId)) throw new SaisieInvalideException("Responsable technique : participant inconnu dans cette MEP.");
+            if (!Enum.IsDefined(r.Disponibilite)) throw new SaisieInvalideException("Responsable technique : disponibilité inconnue.");
+            if (r.SystemeIds.Any(s => mep.Systemes.All(x => x.Id != s))) throw new SaisieInvalideException("Responsable technique : système inconnu dans cette MEP.");
             r.SystemeIds = r.SystemeIds.Distinct().ToList();
             r.Perimetre = (r.Perimetre ?? "").Trim();
             r.ContactJourJ = (r.ContactJourJ ?? "").Trim();
@@ -58,9 +58,9 @@ public static partial class Regles
     {
         string Nom(Guid id) => mep.Participants.FirstOrDefault(p => p.Id == id)?.Nom ?? "ce participant";
         if (piloteId is { } pilote && suppleantIds.Contains(pilote))
-            throw new RegleMetierException($"{Nom(pilote)} est le pilote : il ne peut pas être aussi suppléant.");
+            throw new SaisieInvalideException($"{Nom(pilote)} est le pilote : il ne peut pas être aussi suppléant.");
         var doublon = suppleantIds.GroupBy(id => id).FirstOrDefault(g => g.Count() > 1);
-        if (doublon is not null) throw new RegleMetierException($"{Nom(doublon.Key)} est désigné deux fois comme suppléant.");
+        if (doublon is not null) throw new SaisieInvalideException($"{Nom(doublon.Key)} est désigné deux fois comme suppléant.");
     }
 
     /// <summary>

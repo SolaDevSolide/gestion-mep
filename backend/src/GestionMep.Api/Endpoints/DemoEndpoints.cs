@@ -26,7 +26,7 @@ public static class DemoEndpoints
         if (!Demonstration.Active(config))
         {
             // Hors démonstration : /api/demo… répond comme une route inconnue, connecté ou non (le reste de /api exige une session).
-            api.Map("/demo/{**reste}", () => Results.Json(new { message = "Route introuvable." }, statusCode: StatusCodes.Status404NotFound))
+            api.Map("/demo/{**reste}", () => ReponsesErreur.Resultat(StatusCodes.Status404NotFound, "Route introuvable."))
                 .AllowAnonymous().ExcludeFromDescription();
             return;
         }
@@ -47,7 +47,7 @@ public static class DemoEndpoints
             {
                 journal.LogWarning("Connexion rapide refusée depuis {Ip} : « {Login} » n'est pas un compte de démonstration.",
                     ip, login.Length > 64 ? login[..64] : login);
-                return Results.Json(new { message = MessageReserve }, statusCode: StatusCodes.Status403Forbidden);
+                return ReponsesErreur.Resultat(StatusCodes.Status403Forbidden, MessageReserve);
             }
             var resultat = await AuthEndpoints.Connecter(ctx, db, hasher, limiteur, login, DonneesDemo.MotDePasse, MessageMotDePasseChange);
             if (resultat is Ok<UtilisateurDto>) journal.LogInformation("Connexion rapide de démonstration : {Login} depuis {Ip}.", login, ip);
@@ -73,6 +73,6 @@ public static class DemoEndpoints
             journaux.CreateLogger("Demonstration").LogWarning("Démonstration réinitialisée par {Nom} : {Meps} MEP recréées, {Fichiers} fichier(s) supprimé(s).",
                 acteur.Nom, meps, fichiers);
             return new ReinitialisationDemoDto(meps, fichiers);
-        }).RequireAuthorization(AuthentificationLocale.PolitiqueAdmin);
+        }).ExigerAdmin();
     }
 }

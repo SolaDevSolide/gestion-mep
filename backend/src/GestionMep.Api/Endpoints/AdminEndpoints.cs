@@ -148,7 +148,7 @@ public static class AdminEndpoints
 
     public static void MapAdmin(this RouteGroupBuilder api)
     {
-        var admin = api.MapGroup("/admin").RequireAuthorization(AuthentificationLocale.PolitiqueAdmin);
+        var admin = api.MapGroup("/admin").ExigerAdmin();
 
         admin.MapGet("/utilisateurs", async (MepDbContext db) =>
             await Personnes.Comptes(db));
@@ -164,6 +164,14 @@ public static class AdminEndpoints
         {
             var u = await Charger(db, id);
             await Modifier(db, Acteur.Depuis(user), u, c);
+            return Results.Ok(await Dto(db, u));
+        });
+
+        // Profil d'un autre compte (rôle, contact, expertises, nom affiché facultatif) : mêmes règles que « Mon profil ».
+        admin.MapPut("/utilisateurs/{id:guid}/profil", async (Guid id, ProfilSaisie c, ClaimsPrincipal user, MepDbContext db) =>
+        {
+            var u = await Charger(db, id);
+            await AuthEndpoints.ModifierProfil(db, Acteur.Depuis(user), u, c);
             return Results.Ok(await Dto(db, u));
         });
 

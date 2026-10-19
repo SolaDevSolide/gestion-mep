@@ -98,9 +98,9 @@ public class RetourArriereFacultatifTests
         var apres = Maintenant.AddHours(2);
         Assert.False(Regles.AppliquerEcheance(m, apres));
         Assert.Equal(StatutDisponibilite.Disponible, Regles.Disponibilite(m, E(m, "E0004"), apres).Statut);
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Alice, "Incident", apres));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Alice, "Incident", apres));
         Assert.Equal("Cette MEP n'a pas de plan de retour arrière : tout problème se corrige en avant.", ex.Message);
-        Assert.Throws<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, null, Regles.MotifEcheance, apres));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, null, Regles.MotifEcheance, apres));
         Assert.Equal(Phase.Execution, m.Phase);
         Assert.False(Regles.RetourArrierePossible(m));
     }

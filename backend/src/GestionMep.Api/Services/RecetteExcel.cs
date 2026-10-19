@@ -131,7 +131,7 @@ public static class RecetteExcel
                     var fait = t.Resultat is not null;
                     var par = t.ValideePar.Length > 0 ? t.ValideePar : t.ParId is { } u && noms.TryGetValue(u, out var nom) ? nom : "";
                     if (fait && par.Length > 0) nomsSaisis.Add(par);
-                    DateOnly? date = t.ValideeLe ?? (t.Le is { } le ? DateOnly.FromDateTime(ExcelCommun.Locale(le, mep.FuseauHoraire)) : null);
+                    DateOnly? date = t.ValideeLe ?? (t.Le is { } le ? Fuseaux.Jour(le, mep.FuseauHoraire) : null);
                     lignes.Add(
                     [
                         TitreFiche(fiche), n + 1, deroule, BlocsMarkdown.ToutEnTexte(t.ResultatAttendu),

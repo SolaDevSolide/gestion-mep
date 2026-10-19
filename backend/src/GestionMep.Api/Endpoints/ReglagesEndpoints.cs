@@ -10,7 +10,7 @@ public static class ReglagesEndpoints
 {
     public static void MapReglages(this RouteGroupBuilder api)
     {
-        var admin = api.MapGroup("/admin/reglages").RequireAuthorization(AuthentificationLocale.PolitiqueAdmin);
+        var admin = api.MapGroup("/admin/reglages").ExigerAdmin();
 
         admin.MapGet("", (MepDbContext db, IConfiguration config) => Reglages.Lister(db, config));
 

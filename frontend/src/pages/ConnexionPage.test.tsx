@@ -62,6 +62,12 @@ describe('Page de connexion', () => {
     expect(await screen.findByText(/Un compte local porte déjà cet identifiant/)).toBeInTheDocument();
   });
 
+  it('explique le refus d’un nom déjà porté par un autre compte', async () => {
+    vi.mocked(api.optionsConnexion).mockResolvedValue({ ssoActif: true, ssoLibelle: null });
+    rendre('/connexion?erreur=nom-existant');
+    expect(await screen.findByText(/Un autre compte porte déjà le nom donné par Microsoft/)).toBeInTheDocument();
+  });
+
   it('affiche un message générique pour un code inconnu', async () => {
     vi.mocked(api.optionsConnexion).mockResolvedValue({ ssoActif: false, ssoLibelle: null });
     rendre('/connexion?erreur=bizarre');

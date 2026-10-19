@@ -35,11 +35,11 @@ public static class RecetteEndpoints
         if (!await db.SystemesCatalogue.AnyAsync(s => s.Id == id)) throw ErreurHttp.Saisie("Système du catalogue inconnu.");
     }
 
-    /// <summary>Contrôle le modèle (422 avec la liste des anomalies), puis note la date et l'auteur.</summary>
+    /// <summary>Contrôle le modèle (400 avec la liste des anomalies), puis note la date et l'auteur.</summary>
     private static void Valider(ModeleRecette m, Acteur acteur, DateTimeOffset maintenant)
     {
         var erreurs = Regles.ErreursModeleRecette(m);
-        if (erreurs.Count > 0) throw ErreurHttp.Regle(erreurs);
+        if (erreurs.Count > 0) throw ErreurHttp.Saisie(erreurs);
         m.ModifieLe = maintenant;
         m.ModifieParId = acteur.Id;
     }
@@ -170,13 +170,12 @@ public static class RecetteEndpoints
         api.MapDelete("/modeles-recette/{id:guid}", async (Guid id, ClaimsPrincipal user, MepDbContext db) =>
         {
             var acteur = Acteur.Depuis(user);
-            if (!acteur.EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
             var m = await TrouverModele(db, id);
             db.ModelesRecette.Remove(m);
             JournalAdmin.Ecrire(db, acteur, "modele-recette.supprime", $"Modèle de recette « {m.Titre} » supprimé de la bibliothèque");
             await db.SaveChangesAsync();
             return Results.NoContent();
-        });
+        }).ExigerAdmin();
 
         api.MapPost("/meps/{id:guid}/fiches-recette/depuis-modele", async (Guid id, InsertionModeleRecetteSaisie c, ClaimsPrincipal user, ServiceMep svc,
             MepDbContext db) =>

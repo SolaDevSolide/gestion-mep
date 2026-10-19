@@ -66,14 +66,14 @@ public static partial class Regles
 
     private static void ExigerSystemeDeLaMep(Mep mep, Guid systemeId)
     {
-        if (mep.Systemes.All(x => x.Id != systemeId)) throw new RegleMetierException("Système inconnu dans cette MEP.");
+        if (mep.Systemes.All(x => x.Id != systemeId)) throw new SaisieInvalideException("Système inconnu dans cette MEP.");
     }
 
     /// <summary>Saisie d'un résultat de recette : participant relié à un compte (pilote et suppléants compris) ou administrateur, en phase de recette.</summary>
     public static void ExigerSaisieRecette(Mep mep, Guid utilisateurId, bool estAdmin)
     {
         if (!estAdmin && !mep.Participants.Any(p => p.UtilisateurId == utilisateurId))
-            throw new RegleMetierException("Seuls les participants de la MEP reliés à un compte, le pilote ou un administrateur peuvent donner le résultat d'une recette.");
+            throw new DroitInsuffisantException("Seuls les participants de la MEP reliés à un compte, le pilote ou un administrateur peuvent donner le résultat d'une recette.");
         if (mep.Phase != Phase.Recette) throw new RegleMetierException("Les recettes se déroulent en phase de recette.");
     }
 
@@ -100,7 +100,7 @@ public static partial class Regles
     /// <summary>Le pilote fait refaire une étape de test (<paramref name="test"/> renseigné) ou toute la fiche : les résultats sont effacés.</summary>
     public static void RefaireRecette(Mep mep, FicheRecette fiche, EtapeTest? test, Guid utilisateurId)
     {
-        if (!EstPilote(mep, utilisateurId)) throw new RegleMetierException("Seul le pilote ou un suppléant peut faire refaire une recette.");
+        if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut faire refaire une recette.");
         if (mep.Phase != Phase.Recette) throw new RegleMetierException("Les recettes se refont en phase de recette.");
         var cibles = test is null ? fiche.Etapes.Where(t => t.Resultat is not null).ToList() : [test];
         if (test is { Resultat: null }) throw new RegleMetierException($"{NomRecette(fiche)}, étape {test.Ordre} pas encore validée.");

@@ -80,9 +80,9 @@ public class ReglesJalon3Tests
         var m = Demo();
         var alice = P(m, "Alice").Id;
         var bob = P(m, "Bob").Id;
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.VerifierSuppleants(m, alice, [bob, alice]));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.VerifierSuppleants(m, alice, [bob, alice]));
         Assert.Equal("Alice est le pilote : il ne peut pas être aussi suppléant.", ex.Message);
-        ex = Assert.Throws<RegleMetierException>(() => Regles.VerifierSuppleants(m, alice, [bob, bob]));
+        ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.VerifierSuppleants(m, alice, [bob, bob]));
         Assert.Equal("Bob est désigné deux fois comme suppléant.", ex.Message);
         Regles.VerifierSuppleants(m, alice, [bob, P(m, "Claire").Id]);
     }
@@ -92,8 +92,8 @@ public class ReglesJalon3Tests
     public void Type_sauvegarde_et_point_de_non_retour_refuses_sur_le_plan_de_retour_arriere()
     {
         var m = Demo();
-        Assert.Throws<RegleMetierException>(() => Regles.DefinirType(E(m, "R0001"), TypeEtape.Sauvegarde, false));
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.DefinirType(E(m, "R0001"), TypeEtape.Standard, true));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirType(E(m, "R0001"), TypeEtape.Sauvegarde, false));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirType(E(m, "R0001"), TypeEtape.Standard, true));
         Assert.Contains("retour arrière", ex.Message);
         Regles.DefinirType(E(m, "R0001"), TypeEtape.Standard, false);
     }
@@ -104,7 +104,7 @@ public class ReglesJalon3Tests
     {
         var m = Demo();
         Assert.Equal(["Il faut 1 approbation(s)."], Regles.ErreursApprobation(m, 1));
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.Decider(m, Bob, DecisionApprobation.Approuvee, "", Maintenant));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.Decider(m, Bob, DecisionApprobation.Approuvee, "", Maintenant));
         Assert.Contains("approbateur désigné", ex.Message);
         var a = Regles.Decider(m, Claire, DecisionApprobation.Approuvee, " RAS ", Maintenant);
         Assert.Equal(DecisionApprobation.Approuvee, a.Decision);
@@ -118,10 +118,10 @@ public class ReglesJalon3Tests
     public void Refus_exige_un_commentaire_et_bloque_le_plan()
     {
         var m = Demo();
-        Assert.Throws<RegleMetierException>(() => Regles.Decider(m, Claire, DecisionApprobation.Refusee, " ", Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Decider(m, Claire, DecisionApprobation.Refusee, " ", Maintenant));
         Regles.Decider(m, Claire, DecisionApprobation.Refusee, "Pas de test de charge", Maintenant);
         Assert.Contains("Claire a refusé : Pas de test de charge", Regles.ErreursPlan(m, Maintenant, 0));
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, Criteres.Select(c => c.Id).ToList(), Criteres, 0, Maintenant));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, Criteres.Select(c => c.Id).ToList(), Criteres, 0, Maintenant));
         Assert.Contains("Claire a refusé", ex.Message);
     }
 
@@ -130,22 +130,22 @@ public class ReglesJalon3Tests
     {
         var m = Demo();
         E(m, "E0004").Instructions = "";
-        var ex = Assert.Throws<RegleMetierException>(() => Approuver(m));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Approuver(m));
         Assert.Contains("E0004 : compléter Instructions exactes", ex.Message);
         E(m, "E0004").Instructions = "Lire la fiche";
         Go(m);
-        Assert.Throws<RegleMetierException>(() => Approuver(m));
+        Assert.ThrowsAny<RegleMetierException>(() => Approuver(m));
     }
 
     [Fact]
     public void Le_pilote_ne_peut_pas_etre_approbateur()
     {
         var m = Demo();
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.DefinirApprobateurs(m, [(Claire, "Claire"), (Alice, "Alice")]));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirApprobateurs(m, [(Claire, "Claire"), (Alice, "Alice")]));
         Assert.Contains("Alice est le pilote", ex.Message);
         // Si le pilote devient approbateur autrement (compte relié après coup), la décision est refusée et le plan le signale.
         m.Approbations.Add(new Approbation { UtilisateurId = Alice, Nom = "Alice" });
-        Assert.Throws<RegleMetierException>(() => Regles.Decider(m, Alice, DecisionApprobation.Approuvee, "", Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Decider(m, Alice, DecisionApprobation.Approuvee, "", Maintenant));
         Assert.Contains("Alice ne peut pas approuver : c'est le pilote.", Regles.ErreursApprobation(m, 1));
     }
 
@@ -188,7 +188,7 @@ public class ReglesJalon3Tests
         criteres.Add(new CritereGoNoGo { Ordre = 5, Libelle = "Critère retiré", Actif = false });
         var coches = criteres.Where(c => c.Actif).Select(c => c.Id).ToList();
 
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, coches.Skip(1).ToList(), criteres, 1, Maintenant));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, coches.Skip(1).ToList(), criteres, 1, Maintenant));
         Assert.Equal("Go impossible : cocher « Équipe présente et joignable ».", ex.Message);
         Assert.Equal(Phase.Preparation, m.Phase);
 
@@ -205,7 +205,7 @@ public class ReglesJalon3Tests
     public void Go_refuse_sans_approbation()
     {
         var m = Demo();
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, Criteres.Select(c => c.Id).ToList(), Criteres, 1, Maintenant));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, Criteres.Select(c => c.Id).ToList(), Criteres, 1, Maintenant));
         Assert.Contains("Il faut 1 approbation(s).", ex.Message);
     }
 
@@ -213,12 +213,12 @@ public class ReglesJalon3Tests
     public void No_go_par_le_pilote_avec_motif_en_preparation()
     {
         var m = Demo();
-        Assert.Throws<RegleMetierException>(() => Regles.NoGo(m, Claire, "Supervision absente"));
-        Assert.Throws<RegleMetierException>(() => Regles.NoGo(m, Alice, " "));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.NoGo(m, Claire, "Supervision absente"));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.NoGo(m, Alice, " "));
         Regles.NoGo(m, Alice, "Supervision absente");
         Assert.Equal(Phase.Preparation, m.Phase);
         Go(m);
-        Assert.Throws<RegleMetierException>(() => Regles.NoGo(m, Alice, "Trop tard"));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.NoGo(m, Alice, "Trop tard"));
     }
 
     // ---------- 5. Point de non-retour ----------
@@ -227,17 +227,17 @@ public class ReglesJalon3Tests
     {
         var m = Demo();
         Assert.True(E(m, "E0007").PointDeNonRetour);
-        Assert.Throws<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0007"), Alice, Maintenant)); // préparation
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0007"), Alice, Maintenant)); // préparation
         m = JusquAuNonRetour();
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0007"), Bob, Maintenant));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.Demarrer(m, E(m, "E0007"), Bob, Maintenant));
         Assert.Equal("Point de non-retour : l'accord du pilote est requis.", ex.Message);
-        Assert.Throws<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0007"), Claire, Maintenant));
-        Assert.Throws<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0008"), Alice, Maintenant)); // pas un point de non-retour
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0007"), Claire, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0008"), Alice, Maintenant)); // pas un point de non-retour
         Assert.False(Regles.NonRetourFranchi(m));
 
         Regles.AutoriserNonRetour(m, E(m, "E0007"), Bob, Maintenant); // suppléant
         Assert.Equal(Bob, E(m, "E0007").NonRetourAutoriseParId);
-        Assert.Throws<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0007"), Alice, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.AutoriserNonRetour(m, E(m, "E0007"), Alice, Maintenant));
         Assert.False(Regles.NonRetourFranchi(m));
         Regles.Demarrer(m, E(m, "E0007"), Bob, Maintenant);
         Assert.True(Regles.NonRetourFranchi(m));
@@ -265,9 +265,9 @@ public class ReglesJalon3Tests
     public void Apres_le_point_de_non_retour_aucun_retour_arriere()
     {
         var m = NonRetourFranchi();
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Alice, "Incident", Maintenant));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Alice, "Incident", Maintenant));
         Assert.Equal("Point de non-retour franchi (E0007) : corriger en avant.", ex.Message);
-        Assert.Throws<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, null, "Automatique", Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, null, "Automatique", Maintenant));
         Assert.Equal(Phase.Execution, m.Phase);
     }
 
@@ -306,15 +306,15 @@ public class ReglesJalon3Tests
     public void Recette_seulement_quand_tout_le_deploiement_est_reussi()
     {
         var m = Demo();
-        Assert.Throws<RegleMetierException>(() => Regles.PasserEnRecette(m, Alice, Maintenant)); // préparation
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnRecette(m, Alice, Maintenant)); // préparation
         Go(m);
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.PasserEnRecette(m, Alice, Maintenant));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnRecette(m, Alice, Maintenant));
         Assert.Equal("E0004 n'est pas réussie : recette impossible.", ex.Message);
         foreach (var e in m.EtapesDu(TypePlan.Deploiement)) e.Etat = EtatEtape.Reussie;
         Regles.PasserEnRecette(m, Bob, Maintenant);
         Assert.Equal(Phase.Recette, m.Phase);
         // Le déploiement est terminé : plus d'action sur ses étapes.
-        Assert.Throws<RegleMetierException>(() => Regles.AutoriserReprise(m, E(m, "E0005"), Alice, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.AutoriserReprise(m, E(m, "E0005"), Alice, Maintenant));
     }
 
     [Fact]
@@ -330,7 +330,7 @@ public class ReglesJalon3Tests
 
         m = EnRecette();
         E(m, "E0007").PointDeNonRetour = false;
-        Assert.Throws<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Claire, "Recette KO", Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Claire, "Recette KO", Maintenant));
         Regles.DeclencherRetourArriere(m, Alice, "Recette KO", Maintenant);
         Assert.Equal(Phase.RetourArriere, m.Phase);
         Assert.Equal(StatutDisponibilite.Disponible, Regles.Disponibilite(m, E(m, "R0001"), Maintenant).Statut);
@@ -346,7 +346,7 @@ public class ReglesJalon3Tests
         Regles.PasserEnRecette(m, Alice, Maintenant);
         Assert.False(Regles.AppliquerEcheance(m, m.EcheanceRepli!.Value.AddDays(1)));
         Assert.Equal(Phase.Recette, m.Phase);
-        Assert.Throws<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Alice, "Recette KO", Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DeclencherRetourArriere(m, Alice, "Recette KO", Maintenant));
     }
 
     [Fact]
@@ -355,7 +355,7 @@ public class ReglesJalon3Tests
         var m = Demo();
         Go(m);
         foreach (var e in m.EtapesDu(TypePlan.Deploiement)) e.Etat = EtatEtape.Reussie;
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
         Assert.StartsWith("Passer d'abord en recette", ex.Message);
     }
 
@@ -366,9 +366,9 @@ public class ReglesJalon3Tests
         var m = EnRecette();
         foreach (var f in m.FichesRecette)
             foreach (var t in f.Etapes) Regles.ValiderEtapeTest(m, f, t, ResultatControle.Conforme, "OK", Alice, false, Maintenant);
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant));
         Assert.Contains("Rien à signaler", ex.Message);
-        Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, new Bilan { CeQuiAMarche = "Tout", Incidents = " " }));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, new Bilan { CeQuiAMarche = "Tout", Incidents = " " }));
         Assert.Equal(Phase.Recette, m.Phase);
         Regles.Cloturer(m, Bob, Maintenant, new Bilan { CeQuiAMarche = " Tout ", Incidents = "Rien à signaler", Actions = "Aucune" });
         Assert.Equal("Tout", m.Bilan!.CeQuiAMarche);
@@ -486,7 +486,7 @@ public class ReglesJalon3Tests
         m.EcheanceRepli = j.Mep.EcheanceRepli;
         m.ProcedureRelueParId = Bob;
         Approuver(m);
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, Criteres.Select(c => c.Id).ToList(), Criteres, 1, Maintenant));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, Criteres.Select(c => c.Id).ToList(), Criteres, 1, Maintenant));
         Assert.StartsWith("Un modèle ne passe pas en exécution", ex.Message);
 
         // Dupliquer le modèle donne une MEP exécutable une fois complétée.

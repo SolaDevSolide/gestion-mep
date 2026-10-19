@@ -100,13 +100,6 @@ public static class VariablesTexte
     public static string Duree(int minutes) =>
         minutes < 60 ? $"{minutes} min" : minutes % 60 == 0 ? $"{minutes / 60} h" : $"{minutes / 60} h {minutes % 60:00}";
 
-    /// <summary>Instant dans le fuseau de la MEP (UTC si le fuseau est inconnu du serveur).</summary>
-    public static DateTime Local(DateTimeOffset instant, string fuseau)
-    {
-        try { return TimeZoneInfo.ConvertTime(instant, TimeZoneInfo.FindSystemTimeZoneById(fuseau)).DateTime; }
-        catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException or ArgumentException) { return instant.UtcDateTime; }
-    }
-
     private static string? Texte(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
     private static ValeurVariable V(string? texte) => new(Texte(texte), null);
@@ -148,8 +141,8 @@ public static class VariablesTexte
         DateTimeOffset? maintenant = null, int echecsSurvenus = 0)
     {
         var c = mep.Communication;
-        var go = mep.DemarrageAutoriseLe is { } g ? Local(g, mep.FuseauHoraire) : (DateTime?)null;
-        var fin = mep.ClotureeLe is { } f ? Local(f, mep.FuseauHoraire) : (DateTime?)null;
+        var go = mep.DemarrageAutoriseLe is { } g ? Fuseaux.Local(g, mep.FuseauHoraire) : (DateTime?)null;
+        var fin = mep.ClotureeLe is { } f ? Fuseaux.Local(f, mep.FuseauHoraire) : (DateTime?)null;
         string Instant(DateTime d) => $"{Jour(DateOnly.FromDateTime(d))} à {Heure(TimeOnly.FromDateTime(d))}";
         var pilote = mep.Participants.FirstOrDefault(p => p.Id == mep.PiloteId);
         var indispo = mep.IndisponibiliteMinutes is { } m and > 0 ? Duree(m) : null;
@@ -175,7 +168,7 @@ public static class VariablesTexte
             var f = Regles.EstimerFin(mep, m);
             if (f.FinEstimee is not { } fin || f.FinPrevue is not { } prevue) return null;
             var retard = f.RetardMinutes > 0 ? $", +{Duree(f.RetardMinutes)}" : "";
-            return $"{Heure(TimeOnly.FromDateTime(Local(fin, mep.FuseauHoraire)))} (prévue à {Heure(TimeOnly.FromDateTime(Local(prevue, mep.FuseauHoraire)))}{retard})";
+            return $"{Heure(TimeOnly.FromDateTime(Fuseaux.Local(fin, mep.FuseauHoraire)))} (prévue à {Heure(TimeOnly.FromDateTime(Fuseaux.Local(prevue, mep.FuseauHoraire)))}{retard})";
         }
 
         var valeurs = new Dictionary<string, ValeurVariable>

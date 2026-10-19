@@ -143,7 +143,7 @@ public class ReglesJalon4Tests
         Assert.Contains("Aucun système n'est sauvegardé.", Regles.Avertissements(m));
         Assert.Empty(Regles.ErreursSauvegarde(m));
         m.Phase = Phase.Execution;
-        Assert.Throws<RegleMetierException>(() => Regles.DefinirSauvegardeSysteme(m, S(m, "BDD"), StatutSauvegarde.Requise, ModeSauvegarde.AvantMep, "", ""));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirSauvegardeSysteme(m, S(m, "BDD"), StatutSauvegarde.Requise, ModeSauvegarde.AvantMep, "", ""));
     }
 
     // ---------- Fiches de recette : préparation ----------
@@ -182,12 +182,12 @@ public class ReglesJalon4Tests
         Assert.DoesNotContain(fiche.Etapes, t => t.Id == t1.Id);
         Assert.Equal([1, 2, 3], fiche.Etapes.Select(t => t.Ordre).ToArray());
 
-        Assert.Throws<RegleMetierException>(() => Regles.ModifierFicheRecette(m, fiche, Guid.NewGuid(), "x", []));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ModifierFicheRecette(m, fiche, Guid.NewGuid(), "x", []));
         Regles.SupprimerFicheRecette(m, m.FichesRecette[1]);
         Assert.Equal([1, 2, 3, 4], m.FichesRecette.Select(f => f.Ordre).ToArray());
         m.Phase = Phase.Execution;
-        Assert.Throws<RegleMetierException>(() => Regles.AjouterFicheRecette(m, S(m, "WEB").Id, "x"));
-        Assert.Throws<RegleMetierException>(() => Regles.SupprimerFicheRecette(m, fiche));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.AjouterFicheRecette(m, S(m, "WEB").Id, "x"));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.SupprimerFicheRecette(m, fiche));
     }
 
     // ---------- Fiches de recette : déroulé ----------
@@ -197,17 +197,17 @@ public class ReglesJalon4Tests
         var m = Demo();
         var fiche = m.FichesRecette[0];
         var t1 = fiche.Etapes[0];
-        Assert.Throws<RegleMetierException>(() => Regles.ValiderEtapeTest(m, fiche, t1, ResultatControle.Conforme, "OK", Claire, false, Maintenant)); // préparation
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ValiderEtapeTest(m, fiche, t1, ResultatControle.Conforme, "OK", Claire, false, Maintenant)); // préparation
         m = EnRecette();
         fiche = m.FichesRecette[0];
         (t1, var t2) = (fiche.Etapes[0], fiche.Etapes[1]);
 
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.ValiderEtapeTest(m, fiche, t1, ResultatControle.Conforme, "OK", Dave, false, Maintenant));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.ValiderEtapeTest(m, fiche, t1, ResultatControle.Conforme, "OK", Dave, false, Maintenant));
         Assert.Contains("participants", ex.Message);
-        Assert.Throws<RegleMetierException>(() => Regles.ValiderEtapeTest(m, fiche, t1, ResultatControle.Conforme, " ", Claire, false, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ValiderEtapeTest(m, fiche, t1, ResultatControle.Conforme, " ", Claire, false, Maintenant));
         Regles.ValiderEtapeTest(m, fiche, t1, ResultatControle.Conforme, " Page affichée ", Claire, false, Maintenant);
         Assert.Equal(("Page affichée", Claire, Maintenant), (t1.Observation, t1.ParId!.Value, t1.Le!.Value));
-        var deja = Assert.Throws<RegleMetierException>(() => Regles.ValiderEtapeTest(m, fiche, t1, ResultatControle.Echec, "Encore", Bob, false, Maintenant));
+        var deja = Assert.ThrowsAny<RegleMetierException>(() => Regles.ValiderEtapeTest(m, fiche, t1, ResultatControle.Echec, "Encore", Bob, false, Maintenant));
         Assert.Equal("Recette « Parcours de commande », étape 1 déjà validée : le pilote peut la faire refaire.", deja.Message);
         Regles.ValiderEtapeTest(m, fiche, t2, ResultatControle.Echec, "Erreur 500", Dave, true, Maintenant); // administrateur
     }
@@ -221,18 +221,18 @@ public class ReglesJalon4Tests
         var fiche = m.FichesRecette[0];
         var t2 = fiche.Etapes[1];
 
-        Assert.Throws<RegleMetierException>(() => Regles.RefaireRecette(m, fiche, t2, Claire));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.RefaireRecette(m, fiche, t2, Claire));
         Regles.RefaireRecette(m, fiche, t2, Alice);
         Assert.Null(t2.Resultat);
-        Assert.Throws<RegleMetierException>(() => Regles.RefaireRecette(m, fiche, t2, Alice)); // pas encore validée
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.RefaireRecette(m, fiche, t2, Alice)); // pas encore validée
         Regles.ValiderEtapeTest(m, fiche, t2, ResultatControle.Echec, "Erreur 500", Claire, false, Maintenant);
-        var refus = Assert.Throws<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
+        var refus = Assert.ThrowsAny<RegleMetierException>(() => Regles.Cloturer(m, Alice, Maintenant, BilanOk));
         Assert.Equal("Recette « Parcours de commande », étape 2 non conforme : clôture impossible.", refus.Message);
 
         // Toute la fiche à refaire (suppléant).
         Regles.RefaireRecette(m, fiche, null, Bob);
         Assert.All(fiche.Etapes, t => Assert.Null(t.Resultat));
-        Assert.Throws<RegleMetierException>(() => Regles.RefaireRecette(m, fiche, null, Bob)); // rien de validé
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.RefaireRecette(m, fiche, null, Bob)); // rien de validé
         foreach (var t in fiche.Etapes) Regles.ValiderEtapeTest(m, fiche, t, ResultatControle.Conforme, "OK", Claire, false, Maintenant);
         Regles.Cloturer(m, Alice, Maintenant, BilanOk);
         Assert.Equal(IssueMep.Reussie, m.Issue);

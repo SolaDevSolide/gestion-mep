@@ -91,12 +91,12 @@ public class ApiJalon31Tests : IDisposable
         {
             version = Version(mep), responsables = new[] { new { participantId = bob, disponibilite = "Joignable" }, new { participantId = bob, disponibilite = "Absent" } },
         });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, doublon.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, doublon.StatusCode);
         var inconnu = await alice.PutAsJsonAsync($"/api/meps/{id}/responsables-techniques", new
         {
             version = Version(mep), responsables = new[] { new { participantId = Guid.NewGuid(), disponibilite = "Joignable" } },
         });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, inconnu.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, inconnu.StatusCode);
         var perimee = await alice.PutAsJsonAsync($"/api/meps/{id}/responsables-techniques", new { version = Version(mep) - 1, responsables = Array.Empty<object>() });
         Assert.Equal(HttpStatusCode.Conflict, perimee.StatusCode);
         var sansDispo = await alice.PutAsJsonAsync($"/api/meps/{id}/responsables-techniques", new
@@ -119,9 +119,7 @@ public class ApiJalon31Tests : IDisposable
     public async Task Un_non_editeur_recoit_403_avec_un_message_clair_sur_toutes_les_modifications_de_contenu()
     {
         var (alice, id, mep) = await Demo();
-        Assert.Equal(HttpStatusCode.Created, (await alice.PostAsJsonAsync("/api/utilisateurs",
-            new { login = "dave", nomAffiche = "Dave", motDePasse = "motdepasse", estAdmin = false })).StatusCode);
-        var dave = await _api.ClientConnecte("dave", "motdepasse");
+        var dave = await _api.NouveauCompte("dave", "Dave");
         const string attendu = "Seuls les responsables techniques, le pilote, ses suppléants ou un administrateur peuvent modifier cette MEP.";
 
         var requetes = new List<Task<HttpResponseMessage>>
@@ -235,8 +233,7 @@ public class ApiJalon31Tests : IDisposable
 
         // Un non-participant qui duplique devient responsable technique de sa copie (il peut donc la modifier).
         var modele = (await Ok(await alice.GetAsync("/api/meps?modele=true"))).EnumerateArray().Single().GetProperty("id").GetGuid();
-        await alice.PostAsJsonAsync("/api/utilisateurs", new { login = "dave", nomAffiche = "Dave", motDePasse = "motdepasse", estAdmin = false });
-        var dave = await _api.ClientConnecte("dave", "motdepasse");
+        var dave = await _api.NouveauCompte("dave", "Dave");
         var depuisModele = await Ok(await dave.PostAsJsonAsync($"/api/meps/{modele}/dupliquer", new { commeModele = false }));
         Assert.Equal("déploiement API standard", depuisModele.GetProperty("outil").GetString());
         Assert.True(depuisModele.GetProperty("droits").GetProperty("estResponsableTechnique").GetBoolean());

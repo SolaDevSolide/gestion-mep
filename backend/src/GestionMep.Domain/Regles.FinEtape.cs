@@ -5,7 +5,7 @@ public static partial class Regles
 {
     public static void DefinirFin(Etape etape, FinEtape fin)
     {
-        if (!Enum.IsDefined(fin)) throw new RegleMetierException("Fin d'étape inconnue : test unitaire ou simple vérification.");
+        if (!Enum.IsDefined(fin)) throw new SaisieInvalideException("Fin d'étape inconnue : test unitaire ou simple vérification.");
         etape.Fin = fin;
     }
 

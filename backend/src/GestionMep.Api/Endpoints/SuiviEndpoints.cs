@@ -17,21 +17,6 @@ public static class SuiviEndpoints
     private static readonly TimeSpan DureeFlux = TimeSpan.FromHours(1);
     private static readonly Phase[] PhasesEnCours = [Phase.Execution, Phase.Recette, Phase.RetourArriere];
 
-    /// <summary>Instant d'une date et d'une heure (minuit sans heure) dans le fuseau de la MEP (UTC si le fuseau est inconnu).</summary>
-    private static DateTimeOffset Instant(DateOnly date, TimeOnly? heure, string fuseau)
-    {
-        var local = date.ToDateTime(heure ?? TimeOnly.MinValue, DateTimeKind.Unspecified);
-        try
-        {
-            var tz = TimeZoneInfo.FindSystemTimeZoneById(fuseau);
-            return new DateTimeOffset(local, tz.GetUtcOffset(local));
-        }
-        catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException or ArgumentException)
-        {
-            return new DateTimeOffset(local, TimeSpan.Zero);
-        }
-    }
-
     /// <summary>Tableau de bord : MEP lancées (vues par <paramref name="utilisateurId"/>), prévues aujourd'hui et demain, clôturées depuis 24 h.</summary>
     public static async Task<SuiviDto> Suivi(MepDbContext db, ServiceMep svc, Guid utilisateurId)
     {
@@ -55,8 +40,8 @@ public static class SuiviEndpoints
                 m.FuseauHoraire, Pilote = m.Participants.Where(p => p.Id == m.PiloteId).Select(p => p.Nom).FirstOrDefault(),
             }).ToListAsync();
         var prevues = annoncees
-            .Select(m => (Jour: DateOnly.FromDateTime(VariablesTexte.Local(maintenant, m.FuseauHoraire)),
-                Dto: new MepPrevueDto(m.Id, m.Outil, m.VersionCible, m.Type, m.Date, m.Heure, Instant(m.Date, m.Heure, m.FuseauHoraire), m.FuseauHoraire, m.Pilote)))
+            .Select(m => (Jour: Fuseaux.Jour(maintenant, m.FuseauHoraire),
+                Dto: new MepPrevueDto(m.Id, m.Outil, m.VersionCible, m.Type, m.Date, m.Heure, Fuseaux.Instant(m.Date, m.Heure, m.FuseauHoraire), m.FuseauHoraire, m.Pilote)))
             .OrderBy(x => x.Dto.Debut).ThenBy(x => x.Dto.Outil, StringComparer.CurrentCultureIgnoreCase).ToList();
         // Prochaine : la première à venir (sans heure annoncée, tant que son jour n'est pas passé).
         var prochaine = prevues.FirstOrDefault(x => x.Dto.Heure is null ? x.Dto.Date >= x.Jour : x.Dto.Debut >= maintenant).Dto;

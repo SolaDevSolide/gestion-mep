@@ -32,9 +32,8 @@ public class DroitsAccesTests : IDisposable
 
     private async Task<HttpClient> Compte(HttpClient admin, string login, bool estAdmin)
     {
-        Assert.Equal(HttpStatusCode.Created, (await admin.PostAsJsonAsync("/api/utilisateurs",
-            new { login, nomAffiche = char.ToUpper(login[0]) + login[1..], motDePasse = "motdepasse", estAdmin })).StatusCode);
-        return await _api.ClientConnecte(login, "motdepasse");
+        _ = admin;
+        return await _api.NouveauCompte(login, char.ToUpper(login[0]) + login[1..], estAdmin);
     }
 
     [Fact]

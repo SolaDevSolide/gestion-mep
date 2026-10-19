@@ -207,7 +207,18 @@ public static partial class ConnexionUnique
             if (!c.CreationAutomatique) return new(null, "compte-inconnu");
             var login = AuthentificationLocale.NormaliserLogin(id.Identifiant);
             if (await db.Utilisateurs.AnyAsync(x => x.Login == login)) return new(null, "login-existant");
-            u = new Utilisateur { Login = login, NomAffiche = id.Nom.Trim().Length > 0 ? id.Nom.Trim() : login, MotDePasseHash = "" };
+            var nom = id.Nom.Trim().Length > 0 ? id.Nom.Trim() : login;
+            // Le nom affiché signe les journaux : comme pour un compte local, il ne reprend pas celui d'un autre compte. La
+            // personne fait créer son compte par un administrateur (sous un nom qui la distingue), puis le lie depuis son profil.
+            if (!await AuthentificationLocale.NomDisponible(db, nom, null))
+            {
+                JournalAdmin.Ecrire(db, null, "sso.refuse",
+                    $"Première connexion de {id.Identifiant} refusée : le nom « {nom} » donné par le fournisseur est déjà le nom ou le login d'un autre compte",
+                    JournalAdmin.AuteurApplication);
+                await db.SaveChangesAsync();
+                return new(null, "nom-existant");
+            }
+            u = new Utilisateur { Login = login, NomAffiche = nom, MotDePasseHash = "" };
             db.Utilisateurs.Add(u);
             lien = new IdentiteExterne { UtilisateurId = u.Id, Emetteur = id.Emetteur, Sujet = id.Sujet, CreeeLe = maintenant };
             db.IdentitesExternes.Add(lien);

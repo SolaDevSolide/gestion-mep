@@ -58,7 +58,7 @@ public static class ExportsExcelEndpoints
     /// <summary>Historique des MEP d'un système du catalogue en classeur Excel (route et <c>gestion-mep systemes historique --excel</c>).</summary>
     public static async Task<Fichier> Historique(MepDbContext db, Guid systemeId, DateTimeOffset maintenant, PaletteExcel? palette = null)
     {
-        var h = await HistoriqueSystemes.Historique(db, systemeId, DateOnly.FromDateTime(ExcelCommun.Locale(maintenant, null)));
+        var h = await HistoriqueSystemes.Historique(db, systemeId, Fuseaux.Jour(maintenant, null));
         return new(VuesExcel.Historique(h, maintenant, palette), VuesExcel.NomFichierHistorique(h.Nom, maintenant));
     }
 

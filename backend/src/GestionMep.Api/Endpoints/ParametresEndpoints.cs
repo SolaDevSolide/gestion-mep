@@ -12,11 +12,6 @@ public static class ParametresEndpoints
 {
     private static CritereGoNoGoDto Dto(CritereGoNoGo c) => new(c.Id, c.Libelle, c.Ordre, c.Actif);
 
-    private static void ExigerAdmin(ClaimsPrincipal user)
-    {
-        if (!Acteur.Depuis(user).EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
-    }
-
     private static string Libelle(string? libelle)
     {
         var l = ServiceMep.Texte(libelle);
@@ -80,31 +75,27 @@ public static class ParametresEndpoints
 
         api.MapPut("/parametres", async (ParametresSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             return Results.Ok(new ParametresDto(await EnregistrerApprobations(db, c.ApprobationsMinimum, Acteur.Depuis(user))));
-        });
+        }).ExigerAdmin();
 
         // ---------- Critères go / no-go ----------
         api.MapGet("/criteres-go-no-go", async (MepDbContext db) => (await ListerCriteres(db)).AsEnumerable());
 
         api.MapPost("/criteres-go-no-go", async (CritereGoNoGoSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             var critere = await CreerCritere(db, Acteur.Depuis(user), c);
             return Results.Created($"/api/criteres-go-no-go/{critere.Id}", critere);
-        });
+        }).ExigerAdmin();
 
         api.MapPut("/criteres-go-no-go/{id:guid}", async (Guid id, CritereGoNoGoSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             return Results.Ok(await ModifierCritere(db, Acteur.Depuis(user), id, c));
-        });
+        }).ExigerAdmin();
 
         api.MapDelete("/criteres-go-no-go/{id:guid}", async (Guid id, ClaimsPrincipal user, MepDbContext db) =>
         {
-            ExigerAdmin(user);
             await SupprimerCritere(db, Acteur.Depuis(user), id);
             return Results.NoContent();
-        });
+        }).ExigerAdmin();
     }
 }

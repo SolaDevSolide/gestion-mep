@@ -1,7 +1,21 @@
 namespace GestionMep.Domain;
 
-/// <summary>Refus d'une opération par une règle métier. Le message est destiné à l'utilisateur.</summary>
+/// <summary>
+/// Refus d'une opération par une règle métier (HTTP 422) : la demande est valide, mais l'état actuel la refuse. Le message
+/// est destiné à l'utilisateur.
+/// </summary>
 public class RegleMetierException(string message) : Exception(message);
+
+/// <summary>
+/// Refus faute de droits (HTTP 403) : le compte n'a pas le rôle exigé (pilote, suppléant, exécutant, participant,
+/// administrateur…), quel que soit l'état de la MEP.
+/// </summary>
+public class DroitInsuffisantException(string message) : RegleMetierException(message);
+
+/// <summary>
+/// Saisie invalide en elle-même (HTTP 400) : champ obligatoire vide, trop long, valeur ou référence inconnue, doublon.
+/// </summary>
+public class SaisieInvalideException(string message) : RegleMetierException(message);
 
 public enum StatutDisponibilite
 {

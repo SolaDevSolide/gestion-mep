@@ -93,7 +93,7 @@ public class ApiObjetsImpactesTests : IDisposable
         Assert.Equal(["Production"], Environnements(Systeme(mep, "BDD")));
 
         var inconnu = await alice.PutAsJsonAsync($"/api/meps/{id}/systemes/{bdd}/environnements", new { noms = new[] { "Formation" } });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, inconnu.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, inconnu.StatusCode);
         mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/systemes/{bdd}/environnements", new { noms = new[] { "Préproduction", "Production" } }));
         Assert.Equal(["Préproduction", "Production"], Environnements(Systeme(mep, "BDD")));
 
@@ -115,7 +115,7 @@ public class ApiObjetsImpactesTests : IDisposable
         var envEtape = mep.GetProperty("etapes").EnumerateArray().Single(x => x.GetProperty("id").GetGuid() == etape.GetProperty("id").GetGuid())
             .GetProperty("environnements");
         Assert.Equal("Préproduction", Assert.Single(envEtape.EnumerateArray(), e => e.GetProperty("systemeId").GetGuid() == bdd).GetProperty("nom").GetString());
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PutAsJsonAsync(url, Saisie(mep, [new { systemeId = bdd, nom = "Recette" }]))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PutAsJsonAsync(url, Saisie(mep, [new { systemeId = bdd, nom = "Recette" }]))).StatusCode);
 
         // Retirer l'environnement du système alors que l'étape le garde : erreur bloquante.
         mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/systemes/{bdd}/environnements", new { noms = new[] { "Production" } }));
@@ -148,7 +148,7 @@ public class ApiObjetsImpactesTests : IDisposable
         Assert.Equal(["clients", "v_clients_actifs"], Objets(mep, bdd).Select(o => o.GetProperty("nom").GetString()!).Order(StringComparer.Ordinal).ToArray());
         Assert.Equal("Vues", Objets(mep, bdd).Single(o => o.GetProperty("nom").GetString() == "v_clients_actifs").GetProperty("categorie").GetString());
         var inconnu = await alice.PutAsJsonAsync($"/api/meps/{id}/systemes/{bdd}/objets", new { objets = new[] { new { objetCatalogueId = Guid.NewGuid(), version = "" } } });
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, inconnu.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, inconnu.StatusCode);
 
         // Modèle vide : consignes, onglet de saisie (lignes vides à remplir), catalogue, listes masquées.
         var modele = await alice.GetAsync($"/api/meps/{id}/objets/excel?modele=true");

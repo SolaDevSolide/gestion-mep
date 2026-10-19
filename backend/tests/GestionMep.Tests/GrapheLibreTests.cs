@@ -84,7 +84,7 @@ public class GrapheLibreTests
         Regles.Delier(m, TypePlan.Deploiement, a.Id, Entree(s).Id);
         Assert.Equal(["E0001"], P(m, b));
         // Un préalable qui ne vient que d'un cercle ne se retire pas directement.
-        var ex = Assert.Throws<RegleMetierException>(() => Regles.Delier(m, TypePlan.Deploiement, b.Id, d.Id));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Regles.Delier(m, TypePlan.Deploiement, b.Id, d.Id));
         Assert.Equal("E0004 attend E0002 par un cercle de section : délier le cercle.", ex.Message);
     }
 
@@ -92,14 +92,14 @@ public class GrapheLibreTests
     public void Les_liens_impossibles_sont_refuses()
     {
         var (m, a, b, _, d, e, s, t) = Plan();
-        Assert.Throws<RegleMetierException>(() => Relier(m, b.Id, Entree(s).Id)); // étape de la section vers son entrée
-        Assert.Throws<RegleMetierException>(() => Relier(m, Entree(s).Id, a.Id)); // entrée vers une étape hors section
-        Assert.Throws<RegleMetierException>(() => Relier(m, d.Id, Sortie(s).Id)); // sortie qui attendrait une étape d'ailleurs
-        Assert.Throws<RegleMetierException>(() => Relier(m, Sortie(t).Id, d.Id)); // étape qui attendrait sa propre sortie
-        Assert.Throws<RegleMetierException>(() => Relier(m, Entree(s).Id, Sortie(s).Id));
-        Assert.Throws<RegleMetierException>(() => Relier(m, Sortie(s).Id, Entree(s).Id));
-        Assert.Throws<RegleMetierException>(() => Relier(m, e.Id, e.Id));
-        Assert.Throws<RegleMetierException>(() => Relier(m, Guid.NewGuid(), e.Id));
+        Assert.ThrowsAny<RegleMetierException>(() => Relier(m, b.Id, Entree(s).Id)); // étape de la section vers son entrée
+        Assert.ThrowsAny<RegleMetierException>(() => Relier(m, Entree(s).Id, a.Id)); // entrée vers une étape hors section
+        Assert.ThrowsAny<RegleMetierException>(() => Relier(m, d.Id, Sortie(s).Id)); // sortie qui attendrait une étape d'ailleurs
+        Assert.ThrowsAny<RegleMetierException>(() => Relier(m, Sortie(t).Id, d.Id)); // étape qui attendrait sa propre sortie
+        Assert.ThrowsAny<RegleMetierException>(() => Relier(m, Entree(s).Id, Sortie(s).Id));
+        Assert.ThrowsAny<RegleMetierException>(() => Relier(m, Sortie(s).Id, Entree(s).Id));
+        Assert.ThrowsAny<RegleMetierException>(() => Relier(m, e.Id, e.Id));
+        Assert.ThrowsAny<RegleMetierException>(() => Relier(m, Guid.NewGuid(), e.Id));
     }
 
     [Fact]
@@ -111,16 +111,16 @@ public class GrapheLibreTests
         var revision = s.Revision;
 
         // D (dans T, qui attend la sortie de S) vers l'entrée de S : B attendrait D qui attend B.
-        var ex = Assert.Throws<RegleMetierException>(() => Relier(m, d.Id, Entree(s).Id));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Relier(m, d.Id, Entree(s).Id));
         Assert.StartsWith("Opération refusée : elle créerait un cycle", ex.Message);
         Assert.Equal(sources, Entree(s).Sources);
         Assert.Equal(revision, s.Revision);
         foreach (var e in m.Etapes) Assert.Equal(avant[e.Code], (string.Join(",", P(m, e)), string.Join(",", D(m, e)), e.Revision));
 
         // Cycle direct, et préalable saisi dans la fiche.
-        Assert.Throws<RegleMetierException>(() => Relier(m, d.Id, b.Id));
-        Assert.Throws<RegleMetierException>(() => Regles.DefinirDependances(m, b, [d.Id]));
-        Assert.Throws<RegleMetierException>(() => Regles.DefinirDependances(m, b, [b.Id]));
+        Assert.ThrowsAny<RegleMetierException>(() => Relier(m, d.Id, b.Id));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirDependances(m, b, [d.Id]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirDependances(m, b, [b.Id]));
         foreach (var e in m.Etapes) Assert.Equal(avant[e.Code], (string.Join(",", P(m, e)), string.Join(",", D(m, e)), e.Revision));
     }
 
@@ -165,10 +165,10 @@ public class GrapheLibreTests
         Assert.Equal([z.Id], Entree(s).Sources);
         Assert.Equal(["E0008"], P(m, y));
 
-        var ex = Assert.Throws<RegleMetierException>(() => Ajouter(m, new(EntreDe: a.Id, EntreVers: c.Id)));
+        var ex = Assert.ThrowsAny<RegleMetierException>(() => Ajouter(m, new(EntreDe: a.Id, EntreVers: c.Id)));
         Assert.StartsWith("Lien introuvable", ex.Message);
-        Assert.Throws<RegleMetierException>(() => Ajouter(m, new(Apres: a.Id, ParalleleA: b.Id)));
-        Assert.Throws<RegleMetierException>(() => Ajouter(m, new(EntreDe: a.Id)));
+        Assert.ThrowsAny<RegleMetierException>(() => Ajouter(m, new(Apres: a.Id, ParalleleA: b.Id)));
+        Assert.ThrowsAny<RegleMetierException>(() => Ajouter(m, new(EntreDe: a.Id)));
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public class GrapheLibreTests
         Assert.Equal(["E0002", "E0003", "E0006"], P(m, e));
         // Rangée juste à droite de B.
         Assert.Equal((b.Ligne, b.Ordre + 1), (x.Ligne, x.Ordre));
-        Assert.Throws<RegleMetierException>(() => Ajouter(m, new(ParalleleA: Entree(s).Id)));
+        Assert.ThrowsAny<RegleMetierException>(() => Ajouter(m, new(ParalleleA: Entree(s).Id)));
     }
 
     [Fact]
@@ -231,10 +231,10 @@ public class GrapheLibreTests
         Regles.DeplacerEtape(m, b, new(EntreDe: a.Id, EntreVers: d.Id));
         Assert.Equal(["E0001"], P(m, b));
         Assert.Equal(["E0002"], P(m, d));
-        Assert.Throws<RegleMetierException>(() => Regles.DeplacerEtape(m, b, new()));
-        Assert.Throws<RegleMetierException>(() => Regles.DeplacerEtape(m, b, new(Apres: b.Id)));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DeplacerEtape(m, b, new()));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DeplacerEtape(m, b, new(Apres: b.Id)));
         // Plus de règle « un lien descend toujours » : seul le cycle compte.
-        Assert.Throws<RegleMetierException>(() => Regles.DeplacerEtape(m, a, new(Apres: Guid.NewGuid())));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DeplacerEtape(m, a, new(Apres: Guid.NewGuid())));
     }
 
     [Fact]
@@ -255,7 +255,7 @@ public class GrapheLibreTests
         Assert.DoesNotContain(c.Id, Sortie(s).Etapes);
         Assert.Contains(b.Id, Sortie(s).Etapes);
         Assert.Empty(P(m, c));
-        Assert.Throws<RegleMetierException>(() => Regles.DeplacerEtape(m, c, new(), s.Id, sortirDeSection: true));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DeplacerEtape(m, c, new(), s.Id, sortirDeSection: true));
         Assert.Null(Regles.ErreurGraphe(m, TypePlan.Deploiement));
         _ = a;
     }
@@ -318,8 +318,8 @@ public class GrapheLibreTests
         Assert.Equal((1, 0), (s2.Ordre, s3.Ordre));
         Regles.ModifierPort(m, s, s2, "Fin", "");
         Assert.Equal(revision + 2, s.Revision);
-        Assert.Throws<RegleMetierException>(() => Regles.OrdonnerPorts(m, s, SensPort.Sortie, [s3.Id]));
-        Assert.Throws<RegleMetierException>(() => Regles.ModifierPort(m, s, s2, " ", ""));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.OrdonnerPorts(m, s, SensPort.Sortie, [s3.Id]));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ModifierPort(m, s, s2, " ", ""));
         _ = a;
     }
 
@@ -335,7 +335,7 @@ public class GrapheLibreTests
         Assert.Contains("Section « Contrôles », cercle d'entrée « Début » : aucune étape n'y est reliée.", Regles.Avertissements(m));
         Assert.Contains("Section « Contrôles », cercle d'entrée « Début » : rien n'y arrive.", Regles.Avertissements(m));
         Assert.Contains("Section « Contrôles », cercle de sortie « Fin » : aucune étape n'y est reliée.", Regles.Avertissements(m));
-        Assert.Throws<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, DonneesDemo.CriteresGoNoGo().Select(c => c.Id).ToList(),
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, DonneesDemo.CriteresGoNoGo().Select(c => c.Id).ToList(),
             DonneesDemo.CriteresGoNoGo(), 1, Maintenant));
 
         Assert.True(Regles.PlacerSection(m, s, true));
@@ -347,8 +347,8 @@ public class GrapheLibreTests
         m.RetourArriereActive = false;
         Assert.DoesNotContain(Regles.ErreursPlan(m, Maintenant, 1), x => x.Contains("Repli", StringComparison.Ordinal));
 
-        Assert.Throws<RegleMetierException>(() => Regles.CreerSection(m, TypePlan.Deploiement, " ", "", [], Alice, Maintenant, true));
-        Assert.Throws<RegleMetierException>(() => Regles.CreerSection(m, TypePlan.Deploiement, "X", "", [Guid.NewGuid()], Alice, Maintenant, true));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.CreerSection(m, TypePlan.Deploiement, " ", "", [], Alice, Maintenant, true));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.CreerSection(m, TypePlan.Deploiement, "X", "", [Guid.NewGuid()], Alice, Maintenant, true));
         Regles.RetirerSystemeDesSections(m, m.Systemes[0].Id);
         Assert.Empty(s.SystemeIds);
     }
@@ -377,7 +377,7 @@ public class GrapheLibreTests
         Assert.False(b.APlacer);
         Assert.Equal(["E0002"], P(m, c));
         Assert.Equal(["E0001"], P(m, b));
-        Assert.Throws<RegleMetierException>(() => Regles.PlacerEtape(m, b, new(Apres: a.Id)));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PlacerEtape(m, b, new(Apres: a.Id)));
 
         // Posée à part depuis le bac : dans le graphe, sans lien.
         Regles.RetirerDuPlan(m, c);
@@ -440,7 +440,7 @@ public class GrapheLibreTests
             .Where(x => x.Contains("placer", StringComparison.Ordinal)));
         Regles.RetirerDuPlan(m, m.EtapesDu(TypePlan.Deploiement).Single(x => x.Code == "E0002"));
         Assert.Contains("Étapes à placer : E0002, E0004 sont dans le bac, les placer dans le plan ou les supprimer.", Regles.ErreursPlan(m, Maintenant, 1));
-        Assert.Throws<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, DonneesDemo.CriteresGoNoGo().Select(c => c.Id).ToList(),
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnExecution(m, Alice, DonneesDemo.CriteresGoNoGo().Select(c => c.Id).ToList(),
             DonneesDemo.CriteresGoNoGo(), 1, Maintenant));
     }
 
@@ -449,13 +449,13 @@ public class GrapheLibreTests
     {
         var (m, a, b, _, _, _, s, _) = Plan();
         m.Phase = Phase.Execution;
-        Assert.Throws<RegleMetierException>(() => Ajouter(m));
-        Assert.Throws<RegleMetierException>(() => Regles.DeplacerEtape(m, b, new(Apres: a.Id)));
-        Assert.Throws<RegleMetierException>(() => Relier(m, a.Id, b.Id));
-        Assert.Throws<RegleMetierException>(() => Regles.SupprimerSection(m, s));
-        Assert.Throws<RegleMetierException>(() => Regles.AjouterPort(m, s, SensPort.Entree, "X", ""));
-        Assert.Throws<RegleMetierException>(() => Regles.ModifierSection(m, s, "X", "", []));
-        Assert.Throws<RegleMetierException>(() => Regles.RetirerDuPlan(m, b));
+        Assert.ThrowsAny<RegleMetierException>(() => Ajouter(m));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DeplacerEtape(m, b, new(Apres: a.Id)));
+        Assert.ThrowsAny<RegleMetierException>(() => Relier(m, a.Id, b.Id));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.SupprimerSection(m, s));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.AjouterPort(m, s, SensPort.Entree, "X", ""));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.ModifierSection(m, s, "X", "", []));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.RetirerDuPlan(m, b));
     }
 
     [Fact]

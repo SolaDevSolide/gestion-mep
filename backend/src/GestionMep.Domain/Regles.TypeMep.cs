@@ -10,10 +10,12 @@ public static partial class Regles
 
     /// <summary>
     /// Suppléants du pilote, qui ont les mêmes droits que lui. MEP complète : ceux qui ont été choisis. MEP simplifiée : toutes
-    /// les personnes de la MEP sauf le pilote, dans l'ordre de la liste des personnes (aucune tant que le pilote n'est pas désigné).
+    /// les personnes de la MEP sauf le pilote, dans l'ordre de la liste des personnes (aucune tant que le pilote n'est pas désigné),
+    /// hormis les administrateurs ajoutés d'office en démarrant une étape ou en prenant la main (<see cref="Participant.AjouteDOffice"/>) :
+    /// ils ne sont qu'exécutants.
     /// </summary>
     public static List<Guid> Suppleants(Mep mep) => EstSimplifiee(mep)
-        ? mep.PiloteId is null ? [] : mep.Participants.Where(p => p.Id != mep.PiloteId).Select(p => p.Id).ToList()
+        ? mep.PiloteId is null ? [] : mep.Participants.Where(p => p.Id != mep.PiloteId && !p.AjouteDOffice).Select(p => p.Id).ToList()
         : [.. mep.SuppleantIds];
 
     /// <summary>

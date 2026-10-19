@@ -109,7 +109,7 @@ public class ReglesBibliothequesTests
     public void Le_retour_arriere_refuse_une_etape_modele_de_sauvegarde()
     {
         var jeu = Jeu();
-        Assert.Throws<RegleMetierException>(() => InsererEtapeModele(jeu.Mep, Modele(Cat(jeu, "BDD")), TypePlan.RetourArriere, new(), null, []));
+        Assert.ThrowsAny<RegleMetierException>(() => InsererEtapeModele(jeu.Mep, Modele(Cat(jeu, "BDD")), TypePlan.RetourArriere, new(), null, []));
         var normale = Modele(Cat(jeu, "BDD"));
         normale.Type = TypeEtape.Standard;
         var (etape, _) = InsererEtapeModele(jeu.Mep, normale, TypePlan.RetourArriere, new(), null, []);

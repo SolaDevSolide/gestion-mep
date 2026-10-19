@@ -61,14 +61,14 @@ public static class AuthEndpoints
     public static async Task<IResult> Connecter(HttpContext ctx, MepDbContext db, IPasswordHasher<Utilisateur> hasher, LimiteurConnexion limiteur,
         string login, string? motDePasse, string refus = MessageIdentifiantsIncorrects)
     {
-        var reponseRefus = Results.Json(new { message = refus }, statusCode: 401);
+        var reponseRefus = ReponsesErreur.Resultat(401, refus);
         if (!LimiteurConnexion.SaisieAdmissible(login, motDePasse)) return reponseRefus;
         var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "inconnue";
         if (limiteur.BloqueJusqua(login, ip) is not null)
-            return Results.Json(new { message = "Trop d'échecs de connexion pour ce compte. Réessayez dans quelques minutes." }, statusCode: 429);
+            return ReponsesErreur.Resultat(429, "Trop d'échecs de connexion pour ce compte. Réessayez dans quelques minutes.");
         var (execute, u) = await limiteur.Calculer(() => AuthentificationLocale.Verifier(db, hasher, login, motDePasse), ctx.RequestAborted);
         if (!execute)
-            return Results.Json(new { message = "Serveur très sollicité. Réessayez dans un instant." }, statusCode: 503);
+            return ReponsesErreur.Resultat(503, "Serveur très sollicité. Réessayez dans un instant.");
         if (u is null)
         {
             if (limiteur.Echec(login, ip) && await db.Utilisateurs.FirstOrDefaultAsync(x => x.Login == login) is { } cible)
@@ -80,7 +80,7 @@ public static class AuthEndpoints
             return reponseRefus;
         }
         limiteur.Reussite(login, ip);
-        if (!u.Actif) return Results.Json(new { message = "Ce compte est désactivé. Contactez un administrateur." }, statusCode: 403);
+        if (!u.Actif) return ReponsesErreur.Resultat(403, "Ce compte est désactivé. Contactez un administrateur.");
         await AuthentificationLocale.Ouvrir(ctx, u);
         return Results.Ok(await Dto(db, u));
     }
@@ -99,7 +99,7 @@ public static class AuthEndpoints
             var acteur = Acteur.Depuis(user);
             var u = await db.Utilisateurs.FirstOrDefaultAsync(x => x.Id == acteur.Id) ?? throw new ErreurHttp(401, "Session expirée.");
             if (hasher.VerifyHashedPassword(u, u.MotDePasseHash, corps.Ancien ?? "") == PasswordVerificationResult.Failed)
-                throw ErreurHttp.Regle(["Le mot de passe actuel est incorrect."]);
+                throw ErreurHttp.Saisie("Le mot de passe actuel est incorrect.");
             AuthentificationLocale.ValiderNouveauMotDePasse(corps.Nouveau, corps.Ancien);
             u.MotDePasseHash = hasher.HashPassword(u, corps.Nouveau!);
             u.DoitChangerMotDePasse = false;
@@ -121,33 +121,11 @@ public static class AuthEndpoints
             var acteur = Acteur.Depuis(user);
             var u = await db.Utilisateurs.AsNoTracking().FirstOrDefaultAsync(x => x.Id == acteur.Id);
             // Compte supprimé depuis l'émission du cookie : la session n'est plus valable.
-            return u is null ? Results.Json(new { message = "Session expirée." }, statusCode: 401) : Results.Ok(await Dto(db, u));
+            return u is null ? ReponsesErreur.Resultat(401, "Session expirée.") : Results.Ok(await Dto(db, u));
         });
 
-        api.MapGet("/utilisateurs", async (MepDbContext db) =>
-            await Personnes.Comptes(db));
-
-        api.MapPost("/utilisateurs", async (UtilisateurSaisie corps, ClaimsPrincipal user, MepDbContext db, IPasswordHasher<Utilisateur> hasher) =>
-        {
-            var acteur = Acteur.Depuis(user);
-            if (!acteur.EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
-            var login = AuthentificationLocale.NormaliserLogin(corps.Login);
-            var nom = ServiceMep.Texte(corps.NomAffiche);
-            AuthentificationLocale.ExigerLoginValide(login);
-            if (nom.Length == 0) throw ErreurHttp.Saisie("Le nom affiché est obligatoire.");
-            await AuthentificationLocale.ExigerNomDisponible(db, nom, null);
-            if ((corps.MotDePasse ?? "").Length < 8) throw ErreurHttp.Saisie("Le mot de passe doit contenir au moins 8 caractères.");
-            if (await db.Utilisateurs.AnyAsync(u => u.Login == login)) throw ErreurHttp.Saisie("Ce login existe déjà.");
-            var nouveau = new Utilisateur
-            {
-                Login = login, NomAffiche = nom, EstAdmin = corps.EstAdmin, Role = ServiceMep.Texte(corps.Role), Contact = ServiceMep.Texte(corps.Contact),
-            };
-            nouveau.MotDePasseHash = hasher.HashPassword(nouveau, corps.MotDePasse!);
-            db.Utilisateurs.Add(nouveau);
-            JournalAdmin.Ecrire(db, acteur, "compte.cree", $"Compte {JournalAdmin.Compte(nouveau)} créé{(nouveau.EstAdmin ? ", administrateur" : "")}");
-            await db.SaveChangesAsync();
-            return Results.Created($"/api/utilisateurs/{nouveau.Id}", await Dto(db, nouveau));
-        });
+        // Annuaire des comptes, ouvert à tous : sans le rôle administrateur ni l'état du mot de passe (console : /api/admin/utilisateurs).
+        api.MapGet("/utilisateurs", async (MepDbContext db) => await Personnes.Annuaire(db));
 
         // Chacun gère son propre profil ; le nom affiché du cookie est rafraîchi.
         api.MapPut("/utilisateurs/moi/profil", async (ProfilSaisie corps, ClaimsPrincipal user, HttpContext ctx, MepDbContext db) =>
@@ -162,15 +140,6 @@ public static class AuthEndpoints
                 JournalAdmin.Ecrire(db, acteur, "compte.renomme", $"{ancien} ({u.Login}) s'affiche désormais « {u.NomAffiche} »");
             await db.SaveChangesAsync();
             await AuthentificationLocale.Ouvrir(ctx, u);
-            return Results.Ok(await Dto(db, u));
-        });
-
-        api.MapPut("/utilisateurs/{uid:guid}/profil", async (Guid uid, ProfilSaisie corps, ClaimsPrincipal user, MepDbContext db) =>
-        {
-            var acteur = Acteur.Depuis(user);
-            if (!acteur.EstAdmin) throw ErreurHttp.Interdit("Réservé aux administrateurs.");
-            var u = await db.Utilisateurs.FirstOrDefaultAsync(x => x.Id == uid) ?? throw ErreurHttp.NonTrouve("Utilisateur introuvable.");
-            await ModifierProfil(db, acteur, u, corps);
             return Results.Ok(await Dto(db, u));
         });
     }

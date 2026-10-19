@@ -61,9 +61,9 @@ public class EquipesEtComptesTests : IDisposable
 
         // Nom déjà pris (sans tenir compte de la casse), nom vide, compte inconnu.
         var doublon = await alice.PostAsJsonAsync("/api/admin/equipes", new { nom = "exploitation" });
-        Assert.Equal((HttpStatusCode)422, doublon.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, doublon.StatusCode);
         Assert.Equal("L'équipe « exploitation » existe déjà.", await Message(doublon));
-        Assert.Equal((HttpStatusCode)422, (await alice.PostAsJsonAsync("/api/admin/equipes", new { nom = "  " })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync("/api/admin/equipes", new { nom = "  " })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PostAsJsonAsync("/api/admin/equipes", new { nom = "X", membreIds = new[] { Guid.NewGuid() } })).StatusCode);
 
         // Lecture pour tous ; une personne appartient à plusieurs équipes (bob est aussi dans l'équipe de démonstration).

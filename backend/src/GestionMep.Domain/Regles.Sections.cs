@@ -10,14 +10,14 @@ public static partial class Regles
     private static string TitreSection(string titre)
     {
         var t = titre.Trim();
-        return t.Length == 0 ? throw new RegleMetierException("Le titre de la section est obligatoire.") : t;
+        return t.Length == 0 ? throw new SaisieInvalideException("Le titre de la section est obligatoire.") : t;
     }
 
     /// <summary>Systèmes de la MEP, sans doublon (les autres sont refusés).</summary>
     private static List<Guid> SystemesDeLaMep(Mep mep, IEnumerable<Guid> systemeIds)
     {
         var ids = systemeIds.Distinct().ToList();
-        if (ids.Any(id => mep.Systemes.All(s => s.Id != id))) throw new RegleMetierException("Système inconnu dans cette MEP.");
+        if (ids.Any(id => mep.Systemes.All(s => s.Id != id))) throw new SaisieInvalideException("Système inconnu dans cette MEP.");
         return ids;
     }
 
@@ -104,7 +104,7 @@ public static partial class Regles
     {
         ExigerPreparation(mep);
         var t = titre.Trim();
-        if (t.Length == 0) throw new RegleMetierException("Le titre du cercle est obligatoire.");
+        if (t.Length == 0) throw new SaisieInvalideException("Le titre du cercle est obligatoire.");
         port.Titre = t;
         port.Description = description.Trim();
         section.Revision++;
@@ -129,7 +129,7 @@ public static partial class Regles
         ExigerPreparation(mep);
         var ports = section.Ports.Where(p => p.Sens == sens).ToList();
         if (ordre.Count != ports.Count || ordre.Distinct().Count() != ordre.Count || ports.Any(p => !ordre.Contains(p.Id)))
-            throw new RegleMetierException("Donner tous les cercles de ce bord, chacun une fois.");
+            throw new SaisieInvalideException("Donner tous les cercles de ce bord, chacun une fois.");
         foreach (var p in ports) p.Ordre = ordre.ToList().IndexOf(p.Id);
         section.Revision++;
     }

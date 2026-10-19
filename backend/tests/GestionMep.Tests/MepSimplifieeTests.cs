@@ -42,6 +42,36 @@ public class MepSimplifieeTests
     }
 
     [Fact]
+    public void Un_administrateur_ajoute_d_office_n_est_qu_executant_meme_dans_une_mep_simplifiee()
+    {
+        var m = Simplifiee().Mep;
+        var eve = new Participant { MepId = m.Id, Nom = "Eve", Role = "Exécutant", UtilisateurId = Dave, AjouteDOffice = true };
+        m.Participants.Add(eve);
+        Assert.DoesNotContain(eve.Id, Regles.Suppleants(m));
+        Assert.False(Regles.EstPilote(m, Dave));
+        // Bob et Claire, personnes de la MEP, restent suppléants implicites.
+        Assert.True(Regles.EstPilote(m, Bob) && Regles.EstPilote(m, Claire));
+        // Passée en complète, elle n'est pas reprise parmi les suppléants choisis.
+        Regles.PasserEnComplete(m);
+        Assert.DoesNotContain(eve.Id, m.SuppleantIds);
+    }
+
+    [Fact]
+    public void Designe_pilote_l_administrateur_ajoute_d_office_devient_une_personne_a_part_entiere()
+    {
+        var m = Simplifiee().Mep;
+        Go(m);
+        var eve = new Participant { MepId = m.Id, Nom = "Eve", Role = "Prise en main", UtilisateurId = Dave, AjouteDOffice = true };
+        m.Participants.Add(eve);
+        Regles.ChangerPilote(m, Dave, estAdmin: true, eve, ancienPiloteSuppleant: true, null, "Alice injoignable", Maintenant, out var secours);
+        Assert.True(secours);
+        Assert.False(eve.AjouteDOffice);
+        // Relevée par Alice, Eve reste suppléante implicite.
+        Regles.ChangerPilote(m, Alice, estAdmin: false, m.Participants.Single(p => p.UtilisateurId == Alice), true, null, "De retour", Maintenant, out _);
+        Assert.Contains(eve.Id, Regles.Suppleants(m));
+    }
+
+    [Fact]
     public void Complete_par_defaut()
     {
         Assert.Equal(TypeMep.Complete, new Mep().Type);
@@ -72,7 +102,7 @@ public class MepSimplifieeTests
         // Le reste est conservé : instructions, résultats attendus, tests unitaires, retour arrière.
         Assert.All(m.Etapes, e => Assert.NotEmpty(e.ResultatAttendu));
         Assert.NotEmpty(m.EtapesDu(TypePlan.RetourArriere));
-        Assert.Throws<RegleMetierException>(() => Regles.PasserEnSimplifiee(m));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnSimplifiee(m));
     }
 
     [Fact]
@@ -145,7 +175,7 @@ public class MepSimplifieeTests
         Go(m);
         var exec = Regles.DemarrerResolution(m, e5, api, Claire, Maintenant);
         Assert.Equal(api.Titre, exec.Titre);
-        Assert.Throws<RegleMetierException>(() => Regles.DemarrerResolution(m, e5, bdd, Bob, Maintenant));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.DemarrerResolution(m, e5, bdd, Bob, Maintenant));
     }
 
     [Fact]
@@ -158,16 +188,16 @@ public class MepSimplifieeTests
         Assert.Equal(suppleants, m.SuppleantIds);
         // Criticité réclamée pour toutes les étapes, comme pour toute MEP complète.
         Assert.Contains(Regles.ErreursContenu(m, Maintenant), e => e.EndsWith("compléter Criticité.", StringComparison.Ordinal));
-        Assert.Throws<RegleMetierException>(() => Regles.PasserEnComplete(m));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnComplete(m));
     }
 
     [Fact]
     public void Type_modifiable_seulement_en_preparation_et_jamais_pour_un_modele()
     {
         var j = DonneesDemo.Creer(Alice, Bob, Claire, Maintenant);
-        Assert.Throws<RegleMetierException>(() => Regles.PasserEnSimplifiee(j.Modele));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnSimplifiee(j.Modele));
         Go(j.Mep);
-        Assert.Throws<RegleMetierException>(() => Regles.PasserEnSimplifiee(j.Mep));
+        Assert.ThrowsAny<RegleMetierException>(() => Regles.PasserEnSimplifiee(j.Mep));
     }
 
     [Fact]

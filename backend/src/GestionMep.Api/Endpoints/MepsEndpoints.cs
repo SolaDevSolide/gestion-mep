@@ -14,14 +14,6 @@ public static class MepsEndpoints
     /// <summary>Durée d'un flux temps réel avant renouvellement par le navigateur.</summary>
     private static readonly TimeSpan DureeFlux = TimeSpan.FromHours(1);
 
-    /// <summary>Date d'un instant dans le fuseau de la MEP (UTC si le fuseau est inconnu) ; null si l'instant est absent.</summary>
-    private static DateOnly? DateLocale(DateTimeOffset? instant, string fuseau)
-    {
-        if (instant is not { } i) return null;
-        try { return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(i, TimeZoneInfo.FindSystemTimeZoneById(fuseau)).DateTime); }
-        catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException or ArgumentException) { return DateOnly.FromDateTime(i.UtcDateTime); }
-    }
-
     /// <summary>
     /// Liste des MEP, les plus récemment créées d'abord (partagée avec <c>gestion-mep meps lister</c>). <paramref name="modele"/> :
     /// true, modèles seulement ; false, MEP seulement ; null, tout. Filtres et tri de la recherche : <see cref="FiltreMeps"/>.
@@ -48,7 +40,7 @@ public static class MepsEndpoints
                 NbEchecs = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
                 Systemes = m.Systemes.Select(s => new { s.Id, s.Nom, s.CatalogueId, s.Environnements }).ToList(),
                 m.EstModele, m.CreeLe, m.RetourArriereActive, m.Type, m.Report, m.Annulation,
-                Participants = m.Participants.Select(p => new { p.Id, p.Nom, p.UtilisateurId }).ToList(),
+                Participants = m.Participants.Select(p => new { p.Id, p.Nom, p.UtilisateurId, p.AjouteDOffice }).ToList(),
                 Executants = m.Etapes.Where(e => e.ExecutantId != null).Select(e => e.ExecutantId).Distinct().ToList(),
                 // Étapes à rattacher aux échecs survenus (code → systèmes).
                 Etapes = m.Etapes.Select(e => new { e.Code, e.SystemeIds }).ToList(),
@@ -64,7 +56,7 @@ public static class MepsEndpoints
             var reduite = new Mep
             {
                 Type = m.Type, PiloteId = m.PiloteId, SuppleantIds = m.SuppleantIds, ResponsablesTechniques = m.ResponsablesTechniques,
-                Participants = [.. m.Participants.Select(p => new Participant { Id = p.Id, Nom = p.Nom, UtilisateurId = p.UtilisateurId })],
+                Participants = [.. m.Participants.Select(p => new Participant { Id = p.Id, Nom = p.Nom, UtilisateurId = p.UtilisateurId, AjouteDOffice = p.AjouteDOffice })],
                 Etapes = [.. m.Executants.Select(x => new Etape { ExecutantId = x })],
             };
             var rolesParticipants = Regles.RolesDesParticipants(reduite);
@@ -77,7 +69,7 @@ public static class MepsEndpoints
             }
             foreach (var p in m.Participants.Where(p => p.UtilisateurId != null)) De(p.UtilisateurId!.Value).UnionWith(rolesParticipants[p.Id]);
             foreach (var a in m.Approbations) De(a.UtilisateurId).Add(RoleMep.Approbateur);
-            var go = DateLocale(m.DemarrageAutoriseLe, m.FuseauHoraire);
+            var go = m.DemarrageAutoriseLe is { } g ? Fuseaux.Jour(g, m.FuseauHoraire) : (DateOnly?)null;
             return new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, go, m.Phase,
                 m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs,
                 m.Systemes.Any(s => s.Environnements.Any(e => e.Production)), m.EstModele, m.CreeLe, m.Issue,
@@ -86,7 +78,7 @@ public static class MepsEndpoints
                 [.. m.Participants.Select(p => p.Nom).Concat(comptes.SelectMany(annuaire.TermesDeRecherche)).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)],
                 m.Type,
                 // dateMep : date du Go (la date saisie n'existe plus depuis le jalon 4.2).
-                Regles.EtatDe(m.Phase, m.Issue, codes.Count, m.Report is not null), go ?? DateLocale(m.CreeLe, m.FuseauHoraire)!.Value,
+                Regles.EtatDe(m.Phase, m.Issue, codes.Count, m.Report is not null), go ?? Fuseaux.Jour(m.CreeLe, m.FuseauHoraire),
                 m.DemarrageAutoriseLe, m.ClotureeLe, codes.Count,
                 [.. m.Systemes.Select(s => new SystemeResumeDto(s.CatalogueId, s.Nom,
                     [.. s.Environnements.Select(e => new EnvironnementSystemeDto(e.Nom, e.Production))], EchecsDu(s.Id)))],
@@ -169,7 +161,10 @@ public static class MepsEndpoints
             foreach (var s in suppleants) ServiceMep.TrouverParticipant(mep, s, "Suppléant");
             var outil = ServiceMep.Texte(corps.Outil);
             if (outil.Length == 0) throw ErreurHttp.Saisie("L'outil est obligatoire.");
-            var fuseau = ServiceMep.Texte(corps.FuseauHoraire);
+            // Fuseau absent ou vide : inchangé ; sinon un identifiant IANA connu (un identifiant Windows est converti).
+            var saisieFuseau = ServiceMep.Texte(corps.FuseauHoraire);
+            var fuseau = saisieFuseau.Length == 0 ? "" : Fuseaux.Normaliser(saisieFuseau)
+                ?? throw ErreurHttp.Saisie($"Fuseau horaire inconnu : « {saisieFuseau} ». Indiquer un identifiant IANA, par exemple {Fuseaux.ParDefaut}.");
 
             // Champs d'identité : ne sont appliqués qu'en préparation.
             var modifs = new List<(string Nom, Action Appliquer)>();

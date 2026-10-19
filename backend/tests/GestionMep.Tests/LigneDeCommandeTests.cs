@@ -1,4 +1,6 @@
+using System.Net.Http.Json;
 using System.Text.Json;
+using GestionMep.Api.Auth;
 using GestionMep.Api.Cli;
 using GestionMep.Api.Donnees;
 using GestionMep.Api.Endpoints;
@@ -444,6 +446,79 @@ public class LigneDeCommandeTests : IDisposable
             Assert.Contains("semble en marche", refus.Erreur);
         }
         Assert.Equal(0, (await Cli("comptes", "lister")).Code);
+    }
+
+    [Fact]
+    public async Task Les_commandes_sso_reglent_activent_listent_et_delient_comme_la_console()
+    {
+        var afficher = await Cli("sso", "afficher");
+        Assert.Equal(0, afficher.Code);
+        Assert.Contains("Connexion unique   : désactivée", afficher.Sortie);
+        Assert.Contains("À compléter", afficher.Sortie);
+        // Réglages incomplets : le test s'arrête avant tout appel au fournisseur ; l'activation est refusée.
+        var test = await Cli("sso", "tester");
+        Assert.Equal(1, test.Code);
+        Assert.Contains("[erreur] Réglages complets", test.Sortie);
+        Assert.Equal(1, (await Cli("sso", "activer")).Code);
+        Assert.Equal(2, (await Cli("sso", "configurer", "--inconnue", "x")).Code);
+        Assert.Equal(2, (await Cli("sso", "configurer")).Code);
+        Assert.Equal(1, (await Cli("sso", "configurer", "--creation-auto", "peut-etre")).Code);
+        // Annuaire ouvert à tous : refusé, comme dans la console.
+        var ouvert = await Cli("sso", "configurer", "--annuaire", "common", "--client", "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        Assert.Equal(1, ouvert.Code);
+        Assert.Contains("tous les comptes Microsoft", ouvert.Erreur);
+
+        var configurer = await Cli("sso", "configurer", "--annuaire", "entreprise.onmicrosoft.com", "--client", "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+            "--creation-auto", "non", "--role-admin", "MEP.Admin", "--expiration", "2099-01-31", "--libelle", "Se connecter avec l'entreprise");
+        Assert.Equal(0, configurer.Code);
+        Assert.Contains("Réglages enregistrés.", configurer.Sortie);
+        var json = (await Cli("sso", "afficher", "--json")).Json;
+        Assert.Equal("entreprise.onmicrosoft.com", json.GetProperty("annuaire").GetString());
+        Assert.Equal("MEP.Admin", json.GetProperty("roleAdmin").GetString());
+        Assert.False(json.GetProperty("creationAutomatique").GetBoolean());
+        Assert.False(json.GetProperty("secretEnregistre").GetBoolean());
+        Assert.True(await Journalise("sso.regle", "entreprise.onmicrosoft.com"));
+        // « aucun » retire le rôle d'application.
+        Assert.Equal(0, (await Cli("sso", "configurer", "--role-admin", "aucun")).Code);
+        Assert.Equal("", (await Cli("sso", "afficher", "--json")).Json.GetProperty("roleAdmin").GetString());
+
+        // Secret enregistré par la console (mêmes clés que la ligne de commande) : l'activation passe.
+        var alice = await _api.ClientConnecte("alice");
+        var reglages = await AidesApi.Ok(await alice.GetAsync("/api/admin/sso"));
+        await AidesApi.Ok(await alice.PutAsJsonAsync("/api/admin/sso", new
+        {
+            fournisseur = "Microsoft", annuaire = reglages.GetProperty("annuaire").GetString(), autorite = "", clientId = reglages.GetProperty("clientId").GetString(),
+            secret = "secret-de-test", secretExpireLe = "2099-01-31", creationAutomatique = false, roleAdmin = "", libelle = "",
+        }));
+        Assert.Contains("enregistré (chiffré)", (await Cli("sso", "afficher")).Sortie);
+        Assert.Equal(0, (await Cli("sso", "activer")).Code);
+        Assert.Contains("Connexion unique   : activée", (await Cli("sso", "afficher")).Sortie);
+        Assert.True(await Journalise("sso.active", "Connexion unique activée"));
+
+        // Comptes reliés, puis liaison supprimée.
+        Assert.Contains("Aucun compte relié.", (await Cli("sso", "comptes")).Sortie);
+        using (var scope = _api.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MepDbContext>();
+            var bob = await db.Utilisateurs.SingleAsync(u => u.Login == "bob");
+            var config = await db.ConfigurationsSso.SingleAsync();
+            var lie = await ConnexionUnique.Resoudre(db, config, new ConnexionUnique.Identite("https://login.microsoftonline.com/x/v2.0", "oid-bob", "bob@entreprise.fr", "Bob", []),
+                bob.Id, DateTimeOffset.UtcNow);
+            Assert.Equal(bob.Id, lie.Compte!.Id);
+        }
+        var comptes = (await Cli("sso", "comptes", "--json")).Json.EnumerateArray().ToList();
+        Assert.Equal(("bob", "bob@entreprise.fr"), (Assert.Single(comptes).GetProperty("login").GetString(), comptes[0].GetProperty("identifiant").GetString()));
+        Assert.Contains("bob@entreprise.fr", (await Cli("sso", "comptes")).Sortie);
+        var delier = await Cli("sso", "delier", "bob");
+        Assert.Equal(0, delier.Code);
+        Assert.Contains("Liaison supprimée pour « bob »", delier.Sortie);
+        Assert.True(await Journalise("sso.delie", "bob@entreprise.fr"));
+        Assert.Contains("n'est relié à aucun compte du fournisseur", (await Cli("sso", "delier", "bob")).Sortie);
+        Assert.Equal(1, (await Cli("sso", "delier", "personne")).Code);
+
+        Assert.Equal(0, (await Cli("sso", "desactiver")).Code);
+        Assert.Contains("Connexion unique   : désactivée", (await Cli("sso", "afficher")).Sortie);
+        Assert.True(await Journalise("sso.desactive", "Connexion unique désactivée"));
     }
 
     [Fact]

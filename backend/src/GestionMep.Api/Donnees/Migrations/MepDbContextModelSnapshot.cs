@@ -867,6 +867,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("AjouteDOffice")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Contact")
                         .IsRequired()
                         .HasColumnType("text");

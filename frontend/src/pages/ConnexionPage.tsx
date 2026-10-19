@@ -78,6 +78,8 @@ const ERREURS_SSO: Record<string, string> = {
     'Aucun compte n’est relié à ce compte Microsoft, et la création automatique est désactivée. Demandez à un administrateur de créer votre compte, ou connectez-vous avec votre mot de passe puis liez votre compte depuis « Mon profil ».',
   'login-existant':
     'Un compte local porte déjà cet identifiant. Connectez-vous avec votre mot de passe, puis cliquez sur « Lier mon compte » dans « Mon profil ».',
+  'nom-existant':
+    'Un autre compte porte déjà le nom donné par Microsoft. Demandez à un administrateur de créer votre compte sous un nom qui vous distingue, puis liez-le à Microsoft depuis « Mon profil ».',
   'compte-desactive': 'Ce compte est désactivé. Contactez un administrateur.',
   'deja-lie': 'Ce compte Microsoft est déjà lié à un autre compte.',
   'sso-session': 'La demande de connexion a expiré. Recommencez.',

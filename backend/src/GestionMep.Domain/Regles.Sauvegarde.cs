@@ -14,7 +14,7 @@ public static partial class Regles
         string? emplacement = null, string? methodeRecuperation = null)
     {
         ExigerPreparation(mep);
-        if (!Enum.IsDefined(statut) || !Enum.IsDefined(moment)) throw new RegleMetierException("Sauvegarde : valeur inconnue.");
+        if (!Enum.IsDefined(statut) || !Enum.IsDefined(moment)) throw new SaisieInvalideException("Sauvegarde : valeur inconnue.");
         var s = systeme.Sauvegarde;
         s.Statut = statut;
         s.Moment = moment;

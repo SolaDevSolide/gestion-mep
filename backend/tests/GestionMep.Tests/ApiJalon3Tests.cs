@@ -114,10 +114,10 @@ public class ApiJalon3Tests : IDisposable
         var (pAlice, pBob, pClaire) = (Participant(mep, "Alice"), Participant(mep, "Bob"), Participant(mep, "Claire"));
 
         var pilote = await alice.PutAsJsonAsync($"/api/meps/{id}", Identite(mep, [pBob, pAlice]));
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, pilote.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, pilote.StatusCode);
         Assert.Equal("Alice est le pilote : il ne peut pas être aussi suppléant.", await Message(pilote));
         var doublon = await alice.PutAsJsonAsync($"/api/meps/{id}", Identite(mep, [pBob, pBob]));
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, doublon.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, doublon.StatusCode);
         Assert.Contains("deux fois", await Message(doublon));
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PutAsJsonAsync($"/api/meps/{id}", Identite(mep, [Guid.NewGuid()]))).StatusCode);
 
@@ -208,7 +208,7 @@ public class ApiJalon3Tests : IDisposable
         Assert.Equal("Go impossible : cocher « Supervision en place ».", await Message(incomplet));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Execution" })).StatusCode);
 
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await claire.PostAsJsonAsync($"/api/meps/{id}/no-go", new { motif = "Pas prêt" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await claire.PostAsJsonAsync($"/api/meps/{id}/no-go", new { motif = "Pas prêt" })).StatusCode);
         var sansMotif = await alice.PostAsJsonAsync($"/api/meps/{id}/no-go", new { motif = "" });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, sansMotif.StatusCode);
         Assert.Equal("Indiquer le motif du no-go.", await Message(sansMotif));
@@ -276,7 +276,7 @@ public class ApiJalon3Tests : IDisposable
         var sansAccord = await Action(bob, id, mep, "E0007", "demarrer");
         Assert.Equal(HttpStatusCode.UnprocessableEntity, sansAccord.StatusCode);
         Assert.Equal("Point de non-retour : l'accord du pilote est requis.", await Message(sansAccord));
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Action(claire, id, mep, "E0007", "autoriser-non-retour")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await Action(claire, id, mep, "E0007", "autoriser-non-retour")).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await Action(alice, id, mep, "E0007", "autoriser-non-retour", new { revision = Revision(mep, "E0007") + 1 })).StatusCode);
 
         mep = await Ok(await Action(alice, id, mep, "E0007", "autoriser-non-retour"));

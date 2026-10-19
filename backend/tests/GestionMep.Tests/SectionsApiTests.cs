@@ -151,7 +151,7 @@ public class SectionsApiTests : IDisposable
         mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/sections/{sid}/ports/{debut}", new { titre = "Validation", description = "Base prête" }));
         mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/sections/{sid}/ports/ordre", new { sens = "Sortie", ports = new[] { sauvegarde, fin } }));
         Assert.Equal(sauvegarde, Port(Section(mep, sid), "Sortie"));
-        Assert.Equal(HttpStatusCode.UnprocessableEntity,
+        Assert.Equal(HttpStatusCode.BadRequest,
             (await alice.PutAsJsonAsync($"/api/meps/{id}/sections/{sid}/ports/ordre", new { sens = "Sortie", ports = new[] { fin } })).StatusCode);
         mep = await Ok(await alice.DeleteAsync($"/api/meps/{id}/sections/{sid}/ports/{sauvegarde}"));
         Assert.Equal(HttpStatusCode.NotFound, (await alice.DeleteAsync($"/api/meps/{id}/sections/{sid}/ports/{sauvegarde}")).StatusCode);
@@ -198,9 +198,7 @@ public class SectionsApiTests : IDisposable
     {
         var alice = await _api.ClientConnecte("alice");
         var id = await AidesApi.IdDemo(alice);
-        Assert.Equal(HttpStatusCode.Created, (await alice.PostAsJsonAsync("/api/utilisateurs",
-            new { login = "dave", nomAffiche = "Dave", motDePasse = "motdepasse", estAdmin = false })).StatusCode);
-        var dave = await _api.ClientConnecte("dave", "motdepasse");
+        var dave = await _api.NouveauCompte("dave", "Dave");
         Assert.Equal(HttpStatusCode.Forbidden, (await dave.PostAsJsonAsync($"/api/meps/{id}/sections", new { titre = "X" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await dave.PostAsJsonAsync($"/api/meps/{id}/liens", new { de = Guid.NewGuid(), vers = Guid.NewGuid() })).StatusCode);
 
@@ -289,7 +287,7 @@ public class SectionsApiTests : IDisposable
         Assert.All(mep.GetProperty("etapes").EnumerateArray(), e => Assert.Equal(0, e.GetProperty("rang").GetInt32()));
         var prealables = Prealables(mep, "E0007");
         Assert.Equal(HttpStatusCode.BadRequest, (await alice.PutAsJsonAsync($"/api/meps/{id}/ordre", new { plan = "Deploiement" })).StatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity,
+        Assert.Equal(HttpStatusCode.BadRequest,
             (await alice.PutAsJsonAsync($"/api/meps/{id}/ordre", new { plan = "Deploiement", ids = new[] { Guid.NewGuid() } })).StatusCode);
 
         // E0003 passe à gauche de E0001 et E0002 : rangs 1, 2, 3, les autres suivent ; aucun lien ne change.

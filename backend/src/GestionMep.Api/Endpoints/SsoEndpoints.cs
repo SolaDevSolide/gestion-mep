@@ -25,7 +25,7 @@ public static class SsoEndpoints
 
     /// <summary>
     /// Enregistre les réglages (secret inchangé si absent, sauf changement d'émetteur ou d'application : il est alors effacé).
-    /// Une connexion active doit rester utilisable (422 sinon).
+    /// Saisie invalide, ou qui rendrait inutilisable une connexion active : 400 avec la liste des anomalies.
     /// </summary>
     public static async Task Enregistrer(MepDbContext db, IDataProtectionProvider cles, Acteur? acteur, SsoSaisie s, DateTimeOffset maintenant)
     {
@@ -35,7 +35,7 @@ public static class SsoEndpoints
         if (nouveauSecret) ConnexionUnique.PoserSecret(c, cles, s.Secret!);
         else if (secretEfface) c.SecretExpireLe = null;
         var anomalies = ConnexionUnique.Anomalies(c, cles, pourActiver: c.Active);
-        if (anomalies.Count > 0) throw ErreurHttp.Regle(anomalies);
+        if (anomalies.Count > 0) throw ErreurHttp.Saisie(anomalies);
         c.ModifieeLe = maintenant;
         var detail = $"Connexion unique réglée : {(c.Fournisseur == FournisseurSso.Microsoft ? $"Microsoft, annuaire {c.Annuaire}" : $"émetteur {c.Autorite}")}, application {c.ClientId}"
             + (nouveauSecret ? ", nouveau secret" : secretEfface ? ", ancien secret effacé (émetteur ou application changés)" : "")
@@ -130,7 +130,7 @@ public static class SsoEndpoints
             return Results.NoContent();
         });
 
-        var admin = api.MapGroup("/admin/sso").RequireAuthorization(AuthentificationLocale.PolitiqueAdmin);
+        var admin = api.MapGroup("/admin/sso").ExigerAdmin();
 
         admin.MapGet("", async (HttpRequest requete, MepDbContext db, IDataProtectionProvider cles, IConfiguration config) =>
             Dto(await db.ConfigurationsSso.AsNoTracking().FirstAsync(), cles, ConnexionUnique.UrlRetour(config, requete)));

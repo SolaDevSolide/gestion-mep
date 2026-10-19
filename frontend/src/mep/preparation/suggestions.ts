@@ -1,15 +1,15 @@
-import type { Mep, Participant, ParticipantSaisie, ResponsableTechnique, Systeme, Utilisateur } from '../../types';
+import type { Mep, Participant, ParticipantSaisie, ResponsableTechnique, Systeme, CompteAnnuaire } from '../../types';
 
 /** Nom, rôle et contact d'une personne pré-remplis depuis le profil de son compte (modifiables ensuite). */
 export function participantDepuisCompte(
-  u: Pick<Utilisateur, 'id' | 'nomPersonne' | 'role' | 'contact'>,
+  u: Pick<CompteAnnuaire, 'id' | 'nomPersonne' | 'role' | 'contact'>,
 ): ParticipantSaisie {
   // Nom de la personne : celui du compte principal pour un compte relié.
   return { nom: u.nomPersonne, role: u.role ?? '', contact: u.contact ?? '', utilisateurId: u.id };
 }
 
 export interface SuggestionResponsable {
-  utilisateur: Utilisateur;
+  utilisateur: CompteAnnuaire;
   /** Participant déjà relié à ce compte dans la MEP (sinon il sera créé à l'ajout). */
   participant: Participant | null;
   /** Systèmes de la MEP couverts par une expertise du compte, avec le détail de l'expertise. */
@@ -23,7 +23,7 @@ export interface SuggestionResponsable {
  */
 export function suggestionsResponsablesTechniques(
   mep: Pick<Mep, 'systemes' | 'participants' | 'responsablesTechniques'>,
-  utilisateurs: Utilisateur[],
+  utilisateurs: CompteAnnuaire[],
 ): SuggestionResponsable[] {
   const dejaResponsables = new Set(mep.responsablesTechniques.map((r) => r.participantId));
   const suggestions: SuggestionResponsable[] = [];

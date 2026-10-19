@@ -35,8 +35,8 @@ public static class ProtectionsHttp
         services.AddRateLimiter(o =>
         {
             o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            o.OnRejected = (ctx, annulation) => new ValueTask(ctx.HttpContext.Response.WriteAsJsonAsync(
-                new { message = "Trop de tentatives de connexion. Réessayez dans une minute." }, annulation));
+            o.OnRejected = (ctx, annulation) => new ValueTask(ReponsesErreur.Ecrire(ctx.HttpContext, StatusCodes.Status429TooManyRequests,
+                "Trop de tentatives de connexion. Réessayez dans une minute.", annulation: annulation));
             // Limite relue à chaque requête (réglage modifiable) ; elle fait partie de la clé, donc un changement s'applique tout de suite.
             o.AddPolicy(PolitiqueConnexion, ctx =>
             {
@@ -82,8 +82,7 @@ public static class ProtectionsHttp
             if (ctx.Request.Path.StartsWithSegments("/api") && !HttpMethods.IsGet(m) && !HttpMethods.IsHead(m) && !HttpMethods.IsOptions(m)
                 && !ctx.Request.Headers.ContainsKey(EnTeteCsrf))
             {
-                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await ctx.Response.WriteAsJsonAsync(new { message = $"En-tête {EnTeteCsrf} manquant." });
+                await ReponsesErreur.Ecrire(ctx, StatusCodes.Status403Forbidden, $"En-tête {EnTeteCsrf} manquant.");
                 return;
             }
             await suivant();

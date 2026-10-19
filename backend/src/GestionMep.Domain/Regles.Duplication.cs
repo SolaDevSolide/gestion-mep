@@ -51,7 +51,7 @@ public static partial class Regles
         var participants = new Dictionary<Guid, Guid>();
         foreach (var p in source.Participants)
         {
-            var copie = new Participant { MepId = mep.Id, Nom = p.Nom, Role = p.Role, Contact = p.Contact, UtilisateurId = p.UtilisateurId };
+            var copie = new Participant { MepId = mep.Id, Nom = p.Nom, Role = p.Role, Contact = p.Contact, UtilisateurId = p.UtilisateurId, AjouteDOffice = p.AjouteDOffice };
             participants[p.Id] = copie.Id;
             mep.Participants.Add(copie);
         }

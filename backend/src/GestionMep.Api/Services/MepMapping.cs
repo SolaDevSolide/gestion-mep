@@ -10,6 +10,9 @@ public static class MepMapping
         new(u.Id, u.Login, u.NomAffiche, u.EstAdmin, u.Role, u.Contact, u.Expertises.Select(x => new ExpertiseDto(x.SystemeCatalogueId, x.Detail)).ToList(),
             u.Actif, u.DoitChangerMotDePasse, u.ComptePrincipalId, nomPersonne, equipeIds);
 
+    public static CompteAnnuaireDto VersAnnuaire(UtilisateurDto u) =>
+        new(u.Id, u.Login, u.NomAffiche, u.Role, u.Contact, u.Expertises, u.Actif, u.ComptePrincipalId, u.NomPersonne, u.EquipeIds);
+
     public static PieceJointeDto VersDto(PieceJointe p, IReadOnlyDictionary<Guid, string> nomsUtilisateurs) =>
         new(p.Id, p.MepId, p.EtapeId, p.ResolutionTypeId, p.ExecutionResolutionId, p.NomFichier, p.TypeContenu, p.Taille, p.Sha256,
             p.DeposeParId, p.DeposeParId is { } d && nomsUtilisateurs.TryGetValue(d, out var n) ? n : null, p.DeposeLe);
