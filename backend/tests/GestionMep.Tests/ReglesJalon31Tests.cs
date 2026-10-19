@@ -16,14 +16,15 @@ public class ReglesJalon31Tests
 
     // ---------- Démo et droits ----------
     [Fact]
-    public void La_demo_a_deux_responsables_techniques_distincts_du_pilote_et_aucun_avertissement()
+    public void La_demo_a_un_responsable_technique_distinct_du_pilote_et_de_l_approbatrice_et_aucun_avertissement()
     {
         var m = Demo();
-        Assert.Equal(2, m.ResponsablesTechniques.Count);
-        Assert.All(m.ResponsablesTechniques, r => Assert.Equal(DisponibiliteJourJ.Joignable, r.Disponibilite));
-        Assert.Equal([m.Systemes.Single(s => s.Nom == "API").Id, m.Systemes.Single(s => s.Nom == "MDM").Id], Rt(m, "Bob").SystemeIds);
-        Assert.Equal([m.Systemes.Single(s => s.Nom == "WEB").Id], Rt(m, "Claire").SystemeIds);
+        // Séparation des tâches (#94) : Claire approuve, elle n'est donc pas responsable technique ; Bob l'est des trois systèmes.
+        var rt = Assert.Single(m.ResponsablesTechniques);
+        Assert.Equal(DisponibiliteJourJ.Joignable, rt.Disponibilite);
+        Assert.Equal(["API", "MDM", "WEB"], Rt(m, "Bob").SystemeIds.Select(id => m.Systemes.Single(s => s.Id == id).Nom));
         Assert.DoesNotContain(m.ResponsablesTechniques, r => r.ParticipantId == m.PiloteId);
+        Assert.Null(Regles.EmpechementApprobation(m, Claire));
         Assert.Empty(Regles.Avertissements(m));
     }
 
@@ -33,6 +34,8 @@ public class ReglesJalon31Tests
         var m = Demo();
         Assert.True(Regles.PeutEditerContenu(m, Alice, false)); // pilote
         Assert.True(Regles.PeutEditerContenu(m, Bob, false)); // suppléant et responsable technique
+        Assert.False(Regles.PeutEditerContenu(m, Claire, false)); // approbatrice, ni pilote ni responsable technique
+        m.ResponsablesTechniques.Add(new ResponsableTechnique { ParticipantId = P(m, "Claire").Id });
         Assert.True(Regles.PeutEditerContenu(m, Claire, false)); // responsable technique
         Assert.False(Regles.PeutEditerContenu(m, Dave, false));
         Assert.True(Regles.PeutEditerContenu(m, Dave, true)); // administrateur
@@ -54,7 +57,7 @@ public class ReglesJalon31Tests
         Assert.Contains("Bob", doublon.Message);
         Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirResponsablesTechniques(m, [new() { ParticipantId = Guid.NewGuid() }]));
         Assert.ThrowsAny<RegleMetierException>(() => Regles.DefinirResponsablesTechniques(m, [new() { ParticipantId = bob, SystemeIds = [Guid.NewGuid()] }]));
-        Assert.Equal(2, m.ResponsablesTechniques.Count); // rien n'a changé
+        Assert.Single(m.ResponsablesTechniques); // rien n'a changé
 
         Regles.DefinirResponsablesTechniques(m, [new() { ParticipantId = bob, Perimetre = "  API  ", ContactJourJ = " 06 00 " }]);
         Assert.Equal("API", m.ResponsablesTechniques.Single().Perimetre);
@@ -93,13 +96,13 @@ public class ReglesJalon31Tests
         var m = Demo();
         Rt(m, "Bob").Disponibilite = DisponibiliteJourJ.Absent;
         // Bob est responsable de E0002, E0005, E0007 et R0001 (seule E0005 a une résolution), et responsable technique des systèmes
-        // API et MDM : E0008 (WEB + API, Claire) est aussi concernée.
+        // API, MDM et WEB : E0008 (WEB + API, Claire) et E0003 (WEB, Claire) sont aussi concernées.
         var avertissements = Regles.Avertissements(m);
         Assert.Contains("E0002 : Bob sera absent, ajouter une résolution type pour que quelqu'un d'autre puisse la reprendre.", avertissements);
         Assert.Contains("R0001 : Bob sera absent, ajouter une résolution type pour que quelqu'un d'autre puisse la reprendre.", avertissements);
         Assert.Contains("E0008 : Bob sera absent, ajouter une résolution type pour que quelqu'un d'autre puisse la reprendre.", avertissements);
         Assert.DoesNotContain(avertissements, a => a.StartsWith("E0005")); // a une résolution type, des instructions et un résultat attendu
-        Assert.DoesNotContain(avertissements, a => a.StartsWith("E0003")); // Claire, système WEB
+        Assert.Contains("E0003 : Bob sera absent, ajouter une résolution type pour que quelqu'un d'autre puisse la reprendre.", avertissements);
 
         // Une résolution type règle E0002 ; les instructions manquantes la rendent à nouveau signalée.
         E(m, "E0002").ResolutionIds = [Guid.NewGuid()];
@@ -167,11 +170,11 @@ public class ReglesJalon31Tests
         var source = Demo();
         Rt(source, "Bob").Disponibilite = DisponibiliteJourJ.Absent;
         var copie = Regles.Dupliquer(source, false, Alice, Maintenant);
-        Assert.Equal(2, copie.ResponsablesTechniques.Count);
-        var bob = copie.ResponsablesTechniques.Single(r => r.ParticipantId == P(copie, "Bob").Id);
+        var bob = Assert.Single(copie.ResponsablesTechniques);
+        Assert.Equal(P(copie, "Bob").Id, bob.ParticipantId);
         Assert.Equal(DisponibiliteJourJ.Absent, bob.Disponibilite);
-        Assert.Equal("Service commandes et flux MDM", bob.Perimetre);
-        Assert.Equal([copie.Systemes.Single(s => s.Nom == "API").Id, copie.Systemes.Single(s => s.Nom == "MDM").Id], bob.SystemeIds);
+        Assert.Equal("Service commandes, flux MDM et portail client", bob.Perimetre);
+        Assert.Equal(["API", "MDM", "WEB"], bob.SystemeIds.Select(id => copie.Systemes.Single(s => s.Id == id).Nom));
         Assert.DoesNotContain(source.Participants, p => p.Id == bob.ParticipantId);
         Assert.NotSame(source.ResponsablesTechniques[0], copie.ResponsablesTechniques[0]);
     }

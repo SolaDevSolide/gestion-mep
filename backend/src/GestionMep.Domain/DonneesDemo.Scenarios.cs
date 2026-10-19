@@ -16,7 +16,7 @@ public static partial class DonneesDemo
     [
         new("alice", "Alice", true, "Administratrice : pilote de la plupart des MEP, peut réinitialiser la démonstration."),
         new("bob", "Bob", false, "Suppléant du pilote ; pilote de « Annuaire des agences », « Extranet partenaires » et de deux MEP passées."),
-        new("claire", "Claire", false, "Approbatrice des MEP, responsable technique WEB."),
+        new("claire", "Claire", false, "Approbatrice des MEP (ni pilote, ni suppléante, ni responsable technique de celles qu'elle approuve), exécute les étapes WEB."),
     ];
 
     /// <summary>Login d'un compte de démonstration (déjà normalisé : minuscules, sans espaces).</summary>
@@ -77,7 +77,7 @@ public static partial class DonneesDemo
     /// Déroulé simulé d'une MEP : chaque action applique la règle du domaine à l'instant <see cref="T"/> et écrit dans le
     /// journal ce qu'écrirait l'API (mêmes types et libellés).
     /// </summary>
-    private sealed class Deroule(Mep mep, DateTimeOffset debut)
+    private sealed class Deroule(IReadOnlyCollection<ResolutionType> bibliotheque, Mep mep, DateTimeOffset debut)
     {
         public Mep Mep { get; } = mep;
         public DateTimeOffset T { get; private set; } = debut;
@@ -92,13 +92,20 @@ public static partial class DonneesDemo
 
         public Deroule Plus(int minutes) => A(T.AddMinutes(minutes));
 
-        private void Ev(Compte? qui, string type, string detail, bool memeVersion = false)
+        private void Ev(Compte? qui, string type, string detail, bool memeVersion = false, Etape? etape = null)
         {
             if (!memeVersion) Mep.Version++;
             Journal.Add(new EvenementJournal
             {
                 MepId = Mep.Id, Quand = T, UtilisateurId = qui?.Id, Auteur = qui?.Nom ?? "Système", Type = type, Detail = detail,
+                EtapeId = etape?.Id,
             });
+        }
+
+        /// <summary>Résolutions types figées par l'approbation ou le Go : la ligne de journal qu'écrit l'API.</summary>
+        private void Figees(Compte qui, bool figees)
+        {
+            if (figees && Regles.DetailResolutionsFigees(Mep) is { } detail) Ev(qui, "resolutions.figees", detail, memeVersion: true);
         }
 
         public void Creer(Compte qui)
@@ -127,51 +134,56 @@ public static partial class DonneesDemo
 
         public void Approuver(Compte qui, string commentaire)
         {
-            Regles.Decider(Mep, qui.Id, DecisionApprobation.Approuvee, commentaire, T);
+            var avant = Mep.ResolutionsFigeesLe;
+            Regles.Decider(Mep, qui.Id, DecisionApprobation.Approuvee, commentaire, T, resolutions: bibliotheque);
             Ev(qui, "approbation.approuvee", $"MEP approuvée par {qui.Nom}{(commentaire.Length == 0 ? "" : $" : {commentaire}")}");
+            Figees(qui, avant is null && Mep.ResolutionsFigeesLe is not null);
         }
 
         public void Go(Compte qui, IReadOnlyList<CritereGoNoGo> criteres)
         {
-            Regles.PasserEnExecution(Mep, qui.Id, criteres.Select(x => x.Id).ToList(), criteres, ApprobationsMinimum, T);
+            var avant = Mep.ResolutionsFigeesLe;
+            Regles.PasserEnExecution(Mep, qui.Id, criteres.Select(x => x.Id).ToList(), criteres,
+                new ContexteVerification(ApprobationsMinimum, Resolutions: bibliotheque), T);
             Ev(qui, "gonogo.go", $"Go ({string.Join(", ", Mep.GoNoGo.Select(g => g.Libelle))})");
             Ev(qui, "phase.execution", "Plan passé en exécution", memeVersion: true);
+            Figees(qui, avant is null && Mep.ResolutionsFigeesLe is not null);
         }
 
         public void Demarrer(Compte qui, Etape e)
         {
             Regles.Demarrer(Mep, e, qui.Id, T);
-            Ev(qui, "etape.demarree", $"{e.Code} démarrée par {Mep.Participants.Single(p => p.Id == e.ExecutantId).Nom}");
+            Ev(qui, "etape.demarree", $"{e.Code} démarrée par {Mep.Participants.Single(p => p.Id == e.ExecutantId).Nom}", etape: e);
         }
 
         public void Reussir(Compte qui, Etape e, string preuve, string? commentaire = null)
         {
             Regles.Terminer(Mep, e, EtatEtape.Reussie, preuve, resultatVerifie: true, qui.Id, T, commentaire);
-            Ev(qui, "etape.reussie", $"{e.Code} réussie : {preuve}");
+            Ev(qui, "etape.reussie", $"{e.Code} réussie : {preuve}", etape: e);
         }
 
         public void Echouer(Compte qui, Etape e, string preuve)
         {
             Regles.Terminer(Mep, e, EtatEtape.Echec, preuve, resultatVerifie: false, qui.Id, T);
-            Ev(qui, "etape.echec", $"{e.Code} en échec : {preuve}");
+            Ev(qui, "etape.echec", $"{e.Code} en échec : {preuve}", etape: e);
         }
 
         public void Reprendre(Compte qui, Etape e)
         {
             Regles.AutoriserReprise(Mep, e, qui.Id, T);
-            Ev(qui, "etape.reprise", $"Reprise de {e.Code} autorisée");
+            Ev(qui, "etape.reprise", $"Reprise de {e.Code} autorisée", etape: e);
         }
 
         public void Commenter(Compte qui, Etape e, string texte)
         {
             Regles.Commenter(Mep, e, texte, qui.Id, estAdmin: false);
-            Ev(qui, "etape.commentaire", $"Commentaire sur {e.Code} : {texte}");
+            Ev(qui, "etape.commentaire", $"Commentaire sur {e.Code} : {texte}", etape: e);
         }
 
         public void AutoriserNonRetour(Compte qui, Etape e)
         {
             Regles.AutoriserNonRetour(Mep, e, qui.Id, T);
-            Ev(qui, "etape.non-retour-autorise", $"Passage du point de non-retour {e.Code} autorisé");
+            Ev(qui, "etape.non-retour-autorise", $"Passage du point de non-retour {e.Code} autorisé", etape: e);
         }
 
         public ExecutionResolution LancerResolution(Compte qui, Etape e, ResolutionType r)
@@ -201,9 +213,7 @@ public static partial class DonneesDemo
         private void EchecResolution(ExecutionResolution x)
         {
             var e = Mep.Etapes.Single(s => s.Id == x.EtapeId);
-            Ev(null, "resolution.echouee", $"Résolution « {x.Titre} » en échec sur {e.Code}", memeVersion: true);
-            if (Mep.Phase == Phase.RetourArriere)
-                Ev(null, "repli.declenche", $"Retour arrière déclenché automatiquement : {Mep.RetourArriereMotif}", memeVersion: true);
+            Ev(null, "resolution.echouee", Regles.DetailResolutionEchouee(Mep, x, e), memeVersion: true, etape: e);
         }
 
         public void Recette(Compte qui)
@@ -229,7 +239,7 @@ public static partial class DonneesDemo
         public void Cloturer(Compte qui, string ceQuiAMarche, string incidents, string actions)
         {
             Regles.Cloturer(Mep, qui.Id, T, new Bilan { CeQuiAMarche = ceQuiAMarche, Incidents = incidents, Actions = actions });
-            Ev(qui, "mep.cloturee", $"MEP clôturée : {Regles.IssueEnClair(Mep, Journal.Count(e => e.Type == Regles.EvenementEchecEtape))}");
+            Ev(qui, "mep.cloturee", $"MEP clôturée : {Regles.IssueEnClair(Mep)}");
         }
 
         public void RevenirEnPreparation(Compte qui, string motif)
@@ -270,7 +280,7 @@ public static partial class DonneesDemo
                 etatService, referenceIncident);
             var incident = referenceIncident.Length > 0 ? $" (incident {referenceIncident})" : "";
             Ev(qui, "mep.cloturee",
-                $"MEP clôturée : {Regles.IssueEnClair(Mep, Journal.Count(e => e.Type == Regles.EvenementEchecEtape))}. État du service : {etatService}{incident}");
+                $"MEP clôturée : {Regles.IssueEnClair(Mep)}. État du service : {etatService}{incident}");
         }
 
         public MepDemo Fin() => new(Mep, Journal);
@@ -290,7 +300,8 @@ public static partial class DonneesDemo
 
     /// <summary>
     /// Nouvelle MEP en production avec les trois comptes comme participants (profils de démonstration), le pilote et ses
-    /// suppléants. Claire est l'approbatrice, sauf si elle pilote.
+    /// suppléants. Claire est l'approbatrice, sauf si elle pilote : elle n'est alors ni suppléante ni responsable technique
+    /// (séparation des tâches).
     /// </summary>
     private static (Mep Mep, Participant Alice, Participant Bob, Participant Claire) NouvelleMep(Contexte c, string outil, string actuelle,
         string cible, string objet, string impacts, int? indisponibilite, Func<Equipe, Compte> pilote, params Func<Equipe, Compte>[] suppleants)
@@ -383,7 +394,8 @@ public static partial class DonneesDemo
     /// <summary>
     /// Préparation avec des anomalies visibles : pas d'échéance, sauvegarde BATCH à renseigner, sauvegarde WEB non justifiée,
     /// étape sans instructions, action d'exemple, fiche de recette vide, quand déclencher le repli non précisé, procédure non
-    /// relue, approbation en attente ; Claire absente le jour J (avertissement).
+    /// relue, approbation en attente ; Claire, désignée approbatrice puis devenue responsable technique, ne peut plus approuver
+    /// (séparation des tâches) ; Claire absente le jour J (avertissement).
     /// </summary>
     private static MepDemo Incomplete(Contexte c)
     {
@@ -401,10 +413,6 @@ public static partial class DonneesDemo
         Objets(mep, batch, c.Sys("BATCH"), "v3.5.0", "FACT01", "FACT03", "FACT04", "batch-facturation.jar");
         Objets(mep, batch, c.Sys("BATCH"), "format 2026", "FACTX_AAAAMMJJ.zip");
         Objets(mep, web, c.Sys("WEB"), "v3.5.0", "factures-pdf.tar.gz");
-        Responsables(mep,
-            (bob, [batch, bdd], "Export nocturne et tables factures", DisponibiliteJourJ.Joignable),
-            (claire, [web], "Module de téléchargement PDF", DisponibiliteJourJ.Absent));
-
         var e1 = Sauvegarde(E(mep, 1, 0, "Sauvegarde des tables factures", [bdd], 15, Criticite.Elevee,
             Sim + Code("pg_dump -h bdd-demo -U admin -t factures -t lignes_facture compta > /sauvegardes/factures.sql"),
             "Fichier de sauvegarde présent, sans erreur."));
@@ -467,7 +475,7 @@ public static partial class DonneesDemo
             UtilisateursImpactes = "service Comptabilité et clients professionnels (fictif)",
         };
 
-        var d = new Deroule(mep, c.Maintenant.AddDays(-2).AddHours(-3));
+        var d = new Deroule(c.Resolutions, mep, c.Maintenant.AddDays(-2).AddHours(-3));
         d.Creer(c.Equipe.Alice);
         d.Plus(25).Note(c.Equipe.Alice, "etape.creee", "E0005 créée");
         d.Plus(5).Note(c.Equipe.Alice, "section.creee", "Section « Tables factures » créée");
@@ -475,6 +483,11 @@ public static partial class DonneesDemo
         d.Plus(10).Note(c.Equipe.Claire, "section.creee", "Section « Contrôles de bout en bout » créée, dans le bac");
         d.Plus(5).Approbateurs(c.Equipe.Alice, c.Equipe.Claire);
         d.A(c.Maintenant.AddDays(-1).AddHours(-5)).Note(c.Equipe.Bob, "recette.fiche-ajoutee", "Recette « Export nocturne » ajoutée");
+        // Claire devient responsable technique après sa désignation comme approbatrice : elle ne peut plus approuver
+        // (séparation des tâches), « Vérifier le plan » le signale et le Go reste bloqué tant qu'elle reste approbatrice.
+        Responsables(mep,
+            (bob, [batch, bdd], "Export nocturne et tables factures", DisponibiliteJourJ.Joignable),
+            (claire, [web], "Module de téléchargement PDF", DisponibiliteJourJ.Absent));
         d.Plus(10).Note(c.Equipe.Bob, "responsables-techniques.modifies", "Responsables techniques : Bob, Claire");
         return d.Fin();
     }
@@ -498,8 +511,7 @@ public static partial class DonneesDemo
         Objets(mep, api, c.Sys("API"), "2.0.0", "annuaire-api.jar", "/v2/agences");
         Objets(mep, web, c.Sys("WEB"), "2.0.0", "agences-web.tar.gz");
         Responsables(mep,
-            (bob, [api, ldap], "Service annuaire et groupes LDAP", DisponibiliteJourJ.Joignable),
-            (claire, [web], "Page « Trouver une agence »", DisponibiliteJourJ.Joignable));
+            (bob, [api, ldap, web], "Service annuaire, groupes LDAP et page « Trouver une agence »", DisponibiliteJourJ.Joignable));
 
         var e1 = Sauvegarde(E(mep, 1, 0, "Sauvegarde du service annuaire", [api], 10, Criticite.Moderee,
             Sim + Code("tar czf /sauvegardes/annuaire-1.8.tgz /opt/annuaire"), "Archive créée, taille supérieure à 0."));
@@ -538,7 +550,7 @@ public static partial class DonneesDemo
             HeureFinAnnoncee = new TimeOnly(21, 30),
         };
 
-        var d = new Deroule(mep, c.Maintenant.AddDays(-3).AddHours(-2));
+        var d = new Deroule(c.Resolutions, mep, c.Maintenant.AddDays(-3).AddHours(-2));
         d.Creer(c.Equipe.Bob);
         d.Plus(40).Approbateurs(c.Equipe.Bob, c.Equipe.Claire);
         d.A(c.Maintenant.AddDays(-1).AddHours(-4)).Relire(c.Equipe.Alice);
@@ -571,8 +583,7 @@ public static partial class DonneesDemo
         Objets(mep, web, c.Sys("WEB"), "4.2.0", "paiement-web.tar.gz");
         Objets(mep, mdm, c.Sys("MDM"), "paiement mobile ajouté", "flux-moyens-paiement");
         Responsables(mep,
-            (bob, [api, mdm], "Service paiement et flux MDM", DisponibiliteJourJ.Joignable),
-            (claire, [web], "Écran de paiement", DisponibiliteJourJ.Joignable));
+            (bob, [api, mdm, web], "Service paiement, flux MDM et écran de paiement", DisponibiliteJourJ.Joignable));
 
         // Plan rangé en sections (sauvegardes, base, service, écran, contrôles) : la vue d'ensemble et le suivi en direct les colorent.
         var e1 = Sauvegarde(E(mep, 1, 0, "Sauvegarde de la table des transactions", [bdd], 15, Criticite.Elevee,
@@ -673,7 +684,7 @@ public static partial class DonneesDemo
             HeureFinAnnoncee = Heure(go.AddHours(3)),
         };
 
-        var d = new Deroule(mep, c.Maintenant.AddDays(-4).AddHours(-1));
+        var d = new Deroule(c.Resolutions, mep, c.Maintenant.AddDays(-4).AddHours(-1));
         d.Creer(eq.Alice);
         d.Plus(30).Approbateurs(eq.Alice, eq.Claire);
         d.A(c.Maintenant.AddDays(-2)).Relire(eq.Bob);
@@ -701,7 +712,8 @@ public static partial class DonneesDemo
     // ---------- 3 bis. MEP simplifiée en exécution ----------
 
     /// <summary>
-    /// Petit correctif mené en MEP simplifiée : Claire pilote, Alice et Bob sont suppléants sans avoir été choisis, ni versions
+    /// Petit correctif mené en MEP simplifiée : Claire pilote, Bob est suppléant sans avoir été choisi ; Alice, qui n'est pas une
+    /// personne de la MEP (elle en serait suppléante), l'a approuvée. Ni versions
     /// ni durée, criticité ou résolutions liées. Exécution depuis 40 minutes : paramètre en base et formulaire publiés, service
     /// messages en échec sur API et BDD (toutes les résolutions de ces deux systèmes sont proposées, regroupées par système).
     /// Échéance dans trois jours.
@@ -712,6 +724,8 @@ public static partial class DonneesDemo
             "Correctif : les messages du formulaire de contact partent vers l'ancienne adresse du support.",
             "Formulaire de contact indisponible 5 minutes.", 5, e => e.Claire);
         mep.Type = TypeMep.Simplifiee;
+        // MEP simplifiée : toute personne de la MEP est suppléante, donc ne peut pas approuver ; Alice approuve sans en être.
+        mep.Participants.Remove(alice);
         mep.EcheanceRepli = c.Soir(3);
         var bdd = Sys(mep, c.Sys("BDD"), "Paramètre « adresse du support »", StatutSauvegarde.Requise, ModeSauvegarde.AvantMep,
             "Export de la table `parametres` la veille (`parametres-veille.sql`).");
@@ -767,7 +781,7 @@ public static partial class DonneesDemo
             HeureFinAnnoncee = Heure(go.AddHours(1)),
         };
 
-        var d = new Deroule(mep, c.Maintenant.AddDays(-1).AddHours(-6));
+        var d = new Deroule(c.Resolutions, mep, c.Maintenant.AddDays(-1).AddHours(-6));
         d.Creer(eq.Claire);
         d.Plus(20).Approbateurs(eq.Claire, eq.Alice);
         d.Plus(30).Relire(eq.Bob);
@@ -807,8 +821,7 @@ public static partial class DonneesDemo
         Objets(mep, web, c.Sys("WEB"), "3.0.0", "rh-web.tar.gz");
         Objets(mep, ldap, c.Sys("LDAP"), "nouveau groupe", "cn=rh-gestionnaires");
         Responsables(mep,
-            (bob, [api, ldap], "Service congés et droits des gestionnaires", DisponibiliteJourJ.Joignable),
-            (claire, [web], "Portail RH", DisponibiliteJourJ.Joignable));
+            (bob, [api, ldap, web], "Service congés, droits des gestionnaires et portail RH", DisponibiliteJourJ.Joignable));
 
         var e1 = Sauvegarde(E(mep, 1, 0, "Sauvegarde de la base RH", [bdd], 15, Criticite.Elevee,
             Sim + Code("pg_dump -h bdd-demo -U admin rh > /sauvegardes/rh.sql"), "Fichier présent, sans erreur."));
@@ -856,7 +869,7 @@ public static partial class DonneesDemo
             HeureFinAnnoncee = Heure(go.AddHours(5)),
         };
 
-        var d = new Deroule(mep, c.Maintenant.AddDays(-5).AddHours(-2));
+        var d = new Deroule(c.Resolutions, mep, c.Maintenant.AddDays(-5).AddHours(-2));
         d.Creer(eq.Alice);
         d.Plus(20).Approbateurs(eq.Alice, eq.Claire);
         d.A(c.Maintenant.AddDays(-2)).Relire(eq.Bob);
@@ -891,8 +904,8 @@ public static partial class DonneesDemo
     // ---------- 5. Retour arrière en cours ----------
 
     /// <summary>
-    /// Déploiement de l'API en échec, résolution type en échec : retour arrière déclenché automatiquement. Le service 5.0 est
-    /// réinstallé, la restauration de la base est en cours, la vérification reste à faire.
+    /// Déploiement de l'API en échec, résolution type en échec : la pilote décide du retour arrière (motif au journal). Le
+    /// service 5.0 est réinstallé, la restauration de la base est en cours, la vérification reste à faire.
     /// </summary>
     private static MepDemo EnRetourArriere(Contexte c)
     {
@@ -909,8 +922,7 @@ public static partial class DonneesDemo
         Objets(mep, api, c.Sys("API"), "5.1.0", "messagerie-api.jar");
         Objets(mep, web, c.Sys("WEB"), "5.1.0", "messagerie-web.tar.gz");
         Responsables(mep,
-            (bob, [api], "Service messagerie", DisponibiliteJourJ.Joignable),
-            (claire, [web], "Client web", DisponibiliteJourJ.Joignable));
+            (bob, [api, web], "Service messagerie et client web", DisponibiliteJourJ.Joignable));
 
         var e1 = Sauvegarde(E(mep, 1, 0, "Sauvegarde de la base des messages", [bdd], 15, Criticite.Elevee,
             Sim + Code("pg_dump -h bdd-demo -U admin messagerie > /sauvegardes/messagerie.sql"), "Fichier présent, sans erreur."));
@@ -951,7 +963,7 @@ public static partial class DonneesDemo
             HeureFinAnnoncee = Heure(go.AddHours(2)),
         };
 
-        var d = new Deroule(mep, c.Maintenant.AddDays(-6).AddHours(-1));
+        var d = new Deroule(c.Resolutions, mep, c.Maintenant.AddDays(-6).AddHours(-1));
         d.Creer(eq.Alice);
         d.Plus(15).Approbateurs(eq.Alice, eq.Claire);
         d.A(c.Maintenant.AddDays(-3)).Relire(eq.Bob);
@@ -968,7 +980,8 @@ public static partial class DonneesDemo
         var resolution = d.LancerResolution(eq.Bob, e4, c.Res(0));
         d.Plus(2).Reussir(eq.Alice, e3, "Index créé — fictif");
         d.Plus(5).Corriger(eq.Bob, resolution, 1, ResultatControle.Echec, "Le service redémarre puis s'arrête : fichier de configuration 5.1 illisible.");
-        d.Plus(4).Demarrer(eq.Bob, mep.Etapes.Single(x => x.Code == "R0001"));
+        d.Plus(2).DeclencherRepli(eq.Alice, "E0004 : résolution type en échec, configuration 5.1 illisible. Retour à la 5.0.");
+        d.Plus(2).Demarrer(eq.Bob, mep.Etapes.Single(x => x.Code == "R0001"));
         d.Plus(1).Demarrer(eq.Alice, mep.Etapes.Single(x => x.Code == "R0002"));
         d.Plus(11).Reussir(eq.Bob, mep.Etapes.Single(x => x.Code == "R0001"), "Version 5.0 de nouveau en ligne — fictif");
         return d.Fin();
@@ -996,8 +1009,7 @@ public static partial class DonneesDemo
         Objets(mep, batch, c.Sys("BATCH"), "6.3.0", "STKREA", "batch-stocks.jar");
         Objets(mep, api, c.Sys("API"), "6.3.0", "stocks-api.jar");
         Responsables(mep,
-            (bob, [api, batch], "Service stocks et calcul nocturne", DisponibiliteJourJ.Joignable),
-            (claire, [], "Écrans d'inventaire (aucun changement)", DisponibiliteJourJ.Joignable));
+            (bob, [api, batch], "Service stocks et calcul nocturne", DisponibiliteJourJ.Joignable));
 
         var e1 = Sauvegarde(E(mep, 1, 0, "Sauvegarde de la base stocks", [bdd], 20, Criticite.Elevee,
             Sim + Code("pg_dump -h bdd-demo -U admin stocks > /sauvegardes/stocks.sql"), "Fichier présent, sans erreur."));
@@ -1042,7 +1054,7 @@ public static partial class DonneesDemo
             ValideeLe = Jour(go.AddDays(1)),
         };
 
-        var d = new Deroule(mep, go.AddDays(-5));
+        var d = new Deroule(c.Resolutions, mep, go.AddDays(-5));
         d.Creer(eq.Alice);
         d.Plus(30).Approbateurs(eq.Alice, eq.Claire);
         d.A(go.AddDays(-2)).Relire(eq.Bob);
@@ -1100,8 +1112,7 @@ public static partial class DonneesDemo
         Objets(mep, api, c.Sys("API"), "3.0.0", "partenaires-api.jar");
         Objets(mep, ldap, c.Sys("LDAP"), "partenaires pilotes", "cn=partenaires", "ou=partenaires");
         Responsables(mep,
-            (claire, [web], "Extranet", DisponibiliteJourJ.Joignable),
-            (alice, [ldap], "Comptes partenaires", DisponibiliteJourJ.Joignable));
+            (alice, [ldap, web], "Comptes partenaires et extranet", DisponibiliteJourJ.Joignable));
 
         var e1 = Sauvegarde(E(mep, 1, 0, "Snapshot de l'extranet", [web], 10, Criticite.Moderee,
             Sim + "Dans la console de virtualisation, créer un snapshot `avant-3.0` du volume `extranet`.", "Snapshot visible dans la liste."));
@@ -1140,7 +1151,7 @@ public static partial class DonneesDemo
             HeureFinAnnoncee = Heure(go.AddHours(2)),
         };
 
-        var d = new Deroule(mep, go.AddDays(-6));
+        var d = new Deroule(c.Resolutions, mep, go.AddDays(-6));
         d.Creer(eq.Bob);
         d.Plus(20).Approbateurs(eq.Bob, eq.Claire);
         d.A(go.AddDays(-2)).Relire(eq.Alice);

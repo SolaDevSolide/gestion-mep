@@ -95,6 +95,8 @@ public static partial class Regles
         test.ValideePar = "";
         test.ValideeLe = null;
         mep.FichesRecette = [.. mep.FichesRecette];
+        // Un test en échec compte comme incident de la MEP, même refait et conforme ensuite.
+        if (resultat == ResultatControle.Echec) mep.EchecsRecette++;
     }
 
     /// <summary>Le pilote fait refaire une étape de test (<paramref name="test"/> renseigné) ou toute la fiche : les résultats sont effacés.</summary>
@@ -281,6 +283,7 @@ public static partial class Regles
             c.Etape.Le = maintenant;
             c.Etape.ValideePar = c.ValidePar;
             c.Etape.ValideeLe = c.Date;
+            if (c.Resultat == ResultatControle.Echec) mep.EchecsRecette++;
         }
         mep.FichesRecette = [.. mep.FichesRecette];
     }

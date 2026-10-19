@@ -540,6 +540,39 @@
         }
       }
     },
+    "/api/meps/{id}/echeance": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EcheanceSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/meps/{id}/type": {
       "put": {
         "tags": [
@@ -6253,7 +6286,8 @@
           "nom",
           "decision",
           "commentaire",
-          "le"
+          "le",
+          "empechement"
         ],
         "type": "object",
         "properties": {
@@ -6284,8 +6318,15 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "empechement": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
-        }
+        },
+        "description": "`Empechement` (#94) : rôle qui interdit à cet approbateur d'approuver la MEP (« pilote », « suppléant du pilote »,\n« responsable technique », éventuellement « , par un compte relié ») ; sa décision ne compte pas et le Go reste bloqué tant\nqu'il figure parmi les approbateurs. Null s'il peut approuver."
       },
       "BilanDto": {
         "required": [
@@ -7565,7 +7606,8 @@
           "peutReporter",
           "peutSupprimer",
           "peutChangerPilote",
-          "peutAjouterPersonne"
+          "peutAjouterPersonne",
+          "peutModifierEcheance"
         ],
         "type": "object",
         "properties": {
@@ -7608,9 +7650,12 @@
           },
           "peutAjouterPersonne": {
             "type": "boolean"
+          },
+          "peutModifierEcheance": {
+            "type": "boolean"
           }
         },
-        "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`."
+        "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`.\n`PeutModifierEcheance` (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en\nrecette, pilote, suppléant ou administrateur."
       },
       "DuplicationSaisie": {
         "required": [
@@ -7623,6 +7668,37 @@
           }
         },
         "description": "Duplication : la copie reprend les systèmes avec leurs environnements, modifiables ensuite."
+      },
+      "EcheanceSaisie": {
+        "required": [
+          "version",
+          "echeanceRepli",
+          "motif"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "echeanceRepli": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "motif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Échéance de retour arrière (#94) : `EcheanceRepli`, instant visé (null : retirer l'échéance), saisi dans le fuseau de la\nMEP ; `Motif`, obligatoire sauf pour la première saisie en préparation (tracé au journal avec l'ancienne valeur)."
       },
       "EchecSystemeDto": {
         "required": [
@@ -8683,7 +8759,7 @@
           "Reportee",
           "Echec"
         ],
-        "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+        "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
       },
       "EtatsCharteFichier": {
         "type": [
@@ -8832,9 +8908,16 @@
               "null",
               "string"
             ]
+          },
+          "etapeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
-        "description": "`AuteurLogin` : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte supprimé."
+        "description": "`AuteurLogin` : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte\nsupprimé. `EtapeId` (#94) : étape concernée par un événement d'exécution (démarrage, réussite, échec…), null sinon."
       },
       "ExecutionResolutionDto": {
         "required": [
@@ -9310,7 +9393,11 @@
               "annulation",
               "report",
               "premierGo",
-              "pilotageSecours"
+              "pilotageSecours",
+              "echecsRecette",
+              "echeanceSignalee",
+              "resolutionsFigees",
+              "resolutionsFigeesLe"
             ],
             "type": "object",
             "properties": {
@@ -10247,7 +10334,8 @@
                   "peutReporter",
                   "peutSupprimer",
                   "peutChangerPilote",
-                  "peutAjouterPersonne"
+                  "peutAjouterPersonne",
+                  "peutModifierEcheance"
                 ],
                 "type": "object",
                 "properties": {
@@ -10290,9 +10378,12 @@
                   },
                   "peutAjouterPersonne": {
                     "type": "boolean"
+                  },
+                  "peutModifierEcheance": {
+                    "type": "boolean"
                   }
                 },
-                "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`."
+                "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`.\n`PeutModifierEcheance` (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en\nrecette, pilote, suppléant ou administrateur."
               },
               "estModele": {
                 "type": "boolean"
@@ -10310,7 +10401,8 @@
                     "nom",
                     "decision",
                     "commentaire",
-                    "le"
+                    "le",
+                    "empechement"
                   ],
                   "type": "object",
                   "properties": {
@@ -10341,8 +10433,15 @@
                         "string"
                       ],
                       "format": "date-time"
+                    },
+                    "empechement": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
                     }
-                  }
+                  },
+                  "description": "`Empechement` (#94) : rôle qui interdit à cet approbateur d'approuver la MEP (« pilote », « suppléant du pilote »,\n« responsable technique », éventuellement « , par un compte relié ») ; sa décision ne compte pas et le Go reste bloqué tant\nqu'il figure parmi les approbateurs. Null s'il peut approuver."
                 }
               },
               "goNoGo": {
@@ -10893,7 +10992,7 @@
                   "Reportee",
                   "Echec"
                 ],
-                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
               },
               "echecsSurvenus": {
                 "type": "integer",
@@ -11012,9 +11111,100 @@
                   }
                 },
                 "description": "Pilotage repris par un administrateur après le Go : `Par`, l'administrateur ; pilotes avant et après (noms)."
+              },
+              "echecsRecette": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "echeanceSignalee": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "resolutionsFigees": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "resolutionTypeId",
+                    "version",
+                    "titre",
+                    "symptomes",
+                    "diagnostic",
+                    "systemeCatalogueIds",
+                    "corrections",
+                    "verificationInstruction",
+                    "verificationAttendu"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "resolutionTypeId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "titre": {
+                      "type": "string"
+                    },
+                    "symptomes": {
+                      "type": "string"
+                    },
+                    "diagnostic": {
+                      "type": "string"
+                    },
+                    "systemeCatalogueIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "corrections": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "ordre",
+                          "instruction",
+                          "resultatAttendu"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "ordre": {
+                            "type": "integer",
+                            "format": "int32"
+                          },
+                          "instruction": {
+                            "type": "string"
+                          },
+                          "resultatAttendu": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "verificationInstruction": {
+                      "type": "string"
+                    },
+                    "verificationAttendu": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "Copie d'une résolution type figée dans la MEP à l'approbation ou au Go (#94) : c'est elle que le déroulé applique."
+                }
+              },
+              "resolutionsFigeesLe": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
               }
             },
-            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`."
+            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
           },
           "ajoutes": {
             "type": "integer",
@@ -11397,7 +11587,7 @@
               "Reportee",
               "Echec"
             ],
-            "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+            "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
           },
           "clotureeLe": {
             "type": "string",
@@ -11502,7 +11692,11 @@
           "annulation",
           "report",
           "premierGo",
-          "pilotageSecours"
+          "pilotageSecours",
+          "echecsRecette",
+          "echeanceSignalee",
+          "resolutionsFigees",
+          "resolutionsFigeesLe"
         ],
         "type": "object",
         "properties": {
@@ -12439,7 +12633,8 @@
               "peutReporter",
               "peutSupprimer",
               "peutChangerPilote",
-              "peutAjouterPersonne"
+              "peutAjouterPersonne",
+              "peutModifierEcheance"
             ],
             "type": "object",
             "properties": {
@@ -12482,9 +12677,12 @@
               },
               "peutAjouterPersonne": {
                 "type": "boolean"
+              },
+              "peutModifierEcheance": {
+                "type": "boolean"
               }
             },
-            "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`."
+            "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`.\n`PeutModifierEcheance` (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en\nrecette, pilote, suppléant ou administrateur."
           },
           "estModele": {
             "type": "boolean"
@@ -12502,7 +12700,8 @@
                 "nom",
                 "decision",
                 "commentaire",
-                "le"
+                "le",
+                "empechement"
               ],
               "type": "object",
               "properties": {
@@ -12533,8 +12732,15 @@
                     "string"
                   ],
                   "format": "date-time"
+                },
+                "empechement": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
                 }
-              }
+              },
+              "description": "`Empechement` (#94) : rôle qui interdit à cet approbateur d'approuver la MEP (« pilote », « suppléant du pilote »,\n« responsable technique », éventuellement « , par un compte relié ») ; sa décision ne compte pas et le Go reste bloqué tant\nqu'il figure parmi les approbateurs. Null s'il peut approuver."
             }
           },
           "goNoGo": {
@@ -13085,7 +13291,7 @@
               "Reportee",
               "Echec"
             ],
-            "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+            "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
           },
           "echecsSurvenus": {
             "type": "integer",
@@ -13204,9 +13410,100 @@
               }
             },
             "description": "Pilotage repris par un administrateur après le Go : `Par`, l'administrateur ; pilotes avant et après (noms)."
+          },
+          "echecsRecette": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "echeanceSignalee": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "resolutionsFigees": {
+            "type": "array",
+            "items": {
+              "required": [
+                "resolutionTypeId",
+                "version",
+                "titre",
+                "symptomes",
+                "diagnostic",
+                "systemeCatalogueIds",
+                "corrections",
+                "verificationInstruction",
+                "verificationAttendu"
+              ],
+              "type": "object",
+              "properties": {
+                "resolutionTypeId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "version": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "titre": {
+                  "type": "string"
+                },
+                "symptomes": {
+                  "type": "string"
+                },
+                "diagnostic": {
+                  "type": "string"
+                },
+                "systemeCatalogueIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "corrections": {
+                  "type": "array",
+                  "items": {
+                    "required": [
+                      "ordre",
+                      "instruction",
+                      "resultatAttendu"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "ordre": {
+                        "type": "integer",
+                        "format": "int32"
+                      },
+                      "instruction": {
+                        "type": "string"
+                      },
+                      "resultatAttendu": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "verificationInstruction": {
+                  "type": "string"
+                },
+                "verificationAttendu": {
+                  "type": "string"
+                }
+              },
+              "description": "Copie d'une résolution type figée dans la MEP à l'approbation ou au Go (#94) : c'est elle que le déroulé applique."
+            }
+          },
+          "resolutionsFigeesLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
-        "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`."
+        "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
       },
       "MepHistoriqueDto": {
         "required": [
@@ -13308,8 +13605,7 @@
           "fuseauHoraire",
           "indisponibiliteMinutes",
           "piloteId",
-          "suppleantIds",
-          "echeanceRepli"
+          "suppleantIds"
         ],
         "type": "object",
         "properties": {
@@ -13400,13 +13696,6 @@
               "type": "string",
               "format": "uuid"
             }
-          },
-          "echeanceRepli": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
           },
           "bilanActive": {
             "type": [
@@ -13510,7 +13799,8 @@
           "systemes",
           "intervenants",
           "reporteeAu",
-          "annuleeLe"
+          "annuleeLe",
+          "echecsRecette"
         ],
         "type": "object",
         "properties": {
@@ -13651,6 +13941,10 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "echecsRecette": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;\n`RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).\n`ToucheProduction` : l'un des systèmes de la MEP touche un environnement de production.\n`EquipeIds` : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait\npartie, par l'un de ses comptes reliés). `Personnes` : noms des personnes de la MEP et, pour celles qui ont un compte,\nnoms et logins de tous leurs comptes reliés (pour la recherche). `Type` : MEP complète ou simplifiée."
@@ -15766,7 +16060,11 @@
               "annulation",
               "report",
               "premierGo",
-              "pilotageSecours"
+              "pilotageSecours",
+              "echecsRecette",
+              "echeanceSignalee",
+              "resolutionsFigees",
+              "resolutionsFigeesLe"
             ],
             "type": "object",
             "properties": {
@@ -16703,7 +17001,8 @@
                   "peutReporter",
                   "peutSupprimer",
                   "peutChangerPilote",
-                  "peutAjouterPersonne"
+                  "peutAjouterPersonne",
+                  "peutModifierEcheance"
                 ],
                 "type": "object",
                 "properties": {
@@ -16746,9 +17045,12 @@
                   },
                   "peutAjouterPersonne": {
                     "type": "boolean"
+                  },
+                  "peutModifierEcheance": {
+                    "type": "boolean"
                   }
                 },
-                "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`."
+                "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`.\n`PeutModifierEcheance` (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en\nrecette, pilote, suppléant ou administrateur."
               },
               "estModele": {
                 "type": "boolean"
@@ -16766,7 +17068,8 @@
                     "nom",
                     "decision",
                     "commentaire",
-                    "le"
+                    "le",
+                    "empechement"
                   ],
                   "type": "object",
                   "properties": {
@@ -16797,8 +17100,15 @@
                         "string"
                       ],
                       "format": "date-time"
+                    },
+                    "empechement": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
                     }
-                  }
+                  },
+                  "description": "`Empechement` (#94) : rôle qui interdit à cet approbateur d'approuver la MEP (« pilote », « suppléant du pilote »,\n« responsable technique », éventuellement « , par un compte relié ») ; sa décision ne compte pas et le Go reste bloqué tant\nqu'il figure parmi les approbateurs. Null s'il peut approuver."
                 }
               },
               "goNoGo": {
@@ -17349,7 +17659,7 @@
                   "Reportee",
                   "Echec"
                 ],
-                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
               },
               "echecsSurvenus": {
                 "type": "integer",
@@ -17468,9 +17778,100 @@
                   }
                 },
                 "description": "Pilotage repris par un administrateur après le Go : `Par`, l'administrateur ; pilotes avant et après (noms)."
+              },
+              "echecsRecette": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "echeanceSignalee": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "resolutionsFigees": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "resolutionTypeId",
+                    "version",
+                    "titre",
+                    "symptomes",
+                    "diagnostic",
+                    "systemeCatalogueIds",
+                    "corrections",
+                    "verificationInstruction",
+                    "verificationAttendu"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "resolutionTypeId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "titre": {
+                      "type": "string"
+                    },
+                    "symptomes": {
+                      "type": "string"
+                    },
+                    "diagnostic": {
+                      "type": "string"
+                    },
+                    "systemeCatalogueIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "corrections": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "ordre",
+                          "instruction",
+                          "resultatAttendu"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "ordre": {
+                            "type": "integer",
+                            "format": "int32"
+                          },
+                          "instruction": {
+                            "type": "string"
+                          },
+                          "resultatAttendu": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "verificationInstruction": {
+                      "type": "string"
+                    },
+                    "verificationAttendu": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "Copie d'une résolution type figée dans la MEP à l'approbation ou au Go (#94) : c'est elle que le déroulé applique."
+                }
+              },
+              "resolutionsFigeesLe": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
               }
             },
-            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`."
+            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
           },
           "journal": {
             "type": "array",
@@ -17507,9 +17908,16 @@
                     "null",
                     "string"
                   ]
+                },
+                "etapeId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
                 }
               },
-              "description": "`AuteurLogin` : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte supprimé."
+              "description": "`AuteurLogin` : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte\nsupprimé. `EtapeId` (#94) : étape concernée par un événement d'exécution (démarrage, réussite, échec…), null sinon."
             }
           }
         },
@@ -17689,6 +18097,76 @@
             "format": "date"
           }
         }
+      },
+      "ResolutionFigeeDto": {
+        "required": [
+          "resolutionTypeId",
+          "version",
+          "titre",
+          "symptomes",
+          "diagnostic",
+          "systemeCatalogueIds",
+          "corrections",
+          "verificationInstruction",
+          "verificationAttendu"
+        ],
+        "type": "object",
+        "properties": {
+          "resolutionTypeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "titre": {
+            "type": "string"
+          },
+          "symptomes": {
+            "type": "string"
+          },
+          "diagnostic": {
+            "type": "string"
+          },
+          "systemeCatalogueIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "corrections": {
+            "type": "array",
+            "items": {
+              "required": [
+                "ordre",
+                "instruction",
+                "resultatAttendu"
+              ],
+              "type": "object",
+              "properties": {
+                "ordre": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "instruction": {
+                  "type": "string"
+                },
+                "resultatAttendu": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "verificationInstruction": {
+            "type": "string"
+          },
+          "verificationAttendu": {
+            "type": "string"
+          }
+        },
+        "description": "Copie d'une résolution type figée dans la MEP à l'approbation ou au Go (#94) : c'est elle que le déroulé applique."
       },
       "ResolutionTypeDto": {
         "required": [
@@ -18472,7 +18950,11 @@
               "annulation",
               "report",
               "premierGo",
-              "pilotageSecours"
+              "pilotageSecours",
+              "echecsRecette",
+              "echeanceSignalee",
+              "resolutionsFigees",
+              "resolutionsFigeesLe"
             ],
             "type": "object",
             "properties": {
@@ -19409,7 +19891,8 @@
                   "peutReporter",
                   "peutSupprimer",
                   "peutChangerPilote",
-                  "peutAjouterPersonne"
+                  "peutAjouterPersonne",
+                  "peutModifierEcheance"
                 ],
                 "type": "object",
                 "properties": {
@@ -19452,9 +19935,12 @@
                   },
                   "peutAjouterPersonne": {
                     "type": "boolean"
+                  },
+                  "peutModifierEcheance": {
+                    "type": "boolean"
                   }
                 },
-                "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`."
+                "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`.\n`PeutModifierEcheance` (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en\nrecette, pilote, suppléant ou administrateur."
               },
               "estModele": {
                 "type": "boolean"
@@ -19472,7 +19958,8 @@
                     "nom",
                     "decision",
                     "commentaire",
-                    "le"
+                    "le",
+                    "empechement"
                   ],
                   "type": "object",
                   "properties": {
@@ -19503,8 +19990,15 @@
                         "string"
                       ],
                       "format": "date-time"
+                    },
+                    "empechement": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
                     }
-                  }
+                  },
+                  "description": "`Empechement` (#94) : rôle qui interdit à cet approbateur d'approuver la MEP (« pilote », « suppléant du pilote »,\n« responsable technique », éventuellement « , par un compte relié ») ; sa décision ne compte pas et le Go reste bloqué tant\nqu'il figure parmi les approbateurs. Null s'il peut approuver."
                 }
               },
               "goNoGo": {
@@ -20055,7 +20549,7 @@
                   "Reportee",
                   "Echec"
                 ],
-                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+                "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
               },
               "echecsSurvenus": {
                 "type": "integer",
@@ -20174,9 +20668,100 @@
                   }
                 },
                 "description": "Pilotage repris par un administrateur après le Go : `Par`, l'administrateur ; pilotes avant et après (noms)."
+              },
+              "echecsRecette": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "echeanceSignalee": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "resolutionsFigees": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "resolutionTypeId",
+                    "version",
+                    "titre",
+                    "symptomes",
+                    "diagnostic",
+                    "systemeCatalogueIds",
+                    "corrections",
+                    "verificationInstruction",
+                    "verificationAttendu"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "resolutionTypeId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "titre": {
+                      "type": "string"
+                    },
+                    "symptomes": {
+                      "type": "string"
+                    },
+                    "diagnostic": {
+                      "type": "string"
+                    },
+                    "systemeCatalogueIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "corrections": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "ordre",
+                          "instruction",
+                          "resultatAttendu"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "ordre": {
+                            "type": "integer",
+                            "format": "int32"
+                          },
+                          "instruction": {
+                            "type": "string"
+                          },
+                          "resultatAttendu": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "verificationInstruction": {
+                      "type": "string"
+                    },
+                    "verificationAttendu": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "Copie d'une résolution type figée dans la MEP à l'approbation ou au Go (#94) : c'est elle que le déroulé applique."
+                }
+              },
+              "resolutionsFigeesLe": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
               }
             },
-            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`."
+            "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
           }
         },
         "description": "Section créée (`SectionId`) et MEP à jour."
@@ -20726,7 +21311,11 @@
                 "annulation",
                 "report",
                 "premierGo",
-                "pilotageSecours"
+                "pilotageSecours",
+                "echecsRecette",
+                "echeanceSignalee",
+                "resolutionsFigees",
+                "resolutionsFigeesLe"
               ],
               "type": "object",
               "properties": {
@@ -21663,7 +22252,8 @@
                     "peutReporter",
                     "peutSupprimer",
                     "peutChangerPilote",
-                    "peutAjouterPersonne"
+                    "peutAjouterPersonne",
+                    "peutModifierEcheance"
                   ],
                   "type": "object",
                   "properties": {
@@ -21706,9 +22296,12 @@
                     },
                     "peutAjouterPersonne": {
                       "type": "boolean"
+                    },
+                    "peutModifierEcheance": {
+                      "type": "boolean"
                     }
                   },
-                  "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`."
+                  "description": "Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en\npréparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :\npassation par le pilote ou un suppléant, secours par un administrateur) ; `PeutAjouterPersonne`.\n`PeutModifierEcheance` (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en\nrecette, pilote, suppléant ou administrateur."
                 },
                 "estModele": {
                   "type": "boolean"
@@ -21726,7 +22319,8 @@
                       "nom",
                       "decision",
                       "commentaire",
-                      "le"
+                      "le",
+                      "empechement"
                     ],
                     "type": "object",
                     "properties": {
@@ -21757,8 +22351,15 @@
                           "string"
                         ],
                         "format": "date-time"
+                      },
+                      "empechement": {
+                        "type": [
+                          "null",
+                          "string"
+                        ]
                       }
-                    }
+                    },
+                    "description": "`Empechement` (#94) : rôle qui interdit à cet approbateur d'approuver la MEP (« pilote », « suppléant du pilote »,\n« responsable technique », éventuellement « , par un compte relié ») ; sa décision ne compte pas et le Go reste bloqué tant\nqu'il figure parmi les approbateurs. Null s'il peut approuver."
                   }
                 },
                 "goNoGo": {
@@ -22309,7 +22910,7 @@
                     "Reportee",
                     "Echec"
                   ],
-                  "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+                  "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
                 },
                 "echecsSurvenus": {
                   "type": "integer",
@@ -22428,9 +23029,100 @@
                     }
                   },
                   "description": "Pilotage repris par un administrateur après le Go : `Par`, l'administrateur ; pilotes avant et après (noms)."
+                },
+                "echecsRecette": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "echeanceSignalee": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                },
+                "resolutionsFigees": {
+                  "type": "array",
+                  "items": {
+                    "required": [
+                      "resolutionTypeId",
+                      "version",
+                      "titre",
+                      "symptomes",
+                      "diagnostic",
+                      "systemeCatalogueIds",
+                      "corrections",
+                      "verificationInstruction",
+                      "verificationAttendu"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "resolutionTypeId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "version": {
+                        "type": "integer",
+                        "format": "int32"
+                      },
+                      "titre": {
+                        "type": "string"
+                      },
+                      "symptomes": {
+                        "type": "string"
+                      },
+                      "diagnostic": {
+                        "type": "string"
+                      },
+                      "systemeCatalogueIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      },
+                      "corrections": {
+                        "type": "array",
+                        "items": {
+                          "required": [
+                            "ordre",
+                            "instruction",
+                            "resultatAttendu"
+                          ],
+                          "type": "object",
+                          "properties": {
+                            "ordre": {
+                              "type": "integer",
+                              "format": "int32"
+                            },
+                            "instruction": {
+                              "type": "string"
+                            },
+                            "resultatAttendu": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "verificationInstruction": {
+                        "type": "string"
+                      },
+                      "verificationAttendu": {
+                        "type": "string"
+                      }
+                    },
+                    "description": "Copie d'une résolution type figée dans la MEP à l'approbation ou au Go (#94) : c'est elle que le déroulé applique."
+                  }
+                },
+                "resolutionsFigeesLe": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
                 }
               },
-              "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape tirés du journal (une étape reprise garde son échec).\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`."
+              "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
             }
           },
           "prevues": {
@@ -22608,7 +23300,7 @@
                     "Reportee",
                     "Echec"
                   ],
-                  "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+                  "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
                 },
                 "clotureeLe": {
                   "type": "string",

@@ -40,7 +40,7 @@ public class FiltreMepsTests
                     [.. s.GetProperty("environnements").EnumerateArray().Select(e => new EnvironnementSystemeDto(e.GetProperty("nom").GetString()!, e.GetProperty("production").GetBoolean()))],
                     s.GetProperty("echecs").GetInt32()))],
                 [.. m.GetProperty("intervenants").EnumerateArray().Select(i => new IntervenantDto(i.GetProperty("personneId").GetGuid(), i.GetProperty("nom").GetString()!,
-                    [.. i.GetProperty("roles").EnumerateArray().Select(Enum<RoleMep>)]))], null, null);
+                    [.. i.GetProperty("roles").EnumerateArray().Select(Enum<RoleMep>)]))], null, null, 0);
         }).ToList();
         return (meps, noms);
     }
@@ -138,6 +138,5 @@ public class FiltreMepsTests
         Assert.Equal([RoleMep.ResponsableTechnique], roles[rt.Id]);
         Assert.Equal([RoleMep.Executant], roles[executant.Id]);
         Assert.Empty(roles[simple.Id]);
-        Assert.Equal("E0003", Regles.CodeEvenementEtape("E0003 en échec : verrou"));
     }
 }

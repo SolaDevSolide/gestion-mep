@@ -35,7 +35,8 @@ public record EquipeDto(Guid Id, string Nom, string Description, List<Guid> Memb
 /// <remarks>
 /// Recherche avancée (#59) : <c>Etat</c>, la phase puis l'issue (réussie, avec incidents, repliée) ; <c>Jour</c>, date de la
 /// MEP pour les filtres de période (jour du Go, à défaut de la création, dans le fuseau de la MEP) ; <c>Go</c> et
-/// <c>ClotureeLe</c> ; <c>EchecsSurvenus</c>, échecs d'étape tirés du journal (une étape reprise garde son échec) ;
+/// <c>ClotureeLe</c> ; <c>EchecsSurvenus</c>, échecs d'étape survenus (une étape reprise garde son échec) ; <c>EchecsRecette</c>,
+/// tests de recette en échec survenus (#94) ;
 /// <c>Systemes</c>, systèmes de la MEP avec leurs environnements et leurs échecs ; <c>Intervenants</c>, personnes qui ont
 /// un compte et leurs rôles.
 /// Cycle de vie (#93) : <c>ReporteeAu</c>, date visée d'une MEP reportée (null : pas de report, ou reportée sans date) ;
@@ -45,7 +46,7 @@ public record MepResumeDto(Guid Id, string Outil, string VersionCible, string Ob
     DateTimeOffset? EcheanceRepli, string? Pilote, int NbEtapes, int NbReussies, int NbEchecs, bool ToucheProduction, bool EstModele,
     DateTimeOffset CreeLe, IssueMep? Issue, bool RetourArriereActive, List<Guid> EquipeIds, List<string> Personnes, TypeMep Type,
     EtatMep Etat, DateOnly Jour, DateTimeOffset? Go, DateTimeOffset? ClotureeLe, int EchecsSurvenus, List<SystemeResumeDto> Systemes,
-    List<IntervenantDto> Intervenants, DateOnly? ReporteeAu, DateTimeOffset? AnnuleeLe);
+    List<IntervenantDto> Intervenants, DateOnly? ReporteeAu, DateTimeOffset? AnnuleeLe, int EchecsRecette);
 
 /// <summary>
 /// Système d'une MEP dans la liste : fiche du catalogue (<c>CatalogueId</c>, null pour un système saisi à la main),
@@ -180,7 +181,17 @@ public record TestUnitaireDto(Guid EtapeId, string Code, TypePlan Plan, string A
 /// </summary>
 public record TestsUnitairesDto(int Faits, int NonFaits, int Verifications, List<TestUnitaireDto> Tests);
 
-public record ApprobationDto(Guid Id, Guid UtilisateurId, string Nom, DecisionApprobation? Decision, string Commentaire, DateTimeOffset? Le);
+/// <summary>
+/// <c>Empechement</c> (#94) : rôle qui interdit à cet approbateur d'approuver la MEP (« pilote », « suppléant du pilote »,
+/// « responsable technique », éventuellement « , par un compte relié ») ; sa décision ne compte pas et le Go reste bloqué tant
+/// qu'il figure parmi les approbateurs. Null s'il peut approuver.
+/// </summary>
+public record ApprobationDto(Guid Id, Guid UtilisateurId, string Nom, DecisionApprobation? Decision, string Commentaire, DateTimeOffset? Le,
+    string? Empechement);
+
+/// <summary>Copie d'une résolution type figée dans la MEP à l'approbation ou au Go (#94) : c'est elle que le déroulé applique.</summary>
+public record ResolutionFigeeDto(Guid ResolutionTypeId, int Version, string Titre, string Symptomes, string Diagnostic, List<Guid> SystemeCatalogueIds,
+    List<CorrectionDto> Corrections, string VerificationInstruction, string VerificationAttendu);
 public record CritereValideDto(string Libelle, string? Par, DateTimeOffset Le);
 /// <param name="ValideePar">Validation reportée d'un fichier Excel : nom saisi par le métier (« » sinon) ; <c>Par</c> est alors le compte qui a importé.</param>
 /// <param name="ValideeLe">Validation reportée d'un fichier Excel : date indiquée dans le fichier.</param>
@@ -227,9 +238,12 @@ public record ResponsableTechniqueDto(Guid ParticipantId, List<Guid> SystemeIds,
 /// Droits du compte courant sur la MEP. Cycle de vie (#93) : <c>EstAdmin</c> ; <c>PeutAnnuler</c> et <c>PeutReporter</c> (en
 /// préparation) ; <c>PeutSupprimer</c> (administrateur, MEP jamais lancée ou modèle) ; <c>PeutChangerPilote</c> (après le Go :
 /// passation par le pilote ou un suppléant, secours par un administrateur) ; <c>PeutAjouterPersonne</c>.
+/// <c>PeutModifierEcheance</c> (#94) : MEP avec plan de retour arrière ; en préparation, tout éditeur ; en exécution et en
+/// recette, pilote, suppléant ou administrateur.
 /// </summary>
 public record DroitsDto(bool EstPilote, bool PeutModifierPlan, Guid? ParticipantId, bool EstApprobateur, bool EstResponsableTechnique, bool PeutEditerContenu,
-    bool EstAdmin, bool PeutAnnuler, bool PeutReporter, bool PeutSupprimer, bool PeutChangerPilote, bool PeutAjouterPersonne);
+    bool EstAdmin, bool PeutAnnuler, bool PeutReporter, bool PeutSupprimer, bool PeutChangerPilote, bool PeutAjouterPersonne,
+    bool PeutModifierEcheance);
 
 /// <summary>
 /// <c>RetourArriereActive</c> : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).
@@ -238,9 +252,13 @@ public record DroitsDto(bool EstPilote, bool PeutModifierPlan, Guid? Participant
 /// personnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni
 /// résolutions liées.
 /// <c>Etat</c> : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;
-/// <c>EchecsSurvenus</c> : échecs d'étape tirés du journal (une étape reprise garde son échec).
+/// <c>EchecsSurvenus</c> : échecs d'étape survenus (une étape reprise garde son échec) ; <c>EchecsRecette</c> : tests de
+/// recette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».
 /// Cycle de vie (#93) : <c>Annulation</c>, <c>Report</c>, <c>PremierGo</c> (gardé après un retour en préparation ; le dernier
 /// Go est <c>DemarrageAutorise</c>) et <c>PilotageSecours</c>.
+/// Approbation et traçabilité (#94) : <c>EcheanceSignalee</c>, échéance atteinte pendant la recette (signalée, sans retour arrière
+/// automatique) ; <c>ResolutionsFigees</c> et <c>ResolutionsFigeesLe</c>, copies des résolutions liées figées à l'approbation ou
+/// au Go (vides avant).
 /// </summary>
 public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle, string VersionCible, string Objet, string Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string FuseauHoraire, int? IndisponibiliteMinutes,
@@ -253,7 +271,8 @@ public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle,
     List<FicheRecetteDto> FichesRecette, bool BilanActive, BilanDto? Bilan, string? NonRetourFranchi, List<PieceJointeDto> PiecesJointes,
     List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements, bool RetourArriereActive, CommunicationDto Communication, TypeMep Type,
     List<SectionDto> Sections, EtatMep Etat, int EchecsSurvenus, AnnulationDto? Annulation, ReportDto? Report, DateTimeOffset? PremierGo,
-    PilotageSecoursDto? PilotageSecours);
+    PilotageSecoursDto? PilotageSecours, int EchecsRecette, DateTimeOffset? EcheanceSignalee, List<ResolutionFigeeDto> ResolutionsFigees,
+    DateTimeOffset? ResolutionsFigeesLe);
 
 /// <summary>
 /// Section Communication de la MEP (tout est facultatif). <c>PreuveValidationId</c> : pièce jointe de la MEP qui prouve la
@@ -282,8 +301,11 @@ public record ValeurVariableDto(string Cle, string? Texte, List<string>? Liste);
 /// </summary>
 public record VariablesMepDto(Guid? EquipeId, Guid? EquipeProposeeId, List<ValeurVariableDto> Valeurs);
 
-/// <summary><c>AuteurLogin</c> : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte supprimé.</summary>
-public record EvenementDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail, string? AuteurLogin);
+/// <summary>
+/// <c>AuteurLogin</c> : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte
+/// supprimé. <c>EtapeId</c> (#94) : étape concernée par un événement d'exécution (démarrage, réussite, échec…), null sinon.
+/// </summary>
+public record EvenementDto(long Id, DateTimeOffset Quand, string Auteur, string Type, string Detail, string? AuteurLogin, Guid? EtapeId = null);
 
 // ---------- Suivi en direct et rapport de fin (#61) ----------
 
@@ -364,7 +386,13 @@ public record TypeMepSaisie(int? Version, TypeMep? Type);
 /// </summary>
 public record MepIdentiteSaisie(int? Version, string? Outil, string? VersionActuelle, string? VersionCible, string? Objet, string? Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string? FuseauHoraire, int? IndisponibiliteMinutes,
-    Guid? PiloteId, List<Guid>? SuppleantIds, DateTimeOffset? EcheanceRepli, bool? BilanActive = null, bool? RetourArriereActive = null);
+    Guid? PiloteId, List<Guid>? SuppleantIds, bool? BilanActive = null, bool? RetourArriereActive = null);
+
+/// <summary>
+/// Échéance de retour arrière (#94) : <c>EcheanceRepli</c>, instant visé (null : retirer l'échéance), saisi dans le fuseau de la
+/// MEP ; <c>Motif</c>, obligatoire sauf pour la première saisie en préparation (tracé au journal avec l'ancienne valeur).
+/// </summary>
+public record EcheanceSaisie(int? Version, DateTimeOffset? EcheanceRepli, string? Motif);
 
 /// <summary>Section Communication, remplacée en entier (champs absents : vides).</summary>
 public record CommunicationSaisie(int? Version, string? ReferenceDemande, NiveauRisque? NiveauRisque, string? Benefices, string? UtilisateursImpactes,

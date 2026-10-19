@@ -8,12 +8,20 @@ public static partial class Regles
     /// (approbations comprises) et tous les critères go / no-go actifs cochés. Les critères cochés sont recopiés dans <see cref="Mep.GoNoGo"/>.
     /// </summary>
     public static void PasserEnExecution(Mep mep, Guid utilisateurId, IReadOnlyCollection<Guid> criteresCoches,
-        IReadOnlyCollection<CritereGoNoGo> criteres, int approbationsMinimum, DateTimeOffset maintenant)
+        IReadOnlyCollection<CritereGoNoGo> criteres, int approbationsMinimum, DateTimeOffset maintenant) =>
+        PasserEnExecution(mep, utilisateurId, criteresCoches, criteres, new ContexteVerification(approbationsMinimum), maintenant);
+
+    /// <summary>
+    /// Comme ci-dessus, avec la séparation des tâches sur les comptes reliés et les résolutions liées (actives et complètes),
+    /// figées au Go si aucune approbation ne l'a fait (<see cref="FigerResolutions"/>).
+    /// </summary>
+    public static void PasserEnExecution(Mep mep, Guid utilisateurId, IReadOnlyCollection<Guid> criteresCoches,
+        IReadOnlyCollection<CritereGoNoGo> criteres, ContexteVerification contexte, DateTimeOffset maintenant)
     {
         if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut passer le plan en exécution.");
         if (mep.EstModele) throw new RegleMetierException("Un modèle ne passe pas en exécution : le dupliquer pour créer une MEP.");
         if (mep.Phase != Phase.Preparation) throw new RegleMetierException("Le plan n'est pas en préparation.");
-        var erreurs = ErreursPlan(mep, maintenant, approbationsMinimum);
+        var erreurs = ErreursPlan(mep, maintenant, contexte);
         if (erreurs.Count > 0) throw new RegleMetierException("Plan incomplet : " + string.Join(" ", erreurs));
         var actifs = criteres.Where(c => c.Actif).OrderBy(c => c.Ordre).ToList();
         var manquants = actifs.Where(c => !criteresCoches.Contains(c.Id)).Select(c => $"« {c.Libelle} »").ToList();
@@ -25,6 +33,7 @@ public static partial class Regles
         mep.PremierGoLe ??= maintenant;
         mep.Report = null;
         mep.GoNoGo = actifs.Select(c => new CritereValide { Libelle = c.Libelle, ParId = utilisateurId, Le = maintenant }).ToList();
+        if (contexte.Resolutions is not null) FigerResolutions(mep, contexte.Resolutions, maintenant);
     }
 
     /// <summary>Décision No-go : la MEP reste en préparation ; seul le motif est tracé (journal).</summary>
@@ -55,7 +64,7 @@ public static partial class Regles
 
     /// <summary>
     /// Bascule sur le plan de retour arrière, pendant l'exécution ou la recette. Par le pilote (utilisateurId renseigné)
-    /// ou automatiquement (échéance atteinte, résolution en échec). Impossible une fois le point de non-retour franchi,
+    /// ou automatiquement (échéance atteinte pendant l'exécution). Impossible une fois le point de non-retour franchi,
     /// ou si la MEP n'a pas de plan de retour arrière (<see cref="Mep.RetourArriereActive"/>).
     /// </summary>
     public static void DeclencherRetourArriere(Mep mep, Guid? utilisateurId, string motif, DateTimeOffset maintenant)
@@ -76,15 +85,30 @@ public static partial class Regles
     }
 
     /// <summary>
-    /// Déclenche automatiquement le retour arrière si l'échéance est atteinte avant la clôture (exécution ou recette),
-    /// sauf sans échéance, plan de retour arrière désactivé ou point de non-retour franchi.
+    /// Déclenche automatiquement le retour arrière si l'échéance est atteinte pendant l'exécution, sauf sans échéance, plan de
+    /// retour arrière désactivé ou point de non-retour franchi. Pendant la recette, le déploiement a réussi : l'échéance ne
+    /// déclenche rien, elle est seulement signalée (<see cref="SignalerEcheance"/>) et le pilote décide.
     /// </summary>
     public static bool AppliquerEcheance(Mep mep, DateTimeOffset maintenant)
     {
-        if (mep.Phase is not (Phase.Execution or Phase.Recette) || !EcheanceApplicable(mep) || maintenant < mep.EcheanceRepli) return false;
+        if (mep.Phase != Phase.Execution || !EcheanceApplicable(mep) || maintenant < mep.EcheanceRepli) return false;
         DeclencherRetourArriere(mep, null, MotifEcheance, maintenant);
         return true;
     }
+
+    /// <summary>
+    /// Échéance atteinte pendant la recette : signalée une fois (<see cref="Mep.EcheanceSignaleeLe"/>, à journaliser), sans
+    /// retour arrière automatique. Renvoie vrai si elle vient d'être signalée.
+    /// </summary>
+    public static bool SignalerEcheance(Mep mep, DateTimeOffset maintenant)
+    {
+        if (mep.Phase != Phase.Recette || !EcheanceApplicable(mep) || maintenant < mep.EcheanceRepli || mep.EcheanceSignaleeLe is not null) return false;
+        mep.EcheanceSignaleeLe = maintenant;
+        return true;
+    }
+
+    /// <summary>Échéance de retour arrière applicable et dépassée (quelle que soit la phase).</summary>
+    public static bool EcheanceDepassee(Mep mep, DateTimeOffset maintenant) => EcheanceApplicable(mep) && maintenant >= mep.EcheanceRepli;
 
     /// <summary>Fin du déploiement : le pilote passe la MEP en recette quand tout le déploiement est réussi.</summary>
     public static void PasserEnRecette(Mep mep, Guid utilisateurId, DateTimeOffset maintenant)

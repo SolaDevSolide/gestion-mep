@@ -28,9 +28,43 @@ public static class AidesApi
     public static Task<HttpResponseMessage> Supprimer(HttpClient c, Guid id, string nom, string motif = "Créée par erreur") =>
         c.SendAsync(new HttpRequestMessage(HttpMethod.Delete, $"/api/meps/{id}") { Content = JsonContent.Create(new { motif, nom }) });
 
-    /// <summary>Claire approuve la MEP (version courante).</summary>
+    /// <summary>
+    /// Ajoute Claire comme responsable technique du système WEB (la démonstration ne l'en fait plus : elle approuve, #94).
+    /// Elle ne peut alors plus approuver la MEP.
+    /// </summary>
+    public static async Task<JsonElement> ClaireResponsableTechnique(HttpClient editeur, Guid id)
+    {
+        var mep = await Ok(await editeur.GetAsync($"/api/meps/{id}"));
+        Guid Participant(string nom) => mep.GetProperty("participants").EnumerateArray().Single(p => p.GetProperty("nom").GetString() == nom).GetProperty("id").GetGuid();
+        var web = mep.GetProperty("systemes").EnumerateArray().Single(x => x.GetProperty("nom").GetString() == "WEB").GetProperty("id").GetGuid();
+        var responsables = mep.GetProperty("responsablesTechniques").EnumerateArray()
+            .Select(r => (object)new
+            {
+                participantId = r.GetProperty("participantId").GetGuid(),
+                systemeIds = r.GetProperty("systemeIds").EnumerateArray().Select(x => x.GetGuid()).Where(x => x != web).ToList(),
+                perimetre = r.GetProperty("perimetre").GetString(), disponibilite = r.GetProperty("disponibilite").GetString(),
+                contactJourJ = r.GetProperty("contactJourJ").GetString(),
+            })
+            .Append(new { participantId = Participant("Claire"), systemeIds = new List<Guid> { web }, perimetre = "Portail client", disponibilite = "Joignable", contactJourJ = "Fictif — poste C" })
+            .ToList();
+        return await Ok(await editeur.PutAsJsonAsync($"/api/meps/{id}/responsables-techniques", new { version = mep.GetProperty("version").GetInt32(), responsables }));
+    }
+
+    /// <summary>
+    /// Bob relit la procédure si elle n'est pas (ou plus) relue : toute modification du plan efface la relecture (#94).
+    /// </summary>
+    public static async Task Relire(ApiFixture api, Guid id)
+    {
+        var bob = await api.ClientConnecte("bob");
+        var mep = await Ok(await bob.GetAsync($"/api/meps/{id}"));
+        if (mep.GetProperty("procedureRelue").ValueKind == JsonValueKind.Null)
+            await Ok(await bob.PostAsJsonAsync($"/api/meps/{id}/procedure-relue", new { relue = true }));
+    }
+
+    /// <summary>Claire approuve la MEP (version courante), après avoir fait relire la procédure si besoin.</summary>
     public static async Task<JsonElement> Approuver(ApiFixture api, Guid id)
     {
+        await Relire(api, id);
         var claire = await api.ClientConnecte("claire");
         var mep = await Ok(await claire.GetAsync($"/api/meps/{id}"));
         return await Ok(await claire.PostAsJsonAsync($"/api/meps/{id}/approbation",

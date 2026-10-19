@@ -199,7 +199,8 @@ public class DemonstrationTests : IDisposable
         var recette = await Mep(DonneesDemo.OutilRecette);
         Assert.Equal("Reussie", Assert.Single(recette.GetProperty("resolutions").EnumerateArray()).GetProperty("statut").GetString());
         var repli = await Mep(DonneesDemo.OutilRetourArriere);
-        Assert.Equal(JsonValueKind.Null, repli.GetProperty("retourArriere").GetProperty("par").ValueKind);
+        // Après l'échec de la résolution, c'est la pilote qui a déclenché le retour arrière (#94).
+        Assert.Equal("Alice", repli.GetProperty("retourArriere").GetProperty("par").GetString());
         Assert.Equal("En cours", Dispo(repli, "R0002"));
         Assert.StartsWith("E0003 en échec", (await Mep(DonneesDemo.OutilReussie)).GetProperty("bilan").GetProperty("incidents").GetString());
         // Sorties du cycle de vie (#93) : reportée avec sa date visée, annulée après un Go, clôturée en échec après un secours.

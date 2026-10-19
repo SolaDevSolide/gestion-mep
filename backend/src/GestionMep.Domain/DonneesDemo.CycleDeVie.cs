@@ -22,8 +22,7 @@ public static partial class DonneesDemo
         var web = Sys(mep, c.Sys("WEB"), "Écran de saisie mobile", StatutSauvegarde.NonRequise, ModeSauvegarde.AvantMep,
             justification: "Page republiée depuis le dépôt.");
         Responsables(mep,
-            (bob, [api, bdd], "Service et tables des notes de frais", DisponibiliteJourJ.Joignable),
-            (claire, [web], "Écran de saisie mobile", DisponibiliteJourJ.Joignable));
+            (bob, [api, bdd, web], "Service, tables et écran de saisie des notes de frais", DisponibiliteJourJ.Joignable));
 
         var e1 = Sauvegarde(E(mep, 1, 0, "Sauvegarde du schéma frais", [bdd], 10, Criticite.Moderee,
             Sim + Code("pg_dump -h bdd-demo -U admin -n frais compta > /sauvegardes/frais.sql"), "Fichier présent, sans erreur."));
@@ -58,7 +57,7 @@ public static partial class DonneesDemo
         };
 
         var eq = c.Equipe;
-        var d = new Deroule(mep, c.Maintenant.AddDays(-8));
+        var d = new Deroule(c.Resolutions, mep, c.Maintenant.AddDays(-8));
         d.Creer(eq.Alice);
         d.Plus(20).Approbateurs(eq.Alice, eq.Claire);
         d.A(c.Maintenant.AddDays(-3)).Relire(eq.Bob);
@@ -88,8 +87,7 @@ public static partial class DonneesDemo
             justification: "Page republiée depuis le dépôt.");
         Objets(mep, api, c.Sys("API"), "2.2.0", "api.exemple.invalid");
         Responsables(mep,
-            (bob, [api, bdd], "Service et tables de signature", DisponibiliteJourJ.Joignable),
-            (claire, [web], "Parcours de signature", DisponibiliteJourJ.Joignable));
+            (bob, [api, bdd, web], "Service, tables et parcours de signature", DisponibiliteJourJ.Joignable));
 
         var e1 = Sauvegarde(E(mep, 1, 0, "Sauvegarde du schéma signature", [bdd], 10, Criticite.Moderee,
             Sim + Code("pg_dump -h bdd-demo -U admin -n signature contrats > /sauvegardes/signature.sql"), "Fichier présent, sans erreur."));
@@ -125,7 +123,7 @@ public static partial class DonneesDemo
         };
 
         var eq = c.Equipe;
-        var d = new Deroule(mep, go.AddDays(-6));
+        var d = new Deroule(c.Resolutions, mep, go.AddDays(-6));
         d.Creer(eq.Alice);
         d.Plus(15).Approbateurs(eq.Alice, eq.Claire);
         d.A(go.AddDays(-3)).Relire(eq.Bob);
@@ -168,8 +166,7 @@ public static partial class DonneesDemo
         Objets(mep, batch, c.Sys("BATCH"), "2.0.0", "ARCH01");
         Responsables(mep,
             (bob, [batch, bdd], "Chaîne d'archivage et index", DisponibiliteJourJ.Joignable),
-            (claire, [web], "Consultation des archives", DisponibiliteJourJ.Joignable));
-        _ = alice;
+            (alice, [web], "Consultation des archives", DisponibiliteJourJ.Joignable));
 
         var e1 = Sauvegarde(E(mep, 1, 0, "Sauvegarde du schéma archives", [bdd], 20, Criticite.Elevee,
             Sim + Code("pg_dump -h bdd-demo -U admin -n archives courrier > /sauvegardes/archives.sql"), "Fichier présent, sans erreur."));
@@ -207,7 +204,7 @@ public static partial class DonneesDemo
         };
 
         var eq = c.Equipe;
-        var d = new Deroule(mep, go.AddDays(-7));
+        var d = new Deroule(c.Resolutions, mep, go.AddDays(-7));
         d.Creer(eq.Bob);
         d.Plus(20).Approbateurs(eq.Bob, eq.Claire);
         d.A(go.AddDays(-2)).Relire(eq.Alice);

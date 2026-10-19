@@ -12,10 +12,14 @@ public static partial class Regles
     /// Un modèle n'est jamais exécuté : ce qui se décide pour chaque MEP (échéance, pilote, relecture, approbations) n'y est
     /// pas réclamé.
     /// </remarks>
-    public static List<string> ErreursPlan(Mep mep, DateTimeOffset maintenant, int approbationsMinimum)
+    public static List<string> ErreursPlan(Mep mep, DateTimeOffset maintenant, int approbationsMinimum) =>
+        ErreursPlan(mep, maintenant, new ContexteVerification(approbationsMinimum));
+
+    /// <summary>Comme ci-dessus, avec l'annuaire des personnes (comptes reliés) et les résolutions types liées.</summary>
+    public static List<string> ErreursPlan(Mep mep, DateTimeOffset maintenant, ContexteVerification contexte)
     {
-        var erreurs = ErreursContenu(mep, maintenant);
-        if (!mep.EstModele) erreurs.AddRange(ErreursApprobation(mep, approbationsMinimum));
+        var erreurs = ErreursContenu(mep, maintenant, contexte.Resolutions);
+        if (!mep.EstModele) erreurs.AddRange(ErreursApprobation(mep, contexte.ApprobationsMinimum, contexte.Annuaire));
         return erreurs;
     }
 
@@ -26,8 +30,10 @@ public static partial class Regles
     /// <remarks>
     /// L'échéance de retour arrière est facultative : renseignée, elle doit être future. Sans plan de retour arrière
     /// (<see cref="Mep.RetourArriereActive"/>), ni ses étapes, ni « quand le déclencher », ni l'échéance ne sont vérifiés.
+    /// <paramref name="resolutions"/> : résolutions types de la bibliothèque, pour vérifier que celles liées aux étapes sont
+    /// actives et complètes (<see cref="ErreursResolutionsLiees"/>) ; non vérifiées si null.
     /// </remarks>
-    public static List<string> ErreursContenu(Mep mep, DateTimeOffset maintenant)
+    public static List<string> ErreursContenu(Mep mep, DateTimeOffset maintenant, IReadOnlyCollection<ResolutionType>? resolutions = null)
     {
         var erreurs = new List<string>();
         var plans = mep.RetourArriereActive ? new[] { TypePlan.Deploiement, TypePlan.RetourArriere } : [TypePlan.Deploiement];
@@ -74,6 +80,7 @@ public static partial class Regles
                 erreurs.Add($"{e.Code} : remplacer l'action d'exemple par une action réelle.");
         }
 
+        if (resolutions is not null) erreurs.AddRange(ErreursResolutionsLiees(mep, resolutions));
         erreurs.AddRange(ErreursSections(mep));
         erreurs.AddRange(ErreursEnvironnements(mep));
         erreurs.AddRange(ErreursRecette(mep));
@@ -135,7 +142,7 @@ public static partial class Regles
     }
 
     /// <summary>
-    /// Avertissements non bloquants du plan (ils ne figurent pas dans <see cref="ErreursPlan"/>) : aucun responsable technique,
+    /// Avertissements non bloquants du plan (ils ne figurent pas dans <see cref="ErreursPlan(Mep, DateTimeOffset, ContexteVerification)"/>) : aucun responsable technique,
     /// pilote également responsable technique, responsable technique absent dont les étapes ne sont pas reprenables par un autre,
     /// aucun système sauvegardé, cercle de section sans étape ou (entrée) sans source, système sans environnement choisi, système
     /// sans fiche de recette, fiche de recette sans système.
@@ -179,14 +186,22 @@ public static partial class Regles
         return avertissements;
     }
 
-    /// <summary>Anomalies du circuit d'approbation : approbations manquantes, refus, approbateur pilote.</summary>
-    public static List<string> ErreursApprobation(Mep mep, int approbationsMinimum)
+    /// <summary>
+    /// Anomalies du circuit d'approbation : approbations manquantes, refus, et approbateur qui ne peut pas approuver (pilote,
+    /// suppléant ou responsable technique, comptes reliés compris si <paramref name="annuaire"/> est donné) : sa décision ne
+    /// compte pas et le Go reste bloqué tant qu'il figure parmi les approbateurs.
+    /// </summary>
+    public static List<string> ErreursApprobation(Mep mep, int approbationsMinimum, AnnuairePersonnes? annuaire = null)
     {
         var erreurs = new List<string>();
-        var compteDuPilote = CompteDuPilote(mep);
-        foreach (var a in mep.Approbations.Where(a => a.UtilisateurId == compteDuPilote))
-            erreurs.Add($"{a.Nom} ne peut pas approuver : c'est le pilote.");
-        var approuvees = mep.Approbations.Count(a => a.Decision == DecisionApprobation.Approuvee && a.UtilisateurId != compteDuPilote);
+        var empeches = new HashSet<Guid>();
+        foreach (var a in mep.Approbations)
+            if (EmpechementApprobation(mep, a.UtilisateurId, annuaire) is { } role)
+            {
+                empeches.Add(a.UtilisateurId);
+                erreurs.Add(MessageEmpechement(annuaire?.NomPersonne(a.UtilisateurId) ?? a.Nom, role) + " Le retirer des approbateurs.");
+            }
+        var approuvees = mep.Approbations.Count(a => a.Decision == DecisionApprobation.Approuvee && !empeches.Contains(a.UtilisateurId));
         if (approuvees < approbationsMinimum) erreurs.Add($"Il faut {approbationsMinimum} approbation(s).");
         foreach (var a in mep.Approbations.Where(a => a.Decision == DecisionApprobation.Refusee))
             erreurs.Add($"{a.Nom} a refusé : {a.Commentaire}");

@@ -40,7 +40,7 @@ public static partial class DonneesDemo
             justification: "Service sans état, réinstallable depuis le dépôt d'artefacts.");
         Objets(mep, web, c.Sys("WEB"), "4.0.0", "portail-web.tar.gz");
         Objets(mep, api, c.Sys("API"), "4.0.0", "commandes-api.jar");
-        Responsables(mep, (bob, [api], "Service commandes", DisponibiliteJourJ.Joignable), (claire, [web], "Espace client", DisponibiliteJourJ.Joignable));
+        Responsables(mep, (bob, [api, web], "Service commandes et espace client", DisponibiliteJourJ.Joignable));
 
         var e1 = Sauvegarde(E(mep, 1, 0, "Snapshot du portail", [web], 10, Criticite.Moderee,
             Sim + "Dans la console de virtualisation, créer un snapshot `avant-4.0` du volume `web-prod`.", "Snapshot visible dans la liste."));
@@ -56,7 +56,7 @@ public static partial class DonneesDemo
         Fiche(mep, web, "Espace client", ("Se connecter avec le client de test et ouvrir « Mes commandes ».", "Les 12 dernières commandes s'affichent."));
 
         var eq = c.Equipe;
-        var d = new Deroule(mep, go.AddDays(-7));
+        var d = new Deroule(c.Resolutions, mep, go.AddDays(-7));
         d.Creer(eq.Alice);
         d.Plus(15).Approbateurs(eq.Alice, eq.Claire);
         d.A(go.AddDays(-3)).Relire(eq.Bob);
@@ -104,7 +104,7 @@ public static partial class DonneesDemo
         Fiche(mep, mdm, "Catégories dans le MDM", ("Chercher la catégorie « Jardin » dans le MDM.", "Catégorie présente avec ses 4 sous-catégories."));
 
         var eq = c.Equipe;
-        var d = new Deroule(mep, go.AddDays(-5));
+        var d = new Deroule(c.Resolutions, mep, go.AddDays(-5));
         d.Creer(eq.Bob);
         d.Plus(10).Approbateurs(eq.Bob, eq.Claire);
         d.A(go.AddDays(-2)).Relire(eq.Alice);
@@ -155,7 +155,7 @@ public static partial class DonneesDemo
         Fiche(mep, batch, "Calendrier comptable", ("Vérifier la planification dans l'ordonnanceur.", "FACT01 à 01:00, FACT03 à 03:00."));
 
         var eq = c.Equipe;
-        var d = new Deroule(mep, go.AddDays(-6));
+        var d = new Deroule(c.Resolutions, mep, go.AddDays(-6));
         d.Creer(eq.Alice);
         d.Plus(20).Approbateurs(eq.Alice, eq.Claire);
         d.A(go.AddDays(-2)).Relire(eq.Bob);
@@ -218,7 +218,7 @@ public static partial class DonneesDemo
         Fiche(mep, api, "Rendez-vous du samedi", ("Prendre un rendez-vous un samedi avec le client de test.", "Rendez-vous enregistré."));
 
         var eq = c.Equipe;
-        var d = new Deroule(mep, go.AddDays(-8));
+        var d = new Deroule(c.Resolutions, mep, go.AddDays(-8));
         d.Creer(eq.Bob);
         d.Plus(25).Approbateurs(eq.Bob, eq.Claire);
         d.A(go.AddDays(-2)).Relire(eq.Alice);

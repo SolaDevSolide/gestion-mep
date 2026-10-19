@@ -111,7 +111,7 @@ public class SuiviEtRapportTests : IDisposable
     }
 
     [Fact]
-    public async Task Un_rapport_fige_sans_l_etat_de_la_mep_le_retrouve_dans_son_journal()
+    public async Task Un_rapport_fige_sans_l_etat_de_la_mep_le_retrouve_dans_ses_compteurs()
     {
         var bob = await _api.ClientConnecte("bob");
         var id = await AidesApi.IdMep(bob, DonneesDemo.OutilReussie);
@@ -124,12 +124,16 @@ public class SuiviEtRapportTests : IDisposable
             var contenu = System.Text.Json.Nodes.JsonNode.Parse(fige.Contenu)!;
             Assert.True(contenu["mep"]!.AsObject().Remove("etat"));
             Assert.True(contenu["mep"]!.AsObject().Remove("echecsSurvenus"));
+            Assert.True(contenu["mep"]!.AsObject().Remove("echecsRecette"));
             fige.Contenu = contenu.ToJsonString();
+            // Format d'avant #94 : les compteurs d'incidents sont repris de la MEP.
+            fige.Format = 1;
             await db.SaveChangesAsync();
         }
         var mep = (await Ok(await bob.GetAsync($"/api/meps/{id}/rapport"))).GetProperty("mep");
         Assert.Equal("AvecIncidents", mep.GetProperty("etat").GetString());
         Assert.Equal(1, mep.GetProperty("echecsSurvenus").GetInt32());
+        Assert.Equal(0, mep.GetProperty("echecsRecette").GetInt32());
     }
 
     [Fact]

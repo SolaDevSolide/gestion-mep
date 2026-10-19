@@ -245,7 +245,7 @@ public class ApiTests : IDisposable
             Etape(apres, "E0008").GetProperty("dependances").EnumerateArray().Select(d => d.GetGuid()).ToArray());
         Assert.Equal(2, Etape(apres, "E0008").GetProperty("ligne").GetInt32());
         Assert.Equal(revisionE8 + 1, Revision(apres, "E0008"));
-        Assert.Equal(["Il faut 1 approbation(s)."], apres.GetProperty("erreursPlan").EnumerateArray().Select(e => e.GetString()!).ToArray());
+        Assert.Equal(["La procédure doit être relue par un opérateur.", "Il faut 1 approbation(s)."], apres.GetProperty("erreursPlan").EnumerateArray().Select(e => e.GetString()!).ToArray());
     }
 
     [Fact]

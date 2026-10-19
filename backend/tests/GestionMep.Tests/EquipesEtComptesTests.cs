@@ -158,7 +158,7 @@ public class EquipesEtComptesTests : IDisposable
         var demo = await Ok(await alice.GetAsync($"/api/meps/{idDemo}"));
         var deuxFois = await alice.PutAsJsonAsync($"/api/meps/{idDemo}/approbateurs",
             new { version = demo.GetProperty("version").GetInt32(), utilisateurIds = new[] { idBob, idSso } });
-        Assert.Equal((HttpStatusCode)422, deuxFois.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, deuxFois.StatusCode);
         var messageDeuxFois = await Message(deuxFois);
         Assert.True(messageDeuxFois.Contains("une personne n'approuve qu'une fois", StringComparison.Ordinal), messageDeuxFois);
 

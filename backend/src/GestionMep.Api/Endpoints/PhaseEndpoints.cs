@@ -65,7 +65,7 @@ public static class PhaseEndpoints
                 var bilan = c is null ? null : new Bilan { CeQuiAMarche = ServiceMep.Texte(c.CeQuiAMarche), Incidents = ServiceMep.Texte(c.Incidents), Actions = ServiceMep.Texte(c.Actions) };
                 var echec = c?.Echec == true;
                 Regles.Cloturer(mep, acteur.Id, svc.Maintenant, bilan, echec, c?.EtatService, c?.ReferenceIncident);
-                var detail = $"MEP clôturée : {Regles.IssueEnClair(mep, await svc.EchecsSurvenus(mep.Id))}";
+                var detail = $"MEP clôturée : {Regles.IssueEnClair(mep)}";
                 if (echec)
                     detail += $". État du service : {mep.EtatService}" + (mep.ReferenceIncident.Length > 0 ? $" (incident {mep.ReferenceIncident})" : "");
                 return await svc.Enregistrer(mep, acteur, "mep.cloturee", detail);
@@ -102,16 +102,19 @@ public static class PhaseEndpoints
                 case Phase.Execution when mep.Phase == Phase.Recette:
                     // « Corriger en avant » : retour de la recette à l'exécution, motif obligatoire ; les tests en échec sont à refaire.
                     var motifExecution = ServiceMep.Texte(corps.Motif);
-                    var remis = Regles.RevenirEnExecution(mep, acteur.Id, motifExecution);
+                    var remis = Regles.RevenirEnExecution(mep, acteur.Id, motifExecution, svc.Maintenant);
                     return await svc.Enregistrer(mep, acteur, "phase.execution", $"Retour en exécution pour corriger : {motifExecution}"
                         + (remis.Count > 0 ? $". Tests à refaire : {string.Join(", ", remis)}" : ""));
                 case Phase.Execution:
                     // Décision Go : tous les critères go / no-go actifs doivent être cochés.
                     var report = mep.Report;
-                    Regles.PasserEnExecution(mep, acteur.Id, corps.CriteresCoches ?? [], await svc.CriteresGoNoGo(), await svc.ApprobationsMinimum(), svc.Maintenant);
+                    var figeesAvant = mep.ResolutionsFigeesLe;
+                    // Séparation des tâches sur les comptes reliés, résolutions liées actives et complètes, figées si besoin.
+                    Regles.PasserEnExecution(mep, acteur.Id, corps.CriteresCoches ?? [], await svc.CriteresGoNoGo(), await svc.Contexte(mep), svc.Maintenant);
                     var criteres = mep.GoNoGo.Count == 0 ? "" : " (" + string.Join(", ", mep.GoNoGo.Select(g => g.Libelle)) + ")";
                     List<ServiceMep.Evenement> evenements = [new("gonogo.go", $"Go{criteres}"), new("phase.execution", "Plan passé en exécution")];
                     if (report is not null) evenements.Insert(0, new("mep.reprise", "Report levé par le Go"));
+                    evenements.AddRange(ServiceMep.EvenementsFigees(mep, figeesAvant));
                     return await svc.Enregistrer(mep, acteur, evenements);
                 case Phase.Recette:
                     Regles.PasserEnRecette(mep, acteur.Id, svc.Maintenant);

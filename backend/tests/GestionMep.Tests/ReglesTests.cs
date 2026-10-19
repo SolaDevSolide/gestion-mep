@@ -342,7 +342,7 @@ public class ReglesTests
     }
 
     [Fact]
-    public void Resolution_en_echec_declenche_le_retour_arriere()
+    public void Resolution_en_echec_laisse_l_etape_en_echec_et_le_pilote_decide()
     {
         var j = DonneesDemo.Creer(Alice, Bob, Claire, Maintenant);
         var m = j.Mep;
@@ -351,8 +351,14 @@ public class ReglesTests
         Assert.ThrowsAny<RegleMetierException>(() => Regles.ValiderCorrection(m, exec, 1, ResultatControle.Echec, " ", Bob, Maintenant));
         Regles.ValiderCorrection(m, exec, 1, ResultatControle.Echec, "toujours aucune réponse", Bob, Maintenant);
         Assert.Equal(StatutResolution.Echouee, exec.Statut);
-        Assert.Equal(Phase.RetourArriere, m.Phase);
-        Assert.Contains("E0005", m.RetourArriereMotif);
+        // #94 : plus de retour arrière automatique ; l'étape reste en échec, le pilote décide.
+        Assert.Equal(Phase.Execution, m.Phase);
+        Assert.Null(m.RetourArriereDeclencheLe);
+        Assert.Equal(EtatEtape.Echec, E(m, "E0005").Etat);
+        Assert.Contains("le pilote décide (retour arrière ou nouvelle tentative)", Regles.DetailResolutionEchouee(m, exec, E(m, "E0005")));
+        // Nouvelle tentative autorisée par le pilote, ou retour arrière à la main.
+        Regles.AutoriserReprise(m, E(m, "E0005"), Alice, Maintenant);
+        Assert.Equal(EtatEtape.AFaire, E(m, "E0005").Etat);
     }
 
     [Fact]

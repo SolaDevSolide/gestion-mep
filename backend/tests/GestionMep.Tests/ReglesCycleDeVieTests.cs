@@ -65,7 +65,7 @@ public class ReglesCycleDeVieTests
         Assert.Equal("", m.Annulation.EtatProduction);
         Assert.Equal((Alice, Maintenant), (m.Annulation.ParId, m.Annulation.Le));
         Assert.Null(m.Report);
-        Assert.Equal(EtatMep.Annulee, Regles.EtatDeLaMep(m, 0));
+        Assert.Equal(EtatMep.Annulee, Regles.EtatDeLaMep(m));
         Assert.True(Regles.EstTerminee(m));
         Assert.ThrowsAny<RegleMetierException>(() => Regles.ExigerPreparation(m));
         Assert.ThrowsAny<RegleMetierException>(() => Regles.Annuler(m, Alice, false, "Encore", null, Maintenant));
@@ -120,7 +120,7 @@ public class ReglesCycleDeVieTests
         var m = Demo();
         Regles.Reporter(m, Bob, "Gel des changements", null, Maintenant);
         Assert.Equal(Phase.Preparation, m.Phase);
-        Assert.Equal(EtatMep.Reportee, Regles.EtatDeLaMep(m, 0));
+        Assert.Equal(EtatMep.Reportee, Regles.EtatDeLaMep(m));
         Assert.Equal("MEP reportée sans date : Gel des changements", Regles.DetailReport(m.Report!));
         // Un nouveau report remplace le précédent ; la préparation reste modifiable.
         Regles.Reporter(m, Alice, "Fenêtre refusée", new DateOnly(2026, 11, 5), Maintenant.AddHours(1));
@@ -130,7 +130,7 @@ public class ReglesCycleDeVieTests
         Regles.Decider(m, Claire, DecisionApprobation.Approuvee, "", Maintenant);
         Regles.PasserEnExecution(m, Alice, Criteres.Select(c => c.Id).ToList(), Criteres, 1, Maintenant);
         Assert.Null(m.Report);
-        Assert.Equal(EtatMep.Execution, Regles.EtatDeLaMep(m, 0));
+        Assert.Equal(EtatMep.Execution, Regles.EtatDeLaMep(m));
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public class ReglesCycleDeVieTests
         Assert.ThrowsAny<RegleMetierException>(() => Regles.ReprendrePreparation(m, Claire));
         Regles.ReprendrePreparation(m, Bob);
         Assert.Null(m.Report);
-        Assert.Equal(EtatMep.Preparation, Regles.EtatDeLaMep(m, 0));
+        Assert.Equal(EtatMep.Preparation, Regles.EtatDeLaMep(m));
 
         var x = EnExecution();
         Assert.Contains("en préparation", Assert.ThrowsAny<RegleMetierException>(() => Regles.Reporter(x, Alice, "x", null, Maintenant)).Message);
@@ -249,8 +249,8 @@ public class ReglesCycleDeVieTests
         Regles.Cloturer(m, Alice, Maintenant, BilanComplet(), echec: true, " Lecture seule ", " INC-42 ");
         Assert.Equal((Phase.Cloturee, IssueMep.Echec), (m.Phase, m.Issue));
         Assert.Equal(("Lecture seule", "INC-42"), (m.EtatService, m.ReferenceIncident));
-        Assert.Equal(EtatMep.Echec, Regles.EtatDeLaMep(m, 0));
-        Assert.Equal("échec (service dégradé)", Regles.IssueEnClair(m, 0));
+        Assert.Equal(EtatMep.Echec, Regles.EtatDeLaMep(m));
+        Assert.Equal("échec (service dégradé)", Regles.IssueEnClair(m));
     }
 
     [Fact]

@@ -2,7 +2,8 @@ namespace GestionMep.Domain;
 
 /// <summary>
 /// État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
-/// <c>AvecIncidents</c> : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite).
+/// <c>AvecIncidents</c> : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+/// de recette a été en échec (même refait ensuite).
 /// <c>Reportee</c> : en préparation avec un report en cours ; <c>Echec</c> : clôturée en échec ; <c>Annulee</c> : annulée.
 /// Toute nouvelle valeur s'ajoute à la fin.
 /// </summary>
@@ -13,18 +14,16 @@ public enum RoleMep { Pilote, Suppleant, ResponsableTechnique, Executant, Approb
 
 public static partial class Regles
 {
-    /// <summary>Type d'événement du journal qui marque l'échec d'une étape (« E0003 en échec : motif »).</summary>
+    /// <summary>Type d'événement du journal qui marque l'échec d'une étape (son étape : <see cref="EvenementJournal.EtapeId"/>).</summary>
     public const string EvenementEchecEtape = "etape.echec";
 
-    /// <summary>Code d'étape d'un événement d'étape du journal : le premier mot du détail (« E0003 en échec : … » → « E0003 »).</summary>
-    public static string CodeEvenementEtape(string detail) => detail.Split(' ', 2)[0];
-
     /// <summary>
-    /// État d'une MEP : la phase, puis l'issue une fois clôturée. <paramref name="echecsSurvenus"/> : échecs d'étape tirés du
-    /// journal (une étape reprise redevient réussie, son échec reste dans le journal).
+    /// État d'une MEP : la phase, puis l'issue une fois clôturée. <paramref name="incidents"/> : échecs survenus pendant la MEP,
+    /// étapes et tests de recette (<see cref="Incidents"/>, compteurs tenus à jour quand l'échec survient) ; une clôture réussie
+    /// avec au moins un incident est « réussie avec incidents ».
     /// </summary>
     /// <param name="reportee">MEP en préparation avec un report en cours (<see cref="Mep.Report"/>).</param>
-    public static EtatMep EtatDe(Phase phase, IssueMep? issue, int echecsSurvenus, bool reportee = false) => phase switch
+    public static EtatMep EtatDe(Phase phase, IssueMep? issue, int incidents, bool reportee = false) => phase switch
     {
         Phase.Preparation => reportee ? EtatMep.Reportee : EtatMep.Preparation,
         Phase.Execution => EtatMep.Execution,
@@ -35,18 +34,21 @@ public static partial class Regles
         {
             IssueMep.Repliee => EtatMep.Repliee,
             IssueMep.Echec => EtatMep.Echec,
-            _ => echecsSurvenus > 0 ? EtatMep.AvecIncidents : EtatMep.Reussie,
+            _ => incidents > 0 ? EtatMep.AvecIncidents : EtatMep.Reussie,
         },
     };
 
-    /// <summary>État d'une MEP (voir l'autre surcharge).</summary>
-    public static EtatMep EtatDeLaMep(Mep mep, int echecsSurvenus) => EtatDe(mep.Phase, mep.Issue, echecsSurvenus, mep.Report is not null);
+    /// <summary>Incidents survenus : échecs d'étape et tests de recette en échec (<see cref="Mep.EchecsEtapes"/>, <see cref="Mep.EchecsRecette"/>).</summary>
+    public static int Incidents(Mep mep) => mep.EchecsEtapes + mep.EchecsRecette;
+
+    /// <summary>État d'une MEP, d'après sa phase, son issue et ses compteurs d'incidents.</summary>
+    public static EtatMep EtatDeLaMep(Mep mep) => EtatDe(mep.Phase, mep.Issue, Incidents(mep), mep.Report is not null);
 
     /// <summary>
     /// Issue d'une MEP clôturée pour le journal : « réussie », « réussie avec incidents », « repliée » ou « échec (service
     /// dégradé) ».
     /// </summary>
-    public static string IssueEnClair(Mep mep, int echecsSurvenus) => EtatDe(mep.Phase, mep.Issue, echecsSurvenus) switch
+    public static string IssueEnClair(Mep mep) => EtatDe(mep.Phase, mep.Issue, Incidents(mep)) switch
     {
         EtatMep.AvecIncidents => "réussie avec incidents",
         EtatMep.Repliee => "repliée",

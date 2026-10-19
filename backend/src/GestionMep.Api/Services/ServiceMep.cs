@@ -11,8 +11,11 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
 {
     public const string AuteurSysteme = "Système";
 
-    /// <summary>Événement de journal ; <c>Systeme</c> l'attribue à « Système » plutôt qu'à l'utilisateur courant.</summary>
-    public record Evenement(string Type, string Detail, bool Systeme = false);
+    /// <summary>
+    /// Événement de journal ; <c>Systeme</c> l'attribue à « Système » plutôt qu'à l'utilisateur courant ; <c>EtapeId</c> : étape
+    /// concernée (événements d'exécution), enregistrée à part pour que rien ne se relise dans le texte du détail.
+    /// </summary>
+    public record Evenement(string Type, string Detail, bool Systeme = false, Guid? EtapeId = null);
 
     public DateTimeOffset Maintenant => temps.GetUtcNow();
 
@@ -93,15 +96,22 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         ex is DbUpdateConcurrencyException
         || ex is DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } };
 
-    /// <summary>Bascule la MEP en retour arrière si son échéance est atteinte. Renvoie vrai si elle a basculé.</summary>
+    /// <summary>
+    /// Échéance atteinte : pendant l'exécution, la MEP bascule en retour arrière ; pendant la recette, l'échéance est seulement
+    /// signalée (journal « Système », une fois) et le pilote décide. Renvoie vrai si la MEP a basculé en retour arrière.
+    /// </summary>
     public async Task<bool> AppliquerEcheance(Mep mep)
     {
-        if (!Regles.AppliquerEcheance(mep, Maintenant)) return false;
+        EvenementJournal evenement;
+        var bascule = Regles.AppliquerEcheance(mep, Maintenant);
+        if (bascule) evenement = NouvelEvenement(mep, null, AuteurSysteme, "repli.declenche", DetailRetourArriere(mep, null));
+        else if (Regles.SignalerEcheance(mep, Maintenant)) evenement = NouvelEvenement(mep, null, AuteurSysteme, "echeance.depassee", Regles.DetailEcheanceSignalee);
+        else return false;
         mep.Version++;
-        db.Journal.Add(NouvelEvenement(mep, null, AuteurSysteme, "repli.declenche", DetailRetourArriere(mep, null)));
+        db.Journal.Add(evenement);
         await db.SaveChangesAsync();
         diffuseur.Notifier(mep.Id, mep.Version);
-        return true;
+        return bascule;
     }
 
     /// <summary>« Retour arrière déclenché par Alice : motif » ou « … automatiquement : motif ».</summary>
@@ -110,9 +120,9 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
             ? $"Retour arrière déclenché automatiquement : {mep.RetourArriereMotif}"
             : $"Retour arrière déclenché par {nomAuteur} : {mep.RetourArriereMotif}";
 
-    private EvenementJournal NouvelEvenement(Mep mep, Guid? utilisateurId, string auteur, string type, string detail) => new()
+    private EvenementJournal NouvelEvenement(Mep mep, Guid? utilisateurId, string auteur, string type, string detail, Guid? etapeId = null) => new()
     {
-        MepId = mep.Id, Quand = Maintenant, UtilisateurId = utilisateurId, Auteur = auteur, Type = type, Detail = detail,
+        MepId = mep.Id, Quand = Maintenant, UtilisateurId = utilisateurId, Auteur = auteur, Type = type, Detail = detail, EtapeId = etapeId,
     };
 
     public static void ExigerVersion(Mep mep, int? versionClient)
@@ -133,21 +143,27 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
     }
 
     /// <summary>Incrémente la version, ajoute l'événement au journal, sauvegarde puis notifie les abonnés du flux.</summary>
-    public Task<MepDto> Enregistrer(Mep mep, Acteur acteur, string type, string detail) =>
-        Enregistrer(mep, acteur, [new Evenement(type, detail)]);
+    public Task<MepDto> Enregistrer(Mep mep, Acteur acteur, string type, string detail, Guid? etapeId = null) =>
+        Enregistrer(mep, acteur, [new Evenement(type, detail, EtapeId: etapeId)]);
 
     /// <summary>
     /// Enregistre une modification du contenu de la MEP : en préparation, les décisions d'approbation sont remises à zéro
-    /// (<see cref="Regles.ReinitialiserApprobations"/>) et, s'il y en avait, le journal l'indique.
+    /// (<see cref="Regles.ReinitialiserApprobations"/>), ainsi que la relecture de la procédure
+    /// (<see cref="Regles.ReinitialiserRelecture"/>), et, s'il y en avait, le journal l'indique.
     /// </summary>
     public Task<MepDto> EnregistrerContenu(Mep mep, Acteur acteur, string type, string detail) =>
         EnregistrerContenu(mep, acteur, [new Evenement(type, detail)]);
 
-    /// <summary>Comme ci-dessus, avec plusieurs événements de journal pour une seule version.</summary>
-    public Task<MepDto> EnregistrerContenu(Mep mep, Acteur acteur, List<Evenement> evenements)
+    /// <summary>
+    /// Comme ci-dessus, avec plusieurs événements de journal pour une seule version. <paramref name="relecture"/> : false quand
+    /// le plan lui-même ne change pas (liste des approbateurs, échéance) : la relecture de la procédure reste acquise.
+    /// </summary>
+    public Task<MepDto> EnregistrerContenu(Mep mep, Acteur acteur, List<Evenement> evenements, bool relecture = true)
     {
         if (Regles.ReinitialiserApprobations(mep))
             evenements.Add(new("approbations.reinitialisees", "Approbations à refaire : la MEP a été modifiée"));
+        if (relecture && Regles.ReinitialiserRelecture(mep))
+            evenements.Add(new("procedure.reinitialisee", "Relecture de la procédure à refaire : la MEP a été modifiée"));
         return Enregistrer(mep, acteur, evenements);
     }
 
@@ -157,8 +173,8 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         mep.Version++;
         foreach (var ev in evenements)
             db.Journal.Add(ev.Systeme
-                ? NouvelEvenement(mep, null, AuteurSysteme, ev.Type, ev.Detail)
-                : NouvelEvenement(mep, acteur.Id, acteur.Nom, ev.Type, ev.Detail));
+                ? NouvelEvenement(mep, null, AuteurSysteme, ev.Type, ev.Detail, ev.EtapeId)
+                : NouvelEvenement(mep, acteur.Id, acteur.Nom, ev.Type, ev.Detail, ev.EtapeId));
         var nouveaux = Regles.NouveauxElementsBibliotheque(mep);
         await db.SaveChangesAsync();
         // Après l'enregistrement réussi seulement : une écriture rejouée (voir Modifier) ne compte pas deux fois.
@@ -180,15 +196,31 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
 
     public async Task<MepDto> VersDto(Mep mep, Guid? utilisateurId)
     {
-        var noms = await Personnes.Noms(db);
+        var contexte = await Contexte(mep);
         var pieces = await db.PiecesJointes.AsNoTracking().Where(p => p.MepId == mep.Id).ToListAsync();
         var estAdmin = utilisateurId is { } u && await db.Utilisateurs.AsNoTracking().AnyAsync(x => x.Id == u && x.EstAdmin);
-        return MepMapping.VersDto(mep, utilisateurId, noms, Maintenant, await ApprobationsMinimum(), pieces, await EchecsSurvenus(mep.Id), estAdmin);
+        return MepMapping.VersDto(mep, utilisateurId, contexte.Annuaire!.NomsAffiches(), Maintenant, contexte, pieces, estAdmin);
     }
 
-    /// <summary>Échecs d'étape survenus dans la MEP (événements « etape.echec » du journal) : une étape reprise garde son échec.</summary>
-    public async Task<int> EchecsSurvenus(Guid mepId) =>
-        await db.Journal.AsNoTracking().CountAsync(e => e.MepId == mepId && e.Type == Regles.EvenementEchecEtape);
+    /// <summary>
+    /// Ce que la vérification du plan lit hors de la MEP : seuil d'approbations, annuaire des personnes (comptes reliés) et
+    /// résolutions types liées aux étapes, telles qu'elles sont dans la bibliothèque.
+    /// </summary>
+    public async Task<ContexteVerification> Contexte(Mep mep)
+    {
+        var ids = Regles.ResolutionsLiees(mep);
+        var resolutions = ids.Count == 0 ? [] : await db.ResolutionsTypes.AsNoTracking().Where(r => ids.Contains(r.Id)).ToListAsync();
+        return new ContexteVerification(await ApprobationsMinimum(), await Personnes.Charger(db, avecEquipes: false), resolutions);
+    }
+
+    /// <summary>
+    /// Événement « resolutions.figees » à journaliser si l'action vient de figer les résolutions liées (voir
+    /// <see cref="Regles.FigerResolutions"/>) ; <paramref name="avant"/> : <see cref="Mep.ResolutionsFigeesLe"/> avant l'action.
+    /// </summary>
+    public static IEnumerable<Evenement> EvenementsFigees(Mep mep, DateTimeOffset? avant) =>
+        avant is null && mep.ResolutionsFigeesLe is not null && Regles.DetailResolutionsFigees(mep) is { } detail
+            ? [new Evenement("resolutions.figees", detail)]
+            : [];
 
     /// <summary>Paramètre global <see cref="ParametresGlobaux.ApprobationsMinimum"/> (1 si la ligne manque).</summary>
     public async Task<int> ApprobationsMinimum() =>
