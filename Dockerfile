@@ -29,7 +29,8 @@ RUN mkdir -p /data/pieces-jointes /data/cles /data/sauvegardes /data/mise-a-jour
 # Commandes d'exploitation : « docker compose exec app gestion-mep aide ».
 RUN printf '#!/bin/sh\nexec dotnet /app/GestionMep.Api.dll "$@"\n' > /usr/local/bin/gestion-mep && chmod 755 /usr/local/bin/gestion-mep
 USER $APP_UID
-# L'image aspnet n'a ni curl ni wget : l'application interroge elle-même /api/sante.
+# Sonde « prête » (base joignable au schéma de cette version, surveillance des échéances active) : healthy seulement
+# si l'application peut servir. L'image aspnet n'a ni curl ni wget : l'application interroge elle-même /api/sante/prete.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
-  CMD ["dotnet", "GestionMep.Api.dll", "--sante"]
+  CMD ["dotnet", "GestionMep.Api.dll", "--sante", "--prete"]
 ENTRYPOINT ["dotnet", "GestionMep.Api.dll"]
