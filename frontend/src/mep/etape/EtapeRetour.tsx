@@ -10,6 +10,7 @@ import { PiecesJointes } from '../../ui/PiecesJointes';
 import type { DroitsEtape } from '../droitsEtape';
 import type { ActionsEtape } from '../EtapePanneau';
 import { Bloc } from '../graphe/EspaceEtape';
+import { estTerminee } from '../../domaine';
 
 /** Point de non-retour : demande d'autorisation au pilote, ou rappel une fois franchi. */
 function PointDeNonRetour({
@@ -177,7 +178,7 @@ export function EtapeRetour({ mep, etape, droits, preuve, onPreuve, commentaire,
 
       <PiecesJointes
         compact
-        lectureSeule={mep.phase === 'Cloturee'}
+        lectureSeule={estTerminee(mep)}
         pilote={pilote}
         pieces={pieces}
         onDeposer={(f, signaler) => actions.deposerPiece(etape, f, signaler)}

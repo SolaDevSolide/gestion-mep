@@ -68,6 +68,8 @@ const Liste = ({ children }: { children: ReactNode }) => (
 export function PersonnesSection() {
   const { mep, run } = useMep();
   const edition = mep.droits.peutEditerContenu;
+  /** Après le Go, le pilote, un suppléant ou un administrateur ajoute encore une personne (astreinte, renfort). */
+  const ajoutApresGo = !edition && mep.droits.peutAjouterPersonne;
   const [utilisateurs, setUtilisateurs] = useState<Utilisateur[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [forme, setForme] = useState<{ existant?: Participant } | null>(null);
@@ -167,9 +169,13 @@ export function PersonnesSection() {
     <SectionCarte
       numero={2}
       titre="Personnes"
-      description="Reliez chaque personne à son compte pour qu’elle puisse exécuter ses étapes."
+      description={
+        ajoutApresGo
+          ? 'Après le Go, vous pouvez encore ajouter une personne (astreinte, renfort) : l’ajout est tracé au journal.'
+          : 'Reliez chaque personne à son compte pour qu’elle puisse exécuter ses étapes.'
+      }
       action={
-        edition && (
+        (edition || ajoutApresGo) && (
           <Button
             variante="primaire"
             taille="sm"

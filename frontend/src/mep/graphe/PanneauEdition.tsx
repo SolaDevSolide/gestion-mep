@@ -37,6 +37,7 @@ import { Bloc, Surcouche } from './EspaceEtape';
 import { MentionCopie, TransformerDialog } from './EtapesModeles';
 import { PuceSysteme, systemesDe } from './systemes';
 import { estSimplifiee } from '../typeMep';
+import { BadgeAjouteeApresGo } from '../BadgesEtape';
 
 export { PiecesEtape };
 
@@ -155,7 +156,7 @@ interface Props {
   lecture?: ReactNode;
 }
 
-/** Badges de la barre du haut : code, type, point de non-retour. */
+/** Badges de la barre du haut : code, type, point de non-retour, étape corrective ajoutée après le Go. */
 function Badges({ etape, type, pnr }: { etape: Etape; type: TypeEtape; pnr: boolean }) {
   return (
     <span className="flex shrink-0 flex-wrap items-center gap-1.5">
@@ -174,6 +175,7 @@ function Badges({ etape, type, pnr }: { etape: Etape; type: TypeEtape; pnr: bool
           ⛔ Point de non-retour
         </span>
       )}
+      {etape.ajouteeApresGo && <BadgeAjouteeApresGo />}
     </span>
   );
 }

@@ -43,9 +43,9 @@ La mini-carte est masquée par défaut (bouton en bas à droite, mémorisé pour
 
 ## Suivi en direct
 
-Entrée **Suivi en direct** du menu, ouverte à tous. En haut, quatre chiffres : MEP en cours, échecs à traiter, retours arrière et prochaine MEP (la première MEP en préparation dont la date annoncée, section Communication, n'est pas passée).
+Entrée **Suivi en direct** du menu, ouverte à tous. En haut, quatre chiffres : MEP en cours, échecs à traiter, retours arrière et prochaine MEP (la première MEP en préparation, non reportée, dont la date annoncée, section Communication, n'est pas passée).
 
-Puis une carte par MEP lancée (exécution, recette ou retour arrière) : avancement, sections colorées comme dans la vue d'ensemble (une pastille par étape hors section), fin estimée et retard, échecs et ce qu'ils bloquent, qui exécute quoi, compte à rebours avant l'échéance de retour arrière. Les **retours arrière** viennent en premier, puis les MEP qui ont des **échecs** à traiter, puis les autres, la plus ancienne lancée d'abord. « Vue d'ensemble » ouvre la MEP sur son premier onglet ; les puces des systèmes touchés (une alerte signale celui d'une étape en échec) ouvrent leur historique.
+Puis une carte par MEP lancée (exécution, recette ou retour arrière ; ni les MEP annulées ni les reportées) : avancement, sections colorées comme dans la vue d'ensemble (une pastille par étape hors section), fin estimée et retard, échecs et ce qu'ils bloquent, qui exécute quoi, compte à rebours avant l'échéance de retour arrière. Les **retours arrière** viennent en premier, puis les MEP qui ont des **échecs** à traiter, puis les autres, la plus ancienne lancée d'abord. « Vue d'ensemble » ouvre la MEP sur son premier onglet ; les puces des systèmes touchés (une alerte signale celui d'une étape en échec) ouvrent leur historique.
 
 En bas, deux listes : les MEP **prévues aujourd'hui et demain** (date et heure annoncées dans la section Communication) et les MEP **clôturées dans les dernières 24 heures**, avec un lien vers leur rapport de fin. Le bouton « Plein écran » affiche le tableau seul, pour un écran de supervision.
 
@@ -55,7 +55,7 @@ Quand une MEP est clôturée, son **rapport de fin** est figé : ce qu'il montre
 
 Il contient :
 
-1. la **vue d'ensemble à la clôture** : l'issue (« réussie », « réussie avec incidents » si une étape a échoué en route, ou « repliée »), étapes réussies, durée réelle du déploiement et durée prévue, échecs (et combien ont été repris avec succès), recette, et le plan coloré tel qu'à la clôture ;
+1. la **vue d'ensemble à la clôture** : l'issue (« réussie », « réussie avec incidents » si une étape a échoué en route, « repliée », ou « échec » avec l'état du service laissé en production et la référence de l'incident), l'heure du Go (et du premier Go si la MEP est revenue en préparation, avec le nombre de retours en préparation), le nombre d'étapes correctives ajoutées après le Go, étapes réussies, durée réelle du déploiement et durée prévue, échecs (et combien ont été repris avec succès), recette, et le plan coloré tel qu'à la clôture ;
 2. les **points bloquants** : chaque échec d'étape, tiré du journal (une étape refaite garde son échec), avec son motif, la personne, la résolution type utilisée et sa durée, l'heure de reprise et de réussite, et le temps d'arrêt (de l'échec à la reprise) ;
 3. les **résolutions utilisées**, avec corrections et vérification ;
 4. les **tests unitaires** : résultat attendu et constaté de chaque étape terminée par un test ;
@@ -73,10 +73,15 @@ La liste des MEP (page d'accueil) se filtre par une rangée de critères au-dess
 
 | État | MEP retenues |
 |---|---|
-| Préparation, Exécution, Recette, Retour arrière en cours | les MEP dans cette phase |
+| Préparation, Exécution, Recette, Retour arrière en cours | les MEP dans cette phase (« Préparation » sans les MEP reportées) |
+| Reportée | en préparation, avec un report en cours |
 | Réussie | clôturées sans retour arrière et sans aucun échec d'étape |
 | Réussie avec incidents | clôturées sans retour arrière, avec au moins un échec d'étape (même repris ensuite) |
 | Repliée | clôturées après un retour arrière |
+| Échec (service dégradé) | clôturées en échec |
+| Annulée | annulées (groupe « Arrêtées ») |
+
+Les MEP annulées ne sont pas masquées : leur carte, en texte atténué, indique « Annulée le … » et le nombre d'étapes réussies avant l'annulation, sans barre de progression ni compte à rebours. Une MEP reportée affiche « Reportée · 05/11/2026 » (sa date visée).
 
 La **période** porte sur le jour du Go de la MEP (à défaut, celui de sa création), bornes incluses ; des raccourcis donnent les 30 derniers jours, les 3 ou 12 derniers mois et l'année en cours. La recherche par texte porte aussi sur le nom des systèmes.
 
@@ -92,7 +97,7 @@ En ligne de commande : `gestion-mep meps lister` avec les mêmes critères (voir
 
 Onglet **« Historique des MEP »** de la fiche d'un système du catalogue (Paramètres › Systèmes, ou la puce du système) : toutes les MEP qui l'ont touché, avec leur date, leurs environnements sur ce système et leur issue.
 
-- En haut, la synthèse : nombre de MEP (dont celles des 12 derniers mois et celles en cours ou à venir), dernière MEP lancée, part des MEP clôturées avec problème (repliées ou avec incidents) et échecs d'étape survenus sur ce système, repris ou non.
+- En haut, la synthèse : nombre de MEP (dont celles des 12 derniers mois et celles en cours ou à venir), dernière MEP lancée, part des MEP clôturées avec problème (en échec, repliées ou avec incidents ; les annulées sont comptées à part) et échecs d'étape survenus sur ce système, repris ou non.
 - Une frise des 12 derniers mois place chaque MEP à sa date, de la couleur de son état.
 - Puis les MEP, mois par mois (celles en préparation sans Go d'abord, sous « À venir »), chacune avec ses environnements sur ce système, les autres systèmes touchés, son pilote, un lien vers son rapport de fin et ses **échecs d'étape sur ce système** (repris ou non, avec la résolution type appliquée).
 - Les MEP se filtrent par environnement et par « Avec un échec sur ce système » ; « Ouvrir dans la liste des MEP » reprend ces critères dans la liste. « Exporter en Excel » télécharge tout l'historique (feuilles Synthèse, MEP et Échecs).

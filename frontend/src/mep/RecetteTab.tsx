@@ -3,7 +3,7 @@ import { useContext, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { AuthContext } from '../auth';
-import { bilanRecette, fichesRecetteTriees } from '../domaine';
+import { bilanRecette, estTerminee, fichesRecetteTriees } from '../domaine';
 import { useMep } from '../mepContext';
 import { BoutonExportExcel } from '../ui/BoutonExportExcel';
 import type { Systeme } from '../types';
@@ -13,6 +13,7 @@ import { Card } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
 import { ProgressBar } from '../ui/ProgressBar';
 import { BoutonCloturer, BoutonDeclencherRepli } from './ActionsPilote';
+import { BoutonCloturerEchec, BoutonRevenirExecution, retourArriereImpossible } from './CycleDeVie';
 import { FormulaireDialog } from './preparation/Formulaires';
 import { BibliothequeDialog } from './recette/BibliothequeDialog';
 import { ImportValidationDialog } from './recette/ImportValidationDialog';
@@ -39,6 +40,7 @@ export default function RecetteTab() {
   const fiches = fichesRecetteTriees(mep);
   const bilan = bilanRecette(mep);
   const enRecette = mep.phase === 'Recette';
+  const impossible = retourArriereImpossible(mep) !== null;
   const peutAgir = mep.droits.estPilote || mep.droits.participantId !== null || (auth?.utilisateur?.estAdmin ?? false);
 
   const ficheOuverte = params.get('fiche');
@@ -63,7 +65,7 @@ export default function RecetteTab() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-5 px-6 py-6">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        {bilan.total > 0 && (enRecette || mep.phase === 'Cloturee') ? (
+        {bilan.total > 0 && (enRecette || estTerminee(mep)) ? (
           <>
             <ProgressBar
               className="min-w-48 flex-1"
@@ -110,16 +112,18 @@ export default function RecetteTab() {
           titre="Décision du pilote"
           action={
             <div className="flex flex-wrap items-center gap-2">
-              {mep.retourArriereActive && <BoutonDeclencherRepli taille="md" />}
+              {mep.retourArriereActive && !mep.nonRetourFranchi && <BoutonDeclencherRepli taille="md" />}
+              <BoutonRevenirExecution taille="md" />
+              {impossible && <BoutonCloturerEchec taille="md" />}
               <BoutonCloturer taille="md" />
             </div>
           }
         >
           {!mep.retourArriereActive
-            ? 'Cette MEP n’a pas de plan de retour arrière : tout problème se corrige en avant. Clôture réussie : toutes les étapes de test doivent être conformes.'
+            ? 'Cette MEP n’a pas de plan de retour arrière : corrigez en avant, ou clôturez en échec. Clôture réussie : toutes les étapes de test doivent être conformes.'
             : mep.nonRetourFranchi
-              ? `Point de non-retour franchi (${mep.nonRetourFranchi}) : le retour arrière n’est plus possible, on corrige en avant.`
-              : 'Clôture réussie : toutes les étapes de test doivent être conformes.'}
+              ? `Point de non-retour franchi (${mep.nonRetourFranchi}) : le retour arrière n’est plus possible. Corrigez en avant, ou clôturez en échec.`
+              : 'Clôture réussie : toutes les étapes de test doivent être conformes. Sinon : revenir en exécution pour corriger, ou déclencher le retour arrière.'}
         </Alerte>
       )}
 

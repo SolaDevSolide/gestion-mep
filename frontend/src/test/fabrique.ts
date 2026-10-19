@@ -28,6 +28,7 @@ export function etape(p: Partial<Etape> = {}, statut: StatutDisponibilite = 'Dis
     type: 'Standard',
     pointDeNonRetour: false,
     nonRetourAutorise: null,
+    ajouteeApresGo: false,
     fin: 'TestUnitaire',
     resultatConstate: '',
     sauvegardeEmplacement: '',
@@ -150,8 +151,18 @@ export function mep(p: Partial<Mep> = {}): Mep {
       peutModifierPlan: false,
       peutEditerContenu: false,
       participantId: 'p1',
+      estAdmin: false,
+      peutAnnuler: false,
+      peutReporter: false,
+      peutSupprimer: false,
+      peutChangerPilote: false,
+      peutAjouterPersonne: false,
     },
     sections: [],
+    annulation: null,
+    report: null,
+    premierGo: null,
+    pilotageSecours: null,
     ...p,
   };
 }
@@ -243,6 +254,8 @@ export function mepResume(p: Partial<MepResume> = {}): MepResume {
     echecsSurvenus: 0,
     systemes: [],
     intervenants: [],
+    reporteeAu: null,
+    annuleeLe: null,
     ...p,
   };
 }

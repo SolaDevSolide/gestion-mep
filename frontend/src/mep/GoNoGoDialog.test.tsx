@@ -42,7 +42,18 @@ describe('GoNoGoDialog', () => {
     await userEvent.type(screen.getByLabelText(/Motif du no-go/), '  Équipe BDD injoignable ');
     expect(confirmer).toBeEnabled();
     await userEvent.click(confirmer);
-    expect(onNoGo).toHaveBeenCalledWith('Équipe BDD injoignable');
+    expect(onNoGo).toHaveBeenCalledWith('Équipe BDD injoignable', undefined);
+  });
+
+  it('propose de reporter la MEP avec le no-go, avec une date visée facultative (#93)', async () => {
+    const { onNoGo } = rendre();
+    await userEvent.click(screen.getByRole('button', { name: 'No-go' }));
+    await userEvent.type(screen.getByLabelText(/Motif du no-go/), 'Gel des changements');
+    expect(screen.queryByLabelText(/Date visée/)).toBeNull();
+    await userEvent.click(screen.getByRole('checkbox', { name: /Reporter la MEP/ }));
+    await userEvent.type(screen.getByLabelText(/Date visée/), '2026-11-02');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmer le no-go et reporter' }));
+    expect(onNoGo).toHaveBeenCalledWith('Gel des changements', { dateVisee: '2026-11-02' });
   });
 
   it('signale les anomalies du plan', () => {

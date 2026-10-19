@@ -525,14 +525,15 @@ export default function ListeMepPage() {
           )}
         >
           {filtrees.map((m) => {
-            const meta = metaPhase(m.phase, m.etat);
+            const meta = metaPhase(m.phase, m.etat, m.reporteeAu);
+            const annulee = m.phase === 'Annulee';
             return (
               <li
                 key={m.id}
                 className="group relative rounded-xl border border-line bg-surface p-4 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-line-strong hover:shadow-md sm:p-5"
               >
                 <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-                  <div className="min-w-0 flex-1">
+                  <div className={cn('min-w-0 flex-1', annulee && 'text-fg-subtle')}>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                       <h2 className="flex min-w-0 items-center gap-2 text-base font-semibold tracking-tight">
                         {/* Toute la carte ouvre la MEP ; puces et bouton restent cliquables au-dessus. */}
@@ -569,7 +570,11 @@ export default function ListeMepPage() {
                       )}
                       {estSimplifiee(m) && <BadgeSimplifiee className="text-[11px]" />}
                     </div>
-                    {m.objet && <p className="mt-1 line-clamp-1 text-sm text-fg-muted">{m.objet}</p>}
+                    {m.objet && (
+                      <p className={cn('mt-1 line-clamp-1 text-sm', annulee ? 'text-fg-subtle' : 'text-fg-muted')}>
+                        {m.objet}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-fg-muted">
                     <span className="inline-flex items-center gap-1.5">
@@ -578,11 +583,13 @@ export default function ListeMepPage() {
                         ? m.creeLe
                           ? `Créé le ${formatDate(m.creeLe)}`
                           : 'Modèle'
-                        : m.dateMep
-                          ? `Démarrée le ${formatDate(m.dateMep)}`
-                          : m.creeLe
-                            ? `Créée le ${formatDate(m.creeLe)}`
-                            : 'Pas encore démarrée'}
+                        : annulee && m.annuleeLe
+                          ? `Annulée le ${formatDate(m.annuleeLe)}`
+                          : m.dateMep
+                            ? `Démarrée le ${formatDate(m.dateMep)}`
+                            : m.creeLe
+                              ? `Créée le ${formatDate(m.creeLe)}`
+                              : 'Pas encore démarrée'}
                     </span>
                     {!m.estModele && (
                       <span className="inline-flex items-center gap-2">
@@ -602,6 +609,11 @@ export default function ListeMepPage() {
                 {m.estModele ? (
                   <p className="mt-4 text-xs text-fg-subtle tnum sm:pr-32">
                     {m.nbEtapes} étape{m.nbEtapes > 1 ? 's' : ''} de déploiement
+                  </p>
+                ) : annulee ? (
+                  /* Une MEP annulée ne progresse plus : ni barre ni compte à rebours. */
+                  <p className="mt-4 text-xs text-fg-subtle tnum sm:pr-32">
+                    {m.nbReussies}/{m.nbEtapes} étapes réussies avant l’annulation
                   </p>
                 ) : (
                   <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 sm:pr-32">

@@ -191,6 +191,8 @@ const historique = (meps: MepHistorique[], resume: Partial<HistoriqueSysteme['re
     repliees: 0,
     echecs: 0,
     echecsRepris: 0,
+    enEchec: 0,
+    annulees: 0,
     derniereMepId: meps[0]?.id ?? null,
     ...resume,
   },

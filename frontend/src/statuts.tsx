@@ -1,4 +1,6 @@
 import {
+  Ban,
+  CalendarClock,
   CheckCircle2,
   Check,
   CircleDot,
@@ -15,7 +17,7 @@ import {
   XCircle,
   type LucideIcon,
 } from 'lucide-react';
-import { LIBELLE_DISPONIBILITE, tonDisponibilite, type Ton } from './format';
+import { formatDate, LIBELLE_DISPONIBILITE, tonDisponibilite, type Ton } from './format';
 import type { Etape, EtatMep, Phase } from './types';
 
 export interface MetaStatut {
@@ -53,11 +55,18 @@ export function metaEtape(e: Pick<Etape, 'etat' | 'disponibilite'>): MetaStatut 
 
 /**
  * Phase d'une MEP, puis son issue une fois clôturée (en-tête, cartes, suivi, rapport) : `etat` vient de l'API (même règle
- * que la recherche, #91). « Réussie avec incidents » : clôturée réussie alors qu'une étape a échoué en route.
+ * que la recherche, #91). « Réussie avec incidents » : clôturée réussie alors qu'une étape a échoué en route. Une MEP
+ * reportée reste en préparation : « Reportée · 05/11/2026 » avec la date visée si elle est connue (#93).
  */
-export function metaPhase(phase: Phase, etat: EtatMep): MetaStatut {
+export function metaPhase(phase: Phase, etat: EtatMep, dateReport?: string | null): MetaStatut {
   switch (phase) {
     case 'Preparation':
+      if (etat === 'Reportee')
+        return {
+          ton: 'wait',
+          libelle: dateReport ? `Reportée · ${formatDate(dateReport)}` : 'Reportée',
+          Icone: CalendarClock,
+        };
       return { ton: 'wait', libelle: 'Préparation', Icone: ClipboardList };
     case 'Execution':
       return { ton: 'run', libelle: 'Exécution', Icone: Play };
@@ -65,7 +74,10 @@ export function metaPhase(phase: Phase, etat: EtatMep): MetaStatut {
       return { ton: 'warn', libelle: 'Recette', Icone: ClipboardCheck };
     case 'RetourArriere':
       return { ton: 'rollback', libelle: 'Retour arrière', Icone: Siren };
+    case 'Annulee':
+      return { ton: 'later', libelle: 'Annulée', Icone: Ban };
     case 'Cloturee':
+      if (etat === 'Echec') return { ton: 'danger', libelle: 'Clôturée : échec', Icone: XCircle };
       if (etat === 'Repliee') return { ton: 'later', libelle: 'Clôturée : repliée', Icone: Undo2 };
       if (etat === 'AvecIncidents')
         return { ton: 'warn', libelle: 'Clôturée : réussie avec incidents', Icone: TriangleAlert };
@@ -93,5 +105,11 @@ export function metaEtatMep(e: EtatMep): MetaStatut & { court: string } {
       return { ton: 'warn', libelle: 'Réussie avec incidents', court: 'Avec incidents', Icone: TriangleAlert };
     case 'Repliee':
       return { ton: 'later', libelle: 'Repliée (retour arrière)', court: 'Repliée', Icone: Undo2 };
+    case 'Reportee':
+      return { ton: 'wait', libelle: 'Reportée', court: 'Reportée', Icone: CalendarClock };
+    case 'Echec':
+      return { ton: 'danger', libelle: 'Échec (service dégradé)', court: 'Échec', Icone: XCircle };
+    case 'Annulee':
+      return { ton: 'later', libelle: 'Annulée', court: 'Annulée', Icone: Ban };
   }
 }

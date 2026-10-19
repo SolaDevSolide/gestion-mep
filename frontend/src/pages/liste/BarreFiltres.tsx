@@ -21,6 +21,7 @@ import { couleurSysteme } from '../../couleursSysteme';
 import { formatDate } from '../../format';
 import {
   environnementsProposes,
+  ETATS_ARRETES,
   ETATS_CLOTURES,
   ETATS_EN_COURS,
   FILTRE_VIDE,
@@ -377,11 +378,16 @@ function PanneauEtat({ f, maj, compter }: Ctx) {
   };
   return (
     <div className="w-full p-1 sm:w-72">
-      <Titre>Clôturées</Titre>
-      {ETATS_CLOTURES.map(ligne)}
       <Titre>En cours</Titre>
       {ETATS_EN_COURS.map(ligne)}
-      <Aide>« Avec incidents » : clôturée réussie, mais au moins une étape a échoué en route.</Aide>
+      <Titre>Clôturées</Titre>
+      {ETATS_CLOTURES.map(ligne)}
+      <Titre>Arrêtées</Titre>
+      {ETATS_ARRETES.map(ligne)}
+      <Aide>
+        « Réussie avec incidents » : clôturée réussie, mais au moins une étape a échoué en route. « Reportée » : en
+        préparation, avec un report.
+      </Aide>
     </div>
   );
 }

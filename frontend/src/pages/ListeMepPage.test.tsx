@@ -196,6 +196,28 @@ describe('ListeMepPage', () => {
     const recette = screen.getByText('Recette seule').closest('li') ?? document.body;
     expect(recette).not.toHaveTextContent(/Production/);
   });
+
+  it('montre les MEP reportées et annulées (#93), l’annulée sans barre de progression', async () => {
+    vi.mocked(api.meps).mockResolvedValue([
+      resume({ id: 'r', outil: 'Notes de frais', etat: 'Reportee', reporteeAu: '2026-10-28' }),
+      resume({
+        id: 'x',
+        outil: 'Signature',
+        phase: 'Annulee',
+        etat: 'Annulee',
+        annuleeLe: '2026-10-19T14:02:00Z',
+        nbEtapes: 5,
+        nbReussies: 2,
+      }),
+    ]);
+    rendre();
+    const reportee = (await screen.findByText('Notes de frais')).closest('li') ?? document.body;
+    expect(reportee).toHaveTextContent('Reportée · 28/10/2026');
+    const annulee = screen.getByText('Signature').closest('li') ?? document.body;
+    expect(annulee).toHaveTextContent('Annulée le 19/10/2026');
+    expect(annulee).toHaveTextContent('2/5 étapes réussies avant l’annulation');
+    expect(within(annulee as HTMLElement).queryByRole('img', { name: /progression/i })).toBeNull();
+  });
 });
 
 describe('ListeMepPage : MEP simplifiée', () => {

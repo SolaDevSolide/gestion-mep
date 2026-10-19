@@ -65,6 +65,7 @@ vi.mock('./graphe/apiGraphe', () => ({
 beforeAll(() => simulerReactFlow());
 
 const droitsEdition = {
+  ...mep().droits,
   estPilote: true,
   estApprobateur: false,
   estResponsableTechnique: false,

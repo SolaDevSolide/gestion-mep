@@ -78,6 +78,8 @@ export type TypeEvenementAdmin =
   | 'equipe.supprimee'
   | 'compte.relie'
   | 'compte.delie'
+  | 'mep.supprimee'
+  | 'mep.pilotage-secours'
   | 'modele-texte.cree'
   | 'modele-texte.modifie'
   | 'modele-texte.retabli'
@@ -154,6 +156,10 @@ export type EtatCharteServeur = S['EtatCharteDto'];
 export type VerificationCharte = S['VerificationCharteDto'];
 export type RetourArriereInfo = S['RetourArriereDto'];
 export type ClotureInfo = S['ClotureDto'];
+/** Sorties du cycle de vie (#93) : annulation, report d'une MEP en préparation, pilotage de secours après le Go. */
+export type AnnulationInfo = S['AnnulationDto'];
+export type ReportInfo = S['ReportDto'];
+export type PilotageSecoursInfo = S['PilotageSecoursDto'];
 export type PlanRepli = S['PlanRepliDto'];
 export type CorrectionExecutee = S['CorrectionExecuteeDto'];
 export type ExecutionResolution = S['ExecutionResolutionDto'];
@@ -343,6 +349,47 @@ export type ModeleEtapeSaisie = SaisieVerifiee<
 export type BilanSaisie = SaisieVerifiee<
   S['ClotureSaisie'],
   { ceQuiAMarche: string; incidents: string; actions: string }
+>;
+/** Clôture en échec (#93) : état du service laissé en production obligatoire, bilan obligatoire, incident facultatif. */
+export type ClotureEchecSaisie = SaisieVerifiee<
+  S['ClotureSaisie'],
+  {
+    ceQuiAMarche: string;
+    incidents: string;
+    actions: string;
+    echec: true;
+    etatService: string;
+    referenceIncident: string;
+  }
+>;
+export type NoGoSaisie = SaisieVerifiee<
+  S['NoGoSaisie'],
+  { motif: string; reporter?: boolean; dateVisee?: string | null }
+>;
+export type AnnulationSaisie = SaisieVerifiee<S['AnnulationSaisie'], { motif: string; etatProduction?: string }>;
+export type ReportSaisie = SaisieVerifiee<S['ReportSaisie'], { motif: string; dateVisee?: string | null }>;
+/** Nouveau pilote : une personne de la MEP (`participantId`) ou un compte (`utilisateurId`), jamais les deux. */
+export type PilotageSaisie = SaisieVerifiee<
+  S['PilotageSaisie'],
+  {
+    participantId?: string;
+    utilisateurId?: string;
+    motif: string;
+    ancienPiloteSuppleant: boolean;
+    suppleantsGardes?: string[];
+  }
+>;
+export type SuppressionMepSaisie = SaisieVerifiee<S['SuppressionMepSaisie'], { motif: string; nom: string }>;
+export type EtapeCorrectiveSaisie = SaisieVerifiee<
+  S['EtapeCorrectiveSaisie'],
+  {
+    action: string;
+    systemeIds: string[];
+    instructions: string;
+    resultatAttendu: string;
+    dureeEstimeeMinutes: number | null;
+    criticite: Criticite;
+  }
 >;
 export type DuplicationSaisie = SaisieVerifiee<S['DuplicationSaisie'], { commeModele: boolean }>;
 

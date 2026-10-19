@@ -1,6 +1,7 @@
 import { FileText, Flag, Save, ShieldAlert } from 'lucide-react';
 import { useMemo } from 'react';
 import { api } from '../api';
+import { etapesDuPlan } from '../domaine';
 import { useDraft, useReportDirty } from '../hooks';
 import { useMep } from '../mepContext';
 import { ZonePresence } from '../presence';
@@ -12,6 +13,7 @@ import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Input, Textarea } from '../ui/Input';
 import { BoutonDeclencherRepli } from './ActionsPilote';
+import { BoutonCloturerEchec } from './CycleDeVie';
 import { EtapesEditeur } from './EtapesEditeur';
 import { ExecutionVue } from './ExecutionVue';
 
@@ -195,6 +197,20 @@ export default function RetourArriereTab() {
           (possible aussi pendant la recette).
         </Alerte>
       )}
+
+      {mep.phase === 'RetourArriere' &&
+        mep.droits.estPilote &&
+        etapesDuPlan(mep, 'RetourArriere').some((e) => e.etat === 'Echec') && (
+          <Alerte
+            ton="danger"
+            icone={ShieldAlert}
+            titre="Retour arrière en échec"
+            action={<BoutonCloturerEchec taille="md" />}
+          >
+            Suivez la consigne « Si le retour arrière échoue » de la fiche ci-dessus. Si le service ne peut pas être
+            rétabli, clôturez la MEP en échec en décrivant l’état laissé en production.
+          </Alerte>
+        )}
 
       <section aria-labelledby="titre-etapes-repli">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

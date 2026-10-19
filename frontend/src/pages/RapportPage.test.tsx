@@ -50,7 +50,7 @@ function rapport(): RapportFin {
       }),
     ],
     bilan: { ceQuiAMarche: 'Tout', incidents: 'E0003 en échec, résolu.', actions: '', redigePar: 'Alice', le: null },
-    cloture: { le: '2026-10-10T20:00:00Z', par: 'Alice' },
+    cloture: { le: '2026-10-10T20:00:00Z', par: 'Alice', etatService: '', referenceIncident: '' },
   });
   return {
     mepId: m.id,
@@ -70,6 +70,9 @@ function rapport(): RapportFin {
       recetteConformes: 4,
       recetteEchecs: 0,
       retourArriere: false,
+      premierGo: null,
+      retoursEnPreparation: 0,
+      etapesAjouteesApresGo: 0,
     },
     pointsBloquants: [
       {

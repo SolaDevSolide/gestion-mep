@@ -1,5 +1,7 @@
 # Glossaire
 
+**Annulée** : MEP arrêtée définitivement depuis la préparation, avec un motif (et l'état laissé en production si elle avait déjà eu un Go). Elle est en lecture seule, reste visible dans la liste et la recherche, et se duplique. Voir [Cycle de vie](Cycle-de-vie.md#annuler-une-mep).
+
 **Anomalie** : point qui empêche de donner le Go, listé par « Vérifier le plan ». À distinguer d'un avertissement.
 
 **Approbation** : accord donné sur le plan par un approbateur désigné, avant le Go. Toute modification du contenu efface les approbations.
@@ -16,6 +18,8 @@
 
 **Catégorie** : regroupement des objets d'un système dans sa fiche (tables, vues, traitements…). Des catégories par défaut sont proposées à chaque système.
 
+**Clôturée : échec** : issue d'une MEP dont ni la recette ni le retour arrière n'ont rétabli le service : clôturée depuis le retour arrière, ou depuis la recette quand le retour arrière est impossible, avec l'état du service laissé en production et un bilan obligatoires. Dans la recherche : « Échec (service dégradé) ». Voir [Clôturer en échec](Cycle-de-vie.md#clôturer-en-échec).
+
 **Comptes reliés** : comptes d'une même personne reliés par un administrateur, sans rien fusionner ni supprimer. Ils apparaissent sous le nom du compte principal et chacun garde son historique.
 
 **Connexion unique (SSO)** : connexion avec son compte d'entreprise (Microsoft Entra ID ou autre fournisseur OpenID Connect) au lieu d'un mot de passe propre à l'application. Facultative : voir [Connexion Microsoft](Connexion-Microsoft.md).
@@ -23,6 +27,8 @@
 **Communication** : section de la préparation qui rassemble ce qu'on annonce aux utilisateurs (référence de la demande, risque, bénéfices, arrêt applicatif, créneau annoncé, validation par les utilisateurs). Elle remplit les modèles de texte.
 
 **Critère go / no-go** : condition à cocher avant de démarrer (par exemple « Supervision en place »).
+
+**Étape corrective** : étape ajoutée au plan de déploiement pendant l'exécution, après le Go, par le pilote ou un suppléant, pour corriger en avant. Elle porte la mention « Ajoutée après le Go » et est comptée dans le rapport de fin.
 
 **Échéance de retour arrière** : date et heure limites de l'intervention. Une fois atteinte, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi.
 
@@ -32,7 +38,7 @@
 
 **Équipe** : groupe de personnes géré par les administrateurs, qui sert à filtrer les comptes et les MEP, et qui a ses modèles de texte. Une personne peut appartenir à plusieurs équipes ; une MEP appartient à une équipe dès qu'une de ses personnes en fait partie.
 
-**État d'une MEP** : ce que la recherche des MEP retient d'une MEP : sa phase tant qu'elle n'est pas clôturée (préparation, exécution, recette, retour arrière en cours), puis son issue : **réussie** (sans aucun échec d'étape), **réussie avec incidents** (au moins un échec d'étape, même repris ensuite) ou **repliée** (clôturée après un retour arrière). Une MEP réussie avec incidents s'affiche « Clôturée : réussie avec incidents » partout où son issue apparaît (en-tête, Suivi en direct, rapport de fin, exports). Voir [Rechercher des MEP](Suivre-une-MEP.md#rechercher-des-mep).
+**État d'une MEP** : ce que la recherche des MEP retient d'une MEP : sa phase tant qu'elle n'est pas clôturée (préparation, **reportée**, exécution, recette, retour arrière en cours), puis son issue : **réussie** (sans aucun échec d'étape), **réussie avec incidents** (au moins un échec d'étape, même repris ensuite), **repliée** (clôturée après un retour arrière) ou **échec** (service dégradé) ; enfin **annulée**. Une MEP réussie avec incidents s'affiche « Clôturée : réussie avec incidents » partout où son issue apparaît (en-tête, Suivi en direct, rapport de fin, exports). Voir [Rechercher des MEP](Suivre-une-MEP.md#rechercher-des-mep).
 
 **Étape** : action unitaire du plan, avec des instructions et un résultat attendu. Codes `E0001…` pour le déploiement, `R0001…` pour le retour arrière.
 
@@ -48,7 +54,7 @@
 
 **Fiche de recette** : liste d'étapes de test qui vérifient un système après le déploiement. Elle appartient à un seul système ; chaque étape a un déroulé en blocs Texte ou Code et un résultat attendu.
 
-**Go / no-go** : décision du pilote de démarrer l'exécution (Go) ou de la reporter (no-go, avec un motif).
+**Go / no-go** : décision du pilote de démarrer l'exécution (Go) ou de ne pas la démarrer (no-go, avec un motif ; la MEP peut alors être reportée).
 
 **Historique d'un système** : onglet « Historique des MEP » de la fiche d'un système du catalogue : toutes les MEP qui l'ont touché, avec leur date, leurs environnements sur ce système, leur état et leurs échecs d'étape sur ce système. Voir [Historique d'un système](Suivre-une-MEP.md#historique-dun-système).
 
@@ -70,6 +76,8 @@
 
 **Pilote** : responsable de la MEP, qui décide des changements de phase.
 
+**Pilotage de secours** : changement de pilote après le Go par un administrateur qui n'est ni pilote ni suppléant, quand ceux-ci ne répondent plus. Motif obligatoire, trace au journal de la MEP et au journal d'administration, bandeau visible de tous jusqu'à la clôture. Le pilote ou un suppléant, lui, **passe le pilotage**. Voir [Cycle de vie](Cycle-de-vie.md#pilotage-de-secours-et-passation).
+
 **Plan de déploiement** : graphe des étapes qui réalisent le changement.
 
 **Plan de retour arrière** : étapes qui ramènent le service à son état d'avant, et fiche qui dit quand et comment les déclencher.
@@ -85,6 +93,8 @@
 **Recette** : phase de vérification après le déploiement, avant la clôture.
 
 **Recherche des MEP** : critères de la liste des MEP (système, environnement, équipe, personne et son rôle, état, période, échec d'étape sur un système), inscrits dans l'adresse de la page pour la partager. Les mêmes critères servent à l'export Excel, à l'API et à `gestion-mep meps lister`.
+
+**Reportée** : MEP en préparation dont le Go est repoussé, avec un motif et une date visée facultative. Elle se prépare normalement ; « Reprendre la préparation » ou le Go lève le report. Voir [Reporter une MEP](Cycle-de-vie.md#reporter-une-mep).
 
 **Résolution type** : fiche de dépannage réutilisable (symptômes, diagnostic, corrections, vérification finale) liée aux étapes qui peuvent échouer.
 

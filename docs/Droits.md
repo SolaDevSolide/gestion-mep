@@ -27,7 +27,7 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Voir la vue d'ensemble d'une MEP, le tableau de bord « Suivi en direct », le rapport de fin et ses exports | Tout utilisateur |
 | Modifier le contenu en préparation (intervention, personnes, systèmes et leurs environnements, objets impactés, sauvegarde, étapes, retour arrière, recette, approbateurs) | Éditeur |
 | Changer le pilote ou les suppléants, ou le compte auquel ils sont reliés | Pilote, suppléant ou administrateur (tout éditeur tant qu'aucun pilote n'est désigné) |
-| Compléter les informations de sauvegarde après la préparation (sauvegarde réalisée, restauration testée, preuve) | Pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée |
+| Compléter les informations de sauvegarde après la préparation (sauvegarde réalisée, restauration testée, preuve) | Pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée ou annulée |
 | Activer ou désactiver le plan de retour arrière | Éditeur, en préparation |
 | Passer une MEP simplifiée en complète, ou une MEP complète en simplifiée | Pilote, suppléant ou administrateur, en préparation (tout éditeur tant qu'aucun pilote n'est désigné) |
 | Modifier l'échéance de retour arrière, à toute phase (MEP avec plan de retour arrière) | Pilote, suppléant ou administrateur |
@@ -38,13 +38,22 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Terminer une étape, appliquer une résolution | Exécutant de l'étape, pilote ou suppléant |
 | Prendre la main sur une étape | Participant relié à un compte, ou administrateur (motif obligatoire) |
 | Autoriser le passage d'un point de non-retour, autoriser une reprise | Pilote ou suppléant |
-| Revenir en préparation, passer en recette, déclencher le retour arrière, clôturer | Pilote ou suppléant |
+| Revenir en préparation (motif), passer en recette, déclencher le retour arrière, clôturer | Pilote ou suppléant |
+| Reporter une MEP (motif, date visée facultative), reprendre la préparation | Pilote ou suppléant, en préparation |
+| Annuler une MEP (motif ; état laissé en production après un Go) | Pilote, suppléant ou administrateur, en préparation |
+| Revenir de la recette à l'exécution pour corriger (motif) | Pilote ou suppléant, en recette |
+| Ajouter une étape corrective | Pilote ou suppléant, en exécution |
+| Clôturer en échec (état du service et bilan obligatoires) | Pilote ou suppléant, en retour arrière ; en recette si le retour arrière est impossible |
+| Passer le pilotage (motif) | Pilote ou suppléant, de l'exécution au retour arrière |
+| Pilotage de secours (motif) | Administrateur qui n'est ni pilote ni suppléant, de l'exécution au retour arrière |
+| Ajouter une personne à la MEP après le Go | Pilote, suppléant ou administrateur, de l'exécution au retour arrière |
+| Supprimer définitivement une MEP (motif, nom saisi) | Administrateur, pour une MEP qui n'a jamais eu de Go ou un modèle |
 | Saisir un résultat de recette | Participant relié à un compte, ou administrateur |
 | Faire refaire un test de recette | Pilote ou suppléant |
 | Exporter la recette en Excel | Tout utilisateur qui voit la MEP |
 | Exporter en Excel la liste des MEP, la préparation, les étapes, le retour arrière, les objets impactés ou le journal | Tout utilisateur qui voit la MEP |
 | Importer la validation de la recette depuis Excel | Pilote ou suppléant, en phase de recette |
-| Ajouter une pièce jointe (MEP, étape, résolution) | Tout utilisateur, sauf sur une MEP clôturée, dans la limite des [plafonds de stockage](Installer.md#configuration) |
+| Ajouter une pièce jointe (MEP, étape, résolution) | Tout utilisateur, sauf sur une MEP clôturée ou annulée, dans la limite des [plafonds de stockage](Installer.md#configuration) |
 | Supprimer une pièce jointe d'une MEP | Celui qui l'a déposée, pilote, suppléant ou administrateur |
 | Créer ou modifier une résolution type | Tout utilisateur |
 | Supprimer une résolution type ou une de ses pièces jointes | Administrateur |
@@ -53,15 +62,15 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Supprimer une étape modèle | Administrateur |
 | Insérer une étape modèle dans le plan | Éditeur de la MEP, en préparation |
 | Supprimer un modèle de la bibliothèque de recettes | Administrateur |
-| Modifier la communication d'une MEP | Éditeur en préparation ; après le Go, pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée |
+| Modifier la communication d'une MEP | Éditeur en préparation ; après le Go, pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée ou annulée |
 | Copier les textes d'une MEP, consulter les modèles de texte | Tout utilisateur qui voit la MEP |
 | Créer, modifier, rétablir ou supprimer un modèle de texte d'une équipe, régler son contact support et sa signature | Membre de l'équipe (par l'un de ses comptes reliés) ou administrateur ; les modèles fournis ne se suppriment pas |
 | Catalogue des systèmes (fiches : environnements, catégories, objets ; catégories par défaut), critères go / no-go, nombre minimum d'approbations | Administrateur (lecture pour tous) |
 | Comptes et console d'administration, équipes, comptes reliés d'une même personne | Administrateur (équipes : lecture pour tous) |
 | Modifier son propre profil et son mot de passe | Chacun |
 
-Un administrateur n'a **pas** les droits du pilote : pour donner le Go ou déclencher un retour arrière, il doit être pilote ou suppléant de la MEP.
+Un administrateur n'a **pas** les droits du pilote : pour donner le Go ou déclencher un retour arrière, il doit être pilote ou suppléant de la MEP. Après le Go, il peut le devenir avec le [pilotage de secours](Cycle-de-vie.md#pilotage-de-secours-et-passation) : motif obligatoire, trace au journal de la MEP et au journal d'administration, bandeau visible de tous. Il peut aussi annuler une MEP en préparation sans la piloter.
 
 ## Traçabilité
 
-Chaque action sur une MEP est inscrite dans son journal avec son auteur (nom affiché et identifiant, qui ne change jamais) et l'heure. Un compte relié à un compte principal signe du nom de la personne, avec son propre identifiant. Les droits restent ceux de chaque compte : relier deux comptes ne donne pas à l'un les droits de l'autre dans une MEP. Les modifications des informations de sauvegarde y gardent l'ancienne et la nouvelle valeur. Les actions d'administration sont dans le journal de la console d'administration.
+Chaque action sur une MEP est inscrite dans son journal avec son auteur (nom affiché et identifiant, qui ne change jamais) et l'heure. Un compte relié à un compte principal signe du nom de la personne, avec son propre identifiant. Les droits restent ceux de chaque compte : relier deux comptes ne donne pas à l'un les droits de l'autre dans une MEP. Les modifications des informations de sauvegarde y gardent l'ancienne et la nouvelle valeur. Les actions d'administration sont dans le journal de la console d'administration, comme le pilotage de secours et la suppression d'une MEP. Une MEP annulée garde son journal ; une MEP supprimée ne laisse qu'une ligne « MEP supprimée » au journal d'administration.

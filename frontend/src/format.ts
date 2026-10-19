@@ -16,6 +16,7 @@ export const LIBELLE_PHASE: Record<Phase, string> = {
   Recette: 'Recette',
   RetourArriere: 'Retour arrière',
   Cloturee: 'Clôturée',
+  Annulee: 'Annulée',
 };
 
 export const LIBELLE_ETAT: Record<EtatEtape, string> = {
@@ -115,7 +116,9 @@ export const LIBELLE_FAMILLE_EVENEMENT: Record<string, string> = {
 export function familleEvenement(type: string): string {
   const i = type.indexOf('.');
   const famille = i < 0 ? type : type.slice(0, i);
-  return famille === 'approbateurs' || famille === 'approbations' ? 'approbation' : famille;
+  if (famille === 'approbateurs' || famille === 'approbations') return 'approbation';
+  // Passation et pilotage de secours : rangés avec les personnes de la MEP (#93).
+  return famille === 'pilotage' ? 'participant' : famille;
 }
 
 export function initiales(nom: string | null | undefined): string {

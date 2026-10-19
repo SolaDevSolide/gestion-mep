@@ -1,11 +1,15 @@
-import { ClipboardList, FileText } from 'lucide-react';
+import { ClipboardList, FileText, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDateHeure } from '../format';
-import type { Bilan } from '../types';
+import type { Bilan, ClotureInfo } from '../types';
+import { Alerte } from '../ui/Alerte';
 import { Card, CardHeader } from '../ui/Card';
 
-/** Bilan de clôture, affiché en tête d'une MEP clôturée, avec le lien vers son rapport de fin (#61). */
-export function BilanCarte({ bilan, mepId }: { bilan: Bilan; mepId?: string }) {
+/**
+ * Bilan de clôture, affiché en tête d'une MEP clôturée, avec le lien vers son rapport de fin (#61). Clôturée en échec
+ * (`echec`, #93) : l'état du service laissé en production et la référence de l'incident en tête.
+ */
+export function BilanCarte({ bilan, mepId, echec }: { bilan: Bilan; mepId?: string; echec?: ClotureInfo | null }) {
   const blocs: [string, string][] = [
     ['Ce qui a marché', bilan.ceQuiAMarche],
     ['Incidents', bilan.incidents],
@@ -37,6 +41,17 @@ export function BilanCarte({ bilan, mepId }: { bilan: Bilan; mepId?: string }) {
           )
         }
       />
+      {echec && (
+        <div className="px-5 pt-5">
+          <Alerte
+            ton="danger"
+            icone={XCircle}
+            titre={`Service dégradé${echec.referenceIncident ? ` · incident ${echec.referenceIncident}` : ''}`}
+          >
+            {echec.etatService}
+          </Alerte>
+        </div>
+      )}
       <dl className="grid gap-x-8 gap-y-4 p-5 md:grid-cols-3">
         {blocs.map(([k, v]) => (
           <div key={k}>

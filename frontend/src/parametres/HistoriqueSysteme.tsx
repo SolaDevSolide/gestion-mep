@@ -37,7 +37,7 @@ function dateLocale(jour: string): Date {
 }
 
 /** MEP pas encore lancée (aucun Go) : rangée « À venir ». */
-const aVenir = (m: MepHistorique) => !m.go && m.etat === 'Preparation';
+const aVenir = (m: MepHistorique) => !m.go && (m.etat === 'Preparation' || m.etat === 'Reportee');
 
 function ilYa(jour: string, maintenant: Date): string {
   const j = Math.round((maintenant.getTime() - dateLocale(jour).getTime()) / 864e5);
@@ -89,6 +89,8 @@ function Frise({ meps, maintenant }: { meps: MepHistorique[]; maintenant: Date }
     { etat: 'Reussie', libelle: 'Réussie' },
     { etat: 'AvecIncidents', libelle: 'Avec incidents' },
     { etat: 'Repliee', libelle: 'Repliée' },
+    { etat: 'Echec', libelle: 'Échec' },
+    { etat: 'Annulee', libelle: 'Annulée' },
     { etat: 'Execution', libelle: 'En cours' },
   ];
   return (
@@ -306,7 +308,7 @@ export function VueHistorique({
     (m) => (env === 'tous' || m.environnements.some((e) => e.nom === env)) && (!avecEchec || m.echecs.length > 0),
   );
   const derniere = toutes.find((m) => m.id === r.derniereMepId) ?? toutes[0];
-  const problemes = r.avecIncidents + r.repliees;
+  const problemes = r.avecIncidents + r.repliees + r.enEchec;
   const taux = r.cloturees ? Math.round((problemes / r.cloturees) * 100) : 0;
   const part = (n: number) => `${(100 * n) / Math.max(1, r.cloturees)}%`;
   // Environnements du catalogue, puis ceux saisis dans d'anciennes MEP et retirés depuis.
@@ -345,12 +347,15 @@ export function VueHistorique({
         >
           {r.cloturees ? (
             <>
+              {r.enEchec > 0 && `${r.enEchec} en échec · `}
               {r.repliees} repliée{r.repliees > 1 ? 's' : ''} · {r.avecIncidents} avec incidents, sur {r.cloturees}{' '}
               clôturée{r.cloturees > 1 ? 's' : ''}
+              {r.annulees > 0 && ` (et ${r.annulees} annulée${r.annulees > 1 ? 's' : ''})`}
               <span className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-sunken" aria-hidden>
                 <span className={pastille('Reussie')} style={{ width: part(r.reussies) }} />
                 <span className={pastille('AvecIncidents')} style={{ width: part(r.avecIncidents) }} />
                 <span className={pastille('Repliee')} style={{ width: part(r.repliees) }} />
+                <span className={pastille('Echec')} style={{ width: part(r.enEchec) }} />
               </span>
             </>
           ) : (
