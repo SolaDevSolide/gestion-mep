@@ -19,10 +19,10 @@ Ce que pose le script d'installation :
 |---|---|---|
 | Application (une version par dossier) | `/opt/gestion-mep/versions/<version>`, version en service : `/opt/gestion-mep/actuelle` | `C:\Program Files\GestionMep\versions\<version>`, version en service : `C:\Program Files\GestionMep\actuelle` |
 | Configuration | `/etc/gestion-mep/gestion-mep.conf` (root et le compte du service seulement) | `C:\ProgramData\GestionMep\gestion-mep.conf` (administrateurs et le service seulement) |
-| Données (pièces jointes, clés de session, sauvegardes) | `/var/lib/gestion-mep` | `C:\ProgramData\GestionMep\donnees` |
+| Données (pièces jointes, clés de session, sauvegardes) | `/var/lib/gestion-mep` (ou `DOSSIER_DONNEES`) | `C:\ProgramData\GestionMep\donnees` |
 | Service | `gestion-mep` (systemd), compte système `gestion-mep` sans connexion | `GestionMep`, compte `NT AUTHORITY\LocalService` |
 | Commande d'exploitation | `sudo gestion-mep …` | `gestion-mep …` (console en administrateur) |
-| Journaux | `journalctl -u gestion-mep` | Observateur d'événements, journal *Application* |
+| Journaux | `journalctl -u gestion-mep` | Observateur d'événements, journal *Application*, source *GestionMep.Api* (créée par le script) |
 
 PostgreSQL n'est pas installé par le script : il faut un serveur PostgreSQL 16 ou plus récent, sur la même machine ou ailleurs (Amazon RDS compris). Comme avec Docker, l'application écoute en HTTP (par défaut sur `127.0.0.1:8080`) derrière un [proxy inverse HTTPS](Installer.md#proxy-inverse-https).
 
@@ -71,7 +71,7 @@ Sous Windows, installer PostgreSQL avec l'installeur officiel, puis créer le co
 4. Vérifier :
 
    ```bash
-   curl http://127.0.0.1:8080/api/sante          # doit répondre {"statut":"ok"}
+   curl http://127.0.0.1:8080/api/sante/prete    # doit répondre {"statut":"prete",…}
    sudo gestion-mep config verifier
    ```
 
@@ -99,11 +99,11 @@ Dans une console PowerShell **lancée en administrateur** :
 4. Vérifier, dans une nouvelle console en administrateur (la commande `gestion-mep` vient d'être ajoutée au `PATH`) :
 
    ```powershell
-   Invoke-RestMethod http://127.0.0.1:8080/api/sante
+   Invoke-RestMethod http://127.0.0.1:8080/api/sante/prete
    gestion-mep config verifier
    ```
 
-5. Configurer le proxy inverse HTTPS (IIS avec Application Request Routing, voir [Proxy inverse HTTPS](Installer.md#proxy-inverse-https)), puis se connecter avec le compte administrateur. Avec `ADMIN_MOT_DE_PASSE` vide, le mot de passe provisoire est dans l'Observateur d'événements, journal *Application*, source *GestionMep.Api* (ou `gestion-mep comptes reinitialiser-mdp admin` pour en obtenir un nouveau).
+5. Configurer le proxy inverse HTTPS (IIS avec Application Request Routing, voir [Proxy inverse HTTPS](Installer.md#proxy-inverse-https)), puis se connecter avec le compte administrateur. Avec `ADMIN_MOT_DE_PASSE` vide, le mot de passe provisoire est dans l'Observateur d'événements, journal *Application*, source *GestionMep.Api* (ou `gestion-mep comptes reinitialiser-mdp admin` pour en obtenir un nouveau). Le script crée cette source : le compte `LocalService` du service n'a pas le droit de le faire, et sans elle l'application n'écrirait rien dans l'Observateur d'événements. Celui-ci ne reçoit que les avertissements et les erreurs ; pour y voir aussi les messages d'information (sauvegardes, migrations), ajouter `Logging__EventLog__LogLevel__Default=Information` à la configuration.
 
 ## Configuration
 
@@ -112,7 +112,7 @@ Le fichier de configuration reprend **les mêmes noms que le fichier `.env`** de
 | Nom | Défaut | Rôle |
 |---|---|---|
 | `BASE_DE_DONNEES` | | Chaîne de connexion PostgreSQL complète : `Host=localhost;Port=5432;Database=gestion_mep;Username=mep;Password=…`. Remplace `POSTGRES_USER` et `POSTGRES_PASSWORD`. |
-| `DOSSIER_DONNEES` | voir ci-dessus | Dossier des données, découpé en `pieces-jointes`, `cles`, `sauvegardes` et `mise-a-jour` (les volumes Docker). |
+| `DOSSIER_DONNEES` | voir ci-dessus | Dossier des données, découpé en `pieces-jointes`, `cles`, `sauvegardes` et `mise-a-jour` (les volumes Docker). Linux : chemin absolu sans espace, hors de `/home` (fermé au service). Après l'avoir changé, relancer `sudo /opt/gestion-mep/installer.sh` : il crée les dossiers et les ouvre en écriture au service durci (fichier complémentaire `/etc/systemd/system/gestion-mep.service.d/donnees.conf`, `ReadWritePaths=`). Déplacer ensuite les données de l'ancien dossier, service arrêté. |
 | `ADRESSE_ECOUTE` | `127.0.0.1` | Adresse d'écoute de l'application. `0.0.0.0` (toutes les cartes réseau) si le proxy est sur une autre machine, ou pour un essai depuis un autre poste avec `HTTPS_OBLIGATOIRE=false`. |
 | `PORT` | `8080` | Port d'écoute. |
 | `PROXY_RESEAUX` | vide | Vide : le proxy est sur la même machine (`127.0.0.1` ou `::1`). Sinon, l'adresse du proxy (`10.0.5.12/32`). |
@@ -141,8 +141,13 @@ Déroulé :
 
 1. Le script vérifie l'archive (empreinte SHA-256 quand il la télécharge) et la copie dans un dossier propre à la version, sans toucher à celle en service.
 2. Il arrête le service et sauvegarde la base et les pièces jointes avec la version en place (`avant-<version>-AAAAMMJJ-HHMMSS.tar.gz`, heure UTC, dans le dossier des sauvegardes). Si la sauvegarde échoue, il relance la version en place et s'arrête : rien n'a changé.
-3. Il bascule sur la nouvelle version et démarre le service. L'application migre la base avec sa [sauvegarde automatique](Exploiter.md#mettre-à-jour).
-4. Il attend que l'application réponde (3 minutes au plus). Sinon, il remet la version précédente, recharge la sauvegarde de l'étape 2 et relance le service : l'application revient à l'état d'avant la mise à jour.
+3. Il bascule sur la nouvelle version et migre la base, service arrêté (`gestion-mep migrer`, avec sa [sauvegarde automatique](Exploiter.md#mettre-à-jour)). La migration est attendue jusqu'au bout, quelle que soit sa durée : hors du service, elle n'est pas soumise au délai de démarrage de systemd ou de Windows.
+4. Il démarre le service et attend que l'application soit prête (sonde `--sante --prete` : base joignable et à jour ; 10 minutes au plus, `GESTION_MEP_ATTENTE_SANTE` en secondes pour changer). Un échec du service, ou un redémarrage automatique pendant ce temps, arrête l'attente tout de suite.
+5. Si la migration ou le démarrage échoue, il remet la version précédente, recharge la sauvegarde de l'étape 2 et relance le service : l'application revient à l'état d'avant la mise à jour. Si la restauration elle-même échoue, il laisse le service arrêté (pour ne pas faire tourner l'ancienne version sur une base modifiée) et donne la commande à relancer à la main.
+
+Délai de démarrage du service : systemd attend 15 minutes que l'application se déclare prête (`TimeoutStartSec`), ce qui couvre les opérations du démarrage hors migration. Pour l'allonger : `sudo systemctl edit gestion-mep`, puis `[Service]` et `TimeoutStartSec=1h`.
+
+Autres variables du script : `GESTION_MEP_DEPOT` (dépôt GitHub d'où télécharger les versions, `SolaDevSolide/gestion-mep` par défaut) pour un miroir. Sans accès à Internet, utiliser `--archive`.
 
 Les trois dernières versions restent sur le serveur. La sauvegarde de l'étape 2 est conservée : la supprimer une fois la nouvelle version validée.
 
@@ -152,7 +157,7 @@ Les trois dernières versions restent sur le serveur. La sauvegarde de l'étape 
 sudo /opt/gestion-mep/installer.sh --version 1.4.0     # version encore présente : pas de téléchargement
 ```
 
-Si la version plus récente a modifié le schéma de la base, recharger ensuite la sauvegarde faite avant la mise à jour (voir ci-dessous) : les migrations ne sont pas annulées automatiquement, et les données saisies depuis seront perdues.
+Si la version plus récente a modifié le schéma de la base, recharger ensuite la sauvegarde faite avant la mise à jour (voir ci-dessous) : les migrations ne sont pas annulées automatiquement, et les données saisies depuis seront perdues. Tant que ce n'est pas fait, la sonde `/api/sante/prete` répond 503 avec `"schema":"plus-recent"`.
 
 ## Sauvegarder et restaurer
 
@@ -170,8 +175,8 @@ Sous Windows : `gestion-mep sauvegarder`, puis `Stop-Service GestionMep`, `gesti
 
 ## Commandes et surveillance
 
-- Toutes les [commandes d'administration](Exploiter.md#commandes-dadministration) s'utilisent avec `sudo gestion-mep …` (Linux) ou `gestion-mep …` (Windows, console en administrateur) : `sudo gestion-mep aide` donne la liste.
-- Santé : `GET /api/sante`, ou `gestion-mep --sante` (code de retour 0 si l'application répond).
+- Toutes les [commandes d'administration](Exploiter.md#commandes-dadministration) s'utilisent avec `sudo gestion-mep …` (Linux) ou `gestion-mep …` (Windows, console en administrateur) : `sudo gestion-mep aide` donne la liste. Sous Linux, la commande tourne avec le compte du service `gestion-mep`, depuis le dossier courant : un chemin relatif (fichier à importer, export Excel sans nom de fichier) part du dossier où elle est tapée. Ce dossier et ces fichiers doivent être accessibles à ce compte (par exemple `/tmp`, pas un dossier personnel fermé) ; sinon, passer le fichier par l'entrée standard (`sudo gestion-mep resolutions importer - < resolutions.json`) ou écrire dans un dossier ouvert au compte (`sudo gestion-mep meps excel <id> etapes /tmp/etapes.xlsx`).
+- Santé : `GET /api/sante` (le processus répond) et `GET /api/sante/prete` (l'application peut servir : base, schéma, surveillance des échéances ; 503 sinon), ou `gestion-mep --sante` et `gestion-mep --sante --prete` (code de retour 0 si la sonde répond 200). Voir [Surveiller](Exploiter.md#surveiller).
 - Journaux : `sudo journalctl -u gestion-mep -f` (Linux), Observateur d'événements (Windows).
 - État du service : `systemctl status gestion-mep` (Linux), `Get-Service GestionMep` (Windows).
 
@@ -181,9 +186,9 @@ Linux :
 
 ```bash
 sudo systemctl disable --now gestion-mep
-sudo rm -rf /opt/gestion-mep /etc/systemd/system/gestion-mep.service /usr/local/bin/gestion-mep
+sudo rm -rf /opt/gestion-mep /etc/systemd/system/gestion-mep.service /etc/systemd/system/gestion-mep.service.d /usr/local/bin/gestion-mep
 sudo rm -rf /etc/gestion-mep /var/lib/gestion-mep      # configuration et données : seulement après une dernière sauvegarde copiée ailleurs
 sudo userdel gestion-mep
 ```
 
-Windows : `Stop-Service GestionMep; sc.exe delete GestionMep`, puis supprimer `C:\Program Files\GestionMep` et, après une dernière sauvegarde copiée ailleurs, `C:\ProgramData\GestionMep`. La base PostgreSQL n'est jamais supprimée par ces commandes.
+Windows : `Stop-Service GestionMep; sc.exe delete GestionMep; [Diagnostics.EventLog]::DeleteEventSource('GestionMep.Api')`, puis supprimer `C:\Program Files\GestionMep` et, après une dernière sauvegarde copiée ailleurs, `C:\ProgramData\GestionMep`. La base PostgreSQL n'est jamais supprimée par ces commandes.

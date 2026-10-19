@@ -4,18 +4,21 @@ Cette page s'adresse à l'équipe informatique qui installe l'application sur un
 
 ## Vue d'ensemble
 
-L'application tient dans deux conteneurs, décrits par le fichier `docker-compose.yml` du dépôt :
+L'application tient dans deux conteneurs, décrits par le fichier `docker-compose.yml` joint à chaque version publiée :
 
 | Conteneur | Contenu | Données |
 |---|---|---|
-| `app` | API et interface web, image `ghcr.io/soladevsolide/gestion-mep` | volumes `pieces-jointes` (fichiers joints), `cles` (clés de session) et `sauvegardes` (archives de la base et des pièces jointes) |
+| `app` | API et interface web, image `ghcr.io/soladevsolide/gestion-mep` | volumes `pieces-jointes` (fichiers joints), `cles` (clés de session et du secret de la connexion Microsoft) et `sauvegardes` (archives de la base et des pièces jointes) |
 | `db` | PostgreSQL 16 | volume `db-data` |
+| `mise-a-jour` (facultatif, désactivé par défaut) | Service du bouton « Mettre à jour » de la console, image `ghcr.io/soladevsolide/gestion-mep-mise-a-jour` (voir [Mettre à jour depuis la console](Exploiter.md#mettre-à-jour-depuis-la-console)) | volume `mise-a-jour` (échanges avec l'application) |
 
-L'application écoute en HTTP sur le port 8080. Le chiffrement HTTPS est confié à un proxy inverse placé devant elle. Il n'y a ni autre service, ni tâche planifiée à installer : le schéma de la base est créé et mis à jour automatiquement au démarrage.
+L'application écoute en HTTP sur le port 8080. Le chiffrement HTTPS est confié à un proxy inverse placé devant elle. Le schéma de la base est créé et mis à jour automatiquement au démarrage. Seule tâche à prévoir : la [sauvegarde de chaque nuit](Exploiter.md#sauvegarder), copiée hors du serveur.
+
+**Une seule instance** de l'application doit tourner à la fois sur une même base : les verrous d'édition des étapes, le flux temps réel, les limites de connexion et les plafonds de dépôt sont tenus en mémoire, et les pièces jointes sont sur le disque du conteneur (voir [Limites connues](#limites-connues)).
 
 ## Prérequis
 
-- Une machine virtuelle Linux (ou Windows Server) avec **Docker Engine** et le plugin **Docker Compose v2**. Sans Docker : [Installer sans Docker](Installer-sans-Docker.md).
+- Une machine virtuelle **Linux** avec **Docker Engine** et le plugin **Docker Compose v2**. Les images sont des images Linux : sur Windows Server, Docker Engine n'exécute que des conteneurs Windows et ne peut pas les lancer ; utiliser alors l'[installation sans Docker](Installer-sans-Docker.md). Docker Desktop (WSL 2) convient pour un essai sur un poste de travail, pas pour un serveur.
 - 2 vCPU et 4 Go de mémoire suffisent pour une équipe. Prévoir l'espace disque des pièces jointes.
 - Un accès sortant à `ghcr.io` pour récupérer l'image, ou une copie de l'image dans un registre interne. Facultatif : un accès sortant à `api.github.com` pour signaler les nouvelles versions aux administrateurs.
 - Un proxy inverse HTTPS (nginx, IIS, Traefik, un répartiteur de charge…) et un nom DNS.
@@ -28,14 +31,20 @@ L'application écoute en HTTP sur le port 8080. Le chiffrement HTTPS est confié
 
 ## Installation
 
-1. Copier `docker-compose.yml` et `.env.example` dans un dossier du serveur, par exemple `/opt/gestion-mep`.
-2. Créer `.env` à partir de `.env.example`, lisible seulement par le compte qui lance Docker (il contient des mots de passe), puis le compléter (voir [Configuration](#configuration)). Au minimum : `POSTGRES_PASSWORD`, `ADMIN_LOGIN` et `MEP_IMAGE`.
+1. Télécharger, dans un dossier du serveur (par exemple `/opt/gestion-mep`), les deux fichiers joints à la version voulue sur la page *Releases* : `docker-compose.yml` et `env.example` (GitHub renomme les fichiers joints dont le nom commence par un point). Ils tirent les images de cette version précise, sans rien construire ; leur empreinte est dans `SHA256SUMS`.
+
+   ```bash
+   v=1.9.0
+   curl -fLO https://github.com/SolaDevSolide/gestion-mep/releases/download/v$v/docker-compose.yml
+   curl -fL -o .env.example https://github.com/SolaDevSolide/gestion-mep/releases/download/v$v/env.example
+   ```
+
+   Le `docker-compose.yml` de la branche `main` du dépôt sert au développement : il construit les images sur place. Les versions publiées jusqu'à la 1.8.0 n'ont pas ces fichiers joints : prendre alors ceux du dépôt à l'étiquette de la version (`https://raw.githubusercontent.com/SolaDevSolide/gestion-mep/v1.8.0/docker-compose.yml`) et fixer `MEP_IMAGE` dans `.env`.
+2. Créer `.env` à partir de `.env.example`, lisible seulement par le compte qui lance Docker (il contient des mots de passe), puis le compléter (voir [Configuration](#configuration)). Au minimum : `POSTGRES_PASSWORD` et `ADMIN_LOGIN` (`MEP_IMAGE` y est déjà fixée à la version téléchargée).
 
    ```bash
    install -m 600 .env.example .env          # Linux : droits réservés au propriétaire
    ```
-
-   Sous Windows : `icacls .env /inheritance:r /grant:r "%USERNAME%:F"`.
 3. Démarrer :
 
    ```bash
@@ -46,7 +55,8 @@ L'application écoute en HTTP sur le port 8080. Le chiffrement HTTPS est confié
 4. Vérifier :
 
    ```bash
-   curl http://localhost:8080/api/sante            # doit répondre {"statut":"ok"}
+   curl http://localhost:8080/api/sante/prete      # doit répondre {"statut":"prete",…} : base joignable et à jour
+   docker compose ps                                # colonne STATUS : healthy
    docker compose exec app gestion-mep config verifier
    ```
 
@@ -72,8 +82,9 @@ Les variables se règlent dans `.env`, lu par `docker-compose.yml`. Celles marqu
 | `VERIFIER_MISES_A_JOUR` (console) | `true` | Consulte les versions publiées sur GitHub pour signaler une mise à jour aux administrateurs. `false` sur un serveur sans accès à Internet. |
 | `LIEN_SIGNALEMENT` (console) | formulaire GitHub du dépôt | Lien « Signaler un problème ou une idée » du menu utilisateur. Vide : lien masqué. Peut pointer vers un outil interne. |
 | `COMPOSE_PROFILES` | vide | `mise-a-jour` active le bouton « Mettre à jour » de la console (voir [Mettre à jour depuis la console](Exploiter.md#mettre-à-jour-depuis-la-console)). |
-| `MEP_IMAGE_MISE_A_JOUR` | `ghcr.io/soladevsolide/gestion-mep-mise-a-jour:latest` | Image du service de mise à jour. |
-| `MEP_DEPOT_IMAGE` | `ghcr.io/soladevsolide/gestion-mep` | Seul dépôt d'images que le service de mise à jour accepte d'installer (à changer pour un registre interne). |
+| `MEP_IMAGE_MISE_A_JOUR` | image de la version (fichiers de la version publiée) | Image du service de mise à jour, à la même version que l'application. Le service la fait suivre lui-même après chaque mise à jour (si elle vient du même dépôt que l'application). |
+| `MEP_DEPOT_IMAGE` | `ghcr.io/soladevsolide/gestion-mep` | Seul dépôt d'images que le service de mise à jour accepte d'installer. Pour un registre interne, y mettre le dépôt du miroir (voir [Registre interne](Exploiter.md#registre-interne-sans-github)). |
+| `MEP_ATTENTE_SANTE` | `300` | Secondes pendant lesquelles le service de mise à jour attend que la nouvelle version soit prête, une fois la base migrée, avant de revenir à la précédente. La sauvegarde et la migration, faites avant, sont attendues sans limite. |
 | `URL_PUBLIQUE` (console) | vide | Adresse publique de l'application (`https://mep.entreprise.fr`). Facultative : sert à l'adresse de retour de la [connexion Microsoft](Connexion-Microsoft.md) ; vide, elle est déduite de la requête. |
 | `HTTPS_OBLIGATOIRE` (console) | `true` | `false` : mode d'essai, la session fonctionne aussi en http simple (voir [Essayer depuis un autre poste](#essayer-depuis-un-autre-poste-sans-https)). Les mots de passe circulent alors en clair. |
 | `FLUX_MAX` (console) | `1000` | Écrans suivis en temps réel en même temps sur le serveur (20 au plus par compte). Au-delà, l'écran se met à jour à la reconnexion suivante. |
@@ -81,7 +92,12 @@ Les variables se règlent dans `.env`, lu par `docker-compose.yml`. Celles marqu
 
 **Charte visuelle** (facultatif) : pour donner à l'application les couleurs de l'entreprise dès l'installation, poser un fichier `charte.json` à côté de `docker-compose.yml` et décommenter la ligne `./charte.json:/etc/gestion-mep/charte.json:ro` du service `app`. Format, exemple et commandes : [Exploiter](Exploiter.md#charte-visuelle). Les administrateurs peuvent aussi tout régler dans la console (onglet Charte visuelle), sans fichier.
 
-Pour un déploiement sans Docker Compose (Kubernetes, ECS…), l'image se règle par ses variables d'environnement :
+Pour un déploiement sans Docker Compose (Kubernetes, ECS…) :
+
+- **une seule réplique**, et un remplacement complet lors d'une mise à jour (stratégie `Recreate` sous Kubernetes, `minimumHealthyPercent` à 0 et `maximumPercent` à 100 sous ECS) : deux instances en même temps, même pendant un déploiement progressif, laisseraient deux personnes prendre le verrou de la même étape, cesseraient de diffuser les mises à jour d'écran entre instances, multiplieraient les limites de connexion, et feraient tourner l'ancienne version sur une base déjà migrée ;
+- des volumes persistants pour les pièces jointes, les clés et les sauvegardes ;
+- sonde de vivacité (*liveness*) sur `GET /api/sante`, sonde de disponibilité (*readiness*) et contrôle du répartiteur de charge sur `GET /api/sante/prete` (503 tant que la base est injoignable ou pas au schéma de cette version) ; laisser un délai de démarrage suffisant pour la migration ;
+- l'image se règle par ses variables d'environnement :
 
 | Variable | Rôle |
 |---|---|
@@ -106,7 +122,7 @@ Pour un déploiement sans Docker Compose (Kubernetes, ECS…), l'image se règle
 
 ### Base de données externe
 
-Pour utiliser un serveur PostgreSQL 16 existant (ou Amazon RDS), créer une base et un compte propriétaire de cette base, puis, dans `docker-compose.yml`, supprimer le service `db` (et la dépendance `depends_on` du service `app`) et remplacer `ConnectionStrings__Mep` par la chaîne de connexion de ce serveur. Les sauvegardes de la base se font alors avec les outils de ce serveur.
+Pour utiliser un serveur PostgreSQL 16 ou plus récent existant (ou Amazon RDS), créer une base et un compte propriétaire de cette base, puis, dans `docker-compose.yml`, supprimer le service `db` (et la dépendance `depends_on` du service `app`) et remplacer `ConnectionStrings__Mep` par la chaîne de connexion de ce serveur. `gestion-mep sauvegarder` reste la sauvegarde de référence : elle lit la base et les pièces jointes au même instant ; les instantanés du serveur (RDS) la complètent sans la remplacer.
 
 ## Proxy inverse HTTPS
 
@@ -172,5 +188,5 @@ Avec IIS (Application Request Routing + URL Rewrite) : désactiver la mise en ta
 
 ## Limites connues
 
-- **Une seule instance** de l'application à la fois : le flux temps réel est diffusé en mémoire et les migrations tournent au démarrage.
+- **Une seule instance** de l'application à la fois sur une même base : les verrous d'édition des étapes, le flux temps réel, les limites de tentatives de connexion et les plafonds de dépôt de pièces jointes sont tenus en mémoire, les pièces jointes sont sur un disque local, et les migrations tournent au démarrage. Pas de réplicas, ni de déploiement progressif (voir Kubernetes et ECS ci-dessus).
 - Connexion unique par OpenID Connect seulement (Microsoft Entra ID et autres fournisseurs OIDC) ; SAML n'est pas pris en charge. Les comptes ne sont pas synchronisés avec l'annuaire (pas de SCIM) : une personne retirée de l'annuaire ne peut plus entrer par Microsoft, mais son compte reste à désactiver dans l'application.

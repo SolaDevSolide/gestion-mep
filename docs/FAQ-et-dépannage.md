@@ -90,7 +90,7 @@ Les contrôles après la mise à jour ou l'importation ont trouvé un écart (ta
 Cas particulier : en 1.6.0, le contrôle signalait à tort « table Livrables disparue » sur toute installation qui avait des livrables. Ce n'était pas une perte (les livrables sont repris dans les objets impactés, voir [Exploiter](Exploiter.md#mettre-à-jour)) et les versions suivantes ne le signalent plus. Si c'est le seul écart, vérifier que les livrables apparaissent bien dans les objets impactés des MEP, puis supprimer l'archive.
 
 **Peut-on lancer plusieurs instances derrière un répartiteur de charge ?**
-Pas encore : le temps réel est diffusé en mémoire et les migrations tournent au démarrage. Une seule instance à la fois.
+Non : une seule instance à la fois sur une même base, y compris pendant une mise à jour (pas de déploiement progressif). Les verrous d'édition des étapes, le temps réel, les limites de connexion et les plafonds de dépôt sont tenus en mémoire, les pièces jointes sont sur un disque local, et les migrations tournent au démarrage. Voir [Installer](Installer.md#limites-connues).
 
 **Peut-on se connecter avec les comptes de l'entreprise (SSO) ?**
 Oui, avec Microsoft Entra ID ou un autre fournisseur OpenID Connect, sans que ce soit obligatoire : voir [Connexion Microsoft](Connexion-Microsoft.md).

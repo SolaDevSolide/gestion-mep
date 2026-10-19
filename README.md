@@ -30,7 +30,7 @@ Ouvrir http://localhost:8080 et cliquer sur un compte de démonstration : `alice
 
 ## Installer sur un serveur
 
-L'image est publiée sur `ghcr.io/soladevsolide/gestion-mep`, avec un numéro par version (`1.0.0`). Il suffit de `docker-compose.yml` et d'un fichier `.env` tiré de `.env.example` (lisible par son seul propriétaire), derrière un proxy inverse HTTPS. La base est migrée automatiquement au démarrage, après une sauvegarde automatique. La procédure complète est dans [Installer](docs/Installer.md).
+L'image est publiée sur `ghcr.io/soladevsolide/gestion-mep`, avec un numéro par version (`1.0.0`). Il suffit du `docker-compose.yml` et de l'`env.example` joints à chaque version publiée (le second à copier en `.env`, lisible par son seul propriétaire), derrière un proxy inverse HTTPS, sur un serveur Linux ; sans Docker, l'application s'installe aussi comme service sur Linux ou Windows Server. La base est migrée automatiquement au démarrage, après une sauvegarde automatique. La procédure complète est dans [Installer](docs/Installer.md).
 
 Sans Docker, chaque version publie aussi une archive pour Linux (service systemd) et pour Windows Server (service Windows), avec un script qui installe, met à jour et revient tout seul à la version précédente en cas d'échec : voir [Installer sans Docker](docs/Installer-sans-Docker.md). Il faut alors un serveur PostgreSQL 16.
 

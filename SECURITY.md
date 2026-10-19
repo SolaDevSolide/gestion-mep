@@ -8,4 +8,4 @@ Décrivez la faille, la version concernée (étiquette de l'image Docker ou comm
 
 ## Versions maintenues
 
-Seule la dernière version publiée sur la branche `main` (image `ghcr.io/soladevsolide/gestion-mep:latest`) reçoit les correctifs de sécurité.
+Seule la dernière version publiée (étiquette `vX.Y.Z`, image `ghcr.io/soladevsolide/gestion-mep:X.Y.Z`, aussi publiée sous `latest`) reçoit les correctifs de sécurité.
