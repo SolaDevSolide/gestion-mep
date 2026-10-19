@@ -55,7 +55,7 @@ import { SqueletteTableauMeps, TableauMeps } from './liste/TableauMeps';
 function Chrono({ m, now }: { m: MepResume; now: number }) {
   // Sans plan de retour arrière ou sans échéance : pas de compte à rebours.
   if ((m.phase !== 'Execution' && m.phase !== 'Recette') || !m.retourArriereActive || !m.echeanceRepli) return null;
-  const c = calculerCompteARebours(m.echeanceRepli, now);
+  const c = calculerCompteARebours(m.echeanceRepli, now, m.phase === 'Recette');
   if (c.niveau === 'aucun') return null;
   return (
     <span

@@ -63,10 +63,9 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
   const nbMiennes = etapes.filter((e) => moi !== null && executantEffectif(e) === moi && e.etat !== 'Reussie').length;
   const visibles = etapes.filter(garde);
 
-  // Un échec de résolution ne déclenche le retour arrière que s'il est encore possible.
-  const repliPossible = mep.retourArriereActive && mep.nonRetourFranchi === null;
   const actions = useMemo<ActionsEtape>(() => {
-    const suiteEchec = repliPossible ? ' : retour arrière déclenché' : '';
+    // Un échec de résolution ne déclenche plus le retour arrière : l'étape reste en échec, le pilote décide.
+    const suiteEchec = ' : l’étape reste en échec, le pilote décide';
     // Étape réussie : l'espace se ferme ; en échec, il reste ouvert sur les résolutions.
     const suivante = (ok: boolean, resultat: 'Reussie' | 'Echec', id: string) => {
       if (ok) preuves.delete(id);
@@ -121,7 +120,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
             : `Vérification en échec${suiteEchec}.`,
         ),
     };
-  }, [mep.id, run, preuves, repliPossible]);
+  }, [mep.id, run, preuves]);
 
   if (etapes.length === 0) {
     return <EmptyState icone={Network} titre="Aucune étape" description="Ce plan ne comporte aucune étape." />;

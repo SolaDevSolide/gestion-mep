@@ -124,7 +124,13 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
             {(mep.phase === 'Execution' || mep.phase === 'Recette') &&
               mep.retourArriereActive &&
               mep.echeanceRepli !== null &&
-              mep.nonRetourFranchi === null && <CompteARebours echeance={mep.echeanceRepli} />}
+              mep.nonRetourFranchi === null && (
+                <CompteARebours
+                  echeance={mep.echeanceRepli}
+                  fuseau={mep.fuseauHoraire}
+                  recette={mep.phase === 'Recette'}
+                />
+              )}
             {(mep.phase === 'Preparation' || (mep.phase === 'Execution' && mep.erreursPlan.length > 0)) && (
               <PlanCheck mep={mep} />
             )}

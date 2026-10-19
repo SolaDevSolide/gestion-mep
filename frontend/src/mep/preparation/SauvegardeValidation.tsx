@@ -379,7 +379,8 @@ export function ValidationSection() {
               {mep.procedureRelue && (
                 <p className="mt-1.5 ml-[30px] flex items-center gap-1.5 text-xs text-ok-fg">
                   <ShieldCheck className="size-3.5" aria-hidden />
-                  Relue par {mep.procedureRelue.par} le {formatDateHeure(mep.procedureRelue.le)}.
+                  Relue par {mep.procedureRelue.par} le {formatDateHeure(mep.procedureRelue.le)}. Toute modification du
+                  plan efface la relecture.
                 </p>
               )}
               {!peut && mep.droits.peutModifierPlan && (

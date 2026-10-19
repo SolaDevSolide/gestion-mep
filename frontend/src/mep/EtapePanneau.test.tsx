@@ -3,6 +3,8 @@ import type { ComponentProps, ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { AuthContext } from '../auth';
+import { MepContext } from '../mepContext';
+import { TooltipProvider } from '../ui/Tooltip';
 import { EtapePanneau, type ActionsEtape } from './EtapePanneau';
 import { etape, mep, resolution } from '../test/fabrique';
 import type { Etape, Mep, ResolutionType } from '../types';
@@ -63,14 +65,19 @@ function rendre(
     },
   });
   const onSelectionner = vi.fn();
+  // Le panneau vit dans la page de la MEP : la décision du pilote (retour arrière) passe par son contexte.
   render(
-    <EtapePanneau
-      mep={m}
-      etape={e}
-      resolutionsTypes={opts.types ?? []}
-      actions={actions}
-      onSelectionner={onSelectionner}
-    />,
+    <MepContext.Provider value={{ mep: m, run: vi.fn() }}>
+      <TooltipProvider>
+        <EtapePanneau
+          mep={m}
+          etape={e}
+          resolutionsTypes={opts.types ?? []}
+          actions={actions}
+          onSelectionner={onSelectionner}
+        />
+      </TooltipProvider>
+    </MepContext.Provider>,
   );
   return { actions, onSelectionner };
 }
@@ -452,6 +459,64 @@ describe('EtapePanneau : fin de résolution', () => {
       '/?onglet=plan&plan=retour',
     );
     expect(screen.queryByText('Problème connu ?')).toBeNull();
+  });
+
+  it('résolution en échec en exécution : l’étape reste en échec, le pilote décide (#94)', async () => {
+    const r = resolution({ statut: 'Echouee', termineeLe: '2026-10-09T21:30:00Z' });
+    const e = etape({ etat: 'Echec', executantId: 'p1', resolutionIds: ['t1'] }, 'ArretResolution');
+    const { actions } = rendre(e, { estPilote: true, participantId: 'p3', types: [typeRes], m: { resolutions: [r] } });
+    expect(screen.getByText('Résolution en échec : à vous de décider.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Déclencher le retour arrière' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Autoriser une nouvelle tentative' }));
+    expect(actions.autoriserReprise).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1' }));
+  });
+
+  it('résolution en échec, sans plan de retour arrière : seule une nouvelle tentative est proposée', () => {
+    const r = resolution({ statut: 'Echouee', termineeLe: '2026-10-09T21:30:00Z' });
+    rendre(etape({ etat: 'Echec', executantId: 'p1' }, 'ArretResolution'), {
+      estPilote: true,
+      m: { resolutions: [r], retourArriereActive: false },
+    });
+    expect(screen.queryByRole('button', { name: 'Déclencher le retour arrière' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Autoriser une nouvelle tentative' })).toBeInTheDocument();
+    expect(screen.getByText(/Autorisez une nouvelle tentative, ou corrigez en avant/)).toBeInTheDocument();
+  });
+
+  it('résolution en échec vue par un opérateur : prévenir le pilote, aucune décision à prendre', () => {
+    const r = resolution({ statut: 'Echouee', termineeLe: '2026-10-09T21:30:00Z' });
+    rendre(etape({ etat: 'Echec', executantId: 'p1' }, 'ArretResolution'), { m: { resolutions: [r] } });
+    expect(screen.getByText('Résolution en échec : le pilote décide.')).toBeInTheDocument();
+    expect(
+      screen.getByText(/prévenez le pilote, il décide du retour arrière ou d’une nouvelle tentative/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Déclencher le retour arrière' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Autoriser une nouvelle tentative' })).toBeNull();
+  });
+
+  it('propose la copie figée à l’approbation plutôt que la fiche actuelle de la bibliothèque (#94)', () => {
+    rendre(
+      etape({ etat: 'Echec', preuve: 'Erreur 502', resolutionIds: ['t1'], executantId: 'p1' }, 'ArretResolution'),
+      {
+        types: [{ ...typeRes, titre: 'Titre modifié après l’approbation', version: 2 }],
+        m: {
+          resolutionsFigees: [
+            {
+              resolutionTypeId: 't1',
+              version: 1,
+              titre: 'API ne répond plus',
+              symptomes: 'Erreur 502 sur /sante',
+              diagnostic: '',
+              systemeCatalogueIds: [],
+              corrections: [],
+              verificationInstruction: '',
+              verificationAttendu: '',
+            },
+          ],
+        },
+      },
+    );
+    expect(screen.getByText('API ne répond plus')).toBeInTheDocument();
+    expect(screen.queryByText('Titre modifié après l’approbation')).toBeNull();
   });
 
   it('le pilote (non exécutant) peut dérouler la résolution', async () => {

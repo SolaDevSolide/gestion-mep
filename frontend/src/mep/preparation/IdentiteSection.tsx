@@ -2,7 +2,7 @@ import { Save } from 'lucide-react';
 import { useContext, useState } from 'react';
 import { api } from '../../api';
 import { AuthContext } from '../../auth';
-import { depuisInputDateTime, formatDateHeure, versInputDateTime } from '../../format';
+import { formatDateHeure } from '../../format';
 import { useDraft, useReportDirty } from '../../hooks';
 import { useMep } from '../../mepContext';
 import type { MepIdentiteSaisie } from '../../types';
@@ -13,6 +13,7 @@ import { MultiSelect } from '../../ui/Combobox';
 import { ConfirmDialog } from '../../ui/Dialog';
 import { Field, Input, Select, Textarea } from '../../ui/Input';
 import { Avatar } from '../../ui/Avatar';
+import { BoutonModifierEcheance, texteEcheance } from '../EcheanceRepli';
 import { estSimplifiee } from '../typeMep';
 import { SectionCarte, vide } from './Formulaires';
 import { TypeMepEncadre } from './TypeMepEncadre';
@@ -29,7 +30,6 @@ export function IdentiteSection() {
     indisponibiliteMinutes: mep.indisponibiliteMinutes,
     piloteId: mep.piloteId,
     suppleantIds: mep.suppleantIds,
-    echeanceRepli: mep.echeanceRepli,
     bilanActive: mep.bilanActive,
     retourArriereActive: mep.retourArriereActive,
   };
@@ -42,8 +42,6 @@ export function IdentiteSection() {
   const edition = mep.droits.peutEditerContenu;
   // Un modèle ne s'exécute pas : ni pilote, ni échéance, ni dates (ils se choisissent dans chaque MEP créée depuis le modèle).
   const modele = mep.estModele;
-  // Après le Go, le pilote garde la main sur l'échéance (seulement si la MEP a un plan de retour arrière).
-  const peutEcheance = edition || (mep.droits.estPilote && mep.retourArriereActive);
   const lecture = !edition;
   // Pilote et suppléants : le pilote actuel, un suppléant ou un administrateur (tout éditeur tant qu'aucun pilote n'est désigné).
   const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
@@ -77,7 +75,7 @@ export function IdentiteSection() {
       numero={1}
       titre="Intervention"
       pied={
-        peutEcheance && (
+        edition && (
           <>
             <Button
               variante="primaire"
@@ -91,11 +89,6 @@ export function IdentiteSection() {
               <Button variante="fantome" onClick={d.reset}>
                 Annuler les modifications
               </Button>
-            )}
-            {!edition && (
-              <span className="text-xs text-fg-subtle">
-                Seule l’échéance de retour arrière est modifiable après le passage en exécution.
-              </span>
             )}
           </>
         )
@@ -247,21 +240,19 @@ export function IdentiteSection() {
             onChange={(c) => (c ? d.update({ retourArriereActive: true }) : setConfirmerDesactivation(true))}
           />
           {retourArriere && !modele && (
-            <Field
-              label="Échéance de retour arrière (facultative)"
-              hint="Sans échéance : ni compte à rebours ni déclenchement automatique du retour arrière."
-            >
-              {(id) => (
-                <Input
-                  id={id}
-                  type="datetime-local"
-                  value={versInputDateTime(v.echeanceRepli)}
-                  disabled={!peutEcheance}
-                  className="md:max-w-xs"
-                  onChange={(e) => d.update({ echeanceRepli: depuisInputDateTime(e.target.value) })}
-                />
-              )}
-            </Field>
+            <div className="text-sm" aria-label="Échéance de retour arrière">
+              <p className="mb-1.5 text-[13px] font-medium">Échéance de retour arrière (facultative)</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className={mep.echeanceRepli ? 'font-mono tnum' : 'text-fg-muted'}>
+                  {texteEcheance(mep.echeanceRepli, mep.fuseauHoraire)}
+                </span>
+                <BoutonModifierEcheance />
+              </div>
+              <p className="mt-1 text-xs text-fg-subtle">
+                Heure du fuseau de la MEP. Atteinte en exécution, elle déclenche le retour arrière ; en recette, elle
+                est seulement signalée et le pilote décide. Chaque changement est tracé au journal avec son motif.
+              </p>
+            </div>
           )}
         </div>
         <ConfirmDialog

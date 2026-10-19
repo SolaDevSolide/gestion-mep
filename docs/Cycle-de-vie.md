@@ -13,8 +13,8 @@ stateDiagram-v2
     Exécution --> Recette : Passer en recette
     Recette --> Exécution : Revenir en exécution pour corriger (motif)
     Recette --> Réussie : Clôturer
-    Exécution --> RetourArrière : manuel, échéance ou résolution en échec
-    Recette --> RetourArrière : manuel
+    Exécution --> RetourArrière : manuel ou échéance
+    Recette --> RetourArrière : manuel (échéance : alerte seulement)
     RetourArrière --> Repliée : Service rétabli
     RetourArrière --> Échec : Clôturer en échec
     Recette --> Échec : Clôturer en échec (retour arrière impossible)
@@ -37,13 +37,18 @@ Les actions rares sont dans le menu **« ⋯ Plus d'actions »** de l'en-tête d
 
 L'équipe décrit l'intervention (voir [Préparer une MEP](Préparer-une-MEP.md)). Le bouton « Vérifier le plan » liste les **anomalies**, qui empêchent de démarrer, et les **avertissements**, qui ne l'empêchent pas.
 
-Toute modification du contenu efface les approbations déjà données : les approbateurs doivent relire et se prononcer de nouveau.
+Toute modification du contenu efface les approbations déjà données : les approbateurs doivent relire et se prononcer de nouveau. Elle efface aussi la case **« Procédure relue »** : le plan modifié est à relire. Les deux effacements sont tracés au journal (« Approbations à refaire », « Relecture de la procédure à refaire »). Changer la liste des approbateurs ou l’échéance de retour arrière efface les décisions, mais pas la relecture.
+
+**Séparation des tâches** : le pilote, ses suppléants et les responsables techniques ne peuvent pas approuver la MEP, même avec un compte relié au leur (voir [Droits par rôle](Droits.md#les-rôles)).
+
+**Résolutions types figées** : à la première approbation (au plus tard au Go), l'application fige dans la MEP une copie des résolutions types liées aux étapes (titre, contenu et version), tracée au journal. Le jour J, le déroulé applique cette copie : une modification ultérieure de la bibliothèque ne change pas ce qui a été approuvé. La copie est effacée avec les approbations quand la MEP est modifiée, puis refigée à l'approbation suivante.
 
 ## Go / no-go : passage en exécution
 
 Le pilote ou un suppléant ouvre « Go / no-go ». Le Go n'est possible que si :
 
-- le plan ne présente plus aucune anomalie, approbations comprises ;
+- le plan ne présente plus aucune anomalie, approbations comprises : il faut le nombre minimum d'approbations, aucun refus, et aucun approbateur qui soit pilote, suppléant ou responsable technique (même si ses données sont conservées, le Go explique qui retirer) ;
+- chaque résolution type liée existe encore, est active et complète ;
 - tous les critères go / no-go sont cochés (par exemple « Équipe présente et joignable », « Sauvegarde disponible ») ;
 - la MEP n'est pas un modèle.
 
@@ -79,7 +84,7 @@ Un modèle ne s'annule pas : un administrateur peut le supprimer.
 
 Les opérateurs déroulent le plan de déploiement (voir [Exécuter une MEP](Exécuter-une-MEP.md)). Pendant cette phase :
 
-- un compte à rebours affiche le temps restant avant l'**échéance de retour arrière**, si la MEP en a une ;
+- un compte à rebours affiche le temps restant avant l'**échéance de retour arrière**, si la MEP en a une, à l'heure du fuseau de la MEP. Le pilote peut la **reporter** (« Modifier l'échéance », motif obligatoire, ancienne et nouvelle valeur au journal) ;
 - le pilote peut **revenir en préparation**, avec un **motif obligatoire**, tant qu'aucune étape ni résolution n'est en cours et que le point de non-retour n'est pas franchi. L'heure du **premier Go** est conservée (rapport de fin, annulation, suppression impossible) ;
 - le pilote ou un suppléant ajoute des **étapes correctives** (« Ajouter une étape corrective ») : elles prennent les codes suivants, attendent les dernières étapes du plan, portent la mention « Ajoutée après le Go » et sont comptées dans le rapport de fin ;
 - le pilote passe **en recette** quand toutes les étapes de déploiement ont réussi.
@@ -96,6 +101,8 @@ Une étape peut être marquée point de non-retour (par exemple une bascule de d
 
 Les fiches de recette sont déroulées système par système : chaque étape de test est déclarée « Conforme » ou « Échec », avec une observation, dans l'application ou dans le classeur Excel de la recette réimporté par le pilote. Le pilote clôture la MEP comme **réussie** quand toutes les étapes de test sont conformes. Il peut faire refaire un test.
 
+**Échéance atteinte pendant la recette** : aucun retour arrière automatique. Un bandeau « Échéance de retour arrière dépassée » s'affiche dans l'onglet Recette et une ligne « Système » est écrite au journal, une seule fois ; le compte à rebours affiche « ÉCHÉANCE DÉPASSÉE ». Le pilote décide : déclencher le retour arrière (manuel), ou reporter l'échéance avec un motif. Tant qu'elle n'est pas reportée, revenir en exécution est impossible.
+
 ### Corriger en avant
 
 Quand la recette révèle un problème, le cadre « Décision du pilote » de l'onglet Recette propose **« Revenir en exécution pour corriger »** (motif obligatoire). La MEP repasse en exécution : le pilote ou un suppléant y ajoute des étapes correctives, les déroule, puis repasse en recette. Les tests en échec redeviennent « à faire » ; leur historique reste au journal. C'est la seule issue propre une fois le point de non-retour franchi.
@@ -105,9 +112,13 @@ Quand la recette révèle un problème, le cadre « Décision du pilote » de l'
 Le retour arrière arrête le plan de déploiement et ouvre le plan de retour arrière. Il se déclenche :
 
 - **à la main**, par le pilote ou un suppléant, avec un motif, en exécution ou en recette ;
-- **automatiquement**, quand l'échéance de retour arrière est atteinte, ou quand une correction ou la vérification finale d'une résolution guidée échoue.
+- **automatiquement**, quand l'échéance de retour arrière est atteinte **pendant l'exécution**. En recette, l'échéance atteinte est seulement signalée (voir [Recette](#recette)).
 
-Le déclenchement automatique est attribué à « Système » dans le journal. Aucun retour arrière n'est possible une fois le point de non-retour franchi, ni pour une MEP sans plan de retour arrière (case « Plan de retour arrière » décochée, voir [Préparer une MEP](Préparer-une-MEP.md#retour-arrière-facultatif)) : tout problème s'y corrige en avant. Sans échéance, seul le déclenchement automatique par l'échéance disparaît.
+L'échec d'une correction ou de la vérification finale d'une résolution guidée ne déclenche **pas** le retour arrière : l'étape reste en échec, le journal le note, et le pilote décide (« Déclencher le retour arrière » ou « Autoriser une nouvelle tentative »).
+
+Le déclenchement automatique est attribué à « Système » dans le journal. Aucun retour arrière n'est possible une fois le point de non-retour franchi, ni pour une MEP sans plan de retour arrière (case « Plan de retour arrière » décochée, voir [Préparer une MEP](Préparer-une-MEP.md#retour-arrière-facultatif)) : tout problème s'y corrige en avant. Sans échéance, le déclenchement automatique disparaît.
+
+L'échéance se modifie en préparation, en exécution et en recette (« Modifier l'échéance » dans « Intervention »), à l'heure du fuseau de la MEP. Un motif est obligatoire (sauf à la première saisie en préparation) et le journal garde l'ancienne et la nouvelle valeur. Elle ne se modifie plus une fois le retour arrière déclenché, ni sur une MEP clôturée ou annulée. Une nouvelle échéance doit être dans le futur.
 
 Quand toutes les étapes de retour arrière ont réussi, le pilote clôture avec « Service rétabli : clôturer » : la MEP est **repliée**.
 
@@ -138,7 +149,7 @@ Seul un **administrateur** supprime définitivement une MEP, depuis le menu « �
 
 À la clôture, si l'option « Bilan de clôture » est active (c'est le défaut), le pilote rédige un bilan : « Ce qui a marché » et « Incidents » sont obligatoires (« Rien à signaler » est accepté), « Actions » est facultatif. La MEP clôturée est en lecture seule ; le moment de la clôture devient sa date de fin. Pour une clôture en échec, le bilan est toujours obligatoire (voir [Clôturer en échec](#clôturer-en-échec)). Son [rapport de fin](Suivre-une-MEP.md#rapport-de-fin) est figé au même moment.
 
-Une MEP clôturée réussie alors qu'au moins une étape a échoué en route, même reprise ensuite avec succès, s'affiche **« Clôturée : réussie avec incidents »**, en orange avec un triangle d'alerte, partout où son issue apparaît : en-tête de la MEP, vue d'ensemble, liste et recherche des MEP, Suivi en direct, rapport de fin, exports Excel, journal (« MEP clôturée : réussie avec incidents ») et variable `{{issue}}` des modèles de texte. Les échecs comptés sont ceux du journal : une étape reprise redevient réussie, mais son échec reste. Sans aucun échec, elle reste « Clôturée : réussie ».
+Une MEP clôturée réussie alors qu'au moins une étape ou un test de recette a échoué en route, même repris ensuite avec succès, s'affiche **« Clôturée : réussie avec incidents »**, en orange avec un triangle d'alerte, partout où son issue apparaît : en-tête de la MEP, vue d'ensemble, liste et recherche des MEP, Suivi en direct, rapport de fin, exports Excel, journal (« MEP clôturée : réussie avec incidents ») et variable `{{issue}}` des modèles de texte. Les échecs sont comptés au fil de l'eau, dans la MEP : échecs d'étape (une étape reprise redevient réussie, mais son échec reste) et tests de recette en échec, saisis dans l'application ou refusés dans un classeur Excel importé (un test refait garde son échec). Sans aucun échec, elle reste « Clôturée : réussie ».
 
 ## Modèles
 

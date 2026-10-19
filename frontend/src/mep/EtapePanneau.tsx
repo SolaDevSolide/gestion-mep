@@ -1,7 +1,7 @@
 import { OctagonAlert } from 'lucide-react';
 import { useContext, useState } from 'react';
 import { AuthContext } from '../auth';
-import { estAVous, nomParticipant } from '../domaine';
+import { avecCopieFigee, estAVous, nomParticipant } from '../domaine';
 import { LIBELLE_CRITICITE } from '../format';
 import { useDraft } from '../hooks';
 import { metaEtape } from '../statuts';
@@ -101,7 +101,8 @@ export function EtapePanneau({
     ? groupes.flatMap((g) => g.resolutions)
     : etape.resolutionIds
         .map((id) => resolutionsTypes.find((r) => r.id === id))
-        .filter((r): r is ResolutionType => !!r);
+        .filter((r): r is ResolutionType => !!r)
+        .map((r) => avecCopieFigee(mep, r));
   const commentaireAEnvoyer = commentaire.dirty ? commentaire.value.trim() : undefined;
 
   const barre = (

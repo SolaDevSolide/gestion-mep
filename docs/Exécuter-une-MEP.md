@@ -7,7 +7,7 @@ Cette page s'adresse au **pilote**, à ses **suppléants** et aux **opérateurs*
 1. Vérifier que le plan est complet (« Vérifier le plan » : aucune anomalie) et que les approbations sont données.
 2. Le pilote ou un suppléant ouvre « Go / no-go », coche les critères (équipe présente, sauvegarde disponible, utilisateurs prévenus…) et clique « Go : passer en exécution ». S'il manque quelque chose, « No-go » avec un motif laisse la MEP en préparation ; la case « Reporter la MEP » la reporte en même temps, avec une date visée facultative (voir [Reporter une MEP](Cycle-de-vie.md#reporter-une-mep)).
 
-À partir du Go, si la MEP a une échéance de retour arrière, l'en-tête affiche le compte à rebours « Retour arrière dans… », orange à moins d'une heure de l'échéance. À l'échéance, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi. Une MEP sans échéance n'a ni compte à rebours ni déclenchement automatique ; une MEP sans plan de retour arrière n'a ni sous-onglet Plan › Retour arrière, ni bouton « Déclencher le retour arrière » (voir [Préparer une MEP](Préparer-une-MEP.md#retour-arrière-facultatif)).
+À partir du Go, si la MEP a une échéance de retour arrière, l'en-tête affiche le compte à rebours « Retour arrière dans… », orange à moins d'une heure de l'échéance. L'heure de l'échéance est celle du fuseau horaire de la MEP. À l'échéance, pendant l'exécution, le retour arrière se déclenche automatiquement, sauf si le point de non-retour est franchi. Pendant la recette, il ne se déclenche **pas** : le compte à rebours affiche « ÉCHÉANCE DÉPASSÉE », un bandeau le signale dans Plan › Recette et le pilote décide (voir [Recette et clôture](#recette-et-clôture)). Le pilote ou un suppléant peut reporter l'échéance avec « Modifier l'échéance » (section Intervention ou bandeau de la recette) : motif obligatoire, ancienne et nouvelle valeur au journal. Une MEP sans échéance n'a ni compte à rebours ni déclenchement automatique ; une MEP sans plan de retour arrière n'a ni sous-onglet Plan › Retour arrière, ni bouton « Déclencher le retour arrière » (voir [Préparer une MEP](Préparer-une-MEP.md#retour-arrière-facultatif)).
 
 À toutes les phases, le bouton **Textes à copier** de l'en-tête ouvre les modèles de texte de l'équipe remplis avec les informations de la MEP (rappel le jour J, compte rendu de fin…) : voir [Modèles de texte](Modèles-de-texte.md).
 
@@ -42,8 +42,9 @@ flowchart LR
     B -- "Échec<br/>(preuve obligatoire)" --> D[Échec]
     D -- Appliquer une résolution --> E[Résolution en cours]
     E -- tout conforme --> A
-    E -- correction ou vérification en échec --> F[[Retour arrière automatique<br/>ou étape laissée en échec]]
+    E -- correction ou vérification en échec --> F[[Étape laissée en échec :<br/>le pilote décide]]
     D -- Autoriser la reprise --> A
+    F -- Autoriser une nouvelle tentative --> A
 ```
 
 1. Cliquer une étape disponible, lire les instructions. Les blocs de code ont un bouton « Copier ».
@@ -67,10 +68,12 @@ L'étape en échec propose ses **résolutions prévues** (« Problème connu ? �
 
 ![Résolution guidée en cours sur une étape en échec](images/resolution-guidee.png)
 
+La résolution appliquée est la copie **figée dans la MEP** à l'approbation (ou au Go) : titre, contenu et version approuvés, même si la fiche a changé depuis dans la bibliothèque. Le journal indique la version appliquée.
+
 Si tout est conforme, l'étape revient à faire et peut être redémarrée.
 
-> [!CAUTION]
-> Si une correction ou la vérification finale échoue, **le retour arrière se déclenche automatiquement** (sauf si le point de non-retour est franchi).
+> [!IMPORTANT]
+> Si une correction ou la vérification finale échoue, la résolution s'arrête et **l'étape reste en échec** : rien ne se déclenche automatiquement. Le journal le note et l'étape affiche « Résolution en échec : le pilote décide ». Le pilote ou un suppléant choisit **« Déclencher le retour arrière »** (motif obligatoire ; si la MEP a un plan de retour arrière et que le point de non-retour n'est pas franchi) ou **« Autoriser une nouvelle tentative »** de l'étape. Les autres personnes de la MEP préviennent le pilote.
 
 Sans résolution adaptée, le pilote ou un suppléant peut cliquer « Autoriser la reprise » pour que l'étape soit refaite, ou déclencher le retour arrière.
 
@@ -95,7 +98,7 @@ Pendant l'exécution, le pilote ou un suppléant clique **« Ajouter une étape 
 
 1. Quand toutes les étapes de déploiement ont réussi, le pilote clique **« Passer en recette »**.
 2. Dans **Plan › Recette** (la MEP s'y ouvre pendant la recette), ouvrir chaque fiche : chaque étape de test est déclarée « Conforme » ou « Échec » avec une observation, par toute personne de la MEP reliée à un compte. Le pilote peut faire refaire un test ou une fiche. Les équipes métier peuvent aussi valider dans Excel (voir ci-dessous).
-3. Quand tout est conforme, le pilote clique **« Clôturer : MEP réussie »** et rédige le bilan. Le [rapport de fin](Suivre-une-MEP.md#rapport-de-fin) est alors figé (bouton « Rapport de fin » du bilan). Si une étape a échoué en route, même reprise ensuite, la MEP s'affiche « Clôturée : réussie avec incidents » (voir [Cycle de vie](Cycle-de-vie.md#clôture-et-bilan)).
+3. Quand tout est conforme, le pilote clique **« Clôturer : MEP réussie »** et rédige le bilan. Le [rapport de fin](Suivre-une-MEP.md#rapport-de-fin) est alors figé (bouton « Rapport de fin » du bilan). Si une étape ou un test de recette a échoué en route, même repris ensuite, la MEP s'affiche « Clôturée : réussie avec incidents » (voir [Cycle de vie](Cycle-de-vie.md#clôture-et-bilan)).
 
 ### Valider la recette dans Excel
 
@@ -107,13 +110,15 @@ Le fichier est **refusé en entier**, sans rien modifier, avec la liste des moti
 
 Si la recette révèle un problème, le cadre **« Décision du pilote »** de **Plan › Recette** propose :
 
-- **« Revenir en exécution pour corriger »** (motif obligatoire) : la MEP repasse en exécution, on y ajoute des [étapes correctives](#ajouter-une-étape-corrective), puis on repasse en recette. Les tests en échec redeviennent « à faire » ;
+- **« Revenir en exécution pour corriger »** (motif obligatoire) : la MEP repasse en exécution, on y ajoute des [étapes correctives](#ajouter-une-étape-corrective), puis on repasse en recette. Les tests en échec redeviennent « à faire ». Impossible une fois l'échéance de retour arrière dépassée : la reporter d'abord ;
 - **« Déclencher le retour arrière »**, si la MEP a un plan de retour arrière et que le point de non-retour n'est pas franchi ;
 - **« Clôturer en échec… »**, seulement quand le retour arrière est impossible et que le service ne peut pas être rétabli (voir ci-dessous).
 
+Si l'**échéance de retour arrière** est atteinte pendant la recette, le retour arrière **ne se déclenche pas** : le bandeau « Échéance de retour arrière dépassée » le signale (avec « Modifier l'échéance ») et le journal le note une fois. Le pilote décide : retour arrière **manuel**, ou report de l'échéance avec un motif.
+
 ## Retour arrière
 
-- **Déclencher le retour arrière** (pilote ou suppléant, motif obligatoire) arrête le déploiement. Un bandeau rouge l'indique à tous, avec son motif et son auteur (« Déclenchement automatique » s'il vient de l'échéance ou d'une résolution).
+- **Déclencher le retour arrière** (pilote ou suppléant, motif obligatoire) arrête le déploiement. Un bandeau rouge l'indique à tous, avec son motif et son auteur (« Déclenchement automatique » s'il vient de l'échéance, en exécution).
 - **Plan › Retour arrière** (la MEP s'y ouvre pendant un retour arrière) déroule son propre plan, étape par étape, comme l'exécution.
 - Quand toutes ses étapes ont réussi, le pilote clique **« Service rétabli : clôturer »** et rédige le bilan. La MEP est clôturée comme repliée.
 - Si une étape du retour arrière échoue et que le service ne peut pas être rétabli, l'encadré **« Retour arrière en échec »** propose de suivre la consigne « Si le retour arrière échoue » du plan, puis **« Clôturer en échec… »**.

@@ -1,8 +1,9 @@
-import { ClipboardCheck, ShieldAlert, Upload, XCircle } from 'lucide-react';
+import { ClipboardCheck, ShieldAlert, Siren, Upload, XCircle } from 'lucide-react';
 import { useContext, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { AuthContext } from '../auth';
+import { useNow } from '../hooks';
 import { bilanRecette, estTerminee, fichesRecetteTriees } from '../domaine';
 import { useMep } from '../mepContext';
 import { BoutonExportExcel } from '../ui/BoutonExportExcel';
@@ -14,6 +15,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { ProgressBar } from '../ui/ProgressBar';
 import { BoutonCloturer, BoutonDeclencherRepli } from './ActionsPilote';
 import { BoutonCloturerEchec, BoutonRevenirExecution, retourArriereImpossible } from './CycleDeVie';
+import { BoutonModifierEcheance, texteEcheance } from './EcheanceRepli';
 import { FormulaireDialog } from './preparation/Formulaires';
 import { BibliothequeDialog } from './recette/BibliothequeDialog';
 import { ImportValidationDialog } from './recette/ImportValidationDialog';
@@ -41,6 +43,13 @@ export default function RecetteTab() {
   const bilan = bilanRecette(mep);
   const enRecette = mep.phase === 'Recette';
   const impossible = retourArriereImpossible(mep) !== null;
+  // Échéance atteinte en recette : aucun retour arrière automatique, seulement ce bandeau (et une ligne au journal).
+  const now = useNow(15_000);
+  const echeanceDepassee =
+    enRecette &&
+    !impossible &&
+    mep.echeanceRepli !== null &&
+    (mep.echeanceSignalee !== null || Date.parse(mep.echeanceRepli) <= now);
   const peutAgir = mep.droits.estPilote || mep.droits.participantId !== null || (auth?.utilisateur?.estAdmin ?? false);
 
   const ficheOuverte = params.get('fiche');
@@ -100,6 +109,17 @@ export default function RecetteTab() {
         </span>
       </div>
 
+      {echeanceDepassee && mep.echeanceRepli && (
+        <Alerte
+          ton="danger"
+          icone={Siren}
+          role="alert"
+          titre="Échéance de retour arrière dépassée"
+          action={<BoutonModifierEcheance taille="md" />}
+        >
+          {`Échéance : ${texteEcheance(mep.echeanceRepli, mep.fuseauHoraire)}. En recette, aucun retour arrière automatique : le pilote décide de déclencher le retour arrière, ou de reporter l’échéance avec un motif. Revenir en exécution n’est possible qu’après un report.`}
+        </Alerte>
+      )}
       {enRecette && bilan.echecs > 0 && (
         <Alerte ton="danger" icone={XCircle} role="alert" titre="Une étape de test est en échec">
           Clôture impossible tant qu’une étape n’est pas conforme.
@@ -113,7 +133,7 @@ export default function RecetteTab() {
           action={
             <div className="flex flex-wrap items-center gap-2">
               {mep.retourArriereActive && !mep.nonRetourFranchi && <BoutonDeclencherRepli taille="md" />}
-              <BoutonRevenirExecution taille="md" />
+              {!echeanceDepassee && <BoutonRevenirExecution taille="md" />}
               {impossible && <BoutonCloturerEchec taille="md" />}
               <BoutonCloturer taille="md" />
             </div>

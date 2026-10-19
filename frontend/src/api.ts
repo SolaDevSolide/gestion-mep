@@ -44,6 +44,7 @@ import type {
   MepResume,
   ParticipantSaisie,
   PlanRepliSaisie,
+  EcheanceSaisie,
   ResolutionType,
   ResolutionTypeSaisie,
   ResultatControle,
@@ -287,6 +288,8 @@ export const api = {
   /** `silencieux` : relecture périodique, sans indicateur de chargement. */
   mep: (id: string, silencieux = false) => get<Mep>(`/meps/${id}`, { silencieux }),
   modifierIdentite: (id: string, s: MepIdentiteSaisie) => put<Mep>(`/meps/${id}`, s),
+  /** Échéance de retour arrière : motif tracé au journal avec l'ancienne et la nouvelle valeur (fuseau de la MEP). */
+  modifierEcheance: (id: string, s: EcheanceSaisie) => put<Mep>(`/meps/${id}/echeance`, s),
   modifierSauvegarde: (id: string, s: SauvegardeSaisie) => put<Mep>(`/meps/${id}/sauvegarde`, s),
   modifierCommunication: (id: string, s: CommunicationSaisie) => put<Mep>(`/meps/${id}/communication`, s),
   /** Valeurs des variables des modèles de texte ; `equipe` absente : équipe proposée (celle du pilote). */

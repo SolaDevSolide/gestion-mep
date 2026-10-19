@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { api } from '../../api';
 import { MepContext } from '../../mepContext';
@@ -7,7 +7,9 @@ import type { Mep } from '../../types';
 import { TooltipProvider } from '../../ui/Tooltip';
 import { IdentiteSection } from './IdentiteSection';
 
-vi.mock('../../api', () => ({ api: { modifierIdentite: vi.fn(), changerTypeMep: vi.fn() } }));
+vi.mock('../../api', () => ({
+  api: { modifierIdentite: vi.fn(), changerTypeMep: vi.fn(), modifierEcheance: vi.fn() },
+}));
 
 const droitsEdition = { ...mep().droits, peutEditerContenu: true, peutModifierPlan: true, estPilote: true };
 
@@ -31,11 +33,15 @@ const caseRepli = () => screen.getByRole('checkbox', { name: /Plan de retour arr
 describe('IdentiteSection : plan de retour arrière', () => {
   beforeEach(() => vi.mocked(api.modifierIdentite).mockReset());
 
-  it('est coché par défaut, avec une échéance facultative', () => {
+  it('est coché par défaut, avec une échéance facultative affichée dans le fuseau de la MEP', () => {
     rendre();
     expect(caseRepli()).toBeChecked();
-    expect(screen.getByLabelText('Échéance de retour arrière (facultative)')).toBeInTheDocument();
-    expect(screen.getByText(/Sans échéance : ni compte à rebours ni déclenchement automatique/)).toBeInTheDocument();
+    const echeance = screen.getByLabelText('Échéance de retour arrière');
+    // 23 h 30 UTC le 9 octobre = 1 h 30 le 10 à Paris (heure d'été).
+    expect(within(echeance).getByText('10/10/2026 01:30 (Europe/Paris)')).toBeInTheDocument();
+    expect(
+      within(echeance).getByText(/en recette, elle est seulement signalée et le pilote décide/),
+    ).toBeInTheDocument();
   });
 
   it('demande confirmation avant de désactiver ; annuler garde le plan', async () => {
@@ -66,13 +72,72 @@ describe('IdentiteSection : plan de retour arrière', () => {
     await userEvent.click(caseRepli());
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(caseRepli()).toBeChecked();
-    expect(screen.getByLabelText('Échéance de retour arrière (facultative)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Échéance de retour arrière')).toBeInTheDocument();
   });
 
   it('un modèle garde la case mais n’a pas d’échéance', () => {
     rendre({ estModele: true });
     expect(caseRepli()).toBeChecked();
     expect(screen.queryByLabelText(/Échéance de retour arrière/)).not.toBeInTheDocument();
+  });
+});
+
+describe('IdentiteSection : modifier l’échéance (#94)', () => {
+  beforeEach(() => vi.mocked(api.modifierEcheance).mockReset());
+  const droitsEcheance = { ...droitsEdition, peutEditerContenu: false, peutModifierEcheance: true };
+
+  it('sans le droit, l’échéance se lit sans bouton', () => {
+    rendre({ phase: 'Execution', droits: { ...droitsEdition, peutEditerContenu: false } });
+    expect(screen.queryByRole('button', { name: /échéance/ })).not.toBeInTheDocument();
+  });
+
+  it('se saisit à l’heure du fuseau de la MEP, avec un motif obligatoire', async () => {
+    rendre({ phase: 'Execution', droits: droitsEcheance });
+    await userEvent.click(screen.getByRole('button', { name: 'Modifier l’échéance' }));
+    const dialogue = screen.getByRole('dialog', { name: 'Échéance de retour arrière' });
+    expect(within(dialogue).getByText(/déclenche le retour arrière automatiquement/)).toBeInTheDocument();
+    const saisie = within(dialogue).getByLabelText('Nouvelle échéance (heure de Europe/Paris)');
+    expect(saisie).toHaveValue('2026-10-10T01:30');
+    const enregistrer = within(dialogue).getByRole('button', { name: 'Enregistrer l’échéance' });
+    expect(enregistrer).toBeDisabled(); // inchangée
+    fireEvent.change(saisie, { target: { value: '2026-10-10T03:00' } });
+    expect(enregistrer).toBeDisabled(); // motif manquant
+    await userEvent.type(within(dialogue).getByLabelText('Motif (obligatoire)'), 'Migration plus longue');
+    await userEvent.click(enregistrer);
+    expect(api.modifierEcheance).toHaveBeenCalledWith('m1', {
+      version: 1,
+      echeanceRepli: '2026-10-10T01:00:00.000Z',
+      motif: 'Migration plus longue',
+    });
+  });
+
+  it('se retire avec un motif ; en recette, le dialogue rappelle que le pilote décide', async () => {
+    rendre({ phase: 'Recette', droits: droitsEcheance });
+    await userEvent.click(screen.getByRole('button', { name: 'Modifier l’échéance' }));
+    const dialogue = screen.getByRole('dialog', { name: 'Échéance de retour arrière' });
+    expect(within(dialogue).getByText(/seulement signalée : le pilote décide/)).toBeInTheDocument();
+    await userEvent.click(within(dialogue).getByRole('checkbox', { name: /Retirer l’échéance/ }));
+    await userEvent.type(within(dialogue).getByLabelText('Motif (obligatoire)'), 'Plus nécessaire');
+    await userEvent.click(within(dialogue).getByRole('button', { name: 'Enregistrer l’échéance' }));
+    expect(api.modifierEcheance).toHaveBeenCalledWith('m1', {
+      version: 1,
+      echeanceRepli: null,
+      motif: 'Plus nécessaire',
+    });
+  });
+
+  it('la première saisie en préparation n’exige pas de motif', async () => {
+    rendre({ echeanceRepli: null, droits: { ...droitsEdition, peutModifierEcheance: true } });
+    await userEvent.click(screen.getByRole('button', { name: 'Fixer l’échéance' }));
+    const dialogue = screen.getByRole('dialog', { name: 'Échéance de retour arrière' });
+    fireEvent.change(within(dialogue).getByLabelText(/Nouvelle échéance/), { target: { value: '2026-10-23T23:00' } });
+    expect(within(dialogue).getByLabelText('Motif (facultatif)')).toBeInTheDocument();
+    await userEvent.click(within(dialogue).getByRole('button', { name: 'Enregistrer l’échéance' }));
+    expect(api.modifierEcheance).toHaveBeenCalledWith('m1', {
+      version: 1,
+      echeanceRepli: '2026-10-23T21:00:00.000Z',
+      motif: '',
+    });
   });
 });
 

@@ -443,3 +443,41 @@ describe('Onglet Recette', () => {
     });
   });
 });
+
+describe('Onglet Recette : échéance dépassée (#94)', () => {
+  const pilote = { ...droits, estPilote: true, peutModifierEcheance: true };
+
+  it('signale l’échéance dépassée sans retour arrière automatique : le pilote décide', () => {
+    rendre(
+      mep({
+        phase: 'Recette',
+        systemes,
+        fichesRecette: [fiche('f1')],
+        echeanceRepli: '2026-01-01T10:00:00Z',
+        echeanceSignalee: '2026-01-01T10:00:30Z',
+        droits: pilote,
+      }),
+    );
+    expect(screen.getByText('Échéance de retour arrière dépassée')).toBeInTheDocument();
+    expect(screen.getByText(/01\/01\/2026 11:00 \(Europe\/Paris\)/)).toBeInTheDocument();
+    expect(screen.getByText(/aucun retour arrière automatique : le pilote décide/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Modifier l’échéance' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Déclencher le retour arrière' })).toBeInTheDocument();
+    // Revenir en exécution attend un report de l'échéance.
+    expect(screen.queryByRole('button', { name: 'Revenir en exécution pour corriger' })).toBeNull();
+  });
+
+  it('échéance future : pas de bandeau, le retour en exécution reste proposé', () => {
+    rendre(
+      mep({
+        phase: 'Recette',
+        systemes,
+        fichesRecette: [fiche('f1')],
+        echeanceRepli: '2999-01-01T10:00:00Z',
+        droits: pilote,
+      }),
+    );
+    expect(screen.queryByText('Échéance de retour arrière dépassée')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Revenir en exécution pour corriger' })).toBeInTheDocument();
+  });
+});
