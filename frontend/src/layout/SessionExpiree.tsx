@@ -107,6 +107,7 @@ export function SessionExpiree() {
         open={sessionExpiree}
         onOpenChange={() => undefined}
         fermable={false}
+        auPremierPlan
         taille="sm"
         titre={
           <span className="flex items-center gap-2">
@@ -186,6 +187,7 @@ export function SessionExpiree() {
         description={`Ces modifications ne sont pas enregistrées et seront perdues : ${saisies.join(', ')}.`}
         libelleConfirmer="Abandonner la saisie"
         variante="danger"
+        auPremierPlan
         onConfirmer={async () => {
           if (aConfirmer === 'saisi') await connecterAutreCompte();
           else changerDeCompte();

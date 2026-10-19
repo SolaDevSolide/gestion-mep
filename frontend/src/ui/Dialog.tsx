@@ -17,6 +17,8 @@ interface DialogProps {
   className?: string;
   /** Faux : ni bouton Fermer, ni Échap, ni clic à côté (le dialogue attend une réponse : session expirée). */
   fermable?: boolean;
+  /** Au-dessus de tout, palette de commandes comprise (session expirée et sa confirmation). */
+  auPremierPlan?: boolean;
 }
 
 export function Dialog({
@@ -29,12 +31,18 @@ export function Dialog({
   children,
   className,
   fermable = true,
+  auPremierPlan = false,
 }: DialogProps) {
   const retenir = fermable ? undefined : (e: Event) => e.preventDefault();
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/50 p-4 backdrop-blur-[2px] data-[state=open]:animate-fade-in">
+        <D.Overlay
+          className={cn(
+            'fixed inset-0 grid place-items-center overflow-y-auto bg-black/50 p-4 backdrop-blur-[2px] data-[state=open]:animate-fade-in',
+            auPremierPlan ? 'z-[100]' : 'z-50',
+          )}
+        >
           <D.Content
             className={cn(
               'relative my-auto w-full rounded-2xl border border-line bg-surface shadow-lg outline-none data-[state=open]:animate-pop-in',
@@ -90,6 +98,7 @@ interface ConfirmProps {
   /** Retourne true si l'action a abouti (le dialogue se ferme alors). */
   onConfirmer: () => Promise<boolean | void> | boolean | void;
   taille?: keyof typeof LARGEURS;
+  auPremierPlan?: boolean;
 }
 
 /** Confirmation en dialogue (jamais window.confirm). */
@@ -104,6 +113,7 @@ export function ConfirmDialog({
   desactive,
   onConfirmer,
   taille = 'sm',
+  auPremierPlan,
 }: ConfirmProps) {
   const [occupe, setOccupe] = useState(false);
   async function confirmer() {
@@ -122,6 +132,7 @@ export function ConfirmDialog({
       titre={titre}
       description={description}
       taille={taille}
+      auPremierPlan={auPremierPlan}
       pied={
         <>
           <Button variante="fantome" onClick={() => onOpenChange(false)}>
