@@ -1,6 +1,6 @@
 # Suivre une MEP
 
-Pour qui veut savoir où en est une intervention sans la dérouler : chef de projet, responsable d'application, astreinte. Trois écrans, ouverts à toute personne connectée : la **vue d'ensemble** d'une MEP, le tableau de bord **Suivi en direct** de toutes les MEP lancées et, une fois la MEP clôturée, son **rapport de fin**. Tout se met à jour en direct, sans recharger.
+Pour qui veut savoir où en est une intervention sans la dérouler : chef de projet, responsable d'application, astreinte. Des écrans ouverts à toute personne connectée : la **vue d'ensemble** d'une MEP, le tableau de bord **Suivi en direct** de toutes les MEP lancées, une fois la MEP clôturée son **rapport de fin**, et pour retrouver les MEP passées la **recherche** de la liste des MEP et l'**historique** de chaque système. Tout se met à jour en direct, sans recharger.
 
 ## Vue d'ensemble d'une MEP
 
@@ -45,7 +45,7 @@ La mini-carte est masquée par défaut (bouton en bas à droite, mémorisé pour
 
 Entrée **Suivi en direct** du menu, ouverte à tous. En haut, quatre chiffres : MEP en cours, échecs à traiter, retours arrière et prochaine MEP (la première MEP en préparation dont la date annoncée, section Communication, n'est pas passée).
 
-Puis une carte par MEP lancée (exécution, recette ou retour arrière) : avancement, sections colorées comme dans la vue d'ensemble (une pastille par étape hors section), fin estimée et retard, échecs et ce qu'ils bloquent, qui exécute quoi, compte à rebours avant l'échéance de retour arrière. Les **retours arrière** viennent en premier, puis les MEP qui ont des **échecs** à traiter, puis les autres, la plus ancienne lancée d'abord. « Vue d'ensemble » ouvre la MEP sur son premier onglet.
+Puis une carte par MEP lancée (exécution, recette ou retour arrière) : avancement, sections colorées comme dans la vue d'ensemble (une pastille par étape hors section), fin estimée et retard, échecs et ce qu'ils bloquent, qui exécute quoi, compte à rebours avant l'échéance de retour arrière. Les **retours arrière** viennent en premier, puis les MEP qui ont des **échecs** à traiter, puis les autres, la plus ancienne lancée d'abord. « Vue d'ensemble » ouvre la MEP sur son premier onglet ; les puces des systèmes touchés (une alerte signale celui d'une étape en échec) ouvrent leur historique.
 
 En bas, deux listes : les MEP **prévues aujourd'hui et demain** (date et heure annoncées dans la section Communication) et les MEP **clôturées dans les dernières 24 heures**, avec un lien vers leur rapport de fin. Le bouton « Plein écran » affiche le tableau seul, pour un écran de supervision.
 
@@ -66,6 +66,38 @@ Il contient :
 **Exporter.** « Exporter en Excel » télécharge le rapport en classeur (`rapport-Outil-Version.xlsx` : synthèse, points bloquants, résolutions, tests unitaires, étapes avec durées réelles et prévues, puis les annexes ; mêmes tableaux filtrables et même mise en page d'impression que les autres classeurs). « Télécharger en PDF » ouvre l'impression du navigateur : choisir « Enregistrer au format PDF ». La page a une mise en page d'impression soignée (menu, bandeau et boutons masqués, tableaux qui ne se coupent pas au milieu d'une ligne) ; « Imprimer » fait de même vers une imprimante. Aucune bibliothèque PDF n'est embarquée côté serveur : le navigateur produit un PDF fidèle à l'écran, sans dépendance à la licence incertaine. En ligne de commande : `gestion-mep meps excel <id> rapport` (voir [Exploiter](Exploiter.md#mep-et-journal)).
 
 **MEP clôturées avant cette version.** Leur rapport est établi à la première consultation, à partir de la MEP et de son journal, puis figé à son tour ; il le signale en bas de page.
+
+## Rechercher des MEP
+
+La liste des MEP (page d'accueil) se filtre par une rangée de critères au-dessus des résultats : **Système** (ceux du catalogue, puis ceux saisis à la main dans les MEP, sous « Hors catalogue »), **Environnement** (sur les systèmes choisis), **Équipe**, **Personne** (avec, au besoin, son rôle : pilote, suppléant, responsable technique, exécutant, approbateur), **État** et **Période**. Les critères se combinent ; dans un même critère, une valeur suffit. Sous le critère Système, la case « Avec un échec d'étape sur ces systèmes » ne garde que les MEP qui ont eu un échec sur l'un d'eux, même repris. Sur téléphone, les critères sont dans le bouton « Filtres ».
+
+| État | MEP retenues |
+|---|---|
+| Préparation, Exécution, Recette, Retour arrière en cours | les MEP dans cette phase |
+| Réussie | clôturées sans retour arrière et sans aucun échec d'étape |
+| Réussie avec incidents | clôturées sans retour arrière, avec au moins un échec d'étape (même repris ensuite) |
+| Repliée | clôturées après un retour arrière |
+
+La **période** porte sur le jour du Go de la MEP (à défaut, celui de sa création), bornes incluses ; des raccourcis donnent les 30 derniers jours, les 3 ou 12 derniers mois et l'année en cours. La recherche par texte porte aussi sur le nom des systèmes.
+
+Dès qu'un critère est actif, les résultats passent en **tableau** (état, jour, systèmes et environnements, pilote ou rôle de la personne choisie, échecs, lien vers le rapport de fin), les plus récents d'abord ; le choix « Cartes » / « Tableau » se garde ensuite d'une visite à l'autre. Les critères s'écrivent dans l'adresse de la page : « Copier le lien » la partage, un favori du navigateur la garde. Quand rien ne correspond, la page propose de retirer un critère, avec le nombre de MEP retrouvées. « Exporter en Excel » télécharge les MEP trouvées, avec une feuille « Échecs » (limitée aux systèmes choisis).
+
+Partout où un système apparaît (liste, en-tête d'une MEP, section Systèmes de la préparation, Suivi en direct, rapport de fin), sa puce ouvre un menu : **Historique des MEP**, **MEP sur ce système** (la liste filtrée) et **Fiche du système**. Un système saisi à la main n'a pas d'historique : son menu ne propose que la liste filtrée.
+
+La palette de commandes (`Ctrl K`) cherche aussi : « Rechercher « … » dans les MEP » ouvre la liste filtrée par le texte tapé, les systèmes du catalogue ouvrent leur historique et les personnes la liste de leurs MEP.
+
+En ligne de commande : `gestion-mep meps lister` avec les mêmes critères (voir [Exploiter](Exploiter.md#mep-et-journal)).
+
+## Historique d'un système
+
+Onglet **« Historique des MEP »** de la fiche d'un système du catalogue (Paramètres › Systèmes, ou la puce du système) : toutes les MEP qui l'ont touché, avec leur date, leurs environnements sur ce système et leur issue.
+
+- En haut, la synthèse : nombre de MEP (dont celles des 12 derniers mois et celles en cours ou à venir), dernière MEP lancée, part des MEP clôturées avec problème (repliées ou avec incidents) et échecs d'étape survenus sur ce système, repris ou non.
+- Une frise des 12 derniers mois place chaque MEP à sa date, de la couleur de son état.
+- Puis les MEP, mois par mois (celles en préparation sans Go d'abord, sous « À venir »), chacune avec ses environnements sur ce système, les autres systèmes touchés, son pilote, un lien vers son rapport de fin et ses **échecs d'étape sur ce système** (repris ou non, avec la résolution type appliquée).
+- Les MEP se filtrent par environnement et par « Avec un échec sur ce système » ; « Ouvrir dans la liste des MEP » reprend ces critères dans la liste. « Exporter en Excel » télécharge tout l'historique (feuilles Synthèse, MEP et Échecs).
+
+Le catalogue des systèmes montre aussi, pour chacun, sa **dernière MEP** et le nombre de MEP qui l'ont touché. En ligne de commande : `gestion-mep systemes historique <SYSTÈME>`.
 
 ## Dans les textes à copier
 

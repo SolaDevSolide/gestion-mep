@@ -13,6 +13,6 @@ describe('adresses des exports Excel', () => {
     expect(api.urlExportPreparation('m1')).toBe('/api/meps/m1/preparation/excel');
     expect(api.urlExportEtapes('m1')).toBe('/api/meps/m1/etapes/excel');
     expect(api.urlExportRetourArriere('m1')).toBe('/api/meps/m1/retour-arriere/excel');
-    expect(api.urlExportMeps({ modele: false, equipe: 'e1', phase: 'toutes' })).toBe('/api/meps/excel?equipe=e1');
+    expect(api.urlExportHistorique('c1')).toBe('/api/catalogue/systemes/c1/historique/excel');
   });
 });

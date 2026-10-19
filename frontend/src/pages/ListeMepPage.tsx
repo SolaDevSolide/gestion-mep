@@ -4,28 +4,42 @@ import {
   Copy,
   Factory,
   Feather,
+  LayoutGrid,
   LayoutTemplate,
   Plus,
   Rocket,
+  Rows3,
   Search,
+  SearchX,
   TimerReset,
 } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { segmentsResume } from '../domaine';
-import { calculerCompteARebours, formatDate, LIBELLE_PHASE } from '../format';
-import { useAsync, useNow } from '../hooks';
-import { mepCorrespond } from '../personnes';
+import { calculerCompteARebours, formatDate } from '../format';
+import { useAsync, useLocalStorageState, useNow } from '../hooks';
+import { PuceSystemeMep } from '../mep/SystemeCliquable';
+import { personnesDeRecherche } from '../personnes';
+import {
+  ecrireFiltre,
+  estVide,
+  FILTRE_VIDE,
+  filtreModeles,
+  filtrerMeps,
+  lireFiltre,
+  urlExportListe,
+  type FiltreMeps,
+} from '../rechercheMeps';
 import { metaPhase } from '../statuts';
-import type { MepResume, Phase, TypeMep } from '../types';
+import type { MepResume, TypeMep } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { cn } from '../ui/cn';
 import { Dialog } from '../ui/Dialog';
 import { EmptyState } from '../ui/EmptyState';
-import { Field, Input, Select } from '../ui/Input';
+import { Field, Input } from '../ui/Input';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Badge, StatusPill } from '../ui/StatusPill';
 import { BoutonExportExcel } from '../ui/BoutonExportExcel';
@@ -35,6 +49,8 @@ import { BadgeSimplifiee, estSimplifiee } from '../mep/typeMep';
 import { useToast } from '../ui/Toast';
 import { EnChargement, Squelette } from '../ui/Squelette';
 import { OctagonAlert } from 'lucide-react';
+import { BarreFiltres } from './liste/BarreFiltres';
+import { SqueletteTableauMeps, TableauMeps } from './liste/TableauMeps';
 
 function Chrono({ m, now }: { m: MepResume; now: number }) {
   // Sans plan de retour arrière ou sans échéance : pas de compte à rebours.
@@ -218,22 +234,40 @@ function NouvelleMepDialog({
   );
 }
 
-const FILTRES: { valeur: Phase | 'toutes'; libelle: string }[] = [
-  { valeur: 'toutes', libelle: 'Toutes les phases' },
-  { valeur: 'Preparation', libelle: LIBELLE_PHASE.Preparation },
-  { valeur: 'Execution', libelle: LIBELLE_PHASE.Execution },
-  { valeur: 'Recette', libelle: LIBELLE_PHASE.Recette },
-  { valeur: 'RetourArriere', libelle: LIBELLE_PHASE.RetourArriere },
-  { valeur: 'Cloturee', libelle: LIBELLE_PHASE.Cloturee },
+/** Critères qu'on peut retirer quand rien ne correspond : le nombre de MEP qu'on retrouverait sans chacun. */
+const RETRAITS: { libelle: string; effacer: Partial<FiltreMeps>; actif: (f: FiltreMeps) => boolean }[] = [
+  { libelle: 'la recherche', effacer: { recherche: '' }, actif: (f) => Boolean(f.recherche.trim()) },
+  {
+    libelle: 'le système',
+    effacer: { systemes: [], environnements: [], echec: false },
+    actif: (f) => f.systemes.length > 0 || f.echec,
+  },
+  { libelle: 'l’environnement', effacer: { environnements: [] }, actif: (f) => f.environnements.length > 0 },
+  { libelle: 'l’équipe', effacer: { equipes: [] }, actif: (f) => f.equipes.length > 0 },
+  { libelle: 'la personne', effacer: { personne: '', roles: [] }, actif: (f) => Boolean(f.personne) },
+  {
+    libelle: 'l’état',
+    effacer: { etats: [], phase: '', type: '' },
+    actif: (f) => f.etats.length > 0 || Boolean(f.phase || f.type),
+  },
+  { libelle: 'la période', effacer: { du: '', au: '' }, actif: (f) => Boolean(f.du || f.au) },
 ];
+
+type Affichage = 'cartes' | 'tableau';
 
 export default function ListeMepPage() {
   const [vue, setVue] = useState<'meps' | 'modeles'>('meps');
   const { donnees: meps, erreur, rechargement } = useAsync(() => api.meps(vue === 'modeles'), [vue]);
-  const [recherche, setRecherche] = useState('');
-  const [phase, setPhase] = useState<Phase | 'toutes'>('toutes');
   const { donnees: equipes } = useAsync(() => api.equipes(), []);
-  const [equipe, setEquipe] = useState('');
+  const { donnees: catalogue } = useAsync(() => api.catalogueSystemes().catch(() => []), []);
+  const { donnees: comptes } = useAsync(() => api.utilisateurs().catch(() => []), []);
+  // Filtres dans l'adresse : un lien (ou un favori) rouvre la même recherche.
+  const [parametres, setParametres] = useSearchParams();
+  const f = useMemo(() => lireFiltre(parametres), [parametres]);
+  const maj = (p: Partial<FiltreMeps>) =>
+    setParametres((avant) => ecrireFiltre({ ...lireFiltre(avant), ...p }, avant), { replace: true });
+  // Cartes sans filtre, tableau dès qu'un filtre est actif ; un choix fait à la main est retenu.
+  const [choixAffichage, setChoixAffichage] = useLocalStorageState<Affichage | null>('liste-meps.affichage', null);
   const [creation, setCreation] = useState(false);
   const [duplication, setDuplication] = useState<SourceDuplication | null>(null);
   const [depuisModele, setDepuisModele] = useState(false);
@@ -241,14 +275,16 @@ export default function ListeMepPage() {
   const modele = vue === 'modeles';
   const now = useNow(1000);
 
-  // Recherche aussi sur les personnes de la MEP et tous leurs comptes reliés ; équipe : une de ses personnes en fait partie.
-  const filtrees = useMemo(
-    () => (meps ?? []).filter((m) => (phase === 'toutes' || m.phase === phase) && mepCorrespond(m, recherche, equipe)),
-    [meps, recherche, phase, equipe],
-  );
+  const filtreApplique = modele ? filtreModeles(f) : f;
+  const filtrees = useMemo(() => filtrerMeps(meps ?? [], filtreApplique), [meps, filtreApplique]);
+  const personnes = useMemo(() => personnesDeRecherche(comptes ?? []), [comptes]);
+  const affichage: Affichage = modele ? 'cartes' : (choixAffichage ?? (estVide(f) ? 'cartes' : 'tableau'));
+  const retraits = RETRAITS.filter((r) => r.actif(filtreApplique))
+    .map((r) => ({ ...r, nombre: filtrerMeps(meps ?? [], { ...filtreApplique, ...r.effacer }).length }))
+    .filter((r) => r.nombre > 0);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-8">
+    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Mises en production</h1>
@@ -295,26 +331,23 @@ export default function ListeMepPage() {
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <div className="relative min-w-60 flex-1 sm:max-w-sm">
+        <div className="relative min-w-0 flex-1 basis-60 sm:max-w-sm">
           <Search
             className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-subtle"
             aria-hidden
           />
           <Input
             aria-label="Rechercher une MEP"
-            placeholder="Rechercher (outil, version, personne…)"
+            placeholder="Rechercher (outil, version, personne, système…)"
             className="pl-9"
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
+            value={f.recherche}
+            onChange={(e) => maj({ recherche: e.target.value })}
           />
         </div>
         <Segmented
           label="Afficher les MEP ou les modèles"
           valeur={vue}
-          onChange={(v) => {
-            setVue(v);
-            setPhase('toutes');
-          }}
+          onChange={setVue}
           options={[
             {
               valeur: 'meps',
@@ -336,46 +369,63 @@ export default function ListeMepPage() {
             },
           ]}
         />
-        {/* Équipes pas encore arrivées : leur place est tenue (la barre de filtres ne bouge pas à leur arrivée). */}
-        {equipes === null && <Squelette className="h-9 w-52 rounded-lg" />}
-        {equipes && equipes.length > 0 && (
-          <div className="w-52">
-            <Select aria-label="Filtrer par équipe" value={equipe} onChange={(e) => setEquipe(e.target.value)}>
-              <option value="">Toutes les équipes</option>
-              {equipes.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.nom}
-                </option>
-              ))}
-            </Select>
-          </div>
-        )}
-        {!modele && (
-          <div className="w-52">
-            <Select
-              aria-label="Filtrer par phase"
-              value={phase}
-              onChange={(e) => setPhase(e.target.value as Phase | 'toutes')}
-            >
-              {FILTRES.map((f) => (
-                <option key={f.valeur} value={f.valeur}>
-                  {f.libelle}
-                </option>
-              ))}
-            </Select>
-          </div>
-        )}
-        <BoutonExportExcel
-          className="sm:ml-auto"
-          url={api.urlExportMeps({ modele, equipe, phase, recherche })}
-          disabled={meps === null}
-          title={
-            modele
-              ? 'Les modèles affichés, recherche et équipe comprises.'
-              : 'Les MEP affichées, filtres compris (recherche, équipe, phase).'
-          }
-        />
+        <div className="flex items-center gap-2 sm:ml-auto">
+          {!modele && (
+            <Segmented
+              label="Présentation des résultats"
+              valeur={affichage}
+              onChange={setChoixAffichage}
+              options={[
+                {
+                  valeur: 'cartes',
+                  titre: 'Cartes',
+                  libelle: (
+                    <>
+                      <LayoutGrid className="size-4" aria-hidden />
+                      <span className="sr-only sm:not-sr-only">Cartes</span>
+                    </>
+                  ),
+                },
+                {
+                  valeur: 'tableau',
+                  titre: 'Tableau',
+                  libelle: (
+                    <>
+                      <Rows3 className="size-4" aria-hidden />
+                      <span className="sr-only sm:not-sr-only">Tableau</span>
+                    </>
+                  ),
+                },
+              ]}
+            />
+          )}
+          <BoutonExportExcel
+            url={urlExportListe(f, modele)}
+            disabled={meps === null || filtrees.length === 0}
+            title={
+              modele
+                ? 'Les modèles affichés, recherche et équipe comprises.'
+                : 'Les MEP affichées, filtres compris, avec un onglet des échecs d’étape.'
+            }
+          />
+        </div>
       </div>
+      {/* Critères : chargés avec la page (catalogue, équipes, personnes), leur place est tenue en attendant. */}
+      {equipes === null || catalogue === null || comptes === null ? (
+        <div className="mt-3 flex gap-2" aria-hidden>
+          {(modele ? ['w-24'] : ['w-24', 'w-32', 'w-24', 'w-28', 'w-20', 'w-24']).map((w, i) => (
+            <Squelette key={i} className={cn('h-8 rounded-lg', w, i > 0 && 'max-sm:hidden')} />
+          ))}
+        </div>
+      ) : (
+        <BarreFiltres
+          f={filtreApplique}
+          maj={maj}
+          modeles={modele}
+          resultats={filtrees.length}
+          donnees={{ meps: meps ?? [], catalogue, equipes, personnes }}
+        />
+      )}
 
       {erreur && (
         <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">
@@ -383,21 +433,22 @@ export default function ListeMepPage() {
         </Alerte>
       )}
 
-      {meps === null && !erreur && (
+      {meps === null && !erreur && affichage === 'tableau' && <SqueletteTableauMeps />}
+      {meps === null && !erreur && affichage === 'cartes' && (
         <EnChargement libelle="Chargement des mises en production…" className="mt-6 space-y-3">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="rounded-xl border border-line bg-surface p-5 shadow-sm">
               <div className="flex items-start justify-between gap-6">
                 <div className="grid flex-1 gap-2">
                   <div className="flex items-center gap-3">
-                    <Squelette className="h-6 w-56" />
+                    <Squelette className="h-6 w-56 max-w-full" />
                     <Squelette className="h-5 w-24 rounded-full" />
                   </div>
                   <Squelette className="h-4 w-96 max-w-full" />
                 </div>
-                <Squelette className="h-5 w-48" />
+                <Squelette className="hidden h-5 w-48 sm:block" />
               </div>
-              <div className="mt-4 flex items-center gap-6 pr-32">
+              <div className="mt-4 flex items-center gap-6 sm:pr-32">
                 <Squelette className="h-2 flex-1 rounded-full" />
                 <Squelette className="h-3.5 w-32" />
               </div>
@@ -432,46 +483,65 @@ export default function ListeMepPage() {
       {meps !== null && meps.length > 0 && filtrees.length === 0 && (
         <div className="mt-6 rounded-xl border border-dashed border-line-strong bg-surface">
           <EmptyState
-            icone={Search}
+            icone={SearchX}
             titre="Aucun résultat"
-            description="Aucune MEP ne correspond à ces critères."
-            action={
-              <Button
-                onClick={() => {
-                  setRecherche('');
-                  setPhase('toutes');
-                  setEquipe('');
-                }}
-              >
-                Effacer les filtres
-              </Button>
+            description={
+              retraits.length > 0 ? (
+                <>
+                  Aucune {modele ? 'modèle' : 'MEP'} ne correspond à tous ces critères. Sans l’un d’eux :
+                  <span className="mt-3 flex flex-wrap justify-center gap-2">
+                    {retraits.map((r) => (
+                      <Button key={r.libelle} taille="sm" onClick={() => maj(r.effacer)}>
+                        Sans {r.libelle} ({r.nombre})
+                      </Button>
+                    ))}
+                  </span>
+                </>
+              ) : (
+                `Aucun${modele ? '' : 'e'} ${modele ? 'modèle' : 'MEP'} ne correspond à ces critères.`
+              )
             }
+            action={<Button onClick={() => maj({ ...FILTRE_VIDE })}>Effacer les filtres</Button>}
           />
         </div>
       )}
 
+      {affichage === 'tableau' && filtrees.length > 0 && (
+        <div
+          className={cn('transition-opacity duration-200', meps !== null && 'apparition', rechargement && 'opacity-50')}
+        >
+          <TableauMeps meps={filtrees} f={f} nomPersonne={personnes.find((p) => p.id === f.personne)?.nom} />
+        </div>
+      )}
+
       {/* Rechargement (MEP ↔ modèles) : la liste précédente reste, estompée, jusqu'à la réponse. */}
-      <ul
-        aria-busy={rechargement || undefined}
-        className={cn(
-          'mt-6 space-y-3 transition-opacity duration-200',
-          meps !== null && 'apparition',
-          rechargement && 'opacity-50',
-        )}
-      >
-        {filtrees.map((m) => {
-          const meta = metaPhase(m.phase, m.issue);
-          return (
-            <li key={m.id} className="relative">
-              <Link
-                to={`/meps/${m.id}`}
-                className="group block rounded-xl border border-line bg-surface p-5 shadow-sm transition-[border-color,box-shadow,transform] duration-150 hover:border-line-strong hover:shadow-md"
+      {affichage === 'cartes' && (
+        <ul
+          aria-busy={rechargement || undefined}
+          className={cn(
+            'mt-6 space-y-3 transition-opacity duration-200',
+            meps !== null && 'apparition',
+            rechargement && 'opacity-50',
+          )}
+        >
+          {filtrees.map((m) => {
+            const meta = metaPhase(m.phase, m.issue);
+            return (
+              <li
+                key={m.id}
+                className="group relative rounded-xl border border-line bg-surface p-4 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-line-strong hover:shadow-md sm:p-5"
               >
                 <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                      <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight">
-                        <span className="truncate">{m.outil || 'Sans nom'}</span>
+                      <h2 className="flex min-w-0 items-center gap-2 text-base font-semibold tracking-tight">
+                        {/* Toute la carte ouvre la MEP ; puces et bouton restent cliquables au-dessus. */}
+                        <Link
+                          to={`/meps/${m.id}`}
+                          className="truncate outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-accent"
+                        >
+                          {m.outil || 'Sans nom'}
+                        </Link>
                         {!estSimplifiee(m) && m.versionCible.trim() && (
                           <>
                             <ArrowRight className="size-4 shrink-0 text-fg-subtle" aria-hidden />
@@ -501,7 +571,7 @@ export default function ListeMepPage() {
                     </div>
                     {m.objet && <p className="mt-1 line-clamp-1 text-sm text-fg-muted">{m.objet}</p>}
                   </div>
-                  <div className="flex items-center gap-5 text-sm text-fg-muted">
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-fg-muted">
                     <span className="inline-flex items-center gap-1.5">
                       <CalendarDays className="size-4 text-fg-subtle" aria-hidden />
                       {m.estModele
@@ -522,14 +592,21 @@ export default function ListeMepPage() {
                     )}
                   </div>
                 </div>
+                {!m.estModele && m.systemes.length > 0 && (
+                  <div className="relative z-10 mt-3 flex w-fit max-w-full flex-wrap gap-1" aria-label="Systèmes">
+                    {m.systemes.map((s, i) => (
+                      <PuceSystemeMep key={`${s.nom}-${i}`} s={s} />
+                    ))}
+                  </div>
+                )}
                 {m.estModele ? (
-                  <p className="mt-4 pr-32 text-xs text-fg-subtle tnum">
+                  <p className="mt-4 text-xs text-fg-subtle tnum sm:pr-32">
                     {m.nbEtapes} étape{m.nbEtapes > 1 ? 's' : ''} de déploiement
                   </p>
                 ) : (
-                  <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 pr-32">
+                  <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 sm:pr-32">
                     <ProgressBar
-                      className="min-w-48 flex-1"
+                      className="min-w-40 flex-1"
                       segments={segmentsResume(m.nbEtapes, m.nbReussies, m.nbEchecs)}
                     />
                     <span className="text-xs text-fg-subtle tnum">
@@ -541,20 +618,21 @@ export default function ListeMepPage() {
                     <Chrono m={m} now={now} />
                   </div>
                 )}
-              </Link>
-              <Button
-                taille="sm"
-                className="absolute right-4 bottom-4"
-                icone={<Copy className="size-3.5" aria-hidden />}
-                aria-label={`Dupliquer ${m.outil || 'la MEP'}`}
-                onClick={() => setDuplication({ id: m.id, outil: m.outil, estModele: m.estModele })}
-              >
-                Dupliquer
-              </Button>
-            </li>
-          );
-        })}
-      </ul>
+                <div className="relative z-10 mt-3 flex justify-end sm:absolute sm:right-4 sm:bottom-4 sm:mt-0">
+                  <Button
+                    taille="sm"
+                    icone={<Copy className="size-3.5" aria-hidden />}
+                    aria-label={`Dupliquer ${m.outil || 'la MEP'}`}
+                    onClick={() => setDuplication({ id: m.id, outil: m.outil, estModele: m.estModele })}
+                  >
+                    Dupliquer
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       <NouvelleMepDialog open={creation} onOpenChange={setCreation} modele={modele} />
       <DuplicationDialog
         open={duplication !== null}

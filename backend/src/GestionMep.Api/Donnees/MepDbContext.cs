@@ -124,10 +124,17 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.HasIndex(x => x.CreeLe);
         });
 
-        b.Entity<Participant>().Property(x => x.Id).ValueGeneratedNever();
+        b.Entity<Participant>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            // Recherche avancée (#59) : MEP d'une personne.
+            e.HasIndex(x => x.UtilisateurId);
+        });
         b.Entity<Systeme>(e =>
         {
             e.Property(x => x.Id).ValueGeneratedNever();
+            // Recherche avancée (#59) : historique d'un système du catalogue.
+            e.HasIndex(x => x.CatalogueId);
             // Colonnes Sauvegarde_Statut, Sauvegarde_Moment, Sauvegarde_Contenu, Sauvegarde_Justification, Sauvegarde_Emplacement,
             // Sauvegarde_MethodeRecuperation.
             e.OwnsOne(x => x.Sauvegarde);
@@ -238,6 +245,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
         {
             e.HasOne<Mep>().WithMany().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.MepId, x.Id });
+            // Recherche avancée (#59) : échecs d'étape survenus (« etape.echec »), toutes MEP confondues.
+            e.HasIndex(x => new { x.Type, x.MepId });
         });
 
         // Rapport de fin figé à la clôture : un par MEP, supprimé avec elle.

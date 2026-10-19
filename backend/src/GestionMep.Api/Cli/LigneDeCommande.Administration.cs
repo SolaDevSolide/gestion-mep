@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using GestionMep.Api.Donnees;
 using GestionMep.Api.Endpoints;
@@ -392,31 +393,20 @@ public static partial class LigneDeCommande
 
     private static async Task<int> MepsLister(string[] arguments)
     {
-        var o = Options.Lire(arguments, ["--phase", "--equipe", "--type", "--recherche", "--excel"], "--modeles");
-        Phase? phase = o.Valeur("--phase") is { } p
-            ? Enum.TryParse<Phase>(p.Replace("-", "", StringComparison.Ordinal), ignoreCase: true, out var lue) && Enum.IsDefined(lue) ? lue
-                : throw ErreurHttp.Saisie("--phase attend preparation, execution, recette, retour-arriere ou cloturee.")
-            : null;
-        TypeMep? type = o.Valeur("--type") is { } t
-            ? t.ToLowerInvariant() switch
-            {
-                "complete" => TypeMep.Complete,
-                "simplifiee" => TypeMep.Simplifiee,
-                _ => throw ErreurHttp.Saisie("--type attend complete ou simplifiee."),
-            }
-            : null;
+        var o = Options.Lire(arguments,
+            ["--phase", "--equipe", "--type", "--recherche", "--excel", "--systeme", "--environnement", "--personne", "--role", "--etat", "--du", "--au"],
+            "--modeles", "--echec");
         var config = Configuration();
         await using var db = Base(config);
-        Guid? equipe = o.Valeur("--equipe") is { } e ? (await EquipesEndpoints.Trouver(db, e)).Id : null;
+        var filtre = await FiltreDesOptions(db, o);
         if (o.Valeur("--excel") is { } classeur)
         {
-            var f = await ExportsExcelEndpoints.Liste(db, o.A("--modeles"), equipe, phase, type, o.Valeur("--recherche"), DateTimeOffset.UtcNow,
-                (await ServiceCharte.Charger(db, config)).Palette);
+            var f = await ExportsExcelEndpoints.Liste(db, o.A("--modeles"), filtre, DateTimeOffset.UtcNow, (await ServiceCharte.Charger(db, config)).Palette);
             await EcrireClasseur(classeur, f.Contenu);
             Console.WriteLine($"Liste exportée dans {classeur}.");
             return 0;
         }
-        var meps = VuesExcel.FiltrerMeps(await MepsEndpoints.Lister(db, o.A("--modeles"), equipe), phase, type, o.Valeur("--recherche"));
+        var meps = filtre.Appliquer(await MepsEndpoints.Lister(db, o.A("--modeles")));
         if (EnJson)
         {
             EcrireJson(meps);
@@ -427,12 +417,79 @@ public static partial class LigneDeCommande
             Console.WriteLine(o.A("--modeles") ? "Aucun modèle." : "Aucune MEP.");
             return 0;
         }
-        Console.WriteLine($"{"ID",-8}  {"PHASE",-24}  {"CRÉÉE LE",-10}  {"PROD.",-5}  {"TYPE",-11}  ÉTAPES   OUTIL ET OBJET");
+        Console.WriteLine($"{"ID",-8}  {"ÉTAT",-22}  {"JOUR",-10}  {"PROD.",-5}  {"TYPE",-11}  ÉTAPES   ÉCHECS  {"SYSTÈMES",-20}  OUTIL ET OBJET");
         foreach (var m in meps)
         {
-            var phaseTexte = Libelle(m.Phase) + (m.Issue is { } issue ? issue == IssueMep.Reussie ? ", réussie" : ", repliée" : "");
-            Console.WriteLine($"{m.Id.ToString()[..8]}  {phaseTexte,-24}  {m.CreeLe:yyyy-MM-dd}  {(m.ToucheProduction ? "oui" : ""),-5}  {(m.Type == TypeMep.Simplifiee ? "simplifiée" : "complète"),-11}  {$"{m.NbReussies}/{m.NbEtapes}",-7}  "
+            var systemes = string.Join(",", m.Systemes.Select(s => s.Nom));
+            Console.WriteLine($"{m.Id.ToString()[..8]}  {FiltreMeps.Libelle(m.Etat),-22}  {m.Jour:yyyy-MM-dd}  {(m.ToucheProduction ? "oui" : ""),-5}  {(m.Type == TypeMep.Simplifiee ? "simplifiée" : "complète"),-11}  {$"{m.NbReussies}/{m.NbEtapes}",-7}  {(m.EchecsSurvenus > 0 ? m.EchecsSurvenus.ToString(CultureInfo.InvariantCulture) : ""),-6}  {systemes,-20}  "
                 + $"{m.Outil}{(m.VersionCible.Length > 0 ? $" {m.VersionCible}" : "")}{(m.Objet.Length > 0 ? $" : {m.Objet}" : "")}");
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Filtre de <c>meps lister</c> : mêmes règles et mêmes valeurs que l'API (<see cref="FiltreMeps"/>), mais systèmes, équipes
+    /// et personne se donnent aussi par leur nom (ou login) ; un système absent du catalogue est cherché parmi les systèmes
+    /// saisis à la main.
+    /// </summary>
+    private static async Task<FiltreMeps> FiltreDesOptions(MepDbContext db, Options o)
+    {
+        static IEnumerable<string> Liste(string? v) => (v ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var catalogue = await db.SystemesCatalogue.AsNoTracking().ToListAsync();
+        var systemes = Liste(o.Valeur("--systeme")).Select(s =>
+            s.StartsWith(FiltreMeps.PrefixeLibre, StringComparison.Ordinal) ? s
+                : (catalogue.FirstOrDefault(c => c.Nom.Equals(s, StringComparison.OrdinalIgnoreCase))
+                    ?? (Guid.TryParse(s, out var id) ? catalogue.FirstOrDefault(c => c.Id == id) : null)) is { } c ? c.Id.ToString()
+                : FiltreMeps.PrefixeLibre + s).ToList();
+        var equipes = new List<string>();
+        foreach (var e in Liste(o.Valeur("--equipe"))) equipes.Add((await EquipesEndpoints.Trouver(db, e)).Id.ToString());
+        string? personne = null;
+        if (o.Valeur("--personne") is { } p)
+        {
+            var comptes = await db.Utilisateurs.AsNoTracking().ToListAsync();
+            var annuaire = await Personnes.Charger(db);
+            var compte = comptes.FirstOrDefault(u => u.Login.Equals(p.Trim(), StringComparison.OrdinalIgnoreCase))
+                ?? (Guid.TryParse(p, out var id) ? comptes.FirstOrDefault(u => u.Id == id) : null)
+                ?? comptes.FirstOrDefault(u => u.NomAffiche.Equals(p.Trim(), StringComparison.OrdinalIgnoreCase))
+                ?? throw new ErreurHttp(1, $"Personne « {p} » introuvable (login, nom ou identifiant : gestion-mep utilisateurs lister).");
+            personne = annuaire.Personne(compte.Id).ToString();
+        }
+        return FiltreMeps.Lire(new ParametresFiltreMeps(o.Valeur("--recherche"), string.Join(',', systemes), o.Valeur("--environnement"),
+            string.Join(',', equipes), personne, o.Valeur("--role"), o.Valeur("--etat"), o.Valeur("--phase"), o.Valeur("--type"),
+            o.Valeur("--du"), o.Valeur("--au"), o.A("--echec") ? "1" : null));
+    }
+
+    private static async Task<int> SystemesHistorique(string nom, string[] arguments)
+    {
+        var o = Options.Lire(arguments, ["--excel"]);
+        var config = Configuration();
+        await using var db = Base(config);
+        var s = await TrouverSysteme(db, nom);
+        if (o.Valeur("--excel") is { } classeur)
+        {
+            var f = await ExportsExcelEndpoints.Historique(db, s.Id, DateTimeOffset.UtcNow, (await ServiceCharte.Charger(db, config)).Palette);
+            await EcrireClasseur(classeur, f.Contenu);
+            Console.WriteLine($"Historique de {s.Nom} exporté dans {classeur}.");
+            return 0;
+        }
+        var h = await HistoriqueSystemes.Historique(db, s.Id, DateOnly.FromDateTime(ExcelCommun.Locale(DateTimeOffset.UtcNow, null)));
+        if (EnJson)
+        {
+            EcrireJson(h);
+            return 0;
+        }
+        var r = h.Resume;
+        Console.WriteLine($"{h.Nom} : {r.Total} MEP ({r.DouzeMois} sur les 12 derniers mois), {r.EnCours} en cours, {r.Reussies} réussie(s), "
+            + $"{r.AvecIncidents} avec incidents, {r.Repliees} repliée(s) ; {r.Echecs} échec(s) d'étape sur ce système, {r.EchecsRepris} repris.");
+        if (h.Meps.Count == 0) return 0;
+        Console.WriteLine();
+        Console.WriteLine($"{"JOUR",-10}  {"ÉTAT",-22}  {"ENVIRONNEMENTS",-24}  ÉCHECS  OUTIL ET OBJET");
+        foreach (var m in h.Meps)
+        {
+            Console.WriteLine($"{m.Jour:yyyy-MM-dd}  {FiltreMeps.Libelle(m.Etat),-22}  {string.Join(", ", m.Environnements.Select(e => e.Nom)),-24}  {(m.Echecs.Count > 0 ? m.Echecs.Count.ToString(CultureInfo.InvariantCulture) : ""),-6}  "
+                + $"{m.Outil}{(m.VersionCible.Length > 0 ? $" {m.VersionCible}" : "")}{(m.Objet.Length > 0 ? $" : {m.Objet}" : "")}  [{m.Id.ToString()[..8]}]");
+            foreach (var e in m.Echecs)
+                Console.WriteLine($"            {e.Code} {e.Action} : {e.Motif}{(e.Repris ? " (repris)" : "")}{(e.Resolution is { } res ? $" · résolution « {res} »" : "")}");
         }
         return 0;
     }

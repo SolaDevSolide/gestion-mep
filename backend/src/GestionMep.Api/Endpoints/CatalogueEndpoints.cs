@@ -179,6 +179,12 @@ public static class CatalogueEndpoints
     {
         api.MapGet("/catalogue/systemes", async (MepDbContext db) => (await Lister(db)).AsEnumerable());
 
+        // Recherche avancée (#59) : activité de chaque système (colonne « Dernière MEP ») et historique des MEP d'un système.
+        api.MapGet("/catalogue/systemes/activite", async (MepDbContext db) => (await HistoriqueSystemes.Activite(db)).AsEnumerable());
+
+        api.MapGet("/catalogue/systemes/{id:guid}/historique", async (Guid id, MepDbContext db, TimeProvider temps) =>
+            await HistoriqueSystemes.Historique(db, id, DateOnly.FromDateTime(ExcelCommun.Locale(temps.GetUtcNow(), null))));
+
         api.MapPost("/catalogue/systemes", async (SystemeCatalogueSaisie c, ClaimsPrincipal user, MepDbContext db) =>
         {
             ExigerAdmin(user);

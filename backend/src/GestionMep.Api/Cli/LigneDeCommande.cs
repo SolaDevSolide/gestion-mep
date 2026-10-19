@@ -64,6 +64,8 @@ public static partial class LigneDeCommande
         Catalogue des systèmes, go / no-go et réglages
           gestion-mep systemes lister                         Systèmes, environnements (* production) et nombre d'objets
           gestion-mep systemes afficher <SYSTÈME>             Fiche : environnements, catégories et objets
+          gestion-mep systemes historique <SYSTÈME> [--excel fichier.xlsx]
+                                                              MEP qui ont touché le système : date, issue, échecs d'étape
           gestion-mep systemes ajouter <nom> [--description "…"] [--cible "…"] [--actif oui|non]
           gestion-mep systemes modifier <nom> [--nom "…"] [--description "…"] [--cible "…"] [--actif oui|non]
           gestion-mep systemes supprimer <nom>                Supprime, ou désactive s'il est utilisé (MEP, résolution type)
@@ -106,9 +108,16 @@ public static partial class LigneDeCommande
                                                               est refusée, remplacée ou ignorée ; --essai : contrôle sans écrire
 
         MEP et journal
-          gestion-mep meps lister [--phase <phase>] [--equipe <équipe>] [--type complete|simplifiee] [--recherche "…"] [--modeles]
-                                  [--excel fichier.xlsx]      Phases : preparation, execution, recette, retour-arriere, cloturee ;
-                                                              --excel : la liste filtrée en classeur Excel
+          gestion-mep meps lister [--recherche "…"] [--systeme <SYSTÈME,…>] [--environnement <env,…>] [--echec]
+                                  [--equipe <équipe,…>] [--personne <login> [--role <rôle,…>]] [--etat <état,…>]
+                                  [--du AAAA-MM-JJ] [--au AAAA-MM-JJ] [--type complete|simplifiee] [--phase <phase>]
+                                  [--modeles] [--excel fichier.xlsx]
+                                                              Mêmes filtres que la page d'accueil, les plus récentes d'abord.
+                                                              États : preparation, execution, recette, retour-arriere, reussie,
+                                                              incidents, repliee ; rôles : pilote, suppleant, responsable,
+                                                              executant, approbateur ; --echec : un échec d'étape survenu (sur
+                                                              les systèmes filtrés) ; période sur le jour du Go (à défaut, de
+                                                              la création) ; --excel : la liste filtrée et ses échecs en Excel
           gestion-mep meps exporter <id> [fichier.json|-]     MEP complète et son journal, en JSON (archive, audit)
           gestion-mep meps excel <id> <vue> [fichier.xlsx]    Une vue de la MEP en classeur Excel : preparation, etapes,
                                                               retour-arriere, recette, objets, journal, ou rapport (rapport
@@ -244,6 +253,7 @@ public static partial class LigneDeCommande
                 ["systemes", "modifier", var nom, .. var options] when options.Length > 0 => await SystemesModifier(nom, options),
                 ["systemes", "supprimer", var nom] => await SystemesSupprimer(nom),
                 ["systemes", "afficher", var nom] => await SystemesAfficher(nom),
+                ["systemes", "historique", var nom, .. var options] => await SystemesHistorique(nom, options),
                 ["systemes", "environnement", var nom, var env, .. var options] => await SystemesEnvironnement(nom, env, options),
                 ["systemes", "categorie", var nom, var categorie, .. var options] => await SystemesCategorie(nom, categorie, options),
                 ["systemes", "objet", var nom, var categorie, var objet, .. var options] => await SystemesObjet(nom, categorie, objet, options),

@@ -16,34 +16,35 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 
 ## Organisation
 
-| Dossier               | Contenu                                                                                                                                      |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/pages`           | Pages : connexion, liste des MEP, une MEP, Suivi en direct, rapport de fin, profil                                                           |
-| `src/mep`             | Onglets et dialogues d'une MEP (préparation, plan : étapes, retour arrière, recette ; exécution, journal ; `onglets.ts`)                     |
-| `src/mep/ensemble`    | Vue d'ensemble d'une MEP et calculs du suivi (états, étapes bloquées, fin estimée, ordre du tableau de bord) dans `calculs.ts`               |
-| `src/mep/graphe`      | Graphe libre des étapes (React Flow, rangement ELK), sections, verrou d'édition d'une étape ; appels de l'API du graphe dans `apiGraphe.ts`  |
-| `src/mep/preparation` | Sections de l'onglet Préparation                                                                                                             |
-| `src/parametres`      | Paramètres globaux : catalogue des systèmes, résolutions types, bibliothèques d'étapes et de recettes, critères go / no-go, modèles de texte |
-| `src/textes`          | Textes à copier : remplissage des modèles de texte (`modelesTexte.ts`, logique pure), aperçu, copie mise en forme ou simple                  |
-| `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version »                                                                   |
-| `src/charte`          | Charte visuelle : calculs des couleurs (`charte.ts`, `couleurs.ts`, mêmes résultats que le serveur), sélecteur de couleur, aperçus           |
-| `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                                                           |
-| `src/test`            | Configuration Vitest et fabrique de données de test                                                                                          |
+| Dossier               | Contenu                                                                                                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/pages`           | Pages : connexion, liste des MEP (barre de filtres et tableau des résultats dans `pages/liste`), une MEP, Suivi en direct, rapport de fin, profil                                 |
+| `src/mep`             | Onglets et dialogues d'une MEP (préparation, plan : étapes, retour arrière, recette ; exécution, journal ; `onglets.ts`)                                                          |
+| `src/mep/ensemble`    | Vue d'ensemble d'une MEP et calculs du suivi (états, étapes bloquées, fin estimée, ordre du tableau de bord) dans `calculs.ts`                                                    |
+| `src/mep/graphe`      | Graphe libre des étapes (React Flow, rangement ELK), sections, verrou d'édition d'une étape ; appels de l'API du graphe dans `apiGraphe.ts`                                       |
+| `src/mep/preparation` | Sections de l'onglet Préparation                                                                                                                                                  |
+| `src/parametres`      | Paramètres globaux : catalogue des systèmes (et historique des MEP d'un système), résolutions types, bibliothèques d'étapes et de recettes, critères go / no-go, modèles de texte |
+| `src/textes`          | Textes à copier : remplissage des modèles de texte (`modelesTexte.ts`, logique pure), aperçu, copie mise en forme ou simple                                                       |
+| `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version »                                                                                                        |
+| `src/charte`          | Charte visuelle : calculs des couleurs (`charte.ts`, `couleurs.ts`, mêmes résultats que le serveur), sélecteur de couleur, aperçus                                                |
+| `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                                                                                                |
+| `src/test`            | Configuration Vitest et fabrique de données de test                                                                                                                               |
 
 Logique pure, testée sans DOM :
 
-| Module            | Rôle                                                                                                                                                        |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `api.ts`          | Client HTTP : une fonction par route, erreurs converties en `ApiError` (statut + message français), en-tête anti-CSRF `X-Requested-With` sur chaque requête |
-| `types.ts`        | Noms courts des types de l'API (`Mep`, `Etape`…), alias des types générés                                                                                   |
-| `api/schema.d.ts` | Types générés depuis `docs/openapi.json` par `npm run api:types` ; ne jamais modifier à la main                                                             |
-| `domaine.ts`      | Règles d'affichage : plan actif, étapes à vous, bloqueurs, progression, bilan de recette                                                                    |
-| `graphe.ts`       | Lignes du graphe (profondeur des étapes, ordre de l'export), liens du plan                                                                                  |
-| `personnes.ts`    | Comptes reliés regroupés par personne, équipes d'une personne, filtres par équipe et recherche des comptes et des MEP                                       |
-| `recherche.ts`    | Recherche insensible aux accents, score et surlignage                                                                                                       |
-| `blocs.ts`        | Découpage des instructions en blocs Texte / Code et raccourcis de mise en forme markdown                                                                    |
-| `format.ts`       | Libellés, dates, durées, comptes à rebours                                                                                                                  |
-| `bibliotheque.ts` | Bibliothèques (étapes, recettes, résolutions) : recherche à plusieurs mots (noms de systèmes reconnus), tri par utilisations puis création, types d'étape   |
+| Module             | Rôle                                                                                                                                                                    |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api.ts`           | Client HTTP : une fonction par route, erreurs converties en `ApiError` (statut + message français), en-tête anti-CSRF `X-Requested-With` sur chaque requête             |
+| `types.ts`         | Noms courts des types de l'API (`Mep`, `Etape`…), alias des types générés                                                                                               |
+| `api/schema.d.ts`  | Types générés depuis `docs/openapi.json` par `npm run api:types` ; ne jamais modifier à la main                                                                         |
+| `domaine.ts`       | Règles d'affichage : plan actif, étapes à vous, bloqueurs, progression, bilan de recette                                                                                |
+| `graphe.ts`        | Lignes du graphe (profondeur des étapes, ordre de l'export), liens du plan                                                                                              |
+| `personnes.ts`     | Comptes reliés regroupés par personne, équipes d'une personne, filtres par équipe, recherche des comptes, personnes proposées par la recherche des MEP                  |
+| `rechercheMeps.ts` | Recherche des MEP : critères lus et écrits dans l'adresse, mêmes règles que le serveur (`FiltreMeps.cs`), vérifiées par les cas partagés de `vecteurs-filtre-meps.json` |
+| `recherche.ts`     | Recherche insensible aux accents, score et surlignage                                                                                                                   |
+| `blocs.ts`         | Découpage des instructions en blocs Texte / Code et raccourcis de mise en forme markdown                                                                                |
+| `format.ts`        | Libellés, dates, durées, comptes à rebours                                                                                                                              |
+| `bibliotheque.ts`  | Bibliothèques (étapes, recettes, résolutions) : recherche à plusieurs mots (noms de systèmes reconnus), tri par utilisations puis création, types d'étape               |
 
 ## Principes
 

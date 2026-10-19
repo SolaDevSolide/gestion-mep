@@ -4,7 +4,10 @@ import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useAsync } from '../hooks';
-import type { SystemeCatalogue } from '../types';
+import { formatDate } from '../format';
+import { lienHistoriqueSysteme } from '../mep/SystemeCliquable';
+import { metaEtatMep } from '../statuts';
+import type { ActiviteSysteme, SystemeCatalogue } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -16,8 +19,32 @@ import { Tooltip } from '../ui/Tooltip';
 import { useToast } from '../ui/Toast';
 import { CategoriesDefautDialog } from './CategoriesDefautDialog';
 import { cn } from '../ui/cn';
+import { TON } from '../ui/tons';
 import { SqueletteRangees } from '../ui/Squelette';
 import { SystemeDialog } from './SystemeDialog';
+
+/** Dernière MEP d'un système (#59) : son jour, son outil et son état ; un lien vers l'historique du système. */
+function DerniereMep({ a, systeme }: { a: ActiviteSysteme | undefined; systeme: SystemeCatalogue }) {
+  if (!a?.derniereMepId || !a.derniereJour || !a.derniereEtat)
+    return <span className="text-fg-subtle">Aucune MEP</span>;
+  const meta = metaEtatMep(a.derniereEtat);
+  return (
+    <Link
+      to={lienHistoriqueSysteme(systeme.id)}
+      className="group inline-flex flex-col hover:text-accent-text"
+      aria-label={`Historique des MEP de ${systeme.nom} : dernière le ${formatDate(a.derniereJour)}, ${a.derniereOutil ?? ''}, ${meta.libelle}`}
+    >
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap tnum group-hover:underline">
+        <span className={cn('size-2 shrink-0 rounded-full', TON[meta.ton].bgSolide)} title={meta.libelle} aria-hidden />
+        {formatDate(a.derniereJour)}
+      </span>
+      <span className="max-w-56 truncate text-xs text-fg-subtle">
+        {a.derniereOutil}
+        {a.derniereVersion?.trim() && ` → ${a.derniereVersion}`} · {a.nbMep} MEP
+      </span>
+    </Link>
+  );
+}
 
 /** « 25 dans 3 catégories » : objets connus de la fiche. */
 function resumeFiche(s: Pick<SystemeCatalogue, 'nbObjets' | 'categories'>): string {
@@ -31,6 +58,11 @@ export default function SystemesPage() {
   const toast = useToast();
   const admin = utilisateur?.estAdmin ?? false;
   const { donnees, erreur, recharger } = useAsync(() => api.catalogueSystemes(), []);
+  // Activité des systèmes : colonne « Dernière MEP » ; sans elle, le catalogue reste consultable.
+  const { donnees: activite } = useAsync(
+    async () => new Map((await api.activiteSystemes().catch(() => [])).map((a) => [a.systemeId, a])),
+    [],
+  );
   const [edition, setEdition] = useState<{ existant: SystemeCatalogue | null } | null>(null);
   const [suppr, setSuppr] = useState<SystemeCatalogue | null>(null);
   const [categories, setCategories] = useState(false);
@@ -110,6 +142,9 @@ export default function SystemesPage() {
                   <th scope="col" className="px-4 py-3 font-semibold">
                     Objets
                   </th>
+                  <th scope="col" className="px-4 py-3 font-semibold whitespace-nowrap">
+                    Dernière MEP
+                  </th>
                   <th scope="col" className="px-4 py-3 font-semibold">
                     État
                   </th>
@@ -125,7 +160,7 @@ export default function SystemesPage() {
                 aria-busy={(donnees === null && !erreur) || undefined}
                 aria-label={donnees === null && !erreur ? 'Chargement du catalogue…' : undefined}
               >
-                {donnees === null && !erreur && <SqueletteRangees lignes={6} colonnes={admin ? 7 : 6} />}
+                {donnees === null && !erreur && <SqueletteRangees lignes={6} colonnes={admin ? 8 : 7} />}
                 {(donnees ?? []).map((s) => (
                   <tr key={s.id} className="transition-colors duration-150 hover:bg-surface-2/50">
                     <th scope="row" className="px-4 py-3 font-medium">
@@ -150,6 +185,13 @@ export default function SystemesPage() {
                       <Link to={`/parametres/systemes/${s.id}`} className="hover:text-accent-text hover:underline">
                         {resumeFiche(s)}
                       </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      {activite ? (
+                        <DerniereMep a={activite.get(s.id)} systeme={s} />
+                      ) : (
+                        <span className="text-fg-subtle">…</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <StatusPill taille="sm" ton={s.actif ? 'ok' : 'wait'} icone={s.actif ? CheckCircle2 : CircleOff}>

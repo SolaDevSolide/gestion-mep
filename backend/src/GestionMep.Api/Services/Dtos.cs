@@ -25,9 +25,56 @@ public record EquipeDto(Guid Id, string Nom, string Description, List<Guid> Memb
 /// partie, par l'un de ses comptes reliés). <c>Personnes</c> : noms des personnes de la MEP et, pour celles qui ont un compte,
 /// noms et logins de tous leurs comptes reliés (pour la recherche). <c>Type</c> : MEP complète ou simplifiée.
 /// </summary>
+/// <remarks>
+/// Recherche avancée (#59) : <c>Etat</c>, la phase puis l'issue (réussie, avec incidents, repliée) ; <c>Jour</c>, date de la
+/// MEP pour les filtres de période (jour du Go, à défaut de la création, dans le fuseau de la MEP) ; <c>Go</c> et
+/// <c>ClotureeLe</c> ; <c>EchecsSurvenus</c>, échecs d'étape tirés du journal (une étape reprise garde son échec) ;
+/// <c>Systemes</c>, systèmes de la MEP avec leurs environnements et leurs échecs ; <c>Intervenants</c>, personnes qui ont
+/// un compte et leurs rôles.
+/// </remarks>
 public record MepResumeDto(Guid Id, string Outil, string VersionCible, string Objet, DateOnly? DateMep, Phase Phase,
     DateTimeOffset? EcheanceRepli, string? Pilote, int NbEtapes, int NbReussies, int NbEchecs, bool ToucheProduction, bool EstModele,
-    DateTimeOffset CreeLe, IssueMep? Issue, bool RetourArriereActive, List<Guid> EquipeIds, List<string> Personnes, TypeMep Type);
+    DateTimeOffset CreeLe, IssueMep? Issue, bool RetourArriereActive, List<Guid> EquipeIds, List<string> Personnes, TypeMep Type,
+    EtatMep Etat, DateOnly Jour, DateTimeOffset? Go, DateTimeOffset? ClotureeLe, int EchecsSurvenus, List<SystemeResumeDto> Systemes,
+    List<IntervenantDto> Intervenants);
+
+/// <summary>
+/// Système d'une MEP dans la liste : fiche du catalogue (<c>CatalogueId</c>, null pour un système saisi à la main),
+/// environnements touchés et <c>Echecs</c> survenus sur les étapes de ce système.
+/// </summary>
+public record SystemeResumeDto(Guid? CatalogueId, string Nom, List<EnvironnementSystemeDto> Environnements, int Echecs);
+
+/// <summary>
+/// Personne qui intervient dans une MEP par l'un de ses comptes (<c>PersonneId</c> : son compte principal) et ses rôles :
+/// pilote, suppléant, responsable technique, exécutant, approbateur ; aucun pour une simple participante.
+/// </summary>
+public record IntervenantDto(Guid PersonneId, string Nom, List<RoleMep> Roles);
+
+/// <summary>Échec d'une étape d'un système pendant une MEP : motif, reprise réussie ou non, dernière résolution lancée.</summary>
+public record EchecSystemeDto(TypePlan Plan, string Code, string Action, DateTimeOffset EchecLe, string Motif, bool Repris, string? Resolution,
+    StatutResolution? StatutResolution);
+
+/// <summary>
+/// MEP de l'historique d'un système : <c>Environnements</c> touchés sur ce système, <c>AutresSystemes</c> de la MEP,
+/// <c>Echecs</c> sur les étapes de ce système, <c>Rapport</c> : rapport de fin disponible (MEP clôturée).
+/// </summary>
+public record MepHistoriqueDto(Guid Id, string Outil, string VersionCible, string Objet, TypeMep Type, EtatMep Etat, DateOnly Jour,
+    DateTimeOffset? Go, DateTimeOffset? ClotureeLe, string? Pilote, List<EnvironnementSystemeDto> Environnements,
+    List<SystemeResumeDto> AutresSystemes, List<EchecSystemeDto> Echecs, bool Rapport);
+
+/// <summary>
+/// Chiffres de l'historique : MEP au total et sur les 12 derniers mois, en cours (non clôturées), clôturées par issue, échecs
+/// d'étape sur ce système (repris ou non), dernière MEP lancée (Go donné ; à défaut la plus récente).
+/// </summary>
+public record ResumeHistoriqueDto(int Total, int DouzeMois, int EnCours, int Cloturees, int Reussies, int AvecIncidents, int Repliees,
+    int Echecs, int EchecsRepris, Guid? DerniereMepId);
+
+/// <summary>Historique des MEP d'un système du catalogue, de la plus récente à la plus ancienne (modèles exclus).</summary>
+public record HistoriqueSystemeDto(Guid SystemeId, string Nom, ResumeHistoriqueDto Resume, List<MepHistoriqueDto> Meps);
+
+/// <summary>Activité d'un système du catalogue : nombre de MEP et dernière MEP lancée (colonne « Dernière MEP » du catalogue).</summary>
+public record ActiviteSystemeDto(Guid SystemeId, int NbMep, Guid? DerniereMepId, string? DerniereOutil, string? DerniereVersion,
+    DateOnly? DerniereJour, EtatMep? DerniereEtat);
 
 public record SauvegardeDto(ModeSauvegarde Mode, bool Structure, bool Donnees, bool Configuration, Guid? ResponsableId, DateTimeOffset? RealiseeLe,
     string Procedure, string Copies, bool RestaurationTestee, DateOnly? DateTestRestauration, string PreuveTestRestauration);

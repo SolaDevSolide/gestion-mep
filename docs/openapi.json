@@ -325,11 +325,87 @@
             }
           },
           {
+            "name": "recherche",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "systeme",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environnement",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "equipe",
             "in": "query",
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
+            }
+          },
+          {
+            "name": "personne",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "etat",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "phase",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "du",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "au",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "echec",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -2497,6 +2573,58 @@
         }
       }
     },
+    "/api/catalogue/systemes/activite": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActiviteSystemeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/catalogue/systemes/{id}/historique": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoriqueSystemeDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/catalogue/systemes/{id}": {
       "put": {
         "tags": [
@@ -3698,11 +3826,52 @@
             }
           },
           {
+            "name": "recherche",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "systeme",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environnement",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "equipe",
             "in": "query",
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
+            }
+          },
+          {
+            "name": "personne",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "etat",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -3720,10 +3889,47 @@
             }
           },
           {
-            "name": "recherche",
+            "name": "du",
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "au",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "echec",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/catalogue/systemes/{id}/historique/excel": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -5622,6 +5828,65 @@
   },
   "components": {
     "schemas": {
+      "ActiviteSystemeDto": {
+        "required": [
+          "systemeId",
+          "nbMep",
+          "derniereMepId",
+          "derniereOutil",
+          "derniereVersion",
+          "derniereJour",
+          "derniereEtat"
+        ],
+        "type": "object",
+        "properties": {
+          "systemeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nbMep": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "derniereMepId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "derniereOutil": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "derniereVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "derniereJour": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "derniereEtat": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EtatMep"
+              }
+            ]
+          }
+        },
+        "description": "Activité d'un système du catalogue : nombre de MEP et dernière MEP lancée (colonne « Dernière MEP » du catalogue)."
+      },
       "ApercuValidationDto": {
         "required": [
           "changements",
@@ -7023,6 +7288,57 @@
         },
         "description": "Duplication : la copie reprend les systèmes avec leurs environnements, modifiables ensuite."
       },
+      "EchecSystemeDto": {
+        "required": [
+          "plan",
+          "code",
+          "action",
+          "echecLe",
+          "motif",
+          "repris",
+          "resolution",
+          "statutResolution"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/TypePlan"
+          },
+          "code": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "echecLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "motif": {
+            "type": "string"
+          },
+          "repris": {
+            "type": "boolean"
+          },
+          "resolution": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "statutResolution": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/StatutResolution"
+              }
+            ]
+          }
+        },
+        "description": "Échec d'une étape d'un système pendant une MEP : motif, reprise réussie ou non, dernière résolution lancée."
+      },
       "EnvironnementCatalogueDto": {
         "required": [
           "nom",
@@ -7919,6 +8235,18 @@
           "Echec"
         ]
       },
+      "EtatMep": {
+        "enum": [
+          "Preparation",
+          "Execution",
+          "Recette",
+          "RetourArriere",
+          "Reussie",
+          "AvecIncidents",
+          "Repliee"
+        ],
+        "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite)."
+      },
       "EtatsCharteFichier": {
         "type": [
           "null",
@@ -8453,6 +8781,34 @@
           "OpenIdConnect"
         ],
         "description": "Fournisseur de la connexion unique : Microsoft Entra ID (préréglage) ou tout autre fournisseur OpenID Connect."
+      },
+      "HistoriqueSystemeDto": {
+        "required": [
+          "systemeId",
+          "nom",
+          "resume",
+          "meps"
+        ],
+        "type": "object",
+        "properties": {
+          "systemeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "resume": {
+            "$ref": "#/components/schemas/ResumeHistoriqueDto"
+          },
+          "meps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MepHistoriqueDto"
+            }
+          }
+        },
+        "description": "Historique des MEP d'un système du catalogue, de la plus récente à la plus ancienne (modèles exclus)."
       },
       "ImportObjetsDto": {
         "required": [
@@ -10235,6 +10591,30 @@
         },
         "description": "Demande d'installation d'une version publiée (bouton « Mettre à jour » de la console)."
       },
+      "IntervenantDto": {
+        "required": [
+          "personneId",
+          "nom",
+          "roles"
+        ],
+        "type": "object",
+        "properties": {
+          "personneId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleMep"
+            }
+          }
+        },
+        "description": "Personne qui intervient dans une MEP par l'un de ses comptes (`PersonneId` : son compte principal) et ses rôles :\npilote, suppléant, responsable technique, exécutant, approbateur ; aucun pour une simple participante."
+      },
       "IssueMep": {
         "enum": [
           "Reussie",
@@ -12013,6 +12393,92 @@
         },
         "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées."
       },
+      "MepHistoriqueDto": {
+        "required": [
+          "id",
+          "outil",
+          "versionCible",
+          "objet",
+          "type",
+          "etat",
+          "jour",
+          "go",
+          "clotureeLe",
+          "pilote",
+          "environnements",
+          "autresSystemes",
+          "echecs",
+          "rapport"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outil": {
+            "type": "string"
+          },
+          "versionCible": {
+            "type": "string"
+          },
+          "objet": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TypeMep"
+          },
+          "etat": {
+            "$ref": "#/components/schemas/EtatMep"
+          },
+          "jour": {
+            "type": "string",
+            "format": "date"
+          },
+          "go": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "clotureeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "pilote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "environnements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnvironnementSystemeDto"
+            }
+          },
+          "autresSystemes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SystemeResumeDto"
+            }
+          },
+          "echecs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EchecSystemeDto"
+            }
+          },
+          "rapport": {
+            "type": "boolean"
+          }
+        },
+        "description": "MEP de l'historique d'un système : `Environnements` touchés sur ce système, `AutresSystemes` de la MEP,\n`Echecs` sur les étapes de ce système, `Rapport` : rapport de fin disponible (MEP clôturée)."
+      },
       "MepIdentiteSaisie": {
         "required": [
           "version",
@@ -12220,7 +12686,14 @@
           "retourArriereActive",
           "equipeIds",
           "personnes",
-          "type"
+          "type",
+          "etat",
+          "jour",
+          "go",
+          "clotureeLe",
+          "echecsSurvenus",
+          "systemes",
+          "intervenants"
         ],
         "type": "object",
         "properties": {
@@ -12310,6 +12783,43 @@
           },
           "type": {
             "$ref": "#/components/schemas/TypeMep"
+          },
+          "etat": {
+            "$ref": "#/components/schemas/EtatMep"
+          },
+          "jour": {
+            "type": "string",
+            "format": "date"
+          },
+          "go": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "clotureeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "echecsSurvenus": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "systemes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SystemeResumeDto"
+            }
+          },
+          "intervenants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntervenantDto"
+            }
           }
         },
         "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;\n`RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).\n`ToucheProduction` : l'un des systèmes de la MEP touche un environnement de production.\n`EquipeIds` : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait\npartie, par l'un de ses comptes reliés). `Personnes` : noms des personnes de la MEP et, pour celles qui ont un compte,\nnoms et logins de tous leurs comptes reliés (pour la recherche). `Type` : MEP complète ou simplifiée."
@@ -16269,6 +16779,67 @@
           null
         ]
       },
+      "ResumeHistoriqueDto": {
+        "required": [
+          "total",
+          "douzeMois",
+          "enCours",
+          "cloturees",
+          "reussies",
+          "avecIncidents",
+          "repliees",
+          "echecs",
+          "echecsRepris",
+          "derniereMepId"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "douzeMois": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "enCours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cloturees": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reussies": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "avecIncidents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "repliees": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "echecs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "echecsRepris": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "derniereMepId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "Chiffres de l'historique : MEP au total et sur les 12 derniers mois, en cours (non clôturées), clôturées par issue, échecs\nd'étape sur ce système (repris ou non), dernière MEP lancée (Go donné ; à défaut la plus récente)."
+      },
       "RetouchesCharteFichier": {
         "type": [
           "null",
@@ -16347,6 +16918,16 @@
             "format": "int32"
           }
         }
+      },
+      "RoleMep": {
+        "enum": [
+          "Pilote",
+          "Suppleant",
+          "ResponsableTechnique",
+          "Executant",
+          "Approbateur"
+        ],
+        "description": "Rôle d'une personne dans une MEP (une personne peut en cumuler plusieurs ; sans rôle, elle est simple participante)."
       },
       "SauvegardeDto": {
         "required": [
@@ -18664,6 +19245,14 @@
           }
         }
       },
+      "StatutResolution": {
+        "enum": [
+          "EnCours",
+          "Reussie",
+          "Echouee",
+          null
+        ]
+      },
       "StatutSauvegarde": {
         "enum": [
           "ARenseigner",
@@ -20702,6 +21291,38 @@
           }
         },
         "description": "`Environnements` : environnements touchés par la MEP sur ce système."
+      },
+      "SystemeResumeDto": {
+        "required": [
+          "catalogueId",
+          "nom",
+          "environnements",
+          "echecs"
+        ],
+        "type": "object",
+        "properties": {
+          "catalogueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "environnements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnvironnementSystemeDto"
+            }
+          },
+          "echecs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Système d'une MEP dans la liste : fiche du catalogue (`CatalogueId`, null pour un système saisi à la main),\nenvironnements touchés et `Echecs` survenus sur les étapes de ce système."
       },
       "SystemeSaisie": {
         "required": [

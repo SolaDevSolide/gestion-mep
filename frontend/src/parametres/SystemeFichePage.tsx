@@ -3,6 +3,8 @@ import {
   Boxes,
   CheckCircle2,
   CircleOff,
+  History,
+  Layers,
   Lock,
   OctagonAlert,
   Pencil,
@@ -11,7 +13,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { nomDeProduction } from '../environnements';
@@ -30,6 +32,8 @@ import { StatusPill } from '../ui/StatusPill';
 import { Tooltip } from '../ui/Tooltip';
 import { useToast } from '../ui/Toast';
 import { EnChargement, Squelette, SqueletteTableau } from '../ui/Squelette';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
+import { HistoriqueSysteme } from './HistoriqueSysteme';
 import { SystemeDialog } from './SystemeDialog';
 
 interface Donnees {
@@ -40,7 +44,8 @@ interface Donnees {
 
 /**
  * Fiche d'un système du catalogue : ses environnements (proposés dans les MEP, avec la marque « production ») et ses
- * objets connus rangés par catégorie (seuls objets qu'une MEP peut retenir). Modification réservée aux administrateurs.
+ * objets connus rangés par catégorie (seuls objets qu'une MEP peut retenir), et l'onglet « Historique des MEP » (#59) :
+ * toutes les MEP qui l'ont touché. Modification réservée aux administrateurs.
  */
 export default function SystemeFichePage() {
   const { id = '' } = useParams();
@@ -56,6 +61,8 @@ export default function SystemeFichePage() {
     return { systeme: systemes.find((s) => s.id === id) ?? null, objets, defaut };
   }, [id]);
   const [modifier, setModifier] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const onglet = params.get('onglet') === 'historique' ? 'historique' : 'fiche';
 
   /** Exécute une modification puis recharge la fiche ; renvoie true si elle a abouti. */
   async function agir(action: () => Promise<unknown>, succes: string): Promise<boolean> {
@@ -129,10 +136,27 @@ export default function SystemeFichePage() {
               </Button>
             )}
           </div>
-          <div className="mt-6 space-y-6">
-            <CarteEnvironnements systeme={s} admin={admin} agir={agir} />
-            <CarteObjets systeme={s} objets={donnees.objets} defaut={donnees.defaut} admin={admin} agir={agir} />
-          </div>
+          <Tabs
+            value={onglet}
+            onValueChange={(o) => setParams(o === 'fiche' ? {} : { onglet: o }, { replace: true })}
+            className="mt-6"
+          >
+            <TabsList className="border-b border-line" aria-label="Sections du système">
+              <TabsTrigger value="fiche">
+                <Layers className="size-4" aria-hidden /> Fiche
+              </TabsTrigger>
+              <TabsTrigger value="historique">
+                <History className="size-4" aria-hidden /> Historique des MEP
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="fiche" className="mt-6 space-y-6 outline-none">
+              <CarteEnvironnements systeme={s} admin={admin} agir={agir} />
+              <CarteObjets systeme={s} objets={donnees.objets} defaut={donnees.defaut} admin={admin} agir={agir} />
+            </TabsContent>
+            <TabsContent value="historique" className="mt-6 outline-none">
+              <HistoriqueSysteme systeme={s} />
+            </TabsContent>
+          </Tabs>
           <SystemeDialog existant={s} open={modifier} onOpenChange={setModifier} onFait={recharger} />
         </div>
       )}

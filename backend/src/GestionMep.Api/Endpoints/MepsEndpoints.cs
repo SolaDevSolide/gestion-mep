@@ -23,40 +23,77 @@ public static class MepsEndpoints
     }
 
     /// <summary>
-    /// Liste des MEP, les plus récentes d'abord (partagée avec <c>gestion-mep meps lister</c>). <paramref name="modele"/> :
-    /// true, modèles seulement ; false, MEP seulement ; null, tout. <paramref name="equipe"/> : MEP dont au moins une personne
-    /// fait partie de l'équipe (par l'un de ses comptes reliés).
+    /// Liste des MEP, les plus récemment créées d'abord (partagée avec <c>gestion-mep meps lister</c>). <paramref name="modele"/> :
+    /// true, modèles seulement ; false, MEP seulement ; null, tout. Filtres et tri de la recherche : <see cref="FiltreMeps"/>.
     /// </summary>
-    public static async Task<List<MepResumeDto>> Lister(MepDbContext db, bool? modele, Guid? equipe = null)
-    {
-        var annuaire = await Personnes.Charger(db);
-        var meps = await Resumes(db, modele, annuaire);
-        return equipe is { } e ? meps.Where(m => m.EquipeIds.Contains(e)).ToList() : meps;
-    }
+    public static async Task<List<MepResumeDto>> Lister(MepDbContext db, bool? modele) => await Resumes(db, modele, await Personnes.Charger(db));
 
-    private static async Task<List<MepResumeDto>> Resumes(MepDbContext db, bool? modele, AnnuairePersonnes annuaire) =>
-        (await db.Meps.AsNoTracking().Where(m => modele == null || m.EstModele == modele).OrderByDescending(m => m.CreeLe)
+    /// <summary>Échecs d'étape survenus (événements « etape.echec » du journal), par MEP : code de l'étape, une entrée par échec.</summary>
+    private static async Task<ILookup<Guid, string>> EchecsSurvenus(MepDbContext db) =>
+        (await db.Journal.AsNoTracking().Where(e => e.Type == Regles.EvenementEchecEtape).Select(e => new { e.MepId, e.Detail }).ToListAsync())
+        .ToLookup(e => e.MepId, e => Regles.CodeEvenementEtape(e.Detail));
+
+    private static async Task<List<MepResumeDto>> Resumes(MepDbContext db, bool? modele, AnnuairePersonnes annuaire)
+    {
+        var echecs = await EchecsSurvenus(db);
+        var lignes = await db.Meps.AsNoTracking().Where(m => modele == null || m.EstModele == modele).OrderByDescending(m => m.CreeLe)
             .Select(m => new
             {
-                m.Id, m.Outil, m.VersionCible, m.Objet, m.DemarrageAutoriseLe, m.FuseauHoraire, m.Phase, m.Issue, m.EcheanceRepli,
+                m.Id, m.Outil, m.VersionCible, m.Objet, m.DemarrageAutoriseLe, m.ClotureeLe, m.FuseauHoraire, m.Phase, m.Issue, m.EcheanceRepli,
+                m.PiloteId, m.SuppleantIds, m.ResponsablesTechniques, m.Approbations,
                 Pilote = m.Participants.Where(p => p.Id == m.PiloteId).Select(p => p.Nom).FirstOrDefault(),
                 // Avancement du déploiement uniquement (le retour arrière a son propre plan).
                 NbEtapes = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement),
                 NbReussies = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Reussie),
                 NbEchecs = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement && e.Etat == EtatEtape.Echec),
-                Environnements = m.Systemes.Select(s => s.Environnements).ToList(), m.EstModele, m.CreeLe, m.RetourArriereActive, m.Type,
-                Comptes = m.Participants.Where(p => p.UtilisateurId != null).Select(p => p.UtilisateurId!.Value).ToList(),
-                Noms = m.Participants.Select(p => p.Nom).ToList(),
+                Systemes = m.Systemes.Select(s => new { s.Id, s.Nom, s.CatalogueId, s.Environnements }).ToList(),
+                m.EstModele, m.CreeLe, m.RetourArriereActive, m.Type,
+                Participants = m.Participants.Select(p => new { p.Id, p.Nom, p.UtilisateurId }).ToList(),
+                Executants = m.Etapes.Where(e => e.ExecutantId != null).Select(e => e.ExecutantId).Distinct().ToList(),
+                // Étapes à rattacher aux échecs survenus (code → systèmes).
+                Etapes = m.Etapes.Select(e => new { e.Code, e.SystemeIds }).ToList(),
             })
-            .ToListAsync())
-        // dateMep : date du Go (la date saisie n'existe plus depuis le jalon 4.2).
-        .Select(m => new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, DateLocale(m.DemarrageAutoriseLe, m.FuseauHoraire), m.Phase,
-            m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs,
-            m.Environnements.Any(l => l.Any(e => e.Production)), m.EstModele, m.CreeLe, m.Issue,
-            m.RetourArriereActive,
-            [.. m.Comptes.SelectMany(annuaire.EquipesDeLaPersonne).Distinct().Order()],
-            [.. m.Noms.Concat(m.Comptes.SelectMany(annuaire.TermesDeRecherche)).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)],
-            m.Type)).ToList();
+            .ToListAsync();
+        return lignes.Select(m =>
+        {
+            var comptes = m.Participants.Where(p => p.UtilisateurId != null).Select(p => p.UtilisateurId!.Value).ToList();
+            var codes = echecs[m.Id].ToList();
+            var systemesDesEtapes = m.Etapes.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.First().SystemeIds);
+            int EchecsDu(Guid systeme) => codes.Count(c => systemesDesEtapes.TryGetValue(c, out var ids) && ids.Contains(systeme));
+            // Rôles : la règle du domaine, sur une MEP réduite à ce qu'elle lit.
+            var reduite = new Mep
+            {
+                Type = m.Type, PiloteId = m.PiloteId, SuppleantIds = m.SuppleantIds, ResponsablesTechniques = m.ResponsablesTechniques,
+                Participants = [.. m.Participants.Select(p => new Participant { Id = p.Id, Nom = p.Nom, UtilisateurId = p.UtilisateurId })],
+                Etapes = [.. m.Executants.Select(x => new Etape { ExecutantId = x })],
+            };
+            var rolesParticipants = Regles.RolesDesParticipants(reduite);
+            var intervenants = new Dictionary<Guid, HashSet<RoleMep>>();
+            HashSet<RoleMep> De(Guid compte)
+            {
+                var personne = annuaire.Personne(compte);
+                if (!intervenants.TryGetValue(personne, out var r)) intervenants[personne] = r = [];
+                return r;
+            }
+            foreach (var p in m.Participants.Where(p => p.UtilisateurId != null)) De(p.UtilisateurId!.Value).UnionWith(rolesParticipants[p.Id]);
+            foreach (var a in m.Approbations) De(a.UtilisateurId).Add(RoleMep.Approbateur);
+            var go = DateLocale(m.DemarrageAutoriseLe, m.FuseauHoraire);
+            return new MepResumeDto(m.Id, m.Outil, m.VersionCible, m.Objet, go, m.Phase,
+                m.EcheanceRepli, m.Pilote, m.NbEtapes, m.NbReussies, m.NbEchecs,
+                m.Systemes.Any(s => s.Environnements.Any(e => e.Production)), m.EstModele, m.CreeLe, m.Issue,
+                m.RetourArriereActive,
+                [.. comptes.SelectMany(annuaire.EquipesDeLaPersonne).Distinct().Order()],
+                [.. m.Participants.Select(p => p.Nom).Concat(comptes.SelectMany(annuaire.TermesDeRecherche)).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)],
+                m.Type,
+                // dateMep : date du Go (la date saisie n'existe plus depuis le jalon 4.2).
+                Regles.EtatDe(m.Phase, m.Issue, codes.Count), go ?? DateLocale(m.CreeLe, m.FuseauHoraire)!.Value,
+                m.DemarrageAutoriseLe, m.ClotureeLe, codes.Count,
+                [.. m.Systemes.Select(s => new SystemeResumeDto(s.CatalogueId, s.Nom,
+                    [.. s.Environnements.Select(e => new EnvironnementSystemeDto(e.Nom, e.Production))], EchecsDu(s.Id)))],
+                [.. intervenants.Select(i => new IntervenantDto(i.Key, annuaire.NomPersonne(i.Key) ?? "", [.. i.Value.Order()]))
+                    .OrderBy(i => i.Nom, StringComparer.CurrentCultureIgnoreCase)]);
+        }).ToList();
+    }
 
     /// <summary>Journal d'une MEP, du plus récent au plus ancien (partagé avec <c>gestion-mep meps exporter</c>).</summary>
     public static async Task<List<EvenementDto>> Journal(MepDbContext db, Guid id)
@@ -69,8 +106,10 @@ public static class MepsEndpoints
 
     public static void MapMeps(this RouteGroupBuilder api)
     {
-        // ?modele=true : modèles seulement ; ?modele=false : MEP seulement ; absent : tout. ?equipe=<id> : MEP de l'équipe.
-        api.MapGet("/meps", async (bool? modele, Guid? equipe, MepDbContext db) => (await Lister(db, modele, equipe)).AsEnumerable());
+        // ?modele=true : modèles seulement ; ?modele=false : MEP seulement ; absent : tout. Autres paramètres : recherche
+        // avancée (FiltreMeps : systeme, environnement, equipe, personne, role, etat, phase, type, du, au, echec, recherche).
+        api.MapGet("/meps", async (bool? modele, [AsParameters] ParametresFiltreMeps filtres, MepDbContext db) =>
+            FiltreMeps.Lire(filtres).Appliquer(await Lister(db, modele)).AsEnumerable());
 
         api.MapPost("/meps", async (MepCreationSaisie corps, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) =>
         {

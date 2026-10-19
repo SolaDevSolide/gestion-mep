@@ -85,6 +85,14 @@ export type TypeEvenementAdmin =
 
 /** `dateMep` : date du Go si elle existe ; `creeLe` : date de création (affichée tant que la MEP n'a pas démarré). */
 export type MepResume = S['MepResumeDto'];
+export type EtatMep = S['EtatMep'];
+export type RoleMep = S['RoleMep'];
+export type SystemeResume = S['SystemeResumeDto'];
+export type Intervenant = S['IntervenantDto'];
+export type EchecSysteme = S['EchecSystemeDto'];
+export type MepHistorique = S['MepHistoriqueDto'];
+export type HistoriqueSysteme = S['HistoriqueSystemeDto'];
+export type ActiviteSysteme = S['ActiviteSystemeDto'];
 
 export type Sauvegarde = S['SauvegardeDto'];
 export type Participant = S['ParticipantDto'];

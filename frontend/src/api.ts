@@ -1,6 +1,8 @@
 import type { CharteFichier } from './charte/charte';
 import type {
+  ActiviteSysteme,
   BilanSaisie,
+  HistoriqueSysteme,
   CritereGoNoGo,
   CritereGoNoGoSaisie,
   DecisionApprobation,
@@ -72,7 +74,6 @@ import type {
   SsoReglages,
   SsoSaisie,
   SsoTest,
-  Phase,
   RapportFin,
   Suivi,
 } from './types';
@@ -395,15 +396,8 @@ export const api = {
   refaireEtapeTest: (id: string, fid: string, tid: string) =>
     post<Mep>(`/meps/${id}/fiches-recette/${fid}/etapes/${tid}/refaire`, {}),
 
-  // Exports Excel des vues (téléchargement direct, en lecture seule) : liste des MEP avec ses filtres, préparation,
-  // étapes, retour arrière, journal avec ses filtres.
-  urlExportMeps: (f: { modele: boolean; equipe?: string; phase?: Phase | 'toutes'; recherche?: string }) =>
-    `/api/meps/excel${requete({
-      modele: f.modele ? 'true' : '',
-      equipe: f.equipe,
-      phase: f.modele || f.phase === 'toutes' ? '' : f.phase,
-      recherche: f.recherche?.trim(),
-    })}`,
+  // Exports Excel des vues (téléchargement direct, en lecture seule) : préparation, étapes, retour arrière, journal avec
+  // ses filtres. La liste des MEP filtrée : `urlExportListe` (rechercheMeps.ts).
   urlExportPreparation: (id: string) => `/api/meps/${id}/preparation/excel`,
   urlExportEtapes: (id: string) => `/api/meps/${id}/etapes/excel`,
   urlExportRetourArriere: (id: string) => `/api/meps/${id}/retour-arriere/excel`,
@@ -495,6 +489,10 @@ export const api = {
   supprimerCritere: (id: string) => del<void>(`/criteres-go-no-go/${id}`),
 
   catalogueSystemes: () => get<SystemeCatalogue[]>('/catalogue/systemes'),
+  // Recherche avancée (#59) : activité de chaque système (colonne « Dernière MEP ») et historique des MEP d'un système.
+  activiteSystemes: () => get<ActiviteSysteme[]>('/catalogue/systemes/activite'),
+  historiqueSysteme: (id: string) => get<HistoriqueSysteme>(`/catalogue/systemes/${id}/historique`),
+  urlExportHistorique: (id: string) => `/api/catalogue/systemes/${id}/historique/excel`,
   creerSystemeCatalogue: (s: SystemeCatalogueSaisie) => post<SystemeCatalogue>('/catalogue/systemes', s),
   modifierSystemeCatalogue: (id: string, s: SystemeCatalogueSaisie) =>
     put<SystemeCatalogue>(`/catalogue/systemes/${id}`, s),
