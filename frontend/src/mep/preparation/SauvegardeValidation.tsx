@@ -45,7 +45,7 @@ function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
       methodeRecuperation: v.statut === 'Requise' ? v.methodeRecuperation.trim() : '',
     };
     const ok = await run(
-      () => api.modifierSauvegardeSysteme(mep.id, systeme.id, { ...s, version: mep.version }),
+      () => api.modifierSauvegardeSysteme(mep.id, systeme.id, { ...s, revision: systeme.revisionSauvegarde }),
       `Sauvegarde de ${systeme.nom} enregistrée.`,
     );
     if (ok) d.reset();
@@ -196,7 +196,7 @@ export function SauvegardeSection() {
   async function enregistrer() {
     if (d.conflit) return;
     const ok = await run(
-      () => api.modifierSauvegarde(mep.id, { ...v, version: mep.version }),
+      () => api.modifierSauvegarde(mep.id, { ...v, revision: mep.revisions.sauvegarde }),
       'Sauvegarde enregistrée.',
     );
     if (ok) d.reset();

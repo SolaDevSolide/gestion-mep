@@ -72,7 +72,7 @@ public static class MepMapping
             m.Systemes.Select(x => new SystemeDto(x.Id, x.Nom, x.Cible, x.Impact, x.CatalogueId,
                 new SauvegardeSystemeDto(x.Sauvegarde.Statut, x.Sauvegarde.Moment, x.Sauvegarde.Contenu, x.Sauvegarde.Justification,
                     x.Sauvegarde.Emplacement, x.Sauvegarde.MethodeRecuperation),
-                x.Environnements.Select(e => new EnvironnementSystemeDto(e.Nom, e.Production)).ToList())).ToList(),
+                x.Environnements.Select(e => new EnvironnementSystemeDto(e.Nom, e.Production)).ToList(), x.RevisionSauvegarde)).ToList(),
             Regles.ObjetsTries(m).Select(VersDto).ToList(),
             m.EtapesTriees().Select(e =>
             {
@@ -136,6 +136,8 @@ public static class MepMapping
             m.ResolutionsFigees.Select(f => new ResolutionFigeeDto(f.ResolutionTypeId, f.Version, f.Titre, f.Symptomes, f.Diagnostic, [.. f.SystemeCatalogueIds],
                 f.Corrections.OrderBy(c => c.Ordre).Select(c => new CorrectionDto(c.Ordre, c.Instruction, c.ResultatAttendu)).ToList(),
                 f.VerificationInstruction, f.VerificationAttendu)).ToList(),
-            m.ResolutionsFigeesLe);
+            m.ResolutionsFigeesLe,
+            new RevisionsMepDto(m.Revisions.Identite, m.Revisions.Echeance, m.Revisions.Sauvegarde, m.Revisions.PlanRepli, m.Revisions.Communication,
+                m.Revisions.ResponsablesTechniques, m.Revisions.Approbateurs));
     }
 }

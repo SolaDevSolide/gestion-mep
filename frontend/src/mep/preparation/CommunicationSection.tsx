@@ -48,7 +48,7 @@ export function CommunicationSection() {
       preuveValidationId: v.valideeParUtilisateurs ? v.preuveValidationId : null,
     };
     const ok = await run(
-      () => api.modifierCommunication(mep.id, { ...s, version: mep.version }),
+      () => api.modifierCommunication(mep.id, { ...s, revision: mep.revisions.communication }),
       'Communication enregistrée.',
     );
     if (ok) d.reset();

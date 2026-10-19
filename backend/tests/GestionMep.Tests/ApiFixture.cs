@@ -33,7 +33,8 @@ public class ApiFixture : IDisposable
 
     /// <param name="demo">false : base neuve hors mode démonstration (aucun compte, routes /api/demo absentes).</param>
     /// <param name="environnement">Environnement d'hébergement (par défaut celui de la fabrique de test : Development).</param>
-    public ApiFixture(bool demo = true, string? environnement = null)
+    /// <param name="hote">Réglage supplémentaire de l'hôte (services de test, intergiciels d'observation).</param>
+    public ApiFixture(bool demo = true, string? environnement = null, Action<IWebHostBuilder>? hote = null)
     {
         _demo = demo;
         using (var cn = new NpgsqlConnection(Serveur + ";Database=postgres"))
@@ -60,6 +61,7 @@ public class ApiFixture : IDisposable
         _usine = _racine = new WebApplicationFactory<Program>();
         // L'usine dérivée est libérée avec celle d'origine.
         if (environnement is not null) _usine = _usine.WithWebHostBuilder(b => b.UseEnvironment(environnement));
+        if (hote is not null) _usine = _usine.WithWebHostBuilder(hote);
         _ = _usine.Server; // démarre l'hôte : migration + données de démo
     }
 

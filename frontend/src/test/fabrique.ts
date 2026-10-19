@@ -140,6 +140,7 @@ export function mep(p: Partial<Mep> = {}): Mep {
           methodeRecuperation: '',
         },
         environnements: [{ nom: 'Production', production: true }],
+        revisionSauvegarde: 0,
       },
     ],
     objetsImpactes: [],
@@ -168,6 +169,15 @@ export function mep(p: Partial<Mep> = {}): Mep {
     report: null,
     premierGo: null,
     pilotageSecours: null,
+    revisions: {
+      identite: 0,
+      echeance: 0,
+      sauvegarde: 0,
+      planRepli: 0,
+      communication: 0,
+      responsablesTechniques: 0,
+      approbateurs: 0,
+    },
     ...p,
   };
 }

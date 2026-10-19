@@ -7,6 +7,7 @@ import { formatDateHeure } from '../../format';
 import { optionCompte, personneDe } from '../../personnes';
 import { useAsync, useDraft, useReportDirty } from '../../hooks';
 import { useMep } from '../../mepContext';
+import { useJournal } from '../journal';
 import type { DecisionApprobation } from '../../types';
 import { Alerte } from '../../ui/Alerte';
 import { Avatar } from '../../ui/Avatar';
@@ -97,7 +98,8 @@ export function ApprobationsBloc() {
   const { mep, run } = useMep();
   const { utilisateur } = useAuth();
   const { donnees: utilisateurs } = useAsync(() => api.utilisateurs(), []);
-  const { donnees: journal } = useAsync(() => api.journal(mep.id), [mep.id, mep.version]);
+  // Décisions du journal (famille « approbation »), puis seulement les nouvelles à chaque version (#96).
+  const { evenements: journal } = useJournal(mep.id, mep.version, { type: 'approbation' });
   const [decision, setDecision] = useState<DecisionApprobation | null>(null);
 
   const enPreparation = mep.phase === 'Preparation';
@@ -145,7 +147,10 @@ export function ApprobationsBloc() {
 
   async function enregistrer() {
     if (d.conflit) return;
-    const ok = await run(() => api.modifierApprobateurs(mep.id, mep.version, d.value), 'Approbateurs enregistrés.');
+    const ok = await run(
+      () => api.modifierApprobateurs(mep.id, mep.revisions.approbateurs, d.value),
+      'Approbateurs enregistrés.',
+    );
     if (ok) d.reset();
   }
 

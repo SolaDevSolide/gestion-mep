@@ -27,7 +27,7 @@ function FichePlan() {
   async function enregistrer() {
     if (d.conflit) return;
     const ok = await run(
-      () => api.modifierPlanRepli(mep.id, { ...v, version: mep.version }),
+      () => api.modifierPlanRepli(mep.id, { ...v, revision: mep.revisions.planRepli }),
       'Plan de retour arrière enregistré.',
     );
     if (ok) d.reset();

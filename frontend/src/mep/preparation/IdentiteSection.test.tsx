@@ -105,7 +105,7 @@ describe('IdentiteSection : modifier l’échéance (#94)', () => {
     await userEvent.type(within(dialogue).getByLabelText('Motif (obligatoire)'), 'Migration plus longue');
     await userEvent.click(enregistrer);
     expect(api.modifierEcheance).toHaveBeenCalledWith('m1', {
-      version: 1,
+      revision: 0,
       echeanceRepli: '2026-10-10T01:00:00.000Z',
       motif: 'Migration plus longue',
     });
@@ -120,7 +120,7 @@ describe('IdentiteSection : modifier l’échéance (#94)', () => {
     await userEvent.type(within(dialogue).getByLabelText('Motif (obligatoire)'), 'Plus nécessaire');
     await userEvent.click(within(dialogue).getByRole('button', { name: 'Enregistrer l’échéance' }));
     expect(api.modifierEcheance).toHaveBeenCalledWith('m1', {
-      version: 1,
+      revision: 0,
       echeanceRepli: null,
       motif: 'Plus nécessaire',
     });
@@ -134,7 +134,7 @@ describe('IdentiteSection : modifier l’échéance (#94)', () => {
     expect(within(dialogue).getByLabelText('Motif (facultatif)')).toBeInTheDocument();
     await userEvent.click(within(dialogue).getByRole('button', { name: 'Enregistrer l’échéance' }));
     expect(api.modifierEcheance).toHaveBeenCalledWith('m1', {
-      version: 1,
+      revision: 0,
       echeanceRepli: '2026-10-23T21:00:00.000Z',
       motif: '',
     });

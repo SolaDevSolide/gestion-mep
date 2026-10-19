@@ -42,7 +42,7 @@ public static class ExportsExcelEndpoints
             if (!equipes.ContainsKey(e)) throw ErreurHttp.NonTrouve("Équipe introuvable.");
         var catalogue = await db.SystemesCatalogue.AsNoTracking().ToDictionaryAsync(s => s.Id, s => s.Nom);
         var annuaire = await Personnes.Charger(db);
-        var meps = filtre.Appliquer(await MepsEndpoints.Lister(db, modeles));
+        var meps = await MepsEndpoints.Rechercher(db, modeles, filtre);
         var description = filtre.Decrire(catalogue.GetValueOrDefault, equipes.GetValueOrDefault, annuaire.NomPersonne);
         var echecs = modeles ? null : await HistoriqueSystemes.Echecs(db, meps);
         var nomPersonne = filtre.Personne is { } p ? annuaire.NomPersonne(p) : null;

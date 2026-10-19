@@ -42,4 +42,29 @@ describe('JournalTab', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Exporter en Excel' }));
     expect(telecharger).toHaveBeenLastCalledWith('/api/meps/m1/journal/excel?type=etape&recherche=E0001');
   });
+
+  it('lit les événements plus anciens à la demande, sous des lignes de chargement', async () => {
+    vi.mocked(api.testsUnitaires).mockResolvedValue({ faits: 0, nonFaits: 0, verifications: 0, tests: [] });
+    const evt = (id: number) => ({
+      id,
+      quand: '2026-10-09T20:00:00Z',
+      auteur: 'Alice',
+      type: 'etape.reussie',
+      detail: `Événement ${id}`,
+      auteurLogin: 'alice',
+    });
+    vi.mocked(api.journal).mockResolvedValueOnce(Array.from({ length: 100 }, (_, i) => evt(150 - i)));
+    render(<JournalTab mepId="m1" tick={0} />);
+    expect(await screen.findByText('Événement 150')).toBeInTheDocument();
+    let repondre: (e: ReturnType<typeof evt>[]) => void = () => undefined;
+    vi.mocked(api.journal).mockReturnValueOnce(new Promise((r) => (repondre = r)));
+    await userEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
+    expect(api.journal).toHaveBeenLastCalledWith('m1', { type: '', recherche: '', avant: 51, limite: 100 });
+    expect(screen.getByRole('status', { name: 'Chargement des événements plus anciens…' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Afficher plus' })).not.toBeInTheDocument();
+    repondre([evt(50), evt(49)]);
+    expect(await screen.findByText('Événement 49')).toBeInTheDocument();
+    // Dernière page : plus de bouton.
+    expect(screen.queryByRole('button', { name: 'Afficher plus' })).not.toBeInTheDocument();
+  });
 });

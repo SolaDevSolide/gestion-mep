@@ -407,7 +407,7 @@ public static partial class LigneDeCommande
             Console.WriteLine($"Liste exportée dans {classeur}.");
             return 0;
         }
-        var meps = filtre.Appliquer(await MepsEndpoints.Lister(db, o.A("--modeles")));
+        var meps = await MepsEndpoints.Rechercher(db, o.A("--modeles"), filtre);
         if (EnJson)
         {
             EcrireJson(meps);

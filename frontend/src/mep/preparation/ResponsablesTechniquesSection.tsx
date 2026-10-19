@@ -74,7 +74,7 @@ export function ResponsablesTechniquesSection() {
   }, [forme]);
 
   const enregistrer = (liste: ResponsableTechnique[], message: string) =>
-    run(() => api.modifierResponsablesTechniques(mep.id, mep.version, liste), message);
+    run(() => api.modifierResponsablesTechniques(mep.id, mep.revisions.responsablesTechniques, liste), message);
 
   async function valider(e: FormEvent) {
     e.preventDefault();
@@ -111,7 +111,7 @@ export function ResponsablesTechniquesSection() {
           if (!participant) throw new Error('La personne n’a pas pu être ajoutée aux participants.');
         }
         const nouveau = responsableDepuisSuggestion(s, participant.id, participant.contact || s.utilisateur.contact);
-        return api.modifierResponsablesTechniques(courante.id, courante.version, [
+        return api.modifierResponsablesTechniques(courante.id, courante.revisions.responsablesTechniques, [
           ...courante.responsablesTechniques,
           nouveau,
         ]);

@@ -57,7 +57,12 @@ export function BoutonModifierEcheance({ taille = 'sm' }: { taille?: TailleBouto
         taille="md"
         onConfirmer={() =>
           run(
-            () => api.modifierEcheance(mep.id, { version: mep.version, echeanceRepli: nouvelle, motif: motif.trim() }),
+            () =>
+              api.modifierEcheance(mep.id, {
+                revision: mep.revisions.echeance,
+                echeanceRepli: nouvelle,
+                motif: motif.trim(),
+              }),
             'Échéance enregistrée.',
           )
         }

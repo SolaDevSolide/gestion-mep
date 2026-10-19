@@ -20,6 +20,58 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
     public DateTimeOffset Maintenant => temps.GetUtcNow();
 
     /// <summary>
+    /// Ce qui a été relevé à la lecture d'une MEP : empreintes de ses blocs de formulaire (révisions, <see cref="BlocsMep"/>)
+    /// et de ce qu'en montre le suivi en direct (portée de la notification, <see cref="DiffuseurMep.PorteeSuivi"/>).
+    /// </summary>
+    private sealed record Releve(BlocsMep.Empreintes Blocs, bool EnCours, string Suivi);
+    private readonly Dictionary<Guid, Releve> _releves = [];
+
+    /// <summary>Notifications retenues pendant une écriture (<see cref="Modifier{T}"/>) : envoyées une fois la transaction validée.</summary>
+    private List<(Guid Id, int Version, DiffuseurMep.PorteeSuivi Portee)>? _enAttente;
+
+    private static readonly Phase[] PhasesEnCours = [Phase.Execution, Phase.Recette, Phase.RetourArriere];
+
+    /// <summary>MEP lancée (exécution, recette ou retour arrière), hors modèles : une carte du suivi en direct.</summary>
+    public static bool EstEnCours(Mep m) => !m.EstModele && PhasesEnCours.Contains(m.Phase);
+
+    /// <summary>Ce que les listes du suivi (MEP annoncées, clôturées) montrent d'une MEP qui n'est pas lancée.</summary>
+    private static string EmpreinteSuivi(Mep m) => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        m.Phase, m.EstModele, m.Outil, m.VersionCible, m.Type, m.Issue, m.ClotureeLe, Echecs = m.EchecsEtapes + m.EchecsRecette,
+        Pilote = m.Participants.FirstOrDefault(p => p.Id == m.PiloteId)?.Nom, Reportee = m.Report is not null,
+        m.Communication.DateAnnoncee, m.Communication.HeureDebutAnnoncee, m.FuseauHoraire,
+    });
+
+    private void Relever(Mep mep) => _releves[mep.Id] = new Releve(BlocsMep.Relever(mep), EstEnCours(mep), EmpreinteSuivi(mep));
+
+    /// <summary>
+    /// Avant d'enregistrer : augmente la révision des blocs modifiés depuis la lecture, puis dit ce que le suivi en direct
+    /// doit relire (la carte de cette MEP, toutes ses listes, ou rien).
+    /// </summary>
+    private DiffuseurMep.PorteeSuivi Reviser(Mep mep)
+    {
+        var avant = _releves.GetValueOrDefault(mep.Id);
+        var blocs = BlocsMep.Reviser(mep, avant?.Blocs);
+        var apres = new Releve(blocs, EstEnCours(mep), EmpreinteSuivi(mep));
+        _releves[mep.Id] = apres;
+        if (avant is null) return DiffuseurMep.PorteeSuivi.Liste;
+        if (avant.EnCours && apres.EnCours && avant.Suivi == apres.Suivi) return DiffuseurMep.PorteeSuivi.Carte;
+        if (avant.EnCours != apres.EnCours || avant.Suivi != apres.Suivi) return DiffuseurMep.PorteeSuivi.Liste;
+        return DiffuseurMep.PorteeSuivi.Aucune;
+    }
+
+    /// <summary>Notifie les flux de la MEP et du suivi, ou retient la notification jusqu'à la fin de l'écriture en cours.</summary>
+    private void Notifier(Guid id, int version, DiffuseurMep.PorteeSuivi portee)
+    {
+        if (_enAttente is not null) _enAttente.Add((id, version, portee));
+        else diffuseur.Notifier(id, version, portee);
+    }
+
+    private IQueryable<Mep> MepsCompletes() => db.Meps
+        .Include(m => m.Participants).Include(m => m.Systemes).Include(m => m.ObjetsImpactes).Include(m => m.Etapes).Include(m => m.Resolutions)
+        .AsSplitQuery();
+
+    /// <summary>
     /// Charge la MEP après avoir appliqué l'échéance de retour arrière : si elle est dépassée, la MEP bascule
     /// (enregistrement, journal « Système » et notification) avant toute lecture ou écriture.
     /// </summary>
@@ -27,11 +79,8 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
     {
         for (var essai = 0; ; essai++)
         {
-            var mep = await db.Meps
-                .Include(m => m.Participants).Include(m => m.Systemes).Include(m => m.ObjetsImpactes).Include(m => m.Etapes).Include(m => m.Resolutions)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(m => m.Id == id)
-                ?? throw ErreurHttp.NonTrouve("MEP introuvable.");
+            var mep = await MepsCompletes().FirstOrDefaultAsync(m => m.Id == id) ?? throw ErreurHttp.NonTrouve("MEP introuvable.");
+            Relever(mep);
             try
             {
                 await AppliquerEcheance(mep);
@@ -46,25 +95,59 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
     }
 
     /// <summary>
-    /// Nombre d'essais d'une écriture sur une MEP avant de renvoyer 409 (voir <see cref="Modifier{T}"/>). Chaque échec correspond
-    /// au succès d'une autre écriture : N écritures simultanées aboutissent toutes tant que N ≤ ce nombre (une équipe d'exécution).
+    /// Charge plusieurs MEP complètes en une seule série de requêtes (suivi en direct), dans l'ordre des identifiants, échéances
+    /// appliquées. Les MEP disparues entre-temps sont omises.
     /// </summary>
-    public const int EssaisEcriture = 5;
+    public async Task<List<Mep>> ChargerPlusieurs(IReadOnlyList<Guid> ids)
+    {
+        if (ids.Count == 0) return [];
+        db.ChangeTracker.Clear();
+        var parId = (await MepsCompletes().Where(m => ids.Contains(m.Id)).ToListAsync()).ToDictionary(m => m.Id);
+        var meps = ids.Where(parId.ContainsKey).Select(i => parId[i]).ToList();
+        foreach (var m in meps) Relever(m);
+        try
+        {
+            // Rien n'est écrit tant qu'aucune échéance n'est atteinte (SurveillanceEcheances les applique déjà en continu).
+            foreach (var m in meps) await AppliquerEcheance(m);
+            return meps;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Une écriture est passée entre-temps : relecture une par une, avec réessai.
+            db.ChangeTracker.Clear();
+            var relues = new List<Mep>();
+            foreach (var i in ids)
+            {
+                try { relues.Add(await Charger(i)); }
+                catch (ErreurHttp e) when (e.Statut == StatusCodes.Status404NotFound) { /* supprimée entre-temps */ }
+            }
+            return relues;
+        }
+    }
 
     /// <summary>
-    /// Exécute une écriture sur une MEP avec réessai automatique. <paramref name="action"/> reçoit la MEP fraîchement chargée
-    /// (<see cref="Charger"/>), revérifie toutes ses préconditions (droits, révision de l'étape, version envoyée par le client,
-    /// règles du domaine), applique la modification et l'enregistre. Si l'enregistrement échoue uniquement parce qu'une autre
-    /// écriture vient de passer sur la même MEP (jeton de concurrence <c>Mep.Version</c>), le suivi est vidé, la MEP relue et
-    /// l'action rejouée entièrement, jusqu'à <see cref="EssaisEcriture"/> essais, puis 409 comme avant.
+    /// Nombre d'essais d'une écriture sur une MEP avant de renvoyer 409 (voir <see cref="Modifier{T}"/>). Les écritures sur une
+    /// même MEP passent l'une après l'autre (verrou de la ligne) : un nouvel essai ne sert plus qu'aux écritures faites hors de
+    /// <see cref="Modifier{T}"/> (échéance appliquée à la lecture) ou à une impasse signalée par la base.
+    /// </summary>
+    public const int EssaisEcriture = 8;
+
+    /// <summary>Attente maximale du verrou d'une MEP avant de répondre 409 (une écriture normale le garde quelques millisecondes).</summary>
+    private const string AttenteVerrou = "SET LOCAL lock_timeout = '15s'";
+
+    /// <summary>
+    /// Exécute une écriture sur une MEP. Les écritures sur une même MEP passent l'une après l'autre : chacune ouvre une
+    /// transaction, verrouille la ligne de la MEP (<c>SELECT … FOR UPDATE</c>), puis <paramref name="action"/> reçoit la MEP
+    /// fraîchement chargée (<see cref="Charger"/>), revérifie toutes ses préconditions (droits, révision de l'étape ou du bloc,
+    /// règles du domaine), applique la modification et l'enregistre. Dix personnes qui écrivent en même temps sur des étapes
+    /// différentes aboutissent donc toutes, sans conflit ni réessai ; deux personnes qui modifient la même étape (ou le même
+    /// bloc) avec la même révision : la seconde reçoit 409.
     /// <para>
-    /// L'action doit donc pouvoir être rejouée : ce qu'elle ajoute au contexte (journal, entités) est annulé par
-    /// <c>ChangeTracker.Clear()</c>, et la notification n'a lieu qu'après un enregistrement réussi. Les effets hors base
-    /// (écriture ou suppression de fichier) se font avant ou après l'appel, jamais dans l'action.
-    /// </para>
-    /// <para>
-    /// Un vrai conflit reste refusé : au réessai, une étape modifiée entre-temps ne correspond plus à la révision envoyée par
-    /// le client (<see cref="ExigerRevision"/>), une MEP modifiée ne correspond plus à sa version (<see cref="ExigerVersion"/>).
+    /// Les notifications temps réel partent une fois la transaction validée. Si l'enregistrement échoue seulement à cause
+    /// d'une écriture faite hors de ce verrou (jeton de concurrence <c>Mep.Version</c>, impasse), le suivi est vidé, la MEP
+    /// relue et l'action rejouée, jusqu'à <see cref="EssaisEcriture"/> essais. L'action doit donc pouvoir être rejouée : ce
+    /// qu'elle ajoute au contexte est annulé par <c>ChangeTracker.Clear()</c> et la transaction ; les effets hors base (écriture
+    /// ou suppression de fichier) se font avant ou après l'appel, jamais dans l'action.
     /// </para>
     /// </summary>
     public async Task<T> Modifier<T>(Guid id, Func<Mep, Task<T>> action)
@@ -73,28 +156,60 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         {
             // Chaque essai repart d'un suivi vide : sinon EF renverrait les entités déjà suivies, avec leurs valeurs périmées.
             db.ChangeTracker.Clear();
-            var mep = await Charger(id);
+            var notifications = new List<(Guid Id, int Version, DiffuseurMep.PorteeSuivi Portee)>();
             try
             {
-                return await action(mep);
+                T resultat;
+                await using (var transaction = await db.Database.BeginTransactionAsync())
+                {
+                    _enAttente = notifications;
+                    await Verrouiller(id);
+                    var mep = await Charger(id);
+                    resultat = await action(mep);
+                    await transaction.CommitAsync();
+                }
+                _enAttente = null;
+                foreach (var n in notifications) diffuseur.Notifier(n.Id, n.Version, n.Portee);
+                return resultat;
             }
             catch (Exception ex) when (essai < EssaisEcriture && EstEcritureSimultanee(ex))
             {
-                // Une autre écriture est passée entre la lecture et l'enregistrement : on relit et on rejoue après un court délai
-                // aléatoire, pour que les requêtes en concurrence ne se retrouvent pas de nouveau au même instant.
+                // Écriture passée hors verrou entre la lecture et l'enregistrement : on relit et on rejoue après une attente
+                // aléatoire qui double à chaque essai, pour que les requêtes en concurrence ne se retrouvent pas au même instant.
+                _enAttente = null;
                 db.ChangeTracker.Clear();
-                await Task.Delay(Random.Shared.Next(5, 40));
+                await Task.Delay(Random.Shared.Next(5, 20) << Math.Min(essai - 1, 5));
+            }
+            catch (Exception ex) when (ex is PostgresException { SqlState: PostgresErrorCodes.LockNotAvailable }
+                || ex is DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.LockNotAvailable } })
+            {
+                _enAttente = null;
+                db.ChangeTracker.Clear();
+                throw ErreurHttp.Conflit("La MEP est en cours de modification par quelqu'un d'autre depuis trop longtemps : réessayez dans un instant.");
+            }
+            finally
+            {
+                _enAttente = null;
             }
         }
     }
 
+    /// <summary>Verrouille la ligne de la MEP jusqu'à la fin de la transaction (rien si elle n'existe pas : <see cref="Charger"/> répond 404).</summary>
+    private async Task Verrouiller(Guid id)
+    {
+        await db.Database.ExecuteSqlRawAsync(AttenteVerrou);
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"Meps\" WHERE \"Id\" = {id} FOR UPDATE");
+    }
+
     /// <summary>
-    /// Échec dû uniquement à une écriture simultanée : jeton de concurrence (<c>Mep.Version</c>), ou clé unique prise entre-temps
-    /// (ex. code d'étape attribué deux fois). Les préconditions sont de toute façon revérifiées sur les données fraîches.
+    /// Échec dû uniquement à une écriture simultanée : jeton de concurrence (<c>Mep.Version</c>), clé unique prise entre-temps
+    /// (ex. code d'étape attribué deux fois), impasse ou sérialisation refusée par la base. Les préconditions sont de toute
+    /// façon revérifiées sur les données fraîches.
     /// </summary>
     private static bool EstEcritureSimultanee(Exception ex) =>
         ex is DbUpdateConcurrencyException
-        || ex is DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } };
+        || ex is DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation or PostgresErrorCodes.DeadlockDetected or PostgresErrorCodes.SerializationFailure } }
+        || ex is PostgresException { SqlState: PostgresErrorCodes.DeadlockDetected or PostgresErrorCodes.SerializationFailure };
 
     /// <summary>
     /// Échéance atteinte : pendant l'exécution, la MEP bascule en retour arrière ; pendant la recette, l'échéance est seulement
@@ -108,9 +223,10 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         else if (Regles.SignalerEcheance(mep, Maintenant)) evenement = NouvelEvenement(mep, null, AuteurSysteme, "echeance.depassee", Regles.DetailEcheanceSignalee);
         else return false;
         mep.Version++;
+        var portee = Reviser(mep);
         db.Journal.Add(evenement);
         await db.SaveChangesAsync();
-        diffuseur.Notifier(mep.Id, mep.Version);
+        Notifier(mep.Id, mep.Version, portee);
         return bascule;
     }
 
@@ -124,6 +240,38 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
     {
         MepId = mep.Id, Quand = Maintenant, UtilisateurId = utilisateurId, Auteur = auteur, Type = type, Detail = detail, EtapeId = etapeId,
     };
+
+    /// <summary>
+    /// Contrôle d'un formulaire de section : <paramref name="revisionClient"/>, la révision du bloc lue (une écriture sur un
+    /// autre bloc, une étape ou une section ne la périme pas) ; à défaut, <paramref name="versionClient"/>, la version de toute
+    /// la MEP (clients existants). 400 sans l'une ni l'autre, 409 si elle est périmée.
+    /// </summary>
+    public static void ExigerRevision(Mep mep, BlocMep bloc, int? revisionClient, int? versionClient)
+    {
+        if (revisionClient is null)
+        {
+            if (versionClient is null) throw ErreurHttp.Saisie("La révision de la section (revision) est obligatoire.");
+            ExigerVersion(mep, versionClient);
+            return;
+        }
+        if (revisionClient != BlocsMep.Revision(mep, bloc))
+            throw ErreurHttp.Conflit($"« {BlocsMep.Libelle(bloc)} » a été modifié par quelqu'un d'autre depuis votre dernière lecture : "
+                + "rechargez la MEP, vérifiez ce qui a changé, puis recommencez.");
+    }
+
+    /// <summary>Comme ci-dessus, pour la sauvegarde d'un système de la MEP (<see cref="Systeme.RevisionSauvegarde"/>).</summary>
+    public static void ExigerRevision(Mep mep, Systeme systeme, int? revisionClient, int? versionClient)
+    {
+        if (revisionClient is null)
+        {
+            if (versionClient is null) throw ErreurHttp.Saisie("La révision de la sauvegarde du système (revision) est obligatoire.");
+            ExigerVersion(mep, versionClient);
+            return;
+        }
+        if (revisionClient != systeme.RevisionSauvegarde)
+            throw ErreurHttp.Conflit($"La sauvegarde de {systeme.Nom} a été modifiée par quelqu'un d'autre depuis votre dernière lecture : "
+                + "rechargez la MEP, vérifiez ce qui a changé, puis recommencez.");
+    }
 
     public static void ExigerVersion(Mep mep, int? versionClient)
     {
@@ -176,10 +324,11 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
                 ? NouvelEvenement(mep, null, AuteurSysteme, ev.Type, ev.Detail, ev.EtapeId)
                 : NouvelEvenement(mep, acteur.Id, acteur.Nom, ev.Type, ev.Detail, ev.EtapeId));
         var nouveaux = Regles.NouveauxElementsBibliotheque(mep);
+        var portee = Reviser(mep);
         await db.SaveChangesAsync();
         // Après l'enregistrement réussi seulement : une écriture rejouée (voir Modifier) ne compte pas deux fois.
         if (nouveaux.Count > 0) await CompterUtilisations(nouveaux);
-        diffuseur.Notifier(mep.Id, mep.Version);
+        Notifier(mep.Id, mep.Version, portee);
         return await VersDto(mep, acteur.Id);
     }
 
@@ -194,12 +343,25 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         await db.ResolutionsTypes.Where(r => ids.Contains(r.Id)).ExecuteUpdateAsync(s => s.SetProperty(r => r.Utilisations, r => r.Utilisations + 1));
     }
 
-    public async Task<MepDto> VersDto(Mep mep, Guid? utilisateurId)
+    public async Task<MepDto> VersDto(Mep mep, Guid? utilisateurId) => (await VersDtos([mep], utilisateurId))[0];
+
+    /// <summary>
+    /// MEP complètes vues par <paramref name="utilisateurId"/>, avec ce que la vérification du plan lit hors de la MEP : une
+    /// seule série de requêtes, quel que soit le nombre de MEP (suivi en direct).
+    /// </summary>
+    public async Task<List<MepDto>> VersDtos(IReadOnlyList<Mep> meps, Guid? utilisateurId)
     {
-        var contexte = await Contexte(mep);
-        var pieces = await db.PiecesJointes.AsNoTracking().Where(p => p.MepId == mep.Id).ToListAsync();
+        var liees = meps.ToDictionary(m => m.Id, m => Regles.ResolutionsLiees(m).ToHashSet());
+        var ids = liees.Values.SelectMany(x => x).Distinct().ToList();
+        var resolutions = ids.Count == 0 ? [] : await db.ResolutionsTypes.AsNoTracking().Where(r => ids.Contains(r.Id)).ToListAsync();
+        var minimum = await ApprobationsMinimum();
+        var annuaire = await Personnes.Charger(db, avecEquipes: false);
+        var noms = annuaire.NomsAffiches();
+        var mepIds = meps.Select(m => (Guid?)m.Id).ToList();
+        var pieces = (await db.PiecesJointes.AsNoTracking().Where(p => mepIds.Contains(p.MepId)).ToListAsync()).ToLookup(p => p.MepId);
         var estAdmin = utilisateurId is { } u && await db.Utilisateurs.AsNoTracking().AnyAsync(x => x.Id == u && x.EstAdmin);
-        return MepMapping.VersDto(mep, utilisateurId, contexte.Annuaire!.NomsAffiches(), Maintenant, contexte, pieces, estAdmin);
+        return [.. meps.Select(m => MepMapping.VersDto(m, utilisateurId, noms, Maintenant,
+            new ContexteVerification(minimum, annuaire, [.. resolutions.Where(r => liees[m.Id].Contains(r.Id))]), [.. pieces[m.Id]], estAdmin))];
     }
 
     /// <summary>

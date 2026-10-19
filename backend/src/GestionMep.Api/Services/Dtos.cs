@@ -49,6 +49,41 @@ public record MepResumeDto(Guid Id, string Outil, string VersionCible, string Ob
     List<IntervenantDto> Intervenants, DateOnly? ReporteeAu, DateTimeOffset? AnnuleeLe, int EchecsRecette);
 
 /// <summary>
+/// Page de la liste des MEP (<c>GET /meps/page</c>) : <c>Meps</c>, la page ; <c>Total</c>, le nombre de MEP qui correspondent
+/// aux filtres ; <c>Ensemble</c>, le nombre de MEP (ou de modèles) sans filtre ; <c>Suivant</c>, le curseur à passer dans
+/// <c>apres</c> pour la page suivante (null : c'était la dernière).
+/// </summary>
+public record PageMepsDto(List<MepResumeDto> Meps, int Total, int Ensemble, string? Suivant);
+
+/// <summary>
+/// Comptes de la barre de filtres de la liste (<c>GET /meps/facettes</c>), avec les filtres en cours : pour chaque valeur d'un
+/// critère, le nombre de MEP qu'on obtiendrait en la choisissant à la place des valeurs choisies de ce critère.
+/// <c>Systemes</c> : par valeur du filtre <c>systeme</c> (identifiant du catalogue en minuscules, ou <c>libre:</c> et le nom normalisé) ;
+/// <c>Environnements</c> : par nom normalisé (sans casse ni accents) ; <c>Equipes</c>, <c>Personnes</c> : par identifiant ;
+/// <c>Etats</c> : par état. <c>Libres</c> : noms des systèmes saisis à la main dans les MEP ; <c>EnvironnementsProposes</c> :
+/// environnements des systèmes retenus par le filtre <c>systeme</c>. <c>Sans</c> : pour chaque critère actif (<c>recherche</c>,
+/// <c>systeme</c>, <c>environnement</c>, <c>equipe</c>, <c>personne</c>, <c>etat</c>, <c>periode</c>), le nombre de MEP sans lui.
+/// </summary>
+public record FacettesMepsDto(int Total, int Ensemble, Dictionary<string, int> Systemes, Dictionary<string, int> Environnements,
+    Dictionary<Guid, int> Equipes, Dictionary<Guid, int> Personnes, Dictionary<EtatMep, int> Etats, List<string> Libres,
+    List<EnvironnementSystemeDto> EnvironnementsProposes, Dictionary<string, int> Sans);
+
+/// <summary>
+/// Lecture du journal d'une MEP : <c>Limite</c> (500 au plus ; absente : tout), <c>Apres</c> (seulement les événements plus
+/// récents que cet identifiant), <c>Avant</c> (seulement les plus anciens), <c>Type</c> (famille, comme l'export : <c>etape</c>,
+/// <c>recette</c>…), <c>Recherche</c> (dans le détail, l'auteur et son compte, sans casse).
+/// </summary>
+public record FiltreJournal(
+    [property: Microsoft.AspNetCore.Mvc.FromQuery(Name = "limite")] int? Limite = null,
+    [property: Microsoft.AspNetCore.Mvc.FromQuery(Name = "apres")] long? Apres = null,
+    [property: Microsoft.AspNetCore.Mvc.FromQuery(Name = "avant")] long? Avant = null,
+    [property: Microsoft.AspNetCore.Mvc.FromQuery(Name = "type")] string? Type = null,
+    [property: Microsoft.AspNetCore.Mvc.FromQuery(Name = "recherche")] string? Recherche = null)
+{
+    public const int LimiteMax = 500;
+}
+
+/// <summary>
 /// Système d'une MEP dans la liste : fiche du catalogue (<c>CatalogueId</c>, null pour un système saisi à la main),
 /// environnements touchés et <c>Echecs</c> survenus sur les étapes de ce système.
 /// </summary>
@@ -98,8 +133,9 @@ public record SauvegardeSystemeDto(StatutSauvegarde Statut, ModeSauvegarde Momen
 /// <summary>Environnement d'un système de la MEP (<c>Production</c> : copié de la fiche du catalogue, ou déduit du nom hors catalogue).</summary>
 public record EnvironnementSystemeDto(string Nom, bool Production);
 /// <summary><c>Environnements</c> : environnements touchés par la MEP sur ce système.</summary>
+/// <summary><c>RevisionSauvegarde</c> : révision de la sauvegarde du système, à renvoyer avec <c>PUT …/systemes/{sid}/sauvegarde</c>.</summary>
 public record SystemeDto(Guid Id, string Nom, string Cible, string Impact, Guid? CatalogueId, SauvegardeSystemeDto Sauvegarde,
-    List<EnvironnementSystemeDto> Environnements);
+    List<EnvironnementSystemeDto> Environnements, int RevisionSauvegarde);
 public record PlanRepliDto(string QuandDeclencher, int? DureeTesteeMinutes, string VersionARestaurer, string DonneesDepuisSauvegarde, string SiRepliEchoue);
 /// <summary><c>Par</c> vaut null quand le retour arrière s'est déclenché automatiquement.</summary>
 public record RetourArriereDto(DateTimeOffset Le, string? Par, string Motif);
@@ -272,7 +308,13 @@ public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle,
     List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements, bool RetourArriereActive, CommunicationDto Communication, TypeMep Type,
     List<SectionDto> Sections, EtatMep Etat, int EchecsSurvenus, AnnulationDto? Annulation, ReportDto? Report, DateTimeOffset? PremierGo,
     PilotageSecoursDto? PilotageSecours, int EchecsRecette, DateTimeOffset? EcheanceSignalee, List<ResolutionFigeeDto> ResolutionsFigees,
-    DateTimeOffset? ResolutionsFigeesLe);
+    DateTimeOffset? ResolutionsFigeesLe, RevisionsMepDto Revisions);
+
+/// <summary>
+/// Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la
+/// renvoie (<c>revision</c>) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas.
+/// </summary>
+public record RevisionsMepDto(int Identite, int Echeance, int Sauvegarde, int PlanRepli, int Communication, int ResponsablesTechniques, int Approbateurs);
 
 /// <summary>
 /// Section Communication de la MEP (tout est facultatif). <c>PreuveValidationId</c> : pièce jointe de la MEP qui prouve la
@@ -379,6 +421,11 @@ public record MepCreationSaisie(string? Outil, string? Objet, bool? Modele = nul
 /// <summary>Changement de type d'une MEP en préparation (passer en simplifiée efface durées, criticités, résolutions liées et versions).</summary>
 public record TypeMepSaisie(int? Version, TypeMep? Type);
 
+// Formulaires de section (intervention, échéance, communication, sauvegarde, sauvegarde d'un système, responsables techniques,
+// approbateurs, plan de retour arrière) : Revision, la révision du bloc lue (revisions de la MEP, ou revisionSauvegarde du
+// système) ; à défaut, Version, la version de toute la MEP (contrôle plus strict, gardé pour les clients existants). L'un des
+// deux est obligatoire ; périmé, la réponse est 409 (voir ServiceMep.ExigerRevision(Mep, BlocMep, …)).
+
 /// <summary>
 /// <c>BilanActive</c> et <c>RetourArriereActive</c> absents : inchangés. <c>EcheanceRepli</c> null : sans échéance. La MEP n'a plus
 /// d'environnement propre : ils se choisissent par système (<c>PUT /meps/{id}/systemes/{sid}/environnements</c>).
@@ -386,31 +433,31 @@ public record TypeMepSaisie(int? Version, TypeMep? Type);
 /// </summary>
 public record MepIdentiteSaisie(int? Version, string? Outil, string? VersionActuelle, string? VersionCible, string? Objet, string? Impacts,
     DateOnly? DateMep, TimeOnly? HeureDebut, TimeOnly? HeureFin, string? FuseauHoraire, int? IndisponibiliteMinutes,
-    Guid? PiloteId, List<Guid>? SuppleantIds, bool? BilanActive = null, bool? RetourArriereActive = null);
+    Guid? PiloteId, List<Guid>? SuppleantIds, bool? BilanActive = null, bool? RetourArriereActive = null, int? Revision = null);
 
 /// <summary>
 /// Échéance de retour arrière (#94) : <c>EcheanceRepli</c>, instant visé (null : retirer l'échéance), saisi dans le fuseau de la
 /// MEP ; <c>Motif</c>, obligatoire sauf pour la première saisie en préparation (tracé au journal avec l'ancienne valeur).
 /// </summary>
-public record EcheanceSaisie(int? Version, DateTimeOffset? EcheanceRepli, string? Motif);
+public record EcheanceSaisie(int? Version, DateTimeOffset? EcheanceRepli, string? Motif, int? Revision = null);
 
 /// <summary>Section Communication, remplacée en entier (champs absents : vides).</summary>
 public record CommunicationSaisie(int? Version, string? ReferenceDemande, NiveauRisque? NiveauRisque, string? Benefices, string? UtilisateursImpactes,
     bool ArretApplicatif, string? ActionUtilisateurs, TimeOnly? HeureLimite, DateOnly? DateAnnoncee, TimeOnly? HeureDebutAnnoncee,
-    TimeOnly? HeureFinAnnoncee, bool ValideeParUtilisateurs, string? ValideePar, DateOnly? ValideeLe, Guid? PreuveValidationId);
+    TimeOnly? HeureFinAnnoncee, bool ValideeParUtilisateurs, string? ValideePar, DateOnly? ValideeLe, Guid? PreuveValidationId, int? Revision = null);
 
 /// <summary>Modèle de texte. <c>Version</c> : obligatoire pour une modification ; <c>EquipeId</c> : à la création seulement (l'équipe ne change pas ensuite).</summary>
 public record ModeleTexteSaisie(int? Version, Guid? EquipeId, string? Nom, UsageModeleTexte? Usage, string? Objet, string? Corps);
 
 public record SauvegardeSaisie(int? Version, bool Structure, bool Donnees, bool Configuration, Guid? ResponsableId, DateTimeOffset? RealiseeLe,
     string? Procedure, string? Copies, bool RestaurationTestee, DateOnly? DateTestRestauration, string? PreuveTestRestauration,
-    ModeSauvegarde? Mode = null);
+    ModeSauvegarde? Mode = null, int? Revision = null);
 
 public record ParticipantSaisie(string? Nom, string? Role, string? Contact, Guid? UtilisateurId);
 public record SystemeSaisie(string? Nom, string? Cible, string? Impact);
 /// <summary><c>Emplacement</c> et <c>MethodeRecuperation</c> absents : inchangés.</summary>
 public record SauvegardeSystemeSaisie(int? Version, StatutSauvegarde? Statut, ModeSauvegarde? Moment, string? Contenu, string? Justification,
-    string? Emplacement = null, string? MethodeRecuperation = null);
+    string? Emplacement = null, string? MethodeRecuperation = null, int? Revision = null);
 /// <summary>Environnements touchés par la MEP sur un système, dans l'ordre voulu (ceux de sa fiche au catalogue, ou libres hors catalogue).</summary>
 public record EnvironnementsSystemeSaisie(List<string>? Noms);
 /// <summary>Objet du catalogue retenu pour un système de la MEP, avec sa version ou correction.</summary>
@@ -439,7 +486,7 @@ public record LienRedondantDto(Guid De, Guid Vers, string Libelle);
 /// Champs de la fiche d'une étape. <c>Fin</c>, <c>SauvegardeEmplacement</c>, <c>SauvegardeMethodeRecuperation</c> et
 /// <c>Environnements</c> absents : inchangés (test unitaire pour une nouvelle étape) ; les environnements d'un système retiré de
 /// l'étape partent avec lui. <c>Dependances</c> : préalables directs (ceux qui viennent des cercles restent, on peut renvoyer
-/// les préalables effectifs).
+/// les préalables effectifs) ; absentes (ou null) : inchangées, liste vide : aucun préalable direct.
 /// <para>
 /// Création seulement (<c>POST /etapes</c>), au plus une place : <c>Apres</c> (la nouvelle étape attend cette étape ou ce
 /// cercle), <c>Entre</c> (insertion sur ce lien), <c>ParalleleA</c> (mêmes préalables et mêmes suivants que cette étape) ; rien :
@@ -486,7 +533,7 @@ public record VerrouSaisie(string? Session, bool PrendreLaMain = false);
 public record RevisionSaisie(int? Revision);
 public record PriseDeMainSaisie(int? Revision, string? Motif);
 public record ResponsableTechniqueSaisie(Guid? ParticipantId, List<Guid>? SystemeIds, string? Perimetre, DisponibiliteJourJ? Disponibilite, string? ContactJourJ);
-public record ResponsablesTechniquesSaisie(int? Version, List<ResponsableTechniqueSaisie>? Responsables);
+public record ResponsablesTechniquesSaisie(int? Version, List<ResponsableTechniqueSaisie>? Responsables, int? Revision = null);
 /// <summary><c>ResultatConstate</c> : résultat du test unitaire, exigé pour le réussir (à défaut, la preuve en tient lieu).</summary>
 public record TerminerSaisie(int? Revision, EtatEtape? Resultat, string? Preuve, bool ResultatVerifie, string? Commentaire = null,
     string? ResultatConstate = null);
@@ -514,7 +561,7 @@ public record SuppressionMepSaisie(string? Motif, string? Nom);
 /// <summary>Étape corrective ajoutée pendant l'exécution (fiche complète : elle ne se modifie plus ensuite).</summary>
 public record EtapeCorrectiveSaisie(string? Action, List<Guid>? SystemeIds, string? Instructions, string? ResultatAttendu,
     int? DureeEstimeeMinutes = null, Criticite? Criticite = null);
-public record ApprobateursSaisie(int? Version, List<Guid>? UtilisateurIds);
+public record ApprobateursSaisie(int? Version, List<Guid>? UtilisateurIds, int? Revision = null);
 public record DecisionSaisie(int? Version, DecisionApprobation? Decision, string? Commentaire);
 /// <summary>Duplication : la copie reprend les systèmes avec leurs environnements, modifiables ensuite.</summary>
 public record DuplicationSaisie(bool CommeModele);
@@ -571,7 +618,7 @@ public record CritereGoNoGoSaisie(string? Libelle, int? Ordre, bool? Actif);
 public record ParametresSaisie(int? ApprobationsMinimum);
 
 public record PlanRepliSaisie(int? Version, string? QuandDeclencher, int? DureeTesteeMinutes, string? VersionARestaurer,
-    string? DonneesDepuisSauvegarde, string? SiRepliEchoue);
+    string? DonneesDepuisSauvegarde, string? SiRepliEchoue, int? Revision = null);
 public record RetourArriereSaisie(string? Motif);
 public record SystemeCatalogueSaisie(string? Nom, string? Description, string? Cible, bool? Actif);
 /// <summary>Production absente : déduite du nom (« Production », « prod »…).</summary>

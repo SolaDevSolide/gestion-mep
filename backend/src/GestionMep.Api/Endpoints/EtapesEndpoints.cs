@@ -88,9 +88,9 @@ public static class EtapesEndpoints
             Regles.ExigerPreparation(mep);
             var e = ServiceMep.TrouverEtape(mep, eid);
             ServiceMep.ExigerRevision(e, c.Revision);
-            // La place dans le graphe ne change pas ici (voir « deplacer ») ; dependances absentes = aucun préalable direct
-            // (ceux qui viennent des cercles de section restent).
-            Appliquer(mep, e, c, await svc.ValiderResolutionIds(c.ResolutionIds, e.ResolutionIds), c.Dependances ?? []);
+            // La place dans le graphe ne change pas ici (voir « deplacer ») ; dependances absentes : préalables inchangés,
+            // liste vide : aucun préalable direct (ceux qui viennent des cercles de section restent).
+            Appliquer(mep, e, c, await svc.ValiderResolutionIds(c.ResolutionIds, e.ResolutionIds), c.Dependances);
             e.Revision++;
             return await svc.EnregistrerContenu(mep, Acteur.Depuis(user), "etape.modifiee", $"{e.Code} modifiée");
         })));

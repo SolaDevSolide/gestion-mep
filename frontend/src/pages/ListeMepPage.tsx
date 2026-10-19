@@ -26,7 +26,6 @@ import {
   estVide,
   FILTRE_VIDE,
   filtreModeles,
-  filtrerMeps,
   lireFiltre,
   urlExportListe,
   type FiltreMeps,
@@ -50,6 +49,7 @@ import { useToast } from '../ui/Toast';
 import { EnChargement, Squelette } from '../ui/Squelette';
 import { OctagonAlert } from 'lucide-react';
 import { BarreFiltres } from './liste/BarreFiltres';
+import { useListeMeps } from './liste/listeMeps';
 import { SqueletteTableauMeps, TableauMeps } from './liste/TableauMeps';
 
 function Chrono({ m, now }: { m: MepResume; now: number }) {
@@ -234,30 +234,46 @@ function NouvelleMepDialog({
   );
 }
 
-/** Critères qu'on peut retirer quand rien ne correspond : le nombre de MEP qu'on retrouverait sans chacun. */
-const RETRAITS: { libelle: string; effacer: Partial<FiltreMeps>; actif: (f: FiltreMeps) => boolean }[] = [
-  { libelle: 'la recherche', effacer: { recherche: '' }, actif: (f) => Boolean(f.recherche.trim()) },
-  {
-    libelle: 'le système',
-    effacer: { systemes: [], environnements: [], echec: false },
-    actif: (f) => f.systemes.length > 0 || f.echec,
-  },
-  { libelle: 'l’environnement', effacer: { environnements: [] }, actif: (f) => f.environnements.length > 0 },
-  { libelle: 'l’équipe', effacer: { equipes: [] }, actif: (f) => f.equipes.length > 0 },
-  { libelle: 'la personne', effacer: { personne: '', roles: [] }, actif: (f) => Boolean(f.personne) },
-  {
-    libelle: 'l’état',
-    effacer: { etats: [], phase: '', type: '' },
-    actif: (f) => f.etats.length > 0 || Boolean(f.phase || f.type),
-  },
-  { libelle: 'la période', effacer: { du: '', au: '' }, actif: (f) => Boolean(f.du || f.au) },
+/**
+ * Critères qu'on peut retirer quand rien ne correspond : le nombre de MEP qu'on retrouverait sans chacun (`cle` : son
+ * compte dans `sans` des comptes du serveur).
+ */
+const RETRAITS: { cle: string; libelle: string; effacer: Partial<FiltreMeps> }[] = [
+  { cle: 'recherche', libelle: 'la recherche', effacer: { recherche: '' } },
+  { cle: 'systeme', libelle: 'le système', effacer: { systemes: [], environnements: [], echec: false } },
+  { cle: 'environnement', libelle: 'l’environnement', effacer: { environnements: [] } },
+  { cle: 'equipe', libelle: 'l’équipe', effacer: { equipes: [] } },
+  { cle: 'personne', libelle: 'la personne', effacer: { personne: '', roles: [] } },
+  { cle: 'etat', libelle: 'l’état', effacer: { etats: [], phase: '', type: '' } },
+  { cle: 'periode', libelle: 'la période', effacer: { du: '', au: '' } },
 ];
+
+/** Place d'une page de cartes qui arrive (« Afficher plus ») ou de la première. */
+function SqueletteCartesMeps({ cartes }: { cartes: number }) {
+  return Array.from({ length: cartes }, (_, i) => (
+    <div key={i} className="rounded-xl border border-line bg-surface p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-6">
+        <div className="grid flex-1 gap-2">
+          <div className="flex items-center gap-3">
+            <Squelette className="h-6 w-56 max-w-full" />
+            <Squelette className="h-5 w-24 rounded-full" />
+          </div>
+          <Squelette className="h-4 w-96 max-w-full" />
+        </div>
+        <Squelette className="hidden h-5 w-48 sm:block" />
+      </div>
+      <div className="mt-4 flex items-center gap-6 sm:pr-32">
+        <Squelette className="h-2 flex-1 rounded-full" />
+        <Squelette className="h-3.5 w-32" />
+      </div>
+    </div>
+  ));
+}
 
 type Affichage = 'cartes' | 'tableau';
 
 export default function ListeMepPage() {
   const [vue, setVue] = useState<'meps' | 'modeles'>('meps');
-  const { donnees: meps, erreur, rechargement } = useAsync(() => api.meps(vue === 'modeles'), [vue]);
   const { donnees: equipes } = useAsync(() => api.equipes(), []);
   const { donnees: catalogue } = useAsync(() => api.catalogueSystemes().catch(() => []), []);
   const { donnees: comptes } = useAsync(() => api.utilisateurs().catch(() => []), []);
@@ -276,12 +292,16 @@ export default function ListeMepPage() {
   const now = useNow(1000);
 
   const filtreApplique = modele ? filtreModeles(f) : f;
-  const filtrees = useMemo(() => filtrerMeps(meps ?? [], filtreApplique), [meps, filtreApplique]);
+  // Liste paginée par le serveur (#96), avec les comptes de la barre de filtres.
+  const { liste, aJour, erreur, chargementSuite, afficherPlus } = useListeMeps(f, modele);
+  const rechargement = liste !== null && !aJour;
+  const meps = liste?.meps ?? [];
   const personnes = useMemo(() => personnesDeRecherche(comptes ?? []), [comptes]);
   const affichage: Affichage = modele ? 'cartes' : (choixAffichage ?? (estVide(f) ? 'cartes' : 'tableau'));
-  const retraits = RETRAITS.filter((r) => r.actif(filtreApplique))
-    .map((r) => ({ ...r, nombre: filtrerMeps(meps ?? [], { ...filtreApplique, ...r.effacer }).length }))
-    .filter((r) => r.nombre > 0);
+  const retraits = RETRAITS.map((r) => ({ ...r, nombre: liste?.facettes.sans[r.cle] ?? 0 })).filter(
+    (r) => r.nombre > 0,
+  );
+  const suite = liste !== null && aJour && liste.suivant !== null;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
@@ -401,7 +421,7 @@ export default function ListeMepPage() {
           )}
           <BoutonExportExcel
             url={urlExportListe(f, modele)}
-            disabled={meps === null || filtrees.length === 0}
+            disabled={liste === null || liste.total === 0}
             title={
               modele
                 ? 'Les modèles affichés, recherche et équipe comprises.'
@@ -411,7 +431,7 @@ export default function ListeMepPage() {
         </div>
       </div>
       {/* Critères : chargés avec la page (catalogue, équipes, personnes), leur place est tenue en attendant. */}
-      {equipes === null || catalogue === null || comptes === null ? (
+      {equipes === null || catalogue === null || comptes === null || liste === null ? (
         <div className="mt-3 flex gap-2" aria-hidden>
           {(modele ? ['w-24'] : ['w-24', 'w-32', 'w-24', 'w-28', 'w-20', 'w-24']).map((w, i) => (
             <Squelette key={i} className={cn('h-8 rounded-lg', w, i > 0 && 'max-sm:hidden')} />
@@ -422,8 +442,8 @@ export default function ListeMepPage() {
           f={filtreApplique}
           maj={maj}
           modeles={modele}
-          resultats={filtrees.length}
-          donnees={{ meps: meps ?? [], catalogue, equipes, personnes }}
+          resultats={liste.total}
+          donnees={{ facettes: liste.facettes, catalogue, equipes, personnes }}
         />
       )}
 
@@ -433,31 +453,14 @@ export default function ListeMepPage() {
         </Alerte>
       )}
 
-      {meps === null && !erreur && affichage === 'tableau' && <SqueletteTableauMeps />}
-      {meps === null && !erreur && affichage === 'cartes' && (
+      {liste === null && !erreur && affichage === 'tableau' && <SqueletteTableauMeps />}
+      {liste === null && !erreur && affichage === 'cartes' && (
         <EnChargement libelle="Chargement des mises en production…" className="mt-6 space-y-3">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="rounded-xl border border-line bg-surface p-5 shadow-sm">
-              <div className="flex items-start justify-between gap-6">
-                <div className="grid flex-1 gap-2">
-                  <div className="flex items-center gap-3">
-                    <Squelette className="h-6 w-56 max-w-full" />
-                    <Squelette className="h-5 w-24 rounded-full" />
-                  </div>
-                  <Squelette className="h-4 w-96 max-w-full" />
-                </div>
-                <Squelette className="hidden h-5 w-48 sm:block" />
-              </div>
-              <div className="mt-4 flex items-center gap-6 sm:pr-32">
-                <Squelette className="h-2 flex-1 rounded-full" />
-                <Squelette className="h-3.5 w-32" />
-              </div>
-            </div>
-          ))}
+          <SqueletteCartesMeps cartes={4} />
         </EnChargement>
       )}
 
-      {meps !== null && meps.length === 0 && (
+      {liste !== null && liste.ensemble === 0 && (
         <div className="mt-6 rounded-xl border border-dashed border-line-strong bg-surface">
           <EmptyState
             icone={Rocket}
@@ -480,7 +483,7 @@ export default function ListeMepPage() {
         </div>
       )}
 
-      {meps !== null && meps.length > 0 && filtrees.length === 0 && (
+      {liste !== null && liste.ensemble > 0 && liste.total === 0 && (
         <div className="mt-6 rounded-xl border border-dashed border-line-strong bg-surface">
           <EmptyState
             icone={SearchX}
@@ -506,25 +509,28 @@ export default function ListeMepPage() {
         </div>
       )}
 
-      {affichage === 'tableau' && filtrees.length > 0 && (
-        <div
-          className={cn('transition-opacity duration-200', meps !== null && 'apparition', rechargement && 'opacity-50')}
-        >
-          <TableauMeps meps={filtrees} f={f} nomPersonne={personnes.find((p) => p.id === f.personne)?.nom} />
+      {affichage === 'tableau' && meps.length > 0 && (
+        <div className={cn('transition-opacity duration-200', 'apparition', rechargement && 'opacity-50')}>
+          <TableauMeps
+            meps={meps}
+            f={f}
+            nomPersonne={personnes.find((p) => p.id === f.personne)?.nom}
+            chargementSuite={chargementSuite}
+          />
         </div>
       )}
 
       {/* Rechargement (MEP ↔ modèles) : la liste précédente reste, estompée, jusqu'à la réponse. */}
       {affichage === 'cartes' && (
         <ul
-          aria-busy={rechargement || undefined}
+          aria-busy={rechargement || chargementSuite || undefined}
           className={cn(
             'mt-6 space-y-3 transition-opacity duration-200',
-            meps !== null && 'apparition',
+            liste !== null && 'apparition',
             rechargement && 'opacity-50',
           )}
         >
-          {filtrees.map((m) => {
+          {meps.map((m) => {
             const meta = metaPhase(m.phase, m.etat, m.reporteeAu);
             const annulee = m.phase === 'Annulee';
             return (
@@ -643,7 +649,23 @@ export default function ListeMepPage() {
               </li>
             );
           })}
+          {chargementSuite && (
+            <li aria-hidden className="grid gap-3">
+              <SqueletteCartesMeps cartes={2} />
+            </li>
+          )}
         </ul>
+      )}
+      {/* Page suivante (#96) : ses lignes de chargement prennent la place du bouton jusqu'à la réponse. */}
+      {chargementSuite && (
+        <p role="status" className="sr-only">
+          Chargement des mises en production suivantes…
+        </p>
+      )}
+      {suite && !chargementSuite && (
+        <div className="mt-6 flex justify-center">
+          <Button onClick={afficherPlus}>Afficher plus</Button>
+        </div>
       )}
       <NouvelleMepDialog open={creation} onOpenChange={setCreation} modele={modele} />
       <DuplicationDialog

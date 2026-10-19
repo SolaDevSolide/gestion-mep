@@ -46,6 +46,7 @@ const enPreparation = (p: Partial<Mep> = {}) =>
   mep({
     phase: 'Preparation',
     version: 7,
+    revisions: { ...mep().revisions, communication: 3 },
     droits: { ...mep().droits, peutEditerContenu: true, peutModifierPlan: true },
     ...p,
   });
@@ -63,7 +64,7 @@ describe('Préparation › Communication', () => {
     vi.mocked(api.modifierCommunication).mockResolvedValue(mep());
   });
 
-  it('enregistre les champs facultatifs avec la version de la MEP', async () => {
+  it('enregistre les champs facultatifs avec la révision de la section (#96)', async () => {
     const { run } = rendre(enPreparation());
     await userEvent.type(screen.getByLabelText('Référence de la demande'), 'CHG-42');
     await userEvent.click(screen.getByRole('radio', { name: 'Élevé' }));
@@ -74,7 +75,7 @@ describe('Préparation › Communication', () => {
     expect(api.modifierCommunication).toHaveBeenCalledWith(
       'm1',
       expect.objectContaining({
-        version: 7,
+        revision: 3,
         referenceDemande: 'CHG-42',
         niveauRisque: 'Eleve',
         valideeParUtilisateurs: true,

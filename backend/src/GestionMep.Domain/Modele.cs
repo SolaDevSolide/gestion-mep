@@ -223,8 +223,19 @@ public class Mep
     public DateTimeOffset CreeLe { get; set; } = DateTimeOffset.UtcNow;
     public Guid? CreeParUtilisateurId { get; set; }
 
-    /// <summary>Compteur de révision pour le verrou optimiste.</summary>
+    /// <summary>
+    /// Compteur des modifications de la MEP (toute écriture l'augmente) : sert aux notifications temps réel et au contrôle des
+    /// actions qui portent sur toute la MEP (type, approbation, Go…). Les formulaires de section ont leur propre révision
+    /// (<see cref="Revisions"/>), les étapes et les sections du plan la leur.
+    /// </summary>
     public int Version { get; set; }
+
+    /// <summary>
+    /// Révision de chaque bloc de formulaire de la MEP (intervention, échéance, sauvegarde…) : elle n'augmente que lorsque le
+    /// contenu du bloc change, quelle que soit l'écriture qui le change. Un formulaire envoie celle qu'il a lue : une écriture
+    /// sur un autre bloc, une étape ou une section ne la périme pas.
+    /// </summary>
+    public RevisionsMep Revisions { get; set; } = new();
 
     public List<Participant> Participants { get; set; } = [];
     public List<Systeme> Systemes { get; set; } = [];
@@ -282,6 +293,25 @@ public class PilotageSecours
     public string Motif { get; set; } = "";
     public Guid? AncienPiloteId { get; set; }
     public Guid? NouveauPiloteId { get; set; }
+}
+
+/// <summary>Révisions des blocs de formulaire d'une MEP (voir <see cref="Mep.Revisions"/>).</summary>
+public class RevisionsMep
+{
+    /// <summary>Intervention : outil, versions, objet, impacts, fuseau, indisponibilité, pilote, suppléants, bilan, retour arrière activé.</summary>
+    public int Identite { get; set; }
+    /// <summary>Échéance de retour arrière.</summary>
+    public int Echeance { get; set; }
+    /// <summary>Sauvegarde et validation (informations de la MEP).</summary>
+    public int Sauvegarde { get; set; }
+    /// <summary>Plan de retour arrière (déclenchement et données).</summary>
+    public int PlanRepli { get; set; }
+    /// <summary>Section Communication.</summary>
+    public int Communication { get; set; }
+    /// <summary>Responsables techniques.</summary>
+    public int ResponsablesTechniques { get; set; }
+    /// <summary>Liste des approbateurs désignés (pas leurs décisions).</summary>
+    public int Approbateurs { get; set; }
 }
 
 public class PlanRepli
@@ -390,6 +420,8 @@ public class Systeme
     public Guid? CatalogueId { get; set; }
     /// <summary>Faut-il sauvegarder ce système, quand et comment.</summary>
     public SauvegardeSysteme Sauvegarde { get; set; } = new();
+    /// <summary>Révision de <see cref="Sauvegarde"/> : n'augmente que lorsque la sauvegarde de ce système change.</summary>
+    public int RevisionSauvegarde { get; set; }
     /// <summary>
     /// Environnements touchés par la MEP sur ce système (un ou plusieurs), copiés de la fiche du catalogue au moment du choix.
     /// </summary>

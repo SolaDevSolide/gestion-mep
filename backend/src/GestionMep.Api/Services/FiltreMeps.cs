@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using GestionMep.Domain;
 using Microsoft.AspNetCore.Mvc;
 
@@ -166,6 +167,115 @@ public sealed record FiltreMeps
     public List<MepResumeDto> Appliquer(IEnumerable<MepResumeDto> meps) =>
         [.. meps.Where(Correspond).OrderByDescending(m => m.Jour).ThenByDescending(m => m.CreeLe)];
 
+    /// <summary>Phases possibles d'une MEP dans chaque état (<see cref="Regles.EtatDe"/>).</summary>
+    private static Domain.Phase PhaseDe(EtatMep e) => e switch
+    {
+        EtatMep.Preparation or EtatMep.Reportee => Domain.Phase.Preparation,
+        EtatMep.Execution => Domain.Phase.Execution,
+        EtatMep.Recette => Domain.Phase.Recette,
+        EtatMep.RetourArriere => Domain.Phase.RetourArriere,
+        EtatMep.Annulee => Domain.Phase.Annulee,
+        _ => Domain.Phase.Cloturee,
+    };
+
+    /// <summary>
+    /// Critères simples traduits en SQL, pour ne lire que les MEP candidates : chaque condition est nécessaire (jamais plus
+    /// stricte que <see cref="Correspond"/>), la règle exacte s'appliquant ensuite aux résumés. Type, phase, état (par sa
+    /// phase), systèmes du catalogue, équipe (une personne de l'équipe participe), période (jour du Go, à défaut de la création,
+    /// à un jour près pour les fuseaux) et échec sans système filtré. Recherche, environnements et personne restent en mémoire.
+    /// </summary>
+    public IQueryable<Mep> Prefiltrer(IQueryable<Mep> q, AnnuairePersonnes annuaire)
+    {
+        if (Type is { } t) q = q.Where(m => m.Type == t);
+        if (Phase is { } ph) q = q.Where(m => m.Phase == ph);
+        if (Etats.Count > 0)
+        {
+            var phases = Etats.Select(PhaseDe).Distinct().ToList();
+            q = q.Where(m => phases.Contains(m.Phase));
+        }
+        if (Systemes.Count > 0)
+        {
+            var catalogue = Systemes.Where(x => !x.StartsWith(PrefixeLibre, StringComparison.Ordinal)).Select(Guid.Parse).ToList();
+            var libres = Systemes.Any(x => x.StartsWith(PrefixeLibre, StringComparison.Ordinal));
+            q = q.Where(m => m.Systemes.Any(s => s.CatalogueId == null ? libres : catalogue.Contains(s.CatalogueId.Value)));
+        }
+        else if (Echec) q = q.Where(m => m.EchecsEtapes > 0);
+        if (Equipes.Count > 0)
+        {
+            // Comptes des personnes de ces équipes (tous leurs comptes reliés) : l'équipe d'une MEP vient de ses participants.
+            var membres = annuaire.NomsAffiches().Keys.Where(c => annuaire.EquipesDeLaPersonne(c).Overlaps(Equipes)).ToList();
+            q = q.Where(m => m.Participants.Any(p => p.UtilisateurId != null && membres.Contains(p.UtilisateurId.Value)));
+        }
+        // Jour de la MEP dans son fuseau : au plus 14 heures d'écart avec UTC, une marge d'un jour suffit.
+        if (Du is { } du)
+        {
+            var depuis = new DateTimeOffset(du.AddDays(-1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            q = q.Where(m => (m.DemarrageAutoriseLe ?? m.CreeLe) >= depuis);
+        }
+        if (Au is { } au)
+        {
+            var jusqua = new DateTimeOffset(au.AddDays(2).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            q = q.Where(m => (m.DemarrageAutoriseLe ?? m.CreeLe) < jusqua);
+        }
+        return q;
+    }
+
+    /// <summary>
+    /// Comptes de la barre de filtres (voir <see cref="FacettesMepsDto"/>) sur <paramref name="meps"/>, toutes les MEP de la vue.
+    /// Une MEP ne compte que pour les valeurs qu'elle porte : ses systèmes, ses environnements, ses équipes, ses intervenants,
+    /// son état ; chaque compte suit exactement <see cref="Correspond"/>.
+    /// </summary>
+    public FacettesMepsDto Facettes(IReadOnlyCollection<MepResumeDto> meps)
+    {
+        var systemes = new Dictionary<string, int>();
+        var environnements = new Dictionary<string, int>();
+        var equipes = new Dictionary<Guid, int>();
+        var personnes = new Dictionary<Guid, int>();
+        var etats = new Dictionary<EtatMep, int>();
+        var libres = new Dictionary<string, string>();
+        var proposes = new Dictionary<string, EnvironnementSystemeDto>();
+        static void Ajouter<TCle>(Dictionary<TCle, int> d, TCle cle) where TCle : notnull => d[cle] = d.GetValueOrDefault(cle) + 1;
+        var total = 0;
+        foreach (var m in meps)
+        {
+            if (Correspond(m)) total++;
+            foreach (var s in m.Systemes)
+            {
+                if (s.CatalogueId is null) libres.TryAdd(VuesExcel.Normaliser(s.Nom.Trim()), s.Nom.Trim());
+                if (Retient(s))
+                    foreach (var e in s.Environnements)
+                    {
+                        var cle = VuesExcel.Normaliser(e.Nom.Trim());
+                        proposes[cle] = new EnvironnementSystemeDto(proposes.GetValueOrDefault(cle)?.Nom ?? e.Nom,
+                            (proposes.GetValueOrDefault(cle)?.Production ?? false) || e.Production);
+                    }
+            }
+            // Système saisi à la main : par nom normalisé (« libre:ged » compte GED, Ged…, comme le filtre).
+            foreach (var cle in m.Systemes.Select(s => s.CatalogueId is { } id ? id.ToString() : PrefixeLibre + VuesExcel.Normaliser(s.Nom.Trim()))
+                         .Distinct())
+                if ((this with { Systemes = [cle] }).Correspond(m)) Ajouter(systemes, cle);
+            foreach (var cle in SystemesRetenus(m).SelectMany(s => s.Environnements).Select(e => VuesExcel.Normaliser(e.Nom.Trim())).Distinct())
+                if ((this with { Environnements = [cle] }).Correspond(m)) Ajouter(environnements, cle);
+            foreach (var e in m.EquipeIds.Distinct())
+                if ((this with { Equipes = [e] }).Correspond(m)) Ajouter(equipes, e);
+            foreach (var i in m.Intervenants)
+                if ((this with { Personne = i.PersonneId, Roles = [] }).Correspond(m)) Ajouter(personnes, i.PersonneId);
+            if ((this with { Etats = [m.Etat] }).Correspond(m)) Ajouter(etats, m.Etat);
+        }
+        var sans = new Dictionary<string, FiltreMeps>();
+        if (Recherche.Trim().Length > 0) sans["recherche"] = this with { Recherche = "" };
+        if (Systemes.Count > 0 || Echec) sans["systeme"] = this with { Systemes = [], Environnements = [], Echec = false };
+        if (Environnements.Count > 0) sans["environnement"] = this with { Environnements = [] };
+        if (Equipes.Count > 0) sans["equipe"] = this with { Equipes = [] };
+        if (Personne is not null) sans["personne"] = this with { Personne = null, Roles = [] };
+        if (Etats.Count > 0 || Phase is not null || Type is not null) sans["etat"] = this with { Etats = [], Phase = null, Type = null };
+        if (Du is not null || Au is not null) sans["periode"] = this with { Du = null, Au = null };
+        return new FacettesMepsDto(total, meps.Count, systemes, environnements, equipes, personnes, etats,
+            [.. libres.Values.Order(StringComparer.Create(CultureInfo.GetCultureInfo("fr-FR"), ignoreCase: false))],
+            [.. proposes.Values.OrderBy(e => e.Production)],
+            sans.ToDictionary(x => x.Key, x => meps.Count(x.Value.Correspond)));
+    }
+
     /// <summary>Libellés des rôles et des états, comme dans l'interface (frontend/src/rechercheMeps.ts).</summary>
     public static string Libelle(RoleMep r) => r switch
     {
@@ -217,4 +327,33 @@ public sealed record FiltreMeps
         else if (Au is { } au2) d.Add($"jusqu'au {au2:dd/MM/yyyy}");
         return d;
     }
+}
+
+/// <summary>
+/// Curseur de la liste paginée des MEP : jour, création et identifiant de la dernière MEP de la page (ordre de
+/// <see cref="FiltreMeps.Appliquer"/>, départagé par l'identifiant). Une MEP créée entre deux pages ne décale pas la suite.
+/// </summary>
+public sealed record CurseurMeps(DateOnly Jour, DateTimeOffset CreeLe, Guid Id)
+{
+    public static string De(MepResumeDto m) =>
+        Convert.ToBase64String(Encoding.UTF8.GetBytes($"{m.Jour:yyyy-MM-dd}|{m.CreeLe.UtcTicks}|{m.Id:N}")).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    public static CurseurMeps Lire(string texte)
+    {
+        try
+        {
+            var b64 = texte.Trim().Replace('-', '+').Replace('_', '/');
+            var parties = Encoding.UTF8.GetString(Convert.FromBase64String(b64.PadRight(b64.Length + (4 - b64.Length % 4) % 4, '='))).Split('|');
+            return new CurseurMeps(DateOnly.ParseExact(parties[0], "yyyy-MM-dd", CultureInfo.InvariantCulture),
+                new DateTimeOffset(long.Parse(parties[1], CultureInfo.InvariantCulture), TimeSpan.Zero), Guid.ParseExact(parties[2], "N"));
+        }
+        catch (Exception e) when (e is FormatException or IndexOutOfRangeException or ArgumentException or OverflowException)
+        {
+            throw ErreurHttp.Saisie("Curseur « apres » invalide : reprendre la valeur « suivant » de la page précédente.");
+        }
+    }
+
+    /// <summary>Le curseur vient avant cette MEP dans l'ordre de la liste (la MEP est sur une page suivante).</summary>
+    public bool Precede(MepResumeDto m) =>
+        m.Jour != Jour ? m.Jour < Jour : m.CreeLe.UtcTicks != CreeLe.UtcTicks ? m.CreeLe.UtcTicks < CreeLe.UtcTicks : m.Id.CompareTo(Id) < 0;
 }

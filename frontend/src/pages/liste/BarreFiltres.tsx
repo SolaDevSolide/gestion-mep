@@ -25,19 +25,17 @@ import {
   ETATS_CLOTURES,
   ETATS_EN_COURS,
   FILTRE_VIDE,
-  filtrerMeps,
   LIBELLE_ROLE,
   nbCriteres,
   NOMS_ETATS,
   NOMS_ROLES,
   PREFIXE_LIBRE,
-  systemesHorsCatalogue,
   type FiltreMeps,
   type NomEtat,
   type NomRole,
 } from '../../rechercheMeps';
 import { metaEtatMep } from '../../statuts';
-import type { Equipe, MepResume, SystemeCatalogue } from '../../types';
+import type { Equipe, FacettesMeps, SystemeCatalogue } from '../../types';
 import { Avatar } from '../../ui/Avatar';
 import { Button } from '../../ui/Button';
 import { Checkbox } from '../../ui/Checkbox';
@@ -46,6 +44,7 @@ import { Input } from '../../ui/Input';
 import { Popover, PopoverContent, PopoverTrigger } from '../../ui/Popover';
 import { Sheet } from '../../ui/Sheet';
 import { StatusPill } from '../../ui/StatusPill';
+import { comptesDe, type ComptesFiltres } from './listeMeps';
 import { useToast } from '../../ui/Toast';
 
 /** Personne proposée au filtre : compte principal, nom et identifiants de ses comptes. */
@@ -56,7 +55,8 @@ export interface PersonneFiltre {
 }
 
 export interface DonneesFiltres {
-  meps: MepResume[];
+  /** Comptes calculés par le serveur avec les filtres en cours (#96). */
+  facettes: FacettesMeps;
   catalogue: SystemeCatalogue[];
   equipes: Equipe[];
   personnes: PersonneFiltre[];
@@ -65,8 +65,8 @@ export interface DonneesFiltres {
 interface Ctx extends DonneesFiltres {
   f: FiltreMeps;
   maj: (p: Partial<FiltreMeps>) => void;
-  /** Nombre de MEP en ajoutant ce changement au filtre (compteurs des options). */
-  compter: (p: Partial<FiltreMeps>) => number;
+  /** Nombre de MEP en choisissant chaque valeur (compteurs des options). */
+  comptes: ComptesFiltres;
 }
 
 const basculer = <T,>(l: T[], v: T) => (l.includes(v) ? l.filter((x) => x !== v) : [...l, v]);
@@ -204,8 +204,8 @@ const GROUPE =
 
 /* ------------------------------------------------------------------ Panneaux */
 
-function PanneauSysteme({ f, maj, catalogue, meps, compter }: Ctx) {
-  const libres = systemesHorsCatalogue(meps);
+function PanneauSysteme({ f, maj, catalogue, facettes, comptes }: Ctx) {
+  const libres = facettes.libres;
   const choisir = (cle: string) => maj({ systemes: basculer(f.systemes, cle), environnements: [] });
   return (
     <div className="w-full sm:w-72">
@@ -221,7 +221,7 @@ function PanneauSysteme({ f, maj, catalogue, meps, compter }: Ctx) {
                 onSelect={() => choisir(s.id)}
                 className={ITEM}
               >
-                <Option statique coche={f.systemes.includes(s.id)} compte={compter({ systemes: [s.id] })}>
+                <Option statique coche={f.systemes.includes(s.id)} compte={comptes.systeme(s.id)}>
                   <i
                     className="size-2 shrink-0 rounded-full"
                     style={{ background: couleurSysteme(s.nom) }}
@@ -244,7 +244,7 @@ function PanneauSysteme({ f, maj, catalogue, meps, compter }: Ctx) {
                     onSelect={() => choisir(cle)}
                     className={ITEM}
                   >
-                    <Option statique coche={f.systemes.includes(cle)} compte={compter({ systemes: [cle] })}>
+                    <Option statique coche={f.systemes.includes(cle)} compte={comptes.systeme(cle)}>
                       <i className="size-2 shrink-0 rounded-full border border-dashed border-fg-subtle" aria-hidden />
                       <span className="font-medium">{nom}</span>
                       <span className="text-xs text-fg-subtle">saisi à la main</span>
@@ -268,8 +268,8 @@ function PanneauSysteme({ f, maj, catalogue, meps, compter }: Ctx) {
   );
 }
 
-function PanneauEnvironnement({ f, maj, catalogue, meps, compter }: Ctx) {
-  const envs = environnementsProposes(f, meps, catalogue);
+function PanneauEnvironnement({ f, maj, catalogue, facettes, comptes }: Ctx) {
+  const envs = environnementsProposes(f, [], catalogue, facettes.environnementsProposes);
   const noms = f.systemes.map((x) => catalogue.find((s) => s.id === x)?.nom ?? x.replace(PREFIXE_LIBRE, '')).join(', ');
   return (
     <div className="w-full p-1 sm:w-64">
@@ -279,7 +279,7 @@ function PanneauEnvironnement({ f, maj, catalogue, meps, compter }: Ctx) {
           key={e.nom}
           coche={f.environnements.includes(e.nom)}
           onClick={() => maj({ environnements: basculer(f.environnements, e.nom) })}
-          compte={compter({ environnements: [e.nom] })}
+          compte={comptes.environnement(e.nom)}
         >
           {e.nom}
           {e.production && (
@@ -293,7 +293,7 @@ function PanneauEnvironnement({ f, maj, catalogue, meps, compter }: Ctx) {
   );
 }
 
-function PanneauEquipe({ f, maj, equipes, compter }: Ctx) {
+function PanneauEquipe({ f, maj, equipes, comptes }: Ctx) {
   return (
     <div className="w-full p-1 sm:w-64">
       {equipes.map((e) => (
@@ -301,7 +301,7 @@ function PanneauEquipe({ f, maj, equipes, compter }: Ctx) {
           key={e.id}
           coche={f.equipes.includes(e.id)}
           onClick={() => maj({ equipes: basculer(f.equipes, e.id) })}
-          compte={compter({ equipes: [e.id] })}
+          compte={comptes.equipe(e.id)}
         >
           {e.nom}
         </Option>
@@ -312,7 +312,7 @@ function PanneauEquipe({ f, maj, equipes, compter }: Ctx) {
   );
 }
 
-function PanneauPersonne({ f, maj, personnes, compter }: Ctx) {
+function PanneauPersonne({ f, maj, personnes, comptes }: Ctx) {
   return (
     <div className="w-full sm:w-80">
       <Command label="Personnes">
@@ -333,7 +333,7 @@ function PanneauPersonne({ f, maj, personnes, compter }: Ctx) {
                   <span className="block font-medium">{p.nom}</span>
                   <span className="block truncate text-xs text-fg-subtle">{p.detail}</span>
                 </span>
-                <span className="text-xs text-fg-subtle tnum">{compter({ personne: p.id, roles: [] })}</span>
+                <span className="text-xs text-fg-subtle tnum">{comptes.personne(p.id)}</span>
                 <Check className={cn('size-4 text-accent-text', !coche && 'invisible')} aria-hidden />
               </Command.Item>
             );
@@ -360,7 +360,7 @@ function PanneauPersonne({ f, maj, personnes, compter }: Ctx) {
   );
 }
 
-function PanneauEtat({ f, maj, compter }: Ctx) {
+function PanneauEtat({ f, maj, comptes }: Ctx) {
   const ligne = (e: NomEtat) => {
     const meta = metaEtatMep(NOMS_ETATS[e]);
     return (
@@ -368,7 +368,7 @@ function PanneauEtat({ f, maj, compter }: Ctx) {
         key={e}
         coche={f.etats.includes(e)}
         onClick={() => maj({ etats: basculer(f.etats, e) })}
-        compte={compter({ etats: [e] })}
+        compte={comptes.etat(e)}
       >
         <StatusPill ton={meta.ton} icone={meta.Icone} taille="sm">
           {meta.libelle}
@@ -546,7 +546,7 @@ export function BarreFiltres({
     ...donnees,
     f,
     maj,
-    compter: (p) => filtrerMeps(donnees.meps, { ...f, ...p }).length,
+    comptes: comptesDe(donnees.facettes),
   };
   const liste = criteres(ctx, modeles);
   const actifs = liste.filter((c) => c.valeur);
@@ -582,7 +582,7 @@ export function BarreFiltres({
         open={feuille}
         onOpenChange={setFeuille}
         titre="Filtres"
-        description={`${resultats} ${modeles ? 'modèle' : 'MEP'}${resultats > 1 && modeles ? 's' : ''} sur ${donnees.meps.length}`}
+        description={`${resultats} ${modeles ? 'modèle' : 'MEP'}${resultats > 1 && modeles ? 's' : ''} sur ${donnees.facettes.ensemble}`}
         pied={
           <>
             <Button variante="fantome" onClick={toutEffacer}>
@@ -611,7 +611,7 @@ export function BarreFiltres({
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm" aria-live="polite">
           <span className="font-semibold tnum">
             {resultats} {modeles ? `modèle${resultats > 1 ? 's' : ''}` : 'MEP'}{' '}
-            <span className="font-normal text-fg-subtle">sur {donnees.meps.length}</span>
+            <span className="font-normal text-fg-subtle">sur {donnees.facettes.ensemble}</span>
           </span>
           {actifs.length > 0 && (
             <span className="flex flex-wrap gap-1.5 sm:hidden">

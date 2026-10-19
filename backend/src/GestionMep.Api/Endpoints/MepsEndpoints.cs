@@ -18,20 +18,54 @@ public static class MepsEndpoints
     /// Liste des MEP, les plus récemment créées d'abord (partagée avec <c>gestion-mep meps lister</c>). <paramref name="modele"/> :
     /// true, modèles seulement ; false, MEP seulement ; null, tout. Filtres et tri de la recherche : <see cref="FiltreMeps"/>.
     /// </summary>
-    public static async Task<List<MepResumeDto>> Lister(MepDbContext db, bool? modele) => await Resumes(db, modele, await Personnes.Charger(db));
+    public static async Task<List<MepResumeDto>> Lister(MepDbContext db, bool? modele) =>
+        await Resumes(db, Vue(db, modele), await Personnes.Charger(db));
+
+    private static IQueryable<Mep> Vue(MepDbContext db, bool? modele) => db.Meps.AsNoTracking().Where(m => modele == null || m.EstModele == modele);
+
+    /// <summary>
+    /// MEP qui correspondent au filtre, triées comme <see cref="FiltreMeps.Appliquer"/>. Les critères simples (type, phase, état,
+    /// systèmes du catalogue, équipe, période, échec) sont d'abord traduits en SQL (<see cref="FiltreMeps.Prefiltrer"/>) :
+    /// seules les MEP candidates sont lues ; la règle exacte s'applique ensuite, la même que dans le navigateur.
+    /// </summary>
+    public static async Task<List<MepResumeDto>> Rechercher(MepDbContext db, bool? modele, FiltreMeps filtre)
+    {
+        var annuaire = await Personnes.Charger(db);
+        return filtre.Appliquer(await Resumes(db, filtre.Prefiltrer(Vue(db, modele), annuaire), annuaire));
+    }
+
+    /// <summary>Taille d'une page de la liste par défaut, et au plus.</summary>
+    public const int LimiteParDefaut = 30, LimiteMax = 200;
+
+    /// <summary>
+    /// Page de la liste filtrée : au plus <paramref name="limite"/> MEP après le curseur <paramref name="apres"/> (celui que
+    /// renvoie la page précédente), le nombre total de résultats et le nombre de MEP (ou de modèles) sans filtre.
+    /// </summary>
+    public static async Task<PageMepsDto> Page(MepDbContext db, bool? modele, FiltreMeps filtre, int? limite, string? apres)
+    {
+        var n = limite ?? LimiteParDefaut;
+        if (n is < 1 or > LimiteMax) throw ErreurHttp.Saisie($"« limite » doit être comprise entre 1 et {LimiteMax}.");
+        var curseur = apres is null ? null : CurseurMeps.Lire(apres);
+        var resultats = (await Rechercher(db, modele, filtre)).OrderByDescending(m => m.Jour).ThenByDescending(m => m.CreeLe).ThenByDescending(m => m.Id).ToList();
+        var suite = curseur is null ? resultats : [.. resultats.SkipWhile(m => !curseur.Precede(m))];
+        var page = suite.Take(n).ToList();
+        var ensemble = await Vue(db, modele).CountAsync();
+        return new PageMepsDto(page, resultats.Count, ensemble, suite.Count > n ? CurseurMeps.De(page[^1]) : null);
+    }
 
     /// <summary>
     /// Étapes des échecs survenus (événements « etape.echec » du journal, par leur étape enregistrée), par MEP : une entrée par
     /// échec, pour rattacher les échecs aux systèmes. Le nombre d'échecs de la MEP est son compteur (<see cref="Mep.EchecsEtapes"/>).
     /// </summary>
-    private static async Task<ILookup<Guid, Guid>> EtapesEnEchec(MepDbContext db) =>
-        (await db.Journal.AsNoTracking().Where(e => e.Type == Regles.EvenementEchecEtape && e.EtapeId != null).Select(e => new { e.MepId, e.EtapeId }).ToListAsync())
+    private static async Task<ILookup<Guid, Guid>> EtapesEnEchec(MepDbContext db, IQueryable<Mep> source) =>
+        (await db.Journal.AsNoTracking().Where(e => e.Type == Regles.EvenementEchecEtape && e.EtapeId != null && source.Any(m => m.Id == e.MepId))
+            .Select(e => new { e.MepId, e.EtapeId }).ToListAsync())
         .ToLookup(e => e.MepId, e => e.EtapeId!.Value);
 
-    private static async Task<List<MepResumeDto>> Resumes(MepDbContext db, bool? modele, AnnuairePersonnes annuaire)
+    private static async Task<List<MepResumeDto>> Resumes(MepDbContext db, IQueryable<Mep> source, AnnuairePersonnes annuaire)
     {
-        var echecs = await EtapesEnEchec(db);
-        var lignes = await db.Meps.AsNoTracking().Where(m => modele == null || m.EstModele == modele).OrderByDescending(m => m.CreeLe)
+        var echecs = await EtapesEnEchec(db, source);
+        var lignes = await source.OrderByDescending(m => m.CreeLe)
             .Select(m => new
             {
                 m.Id, m.Outil, m.VersionCible, m.Objet, m.DemarrageAutoriseLe, m.ClotureeLe, m.FuseauHoraire, m.Phase, m.Issue, m.EcheanceRepli,
@@ -92,12 +126,52 @@ public static class MepsEndpoints
     }
 
     /// <summary>Journal d'une MEP, du plus récent au plus ancien (partagé avec <c>gestion-mep meps exporter</c>).</summary>
-    public static async Task<List<EvenementDto>> Journal(MepDbContext db, Guid id)
+    public static Task<List<EvenementDto>> Journal(MepDbContext db, Guid id) => Journal(db, id, new FiltreJournal());
+
+    /// <summary>
+    /// Événements du journal d'une MEP, du plus récent au plus ancien, filtrés (<see cref="FiltreJournal"/>) : par famille de
+    /// type et texte, puis par position (<c>apres</c> : seulement les événements plus récents que celui-ci, pour suivre la MEP
+    /// sans relire tout le journal ; <c>avant</c> : les plus anciens, pour la page suivante), au plus <c>limite</c>.
+    /// Le compte de l'auteur est lu par jointure, en une seule requête.
+    /// </summary>
+    /// <summary>Texte cherché tel quel dans un motif LIKE (caractère d'échappement par défaut : la barre oblique inverse).</summary>
+    private static string Echapper(string texte) => texte.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+
+    /// <summary>Journaux complets de plusieurs MEP, en une seule requête (du plus récent au plus ancien pour chacune).</summary>
+    public static async Task<ILookup<Guid, EvenementDto>> Journaux(MepDbContext db, IReadOnlyCollection<Guid> ids) =>
+        (await (from e in db.Journal.AsNoTracking().Where(e => ids.Contains(e.MepId)).OrderByDescending(e => e.Id)
+                join u in db.Utilisateurs.AsNoTracking() on e.UtilisateurId equals (Guid?)u.Id into comptes
+                from u in comptes.DefaultIfEmpty()
+                select new { e.MepId, Dto = new EvenementDto(e.Id, e.Quand, e.Auteur, e.Type, e.Detail, u == null ? null : u.Login, e.EtapeId) })
+            .ToListAsync()).ToLookup(x => x.MepId, x => x.Dto);
+
+    public static async Task<List<EvenementDto>> Journal(MepDbContext db, Guid id, FiltreJournal f)
     {
+        if (f.Limite is < 1 or > FiltreJournal.LimiteMax) throw ErreurHttp.Saisie($"« limite » doit être comprise entre 1 et {FiltreJournal.LimiteMax}.");
         if (!await db.Meps.AnyAsync(m => m.Id == id)) throw ErreurHttp.NonTrouve("MEP introuvable.");
-        return await db.Journal.AsNoTracking().Where(e => e.MepId == id).OrderByDescending(e => e.Id)
-            .Select(e => new EvenementDto(e.Id, e.Quand, e.Auteur, e.Type, e.Detail,
-                db.Utilisateurs.Where(u => u.Id == e.UtilisateurId).Select(u => u.Login).FirstOrDefault(), e.EtapeId)).ToListAsync();
+        var q = db.Journal.AsNoTracking().Where(e => e.MepId == id);
+        if (f.Apres is { } apres) q = q.Where(e => e.Id > apres);
+        if (f.Avant is { } avant) q = q.Where(e => e.Id < avant);
+        var famille = (f.Type ?? "").Trim();
+        if (famille.Length > 0 && famille != "tous")
+        {
+            // Famille de l'onglet Journal (VuesExcel.Famille) : le type lui-même ou « famille.… » pour chacun de ses préfixes.
+            var motifs = VuesExcel.PrefixesDeFamille(famille).Select(Echapper).SelectMany(x => new[] { x, x + ".%" }).ToArray();
+            q = q.Where(e => motifs.Any(x => EF.Functions.Like(e.Type, x)));
+        }
+        var texte = (f.Recherche ?? "").Trim();
+        if (texte.Length > 0)
+        {
+            // Sans casse (comme l'onglet Journal) ; LIKE échappé : « % » et « _ » se cherchent tels quels.
+            var motif = "%" + Echapper(texte) + "%";
+            q = q.Where(e => EF.Functions.ILike(e.Detail, motif) || EF.Functions.ILike(e.Auteur, motif)
+                || db.Utilisateurs.Any(u => u.Id == e.UtilisateurId && EF.Functions.ILike(u.Login, motif)));
+        }
+        var lignes = from e in q.OrderByDescending(e => e.Id)
+                     join u in db.Utilisateurs.AsNoTracking() on e.UtilisateurId equals (Guid?)u.Id into comptes
+                     from u in comptes.DefaultIfEmpty()
+                     select new EvenementDto(e.Id, e.Quand, e.Auteur, e.Type, e.Detail, u == null ? null : u.Login, e.EtapeId);
+        return await (f.Limite is { } n ? lignes.Take(n) : lignes).ToListAsync();
     }
 
     public static void MapMeps(this RouteGroupBuilder api)
@@ -105,7 +179,17 @@ public static class MepsEndpoints
         // ?modele=true : modèles seulement ; ?modele=false : MEP seulement ; absent : tout. Autres paramètres : recherche
         // avancée (FiltreMeps : systeme, environnement, equipe, personne, role, etat, phase, type, du, au, echec, recherche).
         api.MapGet("/meps", async (bool? modele, [AsParameters] ParametresFiltreMeps filtres, MepDbContext db) =>
-            FiltreMeps.Lire(filtres).Appliquer(await Lister(db, modele)).AsEnumerable());
+            (await Rechercher(db, modele, FiltreMeps.Lire(filtres))).AsEnumerable());
+
+        // Liste paginée (#96) : mêmes filtres, ?limite= (30 par défaut, 200 au plus) et ?apres= (curseur « suivant » de la page
+        // précédente) ; le navigateur charge les pages suivantes au fil de la lecture (« Afficher plus »).
+        api.MapGet("/meps/page", async (bool? modele, int? limite, string? apres, [AsParameters] ParametresFiltreMeps filtres, MepDbContext db) =>
+            await Page(db, modele, FiltreMeps.Lire(filtres), limite, apres));
+
+        // Comptes de la barre de filtres (#96) : pour chaque valeur d'un critère, le nombre de MEP qu'on obtiendrait en la
+        // choisissant, avec les autres critères en cours ; et, pour chaque critère actif, le nombre sans lui.
+        api.MapGet("/meps/facettes", async (bool? modele, [AsParameters] ParametresFiltreMeps filtres, MepDbContext db) =>
+            FiltreMeps.Lire(filtres).Facettes(await Lister(db, modele)));
 
         api.MapPost("/meps", async (MepCreationSaisie corps, ClaimsPrincipal user, ServiceMep svc, MepDbContext db) =>
         {
@@ -154,7 +238,7 @@ public static class MepsEndpoints
         {
             var acteur = Acteur.Depuis(user);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
-            ServiceMep.ExigerVersion(mep, corps.Version);
+            ServiceMep.ExigerRevision(mep, BlocMep.Identite, corps.Revision, corps.Version);
 
             if (corps.IndisponibiliteMinutes is < 0) throw ErreurHttp.Saisie("L'indisponibilité ne peut pas être négative.");
             if (corps.PiloteId is not null) ServiceMep.TrouverParticipant(mep, corps.PiloteId, "Pilote");
@@ -235,7 +319,7 @@ public static class MepsEndpoints
             // En préparation, l'échéance fait partie du plan (tout éditeur) ; après le Go, elle est au pilote.
             if (mep.Phase == Phase.Preparation) ServiceMep.ExigerEditeur(mep, acteur);
             else ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Seul le pilote, un suppléant ou un administrateur peut modifier l'échéance de retour arrière.");
-            ServiceMep.ExigerVersion(mep, corps.Version);
+            ServiceMep.ExigerRevision(mep, BlocMep.Echeance, corps.Revision, corps.Version);
             var motif = ServiceMep.Texte(corps.Motif);
             var nouvelle = corps.EcheanceRepli?.ToUniversalTime();
             var ancienne = Regles.ModifierEcheance(mep, nouvelle, motif, svc.Maintenant);
@@ -278,7 +362,7 @@ public static class MepsEndpoints
             if (Regles.EstTerminee(mep)) throw new RegleMetierException("La MEP est terminée (clôturée ou annulée) : les informations de sauvegarde ne se modifient plus.");
             if (mep.Phase != Phase.Preparation)
                 ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Après la préparation, seuls le pilote, un suppléant ou un administrateur modifient les informations de sauvegarde.");
-            ServiceMep.ExigerVersion(mep, corps.Version);
+            ServiceMep.ExigerRevision(mep, BlocMep.Sauvegarde, corps.Revision, corps.Version);
             if (corps.ResponsableId is not null) ServiceMep.TrouverParticipant(mep, corps.ResponsableId, "Responsable de la sauvegarde");
             var s = mep.Sauvegarde;
             // Le mode change la vérification du plan : il ne se modifie qu'en préparation (absent : inchangé).
@@ -323,7 +407,8 @@ public static class MepsEndpoints
 
         // Suppression définitive (administrateur) : voir CycleDeVieEndpoints.
 
-        api.MapGet("/meps/{id:guid}/journal", (Guid id, MepDbContext db) => Journal(db, id));
+        // ?limite= (500 au plus), ?apres=<id> (nouveaux événements seulement), ?avant=<id> (page plus ancienne), ?type=, ?recherche=.
+        api.MapGet("/meps/{id:guid}/journal", (Guid id, [AsParameters] FiltreJournal filtre, MepDbContext db) => Journal(db, id, filtre));
 
         // Tests unitaires faits, non faits et leurs résultats constatés.
         api.MapGet("/meps/{id:guid}/tests-unitaires", async (Guid id, ServiceMep svc) => MepMapping.TestsUnitaires(await svc.Charger(id)));

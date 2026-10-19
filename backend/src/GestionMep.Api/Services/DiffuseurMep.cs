@@ -28,12 +28,21 @@ public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? te
     private int MaxTotal => Math.Max(1, config.GetValue("Flux:ConnexionsMax", 1000));
 
     /// <summary>
-    /// Pseudo-MEP des abonnés du suivi en direct (#61) : prévenus de toute modification de n'importe quelle MEP, sans présence
-    /// ni verrous (voir <see cref="AbonnerSuivi"/>).
+    /// Pseudo-MEP des abonnés du suivi en direct (#61) : prévenus des modifications qui changent ce que le suivi affiche, sans
+    /// présence ni verrous (voir <see cref="AbonnerSuivi"/>).
     /// </summary>
     public static readonly Guid Suivi = Guid.Empty;
-    /// <summary>Nombre de modifications diffusées depuis le démarrage : « version » envoyée aux abonnés du suivi.</summary>
+    /// <summary>Nombre de modifications diffusées au suivi depuis le démarrage : « version » envoyée à ses abonnés.</summary>
     private int _modifications;
+
+    /// <summary>
+    /// Ce qu'une modification change dans le suivi en direct : rien (MEP en préparation non annoncée…), la carte de cette MEP
+    /// lancée (le navigateur ne relit qu'elle) ou ses listes (MEP lancée, clôturée, annoncée ou retirée : il relit tout).
+    /// </summary>
+    public enum PorteeSuivi { Aucune, Carte, Liste }
+
+    /// <summary>MEP dont la carte a changé, au plus ce nombre par envoi : au-delà, le navigateur relit tout le suivi.</summary>
+    public const int MaxCartesParEnvoi = 20;
 
     private readonly Dictionary<Guid, List<Abonne>> _abonnes = [];
     private readonly Dictionary<Guid, int> _parCompte = [];
@@ -70,17 +79,27 @@ public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? te
     /// <summary>Abonnement au suivi en direct : un événement à chaque modification d'une MEP, quelle qu'elle soit.</summary>
     public Abonnement? AbonnerSuivi(Guid utilisateurId) => Abonner(Suivi, utilisateurId);
 
-    public void Notifier(Guid mepId, int version)
+    /// <summary>
+    /// Nouvelle version d'une MEP : ses flux la reçoivent ; ceux du suivi, selon <paramref name="suivi"/>, l'identifiant de la
+    /// MEP dont la carte a changé, ou l'ordre de tout relire (par défaut, pour les écritures qui ne savent pas le dire).
+    /// </summary>
+    public void Notifier(Guid mepId, int version, PorteeSuivi suivi = PorteeSuivi.Liste)
     {
-        Signaler(mepId, version);
-        if (mepId != Suivi) Signaler(Suivi, Interlocked.Increment(ref _modifications));
+        Signaler(mepId, version, null, false);
+        if (mepId == Suivi || suivi == PorteeSuivi.Aucune) return;
+        Signaler(Suivi, Interlocked.Increment(ref _modifications), mepId, suivi == PorteeSuivi.Liste);
     }
 
-    private void Signaler(Guid mepId, int version)
+    private void Signaler(Guid mepId, int version, Guid? carte, bool liste)
     {
         foreach (var a in Cibles(mepId))
         {
-            lock (a) a.Version = Math.Max(a.Version ?? 0, version);
+            lock (a)
+            {
+                a.Version = Math.Max(a.Version ?? 0, version);
+                if (liste) a.Liste = true;
+                else if (carte is { } c) a.Cartes.Add(c);
+            }
             a.Signal.Writer.TryWrite(true);
         }
     }
@@ -256,6 +275,10 @@ public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? te
         public List<string> Elements { get; set; } = [];
         /// <summary>Dernière version à envoyer (null : rien de nouveau).</summary>
         public int? Version { get; set; }
+        /// <summary>Suivi : MEP dont la carte a changé depuis le dernier envoi.</summary>
+        public HashSet<Guid> Cartes { get; } = [];
+        /// <summary>Suivi : les listes ont changé depuis le dernier envoi (tout relire).</summary>
+        public bool Liste { get; set; }
         /// <summary>La présence a changé depuis le dernier envoi.</summary>
         public bool Presence { get; set; }
         /// <summary>Les verrous d'édition ont changé depuis le dernier envoi.</summary>
@@ -268,8 +291,11 @@ public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? te
         });
     }
 
-    /// <summary>Ce qu'un flux doit envoyer à son réveil.</summary>
-    public readonly record struct Envoi(int? Version, bool Presence, bool Verrous = false);
+    /// <summary>
+    /// Ce qu'un flux doit envoyer à son réveil. Suivi : <c>Cartes</c>, les MEP dont la carte a changé ; <c>Liste</c>, tout relire
+    /// (aussi quand trop de cartes ont changé d'un coup).
+    /// </summary>
+    public readonly record struct Envoi(int? Version, bool Presence, bool Verrous = false, IReadOnlyList<Guid>? Cartes = null, bool Liste = false);
 
     public sealed class Abonnement : IDisposable
     {
@@ -296,8 +322,13 @@ public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? te
         {
             lock (_abonne)
             {
-                var envoi = new Envoi(_abonne.Version, _abonne.Presence, _abonne.Verrous);
+                var liste = _abonne.Liste || _abonne.Cartes.Count > MaxCartesParEnvoi;
+                // Sans carte à relire : null (un envoi de présence ou de verrous reste égal à Envoi(null, true)).
+                var envoi = new Envoi(_abonne.Version, _abonne.Presence, _abonne.Verrous,
+                    liste || _abonne.Cartes.Count == 0 ? null : [.. _abonne.Cartes], liste);
                 _abonne.Version = null;
+                _abonne.Cartes.Clear();
+                _abonne.Liste = false;
                 _abonne.Presence = false;
                 _abonne.Verrous = false;
                 return envoi;
