@@ -243,12 +243,12 @@ describe('VueEnsembleTab : avant le Go, retour arrière, clôture', () => {
     expect(screen.queryByText(/^En direct · /)).toBeNull();
   });
 
-  it('retour arrière : la vue suit le plan de retour arrière, avec son motif', async () => {
+  it('retour arrière : la vue suit le plan de retour arrière, avec son motif (sans double point)', async () => {
     const retour = etape({ id: 'r1', code: 'R0001', plan: 'RetourArriere', action: 'Restaurer la sauvegarde' });
     rendre(
       lancee({
         phase: 'RetourArriere',
-        retourArriere: { le: min(35), par: 'Alice', motif: 'API indisponible' },
+        retourArriere: { le: min(35), par: 'Alice', motif: 'API indisponible.' },
         etapes: [...plan(), retour],
       }),
     );

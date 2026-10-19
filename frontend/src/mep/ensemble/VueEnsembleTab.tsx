@@ -58,6 +58,9 @@ import {
   type EtatVue,
 } from './calculs';
 
+/** Motif cité dans une phrase qui a son propre point final. */
+const sansPoint = (motif: string) => motif.trim().replace(/\.+$/, '');
+
 /** Une tuile de chiffre clé. */
 function Tuile({
   titre,
@@ -528,7 +531,8 @@ export default function VueEnsembleTab() {
         )}
         {mep.phase === 'Annulee' && (
           <Alerte ton="later" icone={Ban}>
-            MEP annulée{mep.annulation ? ` : ${mep.annulation.motif}` : ''}. La vue montre où en était l’exécution.
+            MEP annulée{mep.annulation ? ` : ${sansPoint(mep.annulation.motif)}` : ''}. La vue montre où en était
+            l’exécution.
           </Alerte>
         )}
         {mep.phase === 'Cloturee' && (
@@ -542,8 +546,8 @@ export default function VueEnsembleTab() {
         )}
         {plan === 'RetourArriere' && (
           <Alerte ton="rollback" icone={Siren}>
-            Retour arrière{mep.retourArriere?.motif ? ` : ${mep.retourArriere.motif}` : ''}. La vue suit le plan de
-            retour arrière.
+            Retour arrière{mep.retourArriere?.motif ? ` : ${sansPoint(mep.retourArriere.motif)}` : ''}. La vue suit le
+            plan de retour arrière.
           </Alerte>
         )}
         {!plein && <ChiffresCles c={c} etapes={etapes} />}
