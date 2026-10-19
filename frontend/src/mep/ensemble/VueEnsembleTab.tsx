@@ -24,21 +24,22 @@ import { type Ton } from '../../format';
 import { useNow } from '../../hooks';
 import { useMep } from '../../mepContext';
 import { useAutresPresents } from '../../presence';
-import { useReferentiels } from '../../referentiels';
+import { useReferentiels, type DonneePartagee } from '../../referentiels';
 import { SqueletteEnsemble, SqueletteEvenements } from './Squelettes';
 import { metaPhase } from '../../statuts';
 import type { Etape, Evenement, Mep } from '../../types';
 import { Alerte } from '../../ui/Alerte';
 import { Apparition } from '../../ui/Apparition';
 import { Avatar } from '../../ui/Avatar';
+import { ErreurChargement } from '../../ui/ErreurChargement';
 import { cn } from '../../ui/cn';
 import { ProgressBar } from '../../ui/ProgressBar';
 import { StatusPill } from '../../ui/StatusPill';
 import { TON } from '../../ui/tons';
 import { GrapheLibre } from '../graphe/GrapheLibre';
 import { sectionsDuPlan } from '../graphe/sections';
+import { useJournalMep } from '../preparation/donnees';
 import { descriptionsSystemes } from '../graphe/systemes';
-import { useJournal } from '../journal';
 import {
   causesBlocage,
   chiffres,
@@ -420,7 +421,8 @@ function iconeEvenement(type: string): { Icone: LucideIcon; ton: Ton } {
 }
 
 /** Suite des événements marquants (journal filtré), les plus récents en haut. */
-function Evenements({ journal }: { journal: Evenement[] | null }) {
+function Evenements({ lu }: { lu: DonneePartagee<Evenement[]> }) {
+  const journal = lu.donnees;
   const marquants = (journal ?? []).filter(estMarquant).slice(0, 8);
   return (
     <section aria-label="Événements marquants" className="grid gap-2">
@@ -433,7 +435,16 @@ function Evenements({ journal }: { journal: Evenement[] | null }) {
       {journal && marquants.length === 0 && (
         <p className="text-[13px] text-fg-subtle">Rien de marquant pour l’instant.</p>
       )}
-      {!journal && <SqueletteEvenements />}
+      {!journal && lu.erreur != null && (
+        <ErreurChargement
+          variante="ligne"
+          erreur={lu.erreur}
+          titre="Derniers événements non chargés"
+          onReessayer={lu.recharger}
+          enCours={lu.enCours}
+        />
+      )}
+      {!journal && lu.erreur == null && <SqueletteEvenements />}
       <ol className="relative grid gap-2 border-l border-line pl-4">
         {marquants.map((ev) => {
           const { Icone, ton } = iconeEvenement(ev.type);
@@ -486,8 +497,8 @@ export default function VueEnsembleTab() {
   const [selection, setSelection] = useState<string | null>(null);
   const { catalogue, pret } = useReferentiels();
   const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue), [mep, catalogue]);
-  // Derniers événements, puis seulement les nouveaux à chaque version (#96).
-  const { evenements: journal } = useJournal(mep.id, mep.version);
+  // Derniers événements, puis seulement les nouveaux à chaque version (#96) ; une erreur se montre avec « Réessayer ».
+  const journal = useJournalMep(mep);
   const bloquees = useMemo(() => causesBlocage(etapes), [etapes]);
   const ensemble = useMemo(() => ({ bloquees }), [bloquees]);
   const c = chiffres(mep, etapes, maintenant);
@@ -504,7 +515,7 @@ export default function VueEnsembleTab() {
     >
       <Blocages mep={mep} etapes={etapes} maintenant={maintenant} />
       <EnCeMoment mep={mep} etapes={etapes} maintenant={maintenant} />
-      <Evenements journal={journal} />
+      <Evenements lu={journal} />
     </aside>
   );
 

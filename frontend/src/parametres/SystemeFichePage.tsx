@@ -26,6 +26,7 @@ import { Checkbox } from '../ui/Checkbox';
 import { cn } from '../ui/cn';
 import { ConfirmDialog, Dialog } from '../ui/Dialog';
 import { EmptyState } from '../ui/EmptyState';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Field, Input } from '../ui/Input';
 import { PastilleEnvironnement } from '../ui/PastilleEnvironnement';
 import { StatusPill } from '../ui/StatusPill';
@@ -39,7 +40,6 @@ import { SystemeDialog } from './SystemeDialog';
 interface Donnees {
   systeme: SystemeCatalogue | null;
   objets: ObjetCatalogue[];
-  defaut: string[];
 }
 
 /**
@@ -53,13 +53,11 @@ export default function SystemeFichePage() {
   const admin = utilisateur?.estAdmin ?? false;
   const toast = useToast();
   const { donnees, erreur, recharger } = useAsync<Donnees>(async () => {
-    const [systemes, objets, defaut] = await Promise.all([
-      api.catalogueSystemes(),
-      api.objetsCatalogue(id),
-      api.categoriesParDefaut().catch(() => [] as string[]),
-    ]);
-    return { systeme: systemes.find((s) => s.id === id) ?? null, objets, defaut };
+    const [systemes, objets] = await Promise.all([api.catalogueSystemes(), api.objetsCatalogue(id)]);
+    return { systeme: systemes.find((s) => s.id === id) ?? null, objets };
   }, [id]);
+  // Catégories par défaut : simples suggestions ; en erreur, la fiche reste utilisable et la carte le dit.
+  const defaut = useAsync(() => api.categoriesParDefaut(), []);
   const [modifier, setModifier] = useState(false);
   const [params, setParams] = useSearchParams();
   const onglet = params.get('onglet') === 'historique' ? 'historique' : 'fiche';
@@ -151,7 +149,25 @@ export default function SystemeFichePage() {
             </TabsList>
             <TabsContent value="fiche" className="mt-6 space-y-6 outline-none">
               <CarteEnvironnements systeme={s} admin={admin} agir={agir} />
-              <CarteObjets systeme={s} objets={donnees.objets} defaut={donnees.defaut} admin={admin} agir={agir} />
+              <CarteObjets
+                systeme={s}
+                objets={donnees.objets}
+                defaut={defaut.donnees ?? []}
+                erreurDefaut={
+                  admin &&
+                  defaut.echec !== null && (
+                    <ErreurChargement
+                      variante="ligne"
+                      erreur={defaut.echec}
+                      titre="Catégories par défaut non chargées"
+                      onReessayer={defaut.recharger}
+                      enCours={defaut.chargement}
+                    />
+                  )
+                }
+                admin={admin}
+                agir={agir}
+              />
             </TabsContent>
             <TabsContent value="historique" className="mt-6 outline-none">
               <HistoriqueSysteme systeme={s} />
@@ -374,12 +390,15 @@ function CarteObjets({
   systeme,
   objets,
   defaut,
+  erreurDefaut,
   admin,
   agir,
 }: {
   systeme: SystemeCatalogue;
   objets: ObjetCatalogue[];
   defaut: string[];
+  /** Catégories par défaut non chargées (suggestions absentes). */
+  erreurDefaut?: React.ReactNode;
   admin: boolean;
   agir: Agir;
 }) {
@@ -410,6 +429,7 @@ function CarteObjets({
           )
         }
       />
+      {erreurDefaut && <div className="px-5 pt-4">{erreurDefaut}</div>}
       {categories.length === 0 ? (
         <EmptyState
           icone={Boxes}

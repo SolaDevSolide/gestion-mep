@@ -2,11 +2,14 @@ import { ArrowDown, ArrowUp, OctagonAlert, Plus, Stethoscope, Trash2 } from 'luc
 import { useContext, useEffect, useState, type FormEvent } from 'react';
 import { AuthContext } from '../auth';
 import { api, ApiError } from '../api';
+import { useAsync } from '../hooks';
+import { useReferentiel } from '../referentiels';
 import type { PieceJointe, ResolutionType, ResolutionTypeSaisie, SystemeCatalogue } from '../types';
 import { PiecesJointes } from '../ui/PiecesJointes';
 import { Alerte } from '../ui/Alerte';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { EditeurBlocs } from '../ui/EditeurBlocs';
 import { Field, Input, Textarea } from '../ui/Input';
 import { cn } from '../ui/cn';
@@ -77,12 +80,15 @@ export function FormulaireResolution({
   b,
   onChange,
   systemes,
+  erreurSystemes,
   autoFocus,
 }: {
   b: BrouillonResolution;
   onChange: (b: BrouillonResolution) => void;
   /** Catalogue des systèmes ; null tant qu'il se charge (pastilles en squelette). */
   systemes: SystemeCatalogue[] | null;
+  /** Catalogue en erreur : affiché à la place des pastilles (`ErreurChargement`). */
+  erreurSystemes?: React.ReactNode;
   autoFocus?: boolean;
 }) {
   const maj = (patch: Partial<BrouillonResolution>) => onChange({ ...b, ...patch });
@@ -113,7 +119,9 @@ export function FormulaireResolution({
         <legend className="mb-1.5 text-[13px] font-medium">
           Systèmes <span className="font-normal text-fg-subtle">(aucun = tous)</span>
         </legend>
-        {systemes === null ? (
+        {erreurSystemes ? (
+          erreurSystemes
+        ) : systemes === null ? (
           <EnChargement libelle="Chargement des systèmes…" className="flex flex-wrap gap-1.5">
             {['w-20', 'w-28', 'w-16', 'w-24', 'w-14'].map((l) => (
               <Squelette key={l} className={cn('h-6 rounded-full', l)} />
@@ -319,8 +327,14 @@ interface Props {
 export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesParDefaut, onEnregistree }: Props) {
   const toast = useToast();
   const [b, setB] = useState<BrouillonResolution>(() => brouillonDepuis(initial, systemesParDefaut));
-  const [systemes, setSystemes] = useState<SystemeCatalogue[] | null>(null);
-  const [pieces, setPieces] = useState<PieceJointe[]>([]);
+  const catalogue = useReferentiel('catalogue', open);
+  // Pièces jointes relues à chaque ouverture : squelette pendant la lecture, erreur avec « Réessayer » (jamais « aucune
+  // pièce jointe » à tort : on en ajouterait une deuxième fois).
+  const lues = useAsync(
+    () => (open && initial ? api.piecesResolution(initial.id) : Promise.resolve([] as PieceJointe[])),
+    [open, initial?.id],
+  );
+  const pieces = lues.donnees ?? [];
   const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState(false);
@@ -329,17 +343,6 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesP
     if (open) {
       setB(brouillonDepuis(initial, systemesParDefaut));
       setErreur('');
-      setSystemes(null);
-      api
-        .catalogueSystemes()
-        .then(setSystemes)
-        .catch(() => setSystemes([]));
-      if (initial)
-        api
-          .piecesResolution(initial.id)
-          .then(setPieces)
-          .catch(() => setPieces([]));
-      else setPieces([]);
     }
   }, [open, initial, systemesParDefaut]);
 
@@ -394,7 +397,23 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesP
             {erreur}
           </Alerte>
         )}
-        <FormulaireResolution b={b} onChange={setB} systemes={systemes} autoFocus />
+        <FormulaireResolution
+          b={b}
+          onChange={setB}
+          systemes={catalogue.donnees}
+          erreurSystemes={
+            catalogue.erreur != null && (
+              <ErreurChargement
+                variante="ligne"
+                erreur={catalogue.erreur}
+                titre="Catalogue des systèmes non chargé"
+                onReessayer={catalogue.recharger}
+                enCours={catalogue.enCours}
+              />
+            )
+          }
+          autoFocus
+        />
       </form>
 
       <div className="mt-5 border-t border-line pt-5">
@@ -402,11 +421,24 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesP
           <PiecesJointes
             titre="Pièces jointes de la résolution"
             pieces={pieces}
+            chargement={lues.chargement && lues.donnees === null && lues.echec === null}
+            erreurListe={
+              lues.echec !== null && (
+                <ErreurChargement
+                  variante="ligne"
+                  erreur={lues.echec}
+                  titre="Liste des pièces jointes non chargée"
+                  complement="Ajouter un fichier reste possible."
+                  onReessayer={lues.recharger}
+                  enCours={lues.chargement}
+                />
+              )
+            }
             peutSupprimer={() => admin}
             onDeposer={async (f, signaler) => {
               try {
                 const p = await api.deposerPieceResolution(initial.id, f);
-                setPieces((l) => [...l, p]);
+                lues.setDonnees((l) => [...(l ?? []), p]);
                 return true;
               } catch (e) {
                 signaler(e instanceof Error ? e.message : 'Envoi impossible.');
@@ -416,7 +448,7 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesP
             onSupprimer={async (p, signaler) => {
               try {
                 await api.supprimerPieceResolution(initial.id, p.id);
-                setPieces((l) => l.filter((x) => x.id !== p.id));
+                lues.setDonnees((l) => (l ?? []).filter((x) => x.id !== p.id));
                 return true;
               } catch (e) {
                 signaler(e instanceof Error ? e.message : 'Suppression impossible.');

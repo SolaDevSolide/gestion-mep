@@ -17,6 +17,7 @@ import { formatDate, formatDateHeure } from '../format';
 import { useAsync, useDraft, useNow, useReportDirty } from '../hooks';
 import type { FournisseurSso, SsoIdentite, SsoReglages, SsoTest } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { Checkbox } from '../ui/Checkbox';
@@ -77,7 +78,7 @@ function joursRestants(expireLe: string, maintenant: number): number {
 export default function SsoTab() {
   const installation = useInstallation();
   const toast = useToast();
-  const { donnees, erreur, setDonnees } = useAsync(() => api.ssoReglages(), []);
+  const { donnees, erreur, echec, chargement, recharger, setDonnees } = useAsync(() => api.ssoReglages(), []);
   const identites = useAsync(() => api.ssoIdentites(), []);
   const maintenant = useNow(60_000);
   const d = useDraft<Brouillon | null>(donnees ? depuis(donnees) : null);
@@ -91,9 +92,12 @@ export default function SsoTab() {
 
   if (erreur) {
     return (
-      <Alerte ton="danger" icone={OctagonAlert} role="alert">
-        {erreur}
-      </Alerte>
+      <ErreurChargement
+        erreur={echec}
+        titre="Impossible de charger les réglages de la connexion unique"
+        onReessayer={recharger}
+        enCours={chargement}
+      />
     );
   }
   const v = d.value;
@@ -503,9 +507,12 @@ export default function SsoTab() {
         <CardHeader titre="Comptes liés" description="Comptes de l’application reliés à un compte du fournisseur." />
         {identites.erreur && (
           <div className="p-5">
-            <Alerte ton="danger" icone={OctagonAlert} role="alert">
-              {identites.erreur}
-            </Alerte>
+            <ErreurChargement
+              erreur={identites.echec}
+              titre="Impossible de charger les comptes liés"
+              onReessayer={identites.recharger}
+              enCours={identites.chargement}
+            />
           </div>
         )}
         {!identites.erreur && identites.donnees === null && (

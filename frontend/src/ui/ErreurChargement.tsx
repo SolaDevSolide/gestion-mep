@@ -164,7 +164,7 @@ export function ErreurChargement({
       variante={variante === 'page' ? 'primaire' : 'secondaire'}
       icone={<RotateCw className="size-4" aria-hidden />}
       chargement={enCours}
-      onClick={() => void onReessayer()}
+      action={onReessayer}
     >
       Réessayer
     </Button>

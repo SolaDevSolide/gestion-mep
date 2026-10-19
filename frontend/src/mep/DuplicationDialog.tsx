@@ -1,12 +1,15 @@
 import { Copy, OctagonAlert } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { useAsync } from '../hooks';
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
 import { Dialog } from '../ui/Dialog';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Field, Select } from '../ui/Input';
+import { EnChargement, Squelette } from '../ui/Squelette';
 import { useToast } from '../ui/Toast';
 
 export interface SourceDuplication {
@@ -20,15 +23,15 @@ interface Props {
   onOpenChange: (o: boolean) => void;
   /** MEP ou modèle à dupliquer. */
   source?: SourceDuplication | null;
-  /** Mode « nouvelle MEP depuis un modèle » : choix du modèle dans la liste. */
-  modeles?: SourceDuplication[];
+  /** Mode « nouvelle MEP depuis un modèle » : choix du modèle dans la liste des modèles, lue à l'ouverture. */
+  depuisModele?: boolean;
 }
 
 /**
  * Duplication d'une MEP (« en faire un modèle ») ; navigue vers la nouvelle MEP. Les systèmes sont copiés avec leurs
  * environnements, et chaque étape avec les siens.
  */
-export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props) {
+export function DuplicationDialog({ open, onOpenChange, source, depuisModele = false }: Props) {
   const navigate = useNavigate();
   const toast = useToast();
   const [choix, setChoix] = useState('');
@@ -36,8 +39,14 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState(false);
 
-  const depuisModele = modeles !== undefined;
-  const courant = depuisModele ? (modeles.find((m) => m.id === choix) ?? null) : (source ?? null);
+  // Modèles relus à chaque ouverture. Pendant la lecture, des lignes squelettes ; « Aucun modèle » seulement si le
+  // serveur a répondu une liste vide.
+  const lus = useAsync(() => (open && depuisModele ? api.meps(true) : Promise.resolve(null)), [open, depuisModele]);
+  const modeles = useMemo(
+    () => lus.donnees?.map((m): SourceDuplication => ({ id: m.id, outil: m.outil, estModele: true })) ?? null,
+    [lus.donnees],
+  );
+  const courant = depuisModele ? (modeles?.find((m) => m.id === choix) ?? null) : (source ?? null);
 
   useEffect(() => {
     if (!open) return;
@@ -49,7 +58,7 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
   }, [open]);
 
   // Mode « depuis un modèle » : les modèles arrivent après l'ouverture, on présélectionne le premier.
-  const premierModele = depuisModele ? modeles[0] : undefined;
+  const premierModele = depuisModele && !lus.chargement ? modeles?.[0] : undefined;
   useEffect(() => {
     if (open && premierModele && !choix) setChoix(premierModele.id);
   }, [open, premierModele, choix]);
@@ -110,7 +119,24 @@ export function DuplicationDialog({ open, onOpenChange, source, modeles }: Props
         {depuisModele && (
           <Field label="Modèle">
             {(id) =>
-              modeles.length === 0 ? (
+              lus.echec !== null ? (
+                <ErreurChargement
+                  variante="ligne"
+                  erreur={lus.echec}
+                  titre="Modèles non chargés"
+                  onReessayer={lus.recharger}
+                  enCours={lus.chargement}
+                />
+              ) : lus.chargement || modeles === null ? (
+                <EnChargement
+                  libelle="Chargement des modèles…"
+                  className="grid gap-2 rounded-lg border border-line p-3"
+                >
+                  <Squelette className="h-4 w-3/5" />
+                  <Squelette className="h-4 w-4/5" />
+                  <Squelette className="h-4 w-1/2" />
+                </EnChargement>
+              ) : modeles.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-line-strong px-3 py-2.5 text-sm text-fg-subtle">
                   Aucun modèle pour l’instant. Dupliquez une MEP en cochant « En faire un modèle ».
                 </p>

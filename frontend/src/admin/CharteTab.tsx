@@ -50,6 +50,7 @@ import { compte, formatDateHeure, formatTaille } from '../format';
 import { useAsync, useReportDirty } from '../hooks';
 import type { EtatCharteServeur, VerificationCharte } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { Checkbox } from '../ui/Checkbox';
@@ -557,7 +558,7 @@ function exporter(c: Charte) {
  */
 export default function CharteTab() {
   const toast = useToast();
-  const { donnees: serveur, erreur, setDonnees } = useAsync(() => api.charte(), []);
+  const { donnees: serveur, erreur, echec, chargement, recharger, setDonnees } = useAsync(() => api.charte(), []);
   const enregistree = useMemo(() => (serveur ? lue(serveur.charte) : null), [serveur]);
   const [brouillon, setBrouillon] = useState<Charte | null>(null);
   const charte = brouillon ?? enregistree ?? CHARTE_DEFAUT;
@@ -581,9 +582,12 @@ export default function CharteTab() {
 
   if (!serveur || !enregistree)
     return erreur ? (
-      <Alerte ton="danger" icone={OctagonAlert} role="alert">
-        {erreur}
-      </Alerte>
+      <ErreurChargement
+        erreur={echec}
+        titre="Impossible de charger la charte visuelle"
+        onReessayer={recharger}
+        enCours={chargement}
+      />
     ) : (
       <EnChargement libelle="Chargement de la charte visuelle…">
         <Squelette className="h-28 w-full rounded-xl" />

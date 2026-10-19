@@ -56,7 +56,8 @@ describe('Page Mon profil', () => {
         expertises: [{ systemeCatalogueId: 'c-api', detail: 'Expert facturation' }],
       }),
     );
-    expect(screen.getByLabelText(/Nom affiché/)).toHaveValue('Bob');
+    // La page apparaît d'un bloc, une fois le catalogue et l'état de la connexion unique lus.
+    expect(await screen.findByLabelText(/Nom affiché/)).toHaveValue('Bob');
     expect(screen.getByLabelText('Rôle')).toHaveValue('Développeur API');
     expect(screen.getByLabelText('Contact')).toHaveValue('06 11');
     expect(await screen.findByLabelText('Détail')).toHaveValue('Expert facturation');

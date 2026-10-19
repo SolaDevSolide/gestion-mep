@@ -20,6 +20,7 @@ import { useAsync } from '../hooks';
 import { comptesDuGroupe, filtrerParEquipe, groupeCorrespond, grouperParPersonne } from '../personnes';
 import type { CompteAvecMotDePasse, CompteSaisie, Equipe, Utilisateur } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { Checkbox } from '../ui/Checkbox';
@@ -289,7 +290,7 @@ type Action = { type: 'desactiver' | 'reactiver' | 'reinitialiser' | 'delier'; c
 export default function ComptesTab() {
   const { utilisateur: moi, majUtilisateur } = useAuth();
   const toast = useToast();
-  const { donnees, erreur, recharger } = useAsync(() => api.adminUtilisateurs(), []);
+  const { donnees, erreur, echec, chargement, recharger } = useAsync(() => api.adminUtilisateurs(), []);
   const { donnees: equipes } = useAsync(() => api.equipes(), []);
   const [recherche, setRecherche] = useState('');
   const [equipe, setEquipe] = useState('');
@@ -396,9 +397,12 @@ export default function ComptesTab() {
         </div>
         {erreur && (
           <div className="p-5">
-            <Alerte ton="danger" icone={OctagonAlert} role="alert">
-              {erreur}
-            </Alerte>
+            <ErreurChargement
+              erreur={echec}
+              titre="Impossible de charger les comptes"
+              onReessayer={recharger}
+              enCours={chargement}
+            />
           </div>
         )}
         {!erreur && donnees === null && (

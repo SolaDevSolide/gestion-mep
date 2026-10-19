@@ -1,10 +1,11 @@
-import { FileCog, OctagonAlert, RotateCcw, Save, TerminalSquare, TriangleAlert } from 'lucide-react';
+import { FileCog, RotateCcw, Save, TerminalSquare, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '../api';
 import { formatDateHeure } from '../format';
 import { useAsync } from '../hooks';
 import type { Reglage } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Input } from '../ui/Input';
@@ -175,7 +176,7 @@ function LigneReglage({
 export default function ReglagesServeur() {
   const installation = useInstallation();
   const docker = installation === 'docker';
-  const { donnees, erreur, setDonnees } = useAsync(() => api.reglages(), []);
+  const { donnees, erreur, echec, chargement, recharger, setDonnees } = useAsync(() => api.reglages(), []);
   const groupes = new Map<string, Reglage[]>();
   for (const r of donnees ?? []) groupes.set(r.groupe, [...(groupes.get(r.groupe) ?? []), r]);
   const remplacer = (maj: Reglage) => setDonnees((liste) => liste?.map((r) => (r.nom === maj.nom ? maj : r)) ?? null);
@@ -183,9 +184,12 @@ export default function ReglagesServeur() {
   return (
     <>
       {erreur && (
-        <Alerte ton="danger" icone={OctagonAlert} role="alert">
-          {erreur}
-        </Alerte>
+        <ErreurChargement
+          erreur={echec}
+          titre="Impossible de charger les réglages du serveur"
+          onReessayer={recharger}
+          enCours={chargement}
+        />
       )}
       {donnees === null && !erreur && (
         <EnChargement libelle="Chargement des réglages…" className="grid gap-6">

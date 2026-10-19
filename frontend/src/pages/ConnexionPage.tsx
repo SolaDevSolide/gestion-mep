@@ -6,6 +6,8 @@ import { useAuth } from '../auth';
 import { useAsync } from '../hooks';
 import type { CompteDemo } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { Apparition } from '../ui/Apparition';
+import { Squelette, SqueletteFormulaire } from '../ui/Squelette';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { Field, Input } from '../ui/Input';
@@ -98,6 +100,16 @@ function IconeMicrosoft() {
   );
 }
 
+/** Place réservée du formulaire (identifiant, mot de passe, bouton) pendant la lecture des options de connexion. */
+function SqueletteConnexion() {
+  return (
+    <div className="space-y-4">
+      <SqueletteFormulaire champs={2} />
+      <Squelette className="h-12 w-full rounded-xl" />
+    </div>
+  );
+}
+
 export default function ConnexionPage() {
   const { utilisateur, chargement, connecter, majUtilisateur } = useAuth();
   const navigate = useNavigate();
@@ -108,9 +120,14 @@ export default function ConnexionPage() {
   const [rapide, setRapide] = useState<string | null>(null);
   const [params] = useSearchParams();
   // Échec de chargement : simplement pas de bouton de connexion unique.
-  const { donnees: options } = useAsync(() => api.optionsConnexion(), []);
+  const optionsLues = useAsync(() => api.optionsConnexion(), []);
+  const options = optionsLues.donnees;
   // Hors mode démonstration (route absente) : null, aucune connexion rapide.
-  const { donnees: demo } = useAsync(() => api.demo(), []);
+  const demoLue = useAsync(() => api.demo(), []);
+  const demo = demoLue.donnees;
+  // Le formulaire apparaît une fois ces deux lectures faites : le bouton Microsoft et les comptes de démonstration ne
+  // décalent plus le formulaire en arrivant.
+  const optionsPretes = !optionsLues.chargement && !demoLue.chargement;
   const codeSso = params.get('erreur');
   const erreurSso = codeSso ? (ERREURS_SSO[codeSso] ?? ERREUR_SSO_INCONNUE) : '';
   const reinitialisee = params.get('demo') === 'reinitialisee';
@@ -194,79 +211,86 @@ export default function ConnexionPage() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Connexion</h1>
           <p className="mt-1 mb-6 text-sm text-fg-subtle">Identifiez-vous pour accéder aux mises en production.</p>
-          {erreurSso && (
-            <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mb-4">
-              {erreurSso}
-            </Alerte>
-          )}
-          {reinitialisee && (
-            <Alerte ton="ok" icone={CircleCheck} className="mb-4">
-              La démonstration a été réinitialisée : reconnectez-vous avec un compte de démonstration.
-            </Alerte>
-          )}
-          {demo && demo.comptes.length > 0 && (
-            <>
-              <ConnexionRapide
-                comptes={demo.comptes}
-                enCours={rapide}
-                desactive={rapide !== null || envoi}
-                onChoisir={(c) => void connexionRapide(c)}
-              />
-              <div className="my-5 flex items-center gap-3 text-xs text-fg-subtle" aria-hidden>
-                <span className="h-px flex-1 bg-line" /> ou avec un identifiant <span className="h-px flex-1 bg-line" />
-              </div>
-            </>
-          )}
-          {options?.ssoActif && (
-            <>
-              <Button
-                variante="secondaire"
-                taille="lg"
-                className="w-full"
-                icone={<IconeMicrosoft />}
-                onClick={() => window.location.assign('/api/auth/sso/connexion')}
-              >
-                {options.ssoLibelle || 'Se connecter avec Microsoft'}
-              </Button>
-              <div className="my-5 flex items-center gap-3 text-xs text-fg-subtle" aria-hidden>
-                <span className="h-px flex-1 bg-line" /> ou <span className="h-px flex-1 bg-line" />
-              </div>
-            </>
-          )}
-          <form onSubmit={(e) => void valider(e)} className="space-y-4">
-            <Field label="Identifiant">
-              {(id) => (
-                <Input
-                  id={id}
-                  value={login}
-                  onChange={(e) => setLogin(e.target.value)}
-                  autoComplete="username"
-                  autoFocus
-                  required
-                />
-              )}
-            </Field>
-            <Field label="Mot de passe">
-              {(id) => (
-                <Input
-                  id={id}
-                  type="password"
-                  value={mdp}
-                  onChange={(e) => setMdp(e.target.value)}
-                  autoComplete="current-password"
-                  required
-                />
-              )}
-            </Field>
-            {erreur && (
-              <Alerte ton="danger" icone={OctagonAlert} role="alert">
-                {erreur}
+          <Apparition
+            pret={optionsPretes}
+            libelle="Chargement des options de connexion…"
+            squelette={<SqueletteConnexion />}
+          >
+            {erreurSso && (
+              <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mb-4">
+                {erreurSso}
               </Alerte>
             )}
-            <Button type="submit" variante="primaire" taille="lg" className="w-full" chargement={envoi}>
-              Se connecter
-            </Button>
-          </form>
+            {reinitialisee && (
+              <Alerte ton="ok" icone={CircleCheck} className="mb-4">
+                La démonstration a été réinitialisée : reconnectez-vous avec un compte de démonstration.
+              </Alerte>
+            )}
+            {demo && demo.comptes.length > 0 && (
+              <>
+                <ConnexionRapide
+                  comptes={demo.comptes}
+                  enCours={rapide}
+                  desactive={rapide !== null || envoi}
+                  onChoisir={(c) => void connexionRapide(c)}
+                />
+                <div className="my-5 flex items-center gap-3 text-xs text-fg-subtle" aria-hidden>
+                  <span className="h-px flex-1 bg-line" /> ou avec un identifiant{' '}
+                  <span className="h-px flex-1 bg-line" />
+                </div>
+              </>
+            )}
+            {options?.ssoActif && (
+              <>
+                <Button
+                  variante="secondaire"
+                  taille="lg"
+                  className="w-full"
+                  icone={<IconeMicrosoft />}
+                  onClick={() => window.location.assign('/api/auth/sso/connexion')}
+                >
+                  {options.ssoLibelle || 'Se connecter avec Microsoft'}
+                </Button>
+                <div className="my-5 flex items-center gap-3 text-xs text-fg-subtle" aria-hidden>
+                  <span className="h-px flex-1 bg-line" /> ou <span className="h-px flex-1 bg-line" />
+                </div>
+              </>
+            )}
+            <form onSubmit={(e) => void valider(e)} className="space-y-4">
+              <Field label="Identifiant">
+                {(id) => (
+                  <Input
+                    id={id}
+                    value={login}
+                    onChange={(e) => setLogin(e.target.value)}
+                    autoComplete="username"
+                    autoFocus
+                    required
+                  />
+                )}
+              </Field>
+              <Field label="Mot de passe">
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="password"
+                    value={mdp}
+                    onChange={(e) => setMdp(e.target.value)}
+                    autoComplete="current-password"
+                    required
+                  />
+                )}
+              </Field>
+              {erreur && (
+                <Alerte ton="danger" icone={OctagonAlert} role="alert">
+                  {erreur}
+                </Alerte>
+              )}
+              <Button type="submit" variante="primaire" taille="lg" className="w-full" chargement={envoi}>
+                Se connecter
+              </Button>
+            </form>
+          </Apparition>
         </div>
       </main>
     </div>

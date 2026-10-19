@@ -16,6 +16,7 @@ import { formatDate, formatDateHeure, type Ton } from '../format';
 import { useAsync } from '../hooks';
 import type { InfosApplication, MiseAJour } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { ConfirmDialog } from '../ui/Dialog';
@@ -99,9 +100,12 @@ export default function VersionTab() {
   return (
     <div className="space-y-6">
       {erreur && (
-        <Alerte ton="danger" icone={TriangleAlert} role="alert">
-          {erreur}
-        </Alerte>
+        <ErreurChargement
+          erreur={chargees.echec}
+          titre="Impossible de lire la version installée"
+          onReessayer={chargees.recharger}
+          enCours={chargees.chargement}
+        />
       )}
       {!donnees && !erreur ? (
         <EnChargement libelle="Chargement de la version…">

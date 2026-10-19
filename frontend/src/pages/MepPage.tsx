@@ -1,4 +1,4 @@
-import { Flag, OctagonAlert, Siren } from 'lucide-react';
+import { Flag, Siren } from 'lucide-react';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
@@ -37,7 +37,7 @@ import {
 import { MepContext, type MepContextValue } from '../mepContext';
 import { nouvelleSession, PresenceProvider, type PresenceValeur } from '../presence';
 import type { Mep, Phase, Presence, Verrou } from '../types';
-import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { cn } from '../ui/cn';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
 import { SqueletteMep } from '../mep/SqueletteMep';
@@ -124,7 +124,7 @@ export default function MepPage() {
   const moi = useContext(AuthContext)?.utilisateur?.id ?? null;
   const [params, setParams] = useSearchParams();
   const [mep, setMep] = useState<Mep | null>(null);
-  const [erreurChargement, setErreurChargement] = useState('');
+  const [erreurChargement, setErreurChargement] = useState<unknown>(null);
   const [journalTick, setJournalTick] = useState(0);
   const [presences, setPresences] = useState<Presence[]>([]);
   const [verrous, setVerrous] = useState<Verrou[] | null>(null);
@@ -167,10 +167,10 @@ export default function MepPage() {
   const charger = useCallback(async () => {
     try {
       appliquer(await api.mep(id));
-      setErreurChargement('');
+      setErreurChargement(null);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) return;
-      setErreurChargement(e instanceof Error ? e.message : 'Chargement impossible.');
+      setErreurChargement(e);
     }
   }, [id, appliquer]);
 
@@ -320,12 +320,17 @@ export default function MepPage() {
     if (ancienne && mep) definirVue(lireVue(params, mep), true);
   }, [ancienne, mep, params, definirVue]);
 
-  if (erreurChargement && !mep) {
+  if (erreurChargement !== null && !mep) {
     return (
-      <main className="p-6">
-        <Alerte ton="danger" icone={OctagonAlert} role="alert">
-          {erreurChargement}
-        </Alerte>
+      <main>
+        <ErreurChargement
+          variante="page"
+          erreur={erreurChargement}
+          titre="Impossible d’ouvrir cette MEP"
+          introuvable="Cette MEP n’existe pas ou a été supprimée."
+          onReessayer={charger}
+          retour={{ libelle: 'Retour à la liste', vers: '/' }}
+        />
       </main>
     );
   }

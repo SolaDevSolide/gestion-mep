@@ -1,9 +1,9 @@
-import { ArrowRight, OctagonAlert, Save, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Save, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAsync } from '../hooks';
-import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Input } from '../ui/Input';
@@ -13,7 +13,7 @@ import ReglagesServeur from './ReglagesServeur';
 
 export default function ParametresTab() {
   const toast = useToast();
-  const { donnees, erreur, recharger } = useAsync(() => api.parametres(), []);
+  const { donnees, erreur, echec, chargement, recharger } = useAsync(() => api.parametres(), []);
   const [valeur, setValeur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
   const courant = valeur ?? String(donnees?.approbationsMinimum ?? 1);
@@ -38,9 +38,12 @@ export default function ParametresTab() {
   return (
     <div className="space-y-6">
       {erreur && (
-        <Alerte ton="danger" icone={OctagonAlert} role="alert">
-          {erreur}
-        </Alerte>
+        <ErreurChargement
+          erreur={echec}
+          titre="Impossible de charger les paramètres"
+          onReessayer={recharger}
+          enCours={chargement}
+        />
       )}
       <Card>
         <CardHeader

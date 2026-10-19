@@ -5,6 +5,7 @@ import { useAsync } from '../hooks';
 import { optionCompte } from '../personnes';
 import type { Equipe, Utilisateur } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { MultiSelect } from '../ui/Combobox';
@@ -116,7 +117,7 @@ function EquipeDialog({
 /** Onglet « Équipes » de la console : créer, modifier et supprimer les équipes, choisir leurs membres. */
 export default function EquipesTab() {
   const toast = useToast();
-  const { donnees: equipes, erreur, recharger } = useAsync(() => api.equipes(), []);
+  const { donnees: equipes, erreur, echec, chargement, recharger } = useAsync(() => api.equipes(), []);
   const { donnees: comptes } = useAsync(() => api.adminUtilisateurs(), []);
   const [dialogue, setDialogue] = useState<{ existante: Equipe | null } | null>(null);
   const [suppr, setSuppr] = useState<Equipe | null>(null);
@@ -156,9 +157,12 @@ export default function EquipesTab() {
         />
         {erreur && (
           <div className="p-5">
-            <Alerte ton="danger" icone={OctagonAlert} role="alert">
-              {erreur}
-            </Alerte>
+            <ErreurChargement
+              erreur={echec}
+              titre="Impossible de charger les équipes"
+              onReessayer={recharger}
+              enCours={chargement}
+            />
           </div>
         )}
         {!erreur && equipes === null && (
