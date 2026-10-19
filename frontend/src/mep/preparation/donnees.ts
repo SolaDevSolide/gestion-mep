@@ -1,7 +1,7 @@
 import { api } from '../../api';
 import { useDonneePartagee, useDonneesPartagees, useReferentiel } from '../../referentiels';
-import type { Mep, ObjetCatalogue } from '../../types';
-import { PAGE_JOURNAL } from '../journal';
+import type { Evenement, Mep, ObjetCatalogue } from '../../types';
+import { lireJournal } from '../journal';
 
 const PREFIXE_OBJETS = 'objets-catalogue:';
 
@@ -20,13 +20,13 @@ export function useObjetsCatalogue(mep: Pick<Mep, 'systemes'>) {
 }
 
 /**
- * Derniers événements du journal de la MEP (une page, de la famille `type` s'il y en a une), relus à chaque version
- * (approbations réinitialisées, derniers événements).
+ * Derniers événements du journal de la MEP (la première page, de la famille `type` s'il y en a une), lus une fois pour
+ * tout l'onglet ; à chaque version, seulement les événements plus récents que le dernier lu (#96).
  */
 export function useJournalMep(mep: Pick<Mep, 'id' | 'version'>, type = '') {
-  return useDonneePartagee(
+  return useDonneePartagee<Evenement[]>(
     `journal:${mep.id}:${type}`,
-    () => api.journal(mep.id, { type, limite: PAGE_JOURNAL }),
+    (precedent) => lireJournal(mep.id, type, precedent),
     mep.version,
   );
 }

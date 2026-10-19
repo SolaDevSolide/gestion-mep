@@ -37,9 +37,10 @@ function notifier() {
 
 /**
  * Lance la lecture de `cle`. Une lecture déjà en cours sert à tous ; `forcer` (donnée changée, « Réessayer ») en
- * relance une autre à sa fin.
+ * relance une autre à sa fin. `charger` reçoit la dernière réponse gardée (null avant la première) : une donnée lue par
+ * morceaux (le journal d'une MEP) n'en demande que la suite.
  */
-function demander(cle: string, charger: () => Promise<unknown>, forcer = false) {
+function demander<T>(cle: string, charger: (precedent: T | null) => Promise<T>, forcer = false) {
   let e = entrees.get(cle);
   if (!e) {
     e = { donnees: null, recue: false, erreur: null, enCours: false, relancer: false, recueLe: 0 };
@@ -55,7 +56,7 @@ function demander(cle: string, charger: () => Promise<unknown>, forcer = false) 
   notifier();
   let promesse: Promise<unknown>;
   try {
-    promesse = charger();
+    promesse = charger(courante.recue ? (courante.donnees as T) : null);
   } catch (err) {
     promesse = Promise.reject(err);
   }
@@ -119,7 +120,7 @@ export interface DonneePartagee<T> {
   recharger: () => void;
 }
 
-function etat<T>(cle: string, charger: () => Promise<T>): DonneePartagee<T> {
+function etat<T>(cle: string, charger: (precedent: T | null) => Promise<T>): DonneePartagee<T> {
   const e = entrees.get(cle);
   const recue = e?.recue ?? false;
   return {
@@ -131,7 +132,7 @@ function etat<T>(cle: string, charger: () => Promise<T>): DonneePartagee<T> {
   };
 }
 
-function useAbonnement(cles: string[], charger: (cle: string) => Promise<unknown>) {
+function useAbonnement<T>(cles: string[], charger: (cle: string, precedent: T | null) => Promise<T>) {
   useSyncExternalStore(abonner, lireVersion, lireVersion);
   const liste = cles.join('\n');
   useEffect(() => {
@@ -143,7 +144,7 @@ function useAbonnement(cles: string[], charger: (cle: string) => Promise<unknown
       // tous.
       const e = entrees.get(c);
       const lue = !!e && (e.recue || e.erreur !== null);
-      if (!lue || Date.now() - e.recueLe > FRAICHEUR_MS) demander(c, () => charger(c));
+      if (!lue || Date.now() - e.recueLe > FRAICHEUR_MS) demander<T>(c, (p) => charger(c, p));
     }
     return () => {
       for (const c of actives) {
@@ -160,15 +161,16 @@ function useAbonnement(cles: string[], charger: (cle: string) => Promise<unknown
 }
 
 /**
- * Donnée partagée identifiée par `cle` (null : rien à charger, `pret` vrai). `charger` ne doit dépendre que de la clé. `relire` :
- * valeur qui, en changeant, relit la donnée (la version d'une MEP pour son journal).
+ * Donnée partagée identifiée par `cle` (null : rien à charger, `pret` vrai). `charger` ne doit dépendre que de la clé ; il
+ * reçoit la dernière réponse gardée (null avant la première). `relire` : valeur qui, en changeant, relit la donnée (la
+ * version d'une MEP pour son journal).
  */
 export function useDonneePartagee<T>(
   cle: string | null,
-  charger: () => Promise<T>,
+  charger: (precedent: T | null) => Promise<T>,
   relire?: unknown,
 ): DonneePartagee<T> {
-  useAbonnement(cle ? [cle] : [], () => charger());
+  useAbonnement<T>(cle ? [cle] : [], (_c, p) => charger(p));
   // Relecture quand `relire` change, une fois pour tous les composants (pas au premier montage : l'abonnement vient de
   // lancer la lecture).
   useEffect(() => {

@@ -7,6 +7,21 @@ export const PAGE_JOURNAL = 100;
 /** Nouveaux événements lus d'un coup après une modification ; s'il y en a autant, la première page est relue. */
 const MAX_NOUVEAUX = 500;
 
+/**
+ * Lecture par morceaux d'un journal gardé ailleurs (données partagées, `useJournalMep`) : sans `precedent`, la première
+ * page de la famille `type` ; sinon seulement les événements plus récents que le dernier lu, ajoutés en tête (la
+ * première page est relue s'il y en a trop d'un coup).
+ */
+export async function lireJournal(mepId: string, type: string, precedent: Evenement[] | null): Promise<Evenement[]> {
+  const premiere = () => api.journal(mepId, { type, limite: PAGE_JOURNAL });
+  if (precedent === null) return premiere();
+  const dernier = precedent[0]?.id ?? 0;
+  const nouveaux = await api.journal(mepId, { type, apres: dernier, limite: MAX_NOUVEAUX }, true);
+  if (nouveaux.length >= MAX_NOUVEAUX) return premiere();
+  const plusRecents = nouveaux.filter((n) => n.id > dernier);
+  return plusRecents.length > 0 ? [...plusRecents, ...precedent] : precedent;
+}
+
 export interface FiltreJournalLu {
   /** Famille d'événements (`familleEvenement`), « tous » ou vide : toutes. */
   type?: string;

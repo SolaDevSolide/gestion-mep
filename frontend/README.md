@@ -74,7 +74,7 @@ await run(() => api.demarrerEtape(mep.id, etape.id, etape.revision), 'Étape dé
 
 ### Chargements et erreurs
 
-- Listes communes : `useReferentiel('catalogue' | 'resolutions' | 'comptes' | 'equipes')` et `useDonneePartagee(cle, charger)` (`referentiels.ts`) lisent une clé une seule fois pour toute la page et renvoient `{ donnees, erreur, pret, enCours, recharger }`. Ne jamais remplacer une erreur par une liste vide (`.catch(() => [])`) : « Aucun… » ne s'affiche que sur une réponse vide.
+- Listes communes : `useReferentiel('catalogue' | 'resolutions' | 'comptes' | 'equipes')` et `useDonneePartagee(cle, charger)` (`referentiels.ts`) lisent une clé une seule fois pour toute la page et renvoient `{ donnees, erreur, pret, enCours, recharger }` ; `charger` reçoit la dernière réponse gardée, pour ne lire que la suite d'une donnée lue par morceaux (journal d'une MEP : `useJournalMep`). Ne jamais remplacer une erreur par une liste vide (`.catch(() => [])`) : « Aucun… » ne s'affiche que sur une réponse vide.
 - `useAsync` expose `echec` (l'erreur reçue) en plus du message `erreur`.
 - `ui/ErreurChargement.tsx` affiche l'erreur (`variante` `bloc`, `ligne` ou `page`), sa cause, « Réessayer » (`onReessayer`, `enCours`) et, pour un administrateur, les détails techniques. Un 401 n'affiche rien : la reconnexion s'en charge.
 - Un écran qui dépend de plusieurs listes montre un seul squelette puis tout d'un coup (`ui/Apparition.tsx`), comme l'onglet Préparation (`usePreparation`).
