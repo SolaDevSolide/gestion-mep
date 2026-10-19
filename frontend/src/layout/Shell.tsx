@@ -34,6 +34,7 @@ import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } fr
 import { Tooltip } from '../ui/Tooltip';
 import { EnChargement, Squelette, SqueletteLignes } from '../ui/Squelette';
 import { ActiviteReseau } from '../ui/ActiviteReseau';
+import { leverRepliTemporaire, useMenuReplieTemporaire } from './menuLateral';
 import { PaletteCommandes } from './PaletteCommandes';
 
 const THEMES: { id: PreferenceTheme; libelle: string; Icone: typeof Sun }[] = [
@@ -87,10 +88,13 @@ function Lien({
 export function Shell() {
   const { utilisateur, deconnecter } = useAuth();
   const { preference, sombre, definir, basculer } = useTheme();
-  const [replie, setReplie] = useLocalStorageState(
+  const [prefereReplie, setReplie] = useLocalStorageState(
     'mep.menu.replie',
     typeof window !== 'undefined' && window.innerWidth < 1100,
   );
+  // Replié aussi le temps qu'un écran a besoin de la largeur (étape ouverte en tiroir sur un écran étroit).
+  const replieTemporaire = useMenuReplieTemporaire();
+  const replie = prefereReplie || replieTemporaire;
   const [palette, setPalette] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -268,7 +272,10 @@ export function Shell() {
           </div>
           <button
             type="button"
-            onClick={() => setReplie(!replie)}
+            onClick={() => {
+              setReplie(!replie);
+              if (replie && replieTemporaire) leverRepliTemporaire();
+            }}
             className="mt-2 flex h-8 w-full items-center justify-center gap-2 rounded-lg text-xs text-nav-subtle transition-colors duration-150 hover:bg-nav-hover hover:text-nav-fg"
             aria-label={replie ? 'Déplier le menu' : 'Replier le menu'}
           >
