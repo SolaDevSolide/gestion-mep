@@ -162,7 +162,7 @@ export function ApprobationsBloc() {
   return (
     <div className="border-t border-line pt-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-[13px] font-semibold">
+        <h3 className="flex items-center gap-2 text-ui font-semibold">
           <UserCheck className="size-4 text-accent-text" aria-hidden />
           Approbations
         </h3>

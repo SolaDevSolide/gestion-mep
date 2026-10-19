@@ -18,7 +18,7 @@ const TAILLES: Record<TailleInterne, string> = {
   'ic-sm': 'size-8 rounded-md',
   'ic-md': 'size-9 rounded-lg',
   'ic-lg': 'size-12 rounded-xl',
-  sm: 'h-8 px-2.5 text-[13px] gap-1.5 rounded-md',
+  sm: 'h-8 px-2.5 text-ui gap-1.5 rounded-md',
   md: 'h-9 px-3.5 text-sm gap-2 rounded-lg',
   lg: 'h-12 px-5 text-base gap-2.5 rounded-xl font-semibold',
 };

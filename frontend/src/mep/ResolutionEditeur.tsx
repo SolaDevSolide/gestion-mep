@@ -72,7 +72,7 @@ export function saisieResolution(b: BrouillonResolution): Omit<ResolutionTypeSai
 }
 
 const Intertitre = ({ children }: { children: React.ReactNode }) => (
-  <h3 className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">{children}</h3>
+  <h3 className="text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">{children}</h3>
 );
 
 /** Champs d'une résolution type : titre, système, symptômes, diagnostic, corrections ordonnées, vérification finale. */
@@ -116,7 +116,7 @@ export function FormulaireResolution({
         )}
       </Field>
       <fieldset className="grid gap-1.5">
-        <legend className="mb-1.5 text-[13px] font-medium">
+        <legend className="mb-1.5 text-ui font-medium">
           Systèmes <span className="font-normal text-fg-subtle">(aucun = tous)</span>
         </legend>
         {erreurSystemes ? (
@@ -147,7 +147,7 @@ export function FormulaireResolution({
                       })
                     }
                     className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-[13px] font-semibold',
+                      'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-ui font-semibold',
                       !actif && 'border-line-strong text-fg-subtle hover:text-fg',
                     )}
                     style={actif ? styleSysteme(s.nom) : undefined}
@@ -173,7 +173,7 @@ export function FormulaireResolution({
             />
             {b.symptomes.trim() && (
               <div className="rounded-md border border-dashed border-line px-2 py-1.5">
-                <p className="mb-0.5 text-[10px] font-semibold tracking-wide text-fg-subtle uppercase">Aperçu</p>
+                <p className="mb-0.5 text-2xs font-semibold tracking-wide text-fg-subtle uppercase">Aperçu</p>
                 <Markdown source={b.symptomes} />
               </div>
             )}
@@ -285,7 +285,7 @@ export function ApercuResolution({ b, systemes }: { b: BrouillonResolution; syst
         {choisis.length ? (
           choisis.map((s) => <PuceSysteme key={s.id} nom={s.nom} />)
         ) : (
-          <span className="text-[13px] text-fg-subtle">Tous les systèmes</span>
+          <span className="text-ui text-fg-subtle">Tous les systèmes</span>
         )}
       </div>
       <Markdown source={`**Symptômes** : ${b.symptomes.trim() || '_à compléter_'}`} />
@@ -299,15 +299,15 @@ export function ApercuResolution({ b, systemes }: { b: BrouillonResolution; syst
       <ol className="grid gap-2">
         {b.corrections.map((c, i) => (
           <li key={c.cle} className="grid gap-1.5 rounded-lg border border-line p-2.5">
-            <p className="text-[13px] font-semibold">Correction {i + 1}</p>
+            <p className="text-ui font-semibold">Correction {i + 1}</p>
             <Instructions source={c.instruction} vide="À compléter." />
-            <p className="text-[13px] text-fg-subtle">Attendu : {c.resultatAttendu.trim() || '…'}</p>
+            <p className="text-ui text-fg-subtle">Attendu : {c.resultatAttendu.trim() || '…'}</p>
           </li>
         ))}
         <li className="grid gap-1.5 rounded-lg border border-ok-bd p-2.5">
-          <p className="text-[13px] font-semibold">Vérification finale</p>
+          <p className="text-ui font-semibold">Vérification finale</p>
           <Instructions source={b.verificationInstruction} vide="À compléter." />
-          <p className="text-[13px] text-fg-subtle">Attendu : {b.verificationAttendu.trim() || '…'}</p>
+          <p className="text-ui text-fg-subtle">Attendu : {b.verificationAttendu.trim() || '…'}</p>
         </li>
       </ol>
     </div>

@@ -126,7 +126,7 @@ export function Shell() {
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-fg shadow-sm">
             <Rocket className="size-[18px]" aria-hidden />
           </span>
-          {!replie && <span className="text-[15px] font-semibold tracking-tight">Gestion MEP</span>}
+          {!replie && <span className="text-md font-semibold tracking-tight">Gestion MEP</span>}
         </div>
 
         <div className="px-3">
@@ -154,7 +154,7 @@ export function Shell() {
           <Lien to="/suivi" icone={Activity} libelle="Suivi en direct" replie={replie} />
           <div
             className={cn(
-              'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-nav-subtle uppercase',
+              'mt-5 mb-1.5 px-2.5 text-2xs font-semibold tracking-wider text-nav-subtle uppercase',
               replie && 'text-center px-0',
             )}
           >
@@ -170,7 +170,7 @@ export function Shell() {
             <>
               <div
                 className={cn(
-                  'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-nav-subtle uppercase',
+                  'mt-5 mb-1.5 px-2.5 text-2xs font-semibold tracking-wider text-nav-subtle uppercase',
                   replie && 'text-center px-0',
                 )}
               >
@@ -191,7 +191,7 @@ export function Shell() {
           )}
           <div
             className={cn(
-              'mt-5 mb-1.5 px-2.5 text-[11px] font-semibold tracking-wider text-nav-subtle uppercase',
+              'mt-5 mb-1.5 px-2.5 text-2xs font-semibold tracking-wider text-nav-subtle uppercase',
               replie && 'text-center px-0',
             )}
           >

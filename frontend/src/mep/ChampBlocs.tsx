@@ -20,7 +20,7 @@ export function ChampBlocs({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-[13px] font-medium text-fg" aria-hidden>
+      <span className="text-ui font-medium text-fg" aria-hidden>
         {label}
       </span>
       <EditeurBlocs label={label} valeur={valeur} onChange={onChange} disabled={disabled} />

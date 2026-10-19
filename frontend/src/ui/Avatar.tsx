@@ -47,8 +47,8 @@ export function Avatar({
       title={titre ?? (n || undefined)}
       className={cn(
         'inline-flex shrink-0 items-center justify-center rounded-full font-semibold select-none',
-        taille === 'xs' && 'size-5 text-[9px]',
-        taille === 'sm' && 'size-6 text-[10px]',
+        taille === 'xs' && 'size-5 text-2xs',
+        taille === 'sm' && 'size-6 text-2xs',
         taille === 'md' && 'size-8 text-xs',
         taille === 'lg' && 'size-10 text-sm',
         !n && 'bg-fg-subtle text-surface',

@@ -98,7 +98,7 @@ const TYPES_MEP: { valeur: TypeMep; libelle: string; Icone: typeof Rocket; descr
 function ChoixType({ valeur, onChange }: { valeur: TypeMep; onChange: (t: TypeMep) => void }) {
   return (
     <fieldset>
-      <legend className="mb-1.5 text-[13px] font-medium">Type de MEP</legend>
+      <legend className="mb-1.5 text-ui font-medium">Type de MEP</legend>
       <div className="grid gap-2 sm:grid-cols-2">
         {TYPES_MEP.map((t) => {
           const actif = valeur === t.valeur;
@@ -579,7 +579,7 @@ export default function ListeMepPage() {
                         {!estSimplifiee(m) && m.versionCible.trim() && (
                           <>
                             <ArrowRight className="size-4 shrink-0 text-fg-subtle" aria-hidden />
-                            <span className="font-mono text-[15px] font-semibold">{m.versionCible}</span>
+                            <span className="font-mono text-md font-semibold">{m.versionCible}</span>
                           </>
                         )}
                       </h2>
@@ -601,7 +601,7 @@ export default function ListeMepPage() {
                           <span className="sr-only"> : la MEP touche un environnement de production</span>
                         </Badge>
                       )}
-                      {estSimplifiee(m) && <BadgeSimplifiee className="text-[11px]" />}
+                      {estSimplifiee(m) && <BadgeSimplifiee className="text-2xs" />}
                     </div>
                     {m.objet && (
                       <p className={cn('mt-1 line-clamp-1 text-sm', annulee ? 'text-fg-subtle' : 'text-fg-muted')}>

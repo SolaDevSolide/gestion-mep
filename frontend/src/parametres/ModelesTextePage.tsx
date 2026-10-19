@@ -34,7 +34,7 @@ export function AvecVariables({ texte }: { texte: string }) {
     <>
       {texte.split(/(\{\{\s*[a-z0-9_]+\s*\}\})/).map((s, i) =>
         s.startsWith('{{') ? (
-          <code key={i} className="rounded bg-accent-soft px-1 font-mono text-[12px] text-accent-text">
+          <code key={i} className="rounded bg-accent-soft px-1 font-mono text-xs text-accent-text">
             {s.slice(2, -2).trim()}
           </code>
         ) : (
@@ -263,14 +263,14 @@ export default function ModelesTextePage() {
             </div>
             <dl className="grid flex-[2] basis-96 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-[13px] text-fg-subtle">
-                  Contact support <code className="font-mono text-[12px]">contact_support</code>
+                <dt className="text-ui text-fg-subtle">
+                  Contact support <code className="font-mono text-xs">contact_support</code>
                 </dt>
                 <dd>{equipe.contactSupport || <span className="text-warn-fg">Non renseigné</span>}</dd>
               </div>
               <div>
-                <dt className="text-[13px] text-fg-subtle">
-                  Signature <code className="font-mono text-[12px]">signature</code>
+                <dt className="text-ui text-fg-subtle">
+                  Signature <code className="font-mono text-xs">signature</code>
                 </dt>
                 <dd className="whitespace-pre-line">{equipe.signature || `L’équipe ${equipe.nom}`}</dd>
               </div>

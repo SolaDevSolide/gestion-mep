@@ -66,7 +66,7 @@ export function BandeauDemo({
     <>
       <output
         aria-label="Mode démonstration"
-        className="sticky top-0 z-40 flex h-9 items-center justify-center gap-2 border-b border-warn-bd bg-warn-bg px-3 text-[13px] text-warn-fg print:hidden"
+        className="sticky top-0 z-40 flex h-9 items-center justify-center gap-2 border-b border-warn-bd bg-warn-bg px-3 text-ui text-warn-fg print:hidden"
       >
         <FlaskConical className="size-4 shrink-0" aria-hidden />
         <p className="min-w-0 truncate">

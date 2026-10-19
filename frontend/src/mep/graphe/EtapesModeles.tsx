@@ -138,7 +138,7 @@ export function modelesFrequents(mep: Pick<Mep, 'systemes'>, modeles: ModeleEtap
 }
 
 const STYLE_BOUTON =
-  'inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-semibold text-fg-muted hover:bg-surface-2 hover:text-fg data-[state=open]:bg-accent-soft data-[state=open]:text-accent-text';
+  'inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-ui font-semibold text-fg-muted hover:bg-surface-2 hover:text-fg data-[state=open]:bg-accent-soft data-[state=open]:text-accent-text';
 
 /**
  * Deux boutons accolés en haut à gauche du graphe : « Étape modèle » (les 5 plus utilisées pour les systèmes de la
@@ -179,7 +179,7 @@ export function BoutonsEtapesModeles({
         <MenuContent align="start" className="w-[26rem] max-w-[calc(100vw-2rem)]">
           <MenuLabel>Les plus utilisées · systèmes de la MEP</MenuLabel>
           {frequentes.length === 0 && (
-            <p className="px-2 py-1.5 text-[13px] text-fg-subtle">
+            <p className="px-2 py-1.5 text-ui text-fg-subtle">
               {parmi.length === 0
                 ? 'Ajoutez à la MEP un système du catalogue pour voir ses étapes modèles.'
                 : 'Aucune étape modèle pour les systèmes de la MEP.'}
@@ -302,7 +302,7 @@ export function ParcourirDialog({
       taille="xl"
       pied={
         <>
-          <p className="mr-auto flex items-center gap-1.5 text-[13px] text-fg-muted">
+          <p className="mr-auto flex items-center gap-1.5 text-ui text-fg-muted">
             <Hand className="size-4 text-fg-subtle" aria-hidden />
             {destination
               ? `La copie est posée ${destination}.`
@@ -386,7 +386,7 @@ export function ParcourirDialog({
             />
           )}
           {portee === 'mep' && proposes.length > visibles.length && (
-            <p className="mt-3 text-[13px] text-fg-subtle">
+            <p className="mt-3 text-ui text-fg-subtle">
               Autres systèmes du catalogue :{' '}
               {trierAlpha(proposes.filter((s) => !parmiMep.includes(s.id)))
                 .map((s) => s.nom)
@@ -452,7 +452,7 @@ export function ParcourirDialog({
                     <span className="flex items-center gap-1.5 text-xs text-fg-muted">
                       {(!systeme || x.systemeCatalogueIds.length > 1) &&
                         x.systemeCatalogueIds.map((s) => (
-                          <PuceSysteme key={s} nom={nomDe(s)} className="px-1.5 py-0 text-[11px]" />
+                          <PuceSysteme key={s} nom={nomDe(s)} className="px-1.5 py-0 text-2xs" />
                         ))}
                       <span className="min-w-0 flex-1 truncate">
                         {libelleType(x.type)}
@@ -650,7 +650,7 @@ export function TransformerDialog({
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <p className="text-xs font-semibold tracking-wider text-fg-subtle uppercase">Repris dans le modèle</p>
-            <ul className="mt-1.5 grid gap-1 text-[13px]">
+            <ul className="mt-1.5 grid gap-1 text-ui">
               {repris.map((r) => (
                 <li key={r} className="flex items-start gap-1.5">
                   <Check className="mt-0.5 size-3.5 shrink-0 text-ok-solid" aria-hidden />
@@ -661,7 +661,7 @@ export function TransformerDialog({
           </div>
           <div>
             <p className="text-xs font-semibold tracking-wider text-fg-subtle uppercase">Non repris</p>
-            <ul className="mt-1.5 grid gap-1 text-[13px] text-fg-muted">
+            <ul className="mt-1.5 grid gap-1 text-ui text-fg-muted">
               {nonRepris.map((r) => (
                 <li key={r} className="flex items-start gap-1.5">
                   <X className="mt-0.5 size-3.5 shrink-0 text-fg-subtle" aria-hidden />

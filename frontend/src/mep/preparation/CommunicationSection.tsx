@@ -100,7 +100,7 @@ export function CommunicationSection() {
             )}
           </Field>
           <div className="flex min-w-0 flex-col gap-1.5">
-            <span className="text-[13px] font-medium">Niveau de risque (analyse d’impact)</span>
+            <span className="text-ui font-medium">Niveau de risque (analyse d’impact)</span>
             <Segmented<NiveauRisque>
               label="Niveau de risque"
               valeur={v.niveauRisque}

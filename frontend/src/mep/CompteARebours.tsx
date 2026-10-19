@@ -25,7 +25,7 @@ export function CompteARebours({
   if (c.niveau === 'aucun') {
     return (
       <div className={cn('rounded-lg border border-warn-bd bg-warn-bg px-3 py-1 text-warn-fg', className)}>
-        <p className="text-[11px] font-semibold tracking-wide uppercase">Retour arrière</p>
+        <p className="text-2xs font-semibold tracking-wide uppercase">Retour arrière</p>
         <p className="text-sm font-semibold">Échéance à renseigner</p>
       </div>
     );
@@ -62,7 +62,7 @@ export function CompteARebours({
     >
       <p
         className={cn(
-          'flex items-center gap-1.5 text-[10px] font-semibold tracking-wide uppercase',
+          'flex items-center gap-1.5 text-2xs font-semibold tracking-wide uppercase',
           !attention && 'text-fg-subtle',
         )}
       >

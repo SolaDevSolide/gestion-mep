@@ -49,7 +49,7 @@ export function CodeBlock({ code, titre, className, hauteurMax = 'max-h-72' }: P
   return (
     <div className={cn('overflow-hidden rounded-lg border border-line bg-code-bg', className)}>
       <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-1.5">
-        <span className="text-[11px] font-medium tracking-wide text-fg-subtle uppercase">{titre ?? 'Commande'}</span>
+        <span className="text-2xs font-medium tracking-wide text-fg-subtle uppercase">{titre ?? 'Commande'}</span>
         <Button
           taille="sm"
           variante="fantome"
@@ -65,7 +65,7 @@ export function CodeBlock({ code, titre, className, hauteurMax = 'max-h-72' }: P
       </div>
       <pre
         className={cn(
-          'overflow-auto px-3 py-2.5 font-mono text-[13px] leading-relaxed whitespace-pre text-code-fg',
+          'overflow-auto px-3 py-2.5 font-mono text-ui leading-relaxed whitespace-pre text-code-fg',
           hauteurMax,
         )}
         tabIndex={0}

@@ -175,6 +175,11 @@
 @theme inline {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Échelle des tailles de texte (aucune sous 11 px) : text-2xs 11, text-xs 12, text-ui 13, text-sm 14, text-md 15,
+     text-base 16, text-lg 18, text-xl 20, text-2xl 24. Les trois tailles ajoutées gardent la hauteur de ligne héritée. */
+  --text-2xs: 0.6875rem;
+  --text-ui: 0.8125rem;
+  --text-md: 0.9375rem;
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);

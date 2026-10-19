@@ -33,7 +33,7 @@ export function BilanCarte({ bilan, mepId, echec }: { bilan: Bilan; mepId?: stri
           mepId && (
             <Link
               to={`/meps/${mepId}/rapport`}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-[13px] font-medium shadow-sm hover:bg-surface-2"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-ui font-medium shadow-sm hover:bg-surface-2"
             >
               <FileText className="size-4" aria-hidden />
               Rapport de fin

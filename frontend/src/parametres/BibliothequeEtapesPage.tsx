@@ -87,7 +87,7 @@ function CarteModele({
           )}
         </div>
       </div>
-      <p className="mt-3 truncate font-mono text-[13px] text-fg-muted">
+      <p className="mt-3 truncate font-mono text-ui text-fg-muted">
         {premiereLigne(m.instructions) || 'Instructions à compléter'}
       </p>
       {m.resultatAttendu && (

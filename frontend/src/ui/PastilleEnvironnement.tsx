@@ -23,7 +23,7 @@ export function PastilleEnvironnement({
     <span
       title={retire ? `${nom} : n’est plus choisi pour ce système (Préparation › Systèmes)` : nom}
       className={cn(
-        'inline-flex items-center rounded-md border px-1.5 text-[11px] leading-4 font-medium whitespace-nowrap',
+        'inline-flex items-center rounded-md border px-1.5 text-2xs leading-4 font-medium whitespace-nowrap',
         retire
           ? cn(TON.danger.pastille, 'line-through')
           : production

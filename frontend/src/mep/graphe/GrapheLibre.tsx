@@ -1594,7 +1594,7 @@ function ApercuDepot({ fantome }: { fantome: Fantome }) {
       </svg>
       <div
         aria-hidden
-        className="pointer-events-none absolute z-30 grid place-content-center rounded-lg border-2 border-dashed border-accent bg-accent-soft/70 text-[12px] font-semibold text-accent-text"
+        className="pointer-events-none absolute z-30 grid place-content-center rounded-lg border-2 border-dashed border-accent bg-accent-soft/70 text-xs font-semibold text-accent-text"
         style={{ left: b.x, top: b.y, width: b.largeur, height: b.hauteur }}
       >
         {fantome.libelle}

@@ -95,7 +95,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
               )}
               {estSimplifiee(mep) && <BadgeSimplifiee />}
             </div>
-            <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 pl-8 text-[13px] text-fg-muted">
+            <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 pl-8 text-ui text-fg-muted">
               {mep.objet && <span className="max-w-md truncate">{mep.objet}</span>}
               {!mep.estModele && (
                 <span className="inline-flex items-center gap-1.5">
@@ -111,7 +111,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                   <Avatar nom={pilote} taille="xs" />
                   Pilote : {pilote}
                   {mep.pilotageSecours && estApresGoEnCours(mep) && (
-                    <Badge ton="warn" className="text-[11px]">
+                    <Badge ton="warn" className="text-2xs">
                       secours
                     </Badge>
                   )}

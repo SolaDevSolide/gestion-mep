@@ -75,7 +75,7 @@ export function MarquePresence({
       <span
         role="status"
         className={cn(
-          'pointer-events-none absolute -top-3 left-2 z-[4] inline-flex max-w-[calc(100%-1rem)] items-center gap-1 truncate rounded-full px-2 py-0.5 text-[11px] leading-none font-semibold shadow-sm',
+          'pointer-events-none absolute -top-3 left-2 z-[4] inline-flex max-w-[calc(100%-1rem)] items-center gap-1 truncate rounded-full px-2 py-0.5 text-2xs leading-none font-semibold shadow-sm',
           etiquette,
         )}
         style={stylePersonne(editeurs[0].nom)}
@@ -155,7 +155,7 @@ export function PresentsMep() {
           />
         ))}
         {autres.length > visibles.length && (
-          <span className="inline-flex size-6 items-center justify-center rounded-full bg-surface-2 text-[10px] font-semibold text-fg-muted ring-2 ring-surface">
+          <span className="inline-flex size-6 items-center justify-center rounded-full bg-surface-2 text-2xs font-semibold text-fg-muted ring-2 ring-surface">
             +{autres.length - visibles.length}
           </span>
         )}

@@ -214,7 +214,7 @@ function BlocTexte({
         <div className="grid gap-2 lg:grid-cols-2">
           {saisie}
           <div>
-            <p className="mb-1 text-[10px] font-semibold tracking-wide text-fg-subtle uppercase">Aperçu</p>
+            <p className="mb-1 text-2xs font-semibold tracking-wide text-fg-subtle uppercase">Aperçu</p>
             {apercu}
           </div>
         </div>
@@ -272,9 +272,9 @@ function BlocCode({
         onChange={(e) => onContenu(e.target.value)}
         onKeyDown={clavier}
         placeholder="Collez la commande exacte… ex. cd /opt/commandes && ./deploy.sh 2.4.0"
-        className="overflow-x-auto border border-[#2b3340] bg-[#11161d] font-mono text-[13px] whitespace-pre text-[#e6edf3] placeholder:text-[#8b97a6]"
+        className="overflow-x-auto border border-[#2b3340] bg-[#11161d] font-mono text-ui whitespace-pre text-[#e6edf3] placeholder:text-[#8b97a6]"
       />
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-fg-subtle">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-2xs text-fg-subtle">
         <span title="Tab insère deux espaces ; Échap puis Tab pour sortir de la zone.">Copiable en exécution</span>
         {!disabled && (
           <input
@@ -282,7 +282,7 @@ function BlocCode({
             value={bloc.langage ?? ''}
             onChange={(e) => onLangage(e.target.value.replace(/[`\s]/g, ''))}
             placeholder="langage (ex. bash)"
-            className="h-6 w-36 rounded border border-line bg-surface px-1.5 font-mono text-[11px] text-fg"
+            className="h-6 w-36 rounded border border-line bg-surface px-1.5 font-mono text-2xs text-fg"
           />
         )}
       </div>
@@ -373,7 +373,7 @@ export function EditeurBlocs({
             >
               <header className="flex flex-wrap items-center gap-2">
                 <span
-                  className="inline-flex size-6 items-center justify-center rounded-md bg-surface-2 font-mono text-[11px] font-bold text-fg-muted"
+                  className="inline-flex size-6 items-center justify-center rounded-md bg-surface-2 font-mono text-2xs font-bold text-fg-muted"
                   aria-hidden
                 >
                   {i + 1}

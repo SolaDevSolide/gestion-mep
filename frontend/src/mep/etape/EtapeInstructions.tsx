@@ -22,7 +22,7 @@ function InstructionsEtape({ etape }: { etape: Etape }) {
       </Bloc>
       {etape.resultatAttendu.trim() && (
         <section className="rounded-lg border border-ok-bd bg-ok-bg px-3.5 py-3 text-ok-fg">
-          <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] uppercase">
+          <h3 className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] uppercase">
             <Check className="size-3.5" aria-hidden />
             Résultat attendu · {LIBELLE_FIN[etape.fin]}
           </h3>
@@ -101,14 +101,14 @@ function ResolutionsProposees({
       </h3>
       {groupes ? (
         <>
-          <p className="mb-3 text-[13px] text-fg-muted">
+          <p className="mb-3 text-ui text-fg-muted">
             MEP simplifiée : toutes les résolutions types des systèmes de l’étape sont proposées ({liees.length}).
             Choisissez celle qui correspond au problème constaté.
           </p>
           <div className="grid gap-4">
             {groupes.map((g) => (
               <section key={g.systeme ?? ''} aria-label={g.systeme ?? 'Tous les systèmes'}>
-                <h4 className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+                <h4 className="mb-1.5 flex items-center gap-2 text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">
                   {g.systeme && (
                     <i className="size-2 rounded-full" style={{ background: couleurSysteme(g.systeme) }} aria-hidden />
                   )}

@@ -143,7 +143,7 @@ export function SelecteurResolutions({
   return (
     <div className="grid gap-2">
       {liees.length === 0 ? (
-        <p className="text-[13px] text-fg-subtle">Aucune résolution liée.</p>
+        <p className="text-ui text-fg-subtle">Aucune résolution liée.</p>
       ) : (
         <ul className="flex flex-wrap gap-1.5" aria-label="Résolutions liées">
           {liees.map((rid) => {
@@ -151,7 +151,7 @@ export function SelecteurResolutions({
             return (
               <li
                 key={rid}
-                className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-accent bg-accent-soft py-0.5 pr-1 pl-2.5 text-[13px] font-medium text-accent-text"
+                className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-accent bg-accent-soft py-0.5 pr-1 pl-2.5 text-ui font-medium text-accent-text"
               >
                 <Wrench className="size-3.5 shrink-0" aria-hidden />
                 <span className="truncate">{r?.titre ?? 'Résolution inactive'}</span>
@@ -255,14 +255,14 @@ export function SelecteurResolutions({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => lier(r)}
                   className={cn(
-                    'cursor-pointer rounded-md border px-2 py-1 text-[13px]',
+                    'cursor-pointer rounded-md border px-2 py-1 text-ui',
                     i === index ? 'border-accent bg-accent-soft' : 'border-transparent hover:bg-surface-2',
                   )}
                 >
                   <span className="block font-medium">
                     <Surligne texte={r.titre} ts={ts} />
                   </span>
-                  <span className="flex flex-wrap items-center gap-1 text-[11px] text-fg-subtle">
+                  <span className="flex flex-wrap items-center gap-1 text-2xs text-fg-subtle">
                     {noms(r).join(' · ')}
                     {meme && (
                       <span className="rounded border border-accent px-1 font-semibold text-accent-text">
@@ -273,7 +273,7 @@ export function SelecteurResolutions({
                 </li>
               );
             })}
-            {resultats.length === 0 && <li className="px-2 py-1 text-[13px] text-fg-subtle">Aucun résultat.</li>}
+            {resultats.length === 0 && <li className="px-2 py-1 text-ui text-fg-subtle">Aucun résultat.</li>}
           </ul>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
             {resultats.length > limite && (

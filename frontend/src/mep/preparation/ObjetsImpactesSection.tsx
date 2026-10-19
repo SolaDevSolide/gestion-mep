@@ -371,7 +371,7 @@ function TableObjets({ objets, edition }: { objets: ObjetImpacte[]; edition: boo
             <tr key={o.id}>
               <td className="px-3 py-2 text-fg-muted">{o.type || '—'}</td>
               <td className="px-3 py-2">
-                <span className="font-mono text-[13px]">{o.nom}</span>
+                <span className="font-mono text-ui">{o.nom}</span>
                 {o.repris && (
                   <Badge className="ml-2" ton={o.objetCatalogueId ? undefined : 'warn'}>
                     {o.objetCatalogueId ? 'Repris' : 'Repris, hors catalogue'}
@@ -382,7 +382,7 @@ function TableObjets({ objets, edition }: { objets: ObjetImpacte[]; edition: boo
               <td className="px-3 py-2 text-fg-muted">{o.precision}</td>
               <td className="px-3 py-2">
                 {o.version ? (
-                  <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[12px]">
+                  <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-xs">
                     {o.version}
                   </span>
                 ) : (

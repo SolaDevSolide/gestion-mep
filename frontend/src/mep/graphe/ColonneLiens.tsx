@@ -40,7 +40,7 @@ export function ItemLien({
   onOuvrir: () => void;
 }) {
   return (
-    <li className="inline-flex max-w-full items-center gap-0.5 rounded-full border border-line bg-surface-2/60 py-0.5 pr-0.5 pl-2 text-[13px]">
+    <li className="inline-flex max-w-full items-center gap-0.5 rounded-full border border-line bg-surface-2/60 py-0.5 pr-0.5 pl-2 text-ui">
       <button
         type="button"
         className="min-w-0 truncate text-left hover:text-accent-text"
@@ -138,7 +138,7 @@ export function ColonneLiens(props: Props) {
         {ajoutsAvant.length > 0 && (
           <Select
             aria-label="Ajouter un préalable"
-            className="h-8 text-[13px]"
+            className="h-8 text-ui"
             value=""
             onChange={(e) => {
               if (e.target.value) onLier(e.target.value, etape.id);
@@ -170,7 +170,7 @@ export function ColonneLiens(props: Props) {
         {ajoutsApres.length > 0 && (
           <Select
             aria-label="Ajouter une étape qui attend celle-ci"
-            className="h-8 text-[13px]"
+            className="h-8 text-ui"
             value=""
             onChange={(e) => {
               if (e.target.value) onLier(etape.id, e.target.value);

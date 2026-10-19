@@ -25,8 +25,8 @@ export function CardHeader({
     >
       {/* Sur un écran étroit, l'action passe sous le titre au lieu de l'écraser. */}
       <div className="min-w-0 flex-1 basis-56">
-        <h2 className="text-[15px] font-semibold tracking-tight text-fg">{titre}</h2>
-        {description && <p className="mt-0.5 text-[13px] text-fg-subtle">{description}</p>}
+        <h2 className="text-md font-semibold tracking-tight text-fg">{titre}</h2>
+        {description && <p className="mt-0.5 text-ui text-fg-subtle">{description}</p>}
       </div>
       {action}
     </div>

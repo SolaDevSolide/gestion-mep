@@ -39,7 +39,7 @@ export function BadgeAjouteeApresGo({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded border border-accent/40 bg-accent-soft px-1.5 py-px text-[11px] font-medium text-accent-text',
+        'inline-flex items-center rounded border border-accent/40 bg-accent-soft px-1.5 py-px text-2xs font-medium text-accent-text',
         className,
       )}
     >

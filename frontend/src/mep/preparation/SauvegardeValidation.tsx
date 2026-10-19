@@ -98,7 +98,7 @@ function LigneSauvegardeSysteme({ systeme }: { systeme: Systeme }) {
       {v.statut === 'Requise' && (
         <div className="grid gap-4 md:grid-cols-[14rem_minmax(0,1fr)]">
           <div className="space-y-1.5">
-            <span className="text-[13px] font-medium">Quand ?</span>
+            <span className="text-ui font-medium">Quand ?</span>
             <div>
               <Segmented<ModeSauvegarde>
                 label={`Moment de la sauvegarde de ${systeme.nom}`}

@@ -145,9 +145,7 @@ function LigneRole({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold">{libelle}</p>
-          <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[12px] text-fg-muted uppercase">
-            {clair}
-          </code>
+          <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-fg-muted uppercase">{clair}</code>
           {liee ? (
             <Badge>
               <Link2 className="size-3" aria-hidden /> Suit la primaire
@@ -162,7 +160,7 @@ function LigneRole({
             </Badge>
           )}
         </div>
-        <p className="mt-0.5 text-[13px] text-fg-subtle">{usage}</p>
+        <p className="mt-0.5 text-ui text-fg-subtle">{usage}</p>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-fg-muted">
           <span className="inline-flex items-center gap-1.5">
             <Moon className="size-3.5" aria-hidden /> Thème sombre
@@ -230,7 +228,7 @@ function LigneControle({ c, corriger }: { c: Controle; corriger: (c: Controle) =
   return (
     <li className="flex flex-wrap items-center gap-3 px-5 py-2.5">
       <span
-        className="grid h-7 w-10 shrink-0 place-content-center rounded-md border border-black/10 text-[13px] font-semibold"
+        className="grid h-7 w-10 shrink-0 place-content-center rounded-md border border-black/10 text-ui font-semibold"
         aria-hidden
         style={
           c.type === 'distinction'
@@ -243,7 +241,7 @@ function LigneControle({ c, corriger }: { c: Controle; corriger: (c: Controle) =
         {c.type === 'contraste' && c.minimum > 3 ? 'Aa' : ''}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-medium">
+        <p className="text-ui font-medium">
           {c.libelle}
           <span className="ml-2 inline-flex items-center gap-1 text-xs font-normal text-fg-subtle">
             {c.mode === 'clair' ? <Sun className="size-3" aria-hidden /> : <Moon className="size-3" aria-hidden />}
@@ -268,7 +266,7 @@ function LigneControle({ c, corriger }: { c: Controle; corriger: (c: Controle) =
           onClick={() => corriger(c)}
         >
           Corriger
-          <span className="ml-1 inline-flex items-center gap-1 font-mono text-[11px] text-fg-subtle uppercase">
+          <span className="ml-1 inline-flex items-center gap-1 font-mono text-2xs text-fg-subtle uppercase">
             <span className="size-3 rounded-sm border border-black/10" style={{ background: c.correction.couleur }} />
             {c.correction.couleur}
           </span>
@@ -305,9 +303,7 @@ function Origine({ etat }: { etat: EtatCharteServeur }) {
               ? 'Fichier ignoré (invalide)'
               : 'Fichier facultatif, absent'}
       </span>
-      <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] break-all text-fg-muted">
-        {f.chemin}
-      </code>
+      <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-2xs break-all text-fg-muted">{f.chemin}</code>
     </>
   );
 }
@@ -334,7 +330,7 @@ function Comparaison({
 function CouleurTexte({ c, role }: { c: Charte; role: Role }) {
   const couleur = couleurSaisie(c, role);
   return (
-    <span className="inline-flex items-center gap-2 font-mono text-[12px] uppercase">
+    <span className="inline-flex items-center gap-2 font-mono text-xs uppercase">
       <Pastille couleur={couleur} taille="sm" />
       {role === 'tertiaire' && tertiaireLiee(c) ? 'primaire' : couleur}
     </span>
@@ -527,7 +523,7 @@ function DialogueImport({
             <summary className="cursor-pointer px-3.5 py-2 text-xs font-medium text-fg-muted">
               Contenu du fichier
             </summary>
-            <pre className="max-h-56 overflow-auto border-t border-line bg-code-bg px-3.5 py-2 font-mono text-[11px] text-code-fg">
+            <pre className="max-h-56 overflow-auto border-t border-line bg-code-bg px-3.5 py-2 font-mono text-2xs text-code-fg">
               {fichier.contenu.length > 20000 ? `${fichier.contenu.slice(0, 20000)}\n…` : fichier.contenu}
             </pre>
           </details>
@@ -670,7 +666,7 @@ export default function CharteTab() {
           <Origine etat={serveur} />
           <span className="ml-auto inline-flex items-center gap-1.5">
             <TerminalSquare className="size-3.5" aria-hidden />
-            <code className="font-mono text-[11px] text-fg-muted">{serveur.commande}</code>
+            <code className="font-mono text-2xs text-fg-muted">{serveur.commande}</code>
           </span>
         </div>
       </Card>
@@ -770,9 +766,8 @@ export default function CharteTab() {
                             }
                           />
                           <div className="min-w-0 flex-1">
-                            <p className="text-[13px] font-medium">
-                              {e.libelle}{' '}
-                              <code className="ml-1 font-mono text-[11px] text-fg-subtle uppercase">{v}</code>
+                            <p className="text-ui font-medium">
+                              {e.libelle} <code className="ml-1 font-mono text-2xs text-fg-subtle uppercase">{v}</code>
                               {alertes > 0 && (
                                 <TriangleAlert className="ml-1 inline size-3.5 text-warn-fg" aria-label="À revoir" />
                               )}

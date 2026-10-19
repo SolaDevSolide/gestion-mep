@@ -165,7 +165,7 @@ function Badges({ etape, type, pnr }: { etape: Etape; type: TypeEtape; pnr: bool
       <span className="rounded-md bg-surface-2 px-2 py-0.5 font-mono text-sm font-bold">{etape.code}</span>
       {type === 'Sauvegarde' && (
         <span
-          className="inline-flex items-center gap-1 rounded border px-1.5 text-[11px] font-semibold"
+          className="inline-flex items-center gap-1 rounded border px-1.5 text-2xs font-semibold"
           style={{ color: 'var(--sys-0)', borderColor: 'var(--sys-0)' }}
         >
           <DatabaseBackup className="size-3" aria-hidden />
@@ -173,7 +173,7 @@ function Badges({ etape, type, pnr }: { etape: Etape; type: TypeEtape; pnr: bool
         </span>
       )}
       {pnr && (
-        <span className="rounded bg-rollback-bg px-1.5 text-[11px] font-bold text-rollback-fg">
+        <span className="rounded bg-rollback-bg px-1.5 text-2xs font-bold text-rollback-fg">
           ⛔ Point de non-retour
         </span>
       )}
@@ -520,7 +520,7 @@ function EspaceLecture({
   const simplifiee = estSimplifiee(mep);
   const liste = (l: Etape[]) =>
     l.length === 0 ? (
-      <p className="text-[13px] text-fg-subtle">Aucune.</p>
+      <p className="text-ui text-fg-subtle">Aucune.</p>
     ) : (
       <ul className="grid gap-1">
         {l.map((p) => (
@@ -590,7 +590,7 @@ function EspaceLecture({
           </Bloc>
           {etape.type === 'Sauvegarde' && (
             <Bloc titre="Sauvegarde">
-              <dl className="grid gap-1 text-[13px]">
+              <dl className="grid gap-1 text-ui">
                 <dt className="font-medium">Emplacement</dt>
                 <dd className="text-fg-muted">{etape.sauvegardeEmplacement || 'Non renseigné.'}</dd>
                 <dt className="font-medium">Méthode de récupération</dt>
@@ -609,13 +609,13 @@ function EspaceLecture({
           {!simplifiee && (
             <Bloc titre={`Résolutions (${liees.length})`}>
               {liees.length ? (
-                <ul className="list-disc pl-5 text-[13px]">
+                <ul className="list-disc pl-5 text-ui">
                   {liees.map((t, i) => (
                     <li key={i}>{t}</li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-[13px] text-fg-subtle">Aucune.</p>
+                <p className="text-ui text-fg-subtle">Aucune.</p>
               )}
             </Bloc>
           )}
@@ -639,9 +639,9 @@ function BrouillonPerdu({ fiche }: { fiche: Fiche }) {
   return (
     <section
       aria-label="Votre saisie non enregistrée"
-      className="grid max-h-56 gap-1.5 overflow-auto rounded-lg border border-line bg-surface-2 px-3 py-2 text-[13px]"
+      className="grid max-h-56 gap-1.5 overflow-auto rounded-lg border border-line bg-surface-2 px-3 py-2 text-ui"
     >
-      <h3 className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+      <h3 className="text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">
         Votre saisie non enregistrée
       </h3>
       <dl className="grid gap-1">

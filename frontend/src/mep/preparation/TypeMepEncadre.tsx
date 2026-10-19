@@ -58,7 +58,7 @@ export function TypeMepEncadre({ peutChanger, brouillonModifie }: Props) {
       )}
       <div className="min-w-0 flex-1 basis-72">
         <p className="text-sm font-semibold">{simplifiee ? 'MEP simplifiée' : 'MEP complète'}</p>
-        <p className="text-[13px] text-fg-muted">
+        <p className="text-ui text-fg-muted">
           {simplifiee
             ? 'Un pilote, les autres personnes sont suppléantes. Pas de version actuelle ni cible ; étapes sans durée, sans criticité ni résolutions liées : le jour J, toutes les résolutions des systèmes de l’étape sont proposées.'
             : 'Versions, suppléants choisis, durée, criticité et résolutions liées à chaque étape. Pour une petite intervention, la MEP peut passer en simplifiée.'}

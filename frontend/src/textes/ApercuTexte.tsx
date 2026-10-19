@@ -8,7 +8,7 @@ function Morceaux({ morceaux, libelles }: { morceaux: Morceau[]; libelles: Libel
       {morceaux.map((m, i) => {
         const contenu =
           m.type === 'manque' ? (
-            <span className="rounded border border-dashed border-warn-bd bg-warn-bg px-1 text-[13px] text-warn-fg">
+            <span className="rounded border border-dashed border-warn-bd bg-warn-bg px-1 text-ui text-warn-fg">
               {texteManque(m.cle, libelles)}
             </span>
           ) : (
@@ -40,7 +40,7 @@ export function ApercuTexte({
 }) {
   if (simple)
     return (
-      <pre className={cn('font-mono text-[13px] leading-relaxed whitespace-pre-wrap text-fg', className)}>
+      <pre className={cn('font-mono text-ui leading-relaxed whitespace-pre-wrap text-fg', className)}>
         {enTexteSimple(lignes, libelles)}
       </pre>
     );

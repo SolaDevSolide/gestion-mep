@@ -316,7 +316,7 @@ export default function SsoTab() {
           {donnees.urlRetour ? (
             <div className="flex items-end gap-2">
               <Field label="Adresse de retour (URI de redirection)" className="flex-1">
-                {(id) => <Input id={id} readOnly value={donnees.urlRetour ?? ''} className="font-mono text-[13px]" />}
+                {(id) => <Input id={id} readOnly value={donnees.urlRetour ?? ''} className="font-mono text-ui" />}
               </Field>
               <Button
                 icone={<Copy className="size-4" aria-hidden />}
@@ -355,7 +355,7 @@ export default function SsoTab() {
                   id={id}
                   value={v.annuaire}
                   onChange={(e) => d.update({ annuaire: e.target.value })}
-                  className="font-mono text-[13px]"
+                  className="font-mono text-ui"
                   autoComplete="off"
                 />
               )}
@@ -378,7 +378,7 @@ export default function SsoTab() {
                 id={id}
                 value={v.clientId}
                 onChange={(e) => d.update({ clientId: e.target.value })}
-                className="font-mono text-[13px]"
+                className="font-mono text-ui"
                 autoComplete="off"
               />
             )}

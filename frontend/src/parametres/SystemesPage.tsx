@@ -181,7 +181,7 @@ export default function SystemesPage() {
                       </Link>
                     </th>
                     <td className="max-w-xs px-4 py-3 text-fg-muted">{s.description || '—'}</td>
-                    <td className="px-4 py-3 font-mono text-[13px] text-fg-muted">{s.cible || '—'}</td>
+                    <td className="px-4 py-3 font-mono text-ui text-fg-muted">{s.cible || '—'}</td>
                     <td className="px-4 py-3">
                       {s.environnements.length === 0 ? (
                         <span className="text-fg-subtle">—</span>

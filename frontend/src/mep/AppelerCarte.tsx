@@ -23,7 +23,7 @@ function Personne({
           {nom}
           {badge}
         </p>
-        <p className="flex items-center gap-1 text-[13px] text-fg-muted">
+        <p className="flex items-center gap-1 text-ui text-fg-muted">
           <Phone className="size-3 shrink-0 text-fg-subtle" aria-hidden />
           {contact || 'Contact non renseigné'}
         </p>
@@ -51,7 +51,7 @@ export function AppelerCarte({ mep, etape }: { mep: Mep; etape: Etape }) {
 
   return (
     <section aria-label="À appeler en cas de problème" className="rounded-lg border border-line bg-surface-2/50">
-      <h3 className="flex items-center gap-1.5 border-b border-line px-3 py-2 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+      <h3 className="flex items-center gap-1.5 border-b border-line px-3 py-2 text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">
         <PhoneCall className="size-3.5" aria-hidden />À appeler en cas de problème
       </h3>
       {liste.length > 0 && (

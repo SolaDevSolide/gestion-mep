@@ -239,7 +239,7 @@ function CarteEnvironnements({ systeme, admin, agir }: { systeme: SystemeCatalog
                     {e.production && <PastilleEnvironnement nom="Production" production />}
                   </span>
                 </th>
-                <td className="px-5 py-2.5 font-mono text-[13px] text-fg-muted">{e.cible || '—'}</td>
+                <td className="px-5 py-2.5 font-mono text-ui text-fg-muted">{e.cible || '—'}</td>
                 {admin && (
                   <td className="px-5 py-2 text-right whitespace-nowrap">
                     <Tooltip content="Modifier">
@@ -541,7 +541,7 @@ function CarteObjets({
                       {liste.map((o) => (
                         <tr key={o.id}>
                           <td className="px-5 py-2.5 text-fg-muted">{o.type || '—'}</td>
-                          <th scope="row" className="px-5 py-2.5 font-mono text-[13px] font-normal">
+                          <th scope="row" className="px-5 py-2.5 font-mono text-ui font-normal">
                             {o.nom}
                           </th>
                           <td className="px-5 py-2.5">{o.libelle}</td>

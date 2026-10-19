@@ -28,7 +28,7 @@ export interface SystemeBiblio {
 export function PastilleSysteme({ nom, className }: { nom: string; className?: string }) {
   return (
     <span
-      className={cn('grid size-10 shrink-0 place-content-center rounded-lg text-[13px] font-bold', className)}
+      className={cn('grid size-10 shrink-0 place-content-center rounded-lg text-ui font-bold', className)}
       style={{ background: `color-mix(in srgb, ${couleurSysteme(nom)} 14%, transparent)`, color: couleurSysteme(nom) }}
       aria-hidden
     >
@@ -179,7 +179,7 @@ export function GrilleSystemes({
             </span>
             <span className="shrink-0 text-right">
               <span className={cn('block text-xl leading-6 font-semibold tnum', n === 0 && 'text-fg-subtle')}>{n}</span>
-              <span className="block text-[11px] text-fg-subtle">{n > 1 ? unite[1] : unite[0]}</span>
+              <span className="block text-2xs text-fg-subtle">{n > 1 ? unite[1] : unite[0]}</span>
             </span>
             <ChevronRight className="size-4 shrink-0 text-fg-subtle group-hover:text-fg" aria-hidden />
           </Card>
@@ -253,7 +253,7 @@ export function CompteurUtilisations({ n, className }: { n: number; className?: 
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11.5px] font-semibold tnum',
+        'inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-semibold tnum',
         n > 0 ? 'border-accent/40 bg-accent-soft text-accent-text' : 'border-line bg-surface-2 text-fg-subtle',
         className,
       )}

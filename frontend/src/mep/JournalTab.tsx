@@ -291,7 +291,7 @@ export default function JournalTab({ mepId, tick }: { mepId: string; tick: numbe
                         >
                           {formatHeureLocale(e.quand)}
                         </time>
-                        <span className="rounded border border-line px-1.5 py-px text-[10px] font-medium">
+                        <span className="rounded border border-line px-1.5 py-px text-2xs font-medium">
                           {LIBELLE_FAMILLE_EVENEMENT[familleEvenement(e.type)] ?? familleEvenement(e.type)}
                         </span>
                       </p>

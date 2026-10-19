@@ -10,7 +10,7 @@ import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '../../ui
 /** Intertitre de section (petites capitales). */
 export function TitrePanneau({ children, id }: { children: ReactNode; id?: string }) {
   return (
-    <h3 id={id} className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+    <h3 id={id} className="text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">
       {children}
     </h3>
   );
@@ -36,7 +36,7 @@ export function ResumePlan({
 }) {
   const nb = sections?.length ?? 0;
   return (
-    <p className="text-[13px] text-fg-subtle tnum">
+    <p className="text-ui text-fg-subtle tnum">
       {etapes.length} étape{etapes.length > 1 ? 's' : ''}
       {nb > 0 && (
         <>
@@ -92,7 +92,7 @@ export function AideGraphe({ edition }: { edition: boolean }) {
       >
         <CircleHelp className="size-4" aria-hidden />
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-3 text-[13px]">
+      <PopoverContent align="end" className="w-80 p-3 text-ui">
         <ListeAide edition={edition} />
       </PopoverContent>
     </Popover>
@@ -143,7 +143,7 @@ export function MenuPlusGraphe({
       <PopoverContent
         align="end"
         aria-label="Aide du graphe"
-        className="max-h-[var(--radix-popover-content-available-height)] w-80 overflow-y-auto p-3 text-[13px]"
+        className="max-h-[var(--radix-popover-content-available-height)] w-80 overflow-y-auto p-3 text-ui"
       >
         <ListeAide edition={edition} />
       </PopoverContent>

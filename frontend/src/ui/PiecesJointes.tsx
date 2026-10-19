@@ -94,7 +94,7 @@ export function PiecesJointes({
         <Paperclip className="size-3.5" aria-hidden />
         {titre}
         {pieces.length > 0 && (
-          <span className="rounded-full bg-surface-2 px-1.5 text-[11px] font-bold tnum">{pieces.length}</span>
+          <span className="rounded-full bg-surface-2 px-1.5 text-2xs font-bold tnum">{pieces.length}</span>
         )}
       </h3>
 

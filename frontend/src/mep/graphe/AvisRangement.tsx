@@ -21,7 +21,7 @@ export function AvisRangement({ cause, onReessayer }: { cause: CauseIndisponible
     <div
       role="status"
       data-avis-rangement
-      className="absolute top-3 left-1/2 z-20 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-warn-bd bg-warn-bg py-1 pr-1 pl-3 text-[13px] font-medium text-warn-fg shadow-md"
+      className="absolute top-3 left-1/2 z-20 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-warn-bd bg-warn-bg py-1 pr-1 pl-3 text-ui font-medium text-warn-fg shadow-md"
       title={
         cause === 'delai'
           ? 'Le rangement a pris plus de 15 secondes : les cartes restent à leurs places actuelles.'

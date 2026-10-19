@@ -490,7 +490,7 @@ export function EtapesEditeur({
   const nbEtapes = (sid: string) => etapesPlan.filter((e) => infoSection(e).sectionId === sid).length;
 
   const astuceTexte = (
-    <p aria-live="polite" className="min-w-0 flex-1 truncate text-[13px] font-semibold text-rollback-solid">
+    <p aria-live="polite" className="min-w-0 flex-1 truncate text-ui font-semibold text-rollback-solid">
       {astuce.flash ? astuce.texte : ''}
     </p>
   );
@@ -538,7 +538,7 @@ export function EtapesEditeur({
       {!compact && (
         <div className="flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1 bg-surface px-3 py-1.5">
           {resume}
-          <p aria-live="polite" className="min-w-0 flex-1 text-[13px] font-semibold text-rollback-solid">
+          <p aria-live="polite" className="min-w-0 flex-1 text-ui font-semibold text-rollback-solid">
             {astuce.flash ? astuce.texte : ''}
           </p>
           <AideGraphe edition={modifiable} />
@@ -727,7 +727,7 @@ export function EtapesEditeur({
               onAnnulerDemande={() => setDemande(undefined)}
               lecture={
                 lectureDansPlan && sectionEtape ? (
-                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-[13px] text-accent-text">
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-ui text-accent-text">
                     <span className="min-w-0 flex-1">
                       Étape de la section « {sections.find((x) => x.id === sectionEtape)?.titre} » : on la modifie dans
                       la vue de la section.

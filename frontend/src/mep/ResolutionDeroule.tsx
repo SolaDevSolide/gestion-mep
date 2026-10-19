@@ -74,7 +74,7 @@ function Controle({ libelle, instruction, attendu, observationObligatoire, peutA
       className="grid gap-3 rounded-xl border-2 border-run-solid bg-surface p-4 shadow-md"
     >
       <p className="flex flex-wrap items-center gap-2 text-base font-semibold">
-        <span className="rounded bg-run-solid px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-run-solid-fg uppercase">
+        <span className="rounded bg-run-solid px-1.5 py-0.5 text-2xs font-bold tracking-wide text-run-solid-fg uppercase">
           À faire maintenant
         </span>
         {libelle}
@@ -82,7 +82,7 @@ function Controle({ libelle, instruction, attendu, observationObligatoire, peutA
       {instruction.trim() && <Instructions source={instruction} vide={null} />}
       {attendu.trim() && (
         <div className="rounded-lg border border-ok-bd bg-ok-bg px-3 py-2 text-sm text-ok-fg">
-          <p className="text-[11px] font-semibold tracking-wide uppercase">Résultat attendu</p>
+          <p className="text-2xs font-semibold tracking-wide uppercase">Résultat attendu</p>
           <p className="whitespace-pre-line">{attendu}</p>
         </div>
       )}
@@ -193,7 +193,7 @@ function Fait({
         </p>
         {observation && <p className="mt-0.5 text-xs text-fg-muted">« {observation} »</p>}
         {(par || le) && (
-          <p className="mt-0.5 text-[11px] text-fg-subtle">
+          <p className="mt-0.5 text-2xs text-fg-subtle">
             {par}
             {par && le && ' · '}
             {le && formatDateHeure(le)}

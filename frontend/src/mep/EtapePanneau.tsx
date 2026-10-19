@@ -121,7 +121,7 @@ export function EtapePanneau({
         {etape.action || 'Étape sans libellé'}
       </h2>
       {(etape.criticite || etape.dureeEstimeeMinutes !== null) && (
-        <span className="text-[13px] text-fg-muted">
+        <span className="text-ui text-fg-muted">
           {etape.criticite && LIBELLE_CRITICITE[etape.criticite]}
           {etape.dureeEstimeeMinutes !== null && (
             <>
@@ -205,7 +205,7 @@ export function EtapePanneau({
       >
         {etape.resultatAttendu.trim() && (
           <div className="rounded-lg border border-ok-bd bg-ok-bg px-3.5 py-3 text-sm text-ok-fg">
-            <p className="text-[11px] font-semibold tracking-wide uppercase">Résultat attendu</p>
+            <p className="text-2xs font-semibold tracking-wide uppercase">Résultat attendu</p>
             <Markdown source={etape.resultatAttendu} />
           </div>
         )}

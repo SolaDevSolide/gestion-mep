@@ -102,7 +102,7 @@ export function BarreOutilsGraphe({
             list={`codes-${plan}`}
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
-            className="h-8 w-36 rounded-lg border border-line bg-surface pr-2 pl-7 text-[13px] focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none @max-2xl:w-28"
+            className="h-8 w-36 rounded-lg border border-line bg-surface pr-2 pl-7 text-ui focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none @max-2xl:w-28"
           />
           <datalist id={`codes-${plan}`}>
             {etapes.map((e) => (

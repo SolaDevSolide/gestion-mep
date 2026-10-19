@@ -170,7 +170,7 @@ export function Bloc({ titre, children, action }: { titre: string; children: Rea
   return (
     <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">{titre}</h3>
+        <h3 className="text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">{titre}</h3>
         {action}
       </div>
       {children}

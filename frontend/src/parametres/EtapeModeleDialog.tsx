@@ -172,7 +172,7 @@ export function EtapeModeleDialog({
             )}
           </Field>
           <fieldset className="grid gap-1.5">
-            <legend className="mb-1.5 text-[13px] font-medium">Systèmes du catalogue *</legend>
+            <legend className="mb-1.5 text-ui font-medium">Systèmes du catalogue *</legend>
             <div className="flex flex-wrap gap-1.5">
               {catalogue
                 .filter((s) => s.actif || v.systemeCatalogueIds.includes(s.id))
@@ -185,7 +185,7 @@ export function EtapeModeleDialog({
                       aria-pressed={actif}
                       onClick={() => basculer(s.id)}
                       className={cn(
-                        'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-[13px] font-semibold transition-colors',
+                        'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-ui font-semibold transition-colors',
                         !actif && 'border-line-strong text-fg-subtle hover:text-fg',
                       )}
                       style={actif ? styleSysteme(s.nom) : undefined}
@@ -263,7 +263,7 @@ export function EtapeModeleDialog({
             </Field>
           </div>
           <div className="grid gap-1.5">
-            <span className="text-[13px] font-medium">Fin de l’étape</span>
+            <span className="text-ui font-medium">Fin de l’étape</span>
             <Segmented
               label="Fin de l’étape"
               valeur={v.fin}
@@ -277,11 +277,11 @@ export function EtapeModeleDialog({
         </div>
         <div className="grid min-w-0 content-start gap-4">
           <div className="grid gap-1.5">
-            <span className="text-[13px] font-medium">Instructions exactes</span>
+            <span className="text-ui font-medium">Instructions exactes</span>
             <EditeurBlocs label="Instructions" valeur={v.instructions} onChange={(md) => maj({ instructions: md })} />
           </div>
           <div className="grid gap-1.5">
-            <span className="text-[13px] font-medium">Résultat attendu</span>
+            <span className="text-ui font-medium">Résultat attendu</span>
             <ZoneAuto
               aria-label="Résultat attendu"
               value={v.resultatAttendu}
@@ -291,7 +291,7 @@ export function EtapeModeleDialog({
             />
           </div>
           <div className="grid gap-1.5">
-            <span className="text-[13px] font-medium">Résolutions en cas d’échec ({v.resolutionIds.length})</span>
+            <span className="text-ui font-medium">Résolutions en cas d’échec ({v.resolutionIds.length})</span>
             <SelecteurResolutions
               resolutions={resolutions}
               catalogue={catalogue}

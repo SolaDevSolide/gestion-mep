@@ -215,7 +215,7 @@ export function BacPlan({
     <div
       aria-hidden
       className={cn(
-        'pointer-events-none absolute inset-1 z-10 grid place-content-center rounded-xl border-2 border-dashed p-3 text-center text-[13px] font-semibold transition-colors duration-150',
+        'pointer-events-none absolute inset-1 z-10 grid place-content-center rounded-xl border-2 border-dashed p-3 text-center text-ui font-semibold transition-colors duration-150',
         bac.depot === 'vise'
           ? 'border-accent bg-accent-soft/95 text-accent-text'
           : 'border-accent/70 bg-surface/80 text-fg-muted',
@@ -252,7 +252,7 @@ export function BacPlan({
           className="flex flex-1 flex-col items-center gap-2 py-2 text-fg-subtle enabled:hover:bg-surface-2 enabled:hover:text-fg"
         >
           <PanelRightOpen className="size-4 shrink-0" aria-hidden />
-          <span className="flex items-center gap-1 text-[11px] font-semibold tracking-[0.06em] uppercase [writing-mode:vertical-rl]">
+          <span className="flex items-center gap-1 text-2xs font-semibold tracking-[0.06em] uppercase [writing-mode:vertical-rl]">
             <Inbox className="size-3.5 rotate-90" aria-hidden />
             {`À placer (${total})`}
           </span>
@@ -291,7 +291,7 @@ export function BacPlan({
         >
           <PanelRightOpen className="size-4" aria-hidden />
         </BoutonIcone>
-        <span className="mt-2 flex items-center gap-1 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase [writing-mode:vertical-rl]">
+        <span className="mt-2 flex items-center gap-1 text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase [writing-mode:vertical-rl]">
           <Inbox className="size-3.5 rotate-90" aria-hidden />
           {libelle}
         </span>
@@ -307,7 +307,7 @@ export function BacPlan({
       </aside>
     );
 
-  const titreListe = 'flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase';
+  const titreListe = 'flex items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase';
   return (
     // Panneau intérieur du cadre du plan : sa propre hauteur de défilement, le graphe garde la sienne.
     <aside
@@ -333,7 +333,7 @@ export function BacPlan({
               </Button>
             )}
             {listeSections.length === 0 ? (
-              <p className="text-[13px] text-fg-subtle">
+              <p className="text-ui text-fg-subtle">
                 {modifiable
                   ? 'Aucune section en attente. Une nouvelle section arrive ici.'
                   : 'Aucune section en attente.'}
@@ -351,12 +351,12 @@ export function BacPlan({
                       glisse?.section.id === s.id && 'opacity-40',
                     )}
                   >
-                    <p className="truncate text-[14px] font-semibold" title={s.titre}>
+                    <p className="truncate text-sm font-semibold" title={s.titre}>
                       {s.titre}
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {systemesDe(mep, s.systemeIds).map((x) => (
-                        <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-[11px]" />
+                        <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-2xs" />
                       ))}
                     </div>
                     <p className="text-xs text-fg-muted">
@@ -390,7 +390,7 @@ export function BacPlan({
           </>
         )}
         {etapes.length === 0 ? (
-          <p className="text-[13px] text-fg-subtle">
+          <p className="text-ui text-fg-subtle">
             {modifiable
               ? 'Aucune étape en attente. Glissez ici une carte du graphe pour la retirer du plan.'
               : 'Aucune étape en attente.'}
@@ -411,14 +411,14 @@ export function BacPlan({
                 >
                   <p className="flex min-w-0 items-baseline gap-1.5">
                     <span className="shrink-0 text-xs font-semibold text-fg-muted tnum">{e.code}</span>
-                    <span className="truncate text-[14px] font-semibold" title={e.action}>
+                    <span className="truncate text-sm font-semibold" title={e.action}>
                       {e.action || 'Étape sans action'}
                     </span>
                   </p>
                   {(e.systemeIds.length > 0 || section) && (
                     <div className="flex flex-wrap items-center gap-1">
                       {systemesDe(mep, e.systemeIds).map((x) => (
-                        <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-[11px]" />
+                        <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-2xs" />
                       ))}
                       {section && <span className="text-xs text-fg-muted">dans « {section} »</span>}
                     </div>
@@ -627,7 +627,7 @@ export function EnTeteVueSection({
       {dansSection.length > 0 && (
         <span
           role="status"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-2xs font-semibold"
           style={stylePersonne(dansSection[0].nom)}
         >
           {libelleEditeurs(dansSection)} dans cette section
@@ -674,7 +674,7 @@ export function EnTeteVueSection({
 
   const rangee = (sens: SensCercle) => (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+      <span className="text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">
         {sens === 'Entree' ? 'Entrées' : 'Sorties'}
       </span>
       {cerclesTries(section, sens).map((c) => (
@@ -722,7 +722,7 @@ export function EnTeteVueSection({
         >
           Plan
         </Button>
-        <span className="shrink-0 text-[13px] text-fg-subtle">Section</span>
+        <span className="shrink-0 text-ui text-fg-subtle">Section</span>
         {modifiable ? (
           <input
             aria-label="Titre de la section"
@@ -737,7 +737,7 @@ export function EnTeteVueSection({
         )}
         <span className="flex min-w-0 shrink items-center gap-1 overflow-hidden">
           {systemesDe(mep, section.systemeIds).map((x) => (
-            <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-[11px]" />
+            <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-2xs" />
           ))}
         </span>
         <button
@@ -776,7 +776,7 @@ export function EnTeteVueSection({
           </PopoverTrigger>
           <PopoverContent align="end" className="grid w-[26rem] max-w-[calc(100vw-2rem)] gap-3 p-3">
             <div className="grid gap-1">
-              <span className="text-[13px] font-semibold">Description</span>
+              <span className="text-ui font-semibold">Description</span>
               {modifiable ? (
                 <Textarea
                   aria-label="Description de la section"
@@ -788,11 +788,11 @@ export function EnTeteVueSection({
                   onKeyDown={touches(description)}
                 />
               ) : (
-                <p className="text-[13px] text-fg-muted">{section.description || 'Aucune description.'}</p>
+                <p className="text-ui text-fg-muted">{section.description || 'Aucune description.'}</p>
               )}
             </div>
             <div className="grid gap-1">
-              <span className="text-[13px] font-semibold">Systèmes de la section</span>
+              <span className="text-ui font-semibold">Systèmes de la section</span>
               {systemes}
             </div>
             {rangee('Entree')}
@@ -836,7 +836,7 @@ export function EnTeteVueSection({
         >
           Retour au plan
         </Button>
-        <nav aria-label="Fil d’Ariane" className="flex min-w-0 flex-wrap items-center gap-1 text-[13px] text-fg-subtle">
+        <nav aria-label="Fil d’Ariane" className="flex min-w-0 flex-wrap items-center gap-1 text-ui text-fg-subtle">
           <span>{mep.outil}</span>
           <ChevronRight className="size-3.5" aria-hidden />
           <button type="button" onClick={onRetour} className="underline-offset-2 hover:text-fg hover:underline">
@@ -881,13 +881,13 @@ export function EnTeteVueSection({
                 onChange={(e) => description.setValeur(e.target.value)}
                 onBlur={() => void validerDescription()}
                 onKeyDown={touches(description)}
-                className="rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] text-fg-muted placeholder:text-fg-subtle hover:border-line focus:border-accent focus:bg-surface focus:ring-2 focus:ring-accent/30 focus:outline-none"
+                className="rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-ui text-fg-muted placeholder:text-fg-subtle hover:border-line focus:border-accent focus:bg-surface focus:ring-2 focus:ring-accent/30 focus:outline-none"
               />
             </>
           ) : (
             <>
               <h2 className="px-1.5 text-base font-semibold tracking-tight">{section.titre}</h2>
-              {section.description && <p className="px-1.5 text-[13px] text-fg-muted">{section.description}</p>}
+              {section.description && <p className="px-1.5 text-ui text-fg-muted">{section.description}</p>}
             </>
           )}
           <p className="px-1.5 text-xs text-fg-subtle">

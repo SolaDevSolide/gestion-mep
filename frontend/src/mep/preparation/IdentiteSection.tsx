@@ -136,13 +136,13 @@ export function IdentiteSection() {
         {!modele && (
           <div className="grid grid-cols-2 gap-4 text-sm" aria-label="Dates constatées">
             <p>
-              <span className="block text-[13px] font-medium">Démarrée le</span>
+              <span className="block text-ui font-medium">Démarrée le</span>
               <span className="text-fg-muted">
                 {mep.demarrageAutorise ? formatDateHeure(mep.demarrageAutorise.le) : '—'}
               </span>
             </p>
             <p>
-              <span className="block text-[13px] font-medium">Clôturée le</span>
+              <span className="block text-ui font-medium">Clôturée le</span>
               <span className="text-fg-muted">{mep.cloture ? formatDateHeure(mep.cloture.le) : '—'}</span>
             </p>
           </div>
@@ -180,7 +180,7 @@ export function IdentiteSection() {
             </Field>
             {simplifiee ? (
               <div className="text-sm" aria-label="Suppléants">
-                <p className="mb-1.5 text-[13px] font-medium">Suppléants</p>
+                <p className="mb-1.5 text-ui font-medium">Suppléants</p>
                 <div className="flex min-h-9 flex-wrap items-center gap-2">
                   {v.piloteId ? (
                     <>
@@ -241,7 +241,7 @@ export function IdentiteSection() {
           />
           {retourArriere && !modele && (
             <div className="text-sm" aria-label="Échéance de retour arrière">
-              <p className="mb-1.5 text-[13px] font-medium">Échéance de retour arrière (facultative)</p>
+              <p className="mb-1.5 text-ui font-medium">Échéance de retour arrière (facultative)</p>
               <div className="flex flex-wrap items-center gap-3">
                 <span className={mep.echeanceRepli ? 'font-mono tnum' : 'text-fg-muted'}>
                   {texteEcheance(mep.echeanceRepli, mep.fuseauHoraire)}

@@ -169,19 +169,19 @@ function Contraste({ texte, fond, libelle }: { texte: string; fond: string; libe
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-line px-2 py-1.5">
       <span
-        className="grid h-6 w-8 shrink-0 place-content-center rounded border border-black/10 text-[12px] font-semibold"
+        className="grid h-6 w-8 shrink-0 place-content-center rounded border border-black/10 text-xs font-semibold"
         style={{ background: fond, color: texte }}
         aria-hidden
       >
         Aa
       </span>
       <div className="min-w-0 leading-tight">
-        <p className="truncate text-[11px] text-fg-subtle">{libelle}</p>
-        <p className="tnum flex items-center gap-1 text-[12px] font-semibold">
+        <p className="truncate text-2xs text-fg-subtle">{libelle}</p>
+        <p className="tnum flex items-center gap-1 text-xs font-semibold">
           {formatRapport(r)}
           <span
             className={cn(
-              'rounded px-1 text-[10px] font-bold',
+              'rounded px-1 text-2xs font-bold',
               ok ? 'bg-ok-bg text-ok-fg' : moyen ? 'bg-warn-bg text-warn-fg' : 'bg-danger-bg text-danger-fg',
             )}
           >
@@ -236,7 +236,7 @@ function Composantes({
             const x = Number(e.target.value);
             if (e.target.value !== '' && Number.isFinite(x)) changer(i, Math.round(x));
           }}
-          className="tnum h-9 w-full min-w-0 rounded-lg border border-line-strong bg-surface px-1 text-center font-mono text-[12px] outline-none focus:ring-2 focus:ring-accent/40"
+          className="tnum h-9 w-full min-w-0 rounded-lg border border-line-strong bg-surface px-1 text-center font-mono text-xs outline-none focus:ring-2 focus:ring-accent/40"
         />
       ))}
     </div>
@@ -307,11 +307,11 @@ export function PanneauCouleur({
   return (
     <div className="w-[300px] space-y-3 p-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[13px] font-semibold">{titre}</p>
+        <p className="text-ui font-semibold">{titre}</p>
         <div
           role="group"
           aria-label="Format de saisie"
-          className="inline-flex rounded-md border border-line bg-surface-2 p-0.5 text-[11px] font-medium"
+          className="inline-flex rounded-md border border-line bg-surface-2 p-0.5 text-2xs font-medium"
         >
           {(Object.keys(FORMATS) as Format[]).map((f) => (
             <button
@@ -368,7 +368,7 @@ export function PanneauCouleur({
         {format === 'hex' ? (
           <label
             className={cn(
-              'flex h-9 min-w-0 flex-1 items-center rounded-lg border bg-surface px-2.5 font-mono text-[13px] focus-within:ring-2 focus-within:ring-accent/40',
+              'flex h-9 min-w-0 flex-1 items-center rounded-lg border bg-surface px-2.5 font-mono text-ui focus-within:ring-2 focus-within:ring-accent/40',
               saisieValide ? 'border-line-strong' : 'border-danger-bd',
             )}
           >
@@ -416,7 +416,7 @@ export function PanneauCouleur({
         </button>
       </div>
       {!saisieValide && (
-        <p className="flex items-center gap-1 text-[11px] text-danger-fg" role="alert">
+        <p className="flex items-center gap-1 text-2xs text-danger-fg" role="alert">
           <TriangleAlert className="size-3.5" aria-hidden /> 6 chiffres hexadécimaux attendus, par exemple 0F766E.
         </p>
       )}
@@ -430,7 +430,7 @@ export function PanneauCouleur({
       </div>
       {charte.length > 0 && (
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-fg-subtle uppercase">Charte</p>
+          <p className="mb-1.5 text-2xs font-semibold tracking-wide text-fg-subtle uppercase">Charte</p>
           <div className="flex flex-wrap gap-1.5">
             {charte.map((c) => (
               <Pastille
@@ -445,7 +445,7 @@ export function PanneauCouleur({
         </div>
       )}
       <div>
-        <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-fg-subtle uppercase">Suggestions</p>
+        <p className="mb-1.5 text-2xs font-semibold tracking-wide text-fg-subtle uppercase">Suggestions</p>
         <div className="flex flex-wrap gap-1.5">
           {SUGGESTIONS.map((c) => (
             <Pastille key={c} couleur={c} actif={c === valeur} onClick={() => choisir(c)} />
@@ -454,7 +454,7 @@ export function PanneauCouleur({
       </div>
       {recentes.length > 0 && (
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-fg-subtle uppercase">Récentes</p>
+          <p className="mb-1.5 text-2xs font-semibold tracking-wide text-fg-subtle uppercase">Récentes</p>
           <div className="flex flex-wrap gap-1.5">
             {recentes.map((c) => (
               <Pastille key={c} couleur={c} actif={c === valeur} onClick={() => choisir(c)} />

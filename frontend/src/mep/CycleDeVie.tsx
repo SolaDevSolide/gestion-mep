@@ -949,7 +949,7 @@ export function BoutonEtapeCorrective({ taille = 'sm' }: { taille?: TailleBouton
             )}
           </Field>
           <fieldset>
-            <legend className="mb-1.5 text-[13px] font-medium">Systèmes (au moins un)</legend>
+            <legend className="mb-1.5 text-ui font-medium">Systèmes (au moins un)</legend>
             <div className="flex flex-wrap gap-x-5 gap-y-2">
               {mep.systemes.map((s) => (
                 <Checkbox

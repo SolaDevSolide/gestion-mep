@@ -74,7 +74,7 @@ function EtapeTestLigne({
         )}
       </div>
       <div>
-        <p className="text-[11px] font-semibold tracking-wide text-fg-subtle uppercase">Déroulé du test</p>
+        <p className="text-2xs font-semibold tracking-wide text-fg-subtle uppercase">Déroulé du test</p>
         {etape.instructions.trim() ? (
           <RenduBlocs source={etape.instructions} />
         ) : (
@@ -82,7 +82,7 @@ function EtapeTestLigne({
         )}
       </div>
       <div className="rounded-lg border border-ok-bd bg-ok-bg px-3.5 py-2.5 text-ok-fg">
-        <p className="text-[11px] font-semibold tracking-wide uppercase">Résultat attendu</p>
+        <p className="text-2xs font-semibold tracking-wide uppercase">Résultat attendu</p>
         {etape.resultatAttendu.trim() ? (
           <RenduBlocs source={etape.resultatAttendu} />
         ) : (

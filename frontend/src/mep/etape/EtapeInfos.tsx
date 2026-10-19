@@ -23,7 +23,7 @@ function ListeEtats({
   vide: string;
   onSelectionner: (id: string) => void;
 }) {
-  if (etapes.length === 0) return <p className="text-[13px] text-fg-subtle">{vide}</p>;
+  if (etapes.length === 0) return <p className="text-ui text-fg-subtle">{vide}</p>;
   return (
     <ul className="grid grid-cols-[minmax(0,1fr)] gap-1">
       {etapes.map((p) => {
@@ -33,7 +33,7 @@ function ListeEtats({
             <button
               type="button"
               onClick={() => onSelectionner(p.id)}
-              className="flex w-full items-center justify-between gap-2 rounded-md bg-surface-2/60 px-2 py-1 text-left text-[13px] hover:bg-surface-2"
+              className="flex w-full items-center justify-between gap-2 rounded-md bg-surface-2/60 px-2 py-1 text-left text-ui hover:bg-surface-2"
             >
               <span className="min-w-0 truncate">
                 <b className="mr-1.5 font-mono text-xs font-semibold">{p.code}</b>
@@ -54,7 +54,7 @@ function ListeEtats({
 function HistoriqueResolutions({ historique }: { historique: ExecutionResolution[] }) {
   return (
     <section>
-      <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+      <h3 className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">
         <History className="size-3.5" aria-hidden />
         Résolutions déjà appliquées
       </h3>
@@ -62,7 +62,7 @@ function HistoriqueResolutions({ historique }: { historique: ExecutionResolution
         {historique.map((r) => (
           <li key={r.id}>
             <details className="rounded-md border border-line bg-surface-2/40">
-              <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-2.5 py-1.5 text-[13px]">
+              <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-2.5 py-1.5 text-ui">
                 <span className="font-medium">{r.titre}</span>
                 <StatusPill
                   taille="sm"
@@ -207,7 +207,7 @@ export function EtapeInfos({
             ))}
           </ul>
         ) : (
-          <span className="text-[13px] text-fg-subtle">Non précisé</span>
+          <span className="text-ui text-fg-subtle">Non précisé</span>
         )}
       </Bloc>
       <Bloc titre={`Attend (${prealables.length})`}>
@@ -219,11 +219,11 @@ export function EtapeInfos({
       {etape.etat !== 'Echec' && (
         <Bloc titre={`${titreResolutions} (${liees.length})`}>
           {liees.length === 0 ? (
-            <p className="text-[13px] text-fg-subtle">Aucune.</p>
+            <p className="text-ui text-fg-subtle">Aucune.</p>
           ) : (
             <ul className="grid gap-1">
               {liees.map((r) => (
-                <li key={r.id} className="flex items-center gap-1.5 text-[13px]">
+                <li key={r.id} className="flex items-center gap-1.5 text-ui">
                   <Wrench className="size-3.5 shrink-0 text-warn-solid" aria-hidden />
                   {r.titre}
                 </li>

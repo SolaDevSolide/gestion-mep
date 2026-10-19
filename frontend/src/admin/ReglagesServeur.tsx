@@ -120,7 +120,7 @@ function LigneReglage({
                 max={r.max ?? undefined}
                 step={r.type === 'Entier' ? 1 : undefined}
                 placeholder={r.type === 'Adresse' ? 'https://' : undefined}
-                className="font-mono text-[13px]"
+                className="font-mono text-ui"
                 onChange={(e) => setSaisie(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && modifie) void agir('enregistrer');
@@ -159,7 +159,7 @@ function LigneReglage({
       </div>
       <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
         <Origine r={r} fichierDocker={installation === 'docker'} />
-        <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-fg-muted">
+        <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-2xs text-fg-muted">
           {commande(installation, `reglages definir ${r.nom} …`)}
         </code>
       </div>
@@ -225,7 +225,7 @@ export default function ReglagesServeur() {
           <dl className="divide-y divide-line">
             {(docker ? REGLAGES_DEMARRAGE : REGLAGES_DEMARRAGE_AUTONOME).map(([variables, description]) => (
               <div key={variables} className="flex flex-wrap gap-x-4 gap-y-1 px-5 py-3 text-sm">
-                <dt className="flex min-w-0 basis-72 items-center gap-2 font-mono text-[13px] text-fg">
+                <dt className="flex min-w-0 basis-72 items-center gap-2 font-mono text-ui text-fg">
                   <FileCog className="size-4 shrink-0 text-fg-subtle" aria-hidden />
                   {variables}
                 </dt>

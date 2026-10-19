@@ -88,7 +88,7 @@ const BoutonFiltre = forwardRef<
   return (
     <span
       className={cn(
-        'inline-flex h-8 items-center rounded-lg border text-[13px] transition-colors duration-150',
+        'inline-flex h-8 items-center rounded-lg border text-ui transition-colors duration-150',
         actif
           ? 'border-accent/60 bg-accent-soft text-accent-text'
           : 'border-dashed border-line-strong bg-surface text-fg-muted hover:border-fg-subtle hover:text-fg',
@@ -169,9 +169,7 @@ function Option({
 }
 
 function Titre({ children }: { children: ReactNode }) {
-  return (
-    <p className="px-2.5 pt-2 pb-1 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase">{children}</p>
-  );
+  return <p className="px-2.5 pt-2 pb-1 text-2xs font-semibold tracking-wider text-fg-subtle uppercase">{children}</p>;
 }
 
 function Aide({ children }: { children: ReactNode }) {
@@ -200,7 +198,7 @@ const ITEM = 'rounded-lg data-[selected=true]:bg-surface-2';
 const SAISIE =
   'h-9 w-full border-b border-line bg-transparent px-3 text-sm text-fg outline-none placeholder:text-fg-subtle';
 const GROUPE =
-  '[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-subtle [&_[cmdk-group-heading]]:uppercase';
+  '[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-2xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-subtle [&_[cmdk-group-heading]]:uppercase';
 
 /* ------------------------------------------------------------------ Panneaux */
 
@@ -283,7 +281,7 @@ function PanneauEnvironnement({ f, maj, catalogue, facettes, comptes }: Ctx) {
         >
           {e.nom}
           {e.production && (
-            <span className="rounded border border-warn-bd bg-warn-bg px-1 text-[10px] text-warn-fg">Production</span>
+            <span className="rounded border border-warn-bd bg-warn-bg px-1 text-2xs text-warn-fg">Production</span>
           )}
         </Option>
       ))}
@@ -575,7 +573,7 @@ export function BarreFiltres({
           onClick={() => setFeuille(true)}
         >
           Filtres
-          {n > 0 && <span className="ml-1 rounded-full bg-accent px-1.5 text-[11px] text-accent-fg tnum">{n}</span>}
+          {n > 0 && <span className="ml-1 rounded-full bg-accent px-1.5 text-2xs text-accent-fg tnum">{n}</span>}
         </Button>
       </div>
       <Sheet

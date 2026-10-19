@@ -64,7 +64,7 @@ function Tuile({
     <div className="rounded-xl border border-line bg-surface p-4 shadow-sm">
       <p className="text-xs font-semibold tracking-wider text-fg-subtle uppercase">{titre}</p>
       <p className={cn('mt-1 text-2xl font-semibold tracking-tight tnum', ton)}>{valeur}</p>
-      {children && <div className="mt-1 text-[13px] text-fg-muted">{children}</div>}
+      {children && <div className="mt-1 text-ui text-fg-muted">{children}</div>}
     </div>
   );
 }
@@ -120,7 +120,7 @@ function Frise({ meps, maintenant }: { meps: MepHistorique[]; maintenant: Date }
             <div
               key={i}
               className={cn(
-                'absolute bottom-0 text-[11px] text-fg-subtle',
+                'absolute bottom-0 text-2xs text-fg-subtle',
                 i % 3 !== 0 && 'max-sm:[&>span:last-child]:hidden',
               )}
               style={{ left: `${(i / 12) * 100}%` }}
@@ -164,7 +164,7 @@ function Echec({ e }: { e: EchecSysteme }) {
   return (
     <div
       className={cn(
-        'mt-2.5 rounded-lg border px-3 py-2 text-[13px]',
+        'mt-2.5 rounded-lg border px-3 py-2 text-ui',
         e.repris ? 'border-warn-bd bg-warn-bg text-warn-fg' : 'border-danger-bd bg-danger-bg text-danger-fg',
       )}
     >
@@ -205,10 +205,10 @@ function Element({ m, nomSysteme }: { m: MepHistorique; nomSysteme: string }) {
                   {m.outil || 'Sans nom'}
                 </Link>
                 {m.type === 'Simplifiee' ? (
-                  <BadgeSimplifiee className="text-[10px]" />
+                  <BadgeSimplifiee className="text-2xs" />
                 ) : (
                   m.versionCible.trim() && (
-                    <span className="inline-flex items-center gap-1 font-mono text-[13px]">
+                    <span className="inline-flex items-center gap-1 font-mono text-ui">
                       <ArrowRight className="size-3.5 text-fg-subtle" aria-hidden />
                       {m.versionCible}
                     </span>
@@ -216,19 +216,19 @@ function Element({ m, nomSysteme }: { m: MepHistorique; nomSysteme: string }) {
                 )}
                 <PastilleEtatMep m={m} court />
               </p>
-              {m.objet && <p className="mt-0.5 line-clamp-1 text-[13px] text-fg-muted">{m.objet}</p>}
+              {m.objet && <p className="mt-0.5 line-clamp-1 text-ui text-fg-muted">{m.objet}</p>}
             </div>
             {m.rapport && (
               <Link
                 to={`/meps/${m.id}/rapport`}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-line px-2.5 py-1 text-[13px] font-medium transition-colors duration-150 hover:border-line-strong hover:bg-surface-2"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-line px-2.5 py-1 text-ui font-medium transition-colors duration-150 hover:border-line-strong hover:bg-surface-2"
               >
                 <FileText className="size-3.5" aria-hidden />
                 Rapport de fin
               </Link>
             )}
           </div>
-          <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px]">
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-ui">
             <span className="inline-flex flex-wrap items-center gap-1.5">
               <span className="text-fg-subtle">{nomSysteme} :</span>
               {m.environnements.length ? (
@@ -399,7 +399,7 @@ export function VueHistorique({
         <div className="flex flex-wrap gap-2 sm:ml-auto">
           <Link
             to={lien}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-surface px-2.5 text-[13px] font-medium whitespace-nowrap shadow-sm transition-colors duration-150 hover:bg-surface-2"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-surface px-2.5 text-ui font-medium whitespace-nowrap shadow-sm transition-colors duration-150 hover:bg-surface-2"
           >
             <ListFilter className="size-4" aria-hidden />
             Ouvrir dans la liste des MEP

@@ -51,7 +51,7 @@ export function PanneauOptimisation({
   return (
     <section
       aria-label="Optimiser les liens"
-      className="grid gap-2 border-b border-danger-bd bg-danger-bg px-3 py-2 text-[13px] text-danger-fg"
+      className="grid gap-2 border-b border-danger-bd bg-danger-bg px-3 py-2 text-ui text-danger-fg"
     >
       <div className="flex flex-wrap items-center gap-2">
         <p className="min-w-0 flex-1 font-semibold">

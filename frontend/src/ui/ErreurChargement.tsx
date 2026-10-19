@@ -100,7 +100,7 @@ function DetailsTechniques({ erreur, cause }: { erreur: unknown; cause: CauseErr
       <summary className="cursor-pointer font-medium select-none">
         Détails techniques <span className="font-normal opacity-80">(administrateurs)</span>
       </summary>
-      <pre className="mt-1.5 border-t border-current/20 pt-1.5 font-mono text-[11px] whitespace-pre-wrap">{texte}</pre>
+      <pre className="mt-1.5 border-t border-current/20 pt-1.5 font-mono text-2xs whitespace-pre-wrap">{texte}</pre>
       <button
         type="button"
         onClick={() => void copier()}
@@ -210,7 +210,7 @@ export function ErreurChargement({
             {retour && (
               <Link
                 to={retour.vers}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-surface px-2.5 text-[13px] font-medium text-fg shadow-sm transition-colors duration-150 hover:bg-surface-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-surface px-2.5 text-ui font-medium text-fg shadow-sm transition-colors duration-150 hover:bg-surface-2"
               >
                 <ArrowLeft className="size-4" aria-hidden />
                 {retour.libelle}

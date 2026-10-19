@@ -74,7 +74,7 @@ function Pile({ presents, lieu, className }: { presents: Present[]; lieu: string
         </span>
       ))}
       {presents.length > visibles.length && (
-        <span className="inline-flex size-5 items-center justify-center rounded-full bg-surface-2 text-[9px] font-semibold text-fg-muted ring-2 ring-surface">
+        <span className="inline-flex size-5 items-center justify-center rounded-full bg-surface-2 text-2xs font-semibold text-fg-muted ring-2 ring-surface">
           +{presents.length - visibles.length}
         </span>
       )}

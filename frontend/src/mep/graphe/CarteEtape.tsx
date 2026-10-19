@@ -61,7 +61,7 @@ export function CarteEtape({ mep, etape: e, mode, descriptions, selectionnee, es
       )}
     >
       {e.pointDeNonRetour && (
-        <div className="bg-rollback-bg px-2.5 py-1 text-[11px] font-bold tracking-[0.08em] text-rollback-fg">
+        <div className="bg-rollback-bg px-2.5 py-1 text-2xs font-bold tracking-[0.08em] text-rollback-fg">
           ⛔ POINT DE NON-RETOUR
         </div>
       )}
@@ -73,7 +73,7 @@ export function CarteEtape({ mep, etape: e, mode, descriptions, selectionnee, es
             <span
               title={etat.detail}
               className={cn(
-                'inline-flex items-center gap-1 rounded-full border bg-surface px-2 text-[11px] font-semibold whitespace-nowrap',
+                'inline-flex items-center gap-1 rounded-full border bg-surface px-2 text-2xs font-semibold whitespace-nowrap',
                 TEXTE_TON[etat.ton],
               )}
             >
@@ -86,11 +86,11 @@ export function CarteEtape({ mep, etape: e, mode, descriptions, selectionnee, es
             </span>
           )}
         </div>
-        <p className="text-[14px] leading-snug font-semibold">
+        <p className="text-sm leading-snug font-semibold">
           {e.action || <em className="font-normal text-fg-subtle">Action à décrire</em>}
         </p>
         {e.ajouteeApresGo && <BadgeAjouteeApresGo className="justify-self-start" />}
-        {causes && <p className="text-[11.5px] font-semibold text-danger-fg">{etat.detail}</p>}
+        {causes && <p className="text-xs font-semibold text-danger-fg">{etat.detail}</p>}
         <div className="flex flex-wrap items-center gap-1.5 text-xs text-fg-muted">
           {nom && <Avatar nom={nom} taille="xs" />}
           {nom && (
@@ -106,19 +106,19 @@ export function CarteEtape({ mep, etape: e, mode, descriptions, selectionnee, es
           )}
           {e.type === 'Sauvegarde' && (
             <span
-              className="rounded border px-1 text-[10.5px] font-semibold"
+              className="rounded border px-1 text-2xs font-semibold"
               style={{ color: 'var(--sys-0)', borderColor: 'var(--sys-0)' }}
             >
               Sauvegarde
             </span>
           )}
           {e.resolutionIds.length > 0 && (
-            <span className="rounded border border-accent px-1 text-[10.5px] font-semibold text-accent-text">
+            <span className="rounded border border-accent px-1 text-2xs font-semibold text-accent-text">
               {e.resolutionIds.length} résol.
             </span>
           )}
           {exec && estAVous(mep, e) && (
-            <span className="rounded bg-accent px-1 text-[10px] font-bold tracking-wide text-accent-fg uppercase">
+            <span className="rounded bg-accent px-1 text-2xs font-bold tracking-wide text-accent-fg uppercase">
               À vous
             </span>
           )}

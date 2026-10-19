@@ -106,7 +106,7 @@ function EtatGroupe({
 }
 
 const GROUPE =
-  'px-1 py-1 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-subtle [&_[cmdk-group-heading]]:uppercase';
+  'px-1 py-1 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-2xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-subtle [&_[cmdk-group-heading]]:uppercase';
 
 /**
  * Palette de commandes Ctrl+K : MEP, onglets, paramètres, thème. Dès qu'on tape (#59) : rechercher le texte dans la liste
@@ -155,7 +155,7 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
               value={saisie}
               onValueChange={setSaisie}
               placeholder="Aller à une MEP, un système, une personne, un réglage…"
-              className="h-12 w-full border-b border-line bg-transparent px-4 text-[15px] text-fg outline-none placeholder:text-fg-subtle"
+              className="h-12 w-full border-b border-line bg-transparent px-4 text-md text-fg outline-none placeholder:text-fg-subtle"
             />
             <Command.List className="max-h-[50vh] overflow-y-auto p-1.5">
               {/* « Aucun résultat » seulement une fois toutes les listes lues. */}
