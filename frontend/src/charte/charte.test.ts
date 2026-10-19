@@ -83,6 +83,24 @@ describe('charte par défaut', () => {
     for (const [k, v] of Object.entries(DEFAUT_SOMBRE)) expect([k, sombre[k]]).toEqual([k, v]);
   });
 
+  it('pose sur chaque couleur pleine le texte de texteSur(), et des textes vert et orange lisibles', () => {
+    for (const d of [DEFAUT_CLAIR, DEFAUT_SOMBRE]) {
+      const familles = Object.keys(d).filter((k) => k.endsWith('-solid-fg'));
+      expect(familles).toHaveLength(8);
+      for (const k of familles) {
+        const plein = d[k.replace(/-fg$/, '')];
+        expect([k, d[k]]).toEqual([k, texteSur(plein)]);
+        expect(contraste(d[k], plein)).toBeGreaterThanOrEqual(4.5);
+      }
+      for (const f of ['ok', 'warn']) {
+        expect(contraste(d[`${f}-text`], d.surface)).toBeGreaterThanOrEqual(4.5);
+        expect(contraste(d[`${f}-text`], d[`${f}-bg`])).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+    // Vert et orange : texte foncé (Q8), le blanc n'atteint pas 4,5.
+    expect([DEFAUT_CLAIR['ok-solid-fg'], DEFAUT_CLAIR['warn-solid-fg']]).toEqual(['#16161a', '#16161a']);
+  });
+
   it('ne change aucun jeton et passe tous les contrôles', () => {
     expect(ecarts(CHARTE_DEFAUT, 'clair')).toEqual({});
     expect(ecarts(CHARTE_DEFAUT, 'sombre')).toEqual({});
@@ -152,6 +170,28 @@ describe('contrôles de lisibilité', () => {
     expect(aRevoir.map((x) => x.id)).toEqual(['cadre-clair', 'distinction-primaire-info']);
     const corrigee = appliquerCorrection(c, aRevoir[0]);
     expect(controles(corrigee).find((x) => x.id === 'cadre-clair')?.rapport).toBeGreaterThanOrEqual(3);
+  });
+
+  it('contrôle le texte posé sur une couleur d’état personnalisée et propose une correction', () => {
+    const c = lue({ couleurs: { primaire: '#4F46E5' }, etats: { avertissement: '#B5651D' } });
+    const plein = controles(c).filter((x) => x.id.startsWith('plein-'));
+    expect(plein.map((x) => [x.id, controleReussi(x)])).toEqual([
+      ['plein-avertissement-clair', false],
+      ['plein-avertissement-sombre', true],
+    ]);
+    const corrigee = appliquerCorrection(c, plein[0]);
+    const t = jetons(corrigee, 'clair');
+    expect(contraste(t['warn-solid-fg'], t['warn-solid'])).toBeGreaterThanOrEqual(4.5);
+    expect(controles(CHARTE_DEFAUT).some((x) => x.id.startsWith('plein-'))).toBe(false);
+  });
+
+  it('garde les icônes de la page de connexion lisibles sur une secondaire claire', () => {
+    const c = lue({ couleurs: { primaire: '#4F46E5', secondaire: '#F5F5F0' } });
+    const t = jetons(c, 'clair');
+    for (const k of ['connexion-ok', 'connexion-attention', 'connexion-alerte'])
+      expect(contraste(t[k], t.secondaire)).toBeGreaterThanOrEqual(3);
+    // Sur la secondaire par défaut (très sombre), elles ne changent pas.
+    expect(ecarts(CHARTE_DEFAUT, 'clair')['connexion-ok']).toBeUndefined();
   });
 
   it('contrôle le menu latéral seulement quand il est en secondaire', () => {

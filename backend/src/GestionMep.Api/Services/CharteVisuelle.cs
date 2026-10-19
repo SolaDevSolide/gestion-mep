@@ -154,6 +154,9 @@ public static class CharteVisuelle
         ("connexion-halo-2", "oklch(68.5% 0.169 237.323)"),
         ("connexion-texte", "oklch(93% 0.034 272.788)"),
         ("connexion-discret", "oklch(87% 0.065 274.039)"),
+        ("connexion-ok", "oklch(84.5% 0.143 164.978)"),
+        ("connexion-attention", "oklch(87.9% 0.169 91.605)"),
+        ("connexion-alerte", "oklch(81% 0.117 11.638)"),
     ];
 
     private static readonly (string, string)[] TableClaire =
@@ -162,14 +165,14 @@ public static class CharteVisuelle
         ("line-strong", "#c9c9d3"), ("fg", "#16161a"), ("fg-muted", "#4c4c57"), ("fg-subtle", "#6b6b78"),
         ("accent", "#4f46e5"), ("accent-hover", "#4338ca"), ("accent-text", "#4338ca"), ("accent-soft", "#eceafd"), ("accent-fg", "#ffffff"),
         ("code-bg", "#f3f3f7"), ("code-fg", "#1d1d26"),
-        ("ok-bg", "#dcfce7"), ("ok-fg", "#14532d"), ("ok-bd", "#86efac"), ("ok-solid", "#16a34a"),
-        ("run-bg", "#dbeafe"), ("run-fg", "#1e3a8a"), ("run-bd", "#93c5fd"), ("run-solid", "#2563eb"),
-        ("wait-bg", "#eef0f4"), ("wait-fg", "#3f4756"), ("wait-bd", "#cbd1db"), ("wait-solid", "#6b7482"),
-        ("done-bg", "#166534"), ("done-fg", "#ffffff"), ("done-bd", "#14532d"), ("done-solid", "#166534"),
-        ("danger-bg", "#fee2e2"), ("danger-fg", "#7f1d1d"), ("danger-bd", "#fca5a5"), ("danger-solid", "#dc2626"),
-        ("warn-bg", "#fef3c7"), ("warn-fg", "#78350f"), ("warn-bd", "#fcd34d"), ("warn-solid", "#d97706"),
-        ("later-bg", "#f7f7f9"), ("later-fg", "#5d5d6a"), ("later-bd", "#d6d6de"), ("later-solid", "#a1a1ad"),
-        ("rollback-bg", "#b91c1c"), ("rollback-fg", "#ffffff"), ("rollback-bd", "#7f1d1d"), ("rollback-solid", "#b91c1c"),
+        ("ok-bg", "#dcfce7"), ("ok-fg", "#14532d"), ("ok-bd", "#86efac"), ("ok-solid", "#16a34a"), ("ok-solid-fg", "#16161a"), ("ok-text", "#15803d"),
+        ("run-bg", "#dbeafe"), ("run-fg", "#1e3a8a"), ("run-bd", "#93c5fd"), ("run-solid", "#2563eb"), ("run-solid-fg", "#ffffff"),
+        ("wait-bg", "#eef0f4"), ("wait-fg", "#3f4756"), ("wait-bd", "#cbd1db"), ("wait-solid", "#6b7482"), ("wait-solid-fg", "#ffffff"),
+        ("done-bg", "#166534"), ("done-fg", "#ffffff"), ("done-bd", "#14532d"), ("done-solid", "#166534"), ("done-solid-fg", "#ffffff"),
+        ("danger-bg", "#fee2e2"), ("danger-fg", "#7f1d1d"), ("danger-bd", "#fca5a5"), ("danger-solid", "#dc2626"), ("danger-solid-fg", "#ffffff"),
+        ("warn-bg", "#fef3c7"), ("warn-fg", "#78350f"), ("warn-bd", "#fcd34d"), ("warn-solid", "#d97706"), ("warn-solid-fg", "#16161a"), ("warn-text", "#b45309"),
+        ("later-bg", "#f7f7f9"), ("later-fg", "#5d5d6a"), ("later-bd", "#d6d6de"), ("later-solid", "#a1a1ad"), ("later-solid-fg", "#16161a"),
+        ("rollback-bg", "#b91c1c"), ("rollback-fg", "#ffffff"), ("rollback-bd", "#7f1d1d"), ("rollback-solid", "#b91c1c"), ("rollback-solid-fg", "#ffffff"),
         ("tertiaire", "#4f46e5"), ("tertiaire-hover", "#4338ca"), ("tertiaire-text", "#4338ca"), ("tertiaire-soft", "#eceafd"), ("tertiaire-fg", "#ffffff"),
         ("secondaire", "#0d0e1a"), ("secondaire-fg", "#ffffff"),
         ("nav-bg", "#ffffff"), ("nav-fg", "#16161a"), ("nav-muted", "#4c4c57"), ("nav-subtle", "#6b6b78"), ("nav-hover", "#f1f1f4"),
@@ -183,14 +186,14 @@ public static class CharteVisuelle
         ("line-strong", "#3a3d49"), ("fg", "#ededf1"), ("fg-muted", "#b3b3bf"), ("fg-subtle", "#8f8f9c"),
         ("accent", "#5b54f0"), ("accent-hover", "#6d66f5"), ("accent-text", "#a9a5ff"), ("accent-soft", "#1f1d3f"), ("accent-fg", "#ffffff"),
         ("code-bg", "#0a0b0e"), ("code-fg", "#e4e4ec"),
-        ("ok-bg", "#0b2e18"), ("ok-fg", "#86efac"), ("ok-bd", "#166534"), ("ok-solid", "#22c55e"),
-        ("run-bg", "#0f2247"), ("run-fg", "#93c5fd"), ("run-bd", "#1e40af"), ("run-solid", "#3b82f6"),
-        ("wait-bg", "#1c1f27"), ("wait-fg", "#c5cad5"), ("wait-bd", "#343946"), ("wait-solid", "#8791a3"),
-        ("done-bg", "#14532d"), ("done-fg", "#dcfce7"), ("done-bd", "#166534"), ("done-solid", "#22a55a"),
-        ("danger-bg", "#3b0d0d"), ("danger-fg", "#fca5a5"), ("danger-bd", "#7f1d1d"), ("danger-solid", "#ef4444"),
-        ("warn-bg", "#3a2406"), ("warn-fg", "#fcd34d"), ("warn-bd", "#78350f"), ("warn-solid", "#f59e0b"),
-        ("later-bg", "#14151a"), ("later-fg", "#a1a1ae"), ("later-bd", "#2c2e38"), ("later-solid", "#5f6270"),
-        ("rollback-bg", "#c81e1e"), ("rollback-fg", "#ffffff"), ("rollback-bd", "#fca5a5"), ("rollback-solid", "#ef4444"),
+        ("ok-bg", "#0b2e18"), ("ok-fg", "#86efac"), ("ok-bd", "#166534"), ("ok-solid", "#22c55e"), ("ok-solid-fg", "#16161a"), ("ok-text", "#22c55e"),
+        ("run-bg", "#0f2247"), ("run-fg", "#93c5fd"), ("run-bd", "#1e40af"), ("run-solid", "#3b82f6"), ("run-solid-fg", "#16161a"),
+        ("wait-bg", "#1c1f27"), ("wait-fg", "#c5cad5"), ("wait-bd", "#343946"), ("wait-solid", "#8791a3"), ("wait-solid-fg", "#16161a"),
+        ("done-bg", "#14532d"), ("done-fg", "#dcfce7"), ("done-bd", "#166534"), ("done-solid", "#22a55a"), ("done-solid-fg", "#16161a"),
+        ("danger-bg", "#3b0d0d"), ("danger-fg", "#fca5a5"), ("danger-bd", "#7f1d1d"), ("danger-solid", "#ef4444"), ("danger-solid-fg", "#16161a"),
+        ("warn-bg", "#3a2406"), ("warn-fg", "#fcd34d"), ("warn-bd", "#78350f"), ("warn-solid", "#f59e0b"), ("warn-solid-fg", "#16161a"), ("warn-text", "#f59e0b"),
+        ("later-bg", "#14151a"), ("later-fg", "#a1a1ae"), ("later-bd", "#2c2e38"), ("later-solid", "#5f6270"), ("later-solid-fg", "#ffffff"),
+        ("rollback-bg", "#c81e1e"), ("rollback-fg", "#ffffff"), ("rollback-bd", "#fca5a5"), ("rollback-solid", "#ef4444"), ("rollback-solid-fg", "#16161a"),
         ("tertiaire", "#5b54f0"), ("tertiaire-hover", "#6d66f5"), ("tertiaire-text", "#a9a5ff"), ("tertiaire-soft", "#1f1d3f"), ("tertiaire-fg", "#ffffff"),
         ("secondaire", "#0d0e1a"), ("secondaire-fg", "#ffffff"),
         ("nav-bg", "#121318"), ("nav-fg", "#ededf1"), ("nav-muted", "#b3b3bf"), ("nav-subtle", "#8f8f9c"), ("nav-hover", "#1a1c23"),
@@ -226,6 +229,14 @@ public static class CharteVisuelle
     };
 
     private static readonly string[] GrisTeintes = ["bg", "surface-2", "sunken", "line", "line-strong"];
+
+    /// <summary>Familles qui ont une couleur pleine, et donc un texte posé dessus (<c>-solid-fg</c>).</summary>
+    private static readonly string[] FamillesPleines = ["ok", "run", "wait", "done", "danger", "warn", "later", "rollback"];
+    /// <summary>Familles dont la couleur sert aussi de texte (<c>-text</c>).</summary>
+    private static readonly string[] FamillesTexte = ["ok", "warn"];
+    /// <summary>Icônes de la page de connexion (Tailwind emerald, amber et rose 300), ajustées contre une secondaire personnalisée.</summary>
+    private static readonly (string Cle, string Valeur)[] IconesConnexion =
+        [("connexion-ok", "#6ee7b7"), ("connexion-attention", "#fcd34d"), ("connexion-alerte", "#fda4af")];
     private static readonly string[] Suffixes = ["", "-hover", "-text", "-soft", "-fg"];
 
     // ---------- Couleurs des rôles ----------
@@ -363,6 +374,11 @@ public static class CharteVisuelle
                 Affecter(t, [("rollback-bg", fonce), ("rollback-solid", fonce)]);
             }
         }
+        // Texte posé sur les couleurs pleines ; vert et orange employés comme texte (couleurs d'état personnalisées).
+        foreach (var f in FamillesPleines) t[$"{f}-solid-fg"] = TexteSur(t[$"{f}-solid"]);
+        foreach (var (etat, famille, _, _) in Etats)
+            if (c.Etats.ContainsKey(etat) && FamillesTexte.Contains(famille))
+                t[$"{famille}-text"] = AjusterPourContraste(AjusterPourContraste(t[$"{famille}-solid"], t[$"{famille}-bg"], 4.5), t["surface"], 4.5);
         // Page de connexion : panneau en secondaire, logo et halos aux couleurs de la charte.
         if (p != PrimaireDefaut(mode))
         {
@@ -375,6 +391,8 @@ public static class CharteVisuelle
         {
             t["connexion-texte"] = t["secondaire-fg"];
             t["connexion-discret"] = t["secondaire-fg"];
+            foreach (var (k, v) in IconesConnexion)
+                if (AjusterPourContraste(v, sec, 3) is var icone && icone != v) t[k] = icone;
         }
         return t;
     }
@@ -442,6 +460,22 @@ public static class CharteVisuelle
             var rapport = Contraste(b, Blanc);
             res.Add(new($"etat-{etat}-clair", $"Couleur « {libelle} » sur fond blanc", ModeCharte.Clair, "contraste", etat, b, Blanc, rapport, 3,
                 rapport < 3 ? new CorrectionCharte(etat, AjusterPourContraste(b, Blanc, 3)) : null, null));
+        }
+        // Couleurs d'état personnalisées : le texte des pastilles et boutons pleins (blanc ou encre) doit se lire.
+        foreach (var (etat, famille, libelle, _) in Etats)
+        {
+            if (c.Etats.GetValueOrDefault(etat) is not { } b) continue;
+            foreach (var mode in new[] { ModeCharte.Clair, ModeCharte.Sombre })
+            {
+                var t = Jetons(c, mode);
+                var avant = t[$"{famille}-solid-fg"];
+                var arriere = t[$"{famille}-solid"];
+                var rapport = Contraste(avant, arriere);
+                // La couleur pleine du thème sombre est calculée : seule celle du thème clair se corrige directement.
+                var correction = rapport < 4.5 && mode == ModeCharte.Clair ? new CorrectionCharte(etat, AjusterPourContraste(b, avant, 4.5)) : null;
+                res.Add(new($"plein-{etat}-{(mode == ModeCharte.Clair ? "clair" : "sombre")}", $"Texte sur la couleur « {libelle} » pleine", mode, "contraste",
+                    etat, avant, arriere, rapport, 4.5, correction, null));
+            }
         }
         foreach (var role in new[] { "primaire", "tertiaire" })
         {
