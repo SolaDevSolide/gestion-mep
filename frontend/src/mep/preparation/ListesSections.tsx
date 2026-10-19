@@ -208,7 +208,7 @@ export function PersonnesSection() {
         <EmptyState
           icone={Users}
           titre="Aucune personne"
-          description="Ajoutez le pilote, son suppléant et les opérateurs."
+          description="Ajoutez le pilote, son suppléant et les exécutants."
         />
       ) : (
         <Liste>

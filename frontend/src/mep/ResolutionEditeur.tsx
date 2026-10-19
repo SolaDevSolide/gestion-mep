@@ -274,7 +274,7 @@ export function FormulaireResolution({
   );
 }
 
-/** Aperçu en direct, tel que l'opérateur verra la résolution en exécution. */
+/** Aperçu en direct, tel que l'exécutant verra la résolution en exécution. */
 export function ApercuResolution({ b, systemes }: { b: BrouillonResolution; systemes: SystemeCatalogue[] }) {
   const choisis = systemes.filter((s) => b.systemeCatalogueIds.includes(s.id));
   return (

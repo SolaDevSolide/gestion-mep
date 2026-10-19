@@ -30,7 +30,7 @@ export interface MetaStatut {
 /** État d'affichage d'une étape : couleur + icône + libellé (jamais la couleur seule). */
 export function metaEtape(e: Pick<Etape, 'etat' | 'disponibilite'>): MetaStatut {
   const s = e.disponibilite.statut;
-  if (e.etat === 'Reussie' || s === 'Terminee') return { ton: 'done', libelle: 'Terminée', Icone: Check };
+  if (e.etat === 'Reussie' || s === 'Terminee') return { ton: 'done', libelle: 'Réussie', Icone: Check };
   if (s === 'ResolutionEnCours') return { ton: 'warn', libelle: 'Résolution en cours', Icone: Wrench };
   if (e.etat === 'Echec') return { ton: 'danger', libelle: 'Échec', Icone: XCircle };
   if (s === 'RetourArriere') return { ton: 'rollback', libelle: 'RETOUR ARRIÈRE', Icone: Siren };
@@ -78,7 +78,7 @@ export function metaPhase(phase: Phase, etat: EtatMep, dateReport?: string | nul
       return { ton: 'later', libelle: 'Annulée', Icone: Ban };
     case 'Cloturee':
       if (etat === 'Echec') return { ton: 'danger', libelle: 'Clôturée : échec', Icone: XCircle };
-      if (etat === 'Repliee') return { ton: 'later', libelle: 'Clôturée : repliée', Icone: Undo2 };
+      if (etat === 'Repliee') return { ton: 'later', libelle: 'Clôturée après retour arrière', Icone: Undo2 };
       if (etat === 'AvecIncidents')
         return { ton: 'warn', libelle: 'Clôturée : réussie avec incidents', Icone: TriangleAlert };
       return { ton: 'done', libelle: 'Clôturée : réussie', Icone: CheckCircle2 };
@@ -104,7 +104,7 @@ export function metaEtatMep(e: EtatMep): MetaStatut & { court: string } {
     case 'AvecIncidents':
       return { ton: 'warn', libelle: 'Réussie avec incidents', court: 'Avec incidents', Icone: TriangleAlert };
     case 'Repliee':
-      return { ton: 'later', libelle: 'Repliée (retour arrière)', court: 'Repliée', Icone: Undo2 };
+      return { ton: 'later', libelle: 'Clôturée après retour arrière', court: 'Après retour arrière', Icone: Undo2 };
     case 'Reportee':
       return { ton: 'wait', libelle: 'Reportée', court: 'Reportée', Icone: CalendarClock };
     case 'Echec':

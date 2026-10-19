@@ -116,7 +116,7 @@ function ChiffresCles({ c, etapes, compact }: { c: Chiffres; etapes: Etape[]; co
           <>
             {c.faites}/{c.total}{' '}
             <span className="text-base font-semibold text-fg-muted">
-              étape{c.faites > 1 ? 's' : ''} faite{c.faites > 1 ? 's' : ''} · {c.pourcentage} %
+              étape{c.faites > 1 ? 's' : ''} réussie{c.faites > 1 ? 's' : ''} · {c.pourcentage} %
             </span>
           </>
         }

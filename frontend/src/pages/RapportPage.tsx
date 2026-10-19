@@ -9,6 +9,7 @@ import {
   LIBELLE_ETAT,
   LIBELLE_FAMILLE_EVENEMENT,
   LIBELLE_RESULTAT,
+  LIBELLE_VERIFICATION,
   LIBELLE_STATUT_RESOLUTION,
   familleEvenement,
 } from '../format';
@@ -336,7 +337,7 @@ function Rapport({ r }: { r: RapportFin }) {
                 {x.corrections.filter((c) => c.resultat === 'Conforme').length}/{x.corrections.length} conforme(s)
               </td>
               <td className={td}>
-                {x.verificationResultat ? LIBELLE_RESULTAT[x.verificationResultat] : '—'}
+                {x.verificationResultat ? LIBELLE_VERIFICATION[x.verificationResultat] : '—'}
                 {x.verificationObservation && ` : ${x.verificationObservation}`}
               </td>
               <td className={`${td} tnum`}>{dureeOuTiret(minutesEntre(x.demarreeLe, x.termineeLe))}</td>

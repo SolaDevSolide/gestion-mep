@@ -101,7 +101,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                 <span className="inline-flex items-center gap-1.5">
                   <CalendarDays className="size-3.5 text-fg-subtle" aria-hidden />
                   Démarrée le {mep.demarrageAutorise ? formatDateHeure(mep.demarrageAutorise.le) : '—'}
-                  {mep.cloture && ` · Terminée le ${formatDateHeure(mep.cloture.le)}`}
+                  {mep.cloture && ` · Clôturée le ${formatDateHeure(mep.cloture.le)}`}
                   {mep.annulation && ` · Annulée le ${formatDateHeure(mep.annulation.le)}`}
                 </span>
               )}
@@ -181,7 +181,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
             <ProgressBar className="min-w-48 flex-1" hauteur="h-1.5" segments={segmentsProgression(etapes)} />
             <p className="flex shrink-0 items-center gap-3 text-xs text-fg-subtle tnum">
               <span className="font-medium text-fg-muted">
-                {termine}/{etapes.length} {plan === 'RetourArriere' ? 'étapes de repli' : 'étapes'}
+                {termine}/{etapes.length} {plan === 'RetourArriere' ? 'étapes de retour arrière' : 'étapes'}
               </span>
               {segmentsProgression(etapes)
                 .filter((x) => x.valeur > 0 && x.ton !== 'wait')

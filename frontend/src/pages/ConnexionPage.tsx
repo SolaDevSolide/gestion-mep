@@ -195,7 +195,8 @@ export default function ConnexionPage() {
               retour arrière
             </li>
             <li className="flex items-center gap-3">
-              <Undo2 className="size-5 text-connexion-alerte" aria-hidden /> Résolutions types et plan de repli intégrés
+              <Undo2 className="size-5 text-connexion-alerte" aria-hidden /> Résolutions types et plan de retour arrière
+              intégrés
             </li>
           </ul>
         </div>

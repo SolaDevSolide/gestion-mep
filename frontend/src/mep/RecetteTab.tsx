@@ -99,7 +99,7 @@ export default function RecetteTab() {
           <BoutonExportExcel
             url={api.urlExportRecette(mep.id)}
             disabled={fiches.length === 0}
-            title="Fichier à faire remplir par les métiers : résultat constaté, Validé ou Refusé, nom et date."
+            title="Fichier à faire remplir par les métiers : résultat constaté, Conforme ou Non conforme, nom et date."
           />
           {enRecette && peutAgir && (
             <Button taille="sm" icone={<Upload className="size-4" aria-hidden />} onClick={() => setImporter(true)}>

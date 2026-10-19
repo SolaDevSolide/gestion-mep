@@ -142,7 +142,7 @@ export function IdentiteSection() {
               </span>
             </p>
             <p>
-              <span className="block text-[13px] font-medium">Terminée le</span>
+              <span className="block text-[13px] font-medium">Clôturée le</span>
               <span className="text-fg-muted">{mep.cloture ? formatDateHeure(mep.cloture.le) : '—'}</span>
             </p>
           </div>

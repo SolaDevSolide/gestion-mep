@@ -348,7 +348,7 @@ export function ParcourirDialog({
         />
       </div>
       {plan === 'RetourArriere' && (
-        <p className="mt-2 text-xs text-fg-subtle">Retour arrière : seules les étapes normales sont proposées.</p>
+        <p className="mt-2 text-xs text-fg-subtle">Retour arrière : seules les étapes standard sont proposées.</p>
       )}
 
       {choixSysteme ? (

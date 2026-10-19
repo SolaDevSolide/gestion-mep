@@ -88,7 +88,7 @@ function Frise({ meps, maintenant }: { meps: MepHistorique[]; maintenant: Date }
   const legende: { etat: EtatMep; libelle: string }[] = [
     { etat: 'Reussie', libelle: 'Réussie' },
     { etat: 'AvecIncidents', libelle: 'Avec incidents' },
-    { etat: 'Repliee', libelle: 'Repliée' },
+    { etat: 'Repliee', libelle: 'Après retour arrière' },
     { etat: 'Echec', libelle: 'Échec' },
     { etat: 'Annulee', libelle: 'Annulée' },
     { etat: 'Execution', libelle: 'En cours' },
@@ -348,8 +348,8 @@ export function VueHistorique({
           {r.cloturees ? (
             <>
               {r.enEchec > 0 && `${r.enEchec} en échec · `}
-              {r.repliees} repliée{r.repliees > 1 ? 's' : ''} · {r.avecIncidents} avec incidents, sur {r.cloturees}{' '}
-              clôturée{r.cloturees > 1 ? 's' : ''}
+              {r.repliees} après retour arrière · {r.avecIncidents} avec incidents, sur {r.cloturees} clôturée
+              {r.cloturees > 1 ? 's' : ''}
               {r.annulees > 0 && ` (et ${r.annulees} annulée${r.annulees > 1 ? 's' : ''})`}
               <span className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-sunken" aria-hidden>
                 <span className={pastille('Reussie')} style={{ width: part(r.reussies) }} />

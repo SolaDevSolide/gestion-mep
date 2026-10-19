@@ -1,7 +1,7 @@
 import { Check, CircleDashed, OctagonAlert, Stethoscope, Wrench, XCircle } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { premiereLigne } from '../blocs';
-import { formatDateHeure, LIBELLE_RESULTAT } from '../format';
+import { formatDateHeure, LIBELLE_VERIFICATION } from '../format';
 import type { ExecutionResolution, ResultatControle } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
@@ -186,7 +186,7 @@ function Fait({
       )}
       <div className="min-w-0 flex-1 text-sm">
         <p className="font-medium">
-          <span className="font-mono text-xs">{numero}</span> · {LIBELLE_RESULTAT[resultat]}
+          <span className="font-mono text-xs">{numero}</span> · {LIBELLE_VERIFICATION[resultat]}
         </p>
         <p className="truncate font-mono text-xs text-fg-muted" title={libelle}>
           {premiereLigne(libelle)}

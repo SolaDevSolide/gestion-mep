@@ -113,7 +113,7 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-fg-muted">
           <span className="inline-flex items-center gap-1.5 tnum">
             <Play className="size-4 text-fg-subtle" aria-hidden />
-            {repli ? 'Repli déclenché à' : 'Go à'} {heure(c.depart)}
+            {repli ? 'Retour arrière déclenché à' : 'Go à'} {heure(c.depart)}
           </span>
           {rebours && rebours.niveau !== 'aucun' && (
             <span
@@ -137,7 +137,7 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
         <div className="min-w-0">
           <p className="text-[13px] font-semibold tnum">
             {repli ? 'Retour arrière : ' : ''}
-            {c.faites}/{c.total} étapes faites · {c.pourcentage} %
+            {c.faites}/{c.total} étapes réussies · {c.pourcentage} %
           </p>
           <ProgressBar className="mt-1.5" hauteur="h-2.5" legende segments={segmentsProgression(etapes)} />
           <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Sections">

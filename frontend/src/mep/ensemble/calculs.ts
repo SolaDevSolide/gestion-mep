@@ -11,7 +11,7 @@ import { infoSection, type Section } from '../graphe/sections';
 export type EtatVue = 'faite' | 'en-cours' | 'echec' | 'resolution' | 'a-venir' | 'bloquee';
 
 export const LIBELLE_ETAT_VUE: Record<EtatVue, string> = {
-  faite: 'Faite',
+  faite: 'Réussie',
   'en-cours': 'En cours',
   echec: 'Échec',
   resolution: 'Résolution en cours',
