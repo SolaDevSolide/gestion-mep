@@ -62,6 +62,72 @@ public class SuiviEtRapportTests : IDisposable
     }
 
     [Fact]
+    public void Le_flux_du_suivi_dit_quelles_cartes_relire_ou_s_il_faut_tout_relire()
+    {
+        var diffuseur = new DiffuseurMep(new ConfigurationBuilder().Build());
+        using var suivi = diffuseur.AbonnerSuivi(Guid.NewGuid())!;
+        Guid a = Guid.NewGuid(), b = Guid.NewGuid();
+        // Rien pour le suivi : pas de réveil.
+        diffuseur.Notifier(a, 4, DiffuseurMep.PorteeSuivi.Aucune);
+        Assert.Null(suivi.Prendre().Version);
+        // Deux cartes (une deux fois) : les deux, sans doublon.
+        diffuseur.Notifier(a, 5, DiffuseurMep.PorteeSuivi.Carte);
+        diffuseur.Notifier(b, 2, DiffuseurMep.PorteeSuivi.Carte);
+        diffuseur.Notifier(a, 6, DiffuseurMep.PorteeSuivi.Carte);
+        var envoi = suivi.Prendre();
+        Assert.NotNull(envoi.Version);
+        Assert.False(envoi.Liste);
+        Assert.Equal(new[] { a, b }.Order(), envoi.Cartes!.Order());
+        // Une liste à relire l'emporte sur les cartes.
+        diffuseur.Notifier(a, 7, DiffuseurMep.PorteeSuivi.Carte);
+        diffuseur.Notifier(b, 3, DiffuseurMep.PorteeSuivi.Liste);
+        envoi = suivi.Prendre();
+        Assert.True(envoi.Liste);
+        Assert.Empty(envoi.Cartes!);
+        // Trop de cartes d'un coup : tout relire coûte moins cher.
+        for (var n = 0; n <= DiffuseurMep.MaxCartesParEnvoi; n++) diffuseur.Notifier(Guid.NewGuid(), 1, DiffuseurMep.PorteeSuivi.Carte);
+        Assert.True(suivi.Prendre().Liste);
+        Assert.Null(suivi.Prendre().Version);
+    }
+
+    [Fact]
+    public async Task Une_ecriture_ne_reveille_le_suivi_que_pour_ce_qu_il_affiche()
+    {
+        var alice = await _api.ClientConnecte("alice");
+        var diffuseur = _api.Services.GetRequiredService<DiffuseurMep>();
+        using var suivi = diffuseur.AbonnerSuivi(Guid.NewGuid())!;
+        var enCours = await AidesApi.IdMep(alice, DonneesDemo.OutilExecution);
+        var prevue = await AidesApi.IdDemo(alice);
+        async Task<JsonElement> Lire(Guid id) => await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        static int Revision(JsonElement m, string bloc) => m.GetProperty("revisions").GetProperty(bloc).GetInt32();
+
+        // MEP lancée : sa carte seulement.
+        var m = await Lire(enCours);
+        var etape = m.GetProperty("etapes")[0];
+        await Ok(await alice.PutAsJsonAsync($"/api/meps/{enCours}/etapes/{etape.GetProperty("id").GetGuid()}/commentaire",
+            new { revision = etape.GetProperty("revision").GetInt32(), commentaire = "Vu en direct" }));
+        var envoi = suivi.Prendre();
+        Assert.False(envoi.Liste);
+        Assert.Equal([enCours], envoi.Cartes!);
+
+        // MEP prévue : son plan de retour arrière n'apparaît pas dans le suivi…
+        m = await Lire(prevue);
+        await Ok(await alice.PutAsJsonAsync($"/api/meps/{prevue}/plan-repli", new { revision = Revision(m, "planRepli"), quandDeclencher = "Jamais" }));
+        Assert.Null(suivi.Prendre().Version);
+        // … sa version cible, si : les listes sont à relire.
+        m = await Lire(prevue);
+        await Ok(await alice.PutAsJsonAsync($"/api/meps/{prevue}", new
+        {
+            revision = Revision(m, "identite"),
+            outil = m.GetProperty("outil").GetString(), versionActuelle = m.GetProperty("versionActuelle").GetString(), versionCible = "9.9.9",
+            objet = m.GetProperty("objet").GetString(), impacts = m.GetProperty("impacts").GetString(), fuseauHoraire = m.GetProperty("fuseauHoraire").GetString(),
+            indisponibiliteMinutes = m.GetProperty("indisponibiliteMinutes").ValueKind == JsonValueKind.Null ? (int?)null : m.GetProperty("indisponibiliteMinutes").GetInt32(),
+            piloteId = m.GetProperty("piloteId").GetGuid(), suppleantIds = m.GetProperty("suppleantIds").EnumerateArray().Select(x => x.GetGuid()).ToList(),
+        }));
+        Assert.True(suivi.Prendre().Liste);
+    }
+
+    [Fact]
     public async Task Le_rapport_est_fige_a_la_cloture_et_n_existe_pas_avant()
     {
         var alice = await _api.ClientConnecte("alice");

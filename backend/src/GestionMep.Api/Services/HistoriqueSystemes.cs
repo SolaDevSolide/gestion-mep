@@ -30,10 +30,11 @@ public static class HistoriqueSystemes
         if (ids.Count == 0) return resultat;
         var entites = await db.Meps.AsNoTracking().Include(m => m.Etapes).Include(m => m.Resolutions).Include(m => m.Systemes)
             .AsSplitQuery().Where(m => ids.Contains(m.Id)).ToListAsync();
+        // Journaux de toutes ces MEP en une seule requête (et non une par MEP).
+        var journaux = await MepsEndpoints.Journaux(db, ids);
         foreach (var mep in entites)
         {
-            var journal = await MepsEndpoints.Journal(db, mep.Id);
-            var (_, points) = RapportsFin.Calculer(mep, journal);
+            var (_, points) = RapportsFin.Calculer(mep, [.. journaux[mep.Id]]);
             var systemes = mep.Systemes.ToDictionary(s => s.Id, s => (s.CatalogueId, s.Nom));
             var etapes = mep.Etapes.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.First());
             resultat[mep.Id] = [.. points.Select(p => new EchecDetaille(mep.Id, p,
@@ -61,7 +62,7 @@ public static class HistoriqueSystemes
     public static async Task<HistoriqueSystemeDto> Historique(MepDbContext db, Guid systemeId, DateOnly aujourdhui)
     {
         var systeme = await Systeme(db, systemeId);
-        var meps = new FiltreMeps { Systemes = [systemeId.ToString()] }.Appliquer(await MepsEndpoints.Lister(db, false));
+        var meps = await MepsEndpoints.Rechercher(db, false, new FiltreMeps { Systemes = [systemeId.ToString()] });
         var echecs = await Echecs(db, meps.Where(m => m.Systemes.Any(s => s.CatalogueId == systemeId && s.Echecs > 0)));
         var lignes = meps.Select(m =>
         {

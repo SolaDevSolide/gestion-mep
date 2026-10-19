@@ -103,8 +103,22 @@ public static partial class VuesExcel
     {
         var i = type.IndexOf('.', StringComparison.Ordinal);
         var famille = i < 0 ? type : type[..i];
-        return famille is "approbateurs" or "approbations" ? "approbation" : famille;
+        return famille switch
+        {
+            "approbateurs" or "approbations" => "approbation",
+            // Passation et pilotage de secours : rangés avec les personnes de la MEP (#93), comme dans l'interface.
+            "pilotage" => "participant",
+            _ => famille,
+        };
     }
+
+    /// <summary>Préfixes de type (avant le point) d'une famille d'événements : l'inverse de <see cref="Famille"/>.</summary>
+    public static string[] PrefixesDeFamille(string famille) => famille switch
+    {
+        "approbation" => ["approbation", "approbateurs", "approbations"],
+        "participant" => ["participant", "pilotage"],
+        _ => [famille],
+    };
 
     private static string LibelleFamille(string type) => FamillesEvenement.TryGetValue(Famille(type), out var l) ? l : Famille(type);
 

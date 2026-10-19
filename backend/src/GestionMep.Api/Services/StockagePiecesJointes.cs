@@ -25,8 +25,13 @@ public class StockagePiecesJointes(IConfiguration config)
 
     private string Chemin(Guid id) => Path.Combine(Dossier, id.ToString("N"));
 
-    /// <summary>Copie le flux sur disque ; renvoie la taille et l'empreinte SHA-256 (hexadécimal minuscule).</summary>
-    public async Task<(long Taille, string Sha256)> Ecrire(Guid id, Stream source, CancellationToken ct)
+    /// <summary>
+    /// Copie le flux sur disque ; renvoie la taille et l'empreinte SHA-256 (hexadécimal minuscule). La copie s'arrête dès que le
+    /// fichier dépasse la taille maximale (413) ou <paramref name="plafond"/> (place restante sous les quotas : l'erreur de
+    /// <paramref name="depassement"/>), sans lire la suite ; le fichier partiel est effacé.
+    /// </summary>
+    public async Task<(long Taille, string Sha256)> Ecrire(Guid id, Stream source, CancellationToken ct, long plafond = long.MaxValue,
+        Func<Exception>? depassement = null)
     {
         Directory.CreateDirectory(Dossier);
         var chemin = Chemin(id);
@@ -41,6 +46,7 @@ public class StockagePiecesJointes(IConfiguration config)
             {
                 taille += lus;
                 if (taille > TailleMaxOctets) throw new ErreurHttp(413, MessageTropVolumineux);
+                if (taille > plafond) throw depassement?.Invoke() ?? new ErreurHttp(413, MessageTropVolumineux);
                 sha.AppendData(tampon, 0, lus);
                 await cible.WriteAsync(tampon.AsMemory(0, lus), ct);
             }

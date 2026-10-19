@@ -5,8 +5,10 @@ using System.Text.Json;
 namespace GestionMep.Tests;
 
 /// <summary>
-/// Écritures simultanées sur une même MEP : les actions sur des étapes différentes aboutissent toutes (réessai automatique
-/// côté serveur), alors qu'un vrai conflit (même étape, révision ou version périmée) reste refusé.
+/// Écritures simultanées sur une même MEP : les écritures passent l'une après l'autre (verrou de la MEP), si bien que les
+/// actions sur des étapes ou des blocs différents aboutissent toutes, alors qu'un vrai conflit (même étape ou même bloc avec
+/// une révision périmée) reste refusé. Jusqu'à 10 personnes en même temps (#96) ; les résultats ne dépendent pas de l'ordre
+/// d'arrivée des requêtes.
 /// </summary>
 [Collection("Api")]
 public class ConcurrenceTests : IDisposable
@@ -219,5 +221,227 @@ public class ConcurrenceTests : IDisposable
         mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
         Assert.True(Version(mep) > version);
         Assert.Equal(replisAvant + 1, (await Journal(alice, id)).Count(e => e.Type == "repli.modifie"));
+    }
+
+    // ---------- Dix personnes en même temps (#96) ----------
+
+    /// <summary>Dix clients connectés (Alice, pilote et administratrice, depuis plusieurs onglets ; Bob et Claire en lecture).</summary>
+    private async Task<HttpClient[]> DixClients()
+    {
+        var clients = new HttpClient[10];
+        for (var i = 0; i < clients.Length; i++) clients[i] = await _api.ClientConnecte("alice");
+        return clients;
+    }
+
+    private static List<string> Codes(JsonElement mep) =>
+        [.. mep.GetProperty("etapes").EnumerateArray().Select(e => e.GetProperty("code").GetString()!).Order(StringComparer.Ordinal)];
+
+    [Fact]
+    public async Task Dix_ecritures_simultanees_sur_dix_etapes_differentes_aboutissent_toutes_sans_conflit()
+    {
+        var (_, _, _, id, mep) = await EnExecution();
+        var clients = await DixClients();
+        var codes = Codes(mep).Where(c => c is not ("E0004" or "E0006")).Take(8).ToList();
+        Assert.Equal(8, codes.Count);
+        var version = Version(mep);
+        var journalAvant = (await Journal(clients[0], id)).Count;
+
+        // Démarrer deux étapes disponibles et commenter huit autres étapes, tous en même temps, avec la même lecture de la MEP.
+        var requetes = new List<Func<Task<HttpResponseMessage>>>
+        {
+            () => Demarrer(clients[0], id, mep, "E0004"),
+            () => Demarrer(clients[1], id, mep, "E0006"),
+        };
+        requetes.AddRange(codes.Select((code, i) => (Func<Task<HttpResponseMessage>>)(() => Commenter(clients[i + 2], id, mep, code, $"Note {code}"))));
+        await ToutesOk(await Simultanement([.. requetes]));
+
+        mep = await Ok(await clients[0].GetAsync($"/api/meps/{id}"));
+        Assert.Equal(version + 10, Version(mep));
+        Assert.Equal("EnCours", Etat(mep, "E0004"));
+        Assert.Equal("EnCours", Etat(mep, "E0006"));
+        foreach (var code in codes) Assert.Equal($"Note {code}", Etape(mep, code).GetProperty("commentaire").GetString());
+        var journal = await Journal(clients[0], id);
+        Assert.Equal(journalAvant + 10, journal.Count);
+        foreach (var code in codes) Assert.Single(journal, e => e.Type == "etape.commentaire" && e.Detail == $"Commentaire sur {code} : Note {code}");
+    }
+
+    [Fact]
+    public async Task Dix_ecritures_simultanees_sur_la_meme_etape_une_seule_aboutit_les_autres_recoivent_409()
+    {
+        var (_, _, _, id, mep) = await EnExecution();
+        var clients = await DixClients();
+        var version = Version(mep);
+
+        var reponses = await Simultanement([.. clients.Select((c, i) => (Func<Task<HttpResponseMessage>>)(() => Commenter(c, id, mep, "E0005", $"Version {i}")))]);
+
+        Assert.Single(reponses, r => r.StatusCode == HttpStatusCode.OK);
+        foreach (var refus in reponses.Where(r => r.StatusCode != HttpStatusCode.OK))
+        {
+            Assert.Equal(HttpStatusCode.Conflict, refus.StatusCode);
+            Assert.Contains("E0005 a été modifiée par quelqu'un d'autre", await refus.Content.ReadAsStringAsync());
+        }
+        var gagnante = (await Ok(reponses.Single(r => r.StatusCode == HttpStatusCode.OK))).GetProperty("etapes").EnumerateArray()
+            .Single(e => e.GetProperty("code").GetString() == "E0005").GetProperty("commentaire").GetString();
+        mep = await Ok(await clients[0].GetAsync($"/api/meps/{id}"));
+        Assert.Equal(version + 1, Version(mep));
+        Assert.Equal(gagnante, Etape(mep, "E0005").GetProperty("commentaire").GetString());
+        Assert.Single(await Journal(clients[0], id), e => e.Type == "etape.commentaire" && e.Detail == $"Commentaire sur E0005 : {gagnante}");
+    }
+
+    [Fact]
+    public async Task Dix_ecritures_simultanees_melangees_seuls_les_vrais_conflits_sont_refuses()
+    {
+        var (_, _, _, id, mep) = await EnExecution();
+        var clients = await DixClients();
+        var codes = Codes(mep).Where(c => c != "E0005").Take(5).ToList();
+        var version = Version(mep);
+
+        // Cinq étapes différentes (une écriture chacune) et cinq écritures sur E0005 avec la même révision.
+        var requetes = codes.Select((code, i) => (Func<Task<HttpResponseMessage>>)(() => Commenter(clients[i], id, mep, code, $"Seule sur {code}")))
+            .Concat(Enumerable.Range(5, 5).Select(i => (Func<Task<HttpResponseMessage>>)(() => Commenter(clients[i], id, mep, "E0005", $"Concurrente {i}"))))
+            .ToArray();
+        var reponses = await Simultanement(requetes);
+
+        for (var i = 0; i < 5; i++) Assert.True(reponses[i].StatusCode == HttpStatusCode.OK, await Corps(reponses[i]));
+        Assert.Single(reponses[5..], r => r.StatusCode == HttpStatusCode.OK);
+        Assert.Equal(4, reponses[5..].Count(r => r.StatusCode == HttpStatusCode.Conflict));
+        mep = await Ok(await clients[0].GetAsync($"/api/meps/{id}"));
+        Assert.Equal(version + 6, Version(mep));
+        foreach (var code in codes) Assert.Equal($"Seule sur {code}", Etape(mep, code).GetProperty("commentaire").GetString());
+    }
+
+    // ---------- Révision par bloc de formulaire (#96) ----------
+
+    private static int RevisionBloc(JsonElement mep, string bloc) => mep.GetProperty("revisions").GetProperty(bloc).GetInt32();
+
+    private static object Identite(JsonElement mep, string objet, int revision) => new
+    {
+        revision,
+        outil = mep.GetProperty("outil").GetString(), versionActuelle = mep.GetProperty("versionActuelle").GetString(),
+        versionCible = mep.GetProperty("versionCible").GetString(), objet, impacts = mep.GetProperty("impacts").GetString(),
+        fuseauHoraire = mep.GetProperty("fuseauHoraire").GetString(),
+        indisponibiliteMinutes = mep.GetProperty("indisponibiliteMinutes").ValueKind == JsonValueKind.Null ? (int?)null : mep.GetProperty("indisponibiliteMinutes").GetInt32(),
+        piloteId = mep.GetProperty("piloteId").GetGuid(),
+        suppleantIds = mep.GetProperty("suppleantIds").EnumerateArray().Select(x => x.GetGuid()).ToList(),
+    };
+
+    [Fact]
+    public async Task Un_formulaire_de_section_n_est_pas_perime_par_une_ecriture_ailleurs_dans_la_mep()
+    {
+        var alice = await _api.ClientConnecte("alice");
+        var bob = await _api.ClientConnecte("bob");
+        var id = await AidesApi.IdDemo(alice);
+        var lue = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        var identite = RevisionBloc(lue, "identite");
+
+        // Bob modifie le plan de retour arrière et une étape : la révision de l'intervention ne change pas.
+        var apres = await Ok(await bob.PutAsJsonAsync($"/api/meps/{id}/plan-repli",
+            new { revision = RevisionBloc(lue, "planRepli"), quandDeclencher = "Si le portail ne répond plus" }));
+        Assert.Equal(RevisionBloc(lue, "planRepli") + 1, RevisionBloc(apres, "planRepli"));
+        Assert.Equal(identite, RevisionBloc(apres, "identite"));
+        var autreOnglet = await _api.ClientConnecte("alice");
+        apres = await Ok(await autreOnglet.PutAsJsonAsync($"/api/meps/{id}/etapes/{EtapeId(apres, "E0001")}", Fiche(Etape(apres, "E0001"), "Revu")));
+        Assert.True(Version(apres) > Version(lue));
+        Assert.Equal(identite, RevisionBloc(apres, "identite"));
+
+        // Alice enregistre l'intervention lue avant : aucun faux conflit.
+        var mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}", Identite(lue, "Objet revu par Alice", identite)));
+        Assert.Equal("Objet revu par Alice", mep.GetProperty("objet").GetString());
+        Assert.Equal(identite + 1, RevisionBloc(mep, "identite"));
+        Assert.Equal("Si le portail ne répond plus", mep.GetProperty("planRepli").GetProperty("quandDeclencher").GetString());
+
+        // Bob, qui avait lu l'intervention avant Alice, est refusé avec un message clair ; rien n'est écrasé.
+        var refus = await bob.PutAsJsonAsync($"/api/meps/{id}", Identite(lue, "Objet de Bob", identite));
+        Assert.Equal(HttpStatusCode.Conflict, refus.StatusCode);
+        Assert.Contains("« Intervention » a été modifié par quelqu'un d'autre", await refus.Content.ReadAsStringAsync());
+        mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        Assert.Equal("Objet revu par Alice", mep.GetProperty("objet").GetString());
+
+        // Sans révision ni version : 400 ; l'ancienne version de toute la MEP reste acceptée (contrôle strict).
+        Assert.Equal(HttpStatusCode.BadRequest, (await alice.PutAsJsonAsync($"/api/meps/{id}/plan-repli", new { quandDeclencher = "x" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await alice.PutAsJsonAsync($"/api/meps/{id}/plan-repli", new { version = Version(lue), quandDeclencher = "x" })).StatusCode);
+        await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/plan-repli", new { version = Version(mep), quandDeclencher = "Par version" }));
+    }
+
+    [Fact]
+    public async Task Dix_formulaires_de_sections_differentes_enregistres_en_meme_temps_aboutissent_tous()
+    {
+        var alice = await _api.ClientConnecte("alice");
+        var id = await AidesApi.IdDemo(alice);
+        var clients = await DixClients();
+        var lue = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        var systemes = lue.GetProperty("systemes").EnumerateArray().ToList();
+        var etapes = lue.GetProperty("etapes").EnumerateArray().Where(e => e.GetProperty("plan").GetString() == "Deploiement").Take(10 - 3 - Math.Min(3, systemes.Count)).ToList();
+
+        // Intervention, plan de retour arrière, communication, sauvegarde de trois systèmes et fiches d'étapes : tous lus en même temps.
+        var requetes = new List<Func<Task<HttpResponseMessage>>>
+        {
+            () => clients[0].PutAsJsonAsync($"/api/meps/{id}", Identite(lue, "Objet simultané", RevisionBloc(lue, "identite"))),
+            () => clients[1].PutAsJsonAsync($"/api/meps/{id}/plan-repli", new { revision = RevisionBloc(lue, "planRepli"), quandDeclencher = "Simultané" }),
+            () => clients[2].PutAsJsonAsync($"/api/meps/{id}/communication", new { revision = RevisionBloc(lue, "communication"), referenceDemande = "CHG-96" }),
+        };
+        requetes.AddRange(systemes.Take(3).Select((s, i) => (Func<Task<HttpResponseMessage>>)(() =>
+            clients[3 + i].PutAsJsonAsync($"/api/meps/{id}/systemes/{s.GetProperty("id").GetGuid()}/sauvegarde", new
+            {
+                revision = s.GetProperty("revisionSauvegarde").GetInt32(), statut = "NonRequise", justification = $"Simultané {i}",
+            }))));
+        requetes.AddRange(etapes.Select((e, i) => (Func<Task<HttpResponseMessage>>)(() =>
+            clients[(6 + i) % 10].PutAsJsonAsync($"/api/meps/{id}/etapes/{e.GetProperty("id").GetGuid()}", Fiche(e, $"Instructions {i}")))));
+        Assert.Equal(10, requetes.Count);
+        await ToutesOk(await Simultanement([.. requetes]));
+
+        var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        Assert.Equal("Objet simultané", mep.GetProperty("objet").GetString());
+        Assert.Equal("Simultané", mep.GetProperty("planRepli").GetProperty("quandDeclencher").GetString());
+        Assert.Equal("CHG-96", mep.GetProperty("communication").GetProperty("referenceDemande").GetString());
+        foreach (var (e, i) in etapes.Select((e, i) => (e, i)))
+        {
+            var apres = mep.GetProperty("etapes").EnumerateArray().Single(x => x.GetProperty("id").GetGuid() == e.GetProperty("id").GetGuid());
+            Assert.Equal($"Instructions {i}", apres.GetProperty("instructions").GetString());
+            // dependances absentes : les liens du graphe sont gardés.
+            Assert.Equal(e.GetProperty("dependances").EnumerateArray().Select(x => x.GetGuid()).Order(),
+                apres.GetProperty("dependances").EnumerateArray().Select(x => x.GetGuid()).Order());
+        }
+        Assert.Equal(Version(lue) + 10, Version(mep));
+    }
+
+    /// <summary>Fiche complète d'une étape, sans <c>dependances</c> (absentes : inchangées).</summary>
+    private static object Fiche(JsonElement e, string instructions) => new
+    {
+        revision = e.GetProperty("revision").GetInt32(), action = e.GetProperty("action").GetString(),
+        systemeIds = e.GetProperty("systemeIds").EnumerateArray().Select(x => x.GetGuid()).ToList(),
+        criticite = e.GetProperty("criticite").ValueKind == JsonValueKind.Null ? null : e.GetProperty("criticite").GetString(),
+        dureeEstimeeMinutes = e.GetProperty("dureeEstimeeMinutes").ValueKind == JsonValueKind.Null ? (int?)null : e.GetProperty("dureeEstimeeMinutes").GetInt32(),
+        instructions, resultatAttendu = e.GetProperty("resultatAttendu").GetString(),
+        resolutionIds = e.GetProperty("resolutionIds").EnumerateArray().Select(x => x.GetGuid()).ToList(),
+        type = e.GetProperty("type").GetString(), pointDeNonRetour = e.GetProperty("pointDeNonRetour").GetBoolean(),
+    };
+
+    [Fact]
+    public async Task Un_put_d_etape_sans_dependances_garde_les_liens_du_graphe_et_une_liste_vide_les_retire()
+    {
+        var alice = await _api.ClientConnecte("alice");
+        var id = await AidesApi.IdDemo(alice);
+        var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        var e = mep.GetProperty("etapes").EnumerateArray().First(x => x.GetProperty("dependances").GetArrayLength() > 0);
+        var code = e.GetProperty("code").GetString()!;
+        var liens = e.GetProperty("dependances").EnumerateArray().Select(x => x.GetGuid()).Order().ToList();
+
+        // Correction d'une faute de frappe par un script : sans « dependances », le graphe ne bouge pas.
+        mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/etapes/{e.GetProperty("id").GetGuid()}", Fiche(e, "Instructions corrigées")));
+        var apres = Etape(mep, code);
+        Assert.Equal("Instructions corrigées", apres.GetProperty("instructions").GetString());
+        Assert.Equal(liens, apres.GetProperty("dependances").EnumerateArray().Select(x => x.GetGuid()).Order());
+
+        // « dependances » à null : inchangées aussi ; liste vide : plus aucun préalable direct.
+        var corps = JsonSerializer.SerializeToNode(Fiche(apres, "Encore"))!.AsObject();
+        corps["dependances"] = null;
+        mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/etapes/{e.GetProperty("id").GetGuid()}", corps));
+        Assert.Equal(liens, Etape(mep, code).GetProperty("dependances").EnumerateArray().Select(x => x.GetGuid()).Order());
+        corps = JsonSerializer.SerializeToNode(Fiche(Etape(mep, code), "Isolée"))!.AsObject();
+        corps["dependances"] = new System.Text.Json.Nodes.JsonArray();
+        mep = await Ok(await alice.PutAsJsonAsync($"/api/meps/{id}/etapes/{e.GetProperty("id").GetGuid()}", corps));
+        Assert.Empty(Etape(mep, code).GetProperty("dependances").EnumerateArray());
     }
 }

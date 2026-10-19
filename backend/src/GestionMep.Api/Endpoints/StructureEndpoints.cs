@@ -81,7 +81,7 @@ public static class StructureEndpoints
         {
             var acteur = Acteur.Depuis(user);
             ServiceMep.ExigerEditeur(mep, acteur);
-            ServiceMep.ExigerVersion(mep, c.Version);
+            ServiceMep.ExigerRevision(mep, BlocMep.ResponsablesTechniques, c.Revision, c.Version);
             var responsables = (c.Responsables ?? []).Select(r =>
             {
                 if (r.ParticipantId is null) throw ErreurHttp.Saisie("Responsable technique : le participant est obligatoire.");
@@ -123,8 +123,8 @@ public static class StructureEndpoints
         {
             var acteur = Acteur.Depuis(user);
             ServiceMep.ExigerEditeur(mep, acteur);
-            ServiceMep.ExigerVersion(mep, c.Version);
             var s = mep.Systemes.FirstOrDefault(x => x.Id == sid) ?? throw ErreurHttp.NonTrouve("Système introuvable.");
+            ServiceMep.ExigerRevision(mep, s, c.Revision, c.Version);
             if (c.Statut is null) throw ErreurHttp.Saisie("Le statut (ARenseigner, Requise ou NonRequise) est obligatoire.");
             Regles.DefinirSauvegardeSysteme(mep, s, c.Statut.Value, c.Moment ?? ModeSauvegarde.AvantMep, c.Contenu ?? "", c.Justification ?? "",
                 c.Emplacement, c.MethodeRecuperation);

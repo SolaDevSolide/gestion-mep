@@ -1101,6 +1101,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("RevisionSauvegarde")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CatalogueId");
@@ -1399,6 +1402,40 @@ namespace GestionMep.Api.Donnees.Migrations
                                 .HasForeignKey("MepId");
                         });
 
+                    b.OwnsOne("GestionMep.Domain.RevisionsMep", "Revisions", b1 =>
+                        {
+                            b1.Property<Guid>("MepId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("Approbateurs")
+                                .HasColumnType("integer");
+
+                            b1.Property<int>("Communication")
+                                .HasColumnType("integer");
+
+                            b1.Property<int>("Echeance")
+                                .HasColumnType("integer");
+
+                            b1.Property<int>("Identite")
+                                .HasColumnType("integer");
+
+                            b1.Property<int>("PlanRepli")
+                                .HasColumnType("integer");
+
+                            b1.Property<int>("ResponsablesTechniques")
+                                .HasColumnType("integer");
+
+                            b1.Property<int>("Sauvegarde")
+                                .HasColumnType("integer");
+
+                            b1.HasKey("MepId");
+
+                            b1.ToTable("Meps");
+
+                            b1.WithOwner()
+                                .HasForeignKey("MepId");
+                        });
+
                     b.OwnsOne("GestionMep.Domain.Sauvegarde", "Sauvegarde", b1 =>
                         {
                             b1.Property<Guid>("MepId")
@@ -1452,6 +1489,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired();
 
                     b.Navigation("PlanRepli")
+                        .IsRequired();
+
+                    b.Navigation("Revisions")
                         .IsRequired();
 
                     b.Navigation("Sauvegarde")

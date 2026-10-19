@@ -102,6 +102,9 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Id).ValueGeneratedNever();
             // Garde-fou contre deux écritures simultanées (en plus de la comparaison manuelle avec la version du client).
             e.Property(x => x.Version).IsConcurrencyToken();
+            // Révisions des blocs de formulaire (#96) : colonnes Revisions_Identite, Revisions_Echeance…
+            e.OwnsOne(x => x.Revisions);
+            e.Navigation(x => x.Revisions).IsRequired();
             e.OwnsOne(x => x.Sauvegarde);
             e.OwnsOne(x => x.PlanRepli);
             // Colonnes Communication_ReferenceDemande, Communication_NiveauRisque, Communication_Benefices…

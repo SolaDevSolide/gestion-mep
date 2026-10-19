@@ -23,13 +23,9 @@ public static class SuiviEndpoints
         var maintenant = svc.Maintenant;
         var ids = await db.Meps.AsNoTracking().Where(m => !m.EstModele && PhasesEnCours.Contains(m.Phase)).OrderBy(m => m.DemarrageAutoriseLe)
             .Select(m => m.Id).ToListAsync();
-        var enCours = new List<MepDto>();
-        foreach (var id in ids)
-        {
-            // Charger applique l'échéance de retour arrière, comme à l'ouverture de la MEP.
-            db.ChangeTracker.Clear();
-            enCours.Add(await svc.VersDto(await svc.Charger(id), utilisateurId));
-        }
+        // Toutes les MEP lancées en une seule série de requêtes (et non une lecture complète par MEP), échéances appliquées
+        // comme à l'ouverture d'une MEP ; une MEP qui vient de quitter l'exécution (clôture, échéance) n'est plus une carte.
+        var enCours = (await svc.VersDtos([.. (await svc.ChargerPlusieurs(ids)).Where(ServiceMep.EstEnCours)], utilisateurId));
 
         var annoncees = await db.Meps.AsNoTracking()
             // Une MEP reportée n'est plus prévue au créneau annoncé.
@@ -76,7 +72,10 @@ public static class SuiviEndpoints
         // Réponses non typées, comme GET /meps/{id} : les contrats (SuiviDto, RapportFinDto) sont décrits par DocumentationOpenApi.
         api.MapGet("/suivi", async (ClaimsPrincipal user, MepDbContext db, ServiceMep svc) => Results.Ok(await Suivi(db, svc, Acteur.Depuis(user).Id)));
 
-        // Flux du tableau de bord : « maj » à chaque modification d'une MEP (le navigateur relit alors /suivi).
+        // Flux du tableau de bord : « maj » quand ce que montre le suivi change : { version, meps, liste }. meps : MEP lancées
+        // dont seule la carte a changé (le navigateur relit chacune, GET /meps/{id}) ; liste : vrai quand une MEP entre dans le
+        // suivi ou en sort (Go, clôture, annonce…), le navigateur relit alors /suivi. Une écriture qui ne change rien au suivi
+        // (MEP en préparation non annoncée) n'envoie rien.
         api.MapGet("/suivi/flux", async (HttpContext ctx, ClaimsPrincipal user, DiffuseurMep diffuseur) =>
         {
             using var abonnement = diffuseur.AbonnerSuivi(Acteur.Depuis(user).Id)
@@ -98,8 +97,9 @@ public static class SuiviEndpoints
                     try
                     {
                         if (!await abonnement.AttendreAsync(delai.Token)) break;
-                        if (abonnement.Prendre().Version is { } v)
-                            await ctx.Response.WriteAsync($"event: maj\ndata: {JsonSerializer.Serialize(new { version = v })}\n\n", ct);
+                        var envoi = abonnement.Prendre();
+                        if (envoi.Version is { } v)
+                            await ctx.Response.WriteAsync($"event: maj\ndata: {JsonSerializer.Serialize(new { version = v, meps = envoi.Cartes ?? [], liste = envoi.Liste })}\n\n", ct);
                     }
                     catch (OperationCanceledException) when (!ct.IsCancellationRequested)
                     {

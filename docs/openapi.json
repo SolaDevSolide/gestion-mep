@@ -422,6 +422,245 @@
         }
       }
     },
+    "/api/meps/page": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "modele",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "apres",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recherche",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "systeme",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environnement",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "equipe",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personne",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "etat",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "phase",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "du",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "au",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "echec",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageMepsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meps/facettes": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "modele",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "recherche",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "systeme",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environnement",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "equipe",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personne",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "etat",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "phase",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "du",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "au",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "echec",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FacettesMepsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/meps/{id}/dupliquer": {
       "post": {
         "tags": [
@@ -652,6 +891,44 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "apres",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "avant",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recherche",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -6276,6 +6553,13 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -6887,6 +7171,13 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         },
         "description": "Section Communication, remplacée en entier (champs absents : vides)."
@@ -7696,6 +7987,13 @@
               "null",
               "string"
             ]
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         },
         "description": "Échéance de retour arrière (#94) : `EcheanceRepli`, instant visé (null : retirer l'échéance), saisi dans le fuseau de la\nMEP ; `Motif`, obligatoire sauf pour la première saisie en préparation (tracé au journal avec l'ancienne valeur)."
@@ -8591,7 +8889,7 @@
             "format": "uuid"
           }
         },
-        "description": "    Champs de la fiche d'une étape. `Fin`, `SauvegardeEmplacement`, `SauvegardeMethodeRecuperation` et\n    `Environnements` absents : inchangés (test unitaire pour une nouvelle étape) ; les environnements d'un système retiré de\n    l'étape partent avec lui. `Dependances` : préalables directs (ceux qui viennent des cercles restent, on peut renvoyer\n    les préalables effectifs).\n    Création seulement (POST /etapes), au plus une place : Apres (la nouvelle étape attend cette étape ou ce\ncercle), Entre (insertion sur ce lien), ParalleleA (mêmes préalables et mêmes suivants que cette étape) ; rien :\nétape isolée. SectionId : section de la nouvelle étape (absente : celle de la place, sinon aucune)."
+        "description": "    Champs de la fiche d'une étape. `Fin`, `SauvegardeEmplacement`, `SauvegardeMethodeRecuperation` et\n    `Environnements` absents : inchangés (test unitaire pour une nouvelle étape) ; les environnements d'un système retiré de\n    l'étape partent avec lui. `Dependances` : préalables directs (ceux qui viennent des cercles restent, on peut renvoyer\n    les préalables effectifs) ; absentes (ou null) : inchangées, liste vide : aucun préalable direct.\n    Création seulement (POST /etapes), au plus une place : Apres (la nouvelle étape attend cette étape ou ce\ncercle), Entre (insertion sur ce lien), ParalleleA (mêmes préalables et mêmes suivants que cette étape) ; rien :\nétape isolée. SectionId : section de la nouvelle étape (absente : celle de la place, sinon aucune)."
       },
       "EtapeTestDto": {
         "required": [
@@ -9087,6 +9385,86 @@
           }
         }
       },
+      "FacettesMepsDto": {
+        "required": [
+          "total",
+          "ensemble",
+          "systemes",
+          "environnements",
+          "equipes",
+          "personnes",
+          "etats",
+          "libres",
+          "environnementsProposes",
+          "sans"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ensemble": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "systemes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "environnements": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "equipes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "personnes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "etats": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "libres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "environnementsProposes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnvironnementSystemeDto"
+            }
+          },
+          "sans": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        },
+        "description": "Comptes de la barre de filtres de la liste (`GET /meps/facettes`), avec les filtres en cours : pour chaque valeur d'un\ncritère, le nombre de MEP qu'on obtiendrait en la choisissant à la place des valeurs choisies de ce critère.\n`Systemes` : par valeur du filtre `systeme` (identifiant du catalogue en minuscules, ou `libre:Nom`) ;\n`Environnements` : par nom normalisé (sans casse ni accents) ; `Equipes`, `Personnes` : par identifiant ;\n`Etats` : par état. `Libres` : noms des systèmes saisis à la main dans les MEP ; `EnvironnementsProposes` :\nenvironnements des systèmes retenus par le filtre `systeme`. `Sans` : pour chaque critère actif (`recherche`,\n`systeme`, `environnement`, `equipe`, `personne`, `etat`, `periode`), le nombre de MEP sans lui."
+      },
       "FicheRecetteCreationSaisie": {
         "required": [
           "systemeId",
@@ -9397,7 +9775,8 @@
               "echecsRecette",
               "echeanceSignalee",
               "resolutionsFigees",
-              "resolutionsFigeesLe"
+              "resolutionsFigeesLe",
+              "revisions"
             ],
             "type": "object",
             "properties": {
@@ -9741,7 +10120,8 @@
                     "impact",
                     "catalogueId",
                     "sauvegarde",
-                    "environnements"
+                    "environnements",
+                    "revisionSauvegarde"
                   ],
                   "type": "object",
                   "properties": {
@@ -9824,6 +10204,10 @@
                         },
                         "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
                       }
+                    },
+                    "revisionSauvegarde": {
+                      "type": "integer",
+                      "format": "int32"
                     }
                   },
                   "description": "`Environnements` : environnements touchés par la MEP sur ce système."
@@ -11202,6 +11586,49 @@
                   "string"
                 ],
                 "format": "date-time"
+              },
+              "revisions": {
+                "required": [
+                  "identite",
+                  "echeance",
+                  "sauvegarde",
+                  "planRepli",
+                  "communication",
+                  "responsablesTechniques",
+                  "approbateurs"
+                ],
+                "type": "object",
+                "properties": {
+                  "identite": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "echeance": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "sauvegarde": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "planRepli": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "communication": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "responsablesTechniques": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "approbateurs": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                },
+                "description": "Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la\nrenvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas."
               }
             },
             "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
@@ -11696,7 +12123,8 @@
           "echecsRecette",
           "echeanceSignalee",
           "resolutionsFigees",
-          "resolutionsFigeesLe"
+          "resolutionsFigeesLe",
+          "revisions"
         ],
         "type": "object",
         "properties": {
@@ -12040,7 +12468,8 @@
                 "impact",
                 "catalogueId",
                 "sauvegarde",
-                "environnements"
+                "environnements",
+                "revisionSauvegarde"
               ],
               "type": "object",
               "properties": {
@@ -12123,6 +12552,10 @@
                     },
                     "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
                   }
+                },
+                "revisionSauvegarde": {
+                  "type": "integer",
+                  "format": "int32"
                 }
               },
               "description": "`Environnements` : environnements touchés par la MEP sur ce système."
@@ -13501,6 +13934,49 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "revisions": {
+            "required": [
+              "identite",
+              "echeance",
+              "sauvegarde",
+              "planRepli",
+              "communication",
+              "responsablesTechniques",
+              "approbateurs"
+            ],
+            "type": "object",
+            "properties": {
+              "identite": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "echeance": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "sauvegarde": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "planRepli": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "communication": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "responsablesTechniques": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "approbateurs": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "description": "Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la\nrenvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas."
           }
         },
         "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
@@ -13708,6 +14184,13 @@
               "null",
               "boolean"
             ]
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         },
         "description": "`BilanActive` et `RetourArriereActive` absents : inchangés. `EcheanceRepli` null : sans échéance. La MEP n'a plus\nd'environnement propre : ils se choisissent par système (`PUT /meps/{id}/systemes/{sid}/environnements`).\nMEP simplifiée : `VersionActuelle`, `VersionCible` et `SuppleantIds` sont ignorés (pas de versions, suppléants implicites)."
@@ -14876,6 +15359,38 @@
         },
         "description": "Nouvel ordre des cercles d'un bord : tous les cercles de ce sens, de gauche à droite."
       },
+      "PageMepsDto": {
+        "required": [
+          "meps",
+          "total",
+          "ensemble",
+          "suivant"
+        ],
+        "type": "object",
+        "properties": {
+          "meps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MepResumeDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ensemble": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "suivant": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Page de la liste des MEP (`GET /meps/page`) : `Meps`, la page ; `Total`, le nombre de MEP qui correspondent\naux filtres ; `Ensemble`, le nombre de MEP (ou de modèles) sans filtre ; `Suivant`, le curseur à passer dans\n`apres` pour la page suivante (null : c'était la dernière)."
+      },
       "ParametresDto": {
         "required": [
           "approbationsMinimum"
@@ -15320,6 +15835,13 @@
               "null",
               "string"
             ]
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -16064,7 +16586,8 @@
               "echecsRecette",
               "echeanceSignalee",
               "resolutionsFigees",
-              "resolutionsFigeesLe"
+              "resolutionsFigeesLe",
+              "revisions"
             ],
             "type": "object",
             "properties": {
@@ -16408,7 +16931,8 @@
                     "impact",
                     "catalogueId",
                     "sauvegarde",
-                    "environnements"
+                    "environnements",
+                    "revisionSauvegarde"
                   ],
                   "type": "object",
                   "properties": {
@@ -16491,6 +17015,10 @@
                         },
                         "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
                       }
+                    },
+                    "revisionSauvegarde": {
+                      "type": "integer",
+                      "format": "int32"
                     }
                   },
                   "description": "`Environnements` : environnements touchés par la MEP sur ce système."
@@ -17869,6 +18397,49 @@
                   "string"
                 ],
                 "format": "date-time"
+              },
+              "revisions": {
+                "required": [
+                  "identite",
+                  "echeance",
+                  "sauvegarde",
+                  "planRepli",
+                  "communication",
+                  "responsablesTechniques",
+                  "approbateurs"
+                ],
+                "type": "object",
+                "properties": {
+                  "identite": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "echeance": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "sauvegarde": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "planRepli": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "communication": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "responsablesTechniques": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "approbateurs": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                },
+                "description": "Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la\nrenvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas."
               }
             },
             "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
@@ -18348,6 +18919,13 @@
             "items": {
               "$ref": "#/components/schemas/ResponsableTechniqueSaisie"
             }
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -18595,6 +19173,49 @@
           }
         }
       },
+      "RevisionsMepDto": {
+        "required": [
+          "identite",
+          "echeance",
+          "sauvegarde",
+          "planRepli",
+          "communication",
+          "responsablesTechniques",
+          "approbateurs"
+        ],
+        "type": "object",
+        "properties": {
+          "identite": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "echeance": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sauvegarde": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "planRepli": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "communication": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "responsablesTechniques": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "approbateurs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la\nrenvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas."
+      },
       "RoleMep": {
         "enum": [
           "Pilote",
@@ -18779,6 +19400,13 @@
                 "$ref": "#/components/schemas/ModeSauvegarde"
               }
             ]
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -18883,6 +19511,13 @@
               "null",
               "string"
             ]
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         },
         "description": "`Emplacement` et `MethodeRecuperation` absents : inchangés."
@@ -18954,7 +19589,8 @@
               "echecsRecette",
               "echeanceSignalee",
               "resolutionsFigees",
-              "resolutionsFigeesLe"
+              "resolutionsFigeesLe",
+              "revisions"
             ],
             "type": "object",
             "properties": {
@@ -19298,7 +19934,8 @@
                     "impact",
                     "catalogueId",
                     "sauvegarde",
-                    "environnements"
+                    "environnements",
+                    "revisionSauvegarde"
                   ],
                   "type": "object",
                   "properties": {
@@ -19381,6 +20018,10 @@
                         },
                         "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
                       }
+                    },
+                    "revisionSauvegarde": {
+                      "type": "integer",
+                      "format": "int32"
                     }
                   },
                   "description": "`Environnements` : environnements touchés par la MEP sur ce système."
@@ -20759,6 +21400,49 @@
                   "string"
                 ],
                 "format": "date-time"
+              },
+              "revisions": {
+                "required": [
+                  "identite",
+                  "echeance",
+                  "sauvegarde",
+                  "planRepli",
+                  "communication",
+                  "responsablesTechniques",
+                  "approbateurs"
+                ],
+                "type": "object",
+                "properties": {
+                  "identite": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "echeance": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "sauvegarde": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "planRepli": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "communication": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "responsablesTechniques": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "approbateurs": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                },
+                "description": "Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la\nrenvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas."
               }
             },
             "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
@@ -21315,7 +21999,8 @@
                 "echecsRecette",
                 "echeanceSignalee",
                 "resolutionsFigees",
-                "resolutionsFigeesLe"
+                "resolutionsFigeesLe",
+                "revisions"
               ],
               "type": "object",
               "properties": {
@@ -21659,7 +22344,8 @@
                       "impact",
                       "catalogueId",
                       "sauvegarde",
-                      "environnements"
+                      "environnements",
+                      "revisionSauvegarde"
                     ],
                     "type": "object",
                     "properties": {
@@ -21742,6 +22428,10 @@
                           },
                           "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
                         }
+                      },
+                      "revisionSauvegarde": {
+                        "type": "integer",
+                        "format": "int32"
                       }
                     },
                     "description": "`Environnements` : environnements touchés par la MEP sur ce système."
@@ -23120,6 +23810,49 @@
                     "string"
                   ],
                   "format": "date-time"
+                },
+                "revisions": {
+                  "required": [
+                    "identite",
+                    "echeance",
+                    "sauvegarde",
+                    "planRepli",
+                    "communication",
+                    "responsablesTechniques",
+                    "approbateurs"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "identite": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "echeance": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "sauvegarde": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "planRepli": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "communication": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "responsablesTechniques": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "approbateurs": {
+                      "type": "integer",
+                      "format": "int32"
+                    }
+                  },
+                  "description": "Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la\nrenvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas."
                 }
               },
               "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
@@ -23535,7 +24268,8 @@
           "impact",
           "catalogueId",
           "sauvegarde",
-          "environnements"
+          "environnements",
+          "revisionSauvegarde"
         ],
         "type": "object",
         "properties": {
@@ -23618,6 +24352,10 @@
               },
               "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
             }
+          },
+          "revisionSauvegarde": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "description": "`Environnements` : environnements touchés par la MEP sur ce système."

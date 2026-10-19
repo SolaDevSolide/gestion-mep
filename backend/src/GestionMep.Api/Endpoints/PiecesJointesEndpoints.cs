@@ -25,50 +25,91 @@ public static class PiecesJointesEndpoints
     private static RouteHandlerBuilder AccepterFichier(this RouteHandlerBuilder route, long limite) =>
         route.WithMetadata(new RequestSizeLimitAttribute(limite));
 
+    /// <summary>Enveloppe d'un formulaire de dépôt (délimiteurs, en-têtes de la partie, autres champs) : déduite de la taille annoncée.</summary>
+    private const long MargeFormulaire = 64 * 1024;
+
     /// <summary>
-    /// Lit le fichier du formulaire, réserve sa place (plafonds de <see cref="QuotasPiecesJointes"/>) et l'écrit sur disque
-    /// (taille et SHA-256 calculés au passage). La réservation est à libérer une fois la pièce enregistrée ou abandonnée.
+    /// Reçoit le fichier du formulaire en flux, sans le mettre en tampon : la place est réservée d'après la taille annoncée
+    /// (plafonds de <see cref="QuotasPiecesJointes"/>, refus immédiat si elle ne tient pas), puis le fichier est écrit sur disque
+    /// au fil de la réception (taille et SHA-256 calculés au passage) ; la réception s'arrête dès que le fichier dépasse la
+    /// taille maximale (413) ou la place restante (422, 429 ou 507). La réservation est à libérer une fois la pièce enregistrée
+    /// ou abandonnée.
     /// </summary>
     private static async Task<(PieceJointe Piece, IDisposable Reservation)> Recevoir(HttpRequest req, StockagePiecesJointes stockage,
         QuotasPiecesJointes quotas, MepDbContext db, Guid? mepId, Acteur acteur, DateTimeOffset maintenant)
     {
-        if (!req.HasFormContentType) throw ErreurHttp.Saisie($"Envoyer le fichier en multipart/form-data (champ « {ChampFichier} »).");
+        var ct = req.HttpContext.RequestAborted;
+        var limite = Microsoft.Net.Http.Headers.MediaTypeHeaderValue.TryParse(req.ContentType, out var type)
+            && type.MediaType.Equals("multipart/form-data", StringComparison.OrdinalIgnoreCase)
+            ? Microsoft.Net.Http.Headers.HeaderUtilities.RemoveQuotes(type.Boundary).Value : null;
+        if (string.IsNullOrEmpty(limite)) throw ErreurHttp.Saisie($"Envoyer le fichier en multipart/form-data (champ « {ChampFichier} »).");
         // Taille maximale en cours (réglage modifiable sans redémarrage), appliquée avant de lire le corps.
         if (req.ContentLength > stockage.LimiteDepot) throw new ErreurHttp(413, stockage.MessageTropVolumineux);
-        if (req.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limite)
-            limite.MaxRequestBodySize = stockage.LimiteDepot;
-        IFormCollection form;
-        try
-        {
-            form = await req.ReadFormAsync(req.HttpContext.RequestAborted);
-        }
-        catch (Exception ex) when (ex is InvalidDataException or BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge })
-        {
-            throw new ErreurHttp(413, stockage.MessageTropVolumineux);
-        }
-        var fichier = form.Files.GetFile(ChampFichier) ?? (form.Files.Count > 0 ? form.Files[0] : null)
-            ?? throw ErreurHttp.Saisie($"Aucun fichier reçu (champ « {ChampFichier} »).");
-        if (fichier.Length == 0) throw ErreurHttp.Saisie("Le fichier est vide.");
-        if (fichier.Length > stockage.TailleMaxOctets) throw new ErreurHttp(413, stockage.MessageTropVolumineux);
+        if (req.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } maximum)
+            maximum.MaxRequestBodySize = stockage.LimiteDepot;
 
-        var piece = new PieceJointe
-        {
-            NomFichier = StockagePiecesJointes.AssainirNom(fichier.FileName),
-            TypeContenu = string.IsNullOrWhiteSpace(fichier.ContentType) || fichier.ContentType.Length > 255 ? "application/octet-stream" : fichier.ContentType,
-            DeposeParId = acteur.Id,
-            DeposeLe = maintenant,
-        };
-        var reservation = await quotas.Reserver(db, mepId, acteur.Id, fichier.Length, maintenant, req.HttpContext.RequestAborted);
+        // Quotas vérifiés avant la réception : un dépôt annoncé plus gros que la place restante est refusé sans être lu.
+        var depot = await quotas.ReserverDepot(db, mepId, acteur.Id, req.ContentLength, MargeFormulaire, maintenant, ct);
         try
         {
-            await using var flux = fichier.OpenReadStream();
-            (piece.Taille, piece.Sha256) = await stockage.Ecrire(piece.Id, flux, req.HttpContext.RequestAborted);
-            return (piece, reservation);
+            var lecteur = new Microsoft.AspNetCore.WebUtilities.MultipartReader(limite, req.Body) { BodyLengthLimit = stockage.LimiteDepot };
+            PieceJointe? piece = null;
+            for (var section = await LireSection(lecteur, stockage, ct); section is not null; section = await LireSection(lecteur, stockage, ct))
+            {
+                if (!Microsoft.Net.Http.Headers.ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var disposition)
+                    || !disposition.DispositionType.Equals("form-data", StringComparison.OrdinalIgnoreCase)
+                    || (Microsoft.Extensions.Primitives.StringSegment.IsNullOrEmpty(disposition.FileName)
+                        && Microsoft.Extensions.Primitives.StringSegment.IsNullOrEmpty(disposition.FileNameStar))) continue;
+                // Le premier fichier du formulaire (champ « fichier » attendu) ; les suivants sont ignorés.
+                if (piece is not null) continue;
+                var nomFichier = Microsoft.Net.Http.Headers.HeaderUtilities.RemoveQuotes(
+                    disposition.FileNameStar.HasValue ? disposition.FileNameStar : disposition.FileName).Value;
+                piece = new PieceJointe
+                {
+                    NomFichier = StockagePiecesJointes.AssainirNom(nomFichier),
+                    TypeContenu = string.IsNullOrWhiteSpace(section.ContentType) || section.ContentType.Length > 255 ? "application/octet-stream" : section.ContentType,
+                    DeposeParId = acteur.Id,
+                    DeposeLe = maintenant,
+                };
+                try
+                {
+                    (piece.Taille, piece.Sha256) = await stockage.Ecrire(piece.Id, section.Body, ct, depot.Plafond, depot.Depassement);
+                }
+                catch (Exception ex) when (ex is InvalidDataException or BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge })
+                {
+                    throw new ErreurHttp(413, stockage.MessageTropVolumineux);
+                }
+                if (piece.Taille == 0)
+                {
+                    stockage.Supprimer(piece.Id);
+                    throw ErreurHttp.Saisie("Le fichier est vide.");
+                }
+            }
+            if (piece is null) throw ErreurHttp.Saisie($"Aucun fichier reçu (champ « {ChampFichier} »).");
+            return (piece, depot);
         }
         catch
         {
-            reservation.Dispose();
+            depot.Dispose();
             throw;
+        }
+    }
+
+    /// <summary>Partie suivante du formulaire ; un corps trop gros ou mal formé devient 413 ou 400.</summary>
+    private static async Task<Microsoft.AspNetCore.WebUtilities.MultipartSection?> LireSection(Microsoft.AspNetCore.WebUtilities.MultipartReader lecteur,
+        StockagePiecesJointes stockage, CancellationToken ct)
+    {
+        try
+        {
+            return await lecteur.ReadNextSectionAsync(ct);
+        }
+        catch (BadHttpRequestException e) when (e.StatusCode == StatusCodes.Status413PayloadTooLarge)
+        {
+            throw new ErreurHttp(413, stockage.MessageTropVolumineux);
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException)
+        {
+            throw ErreurHttp.Saisie($"Formulaire de dépôt illisible : envoyer le fichier en multipart/form-data (champ « {ChampFichier} »).");
         }
     }
 
@@ -211,7 +252,7 @@ public static class PiecesJointesEndpoints
                 throw;
             }
             return Results.Created($"/api/pieces-jointes/{piece.Id}/contenu", MepMapping.VersDto(piece, new Dictionary<Guid, string> { [acteur.Id] = acteur.Nom }));
-        });
+        }).AccepterFichier(limiteDepot);
 
         api.MapDelete("/resolutions/{id:guid}/pieces-jointes/{pid:guid}", async (Guid id, Guid pid, ClaimsPrincipal user, MepDbContext db,
             StockagePiecesJointes stockage) =>
@@ -222,7 +263,7 @@ public static class PiecesJointesEndpoints
             await db.SaveChangesAsync();
             stockage.Supprimer(piece.Id);
             return Results.NoContent();
-        }).AccepterFichier(limiteDepot).ExigerAdmin();
+        }).ExigerAdmin();
 
         // ---------- Téléchargement ----------
         api.MapGet("/pieces-jointes/{pid:guid}/contenu", async (Guid pid, HttpContext ctx, MepDbContext db, StockagePiecesJointes stockage) =>

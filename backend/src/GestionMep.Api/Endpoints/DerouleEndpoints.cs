@@ -23,7 +23,7 @@ public static class DerouleEndpoints
         {
             var acteur = Acteur.Depuis(user);
             ServiceMep.ExigerEditeur(mep, Acteur.Depuis(user));
-            ServiceMep.ExigerVersion(mep, c.Version);
+            ServiceMep.ExigerRevision(mep, BlocMep.Approbateurs, c.Revision, c.Version);
             var ids = (c.UtilisateurIds ?? []).Distinct().ToList();
             var comptes = await db.Utilisateurs.AsNoTracking().Where(u => ids.Contains(u.Id)).ToDictionaryAsync(u => u.Id);
             if (comptes.Count != ids.Count) throw ErreurHttp.Saisie("Compte utilisateur inconnu.");

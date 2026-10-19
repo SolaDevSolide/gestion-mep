@@ -132,7 +132,7 @@ public static class CommunicationEndpoints
             if (Regles.EstTerminee(mep)) throw new RegleMetierException("La MEP est terminée (clôturée ou annulée) : la communication ne se modifie plus.");
             if (mep.Phase != Phase.Preparation)
                 ServiceMep.ExigerPiloteOuAdmin(mep, acteur, "Après le Go, seuls le pilote, un suppléant ou un administrateur modifient la communication.");
-            ServiceMep.ExigerVersion(mep, c.Version);
+            ServiceMep.ExigerRevision(mep, BlocMep.Communication, c.Revision, c.Version);
             if (c.PreuveValidationId is { } preuve && !await db.PiecesJointes.AnyAsync(p => p.Id == preuve && p.MepId == mep.Id))
                 throw ErreurHttp.Saisie("La preuve de validation doit être une pièce jointe de la MEP.");
 
