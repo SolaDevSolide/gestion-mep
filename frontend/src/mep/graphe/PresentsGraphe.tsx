@@ -65,7 +65,7 @@ function Pile({ presents, lieu, className }: { presents: Present[]; lieu: string
               aria-hidden
               className={cn(
                 'absolute -right-1 -bottom-1 flex size-3.5 items-center justify-center rounded-full ring-1 ring-surface',
-                p.verrou.reprisDeNom ? 'bg-warn-solid text-white' : 'bg-surface text-fg',
+                p.verrou.reprisDeNom ? 'bg-warn-solid text-warn-solid-fg' : 'bg-surface text-fg',
               )}
             >
               {p.verrou.reprisDeNom ? <Hand className="size-2.5" /> : <Lock className="size-2.5" />}

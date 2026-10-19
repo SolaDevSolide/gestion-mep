@@ -188,14 +188,14 @@ export default function ConnexionPage() {
           </p>
           <ul className="mt-8 space-y-3 text-sm text-connexion-texte/90">
             <li className="flex items-center gap-3">
-              <ShieldCheck className="size-5 text-emerald-300" aria-hidden /> Chaque action est tracée dans le journal
+              <ShieldCheck className="size-5 text-connexion-ok" aria-hidden /> Chaque action est tracée dans le journal
             </li>
             <li className="flex items-center gap-3">
-              <Timer className="size-5 text-amber-300" aria-hidden /> Compte à rebours jusqu’à l’échéance de retour
-              arrière
+              <Timer className="size-5 text-connexion-attention" aria-hidden /> Compte à rebours jusqu’à l’échéance de
+              retour arrière
             </li>
             <li className="flex items-center gap-3">
-              <Undo2 className="size-5 text-rose-300" aria-hidden /> Résolutions types et plan de repli intégrés
+              <Undo2 className="size-5 text-connexion-alerte" aria-hidden /> Résolutions types et plan de repli intégrés
             </li>
           </ul>
         </div>

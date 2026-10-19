@@ -224,7 +224,7 @@ function TitrePanneau({ children, nombre, ton }: { children: ReactNode; nombre?:
         <span
           className={cn(
             'rounded-full px-1.5 text-[11px] font-bold tnum',
-            ton ? cn(TON[ton].bgSolide, 'text-white') : 'bg-surface-2 text-fg-muted',
+            ton ? cn(TON[ton].bgSolide, TON[ton].texteSolide) : 'bg-surface-2 text-fg-muted',
           )}
         >
           {nombre}
@@ -454,9 +454,10 @@ function Evenements({ lu }: { lu: DonneePartagee<Evenement[]> }) {
                 className={cn(
                   'absolute top-0 -left-[25px] grid size-[18px] place-content-center rounded-full ring-2 ring-surface',
                   TON[ton].bgSolide,
+                  TON[ton].texteSolide,
                 )}
               >
-                <Icone className="size-3 text-white" aria-hidden />
+                <Icone className="size-3" aria-hidden />
               </span>
               <p className="text-fg-subtle tnum">
                 {heure(Date.parse(ev.quand))} · {ev.auteur}

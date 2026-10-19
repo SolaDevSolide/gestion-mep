@@ -66,7 +66,7 @@ function Chrono({ m, now }: { m: MepResume; now: number }) {
         c.niveau === 'depasse'
           ? 'font-bold text-danger-solid'
           : c.niveau === 'attention'
-            ? 'font-semibold text-warn-solid'
+            ? 'font-semibold text-warn-text'
             : 'text-fg-muted',
       )}
       title="Temps restant avant l’échéance de retour arrière"

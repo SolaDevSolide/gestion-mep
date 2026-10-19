@@ -160,7 +160,7 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
             <span
               className={cn(
                 'rounded-full px-1.5 text-[11px] font-bold tnum',
-                aMoi ? 'bg-white/25' : 'bg-surface-2 text-fg-muted',
+                aMoi ? 'bg-accent-fg/25' : 'bg-surface-2 text-fg-muted',
               )}
             >
               {nbMiennes}

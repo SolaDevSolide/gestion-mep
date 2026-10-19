@@ -399,7 +399,7 @@ export default function MepPage() {
             {mep.phase === 'RetourArriere' && mep.retourArriere && (
               <div
                 role="alert"
-                className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-rollback-bg px-6 py-3 text-white"
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-rollback-bg px-6 py-3 text-rollback-fg"
               >
                 <Siren className="size-6 shrink-0" aria-hidden />
                 <p className="min-w-0 flex-1 text-[15px]">

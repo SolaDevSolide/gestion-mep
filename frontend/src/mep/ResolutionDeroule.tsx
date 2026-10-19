@@ -74,7 +74,7 @@ function Controle({ libelle, instruction, attendu, observationObligatoire, peutA
       className="grid gap-3 rounded-xl border-2 border-run-solid bg-surface p-4 shadow-md"
     >
       <p className="flex flex-wrap items-center gap-2 text-base font-semibold">
-        <span className="rounded bg-run-solid px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">
+        <span className="rounded bg-run-solid px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-run-solid-fg uppercase">
           À faire maintenant
         </span>
         {libelle}
@@ -283,7 +283,7 @@ export function ResolutionDeroule({
                 'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
                 p.etat === 'fait' && 'border-ok-bd bg-ok-bg text-ok-fg',
                 p.etat === 'echec' && 'border-danger-bd bg-danger-bg text-danger-fg',
-                p.etat === 'courant' && 'border-run-solid bg-run-solid text-white',
+                p.etat === 'courant' && 'border-run-solid bg-run-solid text-run-solid-fg',
                 p.etat === 'avenir' && 'border-line-strong text-fg-subtle',
               )}
             >

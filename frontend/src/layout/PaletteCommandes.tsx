@@ -143,7 +143,7 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
+        <D.Overlay className="fixed inset-0 z-[90] bg-voile backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
         <D.Content
           className="fixed top-[14vh] left-1/2 z-[90] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-line bg-surface shadow-lg outline-none data-[state=open]:animate-fade-in"
           aria-describedby={undefined}

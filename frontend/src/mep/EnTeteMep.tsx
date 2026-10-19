@@ -236,7 +236,7 @@ function EnvironnementsMep({ mep }: { mep: Mep }) {
             {s.environnements.map((e, j) => (
               <span key={e.nom}>
                 {j > 0 && ', '}
-                <span title={e.nom} className={cn(e.production && 'font-semibold text-warn-solid')}>
+                <span title={e.nom} className={cn(e.production && 'font-semibold text-warn-text')}>
                   {abregerEnvironnement(e.nom)}
                 </span>
               </span>

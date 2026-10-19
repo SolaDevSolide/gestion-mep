@@ -39,7 +39,7 @@ export function Dialog({
       <D.Portal>
         <D.Overlay
           className={cn(
-            'fixed inset-0 grid place-items-center overflow-y-auto bg-black/50 p-4 backdrop-blur-[2px] data-[state=open]:animate-fade-in',
+            'fixed inset-0 grid place-items-center overflow-y-auto bg-voile p-4 backdrop-blur-[2px] data-[state=open]:animate-fade-in',
             auPremierPlan ? 'z-[100]' : 'z-50',
           )}
         >

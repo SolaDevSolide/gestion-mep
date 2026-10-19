@@ -343,7 +343,7 @@ export function VueHistorique({
         <Tuile
           titre="Clôturées avec problème"
           valeur={r.cloturees ? `${taux} %` : '—'}
-          ton={taux >= 25 ? 'text-danger-solid' : taux > 0 ? 'text-warn-solid' : undefined}
+          ton={taux >= 25 ? 'text-danger-solid' : taux > 0 ? 'text-warn-text' : undefined}
         >
           {r.cloturees ? (
             <>

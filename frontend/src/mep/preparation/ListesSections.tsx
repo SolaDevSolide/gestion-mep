@@ -578,7 +578,7 @@ function EnvironnementsSysteme({
           </button>
         );
       })}
-      {!edition && systeme.environnements.length === 0 && <span className="text-warn-solid">aucun choisi</span>}
+      {!edition && systeme.environnements.length === 0 && <span className="text-warn-text">aucun choisi</span>}
       {edition && libre && (
         <form onSubmit={ajouterAutre} className="inline-flex">
           <Input

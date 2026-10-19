@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { DirtyContext, type DirtyRegistry } from './hooks';
 import type { Presence } from './types';
-import { Avatar, couleurPersonne } from './ui/Avatar';
+import { Avatar, couleurPersonne, stylePersonne } from './ui/Avatar';
 import { cn } from './ui/cn';
 
 /**
@@ -75,10 +75,10 @@ export function MarquePresence({
       <span
         role="status"
         className={cn(
-          'pointer-events-none absolute -top-3 left-2 z-[4] inline-flex max-w-[calc(100%-1rem)] items-center gap-1 truncate rounded-full px-2 py-0.5 text-[11px] leading-none font-semibold text-white shadow-sm',
+          'pointer-events-none absolute -top-3 left-2 z-[4] inline-flex max-w-[calc(100%-1rem)] items-center gap-1 truncate rounded-full px-2 py-0.5 text-[11px] leading-none font-semibold shadow-sm',
           etiquette,
         )}
-        style={{ backgroundColor: couleur }}
+        style={stylePersonne(editeurs[0].nom)}
       >
         {libelleEditeurs(editeurs)}
       </span>

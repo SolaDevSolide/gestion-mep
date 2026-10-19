@@ -35,7 +35,7 @@ export function CompteARebours({
       <div
         role="alert"
         className={cn(
-          'flex items-center gap-2.5 rounded-lg bg-rollback-bg px-3 py-1.5 text-white',
+          'flex items-center gap-2.5 rounded-lg bg-rollback-bg px-3 py-1.5 text-rollback-fg',
           !recette && 'pulse-ring',
           className,
         )}

@@ -17,7 +17,7 @@ import { useEffect, useState, type KeyboardEvent, type PointerEvent as PointerEv
 import { useDraft } from '../../hooks';
 import { Popover, PopoverContent, PopoverTrigger } from '../../ui/Popover';
 import { createPortal } from 'react-dom';
-import { couleurPersonne } from '../../ui/Avatar';
+import { stylePersonne } from '../../ui/Avatar';
 import { libelleEditeurs, useAutresPresents, usePresenceElement } from '../../presence';
 import { cleIciSection, PresentsSection } from './PresentsGraphe';
 import type { Etape, Mep } from '../../types';
@@ -627,8 +627,8 @@ export function EnTeteVueSection({
       {dansSection.length > 0 && (
         <span
           role="status"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
-          style={{ backgroundColor: couleurPersonne(dansSection[0].nom) }}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+          style={stylePersonne(dansSection[0].nom)}
         >
           {libelleEditeurs(dansSection)} dans cette section
         </span>

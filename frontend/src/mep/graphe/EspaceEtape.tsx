@@ -86,7 +86,7 @@ export function Surcouche({
       }}
     >
       <D.Portal container={tiroir ? emplacement : undefined}>
-        {plein && <D.Overlay className="fixed inset-0 z-40 bg-black/20 data-[state=open]:animate-fade-in" />}
+        {plein && <D.Overlay className="fixed inset-0 z-40 bg-voile data-[state=open]:animate-fade-in" />}
         <D.Content
           aria-describedby={undefined}
           data-tiroir-etape={tiroir || undefined}

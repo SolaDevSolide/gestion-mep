@@ -56,7 +56,7 @@ export function PlanCheck({ mep }: { mep: Mep }) {
         >
           Vérifier le plan
           {n > 0 ? (
-            <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warn-solid px-1.5 text-[11px] font-bold text-white tnum">
+            <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warn-solid px-1.5 text-[11px] font-bold text-warn-solid-fg tnum">
               {n}
             </span>
           ) : (

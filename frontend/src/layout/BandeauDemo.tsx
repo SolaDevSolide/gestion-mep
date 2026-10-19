@@ -200,7 +200,7 @@ function BoutonSimulation({
         type="button"
         onClick={basculer}
         disabled={enCours}
-        className={`${classe} bg-warn-solid text-white hover:opacity-90`}
+        className={`${classe} bg-warn-solid text-warn-solid-fg hover:opacity-90`}
       >
         <Square className="size-3 fill-current" aria-hidden />
         Arrêter la simulation

@@ -115,7 +115,7 @@ export default function PreparationTab() {
                   <span className="min-w-0 flex-1 whitespace-nowrap leading-tight lg:whitespace-normal">{s.titre}</span>
                   <EditeursSection id={s.id} />
                   {ok[s.id] ? (
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ok-solid text-white">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ok-solid text-ok-solid-fg">
                       <Check className="size-3" strokeWidth={3} aria-hidden />
                       <span className="sr-only">Complète</span>
                     </span>
