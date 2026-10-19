@@ -49,6 +49,8 @@ Puis une carte par MEP lancée (exécution, recette ou retour arrière ; ni les 
 
 En bas, deux listes : les MEP **prévues aujourd'hui et demain** (date et heure annoncées dans la section Communication) et les MEP **clôturées dans les dernières 24 heures**, avec un lien vers leur rapport de fin. Le bouton « Plein écran » affiche le tableau seul, pour un écran de supervision.
 
+Le tableau suit les MEP au fil de l'eau sans tout recharger : une action sur une MEP lancée ne met à jour que sa carte ; le tableau entier n'est relu que lorsqu'une MEP est lancée, clôturée, annoncée ou retirée. Une modification qui n'y apparaît pas (la préparation d'une MEP pas encore lancée, par exemple) ne le fait pas bouger.
+
 ## Rapport de fin
 
 Quand une MEP est clôturée, son **rapport de fin** est figé : ce qu'il montre ne change plus, même si la MEP est modifiée ensuite. On l'ouvre par le bouton « Rapport de fin » du bilan de clôture, le lien de la vue d'ensemble ou celui du Suivi en direct (adresse `/meps/{id}/rapport`). Il n'y a pas de rapport, même provisoire, avant la clôture.
@@ -85,7 +87,9 @@ Les MEP annulées ne sont pas masquées : leur carte, en texte atténué, indiqu
 
 La **période** porte sur le jour du Go de la MEP (à défaut, celui de sa création), bornes incluses ; des raccourcis donnent les 30 derniers jours, les 3 ou 12 derniers mois et l'année en cours. La recherche par texte porte aussi sur le nom des systèmes.
 
-Dès qu'un critère est actif, les résultats passent en **tableau** (état, jour, systèmes et environnements, pilote ou rôle de la personne choisie, échecs, lien vers le rapport de fin), les plus récents d'abord ; le choix « Cartes » / « Tableau » se garde ensuite d'une visite à l'autre. Les critères s'écrivent dans l'adresse de la page : « Copier le lien » la partage, un favori du navigateur la garde. Quand rien ne correspond, la page propose de retirer un critère, avec le nombre de MEP retrouvées. « Exporter en Excel » télécharge les MEP trouvées, avec une feuille « Échecs » (limitée aux systèmes choisis).
+Dès qu'un critère est actif, les résultats passent en **tableau** (état, jour, systèmes et environnements, pilote ou rôle de la personne choisie, échecs, lien vers le rapport de fin), les plus récents d'abord ; le choix « Cartes » / « Tableau » se garde ensuite d'une visite à l'autre. Les critères s'écrivent dans l'adresse de la page : « Copier le lien » la partage, un favori du navigateur la garde. Quand rien ne correspond, la page propose de retirer un critère, avec le nombre de MEP retrouvées. « Exporter en Excel » télécharge toutes les MEP trouvées (pas seulement celles affichées), avec une feuille « Échecs » (limitée aux systèmes choisis).
+
+La liste affiche les 30 MEP les plus récentes qui correspondent ; « Afficher plus », en bas, ajoute les suivantes (leur place est tenue par des lignes grisées le temps qu'elles arrivent). Les nombres de la barre de filtres (« 12 MEP sur 340 », le nombre à côté de chaque valeur) portent sur toutes les MEP, pas seulement sur celles affichées. Pendant un changement de critère, les résultats précédents restent affichés, estompés, jusqu'à l'arrivée des nouveaux.
 
 Partout où un système apparaît (liste, en-tête d'une MEP, section Systèmes de la préparation, Suivi en direct, rapport de fin), sa puce ouvre un menu : **Historique des MEP**, **MEP sur ce système** (la liste filtrée) et **Fiche du système**. Un système saisi à la main n'a pas d'historique : son menu ne propose que la liste filtrée.
 

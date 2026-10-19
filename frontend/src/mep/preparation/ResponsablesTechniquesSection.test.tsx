@@ -112,6 +112,7 @@ describe('Section Responsables techniques', () => {
         systemes: [systemeApi],
         droits,
         version: 2,
+        revisions: { ...mep().revisions, responsablesTechniques: 5 },
         participants: [
           ...mep().participants.filter((p) => p.utilisateurId !== 'u2'),
           {
@@ -140,7 +141,7 @@ describe('Section Responsables techniques', () => {
         contact: '06 11',
         utilisateurId: 'u2',
       });
-      expect(api.modifierResponsablesTechniques).toHaveBeenCalledWith('m1', 2, [
+      expect(api.modifierResponsablesTechniques).toHaveBeenCalledWith('m1', 5, [
         {
           participantId: 'p9',
           systemeIds: ['s1'],

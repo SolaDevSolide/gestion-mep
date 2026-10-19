@@ -12,6 +12,7 @@ import { EnTeteMep } from '../mep/EnTeteMep';
 import EtapesTab from '../mep/EtapesTab';
 import ExecutionTab from '../mep/ExecutionTab';
 import JournalTab from '../mep/JournalTab';
+import { messageConflit } from '../mep/conflit';
 import {
   estAncienneAdresse,
   estOnglet,
@@ -298,7 +299,7 @@ export default function MepPage() {
         return true;
       } catch (e) {
         if (e instanceof ApiError && e.status === 409) {
-          toast.erreur('Quelqu’un a modifié cette MEP entre-temps : elle est à jour, votre saisie est conservée.');
+          toast.erreur(messageConflit(e.message));
           await charger();
         } else if (e instanceof ApiError && e.status === 401) {
           /* redirection gérée par le client API */

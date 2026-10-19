@@ -26,7 +26,7 @@ import {
   NotebookText,
   type LucideIcon,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import {
   familleEvenement,
@@ -36,7 +36,6 @@ import {
   LIBELLE_FAMILLE_EVENEMENT,
   type Ton,
 } from '../format';
-import { useAsync } from '../hooks';
 import type { Evenement } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Avatar } from '../ui/Avatar';
@@ -47,6 +46,8 @@ import { Input, Select } from '../ui/Input';
 import { TON } from '../ui/tons';
 import { Code2, OctagonAlert } from 'lucide-react';
 import { EnChargement, SqueletteChronologie } from '../ui/Squelette';
+import { Button } from '../ui/Button';
+import { useJournal } from './journal';
 import { TestsUnitairesEncadre } from './TestsUnitairesEncadre';
 
 function iconeEvenement(type: string): { Icone: LucideIcon; ton: Ton } {
@@ -148,13 +149,27 @@ function jour(iso: string): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-/** Chronologie verticale du journal d'audit, précédée du suivi des tests unitaires. */
+/** Familles proposées par le filtre : toutes celles du journal (les pages pas encore lues comprises). */
+const FAMILLES = Object.keys(LIBELLE_FAMILLE_EVENEMENT);
+/** Délai avant d'envoyer la recherche au serveur, le temps de finir de taper. */
+const DELAI_RECHERCHE = 300;
+
+/**
+ * Chronologie verticale du journal d'audit, précédée du suivi des tests unitaires. Le journal est lu par pages (#96) :
+ * les filtres sont appliqués par le serveur (et aussitôt sur ce qui est déjà affiché), « Afficher plus » lit les plus anciens.
+ */
 export default function JournalTab({ mepId, tick }: { mepId: string; tick: number }) {
-  const { donnees, erreur } = useAsync(() => api.journal(mepId), [mepId, tick]);
   const [type, setType] = useState('tous');
   const [recherche, setRecherche] = useState('');
+  const [rechercheEnvoyee, setRechercheEnvoyee] = useState('');
+  useEffect(() => {
+    const t = window.setTimeout(() => setRechercheEnvoyee(recherche), DELAI_RECHERCHE);
+    return () => window.clearTimeout(t);
+  }, [recherche]);
+  const journal = useJournal(mepId, tick, { type, recherche: rechercheEnvoyee });
+  const donnees = journal.evenements;
+  const erreur = journal.erreur;
 
-  const familles = useMemo(() => [...new Set((donnees ?? []).map((e) => familleEvenement(e.type)))], [donnees]);
   const filtres = useMemo(() => {
     const q = recherche.trim().toLowerCase();
     return (donnees ?? []).filter(
@@ -198,7 +213,7 @@ export default function JournalTab({ mepId, tick }: { mepId: string; tick: numbe
         <div className="w-52">
           <Select aria-label="Filtrer par type d’événement" value={type} onChange={(e) => setType(e.target.value)}>
             <option value="tous">Tous les types</option>
-            {familles.map((f) => (
+            {FAMILLES.map((f) => (
               <option key={f} value={f}>
                 {LIBELLE_FAMILLE_EVENEMENT[f] ?? f}
               </option>
@@ -229,7 +244,7 @@ export default function JournalTab({ mepId, tick }: { mepId: string; tick: numbe
           icone={NotebookText}
           titre="Aucun événement"
           description={
-            donnees.length === 0
+            type === 'tous' && !recherche.trim()
               ? 'Le journal se remplira au fil des actions.'
               : 'Aucun événement ne correspond à ces critères.'
           }
@@ -284,6 +299,19 @@ export default function JournalTab({ mepId, tick }: { mepId: string; tick: numbe
           </section>
         ))}
       </div>
+
+      {journal.chargementSuite ? (
+        <EnChargement libelle="Chargement des événements plus anciens…" className="mt-3">
+          <SqueletteChronologie evenements={4} />
+        </EnChargement>
+      ) : (
+        journal.suite &&
+        journal.aJour && (
+          <div className="mt-6 flex justify-center">
+            <Button onClick={journal.afficherPlus}>Afficher plus</Button>
+          </div>
+        )
+      )}
     </div>
   );
 }

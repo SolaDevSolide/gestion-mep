@@ -1,15 +1,34 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { api } from '../api';
 import type { MepResume } from '../types';
 import { telecharger } from '../telechargement';
 import { mepResume, utilisateur } from '../test/fabrique';
+import { facettes, page } from '../test/serveurListe';
 import ListeMepPage from './ListeMepPage';
 
 vi.mock('../api', () => ({
-  api: { meps: vi.fn(), equipes: vi.fn(), creerMep: vi.fn(), catalogueSystemes: vi.fn(), utilisateurs: vi.fn() },
+  api: {
+    meps: vi.fn(),
+    pageMeps: vi.fn(),
+    facettesMeps: vi.fn(),
+    equipes: vi.fn(),
+    creerMep: vi.fn(),
+    catalogueSystemes: vi.fn(),
+    utilisateurs: vi.fn(),
+  },
 }));
+
+/**
+ * La liste paginée et ses comptes (#96) sont servis à partir de `api.meps` (les MEP du test), avec les règles partagées
+ * du filtre : chaque test donne ses MEP comme avant.
+ */
+function servir(limite = 30) {
+  const lire = (p: URLSearchParams) => api.meps(p.get('modele') === 'true');
+  vi.mocked(api.pageMeps).mockImplementation(async (p, apres) => page(await lire(p), p, apres, limite));
+  vi.mocked(api.facettesMeps).mockImplementation(async (p) => facettes(await lire(p), p));
+}
 vi.mock('../telechargement', () => ({ telecharger: vi.fn() }));
 
 const resume = (p: Partial<MepResume>): MepResume => mepResume(p);
@@ -55,6 +74,7 @@ const equipeExploit = {
 describe('ListeMepPage', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    servir();
     vi.mocked(api.equipes).mockResolvedValue([]);
     vi.mocked(api.catalogueSystemes).mockResolvedValue([
       {
@@ -94,15 +114,16 @@ describe('ListeMepPage', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: /^Équipe/ }));
     await userEvent.click(screen.getByRole('menuitemcheckbox', { name: /Exploitation/ }));
+    // Filtré par le serveur : la liste précédente reste affichée jusqu'à la réponse.
+    await waitFor(() => expect(screen.queryByText('Facturation')).not.toBeInTheDocument(), { timeout: 3000 });
     expect(screen.getAllByText('Portail').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Facturation')).not.toBeInTheDocument();
     expect(screen.getByLabelText('adresse')).toHaveTextContent('?equipe=exploit');
     await userEvent.keyboard('{Escape}');
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Effacer le filtre Équipe' })[0]);
     await userEvent.type(screen.getByLabelText('Rechercher une MEP'), 'jean.dupont');
+    await waitFor(() => expect(screen.queryByText('Facturation')).not.toBeInTheDocument(), { timeout: 3000 });
     expect(screen.getAllByText('Portail').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Facturation')).not.toBeInTheDocument();
   });
 
   it('lit les filtres de l’adresse, montre un tableau et compte les résultats', async () => {
@@ -220,8 +241,49 @@ describe('ListeMepPage', () => {
   });
 });
 
+describe('ListeMepPage : liste paginée (#96)', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    vi.mocked(api.equipes).mockResolvedValue([]);
+    vi.mocked(api.catalogueSystemes).mockResolvedValue([]);
+    vi.mocked(api.utilisateurs).mockResolvedValue([]);
+  });
+
+  it('affiche une page, puis la suivante à la demande sous des cartes de chargement ; les comptes viennent du serveur', async () => {
+    const toutes = Array.from({ length: 7 }, (_, i) =>
+      resume({ id: `m${i}`, outil: `Outil ${i}`, jour: `2026-10-${String(20 - i).padStart(2, '0')}` }),
+    );
+    vi.mocked(api.meps).mockResolvedValue(toutes);
+    servir(3);
+    rendre();
+    expect(await screen.findByText('Outil 0')).toBeInTheDocument();
+    expect(screen.getByText('Outil 2')).toBeInTheDocument();
+    expect(screen.queryByText('Outil 3')).not.toBeInTheDocument();
+
+    let repondre: () => void = () => undefined;
+    vi.mocked(api.pageMeps).mockImplementationOnce(async (p, apres) => {
+      await new Promise<void>((r) => (repondre = r));
+      return page(toutes, p, apres, 3);
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
+    expect(api.pageMeps).toHaveBeenLastCalledWith(expect.any(URLSearchParams), '3');
+    expect(screen.getByText('Chargement des mises en production suivantes…')).toHaveAttribute('role', 'status');
+    expect(screen.getByRole('list', { busy: true })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Afficher plus' })).not.toBeInTheDocument();
+    repondre();
+    expect(await screen.findByText('Outil 5')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
+    expect(await screen.findByText('Outil 6')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Afficher plus' })).not.toBeInTheDocument();
+    // Comptes et première page : une requête chacun ; « sur N » vient de l'ensemble donné par le serveur.
+    expect(api.facettesMeps).toHaveBeenCalledTimes(1);
+    expect(api.pageMeps).toHaveBeenCalledTimes(3);
+  });
+});
+
 describe('ListeMepPage : MEP simplifiée', () => {
   beforeEach(() => {
+    servir();
     vi.mocked(api.equipes).mockResolvedValue([]);
     vi.mocked(api.catalogueSystemes).mockResolvedValue([]);
     vi.mocked(api.utilisateurs).mockResolvedValue([]);

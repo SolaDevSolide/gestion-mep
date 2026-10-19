@@ -20,7 +20,7 @@ import { TypeMepEncadre } from './TypeMepEncadre';
 
 export function IdentiteSection() {
   const { mep, run } = useMep();
-  const source: Omit<MepIdentiteSaisie, 'version'> = {
+  const source: Omit<MepIdentiteSaisie, 'revision'> = {
     outil: mep.outil,
     versionActuelle: mep.versionActuelle,
     versionCible: mep.versionCible,
@@ -64,7 +64,7 @@ export function IdentiteSection() {
   async function enregistrer() {
     if (d.conflit) return;
     const ok = await run(
-      () => api.modifierIdentite(mep.id, { ...v, version: mep.version }),
+      () => api.modifierIdentite(mep.id, { ...v, revision: mep.revisions.identite }),
       'Intervention enregistrée.',
     );
     if (ok) d.reset();

@@ -72,7 +72,7 @@ describe('Sauvegarde par système', () => {
       justification: 'Service sans état',
       emplacement: '',
       methodeRecuperation: '',
-      version: 1,
+      revision: 0,
     });
   });
 
@@ -101,7 +101,7 @@ describe('Sauvegarde par système', () => {
       justification: '',
       emplacement: '',
       methodeRecuperation: '',
-      version: 1,
+      revision: 0,
     });
   });
 

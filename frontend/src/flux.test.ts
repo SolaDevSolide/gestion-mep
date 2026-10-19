@@ -48,7 +48,20 @@ describe('ouvrirFlux', () => {
     FauxFlux.instances[0].emettre('maj', new MessageEvent('maj', { data: '{"version":7}' }));
     FauxFlux.instances[0].emettre('maj', new MessageEvent('maj', { data: 'illisible' }));
     expect(surMaj).toHaveBeenCalledTimes(1);
-    expect(surMaj).toHaveBeenCalledWith(7);
+    expect(surMaj).toHaveBeenCalledWith(7, { version: 7, meps: undefined, liste: undefined });
+  });
+
+  it('transmet les cartes du suivi à relire, ou l’ordre de tout relire', () => {
+    const surMaj = vi.fn();
+    ouvrirFlux('/api/suivi/flux', surMaj, vi.fn());
+    const flux = FauxFlux.instances[0];
+    flux.emettre('maj', new MessageEvent('maj', { data: '{"version":3,"meps":["m1","m2"],"liste":false}' }));
+    flux.emettre('maj', new MessageEvent('maj', { data: '{"version":4,"meps":[],"liste":true}' }));
+    flux.emettre('maj', new MessageEvent('maj', { data: '{"meps":["m1"]}' }));
+    expect(surMaj.mock.calls).toEqual([
+      [3, { version: 3, meps: ['m1', 'm2'], liste: false }],
+      [4, { version: 4, meps: [], liste: true }],
+    ]);
   });
 
   it('transmet la présence et prévient à chaque ouverture, la première comprise', () => {

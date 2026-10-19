@@ -6,7 +6,7 @@ import { etape, mep } from '../test/fabrique';
 import type { Suivi } from '../types';
 import SuiviPage from './SuiviPage';
 
-vi.mock('../api', () => ({ api: { suivi: vi.fn() } }));
+vi.mock('../api', () => ({ api: { suivi: vi.fn(), mep: vi.fn() } }));
 vi.mock('../flux', () => ({ ouvrirFlux: vi.fn(() => () => undefined) }));
 
 const go = { par: 'Alice', le: '2026-10-16T13:00:00Z' };
@@ -128,14 +128,43 @@ describe('SuiviPage (#61)', () => {
     const surMaj = vi.mocked(ouvrirFlux).mock.calls[0][1];
     vi.mocked(api.suivi).mockResolvedValue(suivi());
     act(() => {
-      surMaj(1);
-      surMaj(2);
-      surMaj(3);
+      surMaj(1, { version: 1, meps: [], liste: true });
+      surMaj(2, { version: 2, meps: ['m9'], liste: false });
+      surMaj(3, { version: 3, meps: [], liste: true });
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000);
     });
     expect(api.suivi).toHaveBeenCalledTimes(2);
+    expect(api.mep).not.toHaveBeenCalled();
     expect(await screen.findByRole('list', { name: 'MEP en cours' })).toBeInTheDocument();
+  });
+
+  it('ne relit que les cartes des MEP lancées qui ont changé (#96)', async () => {
+    vi.mocked(api.suivi).mockResolvedValue(suivi());
+    rendre();
+    await screen.findByRole('list', { name: 'MEP en cours' });
+    const surMaj = vi.mocked(ouvrirFlux).mock.calls[0][1];
+    const calme = suivi().enCours.find((m) => m.id === 'calme')!;
+    vi.mocked(api.mep).mockResolvedValue({ ...calme, version: 2, outil: 'Calme revu' });
+    act(() => {
+      surMaj(1, { version: 1, meps: ['calme'], liste: false });
+      surMaj(2, { version: 2, meps: ['calme'], liste: false });
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(api.suivi).toHaveBeenCalledTimes(1);
+    expect(api.mep).toHaveBeenCalledTimes(1);
+    expect(api.mep).toHaveBeenCalledWith('calme', true);
+    expect(await screen.findByRole('listitem', { name: 'Calme revu → 2.0' })).toBeInTheDocument();
+    expect(screen.getByRole('listitem', { name: 'Paiement → 2.0' })).toBeInTheDocument();
+
+    // Une MEP qui n'a pas encore de carte (tout juste lancée) : tout est relu.
+    act(() => surMaj(3, { version: 3, meps: ['nouvelle'], liste: false }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(api.suivi).toHaveBeenCalledTimes(2);
   });
 });

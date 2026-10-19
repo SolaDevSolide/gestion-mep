@@ -10,7 +10,7 @@ import { metaEtatMep } from '../../statuts';
 import type { MepResume } from '../../types';
 import { Avatar } from '../../ui/Avatar';
 import { cn } from '../../ui/cn';
-import { EnChargement, Squelette } from '../../ui/Squelette';
+import { EnChargement, Squelette, SqueletteRangees } from '../../ui/Squelette';
 import { StatusPill } from '../../ui/StatusPill';
 
 export function PastilleEtatMep({ m, court }: { m: Pick<MepResume, 'etat'>; court?: boolean }) {
@@ -68,7 +68,18 @@ function Roles({ m, f }: { m: MepResume; f: FiltreMeps }) {
 
 const th = 'px-3 py-2.5 text-left text-[11px] font-semibold tracking-wider whitespace-nowrap text-fg-subtle uppercase';
 
-export function TableauMeps({ meps, f, nomPersonne }: { meps: MepResume[]; f: FiltreMeps; nomPersonne?: string }) {
+export function TableauMeps({
+  meps,
+  f,
+  nomPersonne,
+  chargementSuite = false,
+}: {
+  meps: MepResume[];
+  f: FiltreMeps;
+  nomPersonne?: string;
+  /** Page suivante en chargement (« Afficher plus ») : des lignes de chargement suivent les MEP déjà affichées. */
+  chargementSuite?: boolean;
+}) {
   const navigate = useNavigate();
   const parPersonne = Boolean(f.personne);
   return (
@@ -104,7 +115,7 @@ export function TableauMeps({ meps, f, nomPersonne }: { meps: MepResume[]; f: Fi
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-line">
+            <tbody className="divide-y divide-line" aria-busy={chargementSuite || undefined}>
               {meps.map((m) => (
                 <tr
                   key={m.id}
@@ -169,6 +180,7 @@ export function TableauMeps({ meps, f, nomPersonne }: { meps: MepResume[]; f: Fi
                   </td>
                 </tr>
               ))}
+              {chargementSuite && <SqueletteRangees lignes={3} colonnes={7} />}
             </tbody>
           </table>
         </div>
@@ -204,6 +216,13 @@ export function TableauMeps({ meps, f, nomPersonne }: { meps: MepResume[]; f: Fi
             </div>
           </li>
         ))}
+        {chargementSuite &&
+          [0, 1].map((i) => (
+            <li key={`chargement-${i}`} aria-hidden className="rounded-xl border border-line bg-surface p-3 shadow-sm">
+              <Squelette className="h-4 w-48" />
+              <Squelette className="mt-2 h-3 w-32" />
+            </li>
+          ))}
       </ul>
     </>
   );

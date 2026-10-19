@@ -19,10 +19,9 @@ import {
 } from 'lucide-react';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { api } from '../../api';
 import { etapesDuPlan, nomParticipant, segmentsProgression } from '../../domaine';
 import { type Ton } from '../../format';
-import { useAsync, useNow } from '../../hooks';
+import { useNow } from '../../hooks';
 import { useMep } from '../../mepContext';
 import { useAutresPresents } from '../../presence';
 import { useReferentiels } from '../../referentiels';
@@ -39,6 +38,7 @@ import { TON } from '../../ui/tons';
 import { GrapheLibre } from '../graphe/GrapheLibre';
 import { sectionsDuPlan } from '../graphe/sections';
 import { descriptionsSystemes } from '../graphe/systemes';
+import { useJournal } from '../journal';
 import {
   causesBlocage,
   chiffres,
@@ -486,7 +486,8 @@ export default function VueEnsembleTab() {
   const [selection, setSelection] = useState<string | null>(null);
   const { catalogue, pret } = useReferentiels();
   const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue), [mep, catalogue]);
-  const { donnees: journal } = useAsync(() => api.journal(mep.id), [mep.id, mep.version]);
+  // Derniers événements, puis seulement les nouveaux à chaque version (#96).
+  const { evenements: journal } = useJournal(mep.id, mep.version);
   const bloquees = useMemo(() => causesBlocage(etapes), [etapes]);
   const ensemble = useMemo(() => ({ bloquees }), [bloquees]);
   const c = chiffres(mep, etapes, maintenant);

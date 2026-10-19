@@ -42,6 +42,8 @@ import type {
   Mep,
   MepIdentiteSaisie,
   MepResume,
+  PageMeps,
+  FacettesMeps,
   ParticipantSaisie,
   PlanRepliSaisie,
   EcheanceSaisie,
@@ -225,6 +227,15 @@ let demoLu: Promise<EtatDemo | null> | null = null;
 
 export const urlPieceJointe = (pid: string) => `/api/pieces-jointes/${pid}/contenu`;
 
+/** Filtres et morceau du journal d'une MEP (`GET /meps/{id}/journal`). */
+export interface FiltreJournal {
+  limite?: number;
+  apres?: number;
+  avant?: number;
+  type?: string;
+  recherche?: string;
+}
+
 /** Paramètres d'adresse (« ?a=1&b=2 »), sans les valeurs vides ; « » s'il n'en reste aucun. */
 function requete(valeurs: Record<string, string | undefined>): string {
   const p = new URLSearchParams();
@@ -281,6 +292,14 @@ export const api = {
   adminJournal: (limite = 200) => get<EvenementAdmin[]>(`/admin/journal?limite=${limite}`),
 
   meps: (modele?: boolean) => get<MepResume[]>(`/meps${modele === undefined ? '' : `?modele=${modele}`}`),
+  /** Page de la liste filtrée (`parametres` : ceux de `parametresListe`), les plus récentes d'abord ; `apres` : curseur. */
+  pageMeps: (parametres: URLSearchParams, apres?: string | null) => {
+    const p = new URLSearchParams(parametres);
+    if (apres) p.set('apres', apres);
+    return get<PageMeps>(`/meps/page?${p.toString()}`);
+  },
+  /** Comptes de la barre de filtres pour ces filtres (`parametresListe`). */
+  facettesMeps: (parametres: URLSearchParams) => get<FacettesMeps>(`/meps/facettes?${parametres.toString()}`),
   creerMep: (outil: string, objet: string, modele = false, type: TypeMep = 'Complete') =>
     post<Mep>('/meps', { outil, objet, modele, type }),
   /** Type de la MEP, en préparation : passer en simplifiée efface durées, criticités, résolutions liées et versions. */
@@ -295,7 +314,21 @@ export const api = {
   /** Valeurs des variables des modèles de texte ; `equipe` absente : équipe proposée (celle du pilote). */
   variablesTexte: (id: string, equipe?: string) =>
     get<VariablesMep>(`/meps/${id}/variables-texte${equipe ? `?equipe=${encodeURIComponent(equipe)}` : ''}`),
-  journal: (id: string) => get<Evenement[]>(`/meps/${id}/journal`),
+  /**
+   * Journal d'une MEP, du plus récent au plus ancien (#96) : `limite` (au plus 500, tout sans limite), `apres` (seulement
+   * les événements plus récents que celui-là), `avant` (page suivante, plus ancienne), `type` (famille), `recherche`.
+   */
+  journal: (id: string, f: FiltreJournal = {}, silencieux = false) =>
+    get<Evenement[]>(
+      `/meps/${id}/journal${requete({
+        limite: f.limite?.toString(),
+        apres: f.apres?.toString(),
+        avant: f.avant?.toString(),
+        type: f.type === 'tous' ? '' : f.type,
+        recherche: f.recherche?.trim(),
+      })}`,
+      { silencieux },
+    ),
   rapport: (id: string) => get<RapportFin>(`/meps/${id}/rapport`),
   suivi: () => get<Suivi>('/suivi'),
   /** Tests unitaires faits, non faits et leurs résultats constatés. */
@@ -373,8 +406,9 @@ export const api = {
 
   prendreLaMain: (id: string, eid: string, revision: number, motif: string) =>
     post<Mep>(`/meps/${id}/etapes/${eid}/prendre-la-main`, { revision, motif }),
-  modifierResponsablesTechniques: (id: string, version: number, responsables: ResponsableTechniqueSaisie[]) =>
-    put<Mep>(`/meps/${id}/responsables-techniques`, { version, responsables }),
+  /** `revision` : celle du bloc (`mep.revisions.responsablesTechniques`). */
+  modifierResponsablesTechniques: (id: string, revision: number, responsables: ResponsableTechniqueSaisie[]) =>
+    put<Mep>(`/meps/${id}/responsables-techniques`, { revision, responsables }),
   appliquerResolution: (id: string, eid: string, resolutionTypeId: string, revision: number) =>
     post<Mep>(`/meps/${id}/etapes/${eid}/resolutions`, { resolutionTypeId, revision }),
   controlerCorrection: (id: string, rid: string, ordre: number, resultat: ResultatControle, observation: string) =>
@@ -391,8 +425,9 @@ export const api = {
   passerEnRecette: (id: string) => post<Mep>(`/meps/${id}/phase`, { phase: 'Recette' }),
   dupliquer: (id: string, s: DuplicationSaisie) => post<Mep>(`/meps/${id}/dupliquer`, s),
 
-  modifierApprobateurs: (id: string, version: number, utilisateurIds: string[]) =>
-    put<Mep>(`/meps/${id}/approbateurs`, { version, utilisateurIds }),
+  /** `revision` : celle du bloc (`mep.revisions.approbateurs`). */
+  modifierApprobateurs: (id: string, revision: number, utilisateurIds: string[]) =>
+    put<Mep>(`/meps/${id}/approbateurs`, { revision, utilisateurIds }),
   decider: (id: string, version: number, decision: DecisionApprobation, commentaire: string) =>
     post<Mep>(`/meps/${id}/approbation`, { version, decision, commentaire }),
 

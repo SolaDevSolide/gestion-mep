@@ -90,6 +90,13 @@ export type TypeEvenementAdmin =
 
 /** `dateMep` : date du Go si elle existe ; `creeLe` : date de création (affichée tant que la MEP n'a pas démarré). */
 export type MepResume = S['MepResumeDto'];
+/**
+ * Page de la liste (#96) : `total`, MEP qui correspondent aux filtres ; `ensemble`, toutes (ou tous les modèles) ;
+ * `suivant`, à passer dans `apres` pour la page suivante (null : c'était la dernière).
+ */
+export type PageMeps = S['PageMepsDto'];
+/** Comptes de la barre de filtres de la liste, calculés par le serveur avec les filtres en cours (#96). */
+export type FacettesMeps = S['FacettesMepsDto'];
 export type EtatMep = S['EtatMep'];
 export type RoleMep = S['RoleMep'];
 export type SystemeResume = S['SystemeResumeDto'];
@@ -238,11 +245,14 @@ export type ProfilSaisie = SaisieVerifiee<
   }
 >;
 
+/**
+ * Saisies des blocs de formulaire d'une MEP (#96) : `revision`, celle du bloc lue dans `mep.revisions` (ou
+ * `systeme.revisionSauvegarde`) ; une écriture ailleurs dans la MEP ne la périme pas.
+ */
 export type MepIdentiteSaisie = SaisieVerifiee<
   S['MepIdentiteSaisie'],
-  Pick<
+  { revision: number } & Pick<
     Mep,
-    | 'version'
     | 'outil'
     | 'versionActuelle'
     | 'versionCible'
@@ -255,7 +265,7 @@ export type MepIdentiteSaisie = SaisieVerifiee<
   > & { bilanActive?: boolean; retourArriereActive?: boolean }
 >;
 
-export type CommunicationSaisie = SaisieVerifiee<S['CommunicationSaisie'], Communication & { version: number }>;
+export type CommunicationSaisie = SaisieVerifiee<S['CommunicationSaisie'], Communication & { revision: number }>;
 /** `version` : obligatoire pour une modification ; `equipeId` : à la création seulement. */
 export type ModeleTexteSaisie = SaisieVerifiee<
   S['ModeleTexteSaisie'],
@@ -267,18 +277,18 @@ export type EquipeCommunicationSaisie = SaisieVerifiee<
 >;
 export type TypeMepSaisie = SaisieVerifiee<S['TypeMepSaisie'], { version: number; type: TypeMep }>;
 
-export type SauvegardeSaisie = SaisieVerifiee<S['SauvegardeSaisie'], Sauvegarde & { version: number }>;
+export type SauvegardeSaisie = SaisieVerifiee<S['SauvegardeSaisie'], Sauvegarde & { revision: number }>;
 export type SauvegardeSystemeSaisie = SaisieVerifiee<
   S['SauvegardeSystemeSaisie'],
-  SauvegardeSysteme & { version: number }
+  SauvegardeSysteme & { revision: number }
 >;
 /** Échéance de retour arrière (#94) : `echeanceRepli` null la retire ; motif obligatoire sauf première saisie en préparation. */
 export type EcheanceSaisie = SaisieVerifiee<
   S['EcheanceSaisie'],
-  { version: number; echeanceRepli: string | null; motif: string }
+  { revision: number; echeanceRepli: string | null; motif: string }
 >;
 export type ResolutionFigee = S['ResolutionFigeeDto'];
-export type PlanRepliSaisie = SaisieVerifiee<S['PlanRepliSaisie'], PlanRepli & { version: number }>;
+export type PlanRepliSaisie = SaisieVerifiee<S['PlanRepliSaisie'], PlanRepli & { revision: number }>;
 export type ResponsableTechniqueSaisie = SaisieVerifiee<S['ResponsableTechniqueSaisie'], ResponsableTechnique>;
 
 export type ParticipantSaisie = SaisieVerifiee<
@@ -304,7 +314,8 @@ export type EtapeSaisie = SaisieVerifiee<
     dureeEstimeeMinutes: number | null;
     instructions: string;
     resultatAttendu: string;
-    dependances: string[];
+    /** Préalables directs ; absents : inchangés (la fiche ne les envoie pas : les liens se changent sur le plan). */
+    dependances?: string[];
     resolutionIds: string[];
     type: TypeEtape;
     pointDeNonRetour: boolean;

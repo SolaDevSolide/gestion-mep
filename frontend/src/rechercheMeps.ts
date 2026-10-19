@@ -241,6 +241,13 @@ export const filtreModeles = (f: FiltreMeps): FiltreMeps => ({
   equipes: f.equipes,
 });
 
+/** Paramètres de la liste paginée et de ses comptes (`/api/meps/page`, `/api/meps/facettes`). */
+export function parametresListe(f: FiltreMeps, modele: boolean): URLSearchParams {
+  const p = ecrireFiltre(modele ? filtreModeles(f) : f);
+  p.set('modele', String(modele));
+  return p;
+}
+
 /** Adresse de l'export Excel de la liste : mêmes paramètres que la page. */
 export function urlExportListe(f: FiltreMeps, modele: boolean): string {
   const p = ecrireFiltre(modele ? filtreModeles(f) : f);
@@ -253,11 +260,15 @@ export function urlExportListe(f: FiltreMeps, modele: boolean): string {
 export const lienListeSysteme = (systeme: string, autres: Partial<FiltreMeps> = {}): string =>
   `/?${ecrireFiltre({ ...FILTRE_VIDE, ...autres, systemes: [systeme] }).toString()}`;
 
-/** Environnements proposés au filtre : ceux des systèmes filtrés (de tous les systèmes sinon), production à la fin. */
+/**
+ * Environnements proposés au filtre : ceux des systèmes filtrés (de tous les systèmes sinon), production à la fin.
+ * `proposes` : ceux que le serveur a relevés dans les MEP (`/api/meps/facettes`), quand la liste n'est pas toute chargée.
+ */
 export function environnementsProposes(
   f: FiltreMeps,
   meps: Pick<MepResume, 'systemes'>[],
   catalogue: { id: string; environnements: { nom: string; production: boolean }[] }[],
+  proposes: { nom: string; production: boolean }[] = [],
 ): { nom: string; production: boolean }[] {
   const vus = new Map<string, { nom: string; production: boolean }>();
   const ajouter = (e: { nom: string; production: boolean }) => {
@@ -267,6 +278,7 @@ export function environnementsProposes(
   };
   for (const c of catalogue) if (retient(f, { catalogueId: c.id, nom: '' })) c.environnements.forEach(ajouter);
   for (const m of meps) for (const s of m.systemes) if (retient(f, s)) s.environnements.forEach(ajouter);
+  proposes.forEach(ajouter);
   return [...vus.values()].sort((a, b) => Number(a.production) - Number(b.production));
 }
 

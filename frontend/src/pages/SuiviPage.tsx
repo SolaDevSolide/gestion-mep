@@ -40,7 +40,7 @@ import { EnDirect } from '../mep/ensemble/VueEnsembleTab';
 import { sectionsDuPlan } from '../mep/graphe/sections';
 import { BadgeSimplifiee, estSimplifiee } from '../mep/typeMep';
 import { metaPhase } from '../statuts';
-import type { Mep, MepCloturee, MepPrevue } from '../types';
+import type { Mep, MepCloturee, MepPrevue, Suivi } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Apparition } from '../ui/Apparition';
 import { Avatar } from '../ui/Avatar';
@@ -382,29 +382,73 @@ function ListeCloturees({ cloturees }: { cloturees: MepCloturee[] }) {
 /**
  * Suivi en direct (#61) : tableau de bord des MEP lancées, ouvert à tous. Chiffres du jour, une carte par MEP (retours
  * arrière puis échecs d'abord), MEP prévues aujourd'hui et demain, clôturées depuis 24 heures. Le flux `/api/suivi/flux`
- * signale chaque modification d'une MEP : la page relit alors `/api/suivi`.
+ * dit ce qui a changé (#96) : la page ne relit que les cartes des MEP lancées concernées (`/api/meps/{id}`), ou tout
+ * `/api/suivi` quand les listes changent (MEP lancée, clôturée, annoncée…) ; les écritures arrivées ensemble sont regroupées.
  */
 export default function SuiviPage() {
   const maintenant = useNow(30_000);
   const { donnees: suivi, erreur, recharger } = useAsync(() => api.suivi(), []);
+  // Cartes relues une à une depuis le dernier chargement complet (`base`) : elles remplacent celles de `suivi`.
+  const [cartes, setCartes] = useState<{ base: Suivi | null; meps: Map<string, Mep> }>({ base: null, meps: new Map() });
   const rechargerRef = useRef(recharger);
+  const suiviRef = useRef(suivi);
   useEffect(() => {
     rechargerRef.current = recharger;
+    suiviRef.current = suivi;
   });
   const zone = useRef<HTMLElement>(null);
   const [plein, setPlein] = useState(false);
 
   useEffect(() => {
     let attente: number | undefined;
-    const relire = () => {
-      if (attente !== undefined) return;
-      attente = window.setTimeout(() => {
-        attente = undefined;
+    let arrete = false;
+    let tout = false;
+    const ids = new Set<string>();
+    const relire = async () => {
+      attente = undefined;
+      const base = suiviRef.current;
+      const aRelire = [...ids];
+      const listes = tout;
+      ids.clear();
+      tout = false;
+      // Une MEP sans carte (pas encore chargée, ou tout juste lancée) : les listes ont changé.
+      if (listes || base === null || aRelire.some((id) => !base.enCours.some((m) => m.id === id))) {
         rechargerRef.current();
-      }, REGROUPEMENT_MS);
+        return;
+      }
+      try {
+        const lues = await Promise.all(aRelire.map((id) => api.mep(id, true)));
+        if (arrete) return;
+        setCartes((c) => {
+          const meps = new Map(c.base === base ? c.meps : []);
+          for (const m of lues) {
+            const avant = meps.get(m.id) ?? base.enCours.find((x) => x.id === m.id);
+            if (!avant || m.version >= avant.version) meps.set(m.id, m);
+          }
+          return { base, meps };
+        });
+      } catch {
+        if (!arrete) rechargerRef.current();
+      }
     };
-    const fermer = ouvrirFlux('/api/suivi/flux', relire, relire);
+    const planifier = () => {
+      if (attente === undefined) attente = window.setTimeout(() => void relire(), REGROUPEMENT_MS);
+    };
+    const fermer = ouvrirFlux(
+      '/api/suivi/flux',
+      (_version, maj) => {
+        if (maj.liste || !maj.meps) tout = true;
+        else for (const id of maj.meps) ids.add(id);
+        if (tout || ids.size > 0) planifier();
+      },
+      () => {
+        // Reconnexion : des modifications ont pu passer pendant la coupure.
+        tout = true;
+        planifier();
+      },
+    );
     return () => {
+      arrete = true;
       fermer();
       window.clearTimeout(attente);
     };
@@ -420,7 +464,9 @@ export default function SuiviPage() {
     else void zone.current?.requestFullscreen();
   };
 
-  const meps = trierSuivi(suivi?.enCours ?? []);
+  const meps = trierSuivi(
+    (suivi?.enCours ?? []).map((m) => (cartes.base === suivi ? cartes.meps.get(m.id) : undefined) ?? m),
+  );
   const nbEchecs = meps.reduce(
     (n, m) => n + m.etapes.filter((e) => e.plan === planSuivi(m) && e.etat === 'Echec').length,
     0,

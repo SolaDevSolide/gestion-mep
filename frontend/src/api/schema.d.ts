@@ -606,6 +606,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meps/page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    modele?: boolean;
+                    limite?: number;
+                    apres?: string;
+                    recherche?: string;
+                    systeme?: string;
+                    environnement?: string;
+                    equipe?: string;
+                    personne?: string;
+                    role?: string;
+                    etat?: string;
+                    phase?: string;
+                    type?: string;
+                    du?: string;
+                    au?: string;
+                    echec?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PageMepsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/facettes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    modele?: boolean;
+                    recherche?: string;
+                    systeme?: string;
+                    environnement?: string;
+                    equipe?: string;
+                    personne?: string;
+                    role?: string;
+                    etat?: string;
+                    phase?: string;
+                    type?: string;
+                    du?: string;
+                    au?: string;
+                    echec?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FacettesMepsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meps/{id}/dupliquer": {
         parameters: {
             query?: never;
@@ -852,7 +952,13 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    limite?: number;
+                    apres?: number;
+                    avant?: number;
+                    type?: string;
+                    recherche?: string;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -6963,6 +7069,8 @@ export interface components {
             /** Format: int32 */
             version: null | number;
             utilisateurIds: null | string[];
+            /** Format: int32 */
+            revision?: null | number;
         };
         /**
          * @description `Empechement` (#94) : rôle qui interdit à cet approbateur d'approuver la MEP (« pilote », « suppléant du pilote »,
@@ -7122,6 +7230,8 @@ export interface components {
             valideeLe: null | string;
             /** Format: uuid */
             preuveValidationId: null | string;
+            /** Format: int32 */
+            revision?: null | number;
         };
         /**
          * @description Compte tel que le voit tout utilisateur connecté (`GET /api/utilisateurs`) : de quoi choisir une personne (participant,
@@ -7342,6 +7452,8 @@ export interface components {
             /** Format: date-time */
             echeanceRepli: null | string;
             motif: null | string;
+            /** Format: int32 */
+            revision?: null | number;
         };
         /** @description Échec d'une étape d'un système pendant une MEP : motif, reprise réussie ou non, dernière résolution lancée. */
         EchecSystemeDto: {
@@ -7545,7 +7657,7 @@ export interface components {
          * @description Champs de la fiche d'une étape. `Fin`, `SauvegardeEmplacement`, `SauvegardeMethodeRecuperation` et
          *         `Environnements` absents : inchangés (test unitaire pour une nouvelle étape) ; les environnements d'un système retiré de
          *         l'étape partent avec lui. `Dependances` : préalables directs (ceux qui viennent des cercles restent, on peut renvoyer
-         *         les préalables effectifs).
+         *         les préalables effectifs) ; absentes (ou null) : inchangées, liste vide : aucun préalable direct.
          *         Création seulement (POST /etapes), au plus une place : Apres (la nouvelle étape attend cette étape ou ce
          *     cercle), Entre (insertion sur ce lien), ParalleleA (mêmes préalables et mêmes suivants que cette étape) ; rien :
          *     étape isolée. SectionId : section de la nouvelle étape (absente : celle de la place, sinon aucune).
@@ -7717,6 +7829,41 @@ export interface components {
             /** Format: uuid */
             systemeCatalogueId: null | string;
             detail: null | string;
+        };
+        /**
+         * @description Comptes de la barre de filtres de la liste (`GET /meps/facettes`), avec les filtres en cours : pour chaque valeur d'un
+         *     critère, le nombre de MEP qu'on obtiendrait en la choisissant à la place des valeurs choisies de ce critère.
+         *     `Systemes` : par valeur du filtre `systeme` (identifiant du catalogue en minuscules, ou `libre:` et le nom normalisé) ;
+         *     `Environnements` : par nom normalisé (sans casse ni accents) ; `Equipes`, `Personnes` : par identifiant ;
+         *     `Etats` : par état. `Libres` : noms des systèmes saisis à la main dans les MEP ; `EnvironnementsProposes` :
+         *     environnements des systèmes retenus par le filtre `systeme`. `Sans` : pour chaque critère actif (`recherche`,
+         *     `systeme`, `environnement`, `equipe`, `personne`, `etat`, `periode`), le nombre de MEP sans lui.
+         */
+        FacettesMepsDto: {
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            ensemble: number;
+            systemes: {
+                [key: string]: number;
+            };
+            environnements: {
+                [key: string]: number;
+            };
+            equipes: {
+                [key: string]: number;
+            };
+            personnes: {
+                [key: string]: number;
+            };
+            etats: {
+                [key: string]: number;
+            };
+            libres: string[];
+            environnementsProposes: components["schemas"]["EnvironnementSystemeDto"][];
+            sans: {
+                [key: string]: number;
+            };
         };
         FicheRecetteCreationSaisie: {
             /** Format: uuid */
@@ -7927,6 +8074,8 @@ export interface components {
                         nom: string;
                         production: boolean;
                     }[];
+                    /** Format: int32 */
+                    revisionSauvegarde: number;
                 }[];
                 objetsImpactes: {
                     /** Format: uuid */
@@ -8316,6 +8465,26 @@ export interface components {
                 }[];
                 /** Format: date-time */
                 resolutionsFigeesLe: null | string;
+                /**
+                 * @description Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la
+                 *     renvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas.
+                 */
+                revisions: {
+                    /** Format: int32 */
+                    identite: number;
+                    /** Format: int32 */
+                    echeance: number;
+                    /** Format: int32 */
+                    sauvegarde: number;
+                    /** Format: int32 */
+                    planRepli: number;
+                    /** Format: int32 */
+                    communication: number;
+                    /** Format: int32 */
+                    responsablesTechniques: number;
+                    /** Format: int32 */
+                    approbateurs: number;
+                };
             };
             /** Format: int32 */
             ajoutes: number;
@@ -8596,6 +8765,8 @@ export interface components {
                     nom: string;
                     production: boolean;
                 }[];
+                /** Format: int32 */
+                revisionSauvegarde: number;
             }[];
             objetsImpactes: {
                 /** Format: uuid */
@@ -8985,6 +9156,26 @@ export interface components {
             }[];
             /** Format: date-time */
             resolutionsFigeesLe: null | string;
+            /**
+             * @description Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la
+             *     renvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas.
+             */
+            revisions: {
+                /** Format: int32 */
+                identite: number;
+                /** Format: int32 */
+                echeance: number;
+                /** Format: int32 */
+                sauvegarde: number;
+                /** Format: int32 */
+                planRepli: number;
+                /** Format: int32 */
+                communication: number;
+                /** Format: int32 */
+                responsablesTechniques: number;
+                /** Format: int32 */
+                approbateurs: number;
+            };
         };
         /**
          * @description MEP de l'historique d'un système : `Environnements` touchés sur ce système, `AutresSystemes` de la MEP,
@@ -9037,6 +9228,8 @@ export interface components {
             suppleantIds: null | string[];
             bilanActive?: null | boolean;
             retourArriereActive?: null | boolean;
+            /** Format: int32 */
+            revision?: null | number;
         };
         /** @description MEP en préparation au créneau annoncé (Communication) ; `Debut` : date et heure annoncées (minuit sans heure). */
         MepPrevueDto: {
@@ -9347,6 +9540,19 @@ export interface components {
             sens: null | components["schemas"]["SensPort"];
             ports: null | string[];
         };
+        /**
+         * @description Page de la liste des MEP (`GET /meps/page`) : `Meps`, la page ; `Total`, le nombre de MEP qui correspondent
+         *     aux filtres ; `Ensemble`, le nombre de MEP (ou de modèles) sans filtre ; `Suivant`, le curseur à passer dans
+         *     `apres` pour la page suivante (null : c'était la dernière).
+         */
+        PageMepsDto: {
+            meps: components["schemas"]["MepResumeDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            ensemble: number;
+            suivant: null | string;
+        };
         ParametresDto: {
             /** Format: int32 */
             approbationsMinimum: number;
@@ -9466,6 +9672,8 @@ export interface components {
             versionARestaurer: null | string;
             donneesDepuisSauvegarde: null | string;
             siRepliEchoue: null | string;
+            /** Format: int32 */
+            revision?: null | number;
         };
         /**
          * @description Échec d'une étape pendant l'exécution, tiré du journal : motif, résolution lancée ensuite (la dernière avant la reprise),
@@ -9826,6 +10034,8 @@ export interface components {
                         nom: string;
                         production: boolean;
                     }[];
+                    /** Format: int32 */
+                    revisionSauvegarde: number;
                 }[];
                 objetsImpactes: {
                     /** Format: uuid */
@@ -10215,6 +10425,26 @@ export interface components {
                 }[];
                 /** Format: date-time */
                 resolutionsFigeesLe: null | string;
+                /**
+                 * @description Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la
+                 *     renvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas.
+                 */
+                revisions: {
+                    /** Format: int32 */
+                    identite: number;
+                    /** Format: int32 */
+                    echeance: number;
+                    /** Format: int32 */
+                    sauvegarde: number;
+                    /** Format: int32 */
+                    planRepli: number;
+                    /** Format: int32 */
+                    communication: number;
+                    /** Format: int32 */
+                    responsablesTechniques: number;
+                    /** Format: int32 */
+                    approbateurs: number;
+                };
             };
             journal: {
                 /** Format: int64 */
@@ -10336,6 +10566,8 @@ export interface components {
             /** Format: int32 */
             version: null | number;
             responsables: null | components["schemas"]["ResponsableTechniqueSaisie"][];
+            /** Format: int32 */
+            revision?: null | number;
         };
         ResponsableTechniqueDto: {
             /** Format: uuid */
@@ -10410,6 +10642,26 @@ export interface components {
             revision: null | number;
         };
         /**
+         * @description Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la
+         *     renvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas.
+         */
+        RevisionsMepDto: {
+            /** Format: int32 */
+            identite: number;
+            /** Format: int32 */
+            echeance: number;
+            /** Format: int32 */
+            sauvegarde: number;
+            /** Format: int32 */
+            planRepli: number;
+            /** Format: int32 */
+            communication: number;
+            /** Format: int32 */
+            responsablesTechniques: number;
+            /** Format: int32 */
+            approbateurs: number;
+        };
+        /**
          * @description Rôle d'une personne dans une MEP (une personne peut en cumuler plusieurs ; sans rôle, elle est simple participante).
          * @enum {unknown}
          */
@@ -10462,6 +10714,8 @@ export interface components {
             dateTestRestauration: null | string;
             preuveTestRestauration: null | string;
             mode?: null | components["schemas"]["ModeSauvegarde"];
+            /** Format: int32 */
+            revision?: null | number;
         };
         /** @description `Emplacement` et `MethodeRecuperation` : obligatoires si la sauvegarde est requise (vérification du plan). */
         SauvegardeSystemeDto: {
@@ -10490,6 +10744,8 @@ export interface components {
             justification: null | string;
             emplacement?: null | string;
             methodeRecuperation?: null | string;
+            /** Format: int32 */
+            revision?: null | number;
         };
         /** @description Section créée (`SectionId`) et MEP à jour. */
         SectionCreeeDto: {
@@ -10634,6 +10890,8 @@ export interface components {
                         nom: string;
                         production: boolean;
                     }[];
+                    /** Format: int32 */
+                    revisionSauvegarde: number;
                 }[];
                 objetsImpactes: {
                     /** Format: uuid */
@@ -11023,6 +11281,26 @@ export interface components {
                 }[];
                 /** Format: date-time */
                 resolutionsFigeesLe: null | string;
+                /**
+                 * @description Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la
+                 *     renvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas.
+                 */
+                revisions: {
+                    /** Format: int32 */
+                    identite: number;
+                    /** Format: int32 */
+                    echeance: number;
+                    /** Format: int32 */
+                    sauvegarde: number;
+                    /** Format: int32 */
+                    planRepli: number;
+                    /** Format: int32 */
+                    communication: number;
+                    /** Format: int32 */
+                    responsablesTechniques: number;
+                    /** Format: int32 */
+                    approbateurs: number;
+                };
             };
         };
         /**
@@ -11287,6 +11565,8 @@ export interface components {
                         nom: string;
                         production: boolean;
                     }[];
+                    /** Format: int32 */
+                    revisionSauvegarde: number;
                 }[];
                 objetsImpactes: {
                     /** Format: uuid */
@@ -11676,6 +11956,26 @@ export interface components {
                 }[];
                 /** Format: date-time */
                 resolutionsFigeesLe: null | string;
+                /**
+                 * @description Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la
+                 *     renvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas.
+                 */
+                revisions: {
+                    /** Format: int32 */
+                    identite: number;
+                    /** Format: int32 */
+                    echeance: number;
+                    /** Format: int32 */
+                    sauvegarde: number;
+                    /** Format: int32 */
+                    planRepli: number;
+                    /** Format: int32 */
+                    communication: number;
+                    /** Format: int32 */
+                    responsablesTechniques: number;
+                    /** Format: int32 */
+                    approbateurs: number;
+                };
             }[];
             prevues: {
                 /** Format: uuid */
@@ -11849,6 +12149,8 @@ export interface components {
                 nom: string;
                 production: boolean;
             }[];
+            /** Format: int32 */
+            revisionSauvegarde: number;
         };
         /**
          * @description Système d'une MEP dans la liste : fiche du catalogue (`CatalogueId`, null pour un système saisi à la main),

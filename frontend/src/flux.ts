@@ -1,6 +1,28 @@
 import type { Presence } from './types';
 
 /**
+ * Événement `maj` d'un flux : la version (celle de la MEP, ou le nombre de modifications diffusées pour le suivi). Pour le
+ * suivi en direct (#96), `meps` : les MEP lancées dont la carte a changé ; `liste` : les listes ont changé, tout relire.
+ */
+export interface Maj {
+  version: number;
+  meps?: string[];
+  liste?: boolean;
+}
+
+function lireMaj(texte: string): Maj | null {
+  const brut = JSON.parse(texte) as unknown;
+  if (typeof brut !== 'object' || brut === null || !('version' in brut) || typeof brut.version !== 'number')
+    return null;
+  const meps =
+    'meps' in brut && Array.isArray(brut.meps)
+      ? brut.meps.filter((m): m is string => typeof m === 'string')
+      : undefined;
+  const liste = 'liste' in brut && typeof brut.liste === 'boolean' ? brut.liste : undefined;
+  return { version: brut.version, meps, liste };
+}
+
+/**
  * Flux SSE d'une MEP. Le navigateur se reconnecte seul après une coupure réseau, mais ferme
  * définitivement le flux sur une réponse HTTP en erreur (ex. 502 pendant un déploiement) :
  * on le recrée alors avec un délai croissant (1 s, 2 s, 4 s… plafonné à 30 s).
@@ -8,11 +30,12 @@ import type { Presence } from './types';
  * Le flux envoie aussi la présence (`event: presence`, liste des personnes qui ont la MEP ouverte) : `surPresence`.
  * `surOuverture` est appelé à chaque ouverture, la première comprise (pour redéclarer les éléments de l'onglet).
  * Le flux envoie enfin les verrous d'édition des étapes (`event: verrous`) : `surVerrous`.
+ * `surMaj` reçoit la version et l'événement entier (`Maj` : cartes du suivi à relire).
  * Renvoie la fonction qui ferme le flux.
  */
 export function ouvrirFlux(
   url: string,
-  surMaj: (version: number) => void,
+  surMaj: (version: number, maj: Maj) => void,
   surReconnexion: () => void,
   options: {
     surPresence?: (presences: Presence[]) => void;
@@ -52,8 +75,8 @@ export function ouvrirFlux(
     });
     courant.addEventListener('maj', (ev) => {
       try {
-        const { version } = JSON.parse((ev as MessageEvent<string>).data) as { version: number };
-        surMaj(version);
+        const maj = lireMaj((ev as MessageEvent<string>).data);
+        if (maj) surMaj(maj.version, maj);
       } catch {
         /* événement illisible */
       }

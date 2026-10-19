@@ -41,7 +41,10 @@ import { BadgeAjouteeApresGo } from '../BadgesEtape';
 
 export { PiecesEtape };
 
-/** Saisie complète d'une étape à partir de son état serveur (pour un PUT qui ne change qu'un champ, ex. les liens). */
+/**
+ * Saisie de la fiche d'une étape à partir de son état serveur (pour un PUT qui ne change qu'un champ). Sans les préalables :
+ * le serveur les garde tels quels, même si quelqu'un vient d'en changer sur le plan.
+ */
 export function saisieDepuis(e: Etape): EtapeSaisie {
   return {
     revision: e.revision,
@@ -51,7 +54,6 @@ export function saisieDepuis(e: Etape): EtapeSaisie {
     dureeEstimeeMinutes: e.dureeEstimeeMinutes,
     instructions: e.instructions,
     resultatAttendu: e.resultatAttendu,
-    dependances: e.dependances,
     resolutionIds: e.resolutionIds,
     type: e.type,
     pointDeNonRetour: e.pointDeNonRetour,
