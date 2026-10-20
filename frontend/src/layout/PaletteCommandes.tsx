@@ -23,17 +23,20 @@ import {
 } from 'lucide-react';
 import { Command } from 'cmdk';
 import { Dialog as D } from 'radix-ui';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
+import { useAsync } from '../hooks';
+import { useReferentiel } from '../referentiels';
 import { LIBELLE_PHASE } from '../format';
 import { useTheme } from '../theme';
 import { lienHistoriqueSysteme } from '../mep/SystemeCliquable';
 import { personnesDeRecherche } from '../personnes';
 import { ecrireFiltre, FILTRE_VIDE } from '../rechercheMeps';
-import type { MepResume, SystemeCatalogue } from '../types';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Kbd } from '../ui/Kbd';
+import { EnChargement, Squelette } from '../ui/Squelette';
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const filtre = (_v: string, recherche: string, mots?: string[]) =>
@@ -68,8 +71,42 @@ function Entree({
   );
 }
 
+/** Groupe pas encore lu (lignes squelettes) ou en erreur (avec « Réessayer ») ; rien une fois lu. */
+function EtatGroupe({
+  chargement,
+  erreur,
+  titre,
+  onReessayer,
+  enCours,
+}: {
+  chargement: boolean;
+  erreur: unknown;
+  titre: string;
+  onReessayer: () => void;
+  enCours: boolean;
+}) {
+  if (erreur != null)
+    return (
+      <ErreurChargement
+        variante="ligne"
+        className="mx-1 my-1"
+        erreur={erreur}
+        titre={titre}
+        onReessayer={onReessayer}
+        enCours={enCours}
+      />
+    );
+  if (!chargement) return null;
+  return (
+    <EnChargement libelle={`${titre.replace(/ non chargé.*$/, '')} : chargement…`} className="grid gap-2 px-3 py-2">
+      <Squelette className="h-4 w-3/5" />
+      <Squelette className="h-4 w-2/5" />
+    </EnChargement>
+  );
+}
+
 const GROUPE =
-  'px-1 py-1 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-subtle [&_[cmdk-group-heading]]:uppercase';
+  'px-1 py-1 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-2xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-subtle [&_[cmdk-group-heading]]:uppercase';
 
 /**
  * Palette de commandes Ctrl+K : MEP, onglets, paramètres, thème. Dès qu'on tape (#59) : rechercher le texte dans la liste
@@ -80,28 +117,22 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
   const { pathname } = useLocation();
   const { definir, sombre } = useTheme();
   const { utilisateur } = useAuth();
-  const [meps, setMeps] = useState<MepResume[]>([]);
-  const [systemes, setSystemes] = useState<SystemeCatalogue[]>([]);
-  const [personnes, setPersonnes] = useState<{ id: string; nom: string; detail: string }[]>([]);
+  // Relues à chaque ouverture ; tant qu'un groupe n'est pas là, des lignes squelettes ; en erreur, le groupe le dit
+  // (les autres restent utilisables).
+  const mepsLues = useAsync(() => (open ? api.meps() : Promise.resolve(null)), [open]);
+  const catalogue = useReferentiel('catalogue', open);
+  const comptes = useReferentiel('comptes', open);
+  const meps = mepsLues.donnees ?? [];
+  const systemes = useMemo(() => (catalogue.donnees ?? []).filter((x) => x.actif), [catalogue.donnees]);
+  const personnes = useMemo(() => personnesDeRecherche(comptes.donnees ?? []), [comptes.donnees]);
   const [saisie, setSaisie] = useState('');
 
   useEffect(() => {
-    if (!open) return;
-    setSaisie('');
-    api
-      .meps()
-      .then(setMeps)
-      .catch(() => setMeps([]));
-    api
-      .catalogueSystemes()
-      .then((s) => setSystemes(s.filter((x) => x.actif)))
-      .catch(() => setSystemes([]));
-    api
-      .utilisateurs()
-      .then((c) => setPersonnes(personnesDeRecherche(c)))
-      .catch(() => setPersonnes([]));
+    if (open) setSaisie('');
   }, [open]);
   const q = saisie.trim();
+  const mepsAttendues = mepsLues.chargement || mepsLues.donnees === null;
+  const toutLu = !mepsAttendues && !!catalogue.donnees && !!comptes.donnees;
 
   const mepCourante = /^\/meps\/([^/]+)/.exec(pathname)?.[1];
   const aller = (chemin: string) => {
@@ -112,9 +143,9 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
+        <D.Overlay className="fixed inset-0 z-dialogue bg-voile backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
         <D.Content
-          className="fixed top-[14vh] left-1/2 z-[90] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-line bg-surface shadow-lg outline-none data-[state=open]:animate-fade-in"
+          className="fixed top-[14vh] left-1/2 z-dialogue w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-line bg-surface shadow-lg outline-none data-[state=open]:animate-fade-in"
           aria-describedby={undefined}
         >
           <D.Title className="sr-only">Palette de commandes</D.Title>
@@ -124,10 +155,13 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
               value={saisie}
               onValueChange={setSaisie}
               placeholder="Aller à une MEP, un système, une personne, un réglage…"
-              className="h-12 w-full border-b border-line bg-transparent px-4 text-[15px] text-fg outline-none placeholder:text-fg-subtle"
+              className="h-12 w-full border-b border-line bg-transparent px-4 text-md text-fg outline-none placeholder:text-fg-subtle"
             />
             <Command.List className="max-h-[50vh] overflow-y-auto p-1.5">
-              <Command.Empty className="px-4 py-8 text-center text-sm text-fg-subtle">Aucun résultat.</Command.Empty>
+              {/* « Aucun résultat » seulement une fois toutes les listes lues. */}
+              {toutLu && (
+                <Command.Empty className="px-4 py-8 text-center text-sm text-fg-subtle">Aucun résultat.</Command.Empty>
+              )}
               {q && (
                 <Command.Group heading="Recherche" className={GROUPE}>
                   {/* Les mots reprennent la saisie : l'entrée reste toujours proposée, en tête. */}
@@ -187,7 +221,18 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                   </Entree>
                 </Command.Group>
               )}
-              <Command.Group heading="Mises en production" className={GROUPE}>
+              <Command.Group
+                heading="Mises en production"
+                className={GROUPE}
+                forceMount={mepsLues.echec !== null || mepsAttendues}
+              >
+                <EtatGroupe
+                  chargement={mepsAttendues && mepsLues.echec === null}
+                  erreur={mepsLues.echec}
+                  titre="MEP non chargées"
+                  onReessayer={mepsLues.recharger}
+                  enCours={mepsLues.chargement}
+                />
                 <Entree
                   icone={<Rocket className="size-4" />}
                   mots={['liste', 'toutes les mep', 'accueil']}
@@ -208,6 +253,17 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                   </Entree>
                 ))}
               </Command.Group>
+              {q && !catalogue.donnees && (
+                <Command.Group heading="Systèmes" className={GROUPE} forceMount>
+                  <EtatGroupe
+                    chargement={catalogue.erreur == null}
+                    erreur={catalogue.erreur}
+                    titre="Systèmes non chargés"
+                    onReessayer={catalogue.recharger}
+                    enCours={catalogue.enCours}
+                  />
+                </Command.Group>
+              )}
               {q && systemes.length > 0 && (
                 <Command.Group heading="Systèmes" className={GROUPE}>
                   {systemes.map((s) => (
@@ -221,6 +277,17 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                       {s.nom}
                     </Entree>
                   ))}
+                </Command.Group>
+              )}
+              {q && !comptes.donnees && (
+                <Command.Group heading="Personnes" className={GROUPE} forceMount>
+                  <EtatGroupe
+                    chargement={comptes.erreur == null}
+                    erreur={comptes.erreur}
+                    titre="Personnes non chargées"
+                    onReessayer={comptes.recharger}
+                    enCours={comptes.enCours}
+                  />
                 </Command.Group>
               )}
               {q && personnes.length > 0 && (

@@ -24,6 +24,12 @@ export interface ListeMepsLue {
   /** false tant que la liste affichée est celle de filtres précédents (la nouvelle arrive). */
   aJour: boolean;
   erreur: string;
+  /** Erreur reçue telle quelle (null sans erreur), pour `ErreurChargement`. */
+  echec: unknown;
+  /** Première page des filtres en cours de lecture (premier chargement, nouveaux filtres ou « Réessayer »). */
+  chargement: boolean;
+  /** Relit la première page des filtres en cours (« Réessayer »). */
+  recharger: () => void;
   chargementSuite: boolean;
   afficherPlus: () => void;
 }
@@ -43,8 +49,12 @@ export function useListeMeps(f: FiltreMeps, modele: boolean): ListeMepsLue {
   const cle = parametres.toString();
 
   const [liste, setListe] = useState<ListeMeps | null>(null);
-  const [erreur, setErreur] = useState<{ cle: string; message: string } | null>(null);
+  const [erreur, setErreur] = useState<{ cle: string; echec: unknown } | null>(null);
   const [chargementSuite, setChargementSuite] = useState(false);
+  // « Réessayer » : un nouvel essai relit la première page ; `essaiRecu` est le dernier essai qui a répondu (ou échoué).
+  const [essai, setEssai] = useState(0);
+  const demande = `${essai}\n${cle}`;
+  const [essaiRecu, setEssaiRecu] = useState<string | null>(null);
   const listeRef = useRef<ListeMeps | null>(null);
   const cleRef = useRef(cle);
 
@@ -66,14 +76,17 @@ export function useListeMeps(f: FiltreMeps, modele: boolean): ListeMepsLue {
         listeRef.current = l;
         setListe(l);
         setErreur(null);
+        setEssaiRecu(`${essai}\n${cle}`);
       })
       .catch((e: unknown) => {
-        if (!annule) setErreur({ cle, message: e instanceof Error ? e.message : 'Chargement impossible.' });
+        if (annule) return;
+        setErreur({ cle, echec: e ?? new Error('Chargement impossible.') });
+        setEssaiRecu(`${essai}\n${cle}`);
       });
     return () => {
       annule = true;
     };
-  }, [cle]);
+  }, [cle, essai]);
 
   const afficherPlus = useCallback(() => {
     const l = listeRef.current;
@@ -95,16 +108,19 @@ export function useListeMeps(f: FiltreMeps, modele: boolean): ListeMepsLue {
         setListe(suite);
       })
       .catch((e: unknown) => {
-        if (listeRef.current === l)
-          setErreur({ cle: l.cle, message: e instanceof Error ? e.message : 'Chargement impossible.' });
+        if (listeRef.current === l) setErreur({ cle: l.cle, echec: e ?? new Error('Chargement impossible.') });
       })
       .finally(() => setChargementSuite(false));
   }, [chargementSuite]);
 
+  const echec = erreur?.cle === cle ? erreur.echec : null;
   return {
     liste,
     aJour: liste?.cle === cle,
-    erreur: erreur?.cle === cle ? erreur.message : '',
+    erreur: echec === null ? '' : echec instanceof Error ? echec.message : 'Chargement impossible.',
+    echec,
+    chargement: essaiRecu !== demande,
+    recharger: () => setEssai((n) => n + 1),
     chargementSuite,
     afficherPlus,
   };

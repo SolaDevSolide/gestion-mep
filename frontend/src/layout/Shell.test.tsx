@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthContext } from '../auth';
 import { ThemeProvider } from '../theme';
 import { TooltipProvider } from '../ui/Tooltip';
-import { utilisateur } from '../test/fabrique';
+import { SESSION_ACTIVE, utilisateur } from '../test/fabrique';
 import type { Utilisateur } from '../types';
 import { Shell } from './Shell';
 
@@ -39,7 +39,14 @@ beforeEach(() => {
 function rendre(u: Utilisateur) {
   render(
     <AuthContext.Provider
-      value={{ utilisateur: u, chargement: false, connecter: vi.fn(), deconnecter: vi.fn(), majUtilisateur: vi.fn() }}
+      value={{
+        utilisateur: u,
+        chargement: false,
+        connecter: vi.fn(),
+        deconnecter: vi.fn(),
+        majUtilisateur: vi.fn(),
+        ...SESSION_ACTIVE,
+      }}
     >
       <ThemeProvider>
         <TooltipProvider>

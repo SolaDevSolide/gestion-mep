@@ -1,15 +1,23 @@
 import { act, renderHook } from '@testing-library/react';
 import type { ModeleGraphe } from './modeleGraphe';
+import type * as ModuleMoteur from './moteurElk';
+import { RangementIndisponible } from './moteurElk';
 import type { Rangement, Taille } from './rangement';
 import { SECOURS_MESURES_MS, useRangement } from './useRangement';
 
 const appels: ModeleGraphe[] = [];
+// Rangements qui échoueront (dans l'ordre des appels), avec leur cause.
+const echecs: RangementIndisponible[] = [];
 vi.mock('./rangementBordure', () => ({
   rangerBordure: (modele: ModeleGraphe) => {
     appels.push(modele);
+    const echec = echecs.shift();
+    if (echec) return Promise.reject(echec);
     return Promise.resolve<Rangement>({ places: new Map(), cercles: new Map(), routes: new Map() });
   },
 }));
+const { oublierMoteur } = vi.hoisted(() => ({ oublierMoteur: vi.fn() }));
+vi.mock('./moteurElk', async (original) => ({ ...(await original<typeof ModuleMoteur>()), oublierMoteur }));
 
 const replie: ModeleGraphe = {
   noeuds: [
@@ -91,5 +99,41 @@ describe('useRangement : repli et dépli rangés une fois les nouveaux nœuds me
     });
     await vider();
     expect(result.current.range?.modele).toBe(deplie);
+  });
+});
+
+describe('useRangement : échec du rangement', () => {
+  beforeEach(() => {
+    appels.length = 0;
+    echecs.length = 0;
+    oublierMoteur.mockClear();
+  });
+
+  it('un échec se voit (cause), « Réessayer » repart d’un moteur neuf et un rangement réussi l’efface', async () => {
+    echecs.push(new RangementIndisponible('delai'));
+    const { result } = renderHook(() => useRangement(replie, mesurees, false, 0, false));
+    await vider();
+    expect(result.current.range).toBeNull();
+    expect(result.current.indisponible).toBe('delai');
+
+    act(() => result.current.reessayer());
+    await vider();
+    expect(oublierMoteur).toHaveBeenCalledTimes(1);
+    expect(appels).toHaveLength(2);
+    expect(result.current.range?.modele).toBe(replie);
+    expect(result.current.indisponible).toBeNull();
+  });
+
+  it('une autre erreur compte comme un échec de calcul ; le rangement affiché reste', async () => {
+    const { result, rerender } = renderHook(({ modele }) => useRangement(modele, mesurees, false, 0, false), {
+      initialProps: { modele: replie },
+    });
+    await vider();
+    expect(result.current.range?.modele).toBe(replie);
+    echecs.push(new Error('inattendue') as RangementIndisponible);
+    rerender({ modele: deplie });
+    await vider();
+    expect(result.current.indisponible).toBe('calcul');
+    expect(result.current.range?.modele).toBe(replie);
   });
 });

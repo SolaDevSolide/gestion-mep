@@ -97,7 +97,7 @@ export function LienGraphe(props: EdgeProps) {
       {vise && (
         <EdgeLabelRenderer>
           <span
-            className="pointer-events-none absolute z-20 rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-accent-fg shadow"
+            className="pointer-events-none absolute z-20 rounded-full bg-accent px-2 py-0.5 text-2xs font-semibold whitespace-nowrap text-accent-fg shadow"
             style={{ transform: `translate(${x}px, ${y}px) translate(-50%, -50%)`, left: 0, top: 0 }}
           >
             Insérer ici

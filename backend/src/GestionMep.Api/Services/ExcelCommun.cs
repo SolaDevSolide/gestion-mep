@@ -43,7 +43,7 @@ public static class ExcelCommun
     public static readonly IReadOnlyDictionary<string, Ton> TonsPhase = new Dictionary<string, Ton>
     {
         ["Préparation"] = Ton.Attente, ["Exécution"] = Ton.EnCours, ["Recette"] = Ton.EnCours, ["Retour arrière"] = Ton.Echec,
-        ["Clôturée : réussie"] = Ton.Succes, ["Clôturée : réussie avec incidents"] = Ton.Attention, ["Clôturée : repliée"] = Ton.Attention,
+        ["Clôturée : réussie"] = Ton.Succes, ["Clôturée : réussie avec incidents"] = Ton.Attention, ["Clôturée après retour arrière"] = Ton.Attention,
         ["Clôturée : échec"] = Ton.Echec, ["Annulée"] = Ton.Neutre, ["Reportée"] = Ton.Attente, ["Modèle"] = Ton.Neutre,
     };
 
@@ -51,7 +51,7 @@ public static class ExcelCommun
     public static readonly IReadOnlyDictionary<string, Ton> TonsEtatMep = new Dictionary<string, Ton>
     {
         ["Préparation"] = Ton.Attente, ["Exécution"] = Ton.EnCours, ["Recette"] = Ton.EnCours, ["Retour arrière"] = Ton.Echec,
-        ["Réussie"] = Ton.Succes, ["Réussie avec incidents"] = Ton.Attention, ["Repliée"] = Ton.Attention,
+        ["Réussie"] = Ton.Succes, ["Réussie avec incidents"] = Ton.Attention, ["Après retour arrière"] = Ton.Attention,
         ["Reportée"] = Ton.Attente, ["Échec (service dégradé)"] = Ton.Echec, ["Annulée"] = Ton.Neutre,
     };
 
@@ -62,12 +62,12 @@ public static class ExcelCommun
 
     public static readonly IReadOnlyDictionary<string, Ton> TonsResultat = new Dictionary<string, Ton>
     {
-        ["Conforme"] = Ton.Succes, ["Échec"] = Ton.Echec, ["Non fait"] = Ton.Attente,
+        ["Conforme"] = Ton.Succes, ["Non conforme"] = Ton.Echec, ["Non fait"] = Ton.Attente,
     };
 
     public static readonly IReadOnlyDictionary<string, Ton> TonsValidation = new Dictionary<string, Ton>
     {
-        [Regles.LibelleValide] = Ton.Succes, [Regles.LibelleRefuse] = Ton.Echec,
+        [Regles.LibelleConforme] = Ton.Succes, [Regles.LibelleNonConforme] = Ton.Echec,
     };
 
     public static readonly IReadOnlyDictionary<string, Ton> TonsFait = new Dictionary<string, Ton> { ["Oui"] = Ton.Succes, ["Non"] = Ton.Attention };

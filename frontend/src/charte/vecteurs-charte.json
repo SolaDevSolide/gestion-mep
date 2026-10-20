@@ -539,6 +539,8 @@
           "ok-fg": "#031209",
           "ok-bd": "#8ac09e",
           "ok-solid": "#15803d",
+          "ok-solid-fg": "#ffffff",
+          "ok-text": "#127437",
           "run-bg": "#d7e7f0",
           "run-fg": "#011724",
           "run-bd": "#81b4d0",
@@ -578,13 +580,16 @@
           "ok-fg": "#36de75",
           "ok-bd": "#144f2c",
           "ok-solid": "#199647",
+          "ok-text": "#1ca24d",
           "run-bg": "#0f2636",
           "run-fg": "#41bafb",
           "run-bd": "#0a4263",
           "run-solid": "#0379ba",
+          "run-solid-fg": "#ffffff",
           "done-bg": "#0c4b24",
           "done-bd": "#083117",
           "done-solid": "#0c4b24",
+          "done-solid-fg": "#ffffff",
           "tertiaire": "#e879f9",
           "tertiaire-hover": "#ed96fa",
           "tertiaire-text": "#f7d1fd",
@@ -702,6 +707,38 @@
           "rapport": 5.933639,
           "minimum": 3,
           "reussi": true
+        },
+        {
+          "id": "plein-succes-clair",
+          "type": "contraste",
+          "role": "succes",
+          "rapport": 5.015597,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "plein-succes-sombre",
+          "type": "contraste",
+          "role": "succes",
+          "rapport": 4.721503,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "plein-info-clair",
+          "type": "contraste",
+          "role": "info",
+          "rapport": 5.933639,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "plein-info-sombre",
+          "type": "contraste",
+          "role": "info",
+          "rapport": 4.721377,
+          "minimum": 4.5,
+          "reussi": true
         }
       ],
       "excel": {
@@ -761,6 +798,7 @@
           "warn-fg": "#695404",
           "warn-bd": "#fef3c5",
           "warn-solid": "#fde68a",
+          "warn-text": "#8b7002",
           "rollback-bg": "#a31919",
           "rollback-solid": "#a31919",
           "tertiaire": "#facc15",
@@ -784,7 +822,10 @@
           "connexion-halo-1": "#facc15",
           "connexion-halo-2": "#facc15",
           "connexion-texte": "#16161a",
-          "connexion-discret": "#16161a"
+          "connexion-discret": "#16161a",
+          "connexion-ok": "#199665",
+          "connexion-attention": "#a67f03",
+          "connexion-alerte": "#fd2c4f"
         },
         "sombre": {
           "bg": "#0f0e0c",
@@ -802,12 +843,15 @@
           "danger-fg": "#f18e8e",
           "danger-bd": "#6e181a",
           "danger-solid": "#cf1f1f",
+          "danger-solid-fg": "#ffffff",
           "warn-bg": "#464131",
           "warn-fg": "#ffffff",
           "warn-bd": "#938757",
           "warn-solid": "#fdeba3",
+          "warn-text": "#fdeba3",
           "rollback-bg": "#a31919",
           "rollback-solid": "#a31919",
+          "rollback-solid-fg": "#ffffff",
           "tertiaire": "#fbd333",
           "tertiaire-hover": "#fcd951",
           "tertiaire-text": "#fde68d",
@@ -956,6 +1000,38 @@
           "rapport": 6.470045,
           "minimum": 3,
           "reussi": true
+        },
+        {
+          "id": "plein-avertissement-clair",
+          "type": "contraste",
+          "role": "avertissement",
+          "rapport": 14.489026,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "plein-avertissement-sombre",
+          "type": "contraste",
+          "role": "avertissement",
+          "rapport": 15.11326,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "plein-erreur-clair",
+          "type": "contraste",
+          "role": "erreur",
+          "rapport": 6.470045,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "plein-erreur-sombre",
+          "type": "contraste",
+          "role": "erreur",
+          "rapport": 5.427956,
+          "minimum": 4.5,
+          "reussi": true
         }
       ],
       "excel": {
@@ -1017,7 +1093,10 @@
           "connexion-halo-1": "#1e1e2e",
           "connexion-halo-2": "#1e1e2e",
           "connexion-texte": "#16161a",
-          "connexion-discret": "#16161a"
+          "connexion-discret": "#16161a",
+          "connexion-ok": "#9bf2cd",
+          "connexion-attention": "#fcdf89",
+          "connexion-alerte": "#fddbde"
         },
         "sombre": {
           "accent": "#8b8bff",
@@ -1161,6 +1240,165 @@
         "echec": ["#fee2e2", "#7f1d1d"],
         "enCours": ["#dbeafe", "#1e3a8a"],
         "attention": ["#fef3c7", "#78350f"]
+      }
+    },
+    {
+      "nom": "avertissement orange moyen (ni blanc ni encre lisibles sur la pastille)",
+      "charte": {
+        "version": 1,
+        "couleurs": {
+          "primaire": "#4F46E5"
+        },
+        "etats": {
+          "avertissement": "#B5651D"
+        }
+      },
+      "couleursSombre": {
+        "primaire": "#5b54f0",
+        "secondaire": "#0d0e1a",
+        "tertiaire": "#5b54f0"
+      },
+      "ecarts": {
+        "clair": {
+          "warn-bg": "#f3e6db",
+          "warn-fg": "#47280b",
+          "warn-bd": "#dab28e",
+          "warn-solid": "#b5651d",
+          "warn-solid-fg": "#ffffff",
+          "warn-text": "#995616"
+        },
+        "sombre": {
+          "warn-bg": "#362519",
+          "warn-fg": "#e8a86e",
+          "warn-bd": "#6c401b",
+          "warn-solid": "#cb7121",
+          "warn-text": "#d77724"
+        }
+      },
+      "controles": [
+        {
+          "id": "bouton-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 6.287529,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 7.903111,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 5.825346,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 6.681543,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-clair",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 6.287529,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "bouton-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 5.288057,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "lien-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 8.403329,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "focus-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 3.698569,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "etiquette-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 7.285325,
+          "minimum": 4.5,
+          "reussi": true
+        },
+        {
+          "id": "cadre-sombre",
+          "type": "contraste",
+          "role": "primaire",
+          "rapport": 3.507958,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "etat-avertissement-clair",
+          "type": "contraste",
+          "role": "avertissement",
+          "rapport": 4.335291,
+          "minimum": 3,
+          "reussi": true
+        },
+        {
+          "id": "plein-avertissement-clair",
+          "type": "contraste",
+          "role": "avertissement",
+          "rapport": 4.335291,
+          "minimum": 4.5,
+          "reussi": false,
+          "correction": {
+            "cible": "avertissement",
+            "couleur": "#ad611b"
+          }
+        },
+        {
+          "id": "plein-avertissement-sombre",
+          "type": "contraste",
+          "role": "avertissement",
+          "rapport": 5.089656,
+          "minimum": 4.5,
+          "reussi": true
+        }
+      ],
+      "excel": {
+        "primaire": "#4f46e5",
+        "secondaire": "#4338ca",
+        "tertiaire": "#eceafd",
+        "fondEnTete": "#4f46e5",
+        "texteEnTete": "#ffffff",
+        "texteTitre": "#4338ca",
+        "texteLien": "#4f46e5",
+        "fondSection": "#eceafd",
+        "texteSection": "#4338ca",
+        "succes": ["#dcfce7", "#14532d"],
+        "echec": ["#fee2e2", "#7f1d1d"],
+        "enCours": ["#dbeafe", "#1e3a8a"],
+        "attention": ["#f3e6db", "#47280b"]
       }
     }
   ],

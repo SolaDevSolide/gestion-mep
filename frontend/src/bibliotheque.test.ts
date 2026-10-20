@@ -71,15 +71,17 @@ describe('Bibliothèques : recherche, tri et filtres', () => {
     expect(ids(filtrerEtapesModeles(liste, nom, vide, { systemeId: 'c-bdd' }))).toEqual(['3', '2', '1']);
     expect(ids(filtrerEtapesModeles(liste, nom, vide, { type: 'Sauvegarde' }))).toEqual(['1']);
     expect(ids(filtrerEtapesModeles(liste, nom, vide, { parmi: ['c-api', 'c-web'] }))).toEqual(['3', '4']);
-    // « sauvegarde » trouvé par le nom ou par le type ; « normale » par le type.
+    // « sauvegarde » trouvé par le nom ou par le type ; « standard » par le type.
     const a = analyserRecherche('BDD sauvegarde', Object.values(noms));
     expect(ids(filtrerEtapesModeles(liste, nom, a))).toEqual(['1']);
-    expect(ids(filtrerEtapesModeles(liste, nom, analyserRecherche('api normale', Object.values(noms))))).toEqual(['3']);
+    expect(ids(filtrerEtapesModeles(liste, nom, analyserRecherche('api standard', Object.values(noms))))).toEqual([
+      '3',
+    ]);
   });
 
   it('résume la répartition par type et accorde les nombres', () => {
     expect(repartitionTypes([modele({}), modele({}), modele({ type: 'Sauvegarde' })])).toBe(
-      '2 normales · 1 sauvegarde',
+      '2 standard · 1 sauvegarde',
     );
     expect(repartitionTypes([])).toBe('Aucune étape modèle');
     expect(nombre(0, ['étape', 'étapes'])).toBe('0 étape');

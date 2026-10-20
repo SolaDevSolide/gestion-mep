@@ -214,6 +214,20 @@ const GRIS_FIXES: Record<'purs' | 'chauds', Record<Mode, Record<string, string>>
 
 const GRIS_TEINTES = ['bg', 'surface-2', 'sunken', 'line', 'line-strong'];
 
+/** Familles qui ont une couleur pleine, et donc un texte posé dessus (`-solid-fg`). */
+const FAMILLES_PLEINES = ['ok', 'run', 'wait', 'done', 'danger', 'warn', 'later', 'rollback'];
+/** Familles dont la couleur sert aussi de texte (`-text`). */
+const FAMILLES_TEXTE = new Set(['ok', 'warn']);
+/**
+ * Icônes de la page de connexion (Tailwind emerald, amber et rose 300) : changées seulement si elles n'atteignent pas 3:1
+ * sur une secondaire personnalisée.
+ */
+const ICONES_CONNEXION: Record<string, string> = {
+  'connexion-ok': '#6ee7b7',
+  'connexion-attention': '#fcd34d',
+  'connexion-alerte': '#fda4af',
+};
+
 /** Pastille d'état personnalisée : fond pâle, bordure, couleur pleine et texte. */
 function etat(base: string, mode: Mode): Record<string, string> {
   if (mode === 'clair') {
@@ -283,6 +297,15 @@ export function jetons(c: Charte, mode: Mode): Record<string, string> {
       Object.assign(t, { 'rollback-bg': fonce, 'rollback-solid': fonce });
     }
   }
+  // Texte posé sur les couleurs pleines ; vert et orange employés comme texte (couleurs d'état personnalisées).
+  for (const f of FAMILLES_PLEINES) t[`${f}-solid-fg`] = texteSur(t[`${f}-solid`]);
+  for (const e of ETATS)
+    if (c.etats[e.etat] && FAMILLES_TEXTE.has(e.famille))
+      t[`${e.famille}-text`] = ajusterPourContraste(
+        ajusterPourContraste(t[`${e.famille}-solid`], t[`${e.famille}-bg`], 4.5),
+        t.surface,
+        4.5,
+      );
   // Page de connexion : panneau en secondaire, logo et halos aux couleurs de la charte.
   if (p !== primaireDefaut(mode)) {
     t['connexion-logo'] = p;
@@ -293,6 +316,10 @@ export function jetons(c: Charte, mode: Mode): Record<string, string> {
   if (s !== CHARTE_DEFAUT.couleurs.secondaire) {
     t['connexion-texte'] = t['secondaire-fg'];
     t['connexion-discret'] = t['secondaire-fg'];
+    for (const [k, v] of Object.entries(ICONES_CONNEXION)) {
+      const icone = ajusterPourContraste(v, s, 3);
+      if (icone !== v) t[k] = icone;
+    }
   }
   return t;
 }
@@ -409,6 +436,32 @@ export function controles(c: Charte): Controle[] {
     };
     if (rapport < 3) r.correction = { cible: e.etat, couleur: ajusterPourContraste(base, BLANC, 3) };
     res.push(r);
+  }
+  // Couleurs d'état personnalisées : le texte des pastilles et boutons pleins (blanc ou encre) doit se lire.
+  for (const e of ETATS) {
+    const base = c.etats[e.etat];
+    if (!base) continue;
+    for (const mode of ['clair', 'sombre'] as Mode[]) {
+      const t = jetons(c, mode);
+      const avant = t[`${e.famille}-solid-fg`];
+      const arriere = t[`${e.famille}-solid`];
+      const rapport = contraste(avant, arriere);
+      const r: Controle = {
+        id: `plein-${e.etat}-${mode}`,
+        libelle: `Texte sur la couleur « ${e.libelle} » pleine`,
+        mode,
+        type: 'contraste',
+        role: e.etat,
+        avant,
+        arriere,
+        rapport,
+        minimum: 4.5,
+      };
+      // La couleur pleine du thème sombre est calculée : seule celle du thème clair se corrige directement.
+      if (rapport < 4.5 && mode === 'clair')
+        r.correction = { cible: e.etat, couleur: ajusterPourContraste(base, avant, 4.5) };
+      res.push(r);
+    }
   }
   // Une couleur de marque trop proche d'une couleur d'état : un bouton se lirait comme un état de la MEP.
   for (const role of ['primaire', 'tertiaire'] as Role[]) {

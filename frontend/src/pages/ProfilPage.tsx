@@ -4,8 +4,12 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useAsync, useDraft, useReportDirty } from '../hooks';
-import type { Expertise, SystemeCatalogue } from '../types';
+import { useReferentiel } from '../referentiels';
+import type { Expertise } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { Apparition } from '../ui/Apparition';
+import { ErreurChargement } from '../ui/ErreurChargement';
+import { Squelette, SqueletteFormulaire } from '../ui/Squelette';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { ConfirmDialog } from '../ui/Dialog';
@@ -34,7 +38,8 @@ interface Brouillon {
 export default function ProfilPage() {
   const { utilisateur, majUtilisateur } = useAuth();
   const toast = useToast();
-  const { donnees: catalogue, erreur } = useAsync<SystemeCatalogue[]>(() => api.catalogueSystemes(), []);
+  const catalogueLu = useReferentiel('catalogue');
+  const catalogue = catalogueLu.donnees;
   const source: Brouillon = {
     nomAffiche: utilisateur?.nomAffiche ?? '',
     role: utilisateur?.role ?? '',
@@ -42,7 +47,7 @@ export default function ProfilPage() {
     expertises: utilisateur?.expertises ?? [],
   };
   const d = useDraft(source);
-  useReportDirty(d.dirty, 'Mon profil');
+  useReportDirty(d.dirty, 'Mon profil', d);
   const v = d.value;
   const [envoi, setEnvoi] = useState(false);
   const [erreurSauvegarde, setErreurSauvegarde] = useState('');
@@ -57,8 +62,11 @@ export default function ProfilPage() {
       setParams(suite, { replace: true });
     }
   }, [params, setParams]);
-  // Si l'état de la connexion unique ne se charge pas, la carte reste simplement masquée.
+  // Si l'état de la connexion unique ne se charge pas, la carte reste simplement masquée (la liaison est facultative).
   const sso = useAsync(() => api.ssoEtat(), []);
+  // La page (carte de la connexion unique comprise) apparaît d'un bloc une fois le catalogue et l'état SSO lus.
+  const [revele, setRevele] = useState(false);
+  if (!revele && catalogueLu.pret && (sso.donnees !== null || sso.echec !== null)) setRevele(true);
   const etatSso = sso.donnees;
   const [liaison, setLiaison] = useState(false);
   const [delier, setDelier] = useState(false);
@@ -87,9 +95,10 @@ export default function ProfilPage() {
   }
 
   const systemes = catalogue ?? [];
-  // Catalogue pas encore arrivé : pas de « Système inconnu » provisoire.
+  // Catalogue non chargé : pas de « Système inconnu » trompeur.
   const nomSysteme = (id: string) =>
-    systemes.find((s) => s.id === id)?.nom ?? (catalogue === null ? 'Chargement…' : 'Système inconnu');
+    systemes.find((s) => s.id === id)?.nom ??
+    (catalogue === null ? 'Système (catalogue non chargé)' : 'Système inconnu');
   const libres = systemes.filter((s) => s.actif && !v.expertises.some((e) => e.systemeCatalogueId === s.id));
   const incomplet = !v.nomAffiche.trim() || v.expertises.some((e) => !e.systemeCatalogueId);
 
@@ -123,176 +132,211 @@ export default function ProfilPage() {
         Pré-remplit votre fiche dans les MEP et vous suggère comme responsable technique.
       </p>
 
-      {(erreur || erreurSauvegarde) && (
-        <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">
-          {erreurSauvegarde || erreur}
-        </Alerte>
-      )}
+      <Apparition pret={revele} libelle="Chargement du profil…" squelette={<SqueletteProfil />}>
+        {erreurSauvegarde && (
+          <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">
+            {erreurSauvegarde}
+          </Alerte>
+        )}
 
-      {codeSso === 'lie' && (
-        <Alerte ton="ok" icone={CircleCheck} className="mt-6">
-          Compte Microsoft lié.
-        </Alerte>
-      )}
-      {codeSso && codeSso !== 'lie' && (
-        <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">
-          {RETOURS_SSO[codeSso] ?? 'La liaison a échoué. Réessayez ou contactez un administrateur.'}
-        </Alerte>
-      )}
+        {codeSso === 'lie' && (
+          <Alerte ton="ok" icone={CircleCheck} className="mt-6">
+            Compte Microsoft lié.
+          </Alerte>
+        )}
+        {codeSso && codeSso !== 'lie' && (
+          <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">
+            {RETOURS_SSO[codeSso] ?? 'La liaison a échoué. Réessayez ou contactez un administrateur.'}
+          </Alerte>
+        )}
 
-      <Card className="mt-6">
-        <CardHeader titre="Identité" description={`Compte : ${utilisateur?.login ?? ''}`} />
-        <div className="grid gap-4 px-5 py-5 md:grid-cols-2">
-          <Field label="Nom affiché *" className="md:col-span-2">
-            {(id) => <Input id={id} value={v.nomAffiche} onChange={(e) => d.update({ nomAffiche: e.target.value })} />}
-          </Field>
-          <Field label="Rôle" hint="ex. Développeur API, DBA, Pilote.">
-            {(id) => <Input id={id} value={v.role} onChange={(e) => d.update({ role: e.target.value })} />}
-          </Field>
-          <Field label="Contact" hint="e-mail ou téléphone.">
-            {(id) => <Input id={id} value={v.contact} onChange={(e) => d.update({ contact: e.target.value })} />}
-          </Field>
-        </div>
-      </Card>
+        <Card className="mt-6">
+          <CardHeader titre="Identité" description={`Compte : ${utilisateur?.login ?? ''}`} />
+          <div className="grid gap-4 px-5 py-5 md:grid-cols-2">
+            <Field label="Nom affiché *" className="md:col-span-2">
+              {(id) => (
+                <Input id={id} value={v.nomAffiche} onChange={(e) => d.update({ nomAffiche: e.target.value })} />
+              )}
+            </Field>
+            <Field label="Rôle" hint="ex. Développeur API, DBA, Pilote.">
+              {(id) => <Input id={id} value={v.role} onChange={(e) => d.update({ role: e.target.value })} />}
+            </Field>
+            <Field label="Contact" hint="e-mail ou téléphone.">
+              {(id) => <Input id={id} value={v.contact} onChange={(e) => d.update({ contact: e.target.value })} />}
+            </Field>
+          </div>
+        </Card>
 
-      <Card className="mt-6">
-        <CardHeader
-          titre="Expertises"
-          description="Systèmes que vous connaissez."
-          action={
-            <Button
-              taille="sm"
-              icone={<Plus className="size-4" aria-hidden />}
-              disabled={libres.length === 0}
-              onClick={() =>
-                d.update({ expertises: [...v.expertises, { systemeCatalogueId: libres[0].id, detail: '' }] })
-              }
-            >
-              Ajouter une expertise
-            </Button>
-          }
-        />
-        <div className="px-5 py-5">
-          {v.expertises.length === 0 ? (
-            <EmptyState icone={GraduationCap} titre="Aucune expertise" description="Ajoutez vos systèmes." />
-          ) : (
-            <ul className="space-y-3">
-              {v.expertises.map((e, i) => (
-                <li
-                  key={i}
-                  className="grid gap-3 rounded-lg border border-line p-3 md:grid-cols-[14rem_minmax(0,1fr)_auto] md:items-end"
-                >
-                  <Field label="Système">
-                    {(id) => (
-                      <Select
-                        id={id}
-                        value={e.systemeCatalogueId}
-                        onChange={(ev) => changerExpertise(i, { systemeCatalogueId: ev.target.value })}
-                      >
-                        <option value={e.systemeCatalogueId}>{nomSysteme(e.systemeCatalogueId)}</option>
-                        {libres.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.nom}
-                          </option>
-                        ))}
-                      </Select>
-                    )}
-                  </Field>
-                  <Field label="Détail">
-                    {(id) => (
-                      <Input
-                        id={id}
-                        value={e.detail}
-                        placeholder="ex. Expert de la zone facturation"
-                        onChange={(ev) => changerExpertise(i, { detail: ev.target.value })}
-                      />
-                    )}
-                  </Field>
-                  <BoutonIcone
-                    label={`Supprimer l’expertise ${nomSysteme(e.systemeCatalogueId)}`}
-                    onClick={() => d.update({ expertises: v.expertises.filter((_, k) => k !== i) })}
-                  >
-                    <Trash2 className="size-4" aria-hidden />
-                  </BoutonIcone>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-3 border-t border-line bg-surface-2/50 px-5 py-3">
-          <Button
-            variante="primaire"
-            icone={<Save className="size-4" aria-hidden />}
-            disabled={!d.dirty || incomplet}
-            chargement={envoi}
-            onClick={() => void enregistrer()}
-          >
-            Enregistrer
-          </Button>
-          {d.dirty && (
-            <Button variante="fantome" onClick={d.reset}>
-              Annuler les modifications
-            </Button>
-          )}
-        </div>
-      </Card>
-
-      {etatSso && (etatSso.disponible || etatSso.identifiant !== null) && (
-        <Card className="apparition mt-6">
+        <Card className="mt-6">
           <CardHeader
-            titre="Connexion unique"
-            description={
-              etatSso.identifiant === null
-                ? 'Liez votre compte pour vous connecter sans saisir de mot de passe.'
-                : 'Votre compte est lié : vous pouvez vous connecter sans mot de passe.'
+            titre="Expertises"
+            description="Systèmes que vous connaissez."
+            action={
+              <Button
+                taille="sm"
+                icone={<Plus className="size-4" aria-hidden />}
+                disabled={libres.length === 0 || catalogue === null}
+                onClick={() =>
+                  d.update({ expertises: [...v.expertises, { systemeCatalogueId: libres[0].id, detail: '' }] })
+                }
+              >
+                Ajouter une expertise
+              </Button>
             }
           />
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-5">
-            {etatSso.identifiant === null ? (
-              <>
-                <p className="text-sm text-fg-muted">Vous serez redirigé vers le fournisseur pour vous identifier.</p>
-                <Button
-                  variante="primaire"
-                  icone={<Link2 className="size-4" aria-hidden />}
-                  chargement={liaison}
-                  onClick={() => void lier()}
-                >
-                  Lier mon compte
-                </Button>
-              </>
+          <div className="px-5 py-5">
+            {catalogueLu.erreur != null && (
+              <ErreurChargement
+                variante="ligne"
+                className="mb-3"
+                erreur={catalogueLu.erreur}
+                titre="Catalogue des systèmes non chargé"
+                complement="Les expertises ne peuvent pas être modifiées pour l’instant."
+                onReessayer={catalogueLu.recharger}
+                enCours={catalogueLu.enCours}
+              />
+            )}
+            {v.expertises.length === 0 ? (
+              <EmptyState icone={GraduationCap} titre="Aucune expertise" description="Ajoutez vos systèmes." />
             ) : (
-              <>
-                <p className="min-w-0 text-sm">
-                  Lié à <span className="font-mono font-semibold break-all">{etatSso.identifiant}</span>
-                </p>
-                {etatSso.peutDelier && (
-                  <Button icone={<Link2Off className="size-4" aria-hidden />} onClick={() => setDelier(true)}>
-                    Délier
-                  </Button>
-                )}
-              </>
+              <ul className="space-y-3">
+                {v.expertises.map((e, i) => (
+                  <li
+                    key={i}
+                    className="grid gap-3 rounded-lg border border-line p-3 md:grid-cols-[14rem_minmax(0,1fr)_auto] md:items-end"
+                  >
+                    <Field label="Système">
+                      {(id) => (
+                        <Select
+                          id={id}
+                          disabled={catalogue === null}
+                          value={e.systemeCatalogueId}
+                          onChange={(ev) => changerExpertise(i, { systemeCatalogueId: ev.target.value })}
+                        >
+                          <option value={e.systemeCatalogueId}>{nomSysteme(e.systemeCatalogueId)}</option>
+                          {libres.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.nom}
+                            </option>
+                          ))}
+                        </Select>
+                      )}
+                    </Field>
+                    <Field label="Détail">
+                      {(id) => (
+                        <Input
+                          id={id}
+                          value={e.detail}
+                          placeholder="ex. Expert de la zone facturation"
+                          onChange={(ev) => changerExpertise(i, { detail: ev.target.value })}
+                        />
+                      )}
+                    </Field>
+                    <BoutonIcone
+                      label={`Supprimer l’expertise ${nomSysteme(e.systemeCatalogueId)}`}
+                      onClick={() => d.update({ expertises: v.expertises.filter((_, k) => k !== i) })}
+                    >
+                      <Trash2 className="size-4" aria-hidden />
+                    </BoutonIcone>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 border-t border-line bg-surface-2/50 px-5 py-3">
+            <Button
+              variante="primaire"
+              icone={<Save className="size-4" aria-hidden />}
+              disabled={!d.dirty || incomplet}
+              chargement={envoi}
+              onClick={() => void enregistrer()}
+            >
+              Enregistrer
+            </Button>
+            {d.dirty && (
+              <Button variante="fantome" onClick={d.reset}>
+                Annuler les modifications
+              </Button>
             )}
           </div>
         </Card>
-      )}
-      <ConfirmDialog
-        open={delier}
-        onOpenChange={setDelier}
-        titre="Délier votre compte ?"
-        description="Vous ne pourrez plus vous connecter par la connexion unique ; votre mot de passe reste valable."
-        libelleConfirmer="Délier"
-        onConfirmer={delierMoi}
-      />
 
-      <Card className="mt-6">
-        <CardHeader titre="Mot de passe" description="Choisissez un mot de passe personnel d’au moins 10 caractères." />
-        <div className="max-w-md px-5 py-5">
-          <FormulaireMotDePasse
-            libelleAncien="Mot de passe actuel"
-            onChange={() => toast.succes('Mot de passe modifié.')}
+        {etatSso && (etatSso.disponible || etatSso.identifiant !== null) && (
+          <Card className="apparition mt-6">
+            <CardHeader
+              titre="Connexion unique"
+              description={
+                etatSso.identifiant === null
+                  ? 'Liez votre compte pour vous connecter sans saisir de mot de passe.'
+                  : 'Votre compte est lié : vous pouvez vous connecter sans mot de passe.'
+              }
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-5">
+              {etatSso.identifiant === null ? (
+                <>
+                  <p className="text-sm text-fg-muted">Vous serez redirigé vers le fournisseur pour vous identifier.</p>
+                  <Button
+                    variante="primaire"
+                    icone={<Link2 className="size-4" aria-hidden />}
+                    chargement={liaison}
+                    onClick={() => void lier()}
+                  >
+                    Lier mon compte
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="min-w-0 text-sm">
+                    Lié à <span className="font-mono font-semibold break-all">{etatSso.identifiant}</span>
+                  </p>
+                  {etatSso.peutDelier && (
+                    <Button icone={<Link2Off className="size-4" aria-hidden />} onClick={() => setDelier(true)}>
+                      Délier
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          </Card>
+        )}
+        <ConfirmDialog
+          open={delier}
+          onOpenChange={setDelier}
+          titre="Délier votre compte ?"
+          description="Vous ne pourrez plus vous connecter par la connexion unique ; votre mot de passe reste valable."
+          libelleConfirmer="Délier"
+          onConfirmer={delierMoi}
+        />
+
+        <Card className="mt-6">
+          <CardHeader
+            titre="Mot de passe"
+            description="Choisissez un mot de passe personnel d’au moins 10 caractères."
           />
-        </div>
-      </Card>
+          <div className="max-w-md px-5 py-5">
+            <FormulaireMotDePasse
+              libelleAncien="Mot de passe actuel"
+              onChange={() => toast.succes('Mot de passe modifié.')}
+            />
+          </div>
+        </Card>
+      </Apparition>
     </main>
+  );
+}
+
+/** Silhouette des cartes du profil (identité, expertises), le temps de lire le catalogue et l'état de la connexion. */
+function SqueletteProfil() {
+  return (
+    <div className="mt-6 grid gap-6">
+      <div className="rounded-xl border border-line bg-surface p-5">
+        <Squelette className="h-5 w-32" />
+        <SqueletteFormulaire champs={3} className="mt-5" />
+      </div>
+      <div className="rounded-xl border border-line bg-surface p-5">
+        <Squelette className="h-5 w-32" />
+        <Squelette className="mt-5 h-16 w-full" />
+      </div>
+    </div>
   );
 }

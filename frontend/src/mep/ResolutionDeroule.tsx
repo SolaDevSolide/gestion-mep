@@ -1,7 +1,7 @@
 import { Check, CircleDashed, OctagonAlert, Stethoscope, Wrench, XCircle } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { premiereLigne } from '../blocs';
-import { formatDateHeure, LIBELLE_RESULTAT } from '../format';
+import { formatDateHeure, LIBELLE_VERIFICATION } from '../format';
 import type { ExecutionResolution, ResultatControle } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
@@ -74,7 +74,7 @@ function Controle({ libelle, instruction, attendu, observationObligatoire, peutA
       className="grid gap-3 rounded-xl border-2 border-run-solid bg-surface p-4 shadow-md"
     >
       <p className="flex flex-wrap items-center gap-2 text-base font-semibold">
-        <span className="rounded bg-run-solid px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">
+        <span className="rounded bg-run-solid px-1.5 py-0.5 text-2xs font-bold tracking-wide text-run-solid-fg uppercase">
           À faire maintenant
         </span>
         {libelle}
@@ -82,7 +82,7 @@ function Controle({ libelle, instruction, attendu, observationObligatoire, peutA
       {instruction.trim() && <Instructions source={instruction} vide={null} />}
       {attendu.trim() && (
         <div className="rounded-lg border border-ok-bd bg-ok-bg px-3 py-2 text-sm text-ok-fg">
-          <p className="text-[11px] font-semibold tracking-wide uppercase">Résultat attendu</p>
+          <p className="text-2xs font-semibold tracking-wide uppercase">Résultat attendu</p>
           <p className="whitespace-pre-line">{attendu}</p>
         </div>
       )}
@@ -186,14 +186,14 @@ function Fait({
       )}
       <div className="min-w-0 flex-1 text-sm">
         <p className="font-medium">
-          <span className="font-mono text-xs">{numero}</span> · {LIBELLE_RESULTAT[resultat]}
+          <span className="font-mono text-xs">{numero}</span> · {LIBELLE_VERIFICATION[resultat]}
         </p>
         <p className="truncate font-mono text-xs text-fg-muted" title={libelle}>
           {premiereLigne(libelle)}
         </p>
         {observation && <p className="mt-0.5 text-xs text-fg-muted">« {observation} »</p>}
         {(par || le) && (
-          <p className="mt-0.5 text-[11px] text-fg-subtle">
+          <p className="mt-0.5 text-2xs text-fg-subtle">
             {par}
             {par && le && ' · '}
             {le && formatDateHeure(le)}
@@ -283,7 +283,7 @@ export function ResolutionDeroule({
                 'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
                 p.etat === 'fait' && 'border-ok-bd bg-ok-bg text-ok-fg',
                 p.etat === 'echec' && 'border-danger-bd bg-danger-bg text-danger-fg',
-                p.etat === 'courant' && 'border-run-solid bg-run-solid text-white',
+                p.etat === 'courant' && 'border-run-solid bg-run-solid text-run-solid-fg',
                 p.etat === 'avenir' && 'border-line-strong text-fg-subtle',
               )}
             >

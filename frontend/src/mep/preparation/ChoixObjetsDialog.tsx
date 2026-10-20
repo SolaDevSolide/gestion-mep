@@ -158,7 +158,7 @@ export function ChoixObjetsDialog({
                       <span className="min-w-0 truncate">{c}</span>
                       <span
                         className={cn(
-                          'shrink-0 rounded-full px-1.5 font-mono text-[11px] tnum',
+                          'shrink-0 rounded-full px-1.5 font-mono text-2xs tnum',
                           n > 0 ? 'bg-accent text-accent-fg' : 'bg-surface-2 text-fg-subtle',
                         )}
                         aria-label={`${n} coché${n > 1 ? 's' : ''} sur ${liste.length}`}
@@ -226,7 +226,7 @@ export function ChoixObjetsDialog({
                 id={idVersion}
                 value={versionGroupe}
                 onChange={(e) => setVersionGroupe(e.target.value)}
-                className="h-8 w-36 font-mono text-[13px]"
+                className="h-8 w-36 font-mono text-ui"
               />
             </span>
             <Button taille="sm" disabled={cochesCategorie.length === 0} onClick={appliquerVersion}>
@@ -279,7 +279,7 @@ export function ChoixObjetsDialog({
                       <td className="px-3 py-1.5">
                         <CaseSeule checked={coche} onChange={(c) => cocher(o, c)} label={`Cocher ${o.nom}`} />
                       </td>
-                      <td className="px-3 py-1.5 font-mono text-[13px]">{o.nom}</td>
+                      <td className="px-3 py-1.5 font-mono text-ui">{o.nom}</td>
                       <td className="px-3 py-1.5">{o.libelle}</td>
                       <td className="px-3 py-1.5 text-fg-muted">{o.type}</td>
                       <td className="px-3 py-1.5 text-fg-muted">{o.precision}</td>
@@ -289,7 +289,7 @@ export function ChoixObjetsDialog({
                           disabled={!coche}
                           aria-label={`Version ou correction de ${o.nom}`}
                           onChange={(e) => modifier((s) => s.set(o.id, e.target.value))}
-                          className="h-8 font-mono text-[13px]"
+                          className="h-8 font-mono text-ui"
                         />
                       </td>
                     </tr>

@@ -1,4 +1,5 @@
 import { type RefObject, useLayoutEffect, useState } from 'react';
+import { hautCollant, MARGE_CADRE } from './petitEcran';
 
 /** Hauteur minimale du graphe hors plein écran. */
 export const HAUTEUR_MIN = 360;
@@ -32,8 +33,15 @@ function hauteurDessous(el: HTMLElement): number {
  * redimensionnement de la fenêtre : sinon, avec une barre de défilement qui prend de la place (Windows), la page basculait
  * sans fin entre deux hauteurs (la barre apparaît, le conteneur change de largeur, le calcul repart de zéro, la barre
  * disparaît…) et le bas du graphe paraissait dédoublé.
+ *
+ * `fenetre` (vue compacte, fenêtre basse) : le cadre prend la hauteur de la fenêtre moins 24 px (12 au-dessus, 12
+ * au-dessous) et ce qui reste collé en haut ; la page défile jusqu'à lui (voir `GrapheLibre`).
  */
-export function useHauteurDisponible(ref: RefObject<HTMLElement | null>, actif: boolean): number | null {
+export function useHauteurDisponible(
+  ref: RefObject<HTMLElement | null>,
+  actif: boolean,
+  fenetre = false,
+): number | null {
   const [hauteur, setHauteur] = useState<number | null>(null);
   useLayoutEffect(() => {
     if (!actif) return undefined;
@@ -42,6 +50,10 @@ export function useHauteurDisponible(ref: RefObject<HTMLElement | null>, actif: 
     const calculer = () => {
       const el = ref.current;
       if (!el) return;
+      if (fenetre) {
+        setHauteur(Math.max(HAUTEUR_MIN, Math.floor(window.innerHeight - hautCollant() - 2 * MARGE_CADRE)));
+        return;
+      }
       let dessous = hauteurDessous(el);
       for (let p: HTMLElement | null = el.parentElement; p && p !== document.body; p = p.parentElement) {
         const s = getComputedStyle(p);
@@ -73,6 +85,6 @@ export function useHauteurDisponible(ref: RefObject<HTMLElement | null>, actif: 
       window.cancelAnimationFrame(image);
       ro?.disconnect();
     };
-  }, [ref, actif]);
+  }, [ref, actif, fenetre]);
   return hauteur;
 }

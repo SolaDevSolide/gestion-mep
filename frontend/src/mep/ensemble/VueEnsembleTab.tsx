@@ -24,21 +24,22 @@ import { type Ton } from '../../format';
 import { useNow } from '../../hooks';
 import { useMep } from '../../mepContext';
 import { useAutresPresents } from '../../presence';
-import { useReferentiels } from '../../referentiels';
+import { useReferentiels, type DonneePartagee } from '../../referentiels';
 import { SqueletteEnsemble, SqueletteEvenements } from './Squelettes';
 import { metaPhase } from '../../statuts';
 import type { Etape, Evenement, Mep } from '../../types';
 import { Alerte } from '../../ui/Alerte';
 import { Apparition } from '../../ui/Apparition';
 import { Avatar } from '../../ui/Avatar';
+import { ErreurChargement } from '../../ui/ErreurChargement';
 import { cn } from '../../ui/cn';
 import { ProgressBar } from '../../ui/ProgressBar';
 import { StatusPill } from '../../ui/StatusPill';
 import { TON } from '../../ui/tons';
 import { GrapheLibre } from '../graphe/GrapheLibre';
 import { sectionsDuPlan } from '../graphe/sections';
+import { useJournalMep } from '../preparation/donnees';
 import { descriptionsSystemes } from '../graphe/systemes';
-import { useJournal } from '../journal';
 import {
   causesBlocage,
   chiffres,
@@ -56,6 +57,9 @@ import {
   type Chiffres,
   type EtatVue,
 } from './calculs';
+
+/** Motif cité dans une phrase qui a son propre point final. */
+const sansPoint = (motif: string) => motif.trim().replace(/\.+$/, '');
 
 /** Une tuile de chiffre clé. */
 function Tuile({
@@ -82,19 +86,19 @@ function Tuile({
         grand && 'col-span-2 lg:col-span-2',
       )}
     >
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+      <p className="flex items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">
         <Icone className="size-3.5" aria-hidden />
         {titre}
       </p>
       <p
         className={cn(
-          'mt-1 truncate text-[26px] leading-tight font-bold tracking-tight tnum',
+          'mt-1 truncate text-2xl leading-tight font-bold tracking-tight tnum',
           ton ? TON[ton].texte : 'text-fg',
         )}
       >
         {valeur}
       </p>
-      {detail && <p className="text-[13px] text-fg-muted tnum">{detail}</p>}
+      {detail && <p className="text-ui text-fg-muted tnum">{detail}</p>}
       {children}
     </div>
   );
@@ -115,7 +119,7 @@ function ChiffresCles({ c, etapes, compact }: { c: Chiffres; etapes: Etape[]; co
           <>
             {c.faites}/{c.total}{' '}
             <span className="text-base font-semibold text-fg-muted">
-              étape{c.faites > 1 ? 's' : ''} faite{c.faites > 1 ? 's' : ''} · {c.pourcentage} %
+              étape{c.faites > 1 ? 's' : ''} réussie{c.faites > 1 ? 's' : ''} · {c.pourcentage} %
             </span>
           </>
         }
@@ -181,7 +185,7 @@ function ChiffresCles({ c, etapes, compact }: { c: Chiffres; etapes: Etape[]; co
 export function Legende() {
   const etats: EtatVue[] = ['faite', 'en-cours', 'echec', 'resolution', 'a-venir', 'bloquee'];
   return (
-    <ul aria-label="Légende" className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[12px] text-fg-muted">
+    <ul aria-label="Légende" className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs text-fg-muted">
       {etats.map((e) => (
         <li key={e} className="inline-flex items-center gap-1.5 whitespace-nowrap">
           <span
@@ -205,7 +209,7 @@ export function Legende() {
 /** Pastille « En direct » (heure de la dernière mise à jour de l'affichage). */
 export function EnDirect({ maintenant }: { maintenant: number }) {
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ok-bd bg-ok-bg px-2 py-0.5 text-[12px] font-semibold text-ok-fg">
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ok-bd bg-ok-bg px-2 py-0.5 text-xs font-semibold text-ok-fg">
       <span className="relative flex size-2">
         <span className="absolute inline-flex size-full animate-ping rounded-full bg-ok-solid opacity-60 motion-reduce:hidden" />
         <span className="relative inline-flex size-2 rounded-full bg-ok-solid" />
@@ -217,13 +221,13 @@ export function EnDirect({ maintenant }: { maintenant: number }) {
 
 function TitrePanneau({ children, nombre, ton }: { children: ReactNode; nombre?: number; ton?: Ton }) {
   return (
-    <h3 className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+    <h3 className="flex items-center gap-2 text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">
       {children}
       {nombre !== undefined && (
         <span
           className={cn(
-            'rounded-full px-1.5 text-[11px] font-bold tnum',
-            ton ? cn(TON[ton].bgSolide, 'text-white') : 'bg-surface-2 text-fg-muted',
+            'rounded-full px-1.5 text-2xs font-bold tnum',
+            ton ? cn(TON[ton].bgSolide, TON[ton].texteSolide) : 'bg-surface-2 text-fg-muted',
           )}
         >
           {nombre}
@@ -244,7 +248,7 @@ function Blocages({ mep, etapes, maintenant }: { mep: Mep; etapes: Etape[]; main
       <TitrePanneau nombre={nb} ton={nb > 0 ? 'danger' : undefined}>
         Blocages et échecs
       </TitrePanneau>
-      {nb === 0 && <p className="text-[13px] text-fg-subtle">Rien de bloquant.</p>}
+      {nb === 0 && <p className="text-ui text-fg-subtle">Rien de bloquant.</p>}
       {echecs.map((e) => {
         const resolution = mep.resolutions.find((r) => r.etapeId === e.id && r.statut === 'EnCours');
         const faites = resolution?.corrections.filter((x) => x.resultat !== null).length ?? 0;
@@ -264,23 +268,23 @@ function Blocages({ mep, etapes, maintenant }: { mep: Mep; etapes: Etape[]; main
                 {resolution ? 'Résolution en cours' : 'Échec'}
               </StatusPill>
             </div>
-            <p className="mt-0.5 text-[13.5px] leading-snug font-semibold">{e.action}</p>
-            {e.preuve && <p className="mt-0.5 line-clamp-2 text-[12.5px] text-fg-muted">{e.preuve}</p>}
+            <p className="mt-0.5 text-sm leading-snug font-semibold">{e.action}</p>
+            {e.preuve && <p className="mt-0.5 line-clamp-2 text-ui text-fg-muted">{e.preuve}</p>}
             {resolution && (
-              <p className="mt-1 text-[12.5px] text-fg">
+              <p className="mt-1 text-ui text-fg">
                 <Wrench className="mr-1 inline size-3.5 text-warn-solid" aria-hidden />« {resolution.titre} » :
                 correction
                 {resolution.corrections.length > 1 ? 's' : ''} {faites}/{resolution.corrections.length},{' '}
                 {resolution.verificationResultat ? 'vérification faite' : 'vérification à faire'}
               </p>
             )}
-            <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-fg-muted">
+            <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-fg-muted">
               {nom && <Avatar nom={nom} taille="xs" />}
               {nom}
               {e.finReelle && <> · en échec depuis {heure(Date.parse(e.finReelle))}</>}
             </p>
             {bloque.length > 0 && (
-              <p className="mt-1 text-[12px] font-semibold text-danger-fg">
+              <p className="mt-1 text-xs font-semibold text-danger-fg">
                 <Ban className="mr-1 inline size-3.5" aria-hidden />
                 Bloque {bloque.length} étape{bloque.length > 1 ? 's' : ''} : {bloque.map((x) => x.code).join(', ')}
               </p>
@@ -301,8 +305,8 @@ function Blocages({ mep, etapes, maintenant }: { mep: Mep; etapes: Etape[]; main
                 Dépasse sa durée
               </StatusPill>
             </div>
-            <p className="mt-0.5 text-[13.5px] leading-snug font-semibold">{e.action}</p>
-            <p className="mt-1 flex items-center gap-1.5 text-[12px] text-fg-muted tnum">
+            <p className="mt-0.5 text-sm leading-snug font-semibold">{e.action}</p>
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-fg-muted tnum">
               {nom && <Avatar nom={nom} taille="xs" />}
               {nom} · {Math.round(ecoulee(e, maintenant))} min pour {e.dureeEstimeeMinutes} prévues
             </p>
@@ -354,7 +358,7 @@ function EnCeMoment({ mep, etapes, maintenant }: { mep: Mep; etapes: Etape[]; ma
                   title={enLigne ? 'Sur la MEP' : 'Absent de la MEP'}
                 />
               </span>
-              <div className="min-w-0 flex-1 text-[13px] leading-snug">
+              <div className="min-w-0 flex-1 text-ui leading-snug">
                 <p>
                   <span className="font-semibold">{p.nom}</span>
                   {vous && <span className="text-fg-subtle"> (vous)</span>}{' '}
@@ -364,7 +368,7 @@ function EnCeMoment({ mep, etapes, maintenant }: { mep: Mep; etapes: Etape[]; ma
                 {enCours.map((e) => (
                   <p key={e.id} className="text-run-fg">
                     <Play className="mr-1 inline size-3" aria-hidden />
-                    <span className="font-mono text-[12px]">{e.code}</span> {e.action}
+                    <span className="font-mono text-xs">{e.code}</span> {e.action}
                     <span className="text-fg-subtle tnum"> · {Math.round(ecoulee(e, maintenant))} min</span>
                   </p>
                 ))}
@@ -378,7 +382,7 @@ function EnCeMoment({ mep, etapes, maintenant }: { mep: Mep; etapes: Etape[]; ma
                   <p className="text-fg-subtle">
                     {prochaine ? (
                       <>
-                        Prochaine : <span className="font-mono text-[12px]">{prochaine.code}</span> {prochaine.action}
+                        Prochaine : <span className="font-mono text-xs">{prochaine.code}</span> {prochaine.action}
                       </>
                     ) : (
                       'Rien à exécuter pour l’instant'
@@ -392,7 +396,7 @@ function EnCeMoment({ mep, etapes, maintenant }: { mep: Mep; etapes: Etape[]; ma
         {visiteurs.map((x) => {
           const lieu = ouSeTrouve(x, mep);
           return (
-            <li key={x.utilisateurId} className="flex items-center gap-2.5 rounded-lg px-1 py-1 text-[13px]">
+            <li key={x.utilisateurId} className="flex items-center gap-2.5 rounded-lg px-1 py-1 text-ui">
               <span className="relative">
                 <Avatar nom={x.nom} taille="sm" />
                 <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full bg-ok-solid ring-2 ring-surface" />
@@ -420,32 +424,41 @@ function iconeEvenement(type: string): { Icone: LucideIcon; ton: Ton } {
 }
 
 /** Suite des événements marquants (journal filtré), les plus récents en haut. */
-function Evenements({ journal }: { journal: Evenement[] | null }) {
+function Evenements({ lu }: { lu: DonneePartagee<Evenement[]> }) {
+  const journal = lu.donnees;
   const marquants = (journal ?? []).filter(estMarquant).slice(0, 8);
   return (
     <section aria-label="Événements marquants" className="grid gap-2">
       <div className="flex items-center justify-between">
         <TitrePanneau>Événements marquants</TitrePanneau>
-        <Link to="?onglet=journal" className="text-[12px] font-medium text-accent-text hover:underline">
+        <Link to="?onglet=journal" className="text-xs font-medium text-accent-text hover:underline">
           Tout le journal
         </Link>
       </div>
-      {journal && marquants.length === 0 && (
-        <p className="text-[13px] text-fg-subtle">Rien de marquant pour l’instant.</p>
+      {journal && marquants.length === 0 && <p className="text-ui text-fg-subtle">Rien de marquant pour l’instant.</p>}
+      {!journal && lu.erreur != null && (
+        <ErreurChargement
+          variante="ligne"
+          erreur={lu.erreur}
+          titre="Derniers événements non chargés"
+          onReessayer={lu.recharger}
+          enCours={lu.enCours}
+        />
       )}
-      {!journal && <SqueletteEvenements />}
+      {!journal && lu.erreur == null && <SqueletteEvenements />}
       <ol className="relative grid gap-2 border-l border-line pl-4">
         {marquants.map((ev) => {
           const { Icone, ton } = iconeEvenement(ev.type);
           return (
-            <li key={ev.id} className="relative text-[12.5px] leading-snug">
+            <li key={ev.id} className="relative text-ui leading-snug">
               <span
                 className={cn(
                   'absolute top-0 -left-[25px] grid size-[18px] place-content-center rounded-full ring-2 ring-surface',
                   TON[ton].bgSolide,
+                  TON[ton].texteSolide,
                 )}
               >
-                <Icone className="size-3 text-white" aria-hidden />
+                <Icone className="size-3" aria-hidden />
               </span>
               <p className="text-fg-subtle tnum">
                 {heure(Date.parse(ev.quand))} · {ev.auteur}
@@ -486,8 +499,8 @@ export default function VueEnsembleTab() {
   const [selection, setSelection] = useState<string | null>(null);
   const { catalogue, pret } = useReferentiels();
   const descriptions = useMemo(() => descriptionsSystemes(mep, catalogue), [mep, catalogue]);
-  // Derniers événements, puis seulement les nouveaux à chaque version (#96).
-  const { evenements: journal } = useJournal(mep.id, mep.version);
+  // Derniers événements, puis seulement les nouveaux à chaque version (#96) ; une erreur se montre avec « Réessayer ».
+  const journal = useJournalMep(mep);
   const bloquees = useMemo(() => causesBlocage(etapes), [etapes]);
   const ensemble = useMemo(() => ({ bloquees }), [bloquees]);
   const c = chiffres(mep, etapes, maintenant);
@@ -504,7 +517,7 @@ export default function VueEnsembleTab() {
     >
       <Blocages mep={mep} etapes={etapes} maintenant={maintenant} />
       <EnCeMoment mep={mep} etapes={etapes} maintenant={maintenant} />
-      <Evenements journal={journal} />
+      <Evenements lu={journal} />
     </aside>
   );
 
@@ -518,7 +531,8 @@ export default function VueEnsembleTab() {
         )}
         {mep.phase === 'Annulee' && (
           <Alerte ton="later" icone={Ban}>
-            MEP annulée{mep.annulation ? ` : ${mep.annulation.motif}` : ''}. La vue montre où en était l’exécution.
+            MEP annulée{mep.annulation ? ` : ${sansPoint(mep.annulation.motif)}` : ''}. La vue montre où en était
+            l’exécution.
           </Alerte>
         )}
         {mep.phase === 'Cloturee' && (
@@ -532,8 +546,8 @@ export default function VueEnsembleTab() {
         )}
         {plan === 'RetourArriere' && (
           <Alerte ton="rollback" icone={Siren}>
-            Retour arrière{mep.retourArriere?.motif ? ` : ${mep.retourArriere.motif}` : ''}. La vue suit le plan de
-            retour arrière.
+            Retour arrière{mep.retourArriere?.motif ? ` : ${sansPoint(mep.retourArriere.motif)}` : ''}. La vue suit le
+            plan de retour arrière.
           </Alerte>
         )}
         {!plein && <ChiffresCles c={c} etapes={etapes} />}
@@ -555,9 +569,9 @@ export default function VueEnsembleTab() {
             enTete={
               <div className="flex flex-wrap items-center gap-3">
                 {plein && (
-                  <span className="flex items-center gap-2 pl-1 text-[17px] font-semibold tracking-tight">
+                  <span className="flex items-center gap-2 pl-1 text-lg font-semibold tracking-tight">
                     {mep.outil}
-                    {mep.versionCible && <span className="font-mono text-[16px]">→ {mep.versionCible}</span>}
+                    {mep.versionCible && <span className="font-mono text-base">→ {mep.versionCible}</span>}
                     <StatusPill ton={phase.ton} icone={phase.Icone} anime={phase.anime}>
                       {phase.libelle}
                     </StatusPill>
@@ -570,7 +584,7 @@ export default function VueEnsembleTab() {
             bandeau={plein ? <ChiffresCles c={c} etapes={etapes} compact /> : undefined}
             lateral={lateral}
           />
-          <p className="mt-2 flex items-center gap-1.5 text-[12px] text-fg-subtle">
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-fg-subtle">
             <Radio className="size-3.5" aria-hidden />
             Lecture seule : cliquer une section pour la déplier ; l’exécution se fait dans l’onglet Exécution.
           </p>

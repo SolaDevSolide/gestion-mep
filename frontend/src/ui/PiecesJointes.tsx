@@ -9,7 +9,7 @@ import {
   Paperclip,
   Trash2,
 } from 'lucide-react';
-import { useContext, useRef, useState, type DragEvent } from 'react';
+import { useContext, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { urlPieceJointe } from '../api';
 import { AuthContext } from '../auth';
 import { formatDateHeure, formatTaille } from '../format';
@@ -18,6 +18,7 @@ import { Alerte } from './Alerte';
 import { BoutonIcone, Button } from './Button';
 import { cn } from './cn';
 import { ConfirmDialog } from './Dialog';
+import { EnChargement, Squelette } from './Squelette';
 import { Tooltip } from './Tooltip';
 
 interface Props {
@@ -35,6 +36,10 @@ interface Props {
   titre?: string;
   className?: string;
   compact?: boolean;
+  /** Liste en cours de lecture : deux lignes squelettes à sa place. */
+  chargement?: boolean;
+  /** Liste non chargée (`ErreurChargement` en ligne), au-dessus de la zone de dépôt qui reste utilisable. */
+  erreurListe?: ReactNode;
 }
 
 function IconeFichier({ type }: { type: string }) {
@@ -55,6 +60,8 @@ export function PiecesJointes({
   titre = 'Pièces jointes',
   className,
   compact,
+  chargement,
+  erreurListe,
 }: Props) {
   const moi = useContext(AuthContext)?.utilisateur?.id ?? null;
   const entree = useRef<HTMLInputElement>(null);
@@ -87,7 +94,7 @@ export function PiecesJointes({
         <Paperclip className="size-3.5" aria-hidden />
         {titre}
         {pieces.length > 0 && (
-          <span className="rounded-full bg-surface-2 px-1.5 text-[11px] font-bold tnum">{pieces.length}</span>
+          <span className="rounded-full bg-surface-2 px-1.5 text-2xs font-bold tnum">{pieces.length}</span>
         )}
       </h3>
 
@@ -96,6 +103,7 @@ export function PiecesJointes({
           {erreur}
         </Alerte>
       )}
+      {erreurListe && <div className="mb-2.5">{erreurListe}</div>}
 
       {!lectureSeule && (
         <div
@@ -151,7 +159,15 @@ export function PiecesJointes({
         </div>
       )}
 
-      {pieces.length > 0 ? (
+      {chargement ? (
+        <EnChargement
+          libelle="Chargement des pièces jointes…"
+          className={cn('grid gap-2 rounded-lg border border-line px-3 py-3', !lectureSeule && 'mt-2.5')}
+        >
+          <Squelette className="h-4 w-3/5" />
+          <Squelette className="h-4 w-2/5" />
+        </EnChargement>
+      ) : pieces.length > 0 ? (
         <ul
           className={cn(
             'divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface',
@@ -191,7 +207,7 @@ export function PiecesJointes({
             </li>
           ))}
         </ul>
-      ) : lectureSeule ? (
+      ) : lectureSeule && !erreurListe ? (
         <p className="text-sm text-fg-subtle">Aucune pièce jointe.</p>
       ) : null}
 

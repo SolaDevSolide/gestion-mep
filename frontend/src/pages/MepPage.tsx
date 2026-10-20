@@ -1,4 +1,4 @@
-import { Flag, OctagonAlert, Siren } from 'lucide-react';
+import { Flag, Siren } from 'lucide-react';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
@@ -37,7 +37,7 @@ import {
 import { MepContext, type MepContextValue } from '../mepContext';
 import { nouvelleSession, PresenceProvider, type PresenceValeur } from '../presence';
 import type { Mep, Phase, Presence, Verrou } from '../types';
-import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { cn } from '../ui/cn';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
 import { SqueletteMep } from '../mep/SqueletteMep';
@@ -97,14 +97,14 @@ function SousOngletsPlan({ mep, sous, onChange }: { mep: Mep; sous: SousOnglet; 
             tabIndex={actif ? 0 : -1}
             onClick={() => onChange(s)}
             className={cn(
-              'inline-flex h-8 shrink-0 items-center gap-2 rounded-lg px-3 text-[13px] font-medium transition-colors duration-150',
+              'inline-flex h-8 shrink-0 items-center gap-2 rounded-lg px-3 text-ui font-medium transition-colors duration-150',
               actif ? 'bg-accent-soft text-accent-text' : 'text-fg-subtle hover:bg-surface-2 hover:text-fg',
             )}
           >
             {LIBELLES_SOUS[s]}
             <span
               className={cn(
-                'min-w-5 rounded-full px-1.5 text-center text-[11px] font-semibold tnum',
+                'min-w-5 rounded-full px-1.5 text-center text-2xs font-semibold tnum',
                 actif ? 'bg-accent text-accent-fg' : 'bg-surface-2 text-fg-muted',
               )}
             >
@@ -124,7 +124,7 @@ export default function MepPage() {
   const moi = useContext(AuthContext)?.utilisateur?.id ?? null;
   const [params, setParams] = useSearchParams();
   const [mep, setMep] = useState<Mep | null>(null);
-  const [erreurChargement, setErreurChargement] = useState('');
+  const [erreurChargement, setErreurChargement] = useState<unknown>(null);
   const [journalTick, setJournalTick] = useState(0);
   const [presences, setPresences] = useState<Presence[]>([]);
   const [verrous, setVerrous] = useState<Verrou[] | null>(null);
@@ -167,10 +167,10 @@ export default function MepPage() {
   const charger = useCallback(async () => {
     try {
       appliquer(await api.mep(id));
-      setErreurChargement('');
+      setErreurChargement(null);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) return;
-      setErreurChargement(e instanceof Error ? e.message : 'Chargement impossible.');
+      setErreurChargement(e);
     }
   }, [id, appliquer]);
 
@@ -320,12 +320,17 @@ export default function MepPage() {
     if (ancienne && mep) definirVue(lireVue(params, mep), true);
   }, [ancienne, mep, params, definirVue]);
 
-  if (erreurChargement && !mep) {
+  if (erreurChargement !== null && !mep) {
     return (
-      <main className="p-6">
-        <Alerte ton="danger" icone={OctagonAlert} role="alert">
-          {erreurChargement}
-        </Alerte>
+      <main>
+        <ErreurChargement
+          variante="page"
+          erreur={erreurChargement}
+          titre="Impossible d’ouvrir cette MEP"
+          introuvable="Cette MEP n’existe pas ou a été supprimée."
+          onReessayer={charger}
+          retour={{ libelle: 'Retour à la liste', vers: '/' }}
+        />
       </main>
     );
   }
@@ -394,10 +399,10 @@ export default function MepPage() {
             {mep.phase === 'RetourArriere' && mep.retourArriere && (
               <div
                 role="alert"
-                className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-rollback-bg px-6 py-3 text-white"
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-rollback-bg px-6 py-3 text-rollback-fg"
               >
                 <Siren className="size-6 shrink-0" aria-hidden />
-                <p className="min-w-0 flex-1 text-[15px]">
+                <p className="min-w-0 flex-1 text-md">
                   <strong className="font-extrabold">Retour arrière déclenché</strong>
                   <span aria-hidden> — </span>
                   <span>{mep.retourArriere.motif}</span>

@@ -9,7 +9,7 @@ import { Field, Textarea } from '../ui/Input';
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  /** Clôture après retour arrière (MEP « repliée ») ou clôture réussie. */
+  /** Clôture après retour arrière ou clôture réussie. */
   repli: boolean;
   bilanActive: boolean;
   /** Retourne true si la clôture a abouti. */
@@ -50,7 +50,7 @@ export function ClotureDialog({ open, onOpenChange, repli, bilanActive, onConfir
       titre={repli ? 'Le service est-il rétabli ?' : 'Clôturer la MEP'}
       description={
         repli
-          ? 'Toutes les étapes de retour arrière sont réussies. La MEP sera clôturée comme « repliée » et passera en lecture seule.'
+          ? 'Toutes les étapes de retour arrière sont réussies. La MEP sera clôturée après retour arrière et passera en lecture seule.'
           : 'Tous les tests de recette sont conformes. La MEP sera clôturée comme « réussie » et passera en lecture seule.'
       }
       pied={

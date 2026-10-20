@@ -295,10 +295,11 @@ describe('Onglet Recette', () => {
     const enRecette = (f: FicheRecette[], d = {}) =>
       mep({ phase: 'Recette', systemes, fichesRecette: f, droits: { ...droits, participantId: 'p1', ...d } });
 
-    it('Conforme / Échec exigent une observation, puis appellent l’API de l’étape', async () => {
+    it('Conforme / Non conforme exigent une observation, puis appellent l’API de l’étape', async () => {
       const { run } = rendre(enRecette([fiche('f1')]), '?onglet=plan&plan=recette&fiche=f1');
       const conforme = screen.getByRole('button', { name: 'Conforme' });
       expect(conforme).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Non conforme' })).toBeDisabled();
       await userEvent.type(screen.getByLabelText(/Observation de l’étape 1/), 'Version 4.2 visible');
       await userEvent.click(conforme);
       await waitFor(() => expect(run).toHaveBeenCalled());
@@ -313,6 +314,7 @@ describe('Onglet Recette', () => {
       });
       const { run } = rendre(enRecette([f], { estPilote: true }), '?onglet=plan&plan=recette&fiche=f1');
       expect(screen.getByText('Erreur 500')).toBeInTheDocument();
+      expect(screen.getByText('Non conforme')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', { name: /Refaire l’étape 1/ }));
       await waitFor(() => expect(run).toHaveBeenCalledTimes(1));
       expect(api.refaireEtapeTest).toHaveBeenCalledWith('m1', 'f1', 't1');
@@ -335,7 +337,7 @@ describe('Onglet Recette', () => {
       });
       rendre(enRecette([f]), '?onglet=plan&plan=recette&fiche=f1');
       expect(
-        screen.getByText(/Validé par Marie \(paie\) le 18\/10\/2026 · fichier Excel importé par Claire/),
+        screen.getByText(/Validation de Marie \(paie\) le 18\/10\/2026 · fichier Excel importé par Claire/),
       ).toBeInTheDocument();
     });
 
@@ -367,7 +369,7 @@ describe('Onglet Recette', () => {
       });
       rendre(enRecette([f]));
       expect(screen.getAllByText(/1\/3 conforme/).length).toBeGreaterThan(0);
-      expect(screen.getByText('Une étape de test est en échec')).toBeInTheDocument();
+      expect(screen.getByText('Une étape de test est non conforme')).toBeInTheDocument();
     });
   });
 
@@ -429,7 +431,7 @@ describe('Onglet Recette', () => {
       vi.mocked(api.apercuValidation).mockRejectedValue(
         new ApiError(422, 'Fichier refusé, rien n’a été modifié : …', [
           'Onglet « WEB » introuvable : les onglets du fichier ne doivent être ni renommés ni supprimés.',
-          'Onglet BDD, ligne 6 : validation « Bof » inconnue (Validé ou Refusé attendu).',
+          'Onglet BDD, ligne 6 : validation « Bof » inconnue (Conforme ou Non conforme attendu).',
         ]),
       );
       rendre(enRecette());

@@ -5,8 +5,10 @@ import { useMep } from '../mepContext';
 import { libelleEditeurs, useEditeurs, ZonePresence } from '../presence';
 import { Avatar } from '../ui/Avatar';
 import { Alerte } from '../ui/Alerte';
+import { Apparition } from '../ui/Apparition';
 import { BoutonExportExcel } from '../ui/BoutonExportExcel';
 import { cn } from '../ui/cn';
+import { Squelette, SqueletteLignes } from '../ui/Squelette';
 import { completude, type IdSection } from './completude';
 import { IdentiteSection } from './preparation/IdentiteSection';
 import { ResponsablesTechniquesSection } from './preparation/ResponsablesTechniquesSection';
@@ -14,6 +16,7 @@ import { PersonnesSection, SystemesSection } from './preparation/ListesSections'
 import { CommunicationSection } from './preparation/CommunicationSection';
 import { ObjetsImpactesSection } from './preparation/ObjetsImpactesSection';
 import { PiecesSection } from './preparation/PiecesSection';
+import { usePreparation } from './preparation/donnees';
 import { SauvegardeSection, ValidationSection } from './preparation/SauvegardeValidation';
 
 const SECTIONS: { id: IdSection; numero: number; titre: string }[] = [
@@ -47,9 +50,34 @@ function EditeursSection({ id }: { id: IdSection }) {
   );
 }
 
+/** Squelette d'une section (carte, titre, description, contenu), le temps que les listes communes arrivent. */
+function SqueletteSection() {
+  return (
+    <div className="rounded-xl border border-line bg-surface">
+      <div className="flex items-center gap-2.5 border-b border-line px-5 py-4">
+        <Squelette className="size-6 rounded-md" />
+        <div className="grid flex-1 gap-1.5">
+          <Squelette className="h-4.5 w-48" />
+          <Squelette className="h-3.5 w-80 max-w-full" />
+        </div>
+      </div>
+      <div className="grid gap-4 px-5 py-5">
+        <Squelette className="h-9 w-full" />
+        <SqueletteLignes lignes={4} />
+      </div>
+    </div>
+  );
+}
+
 export default function PreparationTab() {
   const { mep } = useMep();
   const [section, setSection] = useState<IdSection>('intervention');
+  // Les sections attendent ensemble les listes communes, puis apparaissent d'un bloc : pas de faux nom, de liste qui se
+  // réordonne ni de bloc qui pousse la page. Une fois affichées, elles le restent (un système ajouté charge ses objets
+  // sans remettre l'onglet en squelette).
+  const preparation = usePreparation(mep);
+  const [revele, setRevele] = useState(preparation.pret);
+  if (preparation.pret && !revele) setRevele(true);
   const ok = completude(mep);
   const nbOk = SECTIONS.filter((s) => ok[s.id]).length;
 
@@ -87,7 +115,7 @@ export default function PreparationTab() {
                   <span className="min-w-0 flex-1 whitespace-nowrap leading-tight lg:whitespace-normal">{s.titre}</span>
                   <EditeursSection id={s.id} />
                   {ok[s.id] ? (
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ok-solid text-white">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ok-solid text-ok-solid-fg">
                       <Check className="size-3" strokeWidth={3} aria-hidden />
                       <span className="sr-only">Complète</span>
                     </span>
@@ -126,35 +154,42 @@ export default function PreparationTab() {
                 : ' Le pilote peut encore modifier la sauvegarde et la communication.')}
           </Alerte>
         )}
-        {/* Toutes les sections restent montées : un brouillon non enregistré survit au changement de section.
+        <Apparition
+          pret={revele}
+          squelette={<SqueletteSection />}
+          libelle="Chargement de la préparation…"
+          className="space-y-4"
+        >
+          {/* Toutes les sections restent montées : un brouillon non enregistré survit au changement de section.
             Chacune signale aux autres qui y travaille (focus ou saisie en cours). */}
-        <ZonePresence cle="preparation:intervention" className={section !== 'intervention' ? 'hidden' : undefined}>
-          <IdentiteSection />
-        </ZonePresence>
-        <ZonePresence cle="preparation:personnes" className={section !== 'personnes' ? 'hidden' : undefined}>
-          <PersonnesSection />
-        </ZonePresence>
-        <ZonePresence cle="preparation:systemes" className={section !== 'systemes' ? 'hidden' : undefined}>
-          <SystemesSection />
-        </ZonePresence>
-        <ZonePresence cle="preparation:techniques" className={section !== 'techniques' ? 'hidden' : undefined}>
-          <ResponsablesTechniquesSection />
-        </ZonePresence>
-        <ZonePresence cle="preparation:objets" className={section !== 'objets' ? 'hidden' : undefined}>
-          <ObjetsImpactesSection />
-        </ZonePresence>
-        <ZonePresence cle="preparation:sauvegarde" className={section !== 'sauvegarde' ? 'hidden' : undefined}>
-          <SauvegardeSection />
-        </ZonePresence>
-        <ZonePresence cle="preparation:validation" className={section !== 'validation' ? 'hidden' : undefined}>
-          <ValidationSection />
-        </ZonePresence>
-        <ZonePresence cle="preparation:communication" className={section !== 'communication' ? 'hidden' : undefined}>
-          <CommunicationSection />
-        </ZonePresence>
-        <ZonePresence cle="preparation:pieces" className={section !== 'pieces' ? 'hidden' : undefined}>
-          <PiecesSection />
-        </ZonePresence>
+          <ZonePresence cle="preparation:intervention" className={section !== 'intervention' ? 'hidden' : undefined}>
+            <IdentiteSection />
+          </ZonePresence>
+          <ZonePresence cle="preparation:personnes" className={section !== 'personnes' ? 'hidden' : undefined}>
+            <PersonnesSection />
+          </ZonePresence>
+          <ZonePresence cle="preparation:systemes" className={section !== 'systemes' ? 'hidden' : undefined}>
+            <SystemesSection />
+          </ZonePresence>
+          <ZonePresence cle="preparation:techniques" className={section !== 'techniques' ? 'hidden' : undefined}>
+            <ResponsablesTechniquesSection />
+          </ZonePresence>
+          <ZonePresence cle="preparation:objets" className={section !== 'objets' ? 'hidden' : undefined}>
+            <ObjetsImpactesSection />
+          </ZonePresence>
+          <ZonePresence cle="preparation:sauvegarde" className={section !== 'sauvegarde' ? 'hidden' : undefined}>
+            <SauvegardeSection />
+          </ZonePresence>
+          <ZonePresence cle="preparation:validation" className={section !== 'validation' ? 'hidden' : undefined}>
+            <ValidationSection />
+          </ZonePresence>
+          <ZonePresence cle="preparation:communication" className={section !== 'communication' ? 'hidden' : undefined}>
+            <CommunicationSection />
+          </ZonePresence>
+          <ZonePresence cle="preparation:pieces" className={section !== 'pieces' ? 'hidden' : undefined}>
+            <PiecesSection />
+          </ZonePresence>
+        </Apparition>
       </div>
     </div>
   );

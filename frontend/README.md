@@ -8,6 +8,7 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `npm run dev`                             | Serveur de développement sur http://localhost:5173 ; `/api` est relayé vers http://localhost:5080 |
 | `npm test`                                | Tests Vitest (jsdom)                                                                              |
+| `npm run e2e`                             | Tests de bout en bout Playwright (voir plus bas)                                                  |
 | `npm run lint`                            | Oxlint avec analyse des types                                                                     |
 | `npm run format` / `npm run format:check` | Prettier                                                                                          |
 | `npm run typecheck`                       | `tsc --noEmit`                                                                                    |
@@ -25,10 +26,12 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 | `src/mep/preparation` | Sections de l'onglet Préparation                                                                                                                                                  |
 | `src/parametres`      | Paramètres globaux : catalogue des systèmes (et historique des MEP d'un système), résolutions types, bibliothèques d'étapes et de recettes, critères go / no-go, modèles de texte |
 | `src/textes`          | Textes à copier : remplissage des modèles de texte (`modelesTexte.ts`, logique pure), aperçu, copie mise en forme ou simple                                                       |
-| `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version »                                                                                                        |
+| `src/layout`          | Cadre de l'application, palette de commandes, bandeau « nouvelle version », repli temporaire du menu latéral (`menuLateral.ts`)                                                   |
 | `src/charte`          | Charte visuelle : calculs des couleurs (`charte.ts`, `couleurs.ts`, mêmes résultats que le serveur), sélecteur de couleur, aperçus                                                |
 | `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                                                                                                |
-| `src/test`            | Configuration Vitest et fabrique de données de test                                                                                                                               |
+| `src/test`            | Configuration Vitest (les données partagées de `referentiels.ts` sont oubliées après chaque test : l'ordre des tests est indifférent) et fabrique de données de test              |
+
+Dans `src/mep/graphe`, `GrapheLibre.tsx` s'appuie sur `BarreOutilsGraphe.tsx` (barre d'outils), `MiniCarte.tsx`, `useMontageAnime.ts` (mouvement des nœuds après un rangement) et `noeudsRf.ts` (nœuds React Flow) ; `moteurElk.ts` exécute ELK dans un Web Worker (délai, reprise après échec) et `petitEcran.ts` règle la vue compacte (fenêtre de moins de 800 px de haut).
 
 Logique pure, testée sans DOM :
 
@@ -68,7 +71,16 @@ await run(() => api.demarrerEtape(mep.id, etape.id, etape.revision), 'Étape dé
 - `useDraft(source)` (`hooks.ts`) garde la saisie d'un formulaire : tant que l'utilisateur n'a rien modifié, le formulaire suit la source ; dès qu'il tape, sa saisie prime.
 - Le brouillon mémorise aussi la source au début de la saisie. Si elle change ensuite (modification d'un collègue reçue entre-temps), `conflit` passe à vrai : `ui/AvisConflit.tsx` affiche « Modifié pendant votre saisie » et bloque l'enregistrement jusqu'à ce que l'utilisateur abandonne sa saisie ou la garde (`garderSaisie`). La source ne doit contenir que les champs du formulaire, pas la version de la MEP.
 - `useReportDirty(dirty, libelle)` signale une saisie non enregistrée (`DirtyContext`) à `layout/GardeModifications.tsx`, qui entoure les pages connectées. Quitter la vue (autre page, onglet ou sous-onglet, voir `changeDeVue`) ouvre alors « Quitter sans enregistrer ? » avec la liste des libellés ; fermer ou recharger le navigateur déclenche son avertissement (`beforeunload`). La garde utilise `useBlocker` : l'application tourne dans un routeur de données (`createBrowserRouter`, `main.tsx`) et ses tests dans `createMemoryRouter`.
+- Passer aussi le brouillon (`useReportDirty(d.dirty, 'Intervention', d)`) : avant une reconnexion Microsoft (session expirée), la saisie est copiée dans `sessionStorage` (`brouillons.ts`), puis reprise au retour sur la même page par le formulaire de même libellé.
+- Session expirée : un 401 ouvre `layout/SessionExpiree.tsx` par-dessus la page ; la requête attend la reconnexion (`setUnauthorizedHandler`, `auth.tsx`) puis repart une fois. Les saisies restent en mémoire.
 - Une MEP relue (modification d'un collègue) s'affiche aussitôt : les formulaires gardent leur brouillon et `AvisConflit` signale un changement de leur section.
+
+### Chargements et erreurs
+
+- Listes communes : `useReferentiel('catalogue' | 'resolutions' | 'comptes' | 'equipes')` et `useDonneePartagee(cle, charger)` (`referentiels.ts`) lisent une clé une seule fois pour toute la page et renvoient `{ donnees, erreur, pret, enCours, recharger }` ; `charger` reçoit la dernière réponse gardée, pour ne lire que la suite d'une donnée lue par morceaux (journal d'une MEP : `useJournalMep`). Ne jamais remplacer une erreur par une liste vide (`.catch(() => [])`) : « Aucun… » ne s'affiche que sur une réponse vide.
+- `useAsync` expose `echec` (l'erreur reçue) en plus du message `erreur`.
+- `ui/ErreurChargement.tsx` affiche l'erreur (`variante` `bloc`, `ligne` ou `page`), sa cause, « Réessayer » (`onReessayer`, `enCours`) et, pour un administrateur, les détails techniques. Un 401 n'affiche rien : la reconnexion s'en charge.
+- Un écran qui dépend de plusieurs listes montre un seul squelette puis tout d'un coup (`ui/Apparition.tsx`), comme l'onglet Préparation (`usePreparation`).
 
 ### Temps réel
 
@@ -76,7 +88,11 @@ await run(() => api.demarrerEtape(mep.id, etape.id, etape.revision), 'Étape dé
 
 ### Nouvelle version
 
-`/api/version` renvoie l'empreinte du `index.html` servi. `layout/NouvelleVersion.tsx` la compare périodiquement à celle chargée et propose de recharger après un déploiement.
+`/api/version` renvoie l'empreinte du `index.html` servi. `layout/NouvelleVersion.tsx` la compare périodiquement à celle chargée et propose de recharger après un déploiement. Il le propose aussi sur l'événement `vite:preloadError` : un fichier chargé à la demande (une page, le moteur ELK) a disparu du serveur après un déploiement.
+
+### Tests de bout en bout
+
+`npm run e2e` lance Playwright (`playwright.config.ts`, fichiers `e2e/*.e2e.ts`) sur une instance déjà démarrée en mode démonstration (`DEMO=true`) : `E2E_URL` donne son adresse (par défaut http://localhost:5173, le serveur de développement). `e2e/petit-ecran.e2e.ts` vérifie, sur une fenêtre de 1366 × 641, que le graphe de la vue d'une section garde au moins 480 px de haut et reste visible, avec la carte de l'étape, quand l'étape est ouverte en tiroir. Le navigateur Chromium de Playwright doit être installé (`npx playwright install chromium`).
 
 ### Charte visuelle
 
@@ -86,5 +102,9 @@ Le serveur sert la charte en vigueur dans `/charte.css` (lien `<link id="charte"
 
 - Couleurs, ombres et rayons sont des **jetons CSS** définis dans `src/index.css` (`--bg`, `--surface`, `--fg`, `--accent`…), redéfinis pour le thème sombre (`:root.dark`). La charte visuelle les remplace par `/charte.css` : un nouveau jeton qui dépend de la primaire, de la secondaire ou de la tertiaire doit aussi être calculé dans `charte/charte.ts` et `CharteVisuelle.cs`. Le menu latéral utilise ses propres jetons (`--nav-*`), la page de connexion les siens (`--connexion-*`). Les tons de statut (`ok`, `run`, `wait`, `danger`, `warn`, `rollback`…) ont chacun un fond, un texte, une bordure et une couleur pleine.
 - Les classes Tailwind utilisent ces jetons (`bg-surface`, `text-fg-muted`). Pas de couleur en dur.
-- `ui/cn.ts` fusionne les classes (`clsx` + `tailwind-merge`).
+- Texte sur une couleur pleine : le jeton apparié (`bg-ok-solid text-ok-solid-fg`, `TON[ton].texteSolide`), jamais `text-white`. `--X-solid-fg` vaut blanc ou encre selon le contraste (`texteSur()` de `charte/charte.ts`, recalculé par la charte) ; `text-ok-text` et `text-warn-text` écrivent le vert et l'orange sur un fond clair. Couleur d'une personne : `stylePersonne(nom)` de `ui/Avatar.tsx`. Voile des dialogues : `bg-voile`.
+- Tailles de texte : l'échelle Tailwind complétée de `text-2xs` (11 px, le minimum), `text-ui` (13 px) et `text-md` (15 px), définies dans `@theme` ; pas de `text-[…px]`.
+- Étages (z-index) : `z-graphe` (graphe plein écran) < `z-panneau` (tiroir, espace d'une étape) < `z-dialogue` < `z-menu` (menus, info-bulles, ouverts au-dessus d'un dialogue) < `z-toast` (notifications, dialogue « session expirée ») ; pas de `z-[…]`. Les classes numériques de Tailwind (`z-1` à `z-40`) restent pour ordonner les éléments d'une page ou d'un composant (en-têtes collants, commandes du graphe), jamais au-dessus d'un étage.
+- `charte/echelles.test.ts` échoue si `text-[…px]`, `text-white`, `bg-black/…`, une couleur nommée de Tailwind ou un `z-[…]` revient dans le code (hors aperçu et sélecteur de la charte, qui dessinent sur la couleur choisie).
+- `ui/cn.ts` fusionne les classes (`clsx` + `tailwind-merge`, qui connaît les tailles et les étages ajoutés : `text-ui` n'efface pas `text-fg`).
 - Le thème (clair, sombre, système) est géré par `theme.tsx`.

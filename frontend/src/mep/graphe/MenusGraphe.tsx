@@ -23,7 +23,7 @@ export function EntreesCreation({ choix }: { choix: ChoixCreation }) {
       <MenuSeparator />
       <MenuLabel>Depuis un modèle</MenuLabel>
       {choix.modeles.length === 0 && (
-        <p className="px-2.5 py-1 text-[13px] text-fg-subtle">Aucune étape modèle pour les systèmes de la MEP.</p>
+        <p className="px-2.5 py-1 text-ui text-fg-subtle">Aucune étape modèle pour les systèmes de la MEP.</p>
       )}
       {choix.modeles.map((m) => (
         <MenuItem key={m.id} onSelect={() => choix.onModele(m)}>
@@ -130,7 +130,7 @@ export function ContenuMenuLien({
             onFocus={() => onCandidat?.(c.id)}
             onBlur={() => onCandidat?.(null)}
           >
-            <span className="min-w-0 flex-1 truncate font-mono text-[13px]">{c.libelle}</span>
+            <span className="min-w-0 flex-1 truncate font-mono text-ui">{c.libelle}</span>
           </MenuItem>
         ))}
       </>
@@ -138,7 +138,7 @@ export function ContenuMenuLien({
   return (
     <>
       <MenuLabel>{titre}</MenuLabel>
-      {note && <p className="max-w-72 px-2.5 pb-1.5 text-[13px] text-fg-muted">{note}</p>}
+      {note && <p className="max-w-72 px-2.5 pb-1.5 text-ui text-fg-muted">{note}</p>}
       {onOuvrirSection && (
         <MenuItem onSelect={onOuvrirSection}>
           <FolderOpen className="size-4 shrink-0 text-fg-subtle" aria-hidden />

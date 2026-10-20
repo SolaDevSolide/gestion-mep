@@ -36,7 +36,7 @@ public static partial class VuesExcel
     {
         EtatMep.Reussie => "Clôturée : réussie",
         EtatMep.AvecIncidents => "Clôturée : réussie avec incidents",
-        EtatMep.Repliee => "Clôturée : repliée",
+        EtatMep.Repliee => "Clôturée après retour arrière",
         EtatMep.Echec => "Clôturée : échec",
         EtatMep.Reportee => "Reportée",
         _ => Libelle(mep.Phase),

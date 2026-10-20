@@ -5,7 +5,7 @@ import { api } from '../api';
 import App from '../App';
 import { AuthContext } from '../auth';
 import { TooltipProvider } from '../ui/Tooltip';
-import { utilisateur } from '../test/fabrique';
+import { SESSION_ACTIVE, utilisateur } from '../test/fabrique';
 import type { Utilisateur } from '../types';
 
 vi.mock('../api', () => ({
@@ -22,7 +22,14 @@ async function rendre(u: Utilisateur) {
   vi.mocked(api.meps).mockResolvedValue([]);
   render(
     <AuthContext.Provider
-      value={{ utilisateur: u, chargement: false, connecter: vi.fn(), deconnecter: vi.fn(), majUtilisateur }}
+      value={{
+        utilisateur: u,
+        chargement: false,
+        connecter: vi.fn(),
+        deconnecter: vi.fn(),
+        majUtilisateur,
+        ...SESSION_ACTIVE,
+      }}
     >
       <TooltipProvider>
         <MemoryRouter initialEntries={['/']}>

@@ -1,7 +1,7 @@
 import { Check, FileSpreadsheet, OctagonAlert, XCircle } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { api, ApiError } from '../../api';
-import { formatDate, LIBELLE_VALIDATION } from '../../format';
+import { formatDate, LIBELLE_RESULTAT } from '../../format';
 import { useMep } from '../../mepContext';
 import type { ApercuValidation } from '../../types';
 import { Alerte } from '../../ui/Alerte';
@@ -143,7 +143,7 @@ export function ImportValidationDialog({ open, onOpenChange }: { open: boolean; 
                         icone={c.resultat === 'Conforme' ? Check : XCircle}
                         taille="sm"
                       >
-                        {LIBELLE_VALIDATION[c.resultat]}
+                        {LIBELLE_RESULTAT[c.resultat]}
                       </StatusPill>
                     </div>
                     <p className="mt-1 whitespace-pre-line text-fg-muted">{c.observation}</p>

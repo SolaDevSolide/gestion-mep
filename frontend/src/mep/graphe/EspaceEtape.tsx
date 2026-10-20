@@ -3,6 +3,7 @@ import { Dialog as D } from 'radix-ui';
 import { useSyncExternalStore, type ReactNode } from 'react';
 import { BoutonIcone } from '../../ui/Button';
 import { cn } from '../../ui/cn';
+import { LARGEUR_TIROIR, useEmplacementTiroir } from './petitEcran';
 
 // ---------- Mode d'affichage de l'espace d'une étape : plein écran ou panneau latéral (mémorisé) ----------
 
@@ -51,6 +52,8 @@ export const LARGEUR_PANNEAU = 'min(600px, 100vw - 1rem)';
  * Espace d'une étape (édition ou exécution).
  * - Plein écran : surcouche large, barre du haut, trois colonnes visibles ensemble ; seule la colonne centrale défile.
  * - Panneau latéral : le graphe reste utilisable à gauche ; les colonnes s'enchaînent dans un défilement unique.
+ * - Tiroir (vue compacte, fenêtre de moins de 800 px de haut) : comme le panneau, mais dans le cadre du graphe, sous son
+ *   bandeau, par-dessus le graphe (qui ne se rétrécit pas) ; voir `EmplacementTiroir`.
  * Sous 1100 px de large, le plein écran empile aussi les colonnes.
  */
 export function Surcouche({
@@ -71,6 +74,9 @@ export function Surcouche({
 }) {
   const mode = useModeEspace();
   const plein = mode === 'plein';
+  // Vue compacte (fenêtre basse) : tiroir dans le cadre du graphe, sous son bandeau, au lieu du panneau de la fenêtre.
+  const emplacement = useEmplacementTiroir();
+  const tiroir = !plein && !!emplacement;
   return (
     <D.Root
       open
@@ -79,15 +85,19 @@ export function Surcouche({
         if (!o) onDemandeFermeture();
       }}
     >
-      <D.Portal>
-        {plein && <D.Overlay className="fixed inset-0 z-40 bg-black/20 data-[state=open]:animate-fade-in" />}
+      <D.Portal container={tiroir ? emplacement : undefined}>
+        {plein && <D.Overlay className="fixed inset-0 z-panneau bg-voile data-[state=open]:animate-fade-in" />}
         <D.Content
           aria-describedby={undefined}
+          data-tiroir-etape={tiroir || undefined}
           // Panneau : le graphe reste utilisable, un clic dessus ne ferme pas l'espace.
           onInteractOutside={plein ? undefined : (e) => e.preventDefault()}
-          style={plein ? undefined : { width: LARGEUR_PANNEAU }}
+          style={plein ? undefined : { width: tiroir ? LARGEUR_TIROIR : LARGEUR_PANNEAU }}
           className={cn(
-            'fixed inset-y-2 right-2 z-50 flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-lg outline-none data-[state=open]:animate-slide-in',
+            'flex flex-col overflow-hidden border border-line bg-surface shadow-lg outline-none data-[state=open]:animate-slide-in',
+            tiroir
+              ? 'pointer-events-auto absolute inset-y-0 right-0 max-w-full rounded-none border-y-0 border-r-0'
+              : 'fixed inset-y-2 right-2 z-panneau rounded-2xl',
             plein && 'w-[calc(100vw-1rem)] min-[1100px]:w-[92vw]',
           )}
         >
@@ -160,7 +170,7 @@ export function Bloc({ titre, children, action }: { titre: string; children: Rea
   return (
     <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">{titre}</h3>
+        <h3 className="text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">{titre}</h3>
         {action}
       </div>
       {children}

@@ -54,12 +54,12 @@ export const BORDURE_TON: Record<Ton, string> = {
 
 /** Texte coloré par ton. */
 export const TEXTE_TON: Record<Ton, string> = {
-  ok: 'text-ok-solid border-ok-solid',
+  ok: 'text-ok-text border-ok-solid',
   run: 'text-run-solid border-run-solid',
   wait: 'text-wait-solid border-wait-solid',
   done: 'text-done-solid border-done-solid',
   danger: 'text-danger-solid border-danger-solid',
-  warn: 'text-warn-solid border-warn-solid',
+  warn: 'text-warn-text border-warn-solid',
   later: 'text-later-fg border-later-bd',
   rollback: 'text-rollback-solid border-rollback-solid',
 };

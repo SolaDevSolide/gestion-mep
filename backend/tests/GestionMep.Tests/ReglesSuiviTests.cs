@@ -43,7 +43,7 @@ public class ReglesSuiviTests
         Assert.Equal(45, f.RetardMinutes);
         Assert.False(f.Terminee);
         Assert.False(f.SansDuree);
-        Assert.Equal("1/5 étapes faites (20 %)", Regles.Avancement(mep));
+        Assert.Equal("1/5 étapes réussies (20 %)", Regles.Avancement(mep));
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class ReglesSuiviTests
         Assert.Equal(TypePlan.RetourArriere, f.Plan);
         Assert.Equal(Go.AddMinutes(105), f.FinPrevue);
         Assert.Equal(Go.AddMinutes(110), f.FinEstimee);
-        Assert.Equal("0/1 étape faite (0 %)", Regles.Avancement(mep));
+        Assert.Equal("0/1 étape réussie (0 %)", Regles.Avancement(mep));
     }
 
     [Fact]

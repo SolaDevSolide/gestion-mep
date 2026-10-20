@@ -295,7 +295,7 @@ public sealed record FiltreMeps
         EtatMep.RetourArriere => "Retour arrière",
         EtatMep.Reussie => "Réussie",
         EtatMep.AvecIncidents => "Réussie avec incidents",
-        EtatMep.Repliee => "Repliée",
+        EtatMep.Repliee => "Après retour arrière",
         EtatMep.Reportee => "Reportée",
         EtatMep.Echec => "Échec (service dégradé)",
         EtatMep.Annulee => "Annulée",

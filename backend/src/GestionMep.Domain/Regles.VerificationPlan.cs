@@ -85,7 +85,7 @@ public static partial class Regles
         erreurs.AddRange(ErreursEnvironnements(mep));
         erreurs.AddRange(ErreursRecette(mep));
 
-        if (!mep.EstModele && mep.ProcedureRelueParId is null) erreurs.Add("La procédure doit être relue par un opérateur.");
+        if (!mep.EstModele && mep.ProcedureRelueParId is null) erreurs.Add("La procédure doit être relue par une personne de la MEP.");
         return erreurs;
     }
 

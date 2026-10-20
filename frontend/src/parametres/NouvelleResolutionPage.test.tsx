@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { api } from '../api';
+import { api, ApiError } from '../api';
+import type { Mep } from '../types';
 import { etape, mep } from '../test/fabrique';
 import type { ResolutionType } from '../types';
 import NouvelleResolutionPage from './NouvelleResolutionPage';
@@ -51,6 +52,16 @@ vi.mock('../api', () => ({
     mep: vi.fn(async () => laMep),
     creerResolution: vi.fn(async () => creee),
     modifierEtape: vi.fn(async () => laMep),
+  },
+  ApiError: class ErreurApi extends Error {
+    status: number;
+    erreurs: string[] = [];
+    requete = '';
+    date = new Date();
+    constructor(status: number, message: string) {
+      super(message);
+      this.status = status;
+    }
   },
 }));
 
@@ -136,5 +147,66 @@ describe('NouvelleResolutionPage : systèmes multiples et titre proposé', () =>
     expect(api.creerResolution).toHaveBeenCalledWith(
       expect.objectContaining({ titre: 'LDAP muet', systemeCatalogueIds: ['c-api', 'c-web'] }),
     );
+  });
+});
+
+describe('NouvelleResolutionPage : pas d’enregistrement avant l’étape à lier', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  /** Réponse de la MEP retenue : elle arrive quand le test le décide. */
+  function mepRetenue() {
+    let resoudre: (m: Mep) => void = () => undefined;
+    vi.mocked(api.mep).mockReturnValueOnce(
+      new Promise<Mep>((r) => {
+        resoudre = r;
+      }),
+    );
+    return (m: Mep) => resoudre(m);
+  }
+
+  it('« Enregistrer et lier » attend l’étape, avec son motif ; la saisie reste possible', async () => {
+    const livrer = mepRetenue();
+    rendre('/parametres/resolutions/nouvelle?mep=m1&etape=e6');
+    const bouton = screen.getByRole('button', { name: 'Enregistrer et lier' });
+    expect(bouton).toHaveAttribute('aria-disabled', 'true');
+    expect(bouton).toHaveAccessibleDescription('Chargement de l’étape à lier… La saisie reste possible.');
+    // Ni fil d'Ariane vers « Résolutions types », ni titre qui changera à l'arrivée de la MEP.
+    expect(screen.queryByRole('link', { name: /Résolutions types/ })).toBeNull();
+
+    await userEvent.type(screen.getByLabelText('Titre *'), 'Purge refusée{Enter}');
+    expect(screen.getByLabelText('Titre *')).toHaveValue('Purge refusée');
+    await userEvent.click(bouton);
+    expect(api.creerResolution).not.toHaveBeenCalled();
+
+    livrer(laMep);
+    const pret = await screen.findByRole('button', { name: 'Enregistrer et lier à E0006' });
+    expect(pret).not.toHaveAttribute('aria-disabled');
+    expect(screen.getByLabelText('Titre *')).toHaveValue('Purge refusée');
+    await userEvent.click(pret);
+    await waitFor(() => expect(api.modifierEtape).toHaveBeenCalled());
+  });
+
+  it('MEP non chargée : l’erreur se dit en ligne, « Réessayer » relance, sinon « Enregistrer sans lier »', async () => {
+    vi.mocked(api.mep).mockRejectedValueOnce(new ApiError(502, 'Erreur 502.'));
+    rendre('/parametres/resolutions/nouvelle?mep=m1&etape=e6');
+    const alerte = (await screen.findByText(/Étape à lier non chargée : le serveur ne répond pas \(502\)/)).closest(
+      '[role="alert"]',
+    ) as HTMLElement;
+    expect(screen.getByRole('link', { name: /Résolutions types/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enregistrer sans lier' })).not.toHaveAttribute('aria-disabled');
+
+    await userEvent.click(within(alerte).getByRole('button', { name: 'Réessayer' }));
+    expect(await screen.findByRole('button', { name: 'Enregistrer et lier à E0006' })).toBeInTheDocument();
+    expect(api.mep).toHaveBeenCalledTimes(2);
+  });
+
+  it('« Enregistrer sans lier » crée la fiche sans toucher à l’étape', async () => {
+    vi.mocked(api.mep).mockRejectedValueOnce(new ApiError(502, 'Erreur 502.'));
+    rendre('/parametres/resolutions/nouvelle?mep=m1&etape=e6');
+    await userEvent.type(screen.getByLabelText('Titre *'), 'Purge refusée');
+    await userEvent.click(await screen.findByRole('button', { name: 'Enregistrer sans lier' }));
+    expect(await screen.findByText('Destination : /parametres/resolutions')).toBeInTheDocument();
+    expect(api.creerResolution).toHaveBeenCalled();
+    expect(api.modifierEtape).not.toHaveBeenCalled();
   });
 });

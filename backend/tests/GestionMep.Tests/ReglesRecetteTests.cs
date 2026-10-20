@@ -142,9 +142,9 @@ public class ReglesRecetteTests
         var a = AnalyserValidation(m, m.Id, VersionRecette(m), lignes);
         Assert.Equal(4, a.Erreurs.Count);
         Assert.Contains(a.Erreurs, e => e.Contains("déjà « Conforme » dans l'application", StringComparison.Ordinal));
-        Assert.Contains(a.Erreurs, e => e.Contains("validation « Peut-être » inconnue (colonne « Validation » : Validé ou Refusé attendu)", StringComparison.Ordinal));
+        Assert.Contains(a.Erreurs, e => e.Contains("validation « Peut-être » inconnue (colonne « Validation » : Conforme ou Non conforme attendu)", StringComparison.Ordinal));
         Assert.Contains(a.Erreurs, e => e.Contains("indiquer qui a validé", StringComparison.Ordinal));
-        Assert.Contains(a.Erreurs, e => e.Contains("date illisible", StringComparison.Ordinal) && e.Contains("décrire le résultat constaté du refus", StringComparison.Ordinal));
+        Assert.Contains(a.Erreurs, e => e.Contains("date illisible", StringComparison.Ordinal) && e.Contains("décrire le résultat constaté d'une étape non conforme", StringComparison.Ordinal));
 
         var ex = Assert.ThrowsAny<RegleMetierException>(() => AppliquerValidation(m, a, Claire, false, Maintenant));
         Assert.StartsWith("Fichier refusé", ex.Message);
@@ -179,6 +179,11 @@ public class ReglesRecetteTests
     }
 
     [Theory]
+    [InlineData("Conforme", ResultatControle.Conforme)]
+    [InlineData(" non conforme ", ResultatControle.Echec)]
+    [InlineData("Non-conforme", ResultatControle.Echec)]
+    [InlineData("NON  CONFORME", ResultatControle.Echec)]
+    // Libellés des fichiers exportés avant « Conforme / Non conforme » : toujours acceptés.
     [InlineData("Validé", ResultatControle.Conforme)]
     [InlineData(" valide ", ResultatControle.Conforme)]
     [InlineData("REFUSÉ", ResultatControle.Echec)]
@@ -186,6 +191,7 @@ public class ReglesRecetteTests
     [InlineData("Validée", ResultatControle.Conforme)]
     [InlineData(" refusée", ResultatControle.Echec)]
     [InlineData("OK", null)]
-    [InlineData("Conforme", null)]
+    [InlineData("Conformes", null)]
+    [InlineData("Non", null)]
     public void Les_valeurs_de_validation_acceptees(string valeur, ResultatControle? attendu) => Assert.Equal(attendu, LireValidation(valeur));
 }

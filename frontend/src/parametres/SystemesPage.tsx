@@ -1,4 +1,4 @@
-import { CheckCircle2, CircleOff, Layers, ListTree, Lock, OctagonAlert, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, CircleOff, Layers, ListTree, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
@@ -8,7 +8,7 @@ import { formatDate } from '../format';
 import { lienHistoriqueSysteme } from '../mep/SystemeCliquable';
 import { metaEtatMep } from '../statuts';
 import type { ActiviteSysteme, SystemeCatalogue } from '../types';
-import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { ConfirmDialog } from '../ui/Dialog';
@@ -20,7 +20,7 @@ import { useToast } from '../ui/Toast';
 import { CategoriesDefautDialog } from './CategoriesDefautDialog';
 import { cn } from '../ui/cn';
 import { TON } from '../ui/tons';
-import { SqueletteRangees } from '../ui/Squelette';
+import { Squelette, SqueletteRangees } from '../ui/Squelette';
 import { SystemeDialog } from './SystemeDialog';
 
 /** Dernière MEP d'un système (#59) : son jour, son outil et son état ; un lien vers l'historique du système. */
@@ -57,12 +57,10 @@ export default function SystemesPage() {
   const { utilisateur } = useAuth();
   const toast = useToast();
   const admin = utilisateur?.estAdmin ?? false;
-  const { donnees, erreur, recharger } = useAsync(() => api.catalogueSystemes(), []);
-  // Activité des systèmes : colonne « Dernière MEP » ; sans elle, le catalogue reste consultable.
-  const { donnees: activite } = useAsync(
-    async () => new Map((await api.activiteSystemes().catch(() => [])).map((a) => [a.systemeId, a])),
-    [],
-  );
+  const { donnees, erreur, echec, chargement, recharger } = useAsync(() => api.catalogueSystemes(), []);
+  // Activité des systèmes : colonne « Dernière MEP » ; en erreur, le catalogue reste consultable et la colonne le dit.
+  const lue = useAsync(async () => new Map((await api.activiteSystemes()).map((a) => [a.systemeId, a])), []);
+  const activite = lue.donnees;
   const [edition, setEdition] = useState<{ existant: SystemeCatalogue | null } | null>(null);
   const [suppr, setSuppr] = useState<SystemeCatalogue | null>(null);
   const [categories, setCategories] = useState(false);
@@ -98,10 +96,24 @@ export default function SystemesPage() {
         )}
       </div>
 
-      {erreur && (
-        <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">
-          {erreur}
-        </Alerte>
+      {echec !== null && (
+        <ErreurChargement
+          className="mt-6"
+          erreur={echec}
+          titre="Impossible de charger le catalogue des systèmes"
+          onReessayer={recharger}
+          enCours={chargement}
+        />
+      )}
+      {lue.echec !== null && donnees !== null && (
+        <ErreurChargement
+          variante="ligne"
+          className="mt-6"
+          erreur={lue.echec}
+          titre="Colonne « Dernière MEP » non chargée"
+          onReessayer={lue.recharger}
+          enCours={lue.chargement}
+        />
       )}
 
       <Card className="mt-6 overflow-hidden">
@@ -169,7 +181,7 @@ export default function SystemesPage() {
                       </Link>
                     </th>
                     <td className="max-w-xs px-4 py-3 text-fg-muted">{s.description || '—'}</td>
-                    <td className="px-4 py-3 font-mono text-[13px] text-fg-muted">{s.cible || '—'}</td>
+                    <td className="px-4 py-3 font-mono text-ui text-fg-muted">{s.cible || '—'}</td>
                     <td className="px-4 py-3">
                       {s.environnements.length === 0 ? (
                         <span className="text-fg-subtle">—</span>
@@ -189,9 +201,9 @@ export default function SystemesPage() {
                     <td className="px-4 py-3">
                       {activite ? (
                         <DerniereMep a={activite.get(s.id)} systeme={s} />
-                      ) : (
-                        <span className="text-fg-subtle">…</span>
-                      )}
+                      ) : lue.echec === null ? (
+                        <Squelette className="h-4 w-20" />
+                      ) : null}
                     </td>
                     <td className="px-4 py-3">
                       <StatusPill taille="sm" ton={s.actif ? 'ok' : 'wait'} icone={s.actif ? CheckCircle2 : CircleOff}>

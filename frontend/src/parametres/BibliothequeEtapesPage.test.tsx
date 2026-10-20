@@ -81,7 +81,7 @@ describe('Bibliothèque d’étapes', () => {
   it('s’ouvre sur le choix du système : ordre alphabétique, nombre d’étapes et répartition par type', async () => {
     rendre();
     const bdd = await screen.findByRole('link', { name: 'BDD : 3 étapes' });
-    expect(bdd).toHaveTextContent('2 normales · 1 sauvegarde');
+    expect(bdd).toHaveTextContent('2 standard · 1 sauvegarde');
     expect(bdd).toHaveTextContent('Base PostgreSQL');
     const liens = screen.getAllByRole('link', { name: /: \d+ étape/ }).map((l) => l.getAttribute('aria-label'));
     // Une étape qui touche plusieurs systèmes compte dans chacun.

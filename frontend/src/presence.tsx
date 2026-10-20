@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { DirtyContext, type DirtyRegistry } from './hooks';
 import type { Presence } from './types';
-import { Avatar, couleurPersonne } from './ui/Avatar';
+import { Avatar, couleurPersonne, stylePersonne } from './ui/Avatar';
 import { cn } from './ui/cn';
 
 /**
@@ -69,16 +69,16 @@ export function MarquePresence({
     <>
       <span
         aria-hidden
-        className={cn('pointer-events-none absolute -inset-1 z-[3] rounded-[inherit] border-2', className)}
+        className={cn('pointer-events-none absolute -inset-1 z-3 rounded-[inherit] border-2', className)}
         style={{ borderColor: couleur }}
       />
       <span
         role="status"
         className={cn(
-          'pointer-events-none absolute -top-3 left-2 z-[4] inline-flex max-w-[calc(100%-1rem)] items-center gap-1 truncate rounded-full px-2 py-0.5 text-[11px] leading-none font-semibold text-white shadow-sm',
+          'pointer-events-none absolute -top-3 left-2 z-4 inline-flex max-w-[calc(100%-1rem)] items-center gap-1 truncate rounded-full px-2 py-0.5 text-2xs leading-none font-semibold shadow-sm',
           etiquette,
         )}
-        style={{ backgroundColor: couleur }}
+        style={stylePersonne(editeurs[0].nom)}
       >
         {libelleEditeurs(editeurs)}
       </span>
@@ -108,12 +108,15 @@ export function ZonePresence({ cle, className, children }: { cle: string; classN
   const [focus, setFocus] = useState(false);
   const registre = useMemo<DirtyRegistry>(
     () => ({
-      set: (id, dirty, libelle) => {
-        parent.set(id, dirty, libelle);
+      set: (id, dirty, libelle, lire) => {
+        parent.set(id, dirty, libelle, lire);
         if (dirty) sales.current.add(id);
         else sales.current.delete(id);
         setSale(sales.current.size > 0);
       },
+      libelles: () => parent.libelles(),
+      brouillons: () => parent.brouillons(),
+      abandonner: () => parent.abandonner(),
     }),
     [parent],
   );
@@ -152,7 +155,7 @@ export function PresentsMep() {
           />
         ))}
         {autres.length > visibles.length && (
-          <span className="inline-flex size-6 items-center justify-center rounded-full bg-surface-2 text-[10px] font-semibold text-fg-muted ring-2 ring-surface">
+          <span className="inline-flex size-6 items-center justify-center rounded-full bg-surface-2 text-2xs font-semibold text-fg-muted ring-2 ring-surface">
             +{autres.length - visibles.length}
           </span>
         )}

@@ -1,7 +1,8 @@
+import { texteSur } from '../charte/couleurs';
 import { initiales } from '../format';
 import { cn } from './cn';
 
-/** Teintes des personnes (contraste suffisant avec un texte blanc, en clair comme en sombre). */
+/** Teintes des personnes (assez foncées pour un texte blanc, en clair comme en sombre). */
 const PALETTE = [
   '#4f46e5', // indigo
   '#0369a1', // bleu ciel
@@ -18,6 +19,12 @@ export function couleurPersonne(nom: string): string {
   let h = 0;
   for (const c of nom) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return PALETTE[h % PALETTE.length];
+}
+
+/** Couleurs de fond et de texte d'un élément à la couleur d'une personne (texte lisible : blanc ou encre). */
+export function stylePersonne(nom: string): { backgroundColor: string; color: string } {
+  const fond = couleurPersonne(nom);
+  return { backgroundColor: fond, color: texteSur(fond) };
 }
 
 export function Avatar({
@@ -39,15 +46,15 @@ export function Avatar({
       aria-label={titre ?? (n || 'Inconnu')}
       title={titre ?? (n || undefined)}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white select-none',
-        taille === 'xs' && 'size-5 text-[9px]',
-        taille === 'sm' && 'size-6 text-[10px]',
+        'inline-flex shrink-0 items-center justify-center rounded-full font-semibold select-none',
+        taille === 'xs' && 'size-5 text-2xs',
+        taille === 'sm' && 'size-6 text-2xs',
         taille === 'md' && 'size-8 text-xs',
         taille === 'lg' && 'size-10 text-sm',
-        !n && 'bg-fg-subtle',
+        !n && 'bg-fg-subtle text-surface',
         className,
       )}
-      style={n ? { backgroundColor: couleurPersonne(n) } : undefined}
+      style={n ? stylePersonne(n) : undefined}
     >
       {initiales(n)}
     </span>

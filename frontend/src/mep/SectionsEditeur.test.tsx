@@ -100,7 +100,7 @@ function planAvecSections(p: Partial<Mep> = {}): Mep {
 
 const declarer = vi.fn();
 
-function rendre(
+async function rendre(
   m: Mep,
   adresse = '/meps/m1',
   verrous: Verrou[] | null = null,
@@ -127,6 +127,8 @@ function rendre(
     </MemoryRouter>
   );
   const r = render(arbre(m, verrous));
+  // Référentiels (systèmes, résolutions) lus au montage : le plan s'affiche une fois leurs réponses reçues.
+  await act(async () => {});
   return { run, rerendre: (mm: Mep, vv: Verrou[] | null) => r.rerender(arbre(mm, vv)) };
 }
 
@@ -154,7 +156,7 @@ describe('Sections du plan', () => {
   });
 
   it('section d’un autre repliée par défaut : titre, systèmes, nombre d’étapes, auteur, cercles ; un clic la déplie', async () => {
-    rendre(planAvecSections());
+    await rendre(planAvecSections());
     const cadre = await screen.findByRole('group', { name: 'Section Bascule BDD, repliée' });
     expect(cadre).toHaveTextContent('Bascule BDD');
     expect(cadre).toHaveTextContent('2 étapes · par Bob');
@@ -173,7 +175,7 @@ describe('Sections du plan', () => {
   });
 
   it('« Tout déplier / Tout replier »', async () => {
-    rendre(planAvecSections());
+    await rendre(planAvecSections());
     await screen.findByRole('group', { name: 'Section Bascule BDD, repliée' });
     await userEvent.click(screen.getByRole('button', { name: 'Tout déplier' }));
     expect(await screen.findByRole('group', { name: 'Section Bascule BDD, dépliée' })).toBeInTheDocument();
@@ -182,7 +184,7 @@ describe('Sections du plan', () => {
   });
 
   it('bac : sections pas encore placées, « Placer dans le graphe », « Nouvelle section »', async () => {
-    rendre(planAvecSections());
+    await rendre(planAvecSections());
     const bac = screen.getByRole('complementary', { name: 'Bac des éléments à placer' });
     expect(bac).toHaveTextContent('Sections à placer (1)');
     expect(bac).toHaveTextContent('Purge des caches');
@@ -199,7 +201,7 @@ describe('Sections du plan', () => {
 
   it('bac : étapes à placer hors du graphe, « Placer à part », « Retirer du plan » sur la fiche', async () => {
     const m = planAvecSections();
-    rendre({
+    await rendre({
       ...m,
       etapes: [...m.etapes, etape({ id: 'e5', code: 'E0005', action: 'Vider le cache', ligne: 3, aPlacer: true })],
     });
@@ -220,13 +222,13 @@ describe('Sections du plan', () => {
   });
 
   it('« Retirer du plan » sur une section : elle retourne dans le bac', async () => {
-    rendre(planAvecSections());
+    await rendre(planAvecSections());
     await userEvent.click(await screen.findByRole('button', { name: 'Retirer la section Bascule BDD du plan' }));
     expect(apiGraphe.placerSection).toHaveBeenCalledWith('m1', 'sb', false);
   });
 
   it('vue d’édition d’une section : fil d’Ariane, titre, cercles, ses seules étapes ; création dans la section', async () => {
-    rendre(planAvecSections(), '/meps/m1?section=sb');
+    await rendre(planAvecSections(), '/meps/m1?section=sb');
     const fil = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
     expect(fil).toHaveTextContent('Portail');
     expect(fil).toHaveTextContent('Plan · Étapes');
@@ -262,7 +264,7 @@ describe('Sections du plan', () => {
 
   it('dans le plan, l’intérieur d’une section dépliée se lit seulement ; on le modifie dans la vue de la section', async () => {
     window.localStorage.setItem('mep.m1.sections.depliees', JSON.stringify({ sb: true }));
-    rendre(planAvecSections());
+    await rendre(planAvecSections());
     expect(await screen.findByRole('group', { name: 'Section Bascule BDD, dépliée' })).toBeInTheDocument();
     // Ni « + » sur les cartes de la section, ni poignée active ; les cartes du plan gardent les leurs.
     expect(screen.getByRole('button', { name: 'Ajouter une étape après E0001' })).toBeInTheDocument();
@@ -288,7 +290,7 @@ describe('Sections du plan', () => {
   });
 
   it('vue d’une section dans le cadre du plan (plein écran compris) : « Retour au plan », Échap', async () => {
-    rendre(planAvecSections(), '/meps/m1?section=sb');
+    await rendre(planAvecSections(), '/meps/m1?section=sb');
     const bandeau = screen.getByRole('region', { name: 'Section « Bascule BDD »' });
     expect(bandeau.closest('.graphe-libre')).not.toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Plan en plein écran' }));
@@ -306,14 +308,14 @@ describe('Sections du plan', () => {
   });
 
   it('« Retour au plan » depuis la vue d’une section', async () => {
-    rendre(planAvecSections(), '/meps/m1?section=sb');
+    await rendre(planAvecSections(), '/meps/m1?section=sb');
     await userEvent.click(screen.getByRole('button', { name: 'Retour au plan' }));
     expect(await screen.findByRole('button', { name: /^E0001/ })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Fil d’Ariane' })).toBeNull();
   });
 
   it('vue d’une section : remettre dans le bac, supprimer (ses étapes restent)', async () => {
-    rendre(planAvecSections(), '/meps/m1?section=sb');
+    await rendre(planAvecSections(), '/meps/m1?section=sb');
     await userEvent.click(screen.getByRole('button', { name: 'Remettre dans le bac' }));
     expect(apiGraphe.placerSection).toHaveBeenCalledWith('m1', 'sb', false);
     await userEvent.click(screen.getByRole('button', { name: 'Supprimer la section' }));
@@ -329,7 +331,7 @@ describe('Sections du plan', () => {
         ? { pris: true, verrou: verrou(session, 'Moi', etapeId) }
         : { pris: false, verrou: verrou('onglet-alice', 'Alice Martin', etapeId) },
     );
-    rendre(planAvecSections());
+    await rendre(planAvecSections());
     fireEvent.click(await screen.findByRole('button', { name: /^E0001/ }));
     expect(await screen.findByText(/Alice est dessus : lecture seule/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Action')).toBeNull();
@@ -340,7 +342,7 @@ describe('Sections du plan', () => {
 
   it('verrou : « Bob a pris la main » pendant la saisie, qui reste affichée pour être copiée', async () => {
     const m = planAvecSections();
-    const { rerendre } = rendre(m);
+    const { rerendre } = await rendre(m);
     fireEvent.click(await screen.findByRole('button', { name: /^E0001/ }));
     await waitFor(() => expect(apiVerrou.prendre).toHaveBeenCalledWith('m1', 'e1', 'onglet-a', false));
     await userEvent.type(screen.getByLabelText('Action'), ' complète');
@@ -356,14 +358,14 @@ describe('Sections du plan', () => {
       { utilisateurId: 'u-claire', nom: 'Claire', elements: ['ici:etape:e1', 'etape:e1'] },
     ];
     const prise = { ...verrou('onglet-claire', 'Claire', 'e1'), utilisateurId: 'u-claire', reprisDeNom: 'Alice' };
-    rendre(planAvecSections(), '/meps/m1', [prise], undefined, autres);
+    await rendre(planAvecSections(), '/meps/m1', [prise], undefined, autres);
     const section = await screen.findByRole('group', { name: 'Section Bascule BDD, repliée' });
     expect(within(section).getByRole('group', { name: 'Bob est dans la section « Bascule BDD »' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Claire a pris la main sur E0001 à Alice' })).toBeInTheDocument();
   });
 
   it('les étapes ouvertes et la vue d’une section déclarent où l’on est (même en lecture)', async () => {
-    rendre(planAvecSections(), '/meps/m1?section=sb&etape=e2');
+    await rendre(planAvecSections(), '/meps/m1?section=sb&etape=e2');
     await screen.findByRole('button', { name: 'Retour au plan', hidden: true });
     await waitFor(() => {
       const cles = declarer.mock.calls.map((c) => c[1]);
@@ -373,7 +375,7 @@ describe('Sections du plan', () => {
   });
 
   it('double-clic sur une section repliée : sa vue d’édition (sans la déplier)', async () => {
-    rendre(planAvecSections());
+    await rendre(planAvecSections());
     const section = await screen.findByRole('group', { name: 'Section Bascule BDD, repliée' });
     const noeud = section.closest('.react-flow__node') ?? section;
     fireEvent.click(noeud, { detail: 1 });
@@ -385,7 +387,7 @@ describe('Sections du plan', () => {
 
   it('« Optimiser les liens » : liste des liens inutiles, puis une seule opération à la confirmation', async () => {
     vi.mocked(apiGraphe.liensRedondants).mockResolvedValueOnce([{ de: 'e1', vers: 'e3', libelle: 'E0001 → E0003' }]);
-    rendre(planAvecSections());
+    await rendre(planAvecSections());
     await userEvent.click(await screen.findByRole('button', { name: 'Optimiser les liens' }));
     const panneau = await screen.findByRole('region', { name: 'Optimiser les liens' });
     expect(panneau).toHaveTextContent('1 lien inutile');
@@ -405,7 +407,7 @@ describe('Sections du plan', () => {
     vi.mocked(apiGraphe.liensRedondants).mockResolvedValueOnce([
       { de: 'in', vers: 'e3', libelle: 'Début (Bascule BDD) → E0003' },
     ]);
-    rendre(planAvecSections(), '/meps/m1?section=sb');
+    await rendre(planAvecSections(), '/meps/m1?section=sb');
     expect(await screen.findByRole('button', { name: 'Retour au plan' })).toBeInTheDocument();
     const bouton = screen.getByRole('button', { name: 'Optimiser les liens' });
     expect(bouton).toHaveAttribute('title', expect.stringContaining('cette section'));
@@ -422,10 +424,98 @@ describe('Sections du plan', () => {
   });
 
   it('« Optimiser les liens » sans lien inutile : rien à confirmer', async () => {
-    rendre(planAvecSections());
+    await rendre(planAvecSections());
     await userEvent.click(await screen.findByRole('button', { name: 'Optimiser les liens' }));
     expect(await screen.findByText(/Aucun lien inutile/)).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Optimiser les liens' })).toBeNull();
+  });
+});
+
+describe('Vue compacte : fenêtre de moins de 800 px de haut', () => {
+  let largeur = 1366;
+  beforeEach(() => {
+    largeur = 1366;
+    // Portable 1366 × 768 : fenêtre utile d'environ 1366 × 641.
+    vi.stubGlobal('matchMedia', (requete: string) => ({
+      matches: requete.includes('max-height: 799') || (requete.includes('max-width: 1439') && largeur < 1440),
+      media: requete,
+      onchange: null,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      dispatchEvent: () => false,
+    }));
+    vi.stubGlobal('scrollTo', vi.fn());
+    // Espace d'une étape en panneau (préférence par défaut) : en vue compacte, il devient un tiroir.
+    changerModeEspace('panneau');
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('bandeau de section d’une ligne : « Plan », titre, entrées et sorties ; le reste dans « Détails »', async () => {
+    await rendre(planAvecSections(), '/meps/m1?section=sb');
+    const bandeau = screen.getByRole('region', { name: 'Section « Bascule BDD »' });
+    expect(within(bandeau).getByRole('button', { name: 'Retour au plan' })).toHaveTextContent('Plan');
+    expect(within(bandeau).getByLabelText('Titre de la section')).toHaveValue('Bascule BDD');
+    expect(bandeau).toHaveTextContent('1 entrée');
+    expect(bandeau).toHaveTextContent('1 sortie');
+    // Description, systèmes, cercles, auteur et actions : dans « Détails ».
+    expect(screen.queryByLabelText('Description de la section')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remettre dans le bac' })).toBeNull();
+    await userEvent.click(within(bandeau).getByRole('button', { name: 'Détails de la section' }));
+    const details = await screen.findByRole('dialog');
+    expect(within(details).getByLabelText('Description de la section')).toBeInTheDocument();
+    expect(details).toHaveTextContent('Créée par Bob');
+    expect(within(details).getByRole('button', { name: /Début/ })).toBeInTheDocument();
+    await userEvent.click(within(details).getByRole('button', { name: 'Remettre dans le bac' }));
+    expect(apiGraphe.placerSection).toHaveBeenCalledWith('m1', 'sb', false);
+  });
+
+  it('titre modifié sur place : la saisie reste si la section change entre-temps, Échap l’abandonne', async () => {
+    const { rerendre } = await rendre(planAvecSections(), '/meps/m1?section=sb');
+    const titre = screen.getByLabelText('Titre de la section');
+    await userEvent.clear(titre);
+    await userEvent.type(titre, 'Bascule base');
+    // Un collègue change la description : la saisie en cours n'est pas écrasée.
+    const m = planAvecSections();
+    m.sections = m.sections.map((x) => (x.id === 'sb' ? { ...x, description: 'Nouvelle', revision: 2 } : x));
+    rerendre(m, null);
+    expect(screen.getByLabelText('Titre de la section')).toHaveValue('Bascule base');
+    await userEvent.type(screen.getByLabelText('Titre de la section'), '{Escape}');
+    expect(screen.getByLabelText('Titre de la section')).toHaveValue('Bascule BDD');
+    expect(apiGraphe.modifierSection).not.toHaveBeenCalled();
+  });
+
+  it('barre d’outils : résumé du plan ; export et aide dans le menu « ⋯ »', async () => {
+    await rendre(planAvecSections(), '/meps/m1?section=sb', null, () => (
+      <EtapesEditeur plan="Deploiement" exporter={{ url: '/api/export', title: 'Une ligne par étape' }} />
+    ));
+    const barre = screen.getByRole('toolbar', { name: 'Outils du graphe' });
+    expect(barre).toHaveTextContent('2 étapes');
+    expect(screen.queryByRole('button', { name: 'Exporter en Excel' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Aide du graphe' })).toBeNull();
+    await userEvent.click(within(barre).getByRole('button', { name: 'Plus d’actions du graphe' }));
+    expect(await screen.findByRole('menuitem', { name: 'Exporter en Excel' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Aide du graphe' }));
+    expect(await screen.findByRole('dialog', { name: 'Aide du graphe' })).toHaveTextContent('Aller à…');
+  });
+
+  it('étape ouverte en tiroir dans le cadre du graphe, sous le bandeau ; bac en rail', async () => {
+    await rendre(planAvecSections(), '/meps/m1?section=sb&etape=e2');
+    await waitFor(() =>
+      expect(document.querySelector('.graphe-libre [data-emplacement-tiroir] [data-tiroir-etape]')).not.toBeNull(),
+    );
+    expect(await screen.findByLabelText('Action')).toHaveValue('Arrêt');
+    // Bac replié en rail (fenêtre de moins de 1440 px de large).
+    const bac = screen.getByRole('complementary', { name: 'Bac des éléments à placer' });
+    expect(bac).toHaveTextContent('À placer (0)');
+  });
+
+  it('écran large : le bac reste ouvert', async () => {
+    largeur = 1600;
+    await rendre(planAvecSections(), '/meps/m1?section=sb');
+    const bac = screen.getByRole('complementary', { name: 'Bac des éléments à placer' });
+    expect(within(bac).getByRole('heading', { name: /Étapes à placer/ })).toBeInTheDocument();
   });
 });
 
@@ -435,7 +525,7 @@ describe('Sections en exécution', () => {
     m.etapes = m.etapes.map((e) =>
       e.id === 'e2' ? { ...e, etat: 'Reussie' } : e.id === 'e3' ? { ...e, etat: 'Echec' } : e,
     );
-    rendre(m, '/meps/m1', null, () => <ExecutionVue plan="Deploiement" />);
+    await rendre(m, '/meps/m1', null, () => <ExecutionVue plan="Deploiement" />);
     const cadre = await screen.findByRole('group', { name: 'Section Bascule BDD, repliée' });
     expect(cadre).toHaveTextContent('1/2, 1 en échec');
     await userEvent.click(within(cadre).getByRole('button', { name: 'Déplier la section Bascule BDD' }));

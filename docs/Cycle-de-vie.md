@@ -20,7 +20,7 @@ stateDiagram-v2
     Recette --> Échec : Clôturer en échec (retour arrière impossible)
     state "Retour arrière" as RetourArrière
     state "Clôturée : réussie" as Réussie
-    state "Clôturée : repliée" as Repliée
+    state "Clôturée après retour arrière" as Repliée
     state "Clôturée : échec" as Échec
     Réussie --> [*]
     Repliée --> [*]
@@ -99,7 +99,7 @@ Une étape peut être marquée point de non-retour (par exemple une bascule de d
 
 ## Recette
 
-Les fiches de recette sont déroulées système par système : chaque étape de test est déclarée « Conforme » ou « Échec », avec une observation, dans l'application ou dans le classeur Excel de la recette réimporté par le pilote. Le pilote clôture la MEP comme **réussie** quand toutes les étapes de test sont conformes. Il peut faire refaire un test.
+Les fiches de recette sont déroulées système par système : chaque étape de test est déclarée « Conforme » ou « Non conforme », avec une observation, dans l'application ou dans le classeur Excel de la recette réimporté par le pilote. Le pilote clôture la MEP comme **réussie** quand toutes les étapes de test sont conformes. Il peut faire refaire un test.
 
 **Échéance atteinte pendant la recette** : aucun retour arrière automatique. Un bandeau « Échéance de retour arrière dépassée » s'affiche dans l'onglet Recette et une ligne « Système » est écrite au journal, une seule fois ; le compte à rebours affiche « ÉCHÉANCE DÉPASSÉE ». Le pilote décide : déclencher le retour arrière (manuel), ou reporter l'échéance avec un motif. Tant qu'elle n'est pas reportée, revenir en exécution est impossible.
 
@@ -120,7 +120,7 @@ Le déclenchement automatique est attribué à « Système » dans le journal. A
 
 L'échéance se modifie en préparation, en exécution et en recette (« Modifier l'échéance » dans « Intervention »), à l'heure du fuseau de la MEP. Un motif est obligatoire (sauf à la première saisie en préparation) et le journal garde l'ancienne et la nouvelle valeur. Elle ne se modifie plus une fois le retour arrière déclenché, ni sur une MEP clôturée ou annulée. Une nouvelle échéance doit être dans le futur.
 
-Quand toutes les étapes de retour arrière ont réussi, le pilote clôture avec « Service rétabli : clôturer » : la MEP est **repliée**.
+Quand toutes les étapes de retour arrière ont réussi, le pilote clôture avec « Service rétabli : clôturer » : la MEP est **clôturée après retour arrière**.
 
 ## Clôturer en échec
 

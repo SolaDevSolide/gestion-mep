@@ -129,12 +129,12 @@ function EnTeteSection({ section, deplie }: { section: Section; deplie: boolean 
         {enCours && <AttenteBouton />}
       </button>
       <div className="grid min-w-0 flex-1 gap-1">
-        <p className="truncate text-[14px] leading-tight font-semibold" title={section.titre}>
+        <p className="truncate text-sm leading-tight font-semibold" title={section.titre}>
           {section.titre || 'Section sans titre'}
         </p>
         <div className="flex flex-wrap items-center gap-1">
           {systemes.map((s) => (
-            <PuceSysteme key={s.id} nom={s.nom} className="px-1.5 py-0 text-[11px]" />
+            <PuceSysteme key={s.id} nom={s.nom} className="px-1.5 py-0 text-2xs" />
           ))}
         </div>
         {g.ensemble && <LigneEnsemble etapes={etapes} bloquees={g.ensemble.bloquees} />}
@@ -200,7 +200,7 @@ function CercleBord({ cercle, x, edition }: { cercle: CercleSection; x: number |
       />
       <span
         className={cn(
-          'pointer-events-none absolute max-w-[128px] -translate-x-1/2 truncate rounded-full bg-tertiaire-soft px-1.5 text-[11px] font-semibold text-tertiaire-text',
+          'pointer-events-none absolute max-w-[128px] -translate-x-1/2 truncate rounded-full bg-tertiaire-soft px-1.5 text-2xs font-semibold text-tertiaire-text',
           entree ? 'top-2.5' : 'bottom-2.5',
         )}
         style={style}
@@ -248,7 +248,7 @@ function CercleCadre({ cercle: c, edition }: { cercle: CercleSection; edition: b
         role="img"
         aria-label={libelle}
         className={cn(
-          'pointer-events-none absolute left-1/2 max-w-[128px] -translate-x-1/2 truncate rounded-full bg-tertiaire-soft px-1.5 text-[11px] leading-4 font-semibold text-tertiaire-text',
+          'pointer-events-none absolute left-1/2 max-w-[128px] -translate-x-1/2 truncate rounded-full bg-tertiaire-soft px-1.5 text-2xs leading-4 font-semibold text-tertiaire-text',
           entree ? 'top-[14px]' : 'bottom-[14px]',
         )}
       >
@@ -403,12 +403,10 @@ export function NoeudTitreCadre({ data }: NodeProps) {
         <ChevronDown className={cn('size-5', CHEVRON, g.sectionsRepli.has(id) && '-rotate-90')} aria-hidden />
         {g.sectionsEnCours.has(id) && <AttenteBouton />}
       </button>
-      <p className="min-w-0 flex-1 truncate text-[13px] leading-tight font-semibold">
-        {s.titre || 'Section sans titre'}
-      </p>
+      <p className="min-w-0 flex-1 truncate text-ui leading-tight font-semibold">{s.titre || 'Section sans titre'}</p>
       <span
         className={cn(
-          'shrink-0 text-[11px] text-fg-muted tnum',
+          'shrink-0 text-2xs text-fg-muted tnum',
           g.mode === 'execution' && av.echecs > 0 && 'font-semibold text-danger-fg',
         )}
       >

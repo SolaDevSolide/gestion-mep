@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useId, useState } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, useState } from 'react';
+import { reprendreBrouillon } from './brouillons';
 
 /**
  * Brouillon local d'un formulaire : tant que l'utilisateur n'a rien modifié, on affiche la source
@@ -9,6 +10,11 @@ import { createContext, useContext, useEffect, useId, useState } from 'react';
  * `conflit` passe à vrai : enregistrer écraserait ce changement sans que l'utilisateur l'ait vu.
  * La source ne doit donc contenir que les champs du formulaire (pas la version de la MEP).
  */
+/** Copie d'une saisie relue du stockage de session : sa forme seule est vérifiable. */
+function estCopie<T>(v: unknown): v is { draft: T; base: T } {
+  return typeof v === 'object' && v !== null && 'draft' in v && 'base' in v;
+}
+
 export function useDraft<T>(source: T) {
   const [etat, setEtat] = useState<{ draft: T; base: T } | null>(null);
   const dirty = etat !== null && JSON.stringify(etat.draft) !== JSON.stringify(source);
@@ -25,7 +31,22 @@ export function useDraft<T>(source: T) {
     reset: () => setEtat(null),
     /** Garde la saisie en connaissance de cause : la version à jour devient la nouvelle base. */
     garderSaisie: () => setEtat((e) => (e ? { draft: e.draft, base: source } : e)),
+    /** Saisie et base, copiables avant une redirection (reconnexion Microsoft) ; null sans saisie. */
+    lireBrouillon: (): unknown => (dirty ? etat : null),
+    /**
+     * Reprend une saisie copiée avant une redirection. Si la source a changé depuis, `conflit` le signale comme pour
+     * une modification d'un collègue.
+     */
+    restaurerBrouillon: (v: unknown) => {
+      if (estCopie<T>(v)) setEtat({ draft: v.draft, base: v.base });
+    },
   };
+}
+
+/** Saisie qu'un formulaire sait copier puis reprendre (`useDraft`) : passée à `useReportDirty`. */
+export interface BrouillonSauvegardable {
+  lireBrouillon: () => unknown;
+  restaurerBrouillon: (v: unknown) => void;
 }
 
 /**
@@ -33,18 +54,45 @@ export function useDraft<T>(source: T) {
  * enregistrées (`GardeModifications`), en nommant ce qui serait perdu (`libelle`).
  */
 export interface DirtyRegistry {
-  set: (id: string, dirty: boolean, libelle?: string) => void;
+  /** `lire` : copie de la saisie, gardée avant une redirection (reconnexion Microsoft). */
+  set: (id: string, dirty: boolean, libelle?: string, lire?: () => unknown) => void;
+  /** Libellés des saisies non enregistrées (« Étape E0002 », « Intervention »). */
+  libelles: () => string[];
+  /** Saisies non enregistrées qui savent se copier, par libellé. */
+  brouillons: () => { libelle: string; valeur: unknown }[];
+  /** Oublie les saisies en cours : plus d'avertissement en quittant (saisie abandonnée en connaissance de cause). */
+  abandonner: () => void;
 }
-export const DirtyContext = createContext<DirtyRegistry>({ set: () => undefined });
+export const DirtyContext = createContext<DirtyRegistry>({
+  set: () => undefined,
+  libelles: () => [],
+  brouillons: () => [],
+  abandonner: () => undefined,
+});
 
-/** Signale une saisie non enregistrée ; `libelle` la nomme dans la fenêtre « Quitter sans enregistrer ? ». */
-export function useReportDirty(dirty: boolean, libelle?: string) {
+/**
+ * Signale une saisie non enregistrée ; `libelle` la nomme dans la fenêtre « Quitter sans enregistrer ? ». Avec
+ * `brouillon` (le résultat de `useDraft`), la saisie est copiée avant une reconnexion Microsoft et reprise au retour sur
+ * la même page.
+ */
+export function useReportDirty(dirty: boolean, libelle?: string, brouillon?: BrouillonSauvegardable) {
   const registry = useContext(DirtyContext);
   const id = useId();
+  const ref = useRef(brouillon);
   useEffect(() => {
-    registry.set(id, dirty, libelle);
+    ref.current = brouillon;
+  });
+  const sauvegardable = brouillon !== undefined;
+  useEffect(() => {
+    registry.set(id, dirty, libelle, sauvegardable ? () => ref.current?.lireBrouillon() : undefined);
     return () => registry.set(id, false);
-  }, [registry, id, dirty, libelle]);
+  }, [registry, id, dirty, libelle, sauvegardable]);
+  // Retour d'une reconnexion Microsoft : la saisie copiée pour ce formulaire (même page, même libellé) est reprise.
+  useEffect(() => {
+    if (!libelle || !ref.current) return;
+    const v = reprendreBrouillon(window.location.pathname, libelle);
+    if (v !== undefined) ref.current.restaurerBrouillon(v);
+  }, [libelle]);
 }
 
 export function useLocalStorageState<T>(key: string, initial: T): [T, (v: T) => void] {
@@ -96,6 +144,8 @@ export function useNow(ms = 1000): number {
 export function useAsync<T>(charger: () => Promise<T>, deps: unknown[]) {
   const [donnees, setDonnees] = useState<T | null>(null);
   const [erreur, setErreur] = useState('');
+  // Erreur reçue telle quelle (`ApiError` : code, requête) : `ErreurChargement` en tire son message et ses détails.
+  const [echec, setEchec] = useState<unknown>(null);
   const [tick, setTick] = useState(0);
   const cle = [...deps, tick];
   // Clé de la dernière réponse reçue (réussie ou non) : différente de `cle` tant qu'une demande est en cours.
@@ -108,12 +158,14 @@ export function useAsync<T>(charger: () => Promise<T>, deps: unknown[]) {
         if (!annule) {
           setDonnees(d);
           setErreur('');
+          setEchec(null);
           setCleRecue(demandee);
         }
       })
       .catch((e: unknown) => {
         if (!annule) {
           setErreur(e instanceof Error ? e.message : 'Chargement impossible.');
+          setEchec(e ?? new Error('Chargement impossible.'));
           setCleRecue(demandee);
         }
       });
@@ -126,6 +178,8 @@ export function useAsync<T>(charger: () => Promise<T>, deps: unknown[]) {
   return {
     donnees,
     erreur,
+    /** Erreur de la dernière réponse (null si elle a réussi), pour `ErreurChargement`. */
+    echec,
     chargement,
     rechargement: chargement && donnees !== null,
     recharger: () => setTick((t) => t + 1),

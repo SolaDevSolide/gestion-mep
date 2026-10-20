@@ -1,12 +1,13 @@
 import { Library, Pencil, Plus, Server, Trash2, UserRound, Users, Layers } from 'lucide-react';
-import { useContext, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useContext, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
+import { useReferentiel } from '../../referentiels';
 import { AuthContext } from '../../auth';
 import { useMep } from '../../mepContext';
 import { filtrerParEquipe } from '../../personnes';
 import { ENVIRONNEMENTS, memeEnvironnement, nomDeProduction } from '../../environnements';
-import type { Equipe, Participant, Systeme, SystemeCatalogue, CompteAnnuaire } from '../../types';
+import type { Participant, Systeme, SystemeCatalogue } from '../../types';
 import { cn } from '../../ui/cn';
 import { Avatar } from '../../ui/Avatar';
 import { Badge } from '../../ui/StatusPill';
@@ -14,6 +15,7 @@ import { BoutonIcone, Button } from '../../ui/Button';
 import { Combobox } from '../../ui/Combobox';
 import { ConfirmDialog } from '../../ui/Dialog';
 import { EmptyState } from '../../ui/EmptyState';
+import { ErreurChargement } from '../../ui/ErreurChargement';
 import { Field, Input } from '../../ui/Input';
 import { Tooltip } from '../../ui/Tooltip';
 import { FormulaireDialog, SectionCarte, vide, type ChampForm } from './Formulaires';
@@ -70,23 +72,15 @@ export function PersonnesSection() {
   const edition = mep.droits.peutEditerContenu;
   /** Après le Go, le pilote, un suppléant ou un administrateur ajoute encore une personne (astreinte, renfort). */
   const ajoutApresGo = !edition && mep.droits.peutAjouterPersonne;
-  const [utilisateurs, setUtilisateurs] = useState<CompteAnnuaire[]>([]);
-  const [equipes, setEquipes] = useState<Equipe[]>([]);
+  const comptesLus = useReferentiel('comptes');
+  const equipesLues = useReferentiel('equipes');
+  const utilisateurs = comptesLus.donnees ?? [];
+  const equipes = equipesLues.donnees ?? [];
   const [forme, setForme] = useState<{ existant?: Participant } | null>(null);
   const [suppr, setSuppr] = useState<Participant | null>(null);
   /** Filtre des comptes proposés par équipe, et compte choisi (toujours proposé, même hors du filtre). */
   const [equipe, setEquipe] = useState('');
   const [compteChoisi, setCompteChoisi] = useState('');
-  useEffect(() => {
-    api
-      .utilisateurs()
-      .then(setUtilisateurs)
-      .catch(() => setUtilisateurs([]));
-    api
-      .equipes()
-      .then(setEquipes)
-      .catch(() => setEquipes([]));
-  }, []);
   const ouvrir = (f: { existant?: Participant }) => {
     setEquipe('');
     setCompteChoisi(f.existant?.utilisateurId ?? '');
@@ -187,11 +181,34 @@ export function PersonnesSection() {
         )
       }
     >
+      {(comptesLus.erreur ?? equipesLues.erreur) != null && (edition || ajoutApresGo) && (
+        <div className="mb-4 space-y-2">
+          {comptesLus.erreur != null && (
+            <ErreurChargement
+              variante="ligne"
+              erreur={comptesLus.erreur}
+              titre="Comptes non chargés"
+              complement="Une personne peut être ajoutée sans compte, puis reliée plus tard."
+              onReessayer={comptesLus.recharger}
+              enCours={comptesLus.enCours}
+            />
+          )}
+          {equipesLues.erreur != null && (
+            <ErreurChargement
+              variante="ligne"
+              erreur={equipesLues.erreur}
+              titre="Équipes non chargées"
+              onReessayer={equipesLues.recharger}
+              enCours={equipesLues.enCours}
+            />
+          )}
+        </div>
+      )}
       {mep.participants.length === 0 ? (
         <EmptyState
           icone={Users}
           titre="Aucune personne"
-          description="Ajoutez le pilote, son suppléant et les opérateurs."
+          description="Ajoutez le pilote, son suppléant et les exécutants."
         />
       ) : (
         <Liste>
@@ -276,19 +293,13 @@ export function PersonnesSection() {
 export function SystemesSection() {
   const { mep, run } = useMep();
   const edition = mep.droits.peutEditerContenu;
-  const [catalogue, setCatalogue] = useState<SystemeCatalogue[]>([]);
+  const catalogueLu = useReferentiel('catalogue');
+  const catalogue = catalogueLu.donnees ?? [];
   const [choix, setChoix] = useState<string | null>(null);
   const [impact, setImpact] = useState('');
   const [ajout, setAjout] = useState(false);
   const [forme, setForme] = useState<{ existant?: Systeme } | null>(null);
   const [suppr, setSuppr] = useState<Systeme | null>(null);
-  useEffect(() => {
-    api
-      .catalogueSystemes()
-      .then(setCatalogue)
-      .catch(() => setCatalogue([]));
-  }, []);
-
   const dejaPresents = new Set(mep.systemes.map((s) => s.catalogueId).filter(Boolean));
   const options = catalogue
     .filter((c) => c.actif && !dejaPresents.has(c.id))
@@ -345,6 +356,17 @@ export function SystemesSection() {
                   placeholder="Choisir un système…"
                   placeholderRecherche="Rechercher un système…"
                   vide="Aucun système disponible dans le catalogue."
+                  remplacement={
+                    catalogueLu.erreur != null ? (
+                      <ErreurChargement
+                        variante="ligne"
+                        erreur={catalogueLu.erreur}
+                        titre="Catalogue des systèmes non chargé"
+                        onReessayer={catalogueLu.recharger}
+                        enCours={catalogueLu.enCours}
+                      />
+                    ) : undefined
+                  }
                 />
               )}
             </Field>
@@ -406,6 +428,7 @@ export function SystemesSection() {
                 <EnvironnementsSysteme
                   systeme={s}
                   fiche={s.catalogueId ? (catalogue.find((c) => c.id === s.catalogueId) ?? null) : null}
+                  ficheNonChargee={catalogueLu.erreur != null}
                   edition={edition}
                 />
               }
@@ -457,10 +480,13 @@ export function SystemesSection() {
 function EnvironnementsSysteme({
   systeme,
   fiche,
+  ficheNonChargee,
   edition,
 }: {
   systeme: Systeme;
   fiche: SystemeCatalogue | null;
+  /** Catalogue en erreur : seuls les environnements déjà choisis sont montrés, sans dire que la fiche est vide. */
+  ficheNonChargee: boolean;
   edition: boolean;
 }) {
   const { mep, run } = useMep();
@@ -518,7 +544,7 @@ function EnvironnementsSysteme({
         <Server className="size-3.5" aria-hidden />
         Environnements
       </span>
-      {options.length === 0 && (
+      {options.length === 0 && !ficheNonChargee && (
         <span className="text-fg-subtle">
           Aucun environnement dans la fiche du catalogue.{' '}
           {systeme.catalogueId && (
@@ -552,7 +578,7 @@ function EnvironnementsSysteme({
           </button>
         );
       })}
-      {!edition && systeme.environnements.length === 0 && <span className="text-warn-solid">aucun choisi</span>}
+      {!edition && systeme.environnements.length === 0 && <span className="text-warn-text">aucun choisi</span>}
       {edition && libre && (
         <form onSubmit={ajouterAutre} className="inline-flex">
           <Input

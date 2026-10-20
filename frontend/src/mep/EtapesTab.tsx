@@ -1,6 +1,5 @@
 import { api } from '../api';
 import { useMep } from '../mepContext';
-import { BoutonExportExcel } from '../ui/BoutonExportExcel';
 import { BoutonEtapeCorrective } from './CycleDeVie';
 import { EtapesEditeur } from './EtapesEditeur';
 
@@ -15,15 +14,11 @@ export default function EtapesTab() {
       <EtapesEditeur
         key={mep.phase}
         plan="Deploiement"
-        actions={
-          <>
-            {mep.phase === 'Execution' && mep.droits.estPilote && <BoutonEtapeCorrective />}
-            <BoutonExportExcel
-              url={api.urlExportEtapes(mep.id)}
-              title="Une ligne par étape, dans l’ordre du graphe : définition, exécution et résultat."
-            />
-          </>
-        }
+        actions={mep.phase === 'Execution' && mep.droits.estPilote ? <BoutonEtapeCorrective /> : undefined}
+        exporter={{
+          url: api.urlExportEtapes(mep.id),
+          title: 'Une ligne par étape, dans l’ordre du graphe : définition, exécution et résultat.',
+        }}
       />
     </div>
   );

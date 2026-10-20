@@ -2,11 +2,14 @@ import { ArrowDown, ArrowUp, OctagonAlert, Plus, Stethoscope, Trash2 } from 'luc
 import { useContext, useEffect, useState, type FormEvent } from 'react';
 import { AuthContext } from '../auth';
 import { api, ApiError } from '../api';
+import { useAsync } from '../hooks';
+import { useReferentiel } from '../referentiels';
 import type { PieceJointe, ResolutionType, ResolutionTypeSaisie, SystemeCatalogue } from '../types';
 import { PiecesJointes } from '../ui/PiecesJointes';
 import { Alerte } from '../ui/Alerte';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { EditeurBlocs } from '../ui/EditeurBlocs';
 import { Field, Input, Textarea } from '../ui/Input';
 import { cn } from '../ui/cn';
@@ -69,7 +72,7 @@ export function saisieResolution(b: BrouillonResolution): Omit<ResolutionTypeSai
 }
 
 const Intertitre = ({ children }: { children: React.ReactNode }) => (
-  <h3 className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">{children}</h3>
+  <h3 className="text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">{children}</h3>
 );
 
 /** Champs d'une résolution type : titre, système, symptômes, diagnostic, corrections ordonnées, vérification finale. */
@@ -77,12 +80,15 @@ export function FormulaireResolution({
   b,
   onChange,
   systemes,
+  erreurSystemes,
   autoFocus,
 }: {
   b: BrouillonResolution;
   onChange: (b: BrouillonResolution) => void;
   /** Catalogue des systèmes ; null tant qu'il se charge (pastilles en squelette). */
   systemes: SystemeCatalogue[] | null;
+  /** Catalogue en erreur : affiché à la place des pastilles (`ErreurChargement`). */
+  erreurSystemes?: React.ReactNode;
   autoFocus?: boolean;
 }) {
   const maj = (patch: Partial<BrouillonResolution>) => onChange({ ...b, ...patch });
@@ -110,10 +116,12 @@ export function FormulaireResolution({
         )}
       </Field>
       <fieldset className="grid gap-1.5">
-        <legend className="mb-1.5 text-[13px] font-medium">
+        <legend className="mb-1.5 text-ui font-medium">
           Systèmes <span className="font-normal text-fg-subtle">(aucun = tous)</span>
         </legend>
-        {systemes === null ? (
+        {erreurSystemes ? (
+          erreurSystemes
+        ) : systemes === null ? (
           <EnChargement libelle="Chargement des systèmes…" className="flex flex-wrap gap-1.5">
             {['w-20', 'w-28', 'w-16', 'w-24', 'w-14'].map((l) => (
               <Squelette key={l} className={cn('h-6 rounded-full', l)} />
@@ -139,7 +147,7 @@ export function FormulaireResolution({
                       })
                     }
                     className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-[13px] font-semibold',
+                      'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-ui font-semibold',
                       !actif && 'border-line-strong text-fg-subtle hover:text-fg',
                     )}
                     style={actif ? styleSysteme(s.nom) : undefined}
@@ -165,7 +173,7 @@ export function FormulaireResolution({
             />
             {b.symptomes.trim() && (
               <div className="rounded-md border border-dashed border-line px-2 py-1.5">
-                <p className="mb-0.5 text-[10px] font-semibold tracking-wide text-fg-subtle uppercase">Aperçu</p>
+                <p className="mb-0.5 text-2xs font-semibold tracking-wide text-fg-subtle uppercase">Aperçu</p>
                 <Markdown source={b.symptomes} />
               </div>
             )}
@@ -266,7 +274,7 @@ export function FormulaireResolution({
   );
 }
 
-/** Aperçu en direct, tel que l'opérateur verra la résolution en exécution. */
+/** Aperçu en direct, tel que l'exécutant verra la résolution en exécution. */
 export function ApercuResolution({ b, systemes }: { b: BrouillonResolution; systemes: SystemeCatalogue[] }) {
   const choisis = systemes.filter((s) => b.systemeCatalogueIds.includes(s.id));
   return (
@@ -277,7 +285,7 @@ export function ApercuResolution({ b, systemes }: { b: BrouillonResolution; syst
         {choisis.length ? (
           choisis.map((s) => <PuceSysteme key={s.id} nom={s.nom} />)
         ) : (
-          <span className="text-[13px] text-fg-subtle">Tous les systèmes</span>
+          <span className="text-ui text-fg-subtle">Tous les systèmes</span>
         )}
       </div>
       <Markdown source={`**Symptômes** : ${b.symptomes.trim() || '_à compléter_'}`} />
@@ -291,15 +299,15 @@ export function ApercuResolution({ b, systemes }: { b: BrouillonResolution; syst
       <ol className="grid gap-2">
         {b.corrections.map((c, i) => (
           <li key={c.cle} className="grid gap-1.5 rounded-lg border border-line p-2.5">
-            <p className="text-[13px] font-semibold">Correction {i + 1}</p>
+            <p className="text-ui font-semibold">Correction {i + 1}</p>
             <Instructions source={c.instruction} vide="À compléter." />
-            <p className="text-[13px] text-fg-subtle">Attendu : {c.resultatAttendu.trim() || '…'}</p>
+            <p className="text-ui text-fg-subtle">Attendu : {c.resultatAttendu.trim() || '…'}</p>
           </li>
         ))}
         <li className="grid gap-1.5 rounded-lg border border-ok-bd p-2.5">
-          <p className="text-[13px] font-semibold">Vérification finale</p>
+          <p className="text-ui font-semibold">Vérification finale</p>
           <Instructions source={b.verificationInstruction} vide="À compléter." />
-          <p className="text-[13px] text-fg-subtle">Attendu : {b.verificationAttendu.trim() || '…'}</p>
+          <p className="text-ui text-fg-subtle">Attendu : {b.verificationAttendu.trim() || '…'}</p>
         </li>
       </ol>
     </div>
@@ -319,8 +327,14 @@ interface Props {
 export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesParDefaut, onEnregistree }: Props) {
   const toast = useToast();
   const [b, setB] = useState<BrouillonResolution>(() => brouillonDepuis(initial, systemesParDefaut));
-  const [systemes, setSystemes] = useState<SystemeCatalogue[] | null>(null);
-  const [pieces, setPieces] = useState<PieceJointe[]>([]);
+  const catalogue = useReferentiel('catalogue', open);
+  // Pièces jointes relues à chaque ouverture : squelette pendant la lecture, erreur avec « Réessayer » (jamais « aucune
+  // pièce jointe » à tort : on en ajouterait une deuxième fois).
+  const lues = useAsync(
+    () => (open && initial ? api.piecesResolution(initial.id) : Promise.resolve([] as PieceJointe[])),
+    [open, initial?.id],
+  );
+  const pieces = lues.donnees ?? [];
   const admin = useContext(AuthContext)?.utilisateur?.estAdmin ?? false;
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState(false);
@@ -329,17 +343,6 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesP
     if (open) {
       setB(brouillonDepuis(initial, systemesParDefaut));
       setErreur('');
-      setSystemes(null);
-      api
-        .catalogueSystemes()
-        .then(setSystemes)
-        .catch(() => setSystemes([]));
-      if (initial)
-        api
-          .piecesResolution(initial.id)
-          .then(setPieces)
-          .catch(() => setPieces([]));
-      else setPieces([]);
     }
   }, [open, initial, systemesParDefaut]);
 
@@ -394,7 +397,23 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesP
             {erreur}
           </Alerte>
         )}
-        <FormulaireResolution b={b} onChange={setB} systemes={systemes} autoFocus />
+        <FormulaireResolution
+          b={b}
+          onChange={setB}
+          systemes={catalogue.donnees}
+          erreurSystemes={
+            catalogue.erreur != null && (
+              <ErreurChargement
+                variante="ligne"
+                erreur={catalogue.erreur}
+                titre="Catalogue des systèmes non chargé"
+                onReessayer={catalogue.recharger}
+                enCours={catalogue.enCours}
+              />
+            )
+          }
+          autoFocus
+        />
       </form>
 
       <div className="mt-5 border-t border-line pt-5">
@@ -402,11 +421,24 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesP
           <PiecesJointes
             titre="Pièces jointes de la résolution"
             pieces={pieces}
+            chargement={lues.chargement && lues.donnees === null && lues.echec === null}
+            erreurListe={
+              lues.echec !== null && (
+                <ErreurChargement
+                  variante="ligne"
+                  erreur={lues.echec}
+                  titre="Liste des pièces jointes non chargée"
+                  complement="Ajouter un fichier reste possible."
+                  onReessayer={lues.recharger}
+                  enCours={lues.chargement}
+                />
+              )
+            }
             peutSupprimer={() => admin}
             onDeposer={async (f, signaler) => {
               try {
                 const p = await api.deposerPieceResolution(initial.id, f);
-                setPieces((l) => [...l, p]);
+                lues.setDonnees((l) => [...(l ?? []), p]);
                 return true;
               } catch (e) {
                 signaler(e instanceof Error ? e.message : 'Envoi impossible.');
@@ -416,7 +448,7 @@ export function ResolutionEditeurDialog({ open, onOpenChange, initial, systemesP
             onSupprimer={async (p, signaler) => {
               try {
                 await api.supprimerPieceResolution(initial.id, p.id);
-                setPieces((l) => l.filter((x) => x.id !== p.id));
+                lues.setDonnees((l) => (l ?? []).filter((x) => x.id !== p.id));
                 return true;
               } catch (e) {
                 signaler(e instanceof Error ? e.message : 'Suppression impossible.');

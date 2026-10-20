@@ -275,3 +275,10 @@ export function mepResume(p: Partial<MepResume> = {}): MepResume {
     ...p,
   };
 }
+
+/** Champs de session d'un contexte d'authentification simulé : session ouverte, pas de reconnexion en cours. */
+export const SESSION_ACTIVE = {
+  sessionExpiree: false,
+  reconnecter: async () => undefined,
+  abandonnerSession: () => undefined,
+};

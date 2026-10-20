@@ -15,6 +15,10 @@ interface DialogProps {
   pied?: ReactNode;
   children?: ReactNode;
   className?: string;
+  /** Faux : ni bouton Fermer, ni Échap, ni clic à côté (le dialogue attend une réponse : session expirée). */
+  fermable?: boolean;
+  /** Au-dessus de tout, palette de commandes comprise (session expirée et sa confirmation) : étage des messages. */
+  auPremierPlan?: boolean;
 }
 
 export function Dialog({
@@ -26,11 +30,19 @@ export function Dialog({
   pied,
   children,
   className,
+  fermable = true,
+  auPremierPlan = false,
 }: DialogProps) {
+  const retenir = fermable ? undefined : (e: Event) => e.preventDefault();
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/50 p-4 backdrop-blur-[2px] data-[state=open]:animate-fade-in">
+        <D.Overlay
+          className={cn(
+            'fixed inset-0 grid place-items-center overflow-y-auto bg-voile p-4 backdrop-blur-[2px] data-[state=open]:animate-fade-in',
+            auPremierPlan ? 'z-toast' : 'z-dialogue',
+          )}
+        >
           <D.Content
             className={cn(
               'relative my-auto w-full rounded-2xl border border-line bg-surface shadow-lg outline-none data-[state=open]:animate-pop-in',
@@ -38,6 +50,9 @@ export function Dialog({
               className,
             )}
             aria-describedby={description ? undefined : undefined}
+            onEscapeKeyDown={retenir}
+            onPointerDownOutside={retenir}
+            onInteractOutside={retenir}
           >
             <div className="flex items-start justify-between gap-4 px-6 pt-5">
               <div className="min-w-0">
@@ -50,11 +65,13 @@ export function Dialog({
                   </D.Description>
                 )}
               </div>
-              <D.Close asChild>
-                <BoutonIcone label="Fermer" taille="sm" className="-mt-1 -mr-2">
-                  <X className="size-4" aria-hidden />
-                </BoutonIcone>
-              </D.Close>
+              {fermable && (
+                <D.Close asChild>
+                  <BoutonIcone label="Fermer" taille="sm" className="-mt-1 -mr-2">
+                    <X className="size-4" aria-hidden />
+                  </BoutonIcone>
+                </D.Close>
+              )}
             </div>
             <div className="px-6 py-5">{children}</div>
             {pied && (
@@ -81,6 +98,7 @@ interface ConfirmProps {
   /** Retourne true si l'action a abouti (le dialogue se ferme alors). */
   onConfirmer: () => Promise<boolean | void> | boolean | void;
   taille?: keyof typeof LARGEURS;
+  auPremierPlan?: boolean;
 }
 
 /** Confirmation en dialogue (jamais window.confirm). */
@@ -95,6 +113,7 @@ export function ConfirmDialog({
   desactive,
   onConfirmer,
   taille = 'sm',
+  auPremierPlan,
 }: ConfirmProps) {
   const [occupe, setOccupe] = useState(false);
   async function confirmer() {
@@ -113,6 +132,7 @@ export function ConfirmDialog({
       titre={titre}
       description={description}
       taille={taille}
+      auPremierPlan={auPremierPlan}
       pied={
         <>
           <Button variante="fantome" onClick={() => onOpenChange(false)}>

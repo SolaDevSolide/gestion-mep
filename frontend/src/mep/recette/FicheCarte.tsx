@@ -26,7 +26,7 @@ export function FicheCarte({ fiche }: { fiche: FicheRecette }) {
           className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-surface px-4 py-3 shadow-sm transition-shadow duration-150 hover:shadow-md focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         >
           <span className="min-w-0 flex-1 basis-56">
-            <span className="block truncate text-[15px] font-semibold">
+            <span className="block truncate text-md font-semibold">
               {fiche.titre || <em className="font-normal text-fg-subtle not-italic">Fiche sans titre</em>}
             </span>
             <span className="block text-xs text-fg-subtle">
@@ -36,7 +36,7 @@ export function FicheCarte({ fiche }: { fiche: FicheRecette }) {
           {bilan &&
             (echecs > 0 ? (
               <StatusPill ton="danger" icone={XCircle} taille="sm">
-                {echecs} en échec
+                {echecs} non conforme{echecs > 1 ? 's' : ''}
               </StatusPill>
             ) : terminee ? (
               <StatusPill ton="ok" icone={Check} taille="sm">

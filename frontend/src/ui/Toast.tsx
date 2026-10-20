@@ -37,7 +37,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div className="pointer-events-none fixed right-4 bottom-4 z-[80] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2">
+      <div className="pointer-events-none fixed right-4 bottom-4 z-toast flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2">
         {messages.map((m) => (
           <div
             key={m.id}

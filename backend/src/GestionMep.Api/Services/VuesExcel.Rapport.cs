@@ -10,12 +10,16 @@ public static partial class VuesExcel
     /// <summary>« rapport-Outil-6.3.xlsx ».</summary>
     public static string NomFichierRapport(MepDto mep) => ExcelCommun.NomFichier("rapport", NomMep(mep));
 
+    /// <summary>Résultat d'un test de recette.</summary>
     private static string Resultat(ResultatControle? r) => r switch
     {
         ResultatControle.Conforme => "Conforme",
-        ResultatControle.Echec => "Échec",
+        ResultatControle.Echec => "Non conforme",
         _ => "Non fait",
     };
+
+    /// <summary>Vérification d'une résolution : réussie (« Conforme ») ou en échec.</summary>
+    private static string Verification(ResultatControle r) => r == ResultatControle.Conforme ? "Conforme" : "Échec";
 
     /// <summary>
     /// Rapport de fin : synthèse (vue d'ensemble à la clôture et bilan), points bloquants, résolutions utilisées, tests
@@ -93,7 +97,7 @@ public static partial class VuesExcel
                 codes.TryGetValue(x.EtapeId, out var code) ? code : "", x.Titre, Libelle(x.Statut), x.DemarreePar, Quand(x.DemarreeLe, f),
                 Quand(x.TermineeLe, f), MinutesEntre(x.DemarreeLe, x.TermineeLe),
                 $"{x.Corrections.Count(c => c.Resultat == ResultatControle.Conforme)}/{x.Corrections.Count} conforme(s)",
-                x.VerificationResultat is { } vr ? $"{Resultat(vr)}{(x.VerificationObservation.Length > 0 ? $" : {x.VerificationObservation}" : "")}" : "",
+                x.VerificationResultat is { } vr ? $"{Verification(vr)}{(x.VerificationObservation.Length > 0 ? $" : {x.VerificationObservation}" : "")}" : "",
             }), "Aucune résolution exécutée.");
 
         Tableau(classeur, "Tests unitaires", $"Tests unitaires · {nom}", ContexteTests(r.TestsUnitaires), ColonnesTests(etat: false),

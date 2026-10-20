@@ -89,7 +89,7 @@ export function PuceSystemeMep({
     <MenuDuSysteme s={s}>
       <span
         className={cn(
-          'inline-flex items-center gap-1 rounded-md border px-1.5 py-px text-[11px] leading-4 whitespace-nowrap transition-shadow duration-150 hover:shadow-sm',
+          'inline-flex items-center gap-1 rounded-md border px-1.5 py-px text-2xs leading-4 whitespace-nowrap transition-shadow duration-150 hover:shadow-sm',
           s.catalogueId === null && 'border-dashed',
           className,
         )}

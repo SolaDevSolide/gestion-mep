@@ -83,7 +83,7 @@ export const CLASSES_MARKDOWN = cn(
   '[&_li:has(>input[type=checkbox])]:list-none [&_li>input[type=checkbox]]:mr-1.5 [&_li>input[type=checkbox]]:-ml-5 [&_li>input[type=checkbox]]:align-middle',
   '[&_code]:rounded [&_code]:bg-code-bg [&_code]:px-1 [&_code]:py-px [&_code]:font-mono [&_code]:text-[0.85em] [&_code]:text-code-fg',
   '[&_pre]:mb-1.5 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:border [&_pre]:border-line [&_pre]:bg-code-bg [&_pre]:p-2 [&_pre_code]:bg-transparent [&_pre_code]:p-0',
-  '[&_h1]:mt-2 [&_h1]:mb-1 [&_h1]:text-[15px] [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-[15px] [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:font-semibold',
+  '[&_h1]:mt-2 [&_h1]:mb-1 [&_h1]:text-md [&_h1]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-md [&_h2]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:font-semibold',
   '[&_blockquote]:mb-1.5 [&_blockquote]:border-l-[3px] [&_blockquote]:border-line-strong [&_blockquote]:pl-2.5 [&_blockquote]:text-fg-muted',
   '[&_a]:font-medium [&_a]:text-accent-text [&_a]:underline [&_strong]:font-semibold [&_hr]:my-2 [&_hr]:border-line',
   '[&_table]:mb-1.5 [&_table]:border-collapse [&_td]:border [&_td]:border-line [&_td]:px-1.5 [&_th]:border [&_th]:border-line [&_th]:px-1.5',
@@ -133,7 +133,7 @@ export function BlocCode({ code, libelle = 'Copier la commande' }: { code: strin
       <pre
         ref={pre}
         tabIndex={0}
-        className="max-h-80 overflow-auto rounded-lg border border-line bg-code-bg py-2.5 pr-24 pl-3 font-mono text-[13px] leading-relaxed break-words whitespace-pre-wrap text-code-fg"
+        className="max-h-80 overflow-auto rounded-lg border border-line bg-code-bg py-2.5 pr-24 pl-3 font-mono text-ui leading-relaxed break-words whitespace-pre-wrap text-code-fg"
       >
         <code>{code}</code>
       </pre>

@@ -86,7 +86,12 @@ export default function RecetteTab() {
             />
             <p className="text-sm font-medium text-fg-muted tnum">
               {bilan.conformes}/{bilan.total} conforme{bilan.conformes > 1 ? 's' : ''}
-              {bilan.echecs > 0 && <span className="font-semibold text-danger-solid"> · {bilan.echecs} en échec</span>}
+              {bilan.echecs > 0 && (
+                <span className="font-semibold text-danger-solid">
+                  {' '}
+                  · {bilan.echecs} non conforme{bilan.echecs > 1 ? 's' : ''}
+                </span>
+              )}
             </p>
           </>
         ) : (
@@ -99,7 +104,7 @@ export default function RecetteTab() {
           <BoutonExportExcel
             url={api.urlExportRecette(mep.id)}
             disabled={fiches.length === 0}
-            title="Fichier à faire remplir par les métiers : résultat constaté, Validé ou Refusé, nom et date."
+            title="Fichier à faire remplir par les métiers : résultat constaté, Conforme ou Non conforme, nom et date."
           />
           {enRecette && peutAgir && (
             <Button taille="sm" icone={<Upload className="size-4" aria-hidden />} onClick={() => setImporter(true)}>
@@ -121,7 +126,7 @@ export default function RecetteTab() {
         </Alerte>
       )}
       {enRecette && bilan.echecs > 0 && (
-        <Alerte ton="danger" icone={XCircle} role="alert" titre="Une étape de test est en échec">
+        <Alerte ton="danger" icone={XCircle} role="alert" titre="Une étape de test est non conforme">
           Clôture impossible tant qu’une étape n’est pas conforme.
         </Alerte>
       )}

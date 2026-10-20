@@ -77,7 +77,7 @@ export function ColonneFiche({ mep, plan, fiche: v, onChange }: Props) {
                       aria-pressed={actif}
                       onClick={() => basculerSysteme(s.id)}
                       className={cn(
-                        'inline-flex min-w-20 items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-[13px] font-semibold transition-colors',
+                        'inline-flex min-w-20 items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-ui font-semibold transition-colors',
                         !actif && 'border-line-strong text-fg-subtle hover:text-fg',
                       )}
                       style={actif ? styleSysteme(s.nom) : undefined}

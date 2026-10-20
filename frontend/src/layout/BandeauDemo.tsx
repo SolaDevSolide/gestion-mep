@@ -66,7 +66,7 @@ export function BandeauDemo({
     <>
       <output
         aria-label="Mode démonstration"
-        className="sticky top-0 z-40 flex h-9 items-center justify-center gap-2 border-b border-warn-bd bg-warn-bg px-3 text-[13px] text-warn-fg print:hidden"
+        className="sticky top-0 z-40 flex h-9 items-center justify-center gap-2 border-b border-warn-bd bg-warn-bg px-3 text-ui text-warn-fg print:hidden"
       >
         <FlaskConical className="size-4 shrink-0" aria-hidden />
         <p className="min-w-0 truncate">
@@ -200,7 +200,7 @@ function BoutonSimulation({
         type="button"
         onClick={basculer}
         disabled={enCours}
-        className={`${classe} bg-warn-solid text-white hover:opacity-90`}
+        className={`${classe} bg-warn-solid text-warn-solid-fg hover:opacity-90`}
       >
         <Square className="size-3 fill-current" aria-hidden />
         Arrêter la simulation

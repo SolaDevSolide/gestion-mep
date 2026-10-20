@@ -33,9 +33,10 @@ export const LIBELLE_CRITICITE: Record<Criticite, string> = {
   Bloquante: 'Bloquante',
 };
 
-export const LIBELLE_RESULTAT: Record<ResultatControle, string> = { Conforme: 'Conforme', Echec: 'Échec' };
-/** Libellés de la validation par les métiers (fichier Excel de la recette). */
-export const LIBELLE_VALIDATION: Record<ResultatControle, string> = { Conforme: 'Validé', Echec: 'Refusé' };
+/** Résultat d'un test de recette ou d'une vérification, aussi dans le fichier Excel de la recette. */
+export const LIBELLE_RESULTAT: Record<ResultatControle, string> = { Conforme: 'Conforme', Echec: 'Non conforme' };
+/** Correction ou vérification d'une résolution : conforme, ou en échec (la résolution échoue). */
+export const LIBELLE_VERIFICATION: Record<ResultatControle, string> = { Conforme: 'Conforme', Echec: 'Échec' };
 
 /** Nombre suivi du mot accordé : « 1 fait », « 2 faits », « 0 non fait ». */
 export const compte = (n: number, singulier: string, pluriel = `${singulier}s`): string =>
@@ -60,7 +61,7 @@ export const LIBELLE_DISPONIBILITE: Record<StatutDisponibilite, string> = {
   FicheACompleter: 'Fiche à compléter',
   InstructionsACompleter: 'Instructions à compléter',
   Attend: 'Attend',
-  Terminee: 'Terminée',
+  Terminee: 'Réussie',
   EnCours: 'En cours',
   ArretResolution: 'Arrêt / résolution',
   Disponible: 'Disponible',

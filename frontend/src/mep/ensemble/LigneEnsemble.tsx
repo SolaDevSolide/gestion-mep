@@ -37,7 +37,7 @@ export function LigneEnsemble({ etapes, bloquees }: { etapes: Etape[]; bloquees:
           {av.reussies}/{av.total}
         </span>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[11.5px]">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs">
         <span className={cn('font-semibold', TON[TON_ETAT_VUE[etat]].texte)}>{LIBELLE_ETAT_VUE[etat]}</span>
         {actifs.map((e) => {
           const nom = nomParticipant(g.mep, e.executantId);

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { api } from '../api';
 import { AuthContext } from '../auth';
-import { utilisateur } from '../test/fabrique';
+import { SESSION_ACTIVE, utilisateur } from '../test/fabrique';
 import type { SsoProfil, SystemeCatalogue, Utilisateur } from '../types';
 import ProfilPage from './ProfilPage';
 
@@ -34,7 +34,14 @@ function rendre(u: Utilisateur, sso?: Partial<SsoProfil>, url = '/profil') {
   });
   render(
     <AuthContext.Provider
-      value={{ utilisateur: u, chargement: false, connecter: vi.fn(), deconnecter: vi.fn(), majUtilisateur }}
+      value={{
+        utilisateur: u,
+        chargement: false,
+        connecter: vi.fn(),
+        deconnecter: vi.fn(),
+        majUtilisateur,
+        ...SESSION_ACTIVE,
+      }}
     >
       <MemoryRouter initialEntries={[url]}>
         <ProfilPage />
@@ -56,7 +63,8 @@ describe('Page Mon profil', () => {
         expertises: [{ systemeCatalogueId: 'c-api', detail: 'Expert facturation' }],
       }),
     );
-    expect(screen.getByLabelText(/Nom affiché/)).toHaveValue('Bob');
+    // La page apparaît d'un bloc, une fois le catalogue et l'état de la connexion unique lus.
+    expect(await screen.findByLabelText(/Nom affiché/)).toHaveValue('Bob');
     expect(screen.getByLabelText('Rôle')).toHaveValue('Développeur API');
     expect(screen.getByLabelText('Contact')).toHaveValue('06 11');
     expect(await screen.findByLabelText('Détail')).toHaveValue('Expert facturation');

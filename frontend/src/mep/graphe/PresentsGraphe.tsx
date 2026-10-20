@@ -55,7 +55,7 @@ function Pile({ presents, lieu, className }: { presents: Present[]; lieu: string
       role="group"
       aria-label={presents.map((p) => titrePresent(p, lieu)).join(' ; ')}
       data-presents={presents.map((p) => prenom(p.nom)).join(',')}
-      className={cn('pointer-events-auto absolute z-[5] flex -space-x-1.5', className)}
+      className={cn('pointer-events-auto absolute z-5 flex -space-x-1.5', className)}
     >
       {visibles.map((p) => (
         <span key={p.utilisateurId} className="relative">
@@ -65,7 +65,7 @@ function Pile({ presents, lieu, className }: { presents: Present[]; lieu: string
               aria-hidden
               className={cn(
                 'absolute -right-1 -bottom-1 flex size-3.5 items-center justify-center rounded-full ring-1 ring-surface',
-                p.verrou.reprisDeNom ? 'bg-warn-solid text-white' : 'bg-surface text-fg',
+                p.verrou.reprisDeNom ? 'bg-warn-solid text-warn-solid-fg' : 'bg-surface text-fg',
               )}
             >
               {p.verrou.reprisDeNom ? <Hand className="size-2.5" /> : <Lock className="size-2.5" />}
@@ -74,7 +74,7 @@ function Pile({ presents, lieu, className }: { presents: Present[]; lieu: string
         </span>
       ))}
       {presents.length > visibles.length && (
-        <span className="inline-flex size-5 items-center justify-center rounded-full bg-surface-2 text-[9px] font-semibold text-fg-muted ring-2 ring-surface">
+        <span className="inline-flex size-5 items-center justify-center rounded-full bg-surface-2 text-2xs font-semibold text-fg-muted ring-2 ring-surface">
           +{presents.length - visibles.length}
         </span>
       )}

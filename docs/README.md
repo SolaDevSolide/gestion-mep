@@ -1,6 +1,6 @@
 # Documentation de Gestion MEP
 
-Gestion MEP est une application web pour préparer et exécuter les mises en production (MEP). L'équipe qui a développé un changement décrit l'intervention une fois : systèmes touchés, sauvegardes, étapes à suivre, contrôles et retour arrière. Le jour J, n'importe quel opérateur peut dérouler la MEP pas à pas sans avoir participé au développement. Tout est tracé dans un journal, et l'application déclenche elle-même le retour arrière si le déploiement dépasse son échéance (pendant la recette, elle la signale et le pilote décide). Retour arrière et échéance sont facultatifs pour les environnements qui n'en ont pas besoin.
+Gestion MEP est une application web pour préparer et exécuter les mises en production (MEP). L'équipe qui a développé un changement décrit l'intervention une fois : systèmes touchés, sauvegardes, étapes à suivre, contrôles et retour arrière. Le jour J, n'importe quel exécutant peut dérouler la MEP pas à pas sans avoir participé au développement. Tout est tracé dans un journal, et l'application déclenche elle-même le retour arrière si le déploiement dépasse son échéance (pendant la recette, elle la signale et le pilote décide). Retour arrière et échéance sont facultatifs pour les environnements qui n'en ont pas besoin.
 
 Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQL, fourni dans le même fichier, ou sans Docker, comme un service Linux ou Windows.
 
@@ -11,7 +11,7 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 | Essayer l'application sur mon poste en cinq minutes | [Démarrage rapide](Démarrage-rapide.md) |
 | Comprendre les étapes de vie d'une MEP | [Cycle de vie d'une MEP](Cycle-de-vie.md) |
 | Préparer une MEP (je suis développeur ou responsable technique) | [Préparer une MEP](Préparer-une-MEP.md) |
-| Conduire ou exécuter une MEP le jour J (je suis pilote ou opérateur) | [Exécuter une MEP](Exécuter-une-MEP.md) |
+| Conduire ou exécuter une MEP le jour J (je suis pilote ou exécutant) | [Exécuter une MEP](Exécuter-une-MEP.md) |
 | Suivre une MEP en cours, voir toutes les MEP lancées, lire le rapport de fin (je suis chef de projet ou astreinte) | [Suivre une MEP](Suivre-une-MEP.md) |
 | Annoncer une MEP, faire la demande de MEP, envoyer le compte rendu (textes à copier) | [Modèles de texte](Modèles-de-texte.md) |
 | Gérer les comptes, les équipes, les paramètres et la charte visuelle (je suis administrateur) | [Administrer](Administrer.md) |

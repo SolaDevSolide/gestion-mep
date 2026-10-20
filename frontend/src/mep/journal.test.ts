@@ -1,7 +1,9 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { api } from '../api';
 import type { Evenement } from '../types';
-import { useJournal } from './journal';
+import { oublierReferentiels } from '../referentiels';
+import { lireJournal, useJournal } from './journal';
+import { useJournalMep } from './preparation/donnees';
 
 vi.mock('../api', () => ({ api: { journal: vi.fn() } }));
 
@@ -69,5 +71,56 @@ describe('useJournal', () => {
     vi.mocked(api.journal).mockReturnValueOnce(new Promise(() => undefined));
     rerender({ id: 'm2' });
     expect(result.current.evenements).toBeNull();
+  });
+});
+
+describe('journal partagé (useJournalMep)', () => {
+  beforeEach(() => {
+    oublierReferentiels();
+    vi.mocked(api.journal).mockReset();
+  });
+
+  it('lit une fois pour tous les composants, puis seulement les nouveaux événements de la famille à chaque version', async () => {
+    vi.mocked(api.journal).mockResolvedValueOnce([evt(4, 'approbation.donnee'), evt(2, 'approbation.demandee')]);
+    const { result, rerender } = renderHook(
+      ({ v }) => ({
+        a: useJournalMep({ id: 'm1', version: v }, 'approbation'),
+        b: useJournalMep({ id: 'm1', version: v }, 'approbation'),
+      }),
+      { initialProps: { v: 1 } },
+    );
+    await waitFor(() => expect(ids(result.current.a.donnees)).toEqual([4, 2]));
+    expect(ids(result.current.b.donnees)).toEqual([4, 2]);
+    expect(api.journal).toHaveBeenCalledTimes(1);
+    expect(api.journal).toHaveBeenLastCalledWith('m1', { type: 'approbation', limite: 100 });
+
+    vi.mocked(api.journal).mockResolvedValueOnce([evt(7, 'approbation.donnee')]);
+    rerender({ v: 2 });
+    await waitFor(() => expect(ids(result.current.a.donnees)).toEqual([7, 4, 2]));
+    expect(api.journal).toHaveBeenCalledTimes(2);
+    expect(api.journal).toHaveBeenLastCalledWith('m1', { type: 'approbation', apres: 4, limite: 500 }, true);
+  });
+
+  it('montre une erreur sans réponse, puis « Réessayer » relit la première page', async () => {
+    vi.mocked(api.journal).mockRejectedValueOnce(new Error('hors ligne'));
+    const { result } = renderHook(() => useJournalMep({ id: 'm1', version: 1 }));
+    await waitFor(() => expect(result.current.erreur).not.toBeNull());
+    expect(result.current.donnees).toBeNull();
+    vi.mocked(api.journal).mockResolvedValueOnce([evt(3)]);
+    act(() => result.current.recharger());
+    await waitFor(() => expect(ids(result.current.donnees)).toEqual([3]));
+    expect(api.journal).toHaveBeenLastCalledWith('m1', { type: '', limite: 100 });
+  });
+});
+
+describe('lireJournal', () => {
+  beforeEach(() => vi.mocked(api.journal).mockReset());
+
+  it('relit la première page quand trop d’événements sont arrivés d’un coup', async () => {
+    vi.mocked(api.journal)
+      .mockResolvedValueOnce(Array.from({ length: 500 }, (_, i) => evt(1000 - i)))
+      .mockResolvedValueOnce([evt(1000), evt(999)]);
+    expect(ids(await lireJournal('m1', '', [evt(5)]))).toEqual([1000, 999]);
+    expect(api.journal).toHaveBeenLastCalledWith('m1', { type: '', limite: 100 });
   });
 });

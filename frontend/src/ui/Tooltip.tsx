@@ -22,7 +22,7 @@ export function Tooltip({
         <T.Content
           side={cote}
           sideOffset={6}
-          className="z-[70] max-w-xs rounded-md bg-fg px-2.5 py-1.5 text-xs font-medium text-bg shadow-md data-[state=delayed-open]:animate-fade-in"
+          className="z-menu max-w-xs rounded-md bg-fg px-2.5 py-1.5 text-xs font-medium text-bg shadow-md data-[state=delayed-open]:animate-fade-in"
         >
           {content}
           <T.Arrow className="fill-fg" />

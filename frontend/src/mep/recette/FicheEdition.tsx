@@ -35,7 +35,7 @@ const brouillonDe = (f: FicheRecette): FicheBrouillon => ({
 export function FicheEdition({ fiche, onSupprimee }: { fiche: FicheRecette; onSupprimee?: () => void }) {
   const { mep, run } = useMep();
   const d = useDraft(brouillonDe(fiche));
-  useReportDirty(d.dirty, `Fiche de recette « ${fiche.titre || 'sans titre'} »`);
+  useReportDirty(d.dirty, `Fiche de recette « ${fiche.titre || 'sans titre'} »`, d);
   const v = d.value;
   const [suppr, setSuppr] = useState(false);
   const [envoi, setEnvoi] = useState(false);

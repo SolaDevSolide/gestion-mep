@@ -40,7 +40,7 @@ export function Segmented<T extends string>({
           key={o.valeur}
           value={o.valeur}
           title={o.titre}
-          className="inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-medium text-fg-subtle transition-colors duration-150 hover:text-fg disabled:cursor-not-allowed disabled:opacity-60 data-[state=on]:bg-surface data-[state=on]:text-fg data-[state=on]:shadow-sm"
+          className="inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-ui font-medium text-fg-subtle transition-colors duration-150 hover:text-fg disabled:cursor-not-allowed disabled:opacity-60 data-[state=on]:bg-surface data-[state=on]:text-fg data-[state=on]:shadow-sm"
         >
           {o.libelle}
         </ToggleGroup.Item>

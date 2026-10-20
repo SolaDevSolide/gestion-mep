@@ -57,6 +57,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
   return (
     <header
       ref={ref}
+      data-entete-mep
       className="z-30 border-b border-line bg-surface/95 backdrop-blur-md [@media(min-height:760px)]:sticky [@media(min-height:760px)]:top-[var(--bandeau-demo,0px)]"
     >
       <div className="px-6 pt-3">
@@ -94,13 +95,13 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
               )}
               {estSimplifiee(mep) && <BadgeSimplifiee />}
             </div>
-            <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 pl-8 text-[13px] text-fg-muted">
+            <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 pl-8 text-ui text-fg-muted">
               {mep.objet && <span className="max-w-md truncate">{mep.objet}</span>}
               {!mep.estModele && (
                 <span className="inline-flex items-center gap-1.5">
                   <CalendarDays className="size-3.5 text-fg-subtle" aria-hidden />
                   Démarrée le {mep.demarrageAutorise ? formatDateHeure(mep.demarrageAutorise.le) : '—'}
-                  {mep.cloture && ` · Terminée le ${formatDateHeure(mep.cloture.le)}`}
+                  {mep.cloture && ` · Clôturée le ${formatDateHeure(mep.cloture.le)}`}
                   {mep.annulation && ` · Annulée le ${formatDateHeure(mep.annulation.le)}`}
                 </span>
               )}
@@ -110,7 +111,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                   <Avatar nom={pilote} taille="xs" />
                   Pilote : {pilote}
                   {mep.pilotageSecours && estApresGoEnCours(mep) && (
-                    <Badge ton="warn" className="text-[11px]">
+                    <Badge ton="warn" className="text-2xs">
                       secours
                     </Badge>
                   )}
@@ -180,7 +181,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
             <ProgressBar className="min-w-48 flex-1" hauteur="h-1.5" segments={segmentsProgression(etapes)} />
             <p className="flex shrink-0 items-center gap-3 text-xs text-fg-subtle tnum">
               <span className="font-medium text-fg-muted">
-                {termine}/{etapes.length} {plan === 'RetourArriere' ? 'étapes de repli' : 'étapes'}
+                {termine}/{etapes.length} {plan === 'RetourArriere' ? 'étapes de retour arrière' : 'étapes'}
               </span>
               {segmentsProgression(etapes)
                 .filter((x) => x.valeur > 0 && x.ton !== 'wait')
@@ -235,7 +236,7 @@ function EnvironnementsMep({ mep }: { mep: Mep }) {
             {s.environnements.map((e, j) => (
               <span key={e.nom}>
                 {j > 0 && ', '}
-                <span title={e.nom} className={cn(e.production && 'font-semibold text-warn-solid')}>
+                <span title={e.nom} className={cn(e.production && 'font-semibold text-warn-text')}>
                   {abregerEnvironnement(e.nom)}
                 </span>
               </span>

@@ -7,6 +7,21 @@ export const PAGE_JOURNAL = 100;
 /** Nouveaux événements lus d'un coup après une modification ; s'il y en a autant, la première page est relue. */
 const MAX_NOUVEAUX = 500;
 
+/**
+ * Lecture par morceaux d'un journal gardé ailleurs (données partagées, `useJournalMep`) : sans `precedent`, la première
+ * page de la famille `type` ; sinon seulement les événements plus récents que le dernier lu, ajoutés en tête (la
+ * première page est relue s'il y en a trop d'un coup).
+ */
+export async function lireJournal(mepId: string, type: string, precedent: Evenement[] | null): Promise<Evenement[]> {
+  const premiere = () => api.journal(mepId, { type, limite: PAGE_JOURNAL });
+  if (precedent === null) return premiere();
+  const dernier = precedent[0]?.id ?? 0;
+  const nouveaux = await api.journal(mepId, { type, apres: dernier, limite: MAX_NOUVEAUX }, true);
+  if (nouveaux.length >= MAX_NOUVEAUX) return premiere();
+  const plusRecents = nouveaux.filter((n) => n.id > dernier);
+  return plusRecents.length > 0 ? [...plusRecents, ...precedent] : precedent;
+}
+
 export interface FiltreJournalLu {
   /** Famille d'événements (`familleEvenement`), « tous » ou vide : toutes. */
   type?: string;
@@ -19,6 +34,11 @@ export interface JournalLu {
   /** false tant que les événements affichés sont ceux de filtres précédents (les nouveaux arrivent). */
   aJour: boolean;
   erreur: string;
+  /** Erreur reçue telle quelle (null sans erreur), pour `ErreurChargement`. */
+  echec: unknown;
+  /** Relit la première page (« Réessayer ») ; `rechargement` : relecture en cours. */
+  recharger: () => void;
+  rechargement: boolean;
   /** Des événements plus anciens restent à lire. */
   suite: boolean;
   chargementSuite: boolean;
@@ -47,8 +67,9 @@ export function useJournal(
   const recherche = filtre.recherche?.trim() ?? '';
   const cle = `${mepId}\n${type}\n${recherche}\n${limite}`;
   const [etat, setEtat] = useState<Etat | null>(null);
-  const [erreur, setErreur] = useState<{ cle: string; message: string } | null>(null);
+  const [erreur, setErreur] = useState<{ cle: string; echec: unknown } | null>(null);
   const [chargementSuite, setChargementSuite] = useState(false);
+  const [rechargement, setRechargement] = useState(false);
 
   const cleRef = useRef(cle);
   const etatRef = useRef<Etat | null>(null);
@@ -78,7 +99,7 @@ export function useJournal(
         setErreur(null);
       } catch (e) {
         if (cleRef.current === pour)
-          setErreur({ cle: pour, message: e instanceof Error ? e.message : 'Chargement du journal impossible.' });
+          setErreur({ cle: pour, echec: e ?? new Error('Chargement du journal impossible.') });
       }
     },
     [mepId, type, recherche, limite, ecrire],
@@ -123,18 +144,28 @@ export function useJournal(
         });
       } catch (err) {
         if (cleRef.current === pour)
-          setErreur({ cle: pour, message: err instanceof Error ? err.message : 'Chargement du journal impossible.' });
+          setErreur({ cle: pour, echec: err ?? new Error('Chargement du journal impossible.') });
       } finally {
         setChargementSuite(false);
       }
     });
   }, [mepId, type, recherche, limite, enFile, ecrire]);
 
+  const recharger = useCallback(() => {
+    const pour = cleRef.current;
+    setRechargement(true);
+    enFile(() => premierePage(pour).finally(() => setRechargement(false)));
+  }, [enFile, premierePage]);
+
   const courant = etat && etat.mepId === mepId ? etat : null;
+  const echec = erreur?.cle === cle ? erreur.echec : null;
   return {
     evenements: courant?.evenements ?? null,
     aJour: courant?.cle === cle,
-    erreur: erreur?.cle === cle ? erreur.message : '',
+    erreur: echec === null ? '' : echec instanceof Error ? echec.message : 'Chargement du journal impossible.',
+    echec,
+    recharger,
+    rechargement,
     suite: courant?.cle === cle && courant.suite,
     chargementSuite,
     afficherPlus,

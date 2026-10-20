@@ -47,7 +47,7 @@ export const LIBELLE_ETAT_MEP: Record<EtatMep, string> = {
   RetourArriere: 'Retour arrière',
   Reussie: 'Réussie',
   AvecIncidents: 'Réussie avec incidents',
-  Repliee: 'Repliée',
+  Repliee: 'Clôturée après retour arrière',
   Reportee: 'Reportée',
   Echec: 'Échec (service dégradé)',
   Annulee: 'Annulée',

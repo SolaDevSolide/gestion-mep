@@ -41,7 +41,7 @@ import { sectionsDuPlan } from '../mep/graphe/sections';
 import { BadgeSimplifiee, estSimplifiee } from '../mep/typeMep';
 import { metaPhase } from '../statuts';
 import type { Mep, MepCloturee, MepPrevue, Suivi } from '../types';
-import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Apparition } from '../ui/Apparition';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
@@ -101,19 +101,19 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
             {!estSimplifiee(mep) && mep.versionCible.trim() && (
               <>
                 <ArrowRight className="size-4 shrink-0 text-fg-subtle" aria-hidden />
-                <span className="font-mono text-[15px] font-semibold">{mep.versionCible}</span>
+                <span className="font-mono text-md font-semibold">{mep.versionCible}</span>
               </>
             )}
           </h2>
           <StatusPill ton={phase.ton} icone={phase.Icone} anime={phase.anime}>
             {phase.libelle}
           </StatusPill>
-          {estSimplifiee(mep) && <BadgeSimplifiee className="text-[11px]" />}
+          {estSimplifiee(mep) && <BadgeSimplifiee className="text-2xs" />}
         </div>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-fg-muted">
           <span className="inline-flex items-center gap-1.5 tnum">
             <Play className="size-4 text-fg-subtle" aria-hidden />
-            {repli ? 'Repli déclenché à' : 'Go à'} {heure(c.depart)}
+            {repli ? 'Retour arrière déclenché à' : 'Go à'} {heure(c.depart)}
           </span>
           {rebours && rebours.niveau !== 'aucun' && (
             <span
@@ -135,9 +135,9 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
 
       <div className="mt-4 grid gap-6 md:grid-cols-[minmax(0,1fr)_190px] xl:grid-cols-[minmax(0,1fr)_190px_300px]">
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold tnum">
+          <p className="text-ui font-semibold tnum">
             {repli ? 'Retour arrière : ' : ''}
-            {c.faites}/{c.total} étapes faites · {c.pourcentage} %
+            {c.faites}/{c.total} étapes réussies · {c.pourcentage} %
           </p>
           <ProgressBar className="mt-1.5" hauteur="h-2.5" legende segments={segmentsProgression(etapes)} />
           <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Sections">
@@ -149,7 +149,7 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
                   key={s.id}
                   title={`${s.titre} : ${LIBELLE_ETAT_VUE[etat]}`}
                   className={cn(
-                    'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[12px] font-medium',
+                    'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium',
                     PUCE_ETAT[TON_ETAT_VUE[etat]],
                     etat === 'bloquee' && 'border-dashed',
                   )}
@@ -168,7 +168,7 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
                   key={e.id}
                   title={`${e.code} ${e.action} : ${LIBELLE_ETAT_VUE[etat]}`}
                   className={cn(
-                    'inline-flex items-center rounded-md border px-1.5 py-0.5 font-mono text-[11.5px]',
+                    'inline-flex items-center rounded-md border px-1.5 py-0.5 font-mono text-xs',
                     PUCE_ETAT[TON_ETAT_VUE[etat]],
                     etat === 'bloquee' && 'border-dashed',
                   )}
@@ -180,25 +180,25 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
           </ul>
         </div>
 
-        <dl className="grid content-start gap-2 text-[13px]">
+        <dl className="grid content-start gap-2 text-ui">
           {c.sansDuree ? (
             <div>
-              <dt className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">Fin estimée</dt>
+              <dt className="text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">Fin estimée</dt>
               <dd className="text-fg-muted">Durées non estimées</dd>
             </div>
           ) : (
             <>
               <div>
-                <dt className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+                <dt className="text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">
                   {c.terminee ? (repli ? 'Retour arrière fini' : 'Déploiement fini') : 'Fin estimée'}
                 </dt>
                 <dd className="text-lg leading-tight font-bold tnum">
                   {heure(c.finEstimee)}{' '}
-                  <span className="text-[13px] font-normal text-fg-muted">prévue {heure(c.finPrevue)}</span>
+                  <span className="text-ui font-normal text-fg-muted">prévue {heure(c.finPrevue)}</span>
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">Retard</dt>
+                <dt className="text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">Retard</dt>
                 <dd className={cn('text-lg leading-tight font-bold tnum', TON[tonRetard(c.retardMin)].texte)}>
                   {c.retardMin > 0 ? `+${duree(c.retardMin)}` : 'À l’heure'}
                 </dd>
@@ -207,7 +207,7 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
           )}
         </dl>
 
-        <div className="grid content-start gap-1.5 text-[13px] md:col-span-2 xl:col-span-1">
+        <div className="grid content-start gap-1.5 text-ui md:col-span-2 xl:col-span-1">
           {echecs.map((e) => {
             const resolution = e.disponibilite.statut === 'ResolutionEnCours';
             const bloque = [...bloquees.values()].filter((cs) => cs.some((x) => x.id === e.id)).length;
@@ -218,8 +218,7 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
                 ) : (
                   <XCircle className="mr-1 inline size-3.5" aria-hidden />
                 )}
-                <span className="font-mono text-[12px]">{e.code}</span>{' '}
-                {resolution ? 'résolution en cours' : 'en échec'}
+                <span className="font-mono text-xs">{e.code}</span> {resolution ? 'résolution en cours' : 'en échec'}
                 {bloque > 0 && (
                   <span>
                     {' '}
@@ -244,7 +243,7 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
                     {nom && <Avatar nom={nom} taille="xs" />}
                     <span className="shrink-0 text-fg">{nom}</span>
                     <span className="truncate">
-                      · <span className="font-mono text-[12px]">{e.code}</span> {e.action}
+                      · <span className="font-mono text-xs">{e.code}</span> {e.action}
                     </span>
                   </li>
                 );
@@ -270,7 +269,7 @@ function CarteSuivi({ mep, maintenant }: { mep: Mep; maintenant: number }) {
         </ul>
         <Link
           to={`/meps/${mep.id}?onglet=ensemble`}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-[13px] font-medium shadow-sm hover:bg-surface-2"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-ui font-medium shadow-sm hover:bg-surface-2"
         >
           Vue d’ensemble <ArrowRight className="size-3.5" aria-hidden />
         </Link>
@@ -294,14 +293,14 @@ function Tuile({
 }) {
   return (
     <div className="min-w-0 rounded-xl border border-line bg-surface px-4 py-3 shadow-sm">
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+      <p className="flex items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">
         <Icone className="size-3.5" aria-hidden />
         {titre}
       </p>
-      <p className={cn('mt-1 truncate text-[24px] leading-tight font-bold tnum', ton ? TON[ton].texte : 'text-fg')}>
+      <p className={cn('mt-1 truncate text-2xl leading-tight font-bold tnum', ton ? TON[ton].texte : 'text-fg')}>
         {valeur}
       </p>
-      {detail && <p className="truncate text-[13px] text-fg-muted">{detail}</p>}
+      {detail && <p className="truncate text-ui text-fg-muted">{detail}</p>}
     </div>
   );
 }
@@ -312,16 +311,16 @@ const quandPrevue = (m: MepPrevue, maintenant: number) =>
 function ListePrevues({ prevues, maintenant }: { prevues: MepPrevue[]; maintenant: number }) {
   return (
     <section aria-labelledby="titre-prevues" className="rounded-xl border border-line bg-surface p-4 shadow-sm">
-      <h2 id="titre-prevues" className="flex items-center gap-1.5 text-[13px] font-semibold">
+      <h2 id="titre-prevues" className="flex items-center gap-1.5 text-ui font-semibold">
         <CalendarClock className="size-4 text-fg-subtle" aria-hidden />
         MEP prévues aujourd’hui et demain
       </h2>
       {prevues.length === 0 ? (
-        <p className="mt-2 text-[13px] text-fg-subtle">Aucune MEP annoncée.</p>
+        <p className="mt-2 text-ui text-fg-subtle">Aucune MEP annoncée.</p>
       ) : (
         <ul className="mt-2 divide-y divide-line">
           {prevues.map((m) => (
-            <li key={m.id} className="flex items-center justify-between gap-3 py-2 text-[13px]">
+            <li key={m.id} className="flex items-center justify-between gap-3 py-2 text-ui">
               <Link to={`/meps/${m.id}`} className="min-w-0 truncate font-medium hover:underline">
                 {titreMep(m)}
               </Link>
@@ -340,18 +339,18 @@ function ListePrevues({ prevues, maintenant }: { prevues: MepPrevue[]; maintenan
 function ListeCloturees({ cloturees }: { cloturees: MepCloturee[] }) {
   return (
     <section aria-labelledby="titre-cloturees" className="rounded-xl border border-line bg-surface p-4 shadow-sm">
-      <h2 id="titre-cloturees" className="flex items-center gap-1.5 text-[13px] font-semibold">
+      <h2 id="titre-cloturees" className="flex items-center gap-1.5 text-ui font-semibold">
         <CheckCircle2 className="size-4 text-fg-subtle" aria-hidden />
         MEP clôturées dans les dernières 24 heures
       </h2>
       {cloturees.length === 0 ? (
-        <p className="mt-2 text-[13px] text-fg-subtle">Aucune MEP clôturée.</p>
+        <p className="mt-2 text-ui text-fg-subtle">Aucune MEP clôturée.</p>
       ) : (
         <ul className="mt-2 divide-y divide-line">
           {cloturees.map((m) => {
             const phase = metaPhase('Cloturee', m.etat);
             return (
-              <li key={m.id} className="flex items-center justify-between gap-3 py-2 text-[13px]">
+              <li key={m.id} className="flex items-center justify-between gap-3 py-2 text-ui">
                 <span className="flex min-w-0 items-center gap-2">
                   <Link to={`/meps/${m.id}`} className="truncate font-medium hover:underline">
                     {titreMep(m)}
@@ -387,7 +386,7 @@ function ListeCloturees({ cloturees }: { cloturees: MepCloturee[] }) {
  */
 export default function SuiviPage() {
   const maintenant = useNow(30_000);
-  const { donnees: suivi, erreur, recharger } = useAsync(() => api.suivi(), []);
+  const { donnees: suivi, erreur, echec, chargement, recharger } = useAsync(() => api.suivi(), []);
   // Cartes relues une à une depuis le dernier chargement complet (`base`) : elles remplacent celles de `suivi`.
   const [cartes, setCartes] = useState<{ base: Suivi | null; meps: Map<string, Mep> }>({ base: null, meps: new Map() });
   const rechargerRef = useRef(recharger);
@@ -498,10 +497,14 @@ export default function SuiviPage() {
         </div>
       </div>
 
-      {erreur && (
-        <Alerte ton="danger" icone={TriangleAlert} role="alert" className="mt-6">
-          {erreur}
-        </Alerte>
+      {echec !== null && (
+        <ErreurChargement
+          className="mt-6"
+          erreur={echec}
+          titre="Impossible de charger le suivi en direct"
+          onReessayer={recharger}
+          enCours={chargement}
+        />
       )}
 
       <Apparition pret={suivi !== null || erreur !== ''} libelle="Chargement du suivi…" squelette={<SqueletteSuivi />}>
@@ -539,7 +542,7 @@ export default function SuiviPage() {
           <ListeCloturees cloturees={suivi?.cloturees ?? []} />
         </div>
         {suivi && (
-          <p className="mt-3 text-[12px] text-fg-subtle">
+          <p className="mt-3 text-xs text-fg-subtle">
             Mis à jour le {formatDate(suivi.maintenant)} à {heure(Date.parse(suivi.maintenant))}.
           </p>
         )}

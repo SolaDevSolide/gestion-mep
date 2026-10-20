@@ -1,8 +1,8 @@
-import { NotebookText, OctagonAlert, RefreshCw } from 'lucide-react';
+import { NotebookText, RefreshCw } from 'lucide-react';
 import { api } from '../api';
 import { formatDateHeure } from '../format';
 import { useAsync } from '../hooks';
-import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
@@ -69,7 +69,7 @@ function tonEvenement(type: string): Ton | undefined {
 }
 
 export default function JournalTab() {
-  const { donnees, erreur, recharger } = useAsync(() => api.adminJournal(200), []);
+  const { donnees, erreur, echec, chargement, recharger } = useAsync(() => api.adminJournal(200), []);
   return (
     <Card>
       <CardHeader
@@ -83,9 +83,12 @@ export default function JournalTab() {
       />
       {erreur && (
         <div className="p-5">
-          <Alerte ton="danger" icone={OctagonAlert} role="alert">
-            {erreur}
-          </Alerte>
+          <ErreurChargement
+            erreur={echec}
+            titre="Impossible de charger le journal d’administration"
+            onReessayer={recharger}
+            enCours={chargement}
+          />
         </div>
       )}
       {!erreur && donnees === null && (

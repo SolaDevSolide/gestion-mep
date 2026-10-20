@@ -32,7 +32,7 @@ export function ListeAvertissements({ avertissements, className }: { avertisseme
         {avertissements.map((a) => (
           <li
             key={a}
-            className="flex items-start gap-2 rounded-lg border border-dashed border-warn-bd px-2.5 py-1.5 text-[13px] text-warn-fg"
+            className="flex items-start gap-2 rounded-lg border border-dashed border-warn-bd px-2.5 py-1.5 text-ui text-warn-fg"
           >
             <Info className="mt-0.5 size-3.5 shrink-0 text-warn-solid" aria-hidden />
             {a}
@@ -56,7 +56,7 @@ export function PlanCheck({ mep }: { mep: Mep }) {
         >
           Vérifier le plan
           {n > 0 ? (
-            <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warn-solid px-1.5 text-[11px] font-bold text-white tnum">
+            <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warn-solid px-1.5 text-2xs font-bold text-warn-solid-fg tnum">
               {n}
             </span>
           ) : (
@@ -64,7 +64,7 @@ export function PlanCheck({ mep }: { mep: Mep }) {
           )}
           {nAvert > 0 && (
             <span
-              className="inline-flex h-5 min-w-5 items-center justify-center gap-0.5 rounded-full border border-dashed border-warn-bd px-1.5 text-[11px] font-bold text-warn-fg tnum"
+              className="inline-flex h-5 min-w-5 items-center justify-center gap-0.5 rounded-full border border-dashed border-warn-bd px-1.5 text-2xs font-bold text-warn-fg tnum"
               title="Avertissements non bloquants"
             >
               <Info className="size-3" aria-hidden />
@@ -88,7 +88,7 @@ export function PlanCheck({ mep }: { mep: Mep }) {
                   return (
                     <li
                       key={e}
-                      className="flex items-start gap-2 rounded-lg bg-warn-bg px-2.5 py-1.5 text-[13px] text-warn-fg"
+                      className="flex items-start gap-2 rounded-lg bg-warn-bg px-2.5 py-1.5 text-ui text-warn-fg"
                     >
                       <Icone className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                       {e}

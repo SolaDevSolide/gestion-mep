@@ -9,6 +9,7 @@ import {
   LIBELLE_ETAT,
   LIBELLE_FAMILLE_EVENEMENT,
   LIBELLE_RESULTAT,
+  LIBELLE_VERIFICATION,
   LIBELLE_STATUT_RESOLUTION,
   familleEvenement,
 } from '../format';
@@ -45,7 +46,7 @@ function Partie({ id, titre, children }: { id: string; titre: string; children: 
     <section aria-labelledby={id} className="mt-8 print:mt-6">
       <h2
         id={id}
-        className="border-b border-line pb-1.5 text-[17px] font-semibold tracking-tight break-after-avoid print:text-[15px]"
+        className="border-b border-line pb-1.5 text-lg font-semibold tracking-tight break-after-avoid print:text-md"
       >
         {titre}
       </h2>
@@ -55,14 +56,14 @@ function Partie({ id, titre, children }: { id: string; titre: string; children: 
 }
 
 const th =
-  'border-b border-line px-2 py-1.5 text-left text-[11px] font-semibold tracking-[0.04em] text-fg-subtle uppercase';
+  'border-b border-line px-2 py-1.5 text-left text-2xs font-semibold tracking-[0.04em] text-fg-subtle uppercase';
 const td = 'border-b border-line px-2 py-1.5 align-top';
 
 function Tableau({ entetes, vide, children }: { entetes: string[]; vide: string; children: ReactNode[] }) {
-  if (children.length === 0) return <p className="text-[13px] text-fg-subtle">{vide}</p>;
+  if (children.length === 0) return <p className="text-ui text-fg-subtle">{vide}</p>;
   return (
     <div className="overflow-x-auto print:overflow-visible">
-      <table className="w-full border-collapse text-[13px] print:text-[11px]">
+      <table className="w-full border-collapse text-ui print:text-2xs">
         <thead>
           <tr>
             {entetes.map((e) => (
@@ -91,9 +92,9 @@ function Chiffre({
 }) {
   return (
     <div className="min-w-0 rounded-lg border border-line px-4 py-3 break-inside-avoid">
-      <p className="text-[12px] text-fg-subtle">{titre}</p>
-      <p className="text-[22px] font-bold tnum">{valeur}</p>
-      {detail && <p className="text-[12px] text-fg-muted">{detail}</p>}
+      <p className="text-xs text-fg-subtle">{titre}</p>
+      <p className="text-xl font-bold tnum">{valeur}</p>
+      {detail && <p className="text-xs text-fg-muted">{detail}</p>}
       {children}
     </div>
   );
@@ -107,11 +108,11 @@ function lignesEtapes({ mep, etapes }: { mep: Mep; etapes: Etape[] }) {
     return (
       <tr key={e.id} className="break-inside-avoid">
         <td className={td}>
-          <span className="font-mono text-[12px] text-fg-subtle">{e.code}</span> {e.action}
+          <span className="font-mono text-xs text-fg-subtle">{e.code}</span> {e.action}
           {e.sectionId && titres.has(e.sectionId) && (
-            <span className="block text-[12px] text-fg-subtle">{titres.get(e.sectionId)}</span>
+            <span className="block text-xs text-fg-subtle">{titres.get(e.sectionId)}</span>
           )}
-          {e.ajouteeApresGo && <span className="block text-[12px] text-accent-text">Ajoutée après le Go</span>}
+          {e.ajouteeApresGo && <span className="block text-xs text-accent-text">Ajoutée après le Go</span>}
         </td>
         <td className={td}>{LIBELLE_ETAT[e.etat]}</td>
         <td className={td}>
@@ -153,22 +154,22 @@ function Rapport({ r }: { r: RapportFin }) {
     <article className="mx-auto mt-4 max-w-[1040px] rounded-xl border border-line bg-surface px-5 py-8 shadow-sm sm:px-12 sm:py-10 print:mt-0 print:max-w-none print:border-0 print:p-0 print:shadow-none">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-fg-subtle uppercase">Rapport de fin de MEP</p>
-          <h1 className="mt-1 flex flex-wrap items-baseline gap-x-2 text-[26px] font-semibold tracking-tight">
+          <p className="text-2xs font-semibold tracking-[0.12em] text-fg-subtle uppercase">Rapport de fin de MEP</p>
+          <h1 className="mt-1 flex flex-wrap items-baseline gap-x-2 text-2xl font-semibold tracking-tight">
             {mep.outil}
             {!estSimplifiee(mep) && (
-              <span className="font-mono text-[20px] text-fg-muted">
+              <span className="font-mono text-xl text-fg-muted">
                 {mep.versionActuelle} → {mep.versionCible}
               </span>
             )}
           </h1>
-          {mep.objet && <p className="mt-1 max-w-2xl text-[14px] text-fg-muted">{mep.objet}</p>}
+          {mep.objet && <p className="mt-1 max-w-2xl text-sm text-fg-muted">{mep.objet}</p>}
         </div>
         <StatusPill taille="lg" ton={phase.ton} icone={phase.Icone}>
           {phase.libelle}
         </StatusPill>
       </header>
-      <dl className="mt-5 grid grid-cols-2 gap-4 rounded-lg bg-surface-2/60 px-4 py-3 text-[13px] md:grid-cols-4">
+      <dl className="mt-5 grid grid-cols-2 gap-4 rounded-lg bg-surface-2/60 px-4 py-3 text-ui md:grid-cols-4">
         <div>
           <dt className="text-fg-subtle">Pilote</dt>
           <dd className="mt-0.5 font-medium">{pilote ?? '—'}</dd>
@@ -177,7 +178,7 @@ function Rapport({ r }: { r: RapportFin }) {
           <dt className="text-fg-subtle">Go</dt>
           <dd className="mt-0.5 font-medium tnum">{s.go ? formatDateHeure(s.go) : '—'}</dd>
           {s.premierGo && s.premierGo !== s.go && (
-            <dd className="text-[12px] text-fg-subtle tnum">
+            <dd className="text-xs text-fg-subtle tnum">
               premier Go le {formatDateHeure(s.premierGo)}
               {s.retoursEnPreparation > 0 &&
                 ` · ${s.retoursEnPreparation} retour${s.retoursEnPreparation > 1 ? 's' : ''} en préparation`}
@@ -231,7 +232,11 @@ function Rapport({ r }: { r: RapportFin }) {
           <Chiffre
             titre="Recette"
             valeur={s.recetteTests === 0 ? '—' : `${s.recetteConformes}/${s.recetteTests}`}
-            detail={s.recetteTests === 0 ? 'aucun test' : `conformes · ${s.recetteEchecs} en échec`}
+            detail={
+              s.recetteTests === 0
+                ? 'aucun test'
+                : `conformes · ${s.recetteEchecs} non conforme${s.recetteEchecs > 1 ? 's' : ''}`
+            }
           />
         </div>
         {mep.issue === 'Echec' && mep.cloture && (
@@ -258,7 +263,7 @@ function Rapport({ r }: { r: RapportFin }) {
         {deploiement.length > 0 && (
           <div className="break-inside-avoid">
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[12px] text-fg-subtle">Plan coloré tel qu’à la clôture (lecture seule)</p>
+              <p className="text-xs text-fg-subtle">Plan coloré tel qu’à la clôture (lecture seule)</p>
               <Legende />
             </div>
             {/* Taille fixe, celle d'une page A4 : sinon le graphe prend la hauteur restante de la fenêtre, et l'impression
@@ -284,13 +289,13 @@ function Rapport({ r }: { r: RapportFin }) {
 
       <Partie id="rapport-points" titre="2. Points bloquants">
         {r.pointsBloquants.length === 0 ? (
-          <p className="text-[13px] text-fg-subtle">Aucun échec d’étape.</p>
+          <p className="text-ui text-fg-subtle">Aucun échec d’étape.</p>
         ) : (
           <ul className="grid gap-2">
             {r.pointsBloquants.map((p) => (
               <li
                 key={`${p.code}-${p.echecLe}`}
-                className="rounded-lg border-l-4 border-l-danger-solid bg-surface-2/50 px-3 py-2 text-[13.5px] break-inside-avoid"
+                className="rounded-lg border-l-4 border-l-danger-solid bg-surface-2/50 px-3 py-2 text-sm break-inside-avoid"
               >
                 <p className="font-semibold">
                   <XCircle className="mr-1 inline size-4 text-danger-solid" aria-hidden />
@@ -328,15 +333,15 @@ function Rapport({ r }: { r: RapportFin }) {
             <tr key={x.id} className="break-inside-avoid">
               <td className={td}>
                 {x.titre}
-                <span className="block text-[12px] text-fg-subtle">{LIBELLE_STATUT_RESOLUTION[x.statut]}</span>
+                <span className="block text-xs text-fg-subtle">{LIBELLE_STATUT_RESOLUTION[x.statut]}</span>
               </td>
-              <td className={`${td} font-mono text-[12px]`}>{codes.get(x.etapeId) ?? '—'}</td>
+              <td className={`${td} font-mono text-xs`}>{codes.get(x.etapeId) ?? '—'}</td>
               <td className={td}>{x.demarreePar}</td>
               <td className={td}>
                 {x.corrections.filter((c) => c.resultat === 'Conforme').length}/{x.corrections.length} conforme(s)
               </td>
               <td className={td}>
-                {x.verificationResultat ? LIBELLE_RESULTAT[x.verificationResultat] : '—'}
+                {x.verificationResultat ? LIBELLE_VERIFICATION[x.verificationResultat] : '—'}
                 {x.verificationObservation && ` : ${x.verificationObservation}`}
               </td>
               <td className={`${td} tnum`}>{dureeOuTiret(minutesEntre(x.demarreeLe, x.termineeLe))}</td>
@@ -346,7 +351,7 @@ function Rapport({ r }: { r: RapportFin }) {
       </Partie>
 
       <Partie id="rapport-tests" titre="4. Tests unitaires">
-        <p className="mb-2 text-[12.5px] text-fg-muted">
+        <p className="mb-2 text-ui text-fg-muted">
           {r.testsUnitaires.faits} fait(s), {r.testsUnitaires.nonFaits} non fait(s) · {r.testsUnitaires.verifications}{' '}
           étape(s) terminée(s) par une simple vérification.
         </p>
@@ -357,10 +362,10 @@ function Rapport({ r }: { r: RapportFin }) {
           {r.testsUnitaires.tests.map((t) => (
             <tr key={t.etapeId} className="break-inside-avoid">
               <td className={td}>
-                <span className="font-mono text-[12px] text-fg-subtle">{t.code}</span> {t.action}
+                <span className="font-mono text-xs text-fg-subtle">{t.code}</span> {t.action}
               </td>
               <td className={td}>
-                <Markdown source={t.resultatAttendu} className="text-[13px] print:text-[11px]" />
+                <Markdown source={t.resultatAttendu} className="text-ui print:text-2xs" />
               </td>
               <td className={td}>{t.resultatConstate || '—'}</td>
               <td className={td}>{t.executant ?? '—'}</td>
@@ -389,7 +394,7 @@ function Rapport({ r }: { r: RapportFin }) {
 
       <Partie id="rapport-bilan" titre="6. Bilan">
         {mep.bilan ? (
-          <dl className="grid gap-4 text-[13.5px] md:grid-cols-3">
+          <dl className="grid gap-4 text-sm md:grid-cols-3">
             {(
               [
                 ['Ce qui a marché', mep.bilan.ceQuiAMarche],
@@ -404,17 +409,17 @@ function Rapport({ r }: { r: RapportFin }) {
             ))}
           </dl>
         ) : (
-          <p className="text-[13px] text-fg-subtle">Aucun bilan rédigé.</p>
+          <p className="text-ui text-fg-subtle">Aucun bilan rédigé.</p>
         )}
       </Partie>
 
       <Partie id="rapport-recette" titre="Annexe A. Recette">
-        {mep.fichesRecette.length === 0 && <p className="text-[13px] text-fg-subtle">Aucune fiche de recette.</p>}
+        {mep.fichesRecette.length === 0 && <p className="text-ui text-fg-subtle">Aucune fiche de recette.</p>}
         {[...mep.fichesRecette]
           .sort((a, b) => a.ordre - b.ordre)
           .map((f) => (
             <div key={f.id} className="mt-3 first:mt-0">
-              <h3 className="text-[14px] font-semibold">
+              <h3 className="text-sm font-semibold">
                 {f.titre}
                 {f.systemeId && systemes.has(f.systemeId) && (
                   <span className="font-normal text-fg-subtle"> · {systemes.get(f.systemeId)}</span>
@@ -427,13 +432,13 @@ function Rapport({ r }: { r: RapportFin }) {
                     <tr key={t.id} className="break-inside-avoid">
                       <td className={`${td} tnum`}>{t.ordre}</td>
                       <td className={td}>
-                        <Markdown source={t.resultatAttendu} className="text-[13px] print:text-[11px]" />
+                        <Markdown source={t.resultatAttendu} className="text-ui print:text-2xs" />
                       </td>
                       <td className={td}>{t.resultat ? LIBELLE_RESULTAT[t.resultat] : 'Non fait'}</td>
                       <td className={td}>{t.observation || '—'}</td>
                       <td className={td}>
                         {t.par ?? '—'}
-                        {t.le && <span className="block text-[12px] text-fg-subtle">{formatDateHeure(t.le)}</span>}
+                        {t.le && <span className="block text-xs text-fg-subtle">{formatDateHeure(t.le)}</span>}
                       </td>
                     </tr>
                   ))}
@@ -444,7 +449,7 @@ function Rapport({ r }: { r: RapportFin }) {
 
       {mep.retourArriere && (
         <Partie id="rapport-retour" titre="Annexe B. Retour arrière">
-          <p className="mb-2 text-[13px] text-fg-muted">
+          <p className="mb-2 text-ui text-fg-muted">
             Déclenché le {formatDateHeure(mep.retourArriere.le)}
             {mep.retourArriere.par ? ` par ${mep.retourArriere.par}` : ' (automatiquement)'}
             {mep.retourArriere.motif && ` : ${mep.retourArriere.motif}`}
@@ -471,7 +476,7 @@ function Rapport({ r }: { r: RapportFin }) {
         </Tableau>
       </Partie>
 
-      <p className="mt-8 text-[12px] text-fg-subtle">
+      <p className="mt-8 text-xs text-fg-subtle">
         Rapport figé le {formatDate(r.figeLe)} à {heureDe(r.figeLe)}
         {r.calculeApres
           ? ' : MEP clôturée avant l’existence des rapports de fin, rapport établi à sa première consultation.'
@@ -513,7 +518,7 @@ export default function RapportPage() {
             <ArrowLeft className="size-5" aria-hidden />
           </Link>
           <FileText className="size-5 text-fg-subtle" aria-hidden />
-          <span className="text-[15px] font-semibold">Rapport de fin</span>
+          <span className="text-md font-semibold">Rapport de fin</span>
         </div>
         {rapport && (
           <div className="flex flex-wrap items-center gap-2">

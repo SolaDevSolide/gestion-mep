@@ -12,9 +12,9 @@ Premier onglet de chaque MEP (pas des modèles). Pendant l'exécution, un point 
 
 | Chiffre | Ce qu'il dit |
 |---|---|
-| Avancement | Étapes faites sur le total du plan suivi, avec la barre réussies / en cours / échecs / restantes. |
+| Avancement | Étapes réussies sur le total du plan suivi, avec la barre réussies / en cours / échecs / restantes. |
 | Temps passé | Depuis le Go, et la durée prévue du plan. |
-| Fin estimée | Heure à laquelle le plan devrait se finir, et l'heure prévue au Go. Une fois toutes les étapes faites : la fin réelle. |
+| Fin estimée | Heure à laquelle le plan devrait se finir, et l'heure prévue au Go. Une fois toutes les étapes réussies : la fin réelle. |
 | Retard | Écart entre la fin estimée et la fin prévue : vert jusqu'à 5 minutes, orange jusqu'à 30, rouge au-delà. |
 | À traiter | Étapes en échec et étapes bloquées. |
 
@@ -26,8 +26,8 @@ Le graphe du plan, en lecture seule, avec les mêmes cartes et le même rangemen
 
 | État | Sens |
 |---|---|
-| Faite | Étape réussie (section : toutes ses étapes réussies). |
-| En cours | Étape démarrée (section : au moins une étape faite ou en cours). |
+| Réussie | Étape réussie (section : toutes ses étapes réussies). |
+| En cours | Étape démarrée (section : au moins une étape réussie ou en cours). |
 | Échec | Étape en échec, sans résolution lancée. |
 | Résolution en cours | Étape en échec dont une résolution type est en cours. |
 | À venir | Étape qui attend son tour. |
@@ -57,7 +57,7 @@ Quand une MEP est clôturée, son **rapport de fin** est figé : ce qu'il montre
 
 Il contient :
 
-1. la **vue d'ensemble à la clôture** : l'issue (« réussie », « réussie avec incidents » si une étape ou un test de recette a échoué en route, « repliée », ou « échec » avec l'état du service laissé en production et la référence de l'incident), l'heure du Go (et du premier Go si la MEP est revenue en préparation, avec le nombre de retours en préparation), le nombre d'étapes correctives ajoutées après le Go, étapes réussies, durée réelle du déploiement et durée prévue, échecs (et combien ont été repris avec succès), recette, et le plan coloré tel qu'à la clôture ;
+1. la **vue d'ensemble à la clôture** : l'issue (« réussie », « réussie avec incidents » si une étape ou un test de recette a échoué en route, « clôturée après retour arrière », ou « échec » avec l'état du service laissé en production et la référence de l'incident), l'heure du Go (et du premier Go si la MEP est revenue en préparation, avec le nombre de retours en préparation), le nombre d'étapes correctives ajoutées après le Go, étapes réussies, durée réelle du déploiement et durée prévue, échecs (et combien ont été repris avec succès), recette, et le plan coloré tel qu'à la clôture ;
 2. les **points bloquants** : chaque échec d'étape, tiré du journal (une étape refaite garde son échec), avec son motif, la personne, la résolution type utilisée et sa durée, l'heure de reprise et de réussite, et le temps d'arrêt (de l'échec à la reprise) ;
 3. les **résolutions utilisées**, avec corrections et vérification ;
 4. les **tests unitaires** : résultat attendu et constaté de chaque étape terminée par un test ;
@@ -79,7 +79,7 @@ La liste des MEP (page d'accueil) se filtre par une rangée de critères au-dess
 | Reportée | en préparation, avec un report en cours |
 | Réussie | clôturées sans retour arrière, sans aucun échec d'étape ni test de recette en échec |
 | Réussie avec incidents | clôturées sans retour arrière, avec au moins un échec d'étape ou un test de recette en échec (même repris ensuite) |
-| Repliée | clôturées après un retour arrière |
+| Après retour arrière | clôturées après un retour arrière (« Clôturée après retour arrière ») |
 | Échec (service dégradé) | clôturées en échec |
 | Annulée | annulées (groupe « Arrêtées ») |
 
@@ -101,7 +101,7 @@ En ligne de commande : `gestion-mep meps lister` avec les mêmes critères (voir
 
 Onglet **« Historique des MEP »** de la fiche d'un système du catalogue (Paramètres › Systèmes, ou la puce du système) : toutes les MEP qui l'ont touché, avec leur date, leurs environnements sur ce système et leur issue.
 
-- En haut, la synthèse : nombre de MEP (dont celles des 12 derniers mois et celles en cours ou à venir), dernière MEP lancée, part des MEP clôturées avec problème (en échec, repliées ou avec incidents ; les annulées sont comptées à part) et échecs d'étape survenus sur ce système, repris ou non.
+- En haut, la synthèse : nombre de MEP (dont celles des 12 derniers mois et celles en cours ou à venir), dernière MEP lancée, part des MEP clôturées avec problème (en échec, clôturées après retour arrière ou avec incidents ; les annulées sont comptées à part) et échecs d'étape survenus sur ce système, repris ou non.
 - Une frise des 12 derniers mois place chaque MEP à sa date, de la couleur de son état.
 - Puis les MEP, mois par mois (celles en préparation sans Go d'abord, sous « À venir »), chacune avec ses environnements sur ce système, les autres systèmes touchés, son pilote, un lien vers son rapport de fin et ses **échecs d'étape sur ce système** (repris ou non, avec la résolution type appliquée).
 - Les MEP se filtrent par environnement et par « Avec un échec sur ce système » ; « Ouvrir dans la liste des MEP » reprend ces critères dans la liste. « Exporter en Excel » télécharge tout l'historique (feuilles Synthèse, MEP et Échecs).
@@ -110,4 +110,4 @@ Le catalogue des systèmes montre aussi, pour chacun, sa **dernière MEP** et le
 
 ## Dans les textes à copier
 
-Trois [variables de texte](Modèles-de-texte.md#suivi-de-lexécution) reprennent ces informations : `{{avancement}}` (« 4/14 étapes faites (29 %) »), `{{fin_estimee}}` (« 16h33 (prévue à 15h18, +1 h 15) », calculée comme la vue d'ensemble) et `{{lien_rapport}}` (adresse du rapport de fin, une fois la MEP clôturée).
+Trois [variables de texte](Modèles-de-texte.md#suivi-de-lexécution) reprennent ces informations : `{{avancement}}` (« 4/14 étapes réussies (29 %) »), `{{fin_estimee}}` (« 16h33 (prévue à 15h18, +1 h 15) », calculée comme la vue d'ensemble) et `{{lien_rapport}}` (adresse du rapport de fin, une fois la MEP clôturée).

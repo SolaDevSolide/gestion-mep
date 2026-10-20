@@ -1,7 +1,7 @@
 import { Check, FlaskConical, RotateCcw, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '../../api';
-import { formatDate, formatDateHeure, LIBELLE_RESULTAT, LIBELLE_VALIDATION } from '../../format';
+import { formatDate, formatDateHeure, LIBELLE_RESULTAT } from '../../format';
 import { useMep } from '../../mepContext';
 import type { EtapeTest, FicheRecette } from '../../types';
 import { Button } from '../../ui/Button';
@@ -14,7 +14,7 @@ import { RenduBlocs } from '../ChampBlocs';
 
 /**
  * Une étape de test en lecture : instructions, résultat attendu, résultat saisi ;
- * en phase Recette, saisie Conforme / Échec avec observation, et « Refaire » pour le pilote.
+ * en phase Recette, saisie Conforme / Non conforme avec observation, et « Refaire » pour le pilote.
  */
 function EtapeTestLigne({
   fiche,
@@ -36,7 +36,7 @@ function EtapeTestLigne({
   async function valider(resultat: 'Conforme' | 'Echec') {
     const ok = await run(
       () => api.resultatEtapeTest(mep.id, fiche.id, etape.id, resultat, observation.trim()),
-      resultat === 'Conforme' ? `Étape ${numero} conforme.` : `Étape ${numero} en échec.`,
+      resultat === 'Conforme' ? `Étape ${numero} conforme.` : `Étape ${numero} non conforme.`,
     );
     if (ok) setObservation('');
   }
@@ -74,7 +74,7 @@ function EtapeTestLigne({
         )}
       </div>
       <div>
-        <p className="text-[11px] font-semibold tracking-wide text-fg-subtle uppercase">Déroulé du test</p>
+        <p className="text-2xs font-semibold tracking-wide text-fg-subtle uppercase">Déroulé du test</p>
         {etape.instructions.trim() ? (
           <RenduBlocs source={etape.instructions} />
         ) : (
@@ -82,7 +82,7 @@ function EtapeTestLigne({
         )}
       </div>
       <div className="rounded-lg border border-ok-bd bg-ok-bg px-3.5 py-2.5 text-ok-fg">
-        <p className="text-[11px] font-semibold tracking-wide uppercase">Résultat attendu</p>
+        <p className="text-2xs font-semibold tracking-wide uppercase">Résultat attendu</p>
         {etape.resultatAttendu.trim() ? (
           <RenduBlocs source={etape.resultatAttendu} />
         ) : (
@@ -95,7 +95,7 @@ function EtapeTestLigne({
           <p className="whitespace-pre-line">{etape.observation || 'Aucune observation.'}</p>
           {etape.valideePar ? (
             <p className="mt-1 text-xs text-fg-subtle">
-              {LIBELLE_VALIDATION[etape.resultat!]} par {etape.valideePar}
+              Validation de {etape.valideePar}
               {etape.valideeLe && ` le ${formatDate(etape.valideeLe)}`} · fichier Excel importé par{' '}
               {etape.par ?? 'quelqu’un'}
               {etape.le && ` · ${formatDateHeure(etape.le)}`}
@@ -142,7 +142,7 @@ function EtapeTestLigne({
               disabled={!observation.trim()}
               action={() => valider('Echec')}
             >
-              Échec
+              Non conforme
             </Button>
           </div>
         </div>

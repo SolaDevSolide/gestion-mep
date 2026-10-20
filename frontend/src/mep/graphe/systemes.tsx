@@ -33,7 +33,7 @@ export function PuceSysteme({
   return (
     <span
       className={cn(
-        'inline-flex max-w-full items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-[13px] font-semibold',
+        'inline-flex max-w-full items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-0.5 text-ui font-semibold',
         className,
       )}
       style={styleSysteme(nom)}
@@ -75,7 +75,7 @@ export function BandeauSystemes({
   if (systemes.length === 0) {
     return (
       <div className="flex">
-        <span className="flex-1 bg-wait-bg px-2 py-1 text-[11.5px] font-bold text-fg-subtle">Aucun système</span>
+        <span className="flex-1 bg-wait-bg px-2 py-1 text-xs font-bold text-fg-subtle">Aucun système</span>
       </div>
     );
   }
@@ -86,7 +86,7 @@ export function BandeauSystemes({
         return (
           <span
             key={s.id}
-            className="flex min-w-0 flex-auto items-center gap-1.5 truncate px-2 py-1 text-[11.5px] font-bold whitespace-nowrap"
+            className="flex min-w-0 flex-auto items-center gap-1.5 truncate px-2 py-1 text-xs font-bold whitespace-nowrap"
             style={{ ...styleSysteme(s.nom), borderColor: undefined }}
           >
             <i className="size-[7px] shrink-0 rounded-full" style={{ background: couleurSysteme(s.nom) }} aria-hidden />
@@ -98,7 +98,7 @@ export function BandeauSystemes({
                 production={e.production}
                 retire={e.retire}
                 abrege
-                className="border-transparent bg-transparent px-0.5 text-[10.5px] font-semibold"
+                className="border-transparent bg-transparent px-0.5 text-2xs font-semibold"
               />
             ))}
             {systemes.length === 1 && envs.length === 0 && descriptions.get(s.id) && (

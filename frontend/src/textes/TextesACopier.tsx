@@ -1,14 +1,16 @@
-import { Copy, ExternalLink, FileText, Mail, OctagonAlert, Settings2, TriangleAlert, UsersRound } from 'lucide-react';
+import { Copy, ExternalLink, FileText, Mail, Settings2, TriangleAlert, UsersRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAsync } from '../hooks';
+import { useReferentiel } from '../referentiels';
 import type { Mep } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { cn } from '../ui/cn';
 import { EmptyState } from '../ui/EmptyState';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Select } from '../ui/Input';
 import { Segmented } from '../ui/Segmented';
 import { Badge } from '../ui/StatusPill';
@@ -42,7 +44,7 @@ export function TextesACopierContenu({ mep }: { mep: Pick<Mep, 'id' | 'version'>
   const [choisi, setChoisi] = useState<string | null>(null);
   const [format, setFormat] = useState<FormatTexte>('forme');
 
-  const equipes = useAsync(() => api.equipes(), []);
+  const equipes = useReferentiel('equipes');
   const catalogue = useAsync(() => api.variablesModelesTexte(), []);
   // Valeurs recalculées à chaque version de la MEP (une modification de la section Communication se voit aussitôt).
   const valeurs = useAsync(() => api.variablesTexte(mep.id, equipe ?? undefined), [mep.id, mep.version, equipe]);
@@ -85,12 +87,20 @@ export function TextesACopierContenu({ mep }: { mep: Pick<Mep, 'id' | 'version'>
     }
   }
 
-  const erreur = equipes.erreur || valeurs.erreur || modeles.erreur || catalogue.erreur;
-  if (erreur)
+  const echec = equipes.erreur ?? valeurs.echec ?? modeles.echec ?? catalogue.echec;
+  if (echec)
     return (
-      <Alerte ton="danger" icone={OctagonAlert} role="alert">
-        {erreur}
-      </Alerte>
+      <ErreurChargement
+        erreur={echec}
+        titre="Impossible de charger les textes à copier"
+        onReessayer={() => {
+          if (equipes.erreur) equipes.recharger();
+          if (valeurs.echec) valeurs.recharger();
+          if (modeles.echec) modeles.recharger();
+          if (catalogue.echec) catalogue.recharger();
+        }}
+        enCours={equipes.enCours || valeurs.chargement || modeles.chargement || catalogue.chargement}
+      />
     );
   if (equipes.donnees !== null && equipes.donnees.length === 0)
     return (
@@ -118,7 +128,7 @@ export function TextesACopierContenu({ mep }: { mep: Pick<Mep, 'id' | 'version'>
   return (
     <div className="apparition space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <span className="text-[13px] text-fg-subtle">Modèles de</span>
+        <span className="text-ui text-fg-subtle">Modèles de</span>
         <div className="w-60">
           <Select aria-label="Équipe" value={equipeId ?? ''} onChange={(e) => setEquipe(e.target.value || null)}>
             {(equipes.donnees ?? []).map((e) => (
@@ -156,7 +166,7 @@ export function TextesACopierContenu({ mep }: { mep: Pick<Mep, 'id' | 'version'>
           {equipeId && (
             <Link
               to={`/parametres/textes?equipe=${equipeId}`}
-              className="mt-3 flex items-center gap-1.5 px-2.5 text-[13px] text-accent-text hover:underline"
+              className="mt-3 flex items-center gap-1.5 px-2.5 text-ui text-accent-text hover:underline"
             >
               <Settings2 className="size-3.5" aria-hidden /> Gérer les modèles de l’équipe
             </Link>
@@ -200,7 +210,7 @@ export function TextesACopierContenu({ mep }: { mep: Pick<Mep, 'id' | 'version'>
 
             <div className="overflow-hidden rounded-lg border border-line">
               <div className="flex items-baseline gap-3 border-b border-line bg-surface-2/50 px-4 py-2.5 text-sm">
-                <span className="w-12 shrink-0 text-[13px] text-fg-subtle">Objet</span>
+                <span className="w-12 shrink-0 text-ui text-fg-subtle">Objet</span>
                 <ApercuTexte lignes={objet} libelles={libelles} simple={format === 'simple'} className="font-medium" />
               </div>
               <div className="max-h-[30rem] overflow-y-auto px-4 py-4" aria-label="Texte rempli">

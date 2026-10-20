@@ -20,7 +20,7 @@ import { ExecutionVue } from './ExecutionVue';
 function FichePlan() {
   const { mep, run } = useMep();
   const d = useDraft<PlanRepli>(mep.planRepli);
-  useReportDirty(d.dirty, 'Fiche du plan de retour arrière');
+  useReportDirty(d.dirty, 'Fiche du plan de retour arrière', d);
   const v = d.value;
   const edition = mep.droits.peutEditerContenu;
 

@@ -18,9 +18,10 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { segmentsResume } from '../domaine';
 import { calculerCompteARebours, formatDate } from '../format';
-import { useAsync, useLocalStorageState, useNow } from '../hooks';
+import { useLocalStorageState, useNow } from '../hooks';
 import { PuceSystemeMep } from '../mep/SystemeCliquable';
 import { personnesDeRecherche } from '../personnes';
+import { useReferentiel } from '../referentiels';
 import {
   ecrireFiltre,
   estVide,
@@ -33,6 +34,7 @@ import {
 import { metaPhase } from '../statuts';
 import type { MepResume, TypeMep } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { cn } from '../ui/cn';
@@ -64,7 +66,7 @@ function Chrono({ m, now }: { m: MepResume; now: number }) {
         c.niveau === 'depasse'
           ? 'font-bold text-danger-solid'
           : c.niveau === 'attention'
-            ? 'font-semibold text-warn-solid'
+            ? 'font-semibold text-warn-text'
             : 'text-fg-muted',
       )}
       title="Temps restant avant l’échéance de retour arrière"
@@ -96,7 +98,7 @@ const TYPES_MEP: { valeur: TypeMep; libelle: string; Icone: typeof Rocket; descr
 function ChoixType({ valeur, onChange }: { valeur: TypeMep; onChange: (t: TypeMep) => void }) {
   return (
     <fieldset>
-      <legend className="mb-1.5 text-[13px] font-medium">Type de MEP</legend>
+      <legend className="mb-1.5 text-ui font-medium">Type de MEP</legend>
       <div className="grid gap-2 sm:grid-cols-2">
         {TYPES_MEP.map((t) => {
           const actif = valeur === t.valeur;
@@ -274,9 +276,15 @@ type Affichage = 'cartes' | 'tableau';
 
 export default function ListeMepPage() {
   const [vue, setVue] = useState<'meps' | 'modeles'>('meps');
-  const { donnees: equipes } = useAsync(() => api.equipes(), []);
-  const { donnees: catalogue } = useAsync(() => api.catalogueSystemes().catch(() => []), []);
-  const { donnees: comptes } = useAsync(() => api.utilisateurs().catch(() => []), []);
+  // Listes des filtres : partagées avec les autres écrans ; une liste en erreur n'empêche pas de filtrer sur les autres.
+  const equipesLues = useReferentiel('equipes');
+  const catalogueLu = useReferentiel('catalogue');
+  const comptesLus = useReferentiel('comptes');
+  const equipes = equipesLues.donnees;
+  const catalogue = catalogueLu.donnees;
+  const comptes = comptesLus.donnees;
+  const listesFiltres = [equipesLues, catalogueLu, comptesLus];
+  const filtresEnErreur = listesFiltres.filter((l) => l.erreur != null);
   // Filtres dans l'adresse : un lien (ou un favori) rouvre la même recherche.
   const [parametres, setParametres] = useSearchParams();
   const f = useMemo(() => lireFiltre(parametres), [parametres]);
@@ -287,13 +295,21 @@ export default function ListeMepPage() {
   const [creation, setCreation] = useState(false);
   const [duplication, setDuplication] = useState<SourceDuplication | null>(null);
   const [depuisModele, setDepuisModele] = useState(false);
-  const [modeles, setModeles] = useState<SourceDuplication[]>([]);
   const modele = vue === 'modeles';
   const now = useNow(1000);
 
   const filtreApplique = modele ? filtreModeles(f) : f;
   // Liste paginée par le serveur (#96), avec les comptes de la barre de filtres.
-  const { liste, aJour, erreur, chargementSuite, afficherPlus } = useListeMeps(f, modele);
+  const {
+    liste,
+    aJour,
+    erreur,
+    echec,
+    chargement: lectureMeps,
+    recharger,
+    chargementSuite,
+    afficherPlus,
+  } = useListeMeps(f, modele);
   const rechargement = liste !== null && !aJour;
   const meps = liste?.meps ?? [];
   const personnes = useMemo(() => personnesDeRecherche(comptes ?? []), [comptes]);
@@ -327,13 +343,7 @@ export default function ListeMepPage() {
               <Button
                 key="depuis-modele"
                 icone={<LayoutTemplate className="size-4" aria-hidden />}
-                onClick={() => {
-                  setDepuisModele(true);
-                  api
-                    .meps(true)
-                    .then((l) => setModeles(l.map((m) => ({ id: m.id, outil: m.outil, estModele: true }))))
-                    .catch(() => setModeles([]));
-                }}
+                onClick={() => setDepuisModele(true)}
               >
                 Nouvelle MEP depuis un modèle
               </Button>
@@ -430,27 +440,44 @@ export default function ListeMepPage() {
           />
         </div>
       </div>
-      {/* Critères : chargés avec la page (catalogue, équipes, personnes), leur place est tenue en attendant. */}
-      {equipes === null || catalogue === null || comptes === null || liste === null ? (
-        <div className="mt-3 flex gap-2" aria-hidden>
-          {(modele ? ['w-24'] : ['w-24', 'w-32', 'w-24', 'w-28', 'w-20', 'w-24']).map((w, i) => (
-            <Squelette key={i} className={cn('h-8 rounded-lg', w, i > 0 && 'max-sm:hidden')} />
-          ))}
-        </div>
+      {/* Critères : chargés avec la page (catalogue, équipes, personnes), leur place est tenue en attendant (pas quand la
+          liste elle-même est en erreur : rien n'arrivera avant « Réessayer »). */}
+      {!listesFiltres.every((l) => l.pret) || liste === null ? (
+        echec === null && (
+          <div className="mt-3 flex gap-2" aria-hidden>
+            {(modele ? ['w-24'] : ['w-24', 'w-32', 'w-24', 'w-28', 'w-20', 'w-24']).map((w, i) => (
+              <Squelette key={i} className={cn('h-8 rounded-lg', w, i > 0 && 'max-sm:hidden')} />
+            ))}
+          </div>
+        )
       ) : (
         <BarreFiltres
           f={filtreApplique}
           maj={maj}
           modeles={modele}
           resultats={liste.total}
-          donnees={{ facettes: liste.facettes, catalogue, equipes, personnes }}
+          donnees={{ facettes: liste.facettes, catalogue: catalogue ?? [], equipes: equipes ?? [], personnes }}
+        />
+      )}
+      {filtresEnErreur.length > 0 && (
+        <ErreurChargement
+          variante="ligne"
+          className="mt-3"
+          erreur={filtresEnErreur[0].erreur}
+          titre="Listes des filtres non chargées (systèmes, équipes ou personnes)"
+          onReessayer={() => filtresEnErreur.forEach((l) => l.recharger())}
+          enCours={filtresEnErreur.some((l) => l.enCours)}
         />
       )}
 
-      {erreur && (
-        <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mt-6">
-          {erreur}
-        </Alerte>
+      {echec !== null && (
+        <ErreurChargement
+          className="mt-6"
+          erreur={echec}
+          titre={modele ? 'Impossible de charger les modèles' : 'Impossible de charger les mises en production'}
+          onReessayer={recharger}
+          enCours={lectureMeps}
+        />
       )}
 
       {liste === null && !erreur && affichage === 'tableau' && <SqueletteTableauMeps />}
@@ -552,7 +579,7 @@ export default function ListeMepPage() {
                         {!estSimplifiee(m) && m.versionCible.trim() && (
                           <>
                             <ArrowRight className="size-4 shrink-0 text-fg-subtle" aria-hidden />
-                            <span className="font-mono text-[15px] font-semibold">{m.versionCible}</span>
+                            <span className="font-mono text-md font-semibold">{m.versionCible}</span>
                           </>
                         )}
                       </h2>
@@ -574,7 +601,7 @@ export default function ListeMepPage() {
                           <span className="sr-only"> : la MEP touche un environnement de production</span>
                         </Badge>
                       )}
-                      {estSimplifiee(m) && <BadgeSimplifiee className="text-[11px]" />}
+                      {estSimplifiee(m) && <BadgeSimplifiee className="text-2xs" />}
                     </div>
                     {m.objet && (
                       <p className={cn('mt-1 line-clamp-1 text-sm', annulee ? 'text-fg-subtle' : 'text-fg-muted')}>
@@ -675,7 +702,7 @@ export default function ListeMepPage() {
         }}
         source={duplication}
       />
-      <DuplicationDialog open={depuisModele} onOpenChange={setDepuisModele} modeles={modeles} />
+      <DuplicationDialog open={depuisModele} onOpenChange={setDepuisModele} depuisModele />
     </main>
   );
 }

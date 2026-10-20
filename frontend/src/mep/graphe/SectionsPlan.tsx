@@ -1,9 +1,11 @@
 import {
   ArrowLeft,
+  ChevronDown,
   ChevronRight,
   CircleDot,
   FolderPlus,
   Inbox,
+  Info,
   PanelRightClose,
   PanelRightOpen,
   Pencil,
@@ -11,9 +13,11 @@ import {
   Trash2,
   Undo2,
 } from 'lucide-react';
-import { useEffect, useState, type PointerEvent as PointerEventReact } from 'react';
+import { useEffect, useState, type KeyboardEvent, type PointerEvent as PointerEventReact } from 'react';
+import { useDraft } from '../../hooks';
+import { Popover, PopoverContent, PopoverTrigger } from '../../ui/Popover';
 import { createPortal } from 'react-dom';
-import { couleurPersonne } from '../../ui/Avatar';
+import { stylePersonne } from '../../ui/Avatar';
 import { libelleEditeurs, useAutresPresents, usePresenceElement } from '../../presence';
 import { cleIciSection, PresentsSection } from './PresentsGraphe';
 import type { Etape, Mep } from '../../types';
@@ -133,10 +137,16 @@ export function BacPlan({
   onPlacerEtape,
   onOuvrirEtape,
   replieForce = false,
+  rail = false,
 }: {
   mep: Mep;
   /** Replié tant que l'espace d'une étape occupe la droite de l'écran (le graphe garde sa largeur). */
   replieForce?: boolean;
+  /**
+   * Vue compacte sur un écran étroit : replié en rail de 30 px (le graphe garde sa largeur) ; un clic sur le rail l'ouvre
+   * le temps de s'en servir, sans changer la préférence mémorisée.
+   */
+  rail?: boolean;
   /** Sections du plan pas encore placées ; null dans la vue d'une section (seulement ses étapes). */
   sections: Section[] | null;
   /** Étapes du bac (retirées du graphe). */
@@ -156,6 +166,7 @@ export function BacPlan({
   const bac = useBacGraphe();
   const [glisse, setGlisse] = useState<{ section: Section; x: number; y: number; dessus: boolean } | null>(null);
   const [replie, setReplie] = useState(lireBacReplie);
+  const [railOuvert, setRailOuvert] = useState(false);
   const basculer = () =>
     setReplie((v) => {
       try {
@@ -168,6 +179,7 @@ export function BacPlan({
   const listeSections = sections ?? [];
   const total = listeSections.length + etapes.length;
   const libelle = sections ? `À placer (${total})` : `Étapes à placer (${etapes.length})`;
+  const enRail = rail && !railOuvert;
 
   const appuyer = (ev: PointerEventReact<HTMLElement>, s: Section) => {
     if (!modifiable || ev.button !== 0) return;
@@ -203,7 +215,7 @@ export function BacPlan({
     <div
       aria-hidden
       className={cn(
-        'pointer-events-none absolute inset-1 z-10 grid place-content-center rounded-xl border-2 border-dashed p-3 text-center text-[13px] font-semibold transition-colors duration-150',
+        'pointer-events-none absolute inset-1 z-10 grid place-content-center rounded-xl border-2 border-dashed p-3 text-center text-ui font-semibold transition-colors duration-150',
         bac.depot === 'vise'
           ? 'border-accent bg-accent-soft/95 text-accent-text'
           : 'border-accent/70 bg-surface/80 text-fg-muted',
@@ -214,7 +226,50 @@ export function BacPlan({
     </div>
   );
 
-  if (replie || replieForce)
+  if (rail && (enRail || replieForce))
+    return (
+      <aside
+        aria-label="Bac des éléments à placer"
+        data-bac-plan
+        className={cn(
+          'relative flex w-[30px] shrink-0 flex-col border-l border-line bg-surface-2/40',
+          bac.depot === 'vise' && 'bg-accent-soft',
+        )}
+      >
+        <button
+          type="button"
+          disabled={replieForce}
+          onClick={() => {
+            if (replie) basculer();
+            setRailOuvert(true);
+          }}
+          aria-label={
+            replieForce
+              ? `${libelle} : fermez l’étape ouverte pour afficher le bac`
+              : `Afficher le bac : ${libelle.toLowerCase()}`
+          }
+          title={replieForce ? undefined : 'Afficher le bac'}
+          className="flex flex-1 flex-col items-center gap-2 py-2 text-fg-subtle enabled:hover:bg-surface-2 enabled:hover:text-fg"
+        >
+          <PanelRightOpen className="size-4 shrink-0" aria-hidden />
+          <span className="flex items-center gap-1 text-2xs font-semibold tracking-[0.06em] uppercase [writing-mode:vertical-rl]">
+            <Inbox className="size-3.5 rotate-90" aria-hidden />
+            {`À placer (${total})`}
+          </span>
+        </button>
+        {bac.depot !== 'aucun' && (
+          <span
+            aria-hidden
+            className={cn(
+              'pointer-events-none absolute inset-0.5 rounded-lg border-2 border-dashed',
+              bac.depot === 'vise' ? 'border-accent' : 'border-accent/60',
+            )}
+          />
+        )}
+      </aside>
+    );
+
+  if ((replie && !rail) || replieForce)
     return (
       <aside
         aria-label="Bac des éléments à placer"
@@ -236,7 +291,7 @@ export function BacPlan({
         >
           <PanelRightOpen className="size-4" aria-hidden />
         </BoutonIcone>
-        <span className="mt-2 flex items-center gap-1 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase [writing-mode:vertical-rl]">
+        <span className="mt-2 flex items-center gap-1 text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase [writing-mode:vertical-rl]">
           <Inbox className="size-3.5 rotate-90" aria-hidden />
           {libelle}
         </span>
@@ -252,7 +307,7 @@ export function BacPlan({
       </aside>
     );
 
-  const titreListe = 'flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase';
+  const titreListe = 'flex items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase';
   return (
     // Panneau intérieur du cadre du plan : sa propre hauteur de défilement, le graphe garde la sienne.
     <aside
@@ -265,7 +320,7 @@ export function BacPlan({
           <Inbox className="size-3.5" aria-hidden />
           {sections ? `Sections à placer (${listeSections.length})` : `Étapes à placer (${etapes.length})`}
         </h3>
-        <BoutonIcone label="Replier le bac" taille="sm" onClick={basculer}>
+        <BoutonIcone label="Replier le bac" taille="sm" onClick={rail ? () => setRailOuvert(false) : basculer}>
           <PanelRightClose className="size-4" aria-hidden />
         </BoutonIcone>
       </div>
@@ -278,7 +333,7 @@ export function BacPlan({
               </Button>
             )}
             {listeSections.length === 0 ? (
-              <p className="text-[13px] text-fg-subtle">
+              <p className="text-ui text-fg-subtle">
                 {modifiable
                   ? 'Aucune section en attente. Une nouvelle section arrive ici.'
                   : 'Aucune section en attente.'}
@@ -296,12 +351,12 @@ export function BacPlan({
                       glisse?.section.id === s.id && 'opacity-40',
                     )}
                   >
-                    <p className="truncate text-[14px] font-semibold" title={s.titre}>
+                    <p className="truncate text-sm font-semibold" title={s.titre}>
                       {s.titre}
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {systemesDe(mep, s.systemeIds).map((x) => (
-                        <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-[11px]" />
+                        <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-2xs" />
                       ))}
                     </div>
                     <p className="text-xs text-fg-muted">
@@ -335,7 +390,7 @@ export function BacPlan({
           </>
         )}
         {etapes.length === 0 ? (
-          <p className="text-[13px] text-fg-subtle">
+          <p className="text-ui text-fg-subtle">
             {modifiable
               ? 'Aucune étape en attente. Glissez ici une carte du graphe pour la retirer du plan.'
               : 'Aucune étape en attente.'}
@@ -356,14 +411,14 @@ export function BacPlan({
                 >
                   <p className="flex min-w-0 items-baseline gap-1.5">
                     <span className="shrink-0 text-xs font-semibold text-fg-muted tnum">{e.code}</span>
-                    <span className="truncate text-[14px] font-semibold" title={e.action}>
+                    <span className="truncate text-sm font-semibold" title={e.action}>
                       {e.action || 'Étape sans action'}
                     </span>
                   </p>
                   {(e.systemeIds.length > 0 || section) && (
                     <div className="flex flex-wrap items-center gap-1">
                       {systemesDe(mep, e.systemeIds).map((x) => (
-                        <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-[11px]" />
+                        <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-2xs" />
                       ))}
                       {section && <span className="text-xs text-fg-muted">dans « {section} »</span>}
                     </div>
@@ -399,7 +454,7 @@ export function BacPlan({
             <div
               aria-hidden
               className={cn(
-                'pointer-events-none fixed z-50 w-56 -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 bg-surface px-3 py-2 text-sm font-semibold shadow-lg',
+                'pointer-events-none fixed z-panneau w-56 -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 bg-surface px-3 py-2 text-sm font-semibold shadow-lg',
                 glisse.dessus ? 'border-accent' : 'border-dashed border-line-strong opacity-80',
               )}
               style={{ left: glisse.x, top: glisse.y }}
@@ -515,9 +570,12 @@ export function EnTeteVueSection({
   onPlacer,
   onSupprimer,
   onCercle,
+  compact = false,
 }: {
   mep: Mep;
   section: Section;
+  /** Vue compacte : une seule rangée de 44 px ; description, systèmes, cercles, auteur et actions dans « Détails ». */
+  compact?: boolean;
   /** Étapes de la section : qui en modifie une travaille dans la section. */
   etapeIds?: string[];
   libellePlan: string;
@@ -529,13 +587,12 @@ export function EnTeteVueSection({
   onSupprimer: () => Promise<boolean>;
   onCercle: (c: (Pick<CercleSection, 'titre' | 'description' | 'sens'> & { id: string | null }) | null) => void;
 }) {
-  const [titre, setTitre] = useState(section.titre);
-  const [description, setDescription] = useState(section.description);
+  // Saisie gardée (brouillon) même si la section change entre-temps (modification d'un collègue reçue pendant la saisie) ;
+  // elle reprend la valeur de la section une fois enregistrée ou abandonnée (Échap).
+  const titre = useDraft(section.titre);
+  const description = useDraft(section.description);
   const [suppr, setSuppr] = useState(false);
-  useEffect(() => {
-    setTitre(section.titre);
-    setDescription(section.description);
-  }, [section.titre, section.description]);
+  const [details, setDetails] = useState(false);
   // Les autres voient « X modifie » sur la section dans le plan tant que sa vue d'édition est ouverte ici.
   usePresenceElement(`section:${section.id}`, modifiable);
   // Où l'on est (même en lecture) : les autres voient votre avatar sur la section.
@@ -545,11 +602,79 @@ export function EnTeteVueSection({
     p.elements.some((e) => e === `section:${section.id}` || etapeIds.some((id) => e === `etape:${id}`)),
   );
   const enregistrer = (p: Partial<{ titre: string; description: string; systemeIds: string[] }>) =>
-    void onModifier({ titre: section.titre, description: section.description, systemeIds: section.systemeIds, ...p });
+    onModifier({ titre: section.titre, description: section.description, systemeIds: section.systemeIds, ...p });
+  const validerTitre = async () => {
+    const t = titre.value.trim();
+    if (!t || t === section.titre) titre.reset();
+    else if (await enregistrer({ titre: t })) titre.reset();
+  };
+  const validerDescription = async () => {
+    const d = description.value.trim();
+    if (d === section.description) description.reset();
+    else if (await enregistrer({ description: d })) description.reset();
+  };
+  /** Entrée valide (le champ perd le focus, ce qui enregistre), Échap abandonne la saisie (le champ garde le focus). */
+  const touches = (brouillon: { reset: () => void }) => (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !(e.currentTarget instanceof HTMLTextAreaElement && e.shiftKey)) {
+      e.preventDefault();
+      e.currentTarget.blur();
+    } else if (e.key === 'Escape') brouillon.reset();
+  };
+  const nbEntrees = section.ports.filter((c) => c.sens === 'Entree').length;
+  const nbSorties = section.ports.filter((c) => c.sens === 'Sortie').length;
+  const presents = (
+    <>
+      {dansSection.length > 0 && (
+        <span
+          role="status"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-2xs font-semibold"
+          style={stylePersonne(dansSection[0].nom)}
+        >
+          {libelleEditeurs(dansSection)} dans cette section
+        </span>
+      )}
+      <PresentsSection sectionId={section.id} titre={section.titre} etapeIds={etapeIds} className="relative" />
+    </>
+  );
+  const etat = section.placee ? 'Placée dans le plan' : 'Dans le bac : pas encore placée dans le plan';
+  const systemes = (
+    <MultiSelect
+      options={optionsSystemes(mep, descriptions)}
+      valeurs={section.systemeIds}
+      onChange={(ids) => void enregistrer({ systemeIds: ids })}
+      placeholder="Systèmes de la section : aucun"
+      placeholderRecherche="Rechercher un système…"
+      vide="Aucun système dans la MEP."
+      disabled={!modifiable}
+    />
+  );
+  const boutonPlacer = (
+    <Button
+      taille="sm"
+      icone={section.placee ? <Undo2 className="size-4" aria-hidden /> : <Inbox className="size-4" aria-hidden />}
+      onClick={() => {
+        setDetails(false);
+        onPlacer(!section.placee);
+      }}
+    >
+      {section.placee ? 'Remettre dans le bac' : 'Placer dans le plan'}
+    </Button>
+  );
+  const confirmation = (
+    <ConfirmDialog
+      open={suppr}
+      onOpenChange={setSuppr}
+      titre={`Supprimer la section « ${section.titre} » ?`}
+      description="Ses étapes restent dans le plan, avec leurs liens : seuls le cadre, le titre et les cercles disparaissent."
+      libelleConfirmer="Supprimer la section"
+      variante="danger"
+      onConfirmer={onSupprimer}
+    />
+  );
 
   const rangee = (sens: SensCercle) => (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[11px] font-semibold tracking-[0.06em] text-fg-subtle uppercase">
+      <span className="text-2xs font-semibold tracking-[0.06em] text-fg-subtle uppercase">
         {sens === 'Entree' ? 'Entrées' : 'Sorties'}
       </span>
       {cerclesTries(section, sens).map((c) => (
@@ -580,6 +705,124 @@ export function EnTeteVueSection({
     </div>
   );
 
+  if (compact)
+    return (
+      <section
+        aria-label={`Section « ${section.titre} »`}
+        className="flex h-11 items-center gap-2 overflow-hidden bg-accent-soft/40 px-2"
+      >
+        <Button
+          taille="sm"
+          variante="primaire"
+          icone={<ArrowLeft className="size-4" aria-hidden />}
+          onClick={onRetour}
+          aria-label="Retour au plan"
+          title="Retour au plan (Échap)"
+          aria-keyshortcuts="Escape"
+        >
+          Plan
+        </Button>
+        <span className="shrink-0 text-ui text-fg-subtle">Section</span>
+        {modifiable ? (
+          <input
+            aria-label="Titre de la section"
+            value={titre.value}
+            onChange={(e) => titre.setValeur(e.target.value)}
+            onBlur={() => void validerTitre()}
+            onKeyDown={touches(titre)}
+            className="max-w-72 min-w-24 shrink rounded-md border border-dashed border-line-strong bg-transparent px-1.5 py-0.5 text-base font-semibold tracking-tight [field-sizing:content] hover:border-line focus:border-accent focus:bg-surface focus:ring-2 focus:ring-accent/30 focus:outline-none"
+          />
+        ) : (
+          <h2 className="min-w-0 truncate px-1.5 text-base font-semibold tracking-tight">{section.titre}</h2>
+        )}
+        <span className="flex min-w-0 shrink items-center gap-1 overflow-hidden">
+          {systemesDe(mep, section.systemeIds).map((x) => (
+            <PuceSysteme key={x.id} nom={x.nom} className="px-1.5 py-0 text-2xs" />
+          ))}
+        </span>
+        <button
+          type="button"
+          onClick={() => setDetails(true)}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent-text hover:bg-accent hover:text-accent-fg"
+          title="Entrées de la section : voir le détail"
+        >
+          <CircleDot className="size-3.5" aria-hidden />
+          {nbEntrees} entrée{nbEntrees > 1 ? 's' : ''}
+        </button>
+        <button
+          type="button"
+          onClick={() => setDetails(true)}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent-text hover:bg-accent hover:text-accent-fg"
+          title="Sorties de la section : voir le détail"
+        >
+          <CircleDot className="size-3.5" aria-hidden />
+          {nbSorties} sortie{nbSorties > 1 ? 's' : ''}
+        </button>
+        <span className="min-w-0 truncate text-xs text-fg-subtle" title={etat}>
+          {section.placee ? 'Placée dans le plan' : 'Dans le bac'}
+        </span>
+        {presents}
+        <Popover open={details} onOpenChange={setDetails}>
+          <PopoverTrigger asChild>
+            <Button
+              taille="sm"
+              className="ml-auto shrink-0"
+              icone={<Info className="size-4" aria-hidden />}
+              aria-label="Détails de la section"
+            >
+              Détails
+              <ChevronDown className="size-3.5" aria-hidden />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="grid w-[26rem] max-w-[calc(100vw-2rem)] gap-3 p-3">
+            <div className="grid gap-1">
+              <span className="text-ui font-semibold">Description</span>
+              {modifiable ? (
+                <Textarea
+                  aria-label="Description de la section"
+                  rows={2}
+                  value={description.value}
+                  placeholder="Description (facultative)"
+                  onChange={(e) => description.setValeur(e.target.value)}
+                  onBlur={() => void validerDescription()}
+                  onKeyDown={touches(description)}
+                />
+              ) : (
+                <p className="text-ui text-fg-muted">{section.description || 'Aucune description.'}</p>
+              )}
+            </div>
+            <div className="grid gap-1">
+              <span className="text-ui font-semibold">Systèmes de la section</span>
+              {systemes}
+            </div>
+            {rangee('Entree')}
+            {rangee('Sortie')}
+            <p className="border-t border-line pt-2 text-xs text-fg-subtle">
+              {section.auteur && <>Créée par {section.auteur} · </>}
+              {etat}
+            </p>
+            {modifiable && (
+              <div className="flex flex-wrap justify-end gap-1.5">
+                {boutonPlacer}
+                <Button
+                  taille="sm"
+                  variante="danger-doux"
+                  icone={<Trash2 className="size-4" aria-hidden />}
+                  onClick={() => {
+                    setDetails(false);
+                    setSuppr(true);
+                  }}
+                >
+                  Supprimer
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+        {confirmation}
+      </section>
+    );
+
   return (
     <section aria-label={`Section « ${section.titre} »`} className="grid gap-2 bg-accent-soft/40 px-3 py-2">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -593,7 +836,7 @@ export function EnTeteVueSection({
         >
           Retour au plan
         </Button>
-        <nav aria-label="Fil d’Ariane" className="flex min-w-0 flex-wrap items-center gap-1 text-[13px] text-fg-subtle">
+        <nav aria-label="Fil d’Ariane" className="flex min-w-0 flex-wrap items-center gap-1 text-ui text-fg-subtle">
           <span>{mep.outil}</span>
           <ChevronRight className="size-3.5" aria-hidden />
           <button type="button" onClick={onRetour} className="underline-offset-2 hover:text-fg hover:underline">
@@ -604,27 +847,10 @@ export function EnTeteVueSection({
             Section {section.titre}
           </span>
         </nav>
-        {dansSection.length > 0 && (
-          <span
-            role="status"
-            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
-            style={{ backgroundColor: couleurPersonne(dansSection[0].nom) }}
-          >
-            {libelleEditeurs(dansSection)} dans cette section
-          </span>
-        )}
-        <PresentsSection sectionId={section.id} titre={section.titre} etapeIds={etapeIds} className="relative" />
+        {presents}
         {modifiable && (
           <div className="ml-auto flex flex-wrap gap-1.5">
-            <Button
-              taille="sm"
-              icone={
-                section.placee ? <Undo2 className="size-4" aria-hidden /> : <Inbox className="size-4" aria-hidden />
-              }
-              onClick={() => onPlacer(!section.placee)}
-            >
-              {section.placee ? 'Remettre dans le bac' : 'Placer dans le plan'}
-            </Button>
+            {boutonPlacer}
             <Button
               taille="sm"
               variante="danger-doux"
@@ -642,60 +868,40 @@ export function EnTeteVueSection({
             <>
               <input
                 aria-label="Titre de la section"
-                value={titre}
-                onChange={(e) => setTitre(e.target.value)}
-                onBlur={() => titre.trim() && titre.trim() !== section.titre && enregistrer({ titre: titre.trim() })}
-                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                value={titre.value}
+                onChange={(e) => titre.setValeur(e.target.value)}
+                onBlur={() => void validerTitre()}
+                onKeyDown={touches(titre)}
                 className="rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-base font-semibold tracking-tight hover:border-line focus:border-accent focus:bg-surface focus:ring-2 focus:ring-accent/30 focus:outline-none"
               />
               <input
                 aria-label="Description de la section"
-                value={description}
+                value={description.value}
                 placeholder="Description (facultative)"
-                onChange={(e) => setDescription(e.target.value)}
-                onBlur={() =>
-                  description.trim() !== section.description && enregistrer({ description: description.trim() })
-                }
-                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                className="rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] text-fg-muted placeholder:text-fg-subtle hover:border-line focus:border-accent focus:bg-surface focus:ring-2 focus:ring-accent/30 focus:outline-none"
+                onChange={(e) => description.setValeur(e.target.value)}
+                onBlur={() => void validerDescription()}
+                onKeyDown={touches(description)}
+                className="rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-ui text-fg-muted placeholder:text-fg-subtle hover:border-line focus:border-accent focus:bg-surface focus:ring-2 focus:ring-accent/30 focus:outline-none"
               />
             </>
           ) : (
             <>
               <h2 className="px-1.5 text-base font-semibold tracking-tight">{section.titre}</h2>
-              {section.description && <p className="px-1.5 text-[13px] text-fg-muted">{section.description}</p>}
+              {section.description && <p className="px-1.5 text-ui text-fg-muted">{section.description}</p>}
             </>
           )}
           <p className="px-1.5 text-xs text-fg-subtle">
             {section.auteur && <>Créée par {section.auteur} · </>}
-            {section.placee ? 'Placée dans le plan' : 'Dans le bac : pas encore placée dans le plan'}
+            {etat}
           </p>
         </div>
-        <div className="w-full min-w-56 sm:w-72">
-          <MultiSelect
-            options={optionsSystemes(mep, descriptions)}
-            valeurs={section.systemeIds}
-            onChange={(ids) => enregistrer({ systemeIds: ids })}
-            placeholder="Systèmes de la section : aucun"
-            placeholderRecherche="Rechercher un système…"
-            vide="Aucun système dans la MEP."
-            disabled={!modifiable}
-          />
-        </div>
+        <div className="w-full min-w-56 sm:w-72">{systemes}</div>
       </div>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5">
         {rangee('Entree')}
         {rangee('Sortie')}
       </div>
-      <ConfirmDialog
-        open={suppr}
-        onOpenChange={setSuppr}
-        titre={`Supprimer la section « ${section.titre} » ?`}
-        description="Ses étapes restent dans le plan, avec leurs liens : seuls le cadre, le titre et les cercles disparaissent."
-        libelleConfirmer="Supprimer la section"
-        variante="danger"
-        onConfirmer={onSupprimer}
-      />
+      {confirmation}
     </section>
   );
 }

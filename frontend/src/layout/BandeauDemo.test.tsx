@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { api } from '../api';
 import { AuthContext } from '../auth';
-import { utilisateur } from '../test/fabrique';
+import { SESSION_ACTIVE, utilisateur } from '../test/fabrique';
 import type { Utilisateur } from '../types';
 import { BandeauDemo, URL_APRES_REINITIALISATION } from './BandeauDemo';
 
@@ -28,7 +28,14 @@ const assign = vi.fn();
 function rendre(u: Utilisateur | null) {
   render(
     <AuthContext.Provider
-      value={{ utilisateur: u, chargement: false, connecter: vi.fn(), deconnecter: vi.fn(), majUtilisateur: vi.fn() }}
+      value={{
+        utilisateur: u,
+        chargement: false,
+        connecter: vi.fn(),
+        deconnecter: vi.fn(),
+        majUtilisateur: vi.fn(),
+        ...SESSION_ACTIVE,
+      }}
     >
       <MemoryRouter>
         <BandeauDemo recharger={assign} />

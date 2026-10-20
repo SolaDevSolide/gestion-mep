@@ -93,20 +93,34 @@ export class ApiError extends Error {
   status: number;
   /** Liste détaillée des anomalies renvoyée par le serveur (champ `erreurs`), vide sinon. */
   erreurs: string[];
-  constructor(status: number, message: string, erreurs: string[] = []) {
+  /** Requête en échec (« GET /api/meps/… ») et heure de la réponse : détails techniques montrés aux administrateurs. */
+  requete: string;
+  date: Date;
+  constructor(status: number, message: string, erreurs: string[] = [], appel = '') {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.erreurs = erreurs;
+    this.requete = appel;
+    this.date = new Date();
   }
 }
 
-let onUnauthorized: () => void = () => {
+/**
+ * Session expirée (401) : le gestionnaire ouvre le dialogue de reconnexion et renvoie une promesse résolue à vrai une
+ * fois la session rouverte (la requête repart alors une fois), à faux si l'on abandonne (personne connectée, autre
+ * compte). Sans gestionnaire (avant le montage de l'application) : retour à l'écran de connexion.
+ */
+let onUnauthorized: () => Promise<boolean> = () => {
   if (window.location.pathname !== '/connexion') window.location.assign('/connexion');
+  return Promise.resolve(false);
 };
-export function setUnauthorizedHandler(fn: () => void) {
+export function setUnauthorizedHandler(fn: () => Promise<boolean>) {
   onUnauthorized = fn;
 }
+
+/** Requêtes dont un 401 ne veut pas dire « session expirée » : identifiants refusés, déconnexion d'une session finie. */
+const SANS_RECONNEXION = new Set(['/auth/connexion', '/demo/connexion', '/auth/deconnexion']);
 
 // ---------- Requêtes en cours : l'indicateur discret de chargement (`ActiviteReseau`) les suit.
 let enCours = 0;
@@ -127,19 +141,32 @@ export interface OptionsRequete {
   silencieux?: boolean;
 }
 
-/** Requête vers l'API (`/api` + chemin) : erreurs en `ApiError`, 401 renvoie à la connexion. */
+/**
+ * Requête vers l'API (`/api` + chemin) : erreurs en `ApiError`. Un 401 ouvre le dialogue « Session expirée » ; la
+ * requête attend la reconnexion puis repart une fois.
+ */
 export async function request<T>(
   method: string,
   path: string,
   body?: unknown,
   options: OptionsRequete = {},
 ): Promise<T> {
-  if (options.silencieux) return envoyer<T>(method, path, body);
+  if (options.silencieux) return envoyerOuReconnecter<T>(method, path, body);
   compter(1);
   try {
-    return await envoyer<T>(method, path, body);
+    return await envoyerOuReconnecter<T>(method, path, body);
   } finally {
     compter(-1);
+  }
+}
+
+async function envoyerOuReconnecter<T>(method: string, path: string, body?: unknown): Promise<T> {
+  try {
+    return await envoyer<T>(method, path, body);
+  } catch (e) {
+    if (!(e instanceof ApiError) || e.status !== 401 || SANS_RECONNEXION.has(path)) throw e;
+    if (!(await onUnauthorized())) throw e;
+    return envoyer<T>(method, path, body);
   }
 }
 
@@ -158,11 +185,10 @@ async function envoyer<T>(method: string, path: string, body?: unknown): Promise
       body: body === undefined ? undefined : formulaire ? (body as FormData) : JSON.stringify(body),
     });
   } catch {
-    throw new ApiError(0, 'Le serveur est injoignable. Vérifiez votre connexion.');
+    throw new ApiError(0, 'Le serveur est injoignable. Vérifiez votre connexion.', [], `${method} /api${path}`);
   }
-  if (res.status === 401 && path !== '/auth/connexion' && path !== '/demo/connexion') {
-    onUnauthorized();
-    throw new ApiError(401, 'Session expirée, veuillez vous reconnecter.');
+  if (res.status === 401 && !SANS_RECONNEXION.has(path)) {
+    throw new ApiError(401, 'Session expirée, veuillez vous reconnecter.', [], `${method} /api${path}`);
   }
   if (!res.ok) {
     let message = '';
@@ -184,7 +210,7 @@ async function envoyer<T>(method: string, path: string, body?: unknown): Promise
             ? 'Fichier trop volumineux.'
             : `Erreur ${res.status}.`;
     }
-    throw new ApiError(res.status, message, erreurs);
+    throw new ApiError(res.status, message, erreurs, `${method} /api${path}`);
   }
   if (res.status === 204) return undefined as T;
   const text = await res.text();

@@ -268,7 +268,7 @@ export default function ModeleTexteEditeurPage() {
                 <Input
                   id={i}
                   ref={zoneObjet}
-                  className="font-mono text-[13px]"
+                  className="font-mono text-ui"
                   value={b.objet}
                   disabled={lecture}
                   onFocus={() => (dernierChamp.current = 'objet')}
@@ -290,7 +290,7 @@ export default function ModeleTexteEditeurPage() {
                 <Textarea
                   id={i}
                   ref={zoneCorps}
-                  className="font-mono text-[13px]"
+                  className="font-mono text-ui"
                   rows={18}
                   value={b.corps}
                   disabled={lecture}
@@ -303,7 +303,7 @@ export default function ModeleTexteEditeurPage() {
             {!lecture && (
               <section aria-label="Insérer une variable" className="rounded-lg border border-line bg-surface-2/50 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="flex items-center gap-2 text-[13px] font-medium">
+                  <p className="flex items-center gap-2 text-ui font-medium">
                     <Braces className="size-4 text-accent" aria-hidden />
                     Insérer une variable
                     <span className="font-normal text-fg-subtle">
@@ -327,9 +327,7 @@ export default function ModeleTexteEditeurPage() {
                 <div className="mt-3 grid gap-y-2.5">
                   {groupes.map((g) => (
                     <div key={g.groupe} className="grid gap-2 sm:grid-cols-[9rem_minmax(0,1fr)]">
-                      <p className="pt-1 text-[11px] font-semibold tracking-wider text-fg-subtle uppercase">
-                        {g.groupe}
-                      </p>
+                      <p className="pt-1 text-2xs font-semibold tracking-wider text-fg-subtle uppercase">{g.groupe}</p>
                       <div className="flex flex-wrap gap-1.5">
                         {g.variables.map((v) => (
                           <Tooltip key={v.cle} content={`{{${v.cle}}} : ${v.description}`}>
@@ -337,7 +335,7 @@ export default function ModeleTexteEditeurPage() {
                               type="button"
                               onMouseDown={(e) => e.preventDefault()}
                               onClick={() => inserer(v.cle)}
-                              className="rounded-md border border-line bg-surface px-2 py-0.5 text-[12px] text-fg-muted transition-colors duration-150 hover:border-accent hover:text-accent-text"
+                              className="rounded-md border border-line bg-surface px-2 py-0.5 text-xs text-fg-muted transition-colors duration-150 hover:border-accent hover:text-accent-text"
                             >
                               {v.libelle}
                             </button>
@@ -392,7 +390,7 @@ export default function ModeleTexteEditeurPage() {
             className="p-5 lg:sticky lg:top-[calc(var(--bandeau-demo,0px)+1.5rem)]"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-[15px] font-semibold tracking-tight">Aperçu</h2>
+              <h2 className="text-md font-semibold tracking-tight">Aperçu</h2>
               <Segmented<FormatTexte>
                 label="Format de l’aperçu"
                 valeur={format}
@@ -443,7 +441,7 @@ export default function ModeleTexteEditeurPage() {
             )}
             <div className="mt-4 overflow-hidden rounded-lg border border-line">
               <div className="flex items-baseline gap-3 border-b border-line bg-surface-2/50 px-4 py-2.5 text-sm">
-                <span className="w-12 shrink-0 text-[13px] text-fg-subtle">Objet</span>
+                <span className="w-12 shrink-0 text-ui text-fg-subtle">Objet</span>
                 <ApercuTexte
                   lignes={generer(b.objet, vals)}
                   libelles={libelles}

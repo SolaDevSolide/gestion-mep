@@ -1,10 +1,11 @@
-import { FileCog, OctagonAlert, RotateCcw, Save, TerminalSquare, TriangleAlert } from 'lucide-react';
+import { FileCog, RotateCcw, Save, TerminalSquare, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '../api';
 import { formatDateHeure } from '../format';
 import { useAsync } from '../hooks';
 import type { Reglage } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { ErreurChargement } from '../ui/ErreurChargement';
 import { Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Input } from '../ui/Input';
@@ -119,7 +120,7 @@ function LigneReglage({
                 max={r.max ?? undefined}
                 step={r.type === 'Entier' ? 1 : undefined}
                 placeholder={r.type === 'Adresse' ? 'https://' : undefined}
-                className="font-mono text-[13px]"
+                className="font-mono text-ui"
                 onChange={(e) => setSaisie(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && modifie) void agir('enregistrer');
@@ -158,7 +159,7 @@ function LigneReglage({
       </div>
       <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
         <Origine r={r} fichierDocker={installation === 'docker'} />
-        <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-fg-muted">
+        <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-2xs text-fg-muted">
           {commande(installation, `reglages definir ${r.nom} …`)}
         </code>
       </div>
@@ -175,7 +176,7 @@ function LigneReglage({
 export default function ReglagesServeur() {
   const installation = useInstallation();
   const docker = installation === 'docker';
-  const { donnees, erreur, setDonnees } = useAsync(() => api.reglages(), []);
+  const { donnees, erreur, echec, chargement, recharger, setDonnees } = useAsync(() => api.reglages(), []);
   const groupes = new Map<string, Reglage[]>();
   for (const r of donnees ?? []) groupes.set(r.groupe, [...(groupes.get(r.groupe) ?? []), r]);
   const remplacer = (maj: Reglage) => setDonnees((liste) => liste?.map((r) => (r.nom === maj.nom ? maj : r)) ?? null);
@@ -183,9 +184,12 @@ export default function ReglagesServeur() {
   return (
     <>
       {erreur && (
-        <Alerte ton="danger" icone={OctagonAlert} role="alert">
-          {erreur}
-        </Alerte>
+        <ErreurChargement
+          erreur={echec}
+          titre="Impossible de charger les réglages du serveur"
+          onReessayer={recharger}
+          enCours={chargement}
+        />
       )}
       {donnees === null && !erreur && (
         <EnChargement libelle="Chargement des réglages…" className="grid gap-6">
@@ -221,7 +225,7 @@ export default function ReglagesServeur() {
           <dl className="divide-y divide-line">
             {(docker ? REGLAGES_DEMARRAGE : REGLAGES_DEMARRAGE_AUTONOME).map(([variables, description]) => (
               <div key={variables} className="flex flex-wrap gap-x-4 gap-y-1 px-5 py-3 text-sm">
-                <dt className="flex min-w-0 basis-72 items-center gap-2 font-mono text-[13px] text-fg">
+                <dt className="flex min-w-0 basis-72 items-center gap-2 font-mono text-ui text-fg">
                   <FileCog className="size-4 shrink-0 text-fg-subtle" aria-hidden />
                   {variables}
                 </dt>

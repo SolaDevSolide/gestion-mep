@@ -202,7 +202,7 @@ public class ApiRechercheTests : IDisposable
         (code, sortie, _) = await Cli("meps", "lister", "--etat", "repliee", "--du", "2000-01-01");
         Assert.Equal(0, code);
         Assert.Contains(DonneesDemo.OutilHistoriqueRepliee, sortie);
-        Assert.Contains("Repliée", sortie);
+        Assert.Contains("Après retour arrière", sortie);
 
         (code, sortie, _) = await Cli("systemes", "historique", "BDD");
         Assert.Equal(0, code);

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { api } from '../api';
 import { AuthContext } from '../auth';
-import { utilisateur } from '../test/fabrique';
+import { SESSION_ACTIVE, utilisateur } from '../test/fabrique';
 import { ToastProvider } from '../ui/Toast';
 import { TooltipProvider } from '../ui/Tooltip';
 import type { Utilisateur } from '../types';
@@ -32,7 +32,14 @@ vi.mock('../api', () => ({
 function rendre(u: Utilisateur, url = '/admin') {
   render(
     <AuthContext.Provider
-      value={{ utilisateur: u, chargement: false, connecter: vi.fn(), deconnecter: vi.fn(), majUtilisateur: vi.fn() }}
+      value={{
+        utilisateur: u,
+        chargement: false,
+        connecter: vi.fn(),
+        deconnecter: vi.fn(),
+        majUtilisateur: vi.fn(),
+        ...SESSION_ACTIVE,
+      }}
     >
       <TooltipProvider>
         <ToastProvider>

@@ -30,7 +30,7 @@ export const Textarea = forwardRef<
       ref={ref}
       rows={rows}
       spellCheck={mono ? false : undefined}
-      className={cn(BASE, 'py-2 leading-relaxed', mono && 'font-mono text-[13px] whitespace-pre', className)}
+      className={cn(BASE, 'py-2 leading-relaxed', mono && 'font-mono text-ui whitespace-pre', className)}
       wrap={mono ? 'off' : undefined}
       {...rest}
     />
@@ -67,7 +67,7 @@ export function Field({ label, hint, erreur, className, children }: FieldProps) 
   const id = useId();
   return (
     <div className={cn('flex min-w-0 flex-col gap-1.5', className)}>
-      <label htmlFor={id} className="text-[13px] font-medium text-fg">
+      <label htmlFor={id} className="text-ui font-medium text-fg">
         {label}
       </label>
       {children(id)}

@@ -17,7 +17,7 @@ const RETOUR = { search: '?onglet=plan&plan=recette' };
 /**
  * Page d'une fiche de recette, dans Plan › Recette (adresse partageable `?onglet=plan&plan=recette&fiche=…`), avec un fil
  * « Recette / SYSTÈME / titre » pour revenir. Avant le Go : rédaction de la fiche (si l'on peut modifier le contenu).
- * Après le Go : on déroule la fiche soi-même (Conforme / Échec, observation, Refaire pour le pilote).
+ * Après le Go : on déroule la fiche soi-même (Conforme / Non conforme, observation, Refaire pour le pilote).
  */
 export function PageFiche({
   ficheId,

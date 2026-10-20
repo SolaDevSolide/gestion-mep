@@ -155,8 +155,8 @@ public static partial class Regles
 
     // ---------- Validation par les métiers (fichier Excel) ----------
 
-    public const string LibelleValide = "Validé";
-    public const string LibelleRefuse = "Refusé";
+    public const string LibelleConforme = "Conforme";
+    public const string LibelleNonConforme = "Non conforme";
     /// <summary>Observation retenue pour une étape validée sans résultat constaté.</summary>
     public const string ObservationValideeSansCommentaire = "Conforme au résultat attendu.";
 
@@ -197,13 +197,17 @@ public static partial class Regles
         return new string(d.Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray()).ToUpperInvariant();
     }
 
-    /// <summary>« Validé » ou « Refusé » (casse, accents et accord au féminin indifférents) ; null pour toute autre valeur.</summary>
-    public static ResultatControle? LireValidation(string valeur) => SansAccents(valeur.Trim()) switch
-    {
-        "VALIDE" or "VALIDEE" => ResultatControle.Conforme,
-        "REFUSE" or "REFUSEE" => ResultatControle.Echec,
-        _ => null,
-    };
+    /// <summary>
+    /// « Conforme » ou « Non conforme » (casse, accents, tirets et espaces indifférents) ; « Validé » et « Refusé » des
+    /// fichiers exportés avant ces libellés sont encore acceptés (accord au féminin compris). Null pour toute autre valeur.
+    /// </summary>
+    public static ResultatControle? LireValidation(string valeur) =>
+        string.Join(' ', SansAccents(valeur.Trim()).Split([' ', '-'], StringSplitOptions.RemoveEmptyEntries)) switch
+        {
+            "CONFORME" or "VALIDE" or "VALIDEE" => ResultatControle.Conforme,
+            "NON CONFORME" or "REFUSE" or "REFUSEE" => ResultatControle.Echec,
+            _ => null,
+        };
 
     /// <summary>
     /// Analyse les validations d'un fichier exporté : il doit venir de cette MEP (<paramref name="mepFichier"/>), d'une recette
@@ -244,10 +248,10 @@ public static partial class Regles
             }
             var anomalies = new List<string>();
             var resultat = LireValidation(l.Validation);
-            if (resultat is null) anomalies.Add($"validation « {l.Validation} » inconnue (colonne « Validation » : {LibelleValide} ou {LibelleRefuse} attendu)");
+            if (resultat is null) anomalies.Add($"validation « {l.Validation} » inconnue (colonne « Validation » : {LibelleConforme} ou {LibelleNonConforme} attendu)");
             if (l.ValidePar.Length == 0) anomalies.Add("indiquer qui a validé (colonne « Validé par »)");
             if (!l.DateLisible) anomalies.Add("date illisible (colonne « Date » : jour/mois/année attendu)");
-            if (resultat == ResultatControle.Echec && l.Constate.Length == 0) anomalies.Add("décrire le résultat constaté du refus (colonne « Résultat constaté »)");
+            if (resultat == ResultatControle.Echec && l.Constate.Length == 0) anomalies.Add("décrire le résultat constaté d'une étape non conforme (colonne « Résultat constaté »)");
             if (anomalies.Count > 0)
             {
                 erreurs.Add($"{l.Lieu} : {string.Join(" ; ", anomalies)}.");
@@ -258,7 +262,7 @@ public static partial class Regles
             {
                 if (actuel == resultat && string.Equals(etape.Observation.Trim(), observation, StringComparison.Ordinal)) inchangees++;
                 else
-                    erreurs.Add($"{l.Lieu} : déjà « {(actuel == ResultatControle.Conforme ? "Conforme" : "Échec")} » dans l'application ; "
+                    erreurs.Add($"{l.Lieu} : déjà « {(actuel == ResultatControle.Conforme ? LibelleConforme : LibelleNonConforme)} » dans l'application ; "
                         + "le pilote doit la faire refaire avant d'importer une autre validation.");
                 continue;
             }

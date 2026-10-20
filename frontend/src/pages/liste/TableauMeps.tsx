@@ -61,12 +61,10 @@ function Echecs({ m }: { m: MepResume }) {
 function Roles({ m, f }: { m: MepResume; f: FiltreMeps }) {
   const roles = rolesDeLaPersonne(f, m);
   if (!roles) return <span className="text-fg-subtle">—</span>;
-  return (
-    <span className="text-[13px]">{roles.length ? roles.map((r) => LIBELLE_ROLE[r]).join(', ') : 'Participant'}</span>
-  );
+  return <span className="text-ui">{roles.length ? roles.map((r) => LIBELLE_ROLE[r]).join(', ') : 'Participant'}</span>;
 }
 
-const th = 'px-3 py-2.5 text-left text-[11px] font-semibold tracking-wider whitespace-nowrap text-fg-subtle uppercase';
+const th = 'px-3 py-2.5 text-left text-2xs font-semibold tracking-wider whitespace-nowrap text-fg-subtle uppercase';
 
 export function TableauMeps({
   meps,
@@ -134,10 +132,10 @@ export function TableauMeps({
                       {!estSimplifiee(m) && m.versionCible.trim() && (
                         <>
                           <ArrowRight className="size-3.5 shrink-0 text-fg-subtle" aria-hidden />
-                          <span className="font-mono text-[13px]">{m.versionCible}</span>
+                          <span className="font-mono text-ui">{m.versionCible}</span>
                         </>
                       )}
-                      {estSimplifiee(m) && <BadgeSimplifiee className="text-[10px]" />}
+                      {estSimplifiee(m) && <BadgeSimplifiee className="text-2xs" />}
                     </span>
                     {m.objet && <span className="block truncate text-xs text-fg-subtle">{m.objet}</span>}
                   </td>
@@ -196,7 +194,7 @@ export function TableauMeps({
               >
                 {m.outil || 'Sans nom'}
                 {!estSimplifiee(m) && m.versionCible.trim() && (
-                  <span className="font-mono text-[13px] text-fg-muted"> → {m.versionCible}</span>
+                  <span className="font-mono text-ui text-fg-muted"> → {m.versionCible}</span>
                 )}
               </Link>
               <PastilleEtatMep m={m} court />

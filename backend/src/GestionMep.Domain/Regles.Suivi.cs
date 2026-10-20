@@ -94,6 +94,6 @@ public static partial class Regles
         var faites = etapes.Count(e => e.Etat == EtatEtape.Reussie);
         var pourcent = etapes.Count == 0 ? 0 : (int)Math.Round(100.0 * faites / etapes.Count, MidpointRounding.AwayFromZero);
         var s = etapes.Count > 1 ? "s" : "";
-        return $"{faites}/{etapes.Count} étape{s} faite{s} ({pourcent} %)";
+        return $"{faites}/{etapes.Count} étape{s} réussie{s} ({pourcent} %)";
     }
 }

@@ -53,9 +53,9 @@ export const trierAlpha = <T extends { nom: string }>(l: T[]) =>
   [...l].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
 
 /** Types d'étape proposés au filtre et dans les formulaires : la liste s'allongera avec les futurs types. */
-export const TYPES_ETAPE: { valeur: TypeEtape; libelle: string }[] = [
-  { valeur: 'Standard', libelle: 'Normale' },
-  { valeur: 'Sauvegarde', libelle: 'Sauvegarde' },
+export const TYPES_ETAPE: { valeur: TypeEtape; libelle: string; pluriel: string }[] = [
+  { valeur: 'Standard', libelle: 'Standard', pluriel: 'standard' },
+  { valeur: 'Sauvegarde', libelle: 'Sauvegarde', pluriel: 'sauvegardes' },
 ];
 
 export const libelleType = (t: TypeEtape) => TYPES_ETAPE.find((x) => x.valeur === t)?.libelle ?? t;
@@ -88,12 +88,12 @@ export function filtrerEtapesModeles(
   );
 }
 
-/** Répartition par type des étapes modèles d'un système : « 4 normales · 2 sauvegardes ». */
+/** Répartition par type des étapes modèles d'un système : « 4 standard · 2 sauvegardes ». */
 export function repartitionTypes(modeles: ModeleEtape[]): string {
   if (modeles.length === 0) return 'Aucune étape modèle';
   return TYPES_ETAPE.map((t) => {
     const n = modeles.filter((m) => m.type === t.valeur).length;
-    return n > 0 ? `${n} ${t.libelle.toLowerCase()}${n > 1 ? 's' : ''}` : '';
+    return n > 0 ? `${n} ${n > 1 ? t.pluriel : t.libelle.toLowerCase()}` : '';
   })
     .filter(Boolean)
     .join(' · ');

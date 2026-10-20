@@ -10,7 +10,7 @@ import type { LienRedondant, Mep, ModeleEtape, TypePlan } from '../types';
 import { useReferentiels } from '../referentiels';
 import { Apparition } from '../ui/Apparition';
 import { SqueletteCadreGraphe } from './SqueletteMep';
-import { Button } from '../ui/Button';
+import { BoutonIcone, Button } from '../ui/Button';
 import { cn } from '../ui/cn';
 import { apiGraphe, type Deplacement, type PlaceEtape } from './graphe/apiGraphe';
 import { useAstuce } from './graphe/astuce';
@@ -28,7 +28,10 @@ import { GrapheLibre, type ActionsGraphe } from './graphe/GrapheLibre';
 import { ordreGlobal, reordonner, type LienModele } from './graphe/modeleGraphe';
 import { BoutonOptimiserLiens, PanneauOptimisation } from './graphe/OptimisationLiens';
 import { PanneauEdition } from './graphe/PanneauEdition';
-import { AideGraphe, ResumePlan } from './graphe/PanneauResume';
+import { AideGraphe, MenuPlusGraphe, ResumePlan } from './graphe/PanneauResume';
+import { EmplacementTiroir, useFenetreBasse, useFenetreEtroite } from './graphe/petitEcran';
+import { useRepliMenu } from '../layout/menuLateral';
+import { BoutonExportExcel } from '../ui/BoutonExportExcel';
 import { BacPlan, CercleDialog, EnTeteVueSection, NouvelleSectionDialog } from './graphe/SectionsPlan';
 import { estDepliee, infoSection, sectionsDuPlan, trouverCercle, type CercleSection } from './graphe/sections';
 import { descriptionsSystemes } from './graphe/systemes';
@@ -55,8 +58,25 @@ export function useSectionsDepliees(mep: Mep, plan: TypePlan) {
   return { deplies, basculer, toutes };
 }
 
-/** Boutons « Tout replier / Tout déplier » des sections. */
-export function BoutonsRepli({ onToutes }: { onToutes: (deplier: boolean) => void }) {
+/** Boutons « Tout replier / Tout déplier » des sections (icônes seules en vue compacte). */
+export function BoutonsRepli({
+  onToutes,
+  compact = false,
+}: {
+  onToutes: (deplier: boolean) => void;
+  compact?: boolean;
+}) {
+  if (compact)
+    return (
+      <span className="pointer-events-auto flex rounded-lg border border-line bg-surface/95 p-0.5 shadow-sm backdrop-blur">
+        <BoutonIcone label="Tout replier" taille="sm" onClick={() => onToutes(false)}>
+          <ChevronsDownUp className="size-4" aria-hidden />
+        </BoutonIcone>
+        <BoutonIcone label="Tout déplier" taille="sm" onClick={() => onToutes(true)}>
+          <ChevronsUpDown className="size-4" aria-hidden />
+        </BoutonIcone>
+      </span>
+    );
   return (
     <span className="pointer-events-auto flex rounded-lg border border-line bg-surface/95 p-0.5 shadow-sm backdrop-blur">
       <Button
@@ -82,9 +102,21 @@ export function BoutonsRepli({ onToutes }: { onToutes: (deplier: boolean) => voi
 /**
  * Éditeur du plan en graphe libre (préparation) : graphe rangé automatiquement (bac des sections dans son cadre, plein écran),
  * espace d'édition de l'étape ouverte. Avec `?section=…`, vue d'édition d'une section : ses étapes et ses cercles.
- * `actions` : boutons ajoutés au bout de la ligne de résumé du plan (export Excel…).
+ * `actions` : boutons ajoutés au bout de la ligne de résumé du plan ; `exporter` : « Exporter en Excel ».
+ *
+ * Fenêtre de moins de 800 px de haut (vue compacte, hors plein écran) : le résumé passe dans la barre d'outils, l'export et
+ * l'aide dans son menu « ⋯ », le bandeau d'une section tient sur une ligne, l'étape ouverte s'affiche en tiroir par-dessus
+ * le graphe ; sous 1440 px de large, le bac est replié en rail et le menu latéral se replie tant qu'une étape est ouverte.
  */
-export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: ReactNode }) {
+export function EtapesEditeur({
+  plan,
+  actions,
+  exporter,
+}: {
+  plan: TypePlan;
+  actions?: ReactNode;
+  exporter?: { url: string; title: string };
+}) {
   const { mep, run } = useMep();
   const [params, setParams] = useSearchParams();
   const modifiable = mep.droits.peutEditerContenu;
@@ -108,6 +140,10 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
   const [placeParcourir, setPlaceParcourir] = useState<PlaceEtape | null>(null);
   // Plein écran tenu ici : il reste actif quand on entre dans une section ou qu'on revient au plan.
   const [plein, setPlein] = useState(false);
+  const fenetreBasse = useFenetreBasse();
+  const fenetreEtroite = useFenetreEtroite();
+  const compact = fenetreBasse && !plein;
+  const [emplacementTiroir, setEmplacementTiroir] = useState<HTMLElement | null>(null);
   const [nouvelleSection, setNouvelleSection] = useState(false);
   const [cercle, setCercle] = useState<
     (Pick<CercleSection, 'titre' | 'description' | 'sens'> & { id: string | null }) | null
@@ -128,6 +164,10 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
   const sectionEtape = etape ? infoSection(etape).sectionId : null;
   const lectureDansPlan = modifiable && !sectionVue && !!sectionEtape;
   const verrou = useVerrouEtape(mep.id, etape?.id ?? null, modifiable && !lectureDansPlan);
+  // Étape ouverte en tiroir par-dessus le graphe (vue compacte), ou en panneau qui lui prend sa droite.
+  const tiroirOuvert = compact && !!etape && modeEspace === 'panneau';
+  const panneauOuvert = !compact && !!etape && modeEspace === 'panneau';
+  useRepliMenu(tiroirOuvert && fenetreEtroite);
 
   function ouvrir(id: string | null) {
     setChoix(id);
@@ -449,7 +489,15 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
   const etapesAPlacer = etapes.filter((e) => e.aPlacer);
   const nbEtapes = (sid: string) => etapesPlan.filter((e) => infoSection(e).sectionId === sid).length;
 
-  const bandeau = (
+  const astuceTexte = (
+    <p aria-live="polite" className="min-w-0 flex-1 truncate text-ui font-semibold text-rollback-solid">
+      {astuce.flash ? astuce.texte : ''}
+    </p>
+  );
+  const resume = (
+    <ResumePlan etapes={etapes} sections={sectionVue ? undefined : sections} sansDuree={estSimplifiee(mep)} />
+  );
+  const bandeau = (optimisation || sectionVue || !compact) && (
     <>
       {optimisation && (
         <PanneauOptimisation
@@ -484,21 +532,25 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
             return ok;
           }}
           onCercle={setCercle}
+          compact={compact}
         />
       )}
-      <div className="flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1 bg-surface px-3 py-1.5">
-        <ResumePlan etapes={etapes} sections={sectionVue ? undefined : sections} sansDuree={estSimplifiee(mep)} />
-        <p aria-live="polite" className="min-w-0 flex-1 text-[13px] font-semibold text-rollback-solid">
-          {astuce.flash ? astuce.texte : ''}
-        </p>
-        <AideGraphe edition={modifiable} />
-        {actions}
-      </div>
+      {!compact && (
+        <div className="flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1 bg-surface px-3 py-1.5">
+          {resume}
+          <p aria-live="polite" className="min-w-0 flex-1 text-ui font-semibold text-rollback-solid">
+            {astuce.flash ? astuce.texte : ''}
+          </p>
+          <AideGraphe edition={modifiable} />
+          {actions}
+          {exporter && <BoutonExportExcel url={exporter.url} title={exporter.title} />}
+        </div>
+      )}
     </>
   );
 
   const graphe = (
-    <div className={cn('relative min-w-0', etape && modeEspace === 'panneau' && 'min-[1100px]:pr-[608px]')}>
+    <div className={cn('relative min-w-0', panneauOuvert && 'min-[1100px]:pr-[608px]')}>
       <GrapheLibre
         mep={mep}
         plan={plan}
@@ -510,7 +562,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
         selection={selection}
         onSelection={selectionner}
         sectionVue={sectionVue?.id ?? null}
-        retraitDroit={!!etape && modeEspace === 'panneau'}
+        retraitDroit={panneauOuvert}
         deplies={deplies}
         onBasculer={basculer}
         gel={!!etape && saisieOuverte}
@@ -521,6 +573,15 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
         plein={plein}
         onPlein={setPlein}
         bandeau={bandeau}
+        compact={compact}
+        resume={
+          <>
+            {resume}
+            {astuceTexte}
+          </>
+        }
+        menu={compact ? <MenuPlusGraphe edition={modifiable} exporter={exporter} /> : undefined}
+        tiroir={compact ? { emplacement: setEmplacementTiroir, ouvert: tiroirOuvert } : null}
         creation={
           modifiable
             ? {
@@ -539,7 +600,8 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
             {modifiable && (
               <BoutonOptimiserLiens actif={!!optimisation} dansSection={!!sectionVue} onClick={calculerOptimisation} />
             )}
-            {!sectionVue && sections.some((s) => s.placee) && <BoutonsRepli onToutes={toutes} />}
+            {!sectionVue && sections.some((s) => s.placee) && <BoutonsRepli onToutes={toutes} compact={compact} />}
+            {compact && actions}
           </>
         }
         lateral={
@@ -557,6 +619,7 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
               onPlacerEtape={(id) => void exclusif(() => placerEtape(id, {}))}
               onOuvrirEtape={selectionner}
               replieForce={!!etape && modeEspace === 'panneau'}
+              rail={compact && fenetreEtroite}
             />
           )
         }
@@ -638,52 +701,54 @@ export function EtapesEditeur({ plan, actions }: { plan: TypePlan; actions?: Rea
           />
         )}
         {etape && (
-          <PanneauEdition
-            key={etape.id}
-            mep={mep}
-            etape={etape}
-            plan={plan}
-            etapes={etapesPlan}
-            modifiable={modifiable}
-            resolutions={resolutions}
-            catalogue={catalogue}
-            modeles={bibliotheque.donnees}
-            onModeleCree={() => bibliotheque.recharger()}
-            focusAction={nouvelle === etape.id}
-            onLier={(de, vers) => void exclusif(() => lier(de, vers))}
-            onDelier={(l) => void exclusif(() => delier(l))}
-            onRetirerDuPlan={
-              modifiable && !lectureDansPlan && !etape.aPlacer
-                ? () => void exclusif(() => retirerEtape(etape.id))
-                : undefined
-            }
-            onSelection={ouvrir}
-            onDirty={setSaisieOuverte}
-            demande={demande}
-            onAnnulerDemande={() => setDemande(undefined)}
-            lecture={
-              lectureDansPlan && sectionEtape ? (
-                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-[13px] text-accent-text">
-                  <span className="min-w-0 flex-1">
-                    Étape de la section « {sections.find((x) => x.id === sectionEtape)?.titre} » : on la modifie dans la
-                    vue de la section.
-                  </span>
-                  <Button
-                    taille="sm"
-                    variante="primaire"
-                    icone={<PencilLine className="size-4" aria-hidden />}
-                    onClick={() => allerSection(sectionEtape)}
-                  >
-                    Modifier dans la section
-                  </Button>
-                </div>
-              ) : undefined
-            }
-            verrou={{
-              lectureSeule: verrou.etat === 'autre' || verrou.etat === 'perdu',
-              bandeau: <BandeauVerrou verrou={verrou} />,
-            }}
-          />
+          <EmplacementTiroir.Provider value={compact ? emplacementTiroir : null}>
+            <PanneauEdition
+              key={etape.id}
+              mep={mep}
+              etape={etape}
+              plan={plan}
+              etapes={etapesPlan}
+              modifiable={modifiable}
+              resolutions={resolutions}
+              catalogue={catalogue}
+              modeles={bibliotheque.donnees}
+              onModeleCree={() => bibliotheque.recharger()}
+              focusAction={nouvelle === etape.id}
+              onLier={(de, vers) => void exclusif(() => lier(de, vers))}
+              onDelier={(l) => void exclusif(() => delier(l))}
+              onRetirerDuPlan={
+                modifiable && !lectureDansPlan && !etape.aPlacer
+                  ? () => void exclusif(() => retirerEtape(etape.id))
+                  : undefined
+              }
+              onSelection={ouvrir}
+              onDirty={setSaisieOuverte}
+              demande={demande}
+              onAnnulerDemande={() => setDemande(undefined)}
+              lecture={
+                lectureDansPlan && sectionEtape ? (
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-ui text-accent-text">
+                    <span className="min-w-0 flex-1">
+                      Étape de la section « {sections.find((x) => x.id === sectionEtape)?.titre} » : on la modifie dans
+                      la vue de la section.
+                    </span>
+                    <Button
+                      taille="sm"
+                      variante="primaire"
+                      icone={<PencilLine className="size-4" aria-hidden />}
+                      onClick={() => allerSection(sectionEtape)}
+                    >
+                      Modifier dans la section
+                    </Button>
+                  </div>
+                ) : undefined
+              }
+              verrou={{
+                lectureSeule: verrou.etat === 'autre' || verrou.etat === 'perdu',
+                bandeau: <BandeauVerrou verrou={verrou} />,
+              }}
+            />
+          </EmplacementTiroir.Provider>
         )}
       </div>
     </Apparition>

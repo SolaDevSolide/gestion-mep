@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { MepContext } from '../mepContext';
-import { metaEtatMep, metaPhase } from '../statuts';
+import { metaEtape, metaEtatMep, metaPhase } from '../statuts';
 import { mep } from '../test/fabrique';
 import type { Mep } from '../types';
 import { TooltipProvider } from '../ui/Tooltip';
@@ -24,7 +24,16 @@ describe('metaPhase', () => {
   it('donne la phase, puis l’issue une fois la MEP clôturée', () => {
     expect(metaPhase('Execution', 'Execution')).toMatchObject({ ton: 'run', libelle: 'Exécution' });
     expect(metaPhase('Cloturee', 'Reussie')).toMatchObject({ ton: 'done', libelle: 'Clôturée : réussie' });
-    expect(metaPhase('Cloturee', 'Repliee')).toMatchObject({ ton: 'later', libelle: 'Clôturée : repliée' });
+    expect(metaPhase('Cloturee', 'Repliee')).toMatchObject({ ton: 'later', libelle: 'Clôturée après retour arrière' });
+  });
+
+  it('un mot par idée : « Réussie » pour une étape, « après retour arrière » pour l’issue (lexique du glossaire)', () => {
+    const dispo = { statut: 'Terminee', libelle: '' } as Parameters<typeof metaEtape>[0]['disponibilite'];
+    expect(metaEtape({ etat: 'Reussie', disponibilite: dispo }).libelle).toBe('Réussie');
+    expect(metaEtatMep('Repliee')).toMatchObject({
+      libelle: 'Clôturée après retour arrière',
+      court: 'Après retour arrière',
+    });
   });
 
   it('clôturée réussie après un échec d’étape : « réussie avec incidents », en attention (#91)', () => {

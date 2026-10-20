@@ -1,8 +1,9 @@
 import { ArrowLeft, OctagonAlert, Save, TriangleAlert } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAsync } from '../hooks';
+import { useReferentiel } from '../referentiels';
 import { saisieDepuis as saisieEtape } from '../mep/graphe/PanneauEdition';
 import {
   ApercuResolution,
@@ -14,11 +15,15 @@ import {
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { ErreurChargement } from '../ui/ErreurChargement';
+import { Squelette } from '../ui/Squelette';
 import { useToast } from '../ui/Toast';
 
 /**
  * Création d'une fiche de résolution type (spec jalon 4, §9), en pleine page avec aperçu en direct.
- * Avec `?mep=…&etape=…` : système pré-sélectionné d'après l'étape, puis « Enregistrer et lier à E0006 ».
+ * Avec `?mep=…&etape=…` : système pré-sélectionné d'après l'étape, puis « Enregistrer et lier à E0006 ». Tant que
+ * l'étape n'est pas arrivée, ce bouton est désactivé avec son motif (la saisie reste possible) : jamais de fiche créée
+ * sans lien par un clic trop rapide. Si la MEP ne se charge pas, « Enregistrer sans lier » le dit.
  */
 export default function NouvelleResolutionPage() {
   const [params] = useSearchParams();
@@ -26,9 +31,13 @@ export default function NouvelleResolutionPage() {
   const etapeId = params.get('etape');
   const navigate = useNavigate();
   const toast = useToast();
-  const catalogue = useAsync(() => api.catalogueSystemes(), []);
+  const catalogue = useReferentiel('catalogue');
   const mep = useAsync(() => (mepId ? api.mep(mepId) : Promise.resolve(null)), [mepId]);
   const etape = (etapeId && mep.donnees?.etapes.find((e) => e.id === etapeId)) || null;
+  // Étape à lier en cours de lecture : fil d'Ariane, titre et bouton attendent (pas de changement sous le curseur).
+  const attenteEtape = !!mepId && !!etapeId && mep.donnees === null && mep.echec === null;
+  const sansLien = !!mepId && !!etapeId && mep.echec !== null && mep.donnees === null;
+  const motifId = useId();
 
   // `titre` : texte cherché dans le sélecteur de résolutions de l'étape.
   const [b, setB] = useState<BrouillonResolution>(() => ({
@@ -59,6 +68,7 @@ export default function NouvelleResolutionPage() {
     : 'Résolutions types';
 
   async function enregistrer() {
+    if (attenteEtape) return;
     setErreur('');
     if (!b.titre.trim()) {
       setErreur('Donnez un titre à la fiche de résolution.');
@@ -97,13 +107,17 @@ export default function NouvelleResolutionPage() {
   return (
     <main className="mx-auto w-full max-w-[1400px] px-6 py-8">
       <nav aria-label="Fil d’Ariane" className="mb-3">
-        <Link
-          to={retour}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-text hover:underline"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          {libelleRetour}
-        </Link>
+        {attenteEtape ? (
+          <Squelette className="h-5 w-48" />
+        ) : (
+          <Link
+            to={retour}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-text hover:underline"
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+            {libelleRetour}
+          </Link>
+        )}
       </nav>
       <h1 className="text-2xl font-semibold tracking-tight">
         Nouvelle fiche de résolution
@@ -111,12 +125,21 @@ export default function NouvelleResolutionPage() {
           <span className="ml-2 text-base font-normal text-fg-subtle">
             liée à <span className="font-mono">{etape.code}</span>
           </span>
+        ) : attenteEtape ? (
+          <Squelette className="ml-2 inline-block h-5 w-24 align-middle" />
         ) : null}
       </h1>
-      {mepId && mep.erreur && (
-        <Alerte ton="warn" icone={TriangleAlert} className="mt-4">
-          MEP introuvable ({mep.erreur}) : la fiche sera créée sans être liée à une étape.
-        </Alerte>
+      {sansLien && (
+        <ErreurChargement
+          variante="ligne"
+          className="mt-4"
+          erreur={mep.echec}
+          titre="Étape à lier non chargée"
+          introuvable="Cette MEP n’existe pas ou a été supprimée : la fiche sera créée sans être liée."
+          complement="La fiche peut être enregistrée sans lien, puis liée depuis l’étape."
+          onReessayer={mep.recharger}
+          enCours={mep.chargement}
+        />
       )}
       {mepId && mep.donnees && etapeId && !etape && (
         <Alerte ton="warn" icone={TriangleAlert} className="mt-4">
@@ -134,7 +157,18 @@ export default function NouvelleResolutionPage() {
           <FormulaireResolution
             b={b}
             onChange={setB}
-            systemes={catalogue.donnees ?? (catalogue.erreur ? [] : null)}
+            systemes={catalogue.donnees}
+            erreurSystemes={
+              catalogue.erreur != null && (
+                <ErreurChargement
+                  variante="ligne"
+                  erreur={catalogue.erreur}
+                  titre="Catalogue des systèmes non chargé"
+                  onReessayer={catalogue.recharger}
+                  enCours={catalogue.enCours}
+                />
+              )
+            }
             autoFocus
           />
           <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
@@ -142,13 +176,28 @@ export default function NouvelleResolutionPage() {
               variante="primaire"
               icone={<Save className="size-4" aria-hidden />}
               chargement={envoi}
+              // Pas `disabled` : le bouton garde le focus clavier et son motif reste lu.
+              aria-disabled={attenteEtape || undefined}
+              aria-describedby={attenteEtape ? motifId : undefined}
+              className={attenteEtape ? 'cursor-not-allowed opacity-50 active:translate-y-0' : undefined}
               onClick={() => void enregistrer()}
             >
-              {etape ? `Enregistrer et lier à ${etape.code}` : 'Enregistrer'}
+              {etape
+                ? `Enregistrer et lier à ${etape.code}`
+                : attenteEtape
+                  ? 'Enregistrer et lier'
+                  : sansLien
+                    ? 'Enregistrer sans lier'
+                    : 'Enregistrer'}
             </Button>
             <Button variante="fantome" onClick={() => void navigate(retour)}>
               Annuler
             </Button>
+            {attenteEtape && (
+              <span id={motifId} className="text-sm text-fg-subtle">
+                Chargement de l’étape à lier… La saisie reste possible.
+              </span>
+            )}
           </div>
         </Card>
         <Card

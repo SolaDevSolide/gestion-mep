@@ -159,8 +159,8 @@ export function ExecutionVue({ plan }: { plan: TypePlan }) {
             <User className="size-4" aria-hidden /> À moi
             <span
               className={cn(
-                'rounded-full px-1.5 text-[11px] font-bold tnum',
-                aMoi ? 'bg-white/25' : 'bg-surface-2 text-fg-muted',
+                'rounded-full px-1.5 text-2xs font-bold tnum',
+                aMoi ? 'bg-accent-fg/25' : 'bg-surface-2 text-fg-muted',
               )}
             >
               {nbMiennes}

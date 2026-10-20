@@ -55,7 +55,7 @@ function PointDeNonRetour({
         </Alerte>
       )}
       {etape.pointDeNonRetour && etape.etat !== 'AFaire' && (
-        <p className="flex items-center gap-1.5 text-[13px] font-medium text-warn-fg">
+        <p className="flex items-center gap-1.5 text-ui font-medium text-warn-fg">
           <Flag className="size-4 text-warn-solid" aria-hidden />
           Point de non-retour franchi.
         </p>
@@ -85,7 +85,7 @@ function CommentaireEtape({
   }
   return (
     <div className="grid gap-1.5">
-      <label htmlFor={`commentaire-${etape.id}`} className="text-[13px] font-medium">
+      <label htmlFor={`commentaire-${etape.id}`} className="text-ui font-medium">
         Commentaire <span className="font-normal text-fg-subtle">(facultatif)</span>
       </label>
       <ZoneAuto

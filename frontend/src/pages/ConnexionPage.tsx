@@ -1,11 +1,15 @@
 import { CircleCheck, Loader2, LogIn, Rocket, ShieldCheck, Timer, Undo2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
+import { retenirRetour } from '../brouillons';
 import { useAsync } from '../hooks';
 import type { CompteDemo } from '../types';
 import { Alerte } from '../ui/Alerte';
+import { IconeMicrosoft } from '../ui/IconeMicrosoft';
+import { Apparition } from '../ui/Apparition';
+import { Squelette, SqueletteFormulaire } from '../ui/Squelette';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { Field, Input } from '../ui/Input';
@@ -86,21 +90,32 @@ const ERREURS_SSO: Record<string, string> = {
 };
 const ERREUR_SSO_INCONNUE = 'La connexion a échoué. Réessayez ou contactez un administrateur.';
 
-/** Logo à quatre carrés, en couleurs fixes (marque du fournisseur). */
-function IconeMicrosoft() {
+/** Place réservée du formulaire (identifiant, mot de passe, bouton) pendant la lecture des options de connexion. */
+function SqueletteConnexion() {
   return (
-    <svg viewBox="0 0 21 21" className="size-4" aria-hidden>
-      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-    </svg>
+    <div className="space-y-4">
+      <SqueletteFormulaire champs={2} />
+      <Squelette className="h-12 w-full rounded-xl" />
+    </div>
   );
+}
+
+/** Page demandée avant la connexion (lien ouvert sans session, session abandonnée), passée par `Protege`. */
+function pageDemandee(etat: unknown): string {
+  if (typeof etat !== 'object' || etat === null || !('from' in etat)) return '/';
+  const from = etat.from;
+  if (typeof from !== 'object' || from === null || !('pathname' in from) || typeof from.pathname !== 'string')
+    return '/';
+  const search = 'search' in from && typeof from.search === 'string' ? from.search : '';
+  const hash = 'hash' in from && typeof from.hash === 'string' ? from.hash : '';
+  const adresse = from.pathname + search + hash;
+  return adresse.startsWith('/') && !adresse.startsWith('//') && !adresse.startsWith('/connexion') ? adresse : '/';
 }
 
 export default function ConnexionPage() {
   const { utilisateur, chargement, connecter, majUtilisateur } = useAuth();
   const navigate = useNavigate();
+  const cible = pageDemandee(useLocation().state);
   const [login, setLogin] = useState('');
   const [mdp, setMdp] = useState('');
   const [erreur, setErreur] = useState('');
@@ -108,21 +123,26 @@ export default function ConnexionPage() {
   const [rapide, setRapide] = useState<string | null>(null);
   const [params] = useSearchParams();
   // Échec de chargement : simplement pas de bouton de connexion unique.
-  const { donnees: options } = useAsync(() => api.optionsConnexion(), []);
+  const optionsLues = useAsync(() => api.optionsConnexion(), []);
+  const options = optionsLues.donnees;
   // Hors mode démonstration (route absente) : null, aucune connexion rapide.
-  const { donnees: demo } = useAsync(() => api.demo(), []);
+  const demoLue = useAsync(() => api.demo(), []);
+  const demo = demoLue.donnees;
+  // Le formulaire apparaît une fois ces deux lectures faites : le bouton Microsoft et les comptes de démonstration ne
+  // décalent plus le formulaire en arrivant.
+  const optionsPretes = !optionsLues.chargement && !demoLue.chargement;
   const codeSso = params.get('erreur');
   const erreurSso = codeSso ? (ERREURS_SSO[codeSso] ?? ERREUR_SSO_INCONNUE) : '';
   const reinitialisee = params.get('demo') === 'reinitialisee';
 
-  if (!chargement && utilisateur) return <Navigate to="/" replace />;
+  if (!chargement && utilisateur) return <Navigate to={cible} replace />;
 
   async function connexionRapide(compte: string) {
     setErreur('');
     setRapide(compte);
     try {
       majUtilisateur(await api.connexionDemo(compte));
-      void navigate('/', { replace: true });
+      void navigate(cible, { replace: true });
     } catch (err) {
       setErreur(err instanceof Error ? err.message : 'Connexion impossible.');
     } finally {
@@ -136,7 +156,7 @@ export default function ConnexionPage() {
     setEnvoi(true);
     try {
       await connecter(login.trim(), mdp);
-      void navigate('/', { replace: true });
+      void navigate(cible, { replace: true });
     } catch (err) {
       setErreur(err instanceof Error ? err.message : 'Connexion impossible.');
     } finally {
@@ -168,14 +188,15 @@ export default function ConnexionPage() {
           </p>
           <ul className="mt-8 space-y-3 text-sm text-connexion-texte/90">
             <li className="flex items-center gap-3">
-              <ShieldCheck className="size-5 text-emerald-300" aria-hidden /> Chaque action est tracée dans le journal
+              <ShieldCheck className="size-5 text-connexion-ok" aria-hidden /> Chaque action est tracée dans le journal
             </li>
             <li className="flex items-center gap-3">
-              <Timer className="size-5 text-amber-300" aria-hidden /> Compte à rebours jusqu’à l’échéance de retour
-              arrière
+              <Timer className="size-5 text-connexion-attention" aria-hidden /> Compte à rebours jusqu’à l’échéance de
+              retour arrière
             </li>
             <li className="flex items-center gap-3">
-              <Undo2 className="size-5 text-rose-300" aria-hidden /> Résolutions types et plan de repli intégrés
+              <Undo2 className="size-5 text-connexion-alerte" aria-hidden /> Résolutions types et plan de retour arrière
+              intégrés
             </li>
           </ul>
         </div>
@@ -194,79 +215,90 @@ export default function ConnexionPage() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Connexion</h1>
           <p className="mt-1 mb-6 text-sm text-fg-subtle">Identifiez-vous pour accéder aux mises en production.</p>
-          {erreurSso && (
-            <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mb-4">
-              {erreurSso}
-            </Alerte>
-          )}
-          {reinitialisee && (
-            <Alerte ton="ok" icone={CircleCheck} className="mb-4">
-              La démonstration a été réinitialisée : reconnectez-vous avec un compte de démonstration.
-            </Alerte>
-          )}
-          {demo && demo.comptes.length > 0 && (
-            <>
-              <ConnexionRapide
-                comptes={demo.comptes}
-                enCours={rapide}
-                desactive={rapide !== null || envoi}
-                onChoisir={(c) => void connexionRapide(c)}
-              />
-              <div className="my-5 flex items-center gap-3 text-xs text-fg-subtle" aria-hidden>
-                <span className="h-px flex-1 bg-line" /> ou avec un identifiant <span className="h-px flex-1 bg-line" />
-              </div>
-            </>
-          )}
-          {options?.ssoActif && (
-            <>
-              <Button
-                variante="secondaire"
-                taille="lg"
-                className="w-full"
-                icone={<IconeMicrosoft />}
-                onClick={() => window.location.assign('/api/auth/sso/connexion')}
-              >
-                {options.ssoLibelle || 'Se connecter avec Microsoft'}
-              </Button>
-              <div className="my-5 flex items-center gap-3 text-xs text-fg-subtle" aria-hidden>
-                <span className="h-px flex-1 bg-line" /> ou <span className="h-px flex-1 bg-line" />
-              </div>
-            </>
-          )}
-          <form onSubmit={(e) => void valider(e)} className="space-y-4">
-            <Field label="Identifiant">
-              {(id) => (
-                <Input
-                  id={id}
-                  value={login}
-                  onChange={(e) => setLogin(e.target.value)}
-                  autoComplete="username"
-                  autoFocus
-                  required
-                />
-              )}
-            </Field>
-            <Field label="Mot de passe">
-              {(id) => (
-                <Input
-                  id={id}
-                  type="password"
-                  value={mdp}
-                  onChange={(e) => setMdp(e.target.value)}
-                  autoComplete="current-password"
-                  required
-                />
-              )}
-            </Field>
-            {erreur && (
-              <Alerte ton="danger" icone={OctagonAlert} role="alert">
-                {erreur}
+          <Apparition
+            pret={optionsPretes}
+            libelle="Chargement des options de connexion…"
+            squelette={<SqueletteConnexion />}
+          >
+            {erreurSso && (
+              <Alerte ton="danger" icone={OctagonAlert} role="alert" className="mb-4">
+                {erreurSso}
               </Alerte>
             )}
-            <Button type="submit" variante="primaire" taille="lg" className="w-full" chargement={envoi}>
-              Se connecter
-            </Button>
-          </form>
+            {reinitialisee && (
+              <Alerte ton="ok" icone={CircleCheck} className="mb-4">
+                La démonstration a été réinitialisée : reconnectez-vous avec un compte de démonstration.
+              </Alerte>
+            )}
+            {demo && demo.comptes.length > 0 && (
+              <>
+                <ConnexionRapide
+                  comptes={demo.comptes}
+                  enCours={rapide}
+                  desactive={rapide !== null || envoi}
+                  onChoisir={(c) => void connexionRapide(c)}
+                />
+                <div className="my-5 flex items-center gap-3 text-xs text-fg-subtle" aria-hidden>
+                  <span className="h-px flex-1 bg-line" /> ou avec un identifiant{' '}
+                  <span className="h-px flex-1 bg-line" />
+                </div>
+              </>
+            )}
+            {options?.ssoActif && (
+              <>
+                <Button
+                  variante="secondaire"
+                  taille="lg"
+                  className="w-full"
+                  icone={<IconeMicrosoft />}
+                  onClick={() => {
+                    // Le fournisseur renvoie sur « / » : la page demandée est rouverte au retour.
+                    if (cible !== '/') retenirRetour(cible);
+                    window.location.assign('/api/auth/sso/connexion');
+                  }}
+                >
+                  {options.ssoLibelle || 'Se connecter avec Microsoft'}
+                </Button>
+                <div className="my-5 flex items-center gap-3 text-xs text-fg-subtle" aria-hidden>
+                  <span className="h-px flex-1 bg-line" /> ou <span className="h-px flex-1 bg-line" />
+                </div>
+              </>
+            )}
+            <form onSubmit={(e) => void valider(e)} className="space-y-4">
+              <Field label="Identifiant">
+                {(id) => (
+                  <Input
+                    id={id}
+                    value={login}
+                    onChange={(e) => setLogin(e.target.value)}
+                    autoComplete="username"
+                    autoFocus
+                    required
+                  />
+                )}
+              </Field>
+              <Field label="Mot de passe">
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="password"
+                    value={mdp}
+                    onChange={(e) => setMdp(e.target.value)}
+                    autoComplete="current-password"
+                    required
+                  />
+                )}
+              </Field>
+              {erreur && (
+                <Alerte ton="danger" icone={OctagonAlert} role="alert">
+                  {erreur}
+                </Alerte>
+              )}
+              <Button type="submit" variante="primaire" taille="lg" className="w-full" chargement={envoi}>
+                Se connecter
+              </Button>
+            </form>
+          </Apparition>
         </div>
       </main>
     </div>

@@ -1,9 +1,9 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { api } from './api';
-import { oublierReferentiels, useReferentiels } from './referentiels';
+import { oublierReferentiels, useReferentiel, useReferentiels } from './referentiels';
 import type { ResolutionType, SystemeCatalogue } from './types';
 
-vi.mock('./api', () => ({ api: { catalogueSystemes: vi.fn(), resolutions: vi.fn() } }));
+vi.mock('./api', () => ({ api: { catalogueSystemes: vi.fn(), resolutions: vi.fn(), utilisateurs: vi.fn() } }));
 
 const catalogue = [
   { id: 'c-api', nom: 'API', description: 'Service API', cible: '', actif: true },
@@ -28,10 +28,17 @@ describe('useReferentiels', () => {
     const premier = renderHook(() => useReferentiels());
     await waitFor(() => expect(premier.result.current.pret).toBe(true));
     premier.unmount();
+    // Rouvert aussitôt : la réponse toute récente sert telle quelle.
+    renderHook(() => useReferentiels()).unmount();
+    expect(api.catalogueSystemes).toHaveBeenCalledTimes(1);
+    // Rouvert plus tard : affiché aussitôt, puis mis à jour.
+    const maintenant = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(maintenant + 60_000);
     const second = renderHook(() => useReferentiels());
     expect(second.result.current.pret).toBe(true);
     expect(second.result.current.catalogue).toEqual(catalogue);
     await waitFor(() => expect(api.catalogueSystemes).toHaveBeenCalledTimes(2));
+    vi.restoreAllMocks();
   });
 
   it('laisse afficher l’onglet si un référentiel ne se charge pas', async () => {
@@ -39,5 +46,48 @@ describe('useReferentiels', () => {
     const { result } = renderHook(() => useReferentiels());
     await waitFor(() => expect(result.current.pret).toBe(true));
     expect(result.current.catalogue).toEqual([]);
+  });
+});
+
+describe('useReferentiel', () => {
+  beforeEach(() => {
+    oublierReferentiels();
+    vi.mocked(api.utilisateurs).mockReset();
+  });
+
+  it('une seule requête pour tous les composants qui demandent la même liste', async () => {
+    vi.mocked(api.utilisateurs).mockResolvedValue([]);
+    const a = renderHook(() => useReferentiel('comptes'));
+    const b = renderHook(() => useReferentiel('comptes'));
+    await waitFor(() => expect(a.result.current.pret).toBe(true));
+    expect(b.result.current.pret).toBe(true);
+    expect(api.utilisateurs).toHaveBeenCalledTimes(1);
+  });
+
+  it('une panne reste une erreur, jamais une liste vide ; « Réessayer » relit la liste', async () => {
+    const panne = new Error('hors ligne');
+    vi.mocked(api.utilisateurs).mockRejectedValueOnce(panne).mockResolvedValueOnce([]);
+    const { result } = renderHook(() => useReferentiel('comptes'));
+    await waitFor(() => expect(result.current.pret).toBe(true));
+    expect(result.current.erreur).toBe(panne);
+    expect(result.current.donnees).toBeNull();
+    act(() => result.current.recharger());
+    await waitFor(() => expect(result.current.donnees).toEqual([]));
+    expect(result.current.erreur).toBeNull();
+  });
+
+  it('un composant monté juste après une panne montre l’erreur sans relancer la lecture en cachette', async () => {
+    const panne = new Error('hors ligne');
+    vi.mocked(api.utilisateurs).mockRejectedValue(panne);
+    const onglet = renderHook(() => useReferentiel('comptes'));
+    await waitFor(() => expect(onglet.result.current.erreur).toBe(panne));
+    const section = renderHook(() => useReferentiel('comptes'));
+    expect(section.result.current.erreur).toBe(panne);
+    expect(api.utilisateurs).toHaveBeenCalledTimes(1);
+  });
+
+  it('inactif : aucune requête', () => {
+    renderHook(() => useReferentiel('comptes', false));
+    expect(api.utilisateurs).not.toHaveBeenCalled();
   });
 });

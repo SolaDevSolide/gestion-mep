@@ -171,7 +171,7 @@ public static partial class Regles
                 case Phase.RetourArriere:
                     var repli = mep.EtapesDu(TypePlan.RetourArriere).FirstOrDefault(e => e.Etat != EtatEtape.Reussie);
                     if (repli is not null)
-                        throw new RegleMetierException($"{repli.Code} n'est pas réussie : le service n'est pas rétabli. Suivre « Si le repli échoue », ou clôturer en échec.");
+                        throw new RegleMetierException($"{repli.Code} n'est pas réussie : le service n'est pas rétabli. Suivre « Si le retour arrière échoue », ou clôturer en échec.");
                     issue = IssueMep.Repliee;
                     break;
                 default:
