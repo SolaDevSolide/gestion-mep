@@ -269,6 +269,10 @@ public static class PiecesJointesEndpoints
             return Results.NoContent();
         }).ExigerAdmin();
 
+        // ---------- Occupation du stockage (console d'administration) ----------
+        api.MapGet("/admin/pieces-jointes/stockage", (MepDbContext db, CancellationToken ct) => CompressionPiecesJointes.Etat(db, ct))
+            .ExigerAdmin();
+
         // ---------- Téléchargement ----------
         api.MapGet("/pieces-jointes/{pid:guid}/contenu", async (Guid pid, HttpContext ctx, MepDbContext db, StockagePiecesJointes stockage) =>
         {
