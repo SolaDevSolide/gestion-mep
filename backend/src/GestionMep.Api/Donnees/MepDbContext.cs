@@ -245,6 +245,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.NomFichier).HasMaxLength(255);
             e.Property(x => x.TypeContenu).HasMaxLength(255);
             e.Property(x => x.Sha256).HasMaxLength(64);
+            e.Property(x => x.Compression).HasMaxLength(16);
             // Rattachements facultatifs : la suppression du parent supprime la ligne (le fichier est effacé par l'API).
             e.HasOne<Mep>().WithMany().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Etape>().WithMany().HasForeignKey(x => x.EtapeId).OnDelete(DeleteBehavior.Cascade);

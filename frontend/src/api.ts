@@ -23,6 +23,7 @@ import type {
   ModeleEtape,
   ModeleEtapeSaisie,
   Reglage,
+  EtatStockage,
   EtatCharteServeur,
   VerificationCharte,
   PieceJointe,
@@ -566,6 +567,7 @@ export const api = {
   parametres: () => get<ParametresGlobaux>('/parametres'),
   modifierParametres: (s: ParametresGlobaux) => put<ParametresGlobaux>('/parametres', s),
   reglages: () => get<Reglage[]>('/admin/reglages'),
+  stockagePiecesJointes: () => get<EtatStockage>('/admin/pieces-jointes/stockage'),
   definirReglage: (nom: string, valeur: string) =>
     put<Reglage>(`/admin/reglages/${encodeURIComponent(nom)}`, { valeur }),
   retablirReglage: (nom: string) => del<Reglage>(`/admin/reglages/${encodeURIComponent(nom)}`),

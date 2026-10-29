@@ -19,11 +19,13 @@ public static partial class LigneDeCommande
     public const string SecretASaisir = "<à saisir>";
     private const string FormatExportConnexions = "gestion-mep/connexions";
 
-    private static readonly GroupeCommandes GroupeConnexions = new("connexions", "Connexions aux API externes",
+    // Propriétés plutôt que champs : le registre (LigneDeCommande.Commandes.cs) les lit pendant son initialisation, et l'ordre
+    // d'initialisation des champs statiques d'une classe partielle répartie sur plusieurs fichiers n'est pas garanti.
+    private static GroupeCommandes GroupeConnexions => new("connexions", "Connexions aux API externes",
         "Une connexion se désigne par son nom (guillemets s'il contient des espaces) ou son identifiant (8 premiers caractères suffisent). "
         + "Les secrets ne passent jamais en argument : --secret-stdin.");
 
-    private static readonly Commande[] CommandesConnexions =
+    private static Commande[] CommandesConnexions =>
     [
         new("connexions lister", "", "Connexions : état, dernier appel, déclencheurs", a => { a.Rien(0); return ConnexionsLister(); })
         {
@@ -57,7 +59,7 @@ public static partial class LigneDeCommande
             Options = [("--champ authentification", "Jeton, mot de passe, clé ou secret client, selon l'authentification"),
                 ("--champ adresse", "Adresse complète secrète (Teams Workflows, Slack) ; un autre domaine efface les autres secrets"),
                 ("--champ hmac", "Secret de la signature X-Gestion-Mep-Signature"), ("--champ entete:<Nom>", "En-tête secret (créé s'il n'existe pas)"),
-                ("--secret-stdin", "Lit le secret sur l'entrée standard (jamais en argument : historique du shell, ps)"),
+                ("--secret-stdin", "Lit le secret sur l'entrée standard (ou le demande au terminal, sans l'afficher) ; jamais en argument"),
                 ("--effacer", "Retire la signature ou l'en-tête secret")],
             Exemples = ["gestion-mep connexions secret \"Tickets de changement\" --champ authentification --secret-stdin < mot-de-passe.txt",
                 "gestion-mep connexions secret \"Canal Teams Exploitation\" --champ adresse --secret-stdin < adresse.txt"],
@@ -332,7 +334,10 @@ public static partial class LigneDeCommande
         string? valeur = null;
         if (!effacer)
         {
-            valeur = (await Console.In.ReadToEndAsync()).Trim(); // --secret-stdin : toujours l'entrée standard, jamais le clavier
+            // --secret-stdin : l'entrée standard (fichier, tube, ou --non-interactif) ; au terminal, saisie sans écho comme « sso configurer ».
+            valeur = Console.IsInputRedirected || S.NonInteractif
+                ? (await Console.In.ReadToEndAsync()).Trim()
+                : LireSecret($"Secret ({champ}) de « {c.Nom} »");
             if (valeur.Length == 0) throw ErreurHttp.Saisie("Secret vide : rien n'a été modifié.");
         }
         var s = ServiceConnexions.Saisie(c);
@@ -410,7 +415,7 @@ public static partial class LigneDeCommande
         if (o.Valeur("--mep") is { } m)
             mepId = IdentifiantOuPrefixe(m, await db.Meps.Select(x => x.Id).ToListAsync(), "MEP") ?? throw ErreurHttp.NonTrouve($"MEP introuvable : « {m} ».");
         var saisie = new ApercuConnexionSaisie(ServiceConnexions.Saisie(c), c.Id, mepId, o.Valeur("--evenement"), null, o.Valeur("--commentaire"));
-        var meps = new ServiceMep(db, TimeProvider.System, new DiffuseurMep(config));
+        var meps = ServiceMep(db, config);
         if (o.A("--apercu"))
         {
             var p = (await ConnexionsEndpoints.Preparer(saisie, null, svc, meps, db, UsageSaisie.Apercu)).Apercu;

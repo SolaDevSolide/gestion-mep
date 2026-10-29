@@ -96,6 +96,12 @@ L'équipe informatique le débloque en ligne de commande : voir [Exploiter](Expl
 **Les écrans ne se mettent plus à jour en direct derrière le proxy.**
 Le proxy met en tampon le flux `/api/meps/*/flux` ou le coupe trop tôt. Désactiver la mise en tampon et allonger le délai de lecture : voir [Installer](Installer.md#proxy-inverse-https).
 
+**La taille affichée d'une pièce jointe ne correspond pas à la place qu'elle prend sur le serveur.**
+Les pièces jointes qui s'y prêtent (journaux, textes, CSV, PDF, captures d'écran…) sont compressées sans perte sur le serveur ; la liste affiche la taille du fichier déposé, et l'info-bulle de cette taille la place qu'il occupe. Les quotas comptent la place occupée ; le téléchargement rend toujours le fichier d'origine, à l'octet près. Voir [Compression des pièces jointes](Exploiter.md#compression-des-pièces-jointes).
+
+**Un fichier du volume `pieces-jointes` est illisible quand je l'ouvre directement.**
+Il est stocké compressé (gzip) : `zcat <identifiant> > fichier` le rend tel qu'il a été déposé. Pour tout remettre en clair sur le disque : `gestion-mep pieces-jointes decompresser`, puis `gestion-mep reglages definir pieces-compression false`.
+
 **L'envoi d'une pièce jointe échoue (fichier trop volumineux).**
 La taille maximale (20 Mo par défaut) se règle dans la console (onglet Paramètres), par `gestion-mep reglages definir pieces-taille-max-mo <Mo>` ou par `PIECES_TAILLE_MAX_MO` dans `.env`. Le proxy doit accepter des requêtes un peu plus grandes.
 

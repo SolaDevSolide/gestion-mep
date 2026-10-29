@@ -89,7 +89,7 @@ public static class ProtectionsHttp
         });
 
     /// <summary>Adresse de l'application vue de la machine : celle du fichier d'installation autonome, sinon le port de l'image Docker.</summary>
-    private static string AdresseLocale() =>
+    internal static string AdresseLocale() =>
         (FichierInstallation.AdresseEcoute(FichierInstallation.Lire(FichierInstallation.Chemin)) ?? "http://localhost:8080")
             .Replace("://0.0.0.0:", "://127.0.0.1:").Replace("://[::]:", "://[::1]:");
 

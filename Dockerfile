@@ -27,7 +27,8 @@ EXPOSE 8080
 RUN mkdir -p /data/pieces-jointes /data/cles /data/sauvegardes /data/mise-a-jour \
  && chown $APP_UID /data/pieces-jointes /data/cles /data/sauvegardes /data/mise-a-jour
 # Commandes d'exploitation : « docker compose exec app gestion-mep aide ».
-RUN printf '#!/bin/sh\nexec dotnet /app/GestionMep.Api.dll "$@"\n' > /usr/local/bin/gestion-mep && chmod 755 /usr/local/bin/gestion-mep
+# Sans argument : l'aide (et non un second serveur).
+RUN printf '#!/bin/sh\n[ $# -eq 0 ] && set -- aide\nexec dotnet /app/GestionMep.Api.dll "$@"\n' > /usr/local/bin/gestion-mep && chmod 755 /usr/local/bin/gestion-mep
 USER $APP_UID
 # Sonde « prête » (base joignable au schéma de cette version, surveillance des échéances active) : healthy seulement
 # si l'application peut servir. L'image aspnet n'a ni curl ni wget : l'application interroge elle-même /api/sante/prete.

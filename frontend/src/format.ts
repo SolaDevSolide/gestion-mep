@@ -311,5 +311,11 @@ export function formatTaille(octets: number): string {
   if (octets < 1024) return `${octets} o`;
   const nombre = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
   if (octets < 1024 * 1024) return `${nombre.format(octets / 1024)} Ko`;
-  return `${nombre.format(octets / 1024 / 1024)} Mo`;
+  if (octets < 1024 * 1024 * 1024) return `${nombre.format(octets / 1024 / 1024)} Mo`;
+  return `${nombre.format(octets / 1024 / 1024 / 1024)} Go`;
+}
+
+/** Place gagnée par la compression d'un fichier, en pour cent arrondi (0 s'il n'est pas compressé). */
+export function gainCompression(taille: number, tailleStockee: number): number {
+  return taille > 0 && tailleStockee < taille ? Math.round((100 * (taille - tailleStockee)) / taille) : 0;
 }

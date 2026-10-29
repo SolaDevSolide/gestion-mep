@@ -204,19 +204,8 @@ public static class CommunicationEndpoints
             var acteur = Acteur.Depuis(user);
             var e = await ChargerEquipe(db, id);
             await ExigerMembre(db, acteur, e);
-            var contact = Limiter(c.ContactSupport, LongueurMaxNom, "Contact support");
-            var signature = Lignes(c.Signature, LongueurMaxNom * 2, "Signature");
-            if (contact != e.ContactSupport || signature != e.Signature)
-            {
-                var quoi = new List<string>();
-                if (contact != e.ContactSupport) quoi.Add("contact support");
-                if (signature != e.Signature) quoi.Add("signature");
-                JournalAdmin.Ecrire(db, acteur, "equipe.modifiee", $"Équipe « {e.Nom} » : {string.Join(" et ", quoi)} des modèles de texte modifiés");
-                e.ContactSupport = contact;
-                e.Signature = signature;
-                await db.SaveChangesAsync();
-            }
-            return Results.Ok(EquipesEndpoints.Dto(e));
+            // PUT : un champ absent est vidé.
+            return Results.Ok(await DefinirCommunicationEquipe(db, acteur, e, new EquipeCommunicationSaisie(c.ContactSupport ?? "", c.Signature ?? "")));
         });
 
         // ----- Modèles de texte -----
@@ -277,12 +266,7 @@ public static class CommunicationEndpoints
             var m = await ChargerModele(db, id);
             var e = await ChargerEquipe(db, m.EquipeId);
             await ExigerMembre(db, acteur, e);
-            ModelesTexteFournis.Retablir(m);
-            m.Version++;
-            m.ModifieLe = horloge.GetUtcNow();
-            m.ModifieParId = acteur.Id;
-            JournalAdmin.Ecrire(db, acteur, "modele-texte.retabli", $"Modèle de texte « {m.Nom} » de l'équipe « {e.Nom} » : texte fourni rétabli");
-            await db.SaveChangesAsync();
+            await RetablirModele(db, acteur, m, e, horloge.GetUtcNow());
             return Results.Ok(await Dto(db, acteur, m));
         });
 
@@ -292,12 +276,50 @@ public static class CommunicationEndpoints
             var m = await ChargerModele(db, id);
             var e = await ChargerEquipe(db, m.EquipeId);
             await ExigerMembre(db, acteur, e);
-            if (m.CleFournie is not null)
-                throw new RegleMetierException("Un modèle fourni ne se supprime pas : modifiez-le, ou rétablissez son texte.");
-            db.ModelesTexte.Remove(m);
-            JournalAdmin.Ecrire(db, acteur, "modele-texte.supprime", $"Modèle de texte « {m.Nom} » de l'équipe « {e.Nom} » supprimé");
-            await db.SaveChangesAsync();
+            await SupprimerModele(db, acteur, m, e);
             return Results.NoContent();
         });
+    }
+
+    /// <summary>
+    /// Contact support et signature d'une équipe, repris par ses modèles de texte (droits vérifiés par l'appelant) ; partagé
+    /// avec la ligne de commande (<paramref name="acteur"/> null).
+    /// </summary>
+    public static async Task<EquipeDto> DefinirCommunicationEquipe(MepDbContext db, Acteur? acteur, Equipe e, EquipeCommunicationSaisie c)
+    {
+        var contact = c.ContactSupport is null ? e.ContactSupport : Limiter(c.ContactSupport, LongueurMaxNom, "Contact support");
+        var signature = c.Signature is null ? e.Signature : Lignes(c.Signature, LongueurMaxNom * 2, "Signature");
+        if (contact != e.ContactSupport || signature != e.Signature)
+        {
+            var quoi = new List<string>();
+            if (contact != e.ContactSupport) quoi.Add("contact support");
+            if (signature != e.Signature) quoi.Add("signature");
+            JournalAdmin.Ecrire(db, acteur, "equipe.modifiee", $"Équipe « {e.Nom} » : {string.Join(" et ", quoi)} des modèles de texte modifiés");
+            e.ContactSupport = contact;
+            e.Signature = signature;
+            await db.SaveChangesAsync();
+        }
+        return EquipesEndpoints.Dto(e);
+    }
+
+    /// <summary>Rétablit le texte fourni d'un modèle (droits vérifiés par l'appelant) ; partagé avec la ligne de commande.</summary>
+    public static async Task RetablirModele(MepDbContext db, Acteur? acteur, ModeleTexte m, Equipe e, DateTimeOffset maintenant)
+    {
+        ModelesTexteFournis.Retablir(m);
+        m.Version++;
+        m.ModifieLe = maintenant;
+        m.ModifieParId = acteur?.Compte;
+        JournalAdmin.Ecrire(db, acteur, "modele-texte.retabli", $"Modèle de texte « {m.Nom} » de l'équipe « {e.Nom} » : texte fourni rétabli");
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>Supprime un modèle de texte créé par l'équipe (droits vérifiés par l'appelant) ; partagé avec la ligne de commande.</summary>
+    public static async Task SupprimerModele(MepDbContext db, Acteur? acteur, ModeleTexte m, Equipe e)
+    {
+        if (m.CleFournie is not null)
+            throw new RegleMetierException("Un modèle fourni ne se supprime pas : modifiez-le, ou rétablissez son texte.");
+        db.ModelesTexte.Remove(m);
+        JournalAdmin.Ecrire(db, acteur, "modele-texte.supprime", $"Modèle de texte « {m.Nom} » de l'équipe « {e.Nom} » supprimé");
+        await db.SaveChangesAsync();
     }
 }

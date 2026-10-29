@@ -174,6 +174,26 @@ public static class MepsEndpoints
         return await (f.Limite is { } n ? lignes.Take(n) : lignes).ToListAsync();
     }
 
+    /// <summary>
+    /// Copie d'une MEP ou d'un modèle (<see cref="Regles.Dupliquer"/>) confiée à <paramref name="proprietaire"/>, qui doit pouvoir
+    /// l'éditer : il en devient participant et responsable technique s'il n'y figure pas. <paramref name="auteur"/> signe le
+    /// journal (la ligne de commande crée une copie pour un compte). Partagé avec « gestion-mep meps dupliquer / importer ».
+    /// </summary>
+    public static async Task<MepDto> Dupliquer(ServiceMep svc, MepDbContext db, Mep source, bool commeModele, Acteur auteur, Acteur proprietaire,
+        string detail, string? outil = null)
+    {
+        var copie = Regles.Dupliquer(source, commeModele, proprietaire.Id, svc.Maintenant);
+        if (outil is not null) copie.Outil = outil;
+        if (!Regles.PeutEditerContenu(copie, proprietaire.Id, proprietaire.EstAdmin))
+        {
+            var duplicateur = new Participant { MepId = copie.Id, Nom = proprietaire.Nom, Role = "Responsable technique", UtilisateurId = proprietaire.Id };
+            copie.Participants.Add(duplicateur);
+            copie.ResponsablesTechniques.Add(new ResponsableTechnique { ParticipantId = duplicateur.Id });
+        }
+        db.Meps.Add(copie);
+        return await svc.Enregistrer(copie, auteur, "mep.creee", detail);
+    }
+
     public static void MapMeps(this RouteGroupBuilder api)
     {
         // ?modele=true : modèles seulement ; ?modele=false : MEP seulement ; absent : tout. Autres paramètres : recherche
@@ -215,20 +235,11 @@ public static class MepsEndpoints
         {
             var acteur = Acteur.Depuis(user);
             var source = await svc.Charger(id);
-            var copie = Regles.Dupliquer(source, corps.CommeModele, acteur.Id, svc.Maintenant);
-            // Celui qui duplique doit pouvoir éditer sa copie : il en devient participant et responsable technique s'il n'y figure pas.
-            if (!Regles.PeutEditerContenu(copie, acteur.Id, acteur.EstAdmin))
-            {
-                var duplicateur = new Participant { MepId = copie.Id, Nom = acteur.Nom, Role = "Responsable technique", UtilisateurId = acteur.Id };
-                copie.Participants.Add(duplicateur);
-                copie.ResponsablesTechniques.Add(new ResponsableTechnique { ParticipantId = duplicateur.Id });
-            }
-            db.Meps.Add(copie);
             var detail = source.EstModele && !corps.CommeModele
                 ? $"MEP créée depuis le modèle « {source.Outil} »"
                 : $"MEP créée par duplication de « {source.Outil} »";
-            var dto = await svc.Enregistrer(copie, acteur, "mep.creee", detail);
-            return Results.Created($"/api/meps/{copie.Id}", dto);
+            var dto = await Dupliquer(svc, db, source, corps.CommeModele, acteur, acteur, detail);
+            return Results.Created($"/api/meps/{dto.Id}", dto);
         });
 
         api.MapGet("/meps/{id:guid}", async (Guid id, ClaimsPrincipal user, ServiceMep svc) =>

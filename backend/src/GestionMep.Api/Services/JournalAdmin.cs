@@ -14,7 +14,7 @@ public static class JournalAdmin
     public static void Ecrire(MepDbContext db, Acteur? acteur, string type, string detail, string? auteur = null) =>
         db.JournalAdmin.Add(new EvenementAdmin
         {
-            UtilisateurId = acteur?.Id,
+            UtilisateurId = acteur?.Compte,
             Auteur = acteur?.Nom ?? auteur ?? AuteurLigneDeCommande,
             Type = type,
             Detail = detail,

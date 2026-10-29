@@ -339,7 +339,7 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         {
             var journal = ev.Systeme
                 ? NouvelEvenement(mep, null, AuteurSysteme, ev.Type, ev.Detail, ev.EtapeId)
-                : NouvelEvenement(mep, acteur.Id, acteur.Nom, ev.Type, ev.Detail, ev.EtapeId);
+                : NouvelEvenement(mep, acteur.Compte, acteur.Nom, ev.Type, ev.Detail, ev.EtapeId);
             db.Journal.Add(journal);
             ecrits.Add((journal, ev.Declencheur));
         }

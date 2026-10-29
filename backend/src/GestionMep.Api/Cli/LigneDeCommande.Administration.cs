@@ -17,7 +17,7 @@ public static partial class LigneDeCommande
     private static SystemeCatalogue TrouverSysteme(IReadOnlyList<SystemeCatalogue> catalogue, string nomOuId) =>
         catalogue.FirstOrDefault(s => s.Nom.Equals(nomOuId.Trim(), StringComparison.OrdinalIgnoreCase))
         ?? (Guid.TryParse(nomOuId, out var id) ? catalogue.FirstOrDefault(s => s.Id == id) : null)
-        ?? throw new ErreurHttp(1, $"Système « {nomOuId} » introuvable dans le catalogue (gestion-mep systemes lister).");
+        ?? throw ErreurHttp.NonTrouve($"Système « {nomOuId} » introuvable dans le catalogue (gestion-mep systemes lister).");
 
     private static async Task<SystemeCatalogue> TrouverSysteme(MepDbContext db, string nomOuId) =>
         TrouverSysteme(await db.SystemesCatalogue.AsNoTracking().ToListAsync(), nomOuId);
@@ -33,17 +33,17 @@ public static partial class LigneDeCommande
         }
         if (systemes.Count == 0)
         {
-            Console.WriteLine("Catalogue vide : « gestion-mep systemes ajouter <nom> ».");
+            Informer("Catalogue vide : « gestion-mep systemes ajouter <nom> ».");
             return 0;
         }
         var largeur = Math.Max(3, systemes.Max(s => s.Nom.Length));
-        Console.WriteLine($"{"NOM".PadRight(largeur)}  ACTIF  {"ENVIRONNEMENTS",-40}  {"OBJETS",-6}  {"CIBLE",-20}  DESCRIPTION");
+        Ecrire($"{"NOM".PadRight(largeur)}  ACTIF  {"ENVIRONNEMENTS",-40}  {"OBJETS",-6}  {"CIBLE",-20}  DESCRIPTION");
         foreach (var s in systemes)
         {
             var envs = string.Join(", ", s.Environnements.Select(e => e.Production ? e.Nom + "*" : e.Nom));
-            Console.WriteLine($"{s.Nom.PadRight(largeur)}  {(s.Actif ? "oui" : "non"),-5}  {envs,-40}  {s.NbObjets,-6}  {s.Cible,-20}  {s.Description}");
+            Ecrire($"{s.Nom.PadRight(largeur)}  {(s.Actif ? "oui" : "non"),-5}  {envs,-40}  {s.NbObjets,-6}  {s.Cible,-20}  {s.Description}");
         }
-        Console.WriteLine("* environnement de production");
+        Ecrire("* environnement de production");
         return 0;
     }
 
@@ -57,19 +57,19 @@ public static partial class LigneDeCommande
             EcrireJson(new { Systeme = CatalogueEndpoints.Dto(s), Objets = objets });
             return 0;
         }
-        Console.WriteLine($"{s.Nom}{(s.Actif ? "" : " (désactivé)")} : {(s.Description.Length > 0 ? s.Description : "sans description")}");
-        Console.WriteLine();
-        Console.WriteLine("Environnements" + (s.Environnements.Count == 0 ? " : aucun" : ""));
+        Ecrire($"{s.Nom}{(s.Actif ? "" : " (désactivé)")} : {(s.Description.Length > 0 ? s.Description : "sans description")}");
+        Ecrire();
+        Ecrire("Environnements" + (s.Environnements.Count == 0 ? " : aucun" : ""));
         foreach (var e in s.Environnements)
-            Console.WriteLine($"  {e.Nom,-20}  {(e.Production ? "production" : ""),-10}  {e.Cible}");
-        Console.WriteLine();
-        Console.WriteLine("Objets par catégorie" + (s.Categories.Count == 0 ? " : aucune catégorie" : ""));
+            Ecrire($"  {e.Nom,-20}  {(e.Production ? "production" : ""),-10}  {e.Cible}");
+        Ecrire();
+        Ecrire("Objets par catégorie" + (s.Categories.Count == 0 ? " : aucune catégorie" : ""));
         foreach (var c in s.Categories)
         {
             var liste = objets.Where(o => o.Categorie == c).ToList();
-            Console.WriteLine($"  {c} ({liste.Count})");
+            Ecrire($"  {c} ({liste.Count})");
             foreach (var o in liste)
-                Console.WriteLine($"    {o.Nom,-30}  {o.Type,-14}  {o.Libelle}{(o.Precision.Length > 0 ? $" ({o.Precision})" : "")}");
+                Ecrire($"    {o.Nom,-30}  {o.Type,-14}  {o.Libelle}{(o.Precision.Length > 0 ? $" ({o.Precision})" : "")}");
         }
         return 0;
     }
@@ -84,13 +84,14 @@ public static partial class LigneDeCommande
         var i = liste.FindIndex(e => string.Equals(e.Nom, nom.Trim(), StringComparison.OrdinalIgnoreCase));
         if (o.A("--retirer"))
         {
-            if (i < 0) throw new ErreurHttp(1, $"Environnement « {nom} » introuvable dans la fiche {s.Nom}.");
+            if (i < 0) throw ErreurHttp.NonTrouve($"Environnement « {nom} » introuvable dans la fiche {s.Nom}.");
             liste.RemoveAt(i);
         }
         else if (i < 0) liste.Add(new EnvironnementCatalogueSaisie(nom, o.Valeur("--cible"), o.OuiNon("--production")));
         else liste[i] = new EnvironnementCatalogueSaisie(nom, o.Valeur("--cible") ?? liste[i].Cible, o.OuiNon("--production") ?? liste[i].Production);
         var r = await CatalogueEndpoints.DefinirEnvironnements(db, null, s.Id, new EnvironnementsCatalogueSaisie(liste));
-        Console.WriteLine($"Environnements de {r.Nom} : {(r.Environnements.Count == 0 ? "aucun" : string.Join(", ", r.Environnements.Select(e => e.Nom)))}.");
+        Resultat(r);
+        Informer($"Environnements de {r.Nom} : {(r.Environnements.Count == 0 ? "aucun" : string.Join(", ", r.Environnements.Select(e => e.Nom)))}.");
         return 0;
     }
 
@@ -104,13 +105,14 @@ public static partial class LigneDeCommande
         var i = liste.FindIndex(c => string.Equals(c.Nom, categorie.Trim(), StringComparison.OrdinalIgnoreCase));
         if (o.A("--retirer") || o.Valeur("--renommer") is not null)
         {
-            if (i < 0) throw new ErreurHttp(1, $"Catégorie « {categorie} » introuvable dans la fiche {s.Nom}.");
+            if (i < 0) throw ErreurHttp.NonTrouve($"Catégorie « {categorie} » introuvable dans la fiche {s.Nom}.");
             if (o.A("--retirer")) liste.RemoveAt(i);
             else liste[i] = new CategorieSaisie(o.Valeur("--renommer"), liste[i].Nom);
         }
         else if (i < 0) liste.Add(new CategorieSaisie(categorie));
         var r = await CatalogueEndpoints.DefinirCategories(db, null, s.Id, new CategoriesSystemeSaisie(liste));
-        Console.WriteLine($"Catégories de {r.Nom} : {(r.Categories.Count == 0 ? "aucune" : string.Join(", ", r.Categories))}.");
+        Resultat(r);
+        Informer($"Catégories de {r.Nom} : {(r.Categories.Count == 0 ? "aucune" : string.Join(", ", r.Categories))}.");
         return 0;
     }
 
@@ -124,14 +126,15 @@ public static partial class LigneDeCommande
             && x.Nom.Equals(nom.Trim(), StringComparison.OrdinalIgnoreCase));
         if (o.A("--retirer"))
         {
-            if (existant is null) throw new ErreurHttp(1, $"Objet « {nom} » introuvable dans la catégorie {categorie} de {s.Nom}.");
+            if (existant is null) throw ErreurHttp.NonTrouve($"Objet « {nom} » introuvable dans la catégorie {categorie} de {s.Nom}.");
             await CatalogueEndpoints.SupprimerObjet(db, null, s.Id, existant.Id);
-            Console.WriteLine($"Objet « {existant.Nom} » retiré de la fiche {s.Nom}.");
+            Informer($"Objet « {existant.Nom} » retiré de la fiche {s.Nom}.");
             return 0;
         }
         var r = await CatalogueEndpoints.EnregistrerObjet(db, null, s.Id, existant?.Id, new ObjetCatalogueSaisie(categorie, o.Valeur("--type") ?? existant?.Type,
             nom, o.Valeur("--libelle") ?? existant?.Libelle, o.Valeur("--precision") ?? existant?.Precision));
-        Console.WriteLine($"Objet « {r.Nom} » {(existant is null ? "ajouté à" : "modifié dans")} la catégorie {r.Categorie} de {s.Nom}.");
+        Resultat(r);
+        Informer($"Objet « {r.Nom} » {(existant is null ? "ajouté à" : "modifié dans")} la catégorie {r.Categorie} de {s.Nom}.");
         return 0;
     }
 
@@ -146,8 +149,8 @@ public static partial class LigneDeCommande
             EcrireJson(liste);
             return 0;
         }
-        if (liste.Count == 0) Console.WriteLine("Aucune catégorie par défaut : « gestion-mep categories ajouter \"<nom>\" ».");
-        foreach (var c in liste) Console.WriteLine(c);
+        if (liste.Count == 0) Informer("Aucune catégorie par défaut : « gestion-mep categories ajouter \"<nom>\" ».");
+        foreach (var c in liste) Ecrire(c);
         return 0;
     }
 
@@ -157,10 +160,10 @@ public static partial class LigneDeCommande
         var liste = await CatalogueEndpoints.CategoriesDefaut(db);
         var existante = liste.FirstOrDefault(c => c.Equals(nom.Trim(), StringComparison.OrdinalIgnoreCase));
         if (ajouter && existante is not null) throw new ErreurHttp(1, $"La catégorie « {existante} » est déjà dans la liste par défaut.");
-        if (!ajouter && existante is null) throw new ErreurHttp(1, $"Catégorie « {nom} » introuvable dans la liste par défaut.");
+        if (!ajouter && existante is null) throw ErreurHttp.NonTrouve($"Catégorie « {nom} » introuvable dans la liste par défaut.");
         var nouvelle = ajouter ? [.. liste, nom] : liste.Where(c => c != existante).ToList();
         await CatalogueEndpoints.DefinirCategoriesDefaut(db, null, new CategoriesDefautSaisie(nouvelle));
-        Console.WriteLine(ajouter ? $"Catégorie « {nom.Trim()} » ajoutée à la liste par défaut."
+        Informer(ajouter ? $"Catégorie « {nom.Trim()} » ajoutée à la liste par défaut."
             : $"Catégorie « {existante} » retirée de la liste par défaut (les systèmes qui l'utilisent la gardent).");
         return 0;
     }
@@ -171,7 +174,8 @@ public static partial class LigneDeCommande
         var o = Options.Lire(arguments, ["--description", "--cible", "--actif"]);
         await using var db = Base(Configuration());
         var s = await CatalogueEndpoints.Creer(db, null, new SystemeCatalogueSaisie(nom, o.Valeur("--description"), o.Valeur("--cible"), o.OuiNon("--actif")));
-        Console.WriteLine($"Système « {s.Nom} » ajouté au catalogue{(s.Actif ? "" : " (désactivé)")}.");
+        Resultat(s);
+        Informer($"Système « {s.Nom} » ajouté au catalogue{(s.Actif ? "" : " (désactivé)")}.");
         return 0;
     }
 
@@ -182,7 +186,8 @@ public static partial class LigneDeCommande
         var s = await TrouverSysteme(db, nom);
         var modifie = await CatalogueEndpoints.Modifier(db, null, s.Id, new SystemeCatalogueSaisie(
             o.Valeur("--nom") ?? s.Nom, o.Valeur("--description") ?? s.Description, o.Valeur("--cible") ?? s.Cible, o.OuiNon("--actif")));
-        Console.WriteLine($"Système « {modifie.Nom} » modifié{(modifie.Actif ? "" : " (désactivé)")}.");
+        Resultat(modifie);
+        Informer($"Système « {modifie.Nom} » modifié{(modifie.Actif ? "" : " (désactivé)")}.");
         return 0;
     }
 
@@ -190,7 +195,7 @@ public static partial class LigneDeCommande
     {
         await using var db = Base(Configuration());
         var s = await TrouverSysteme(db, nom);
-        Console.WriteLine(await CatalogueEndpoints.Supprimer(db, null, s.Id)
+        Informer(await CatalogueEndpoints.Supprimer(db, null, s.Id)
             ? $"Système « {s.Nom} » supprimé du catalogue."
             : $"Système « {s.Nom} » utilisé par une MEP ou une résolution type : désactivé au lieu d'être supprimé.");
         return 0;
@@ -203,11 +208,11 @@ public static partial class LigneDeCommande
     {
         var criteres = await ParametresEndpoints.ListerCriteres(db);
         if (Guid.TryParse(numeroOuId, out var id))
-            return criteres.FirstOrDefault(c => c.Id == id) ?? throw new ErreurHttp(1, "Critère introuvable.");
+            return criteres.FirstOrDefault(c => c.Id == id) ?? throw ErreurHttp.NonTrouve("Critère introuvable.");
         if (int.TryParse(numeroOuId, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var n)
             && n >= 1 && n <= criteres.Count)
             return criteres[n - 1];
-        throw new ErreurHttp(1, $"Critère « {numeroOuId} » introuvable : donner son n° (gestion-mep criteres lister) ou son identifiant.");
+        throw ErreurHttp.NonTrouve($"Critère « {numeroOuId} » introuvable : donner son n° (gestion-mep criteres lister) ou son identifiant.");
     }
 
     private static async Task<int> CriteresLister()
@@ -221,12 +226,12 @@ public static partial class LigneDeCommande
         }
         if (criteres.Count == 0)
         {
-            Console.WriteLine("Aucun critère go / no-go : « gestion-mep criteres ajouter \"<libellé>\" ».");
+            Informer("Aucun critère go / no-go : « gestion-mep criteres ajouter \"<libellé>\" ».");
             return 0;
         }
-        Console.WriteLine("N°  ORDRE  ACTIF  LIBELLÉ");
+        Ecrire("N°  ORDRE  ACTIF  LIBELLÉ");
         for (var i = 0; i < criteres.Count; i++)
-            Console.WriteLine($"{i + 1,-2}  {criteres[i].Ordre,5}  {(criteres[i].Actif ? "oui" : "non"),-5}  {criteres[i].Libelle}");
+            Ecrire($"{i + 1,-2}  {criteres[i].Ordre,5}  {(criteres[i].Actif ? "oui" : "non"),-5}  {criteres[i].Libelle}");
         return 0;
     }
 
@@ -235,7 +240,8 @@ public static partial class LigneDeCommande
         var o = Options.Lire(arguments, ["--ordre", "--actif"]);
         await using var db = Base(Configuration());
         var c = await ParametresEndpoints.CreerCritere(db, null, new CritereGoNoGoSaisie(libelle, o.Entier("--ordre"), o.OuiNon("--actif")));
-        Console.WriteLine($"Critère « {c.Libelle} » créé (ordre {c.Ordre}{(c.Actif ? "" : ", inactif")}).");
+        Resultat(c);
+        Informer($"Critère « {c.Libelle} » créé (ordre {c.Ordre}{(c.Actif ? "" : ", inactif")}).");
         return 0;
     }
 
@@ -246,7 +252,8 @@ public static partial class LigneDeCommande
         var c = await TrouverCritere(db, critere);
         var modifie = await ParametresEndpoints.ModifierCritere(db, null, c.Id,
             new CritereGoNoGoSaisie(o.Valeur("--libelle") ?? c.Libelle, o.Entier("--ordre"), o.OuiNon("--actif")));
-        Console.WriteLine($"Critère « {modifie.Libelle} » modifié (ordre {modifie.Ordre}{(modifie.Actif ? "" : ", inactif")}).");
+        Resultat(modifie);
+        Informer($"Critère « {modifie.Libelle} » modifié (ordre {modifie.Ordre}{(modifie.Actif ? "" : ", inactif")}).");
         return 0;
     }
 
@@ -255,7 +262,7 @@ public static partial class LigneDeCommande
         await using var db = Base(Configuration());
         var c = await TrouverCritere(db, critere);
         await ParametresEndpoints.SupprimerCritere(db, null, c.Id);
-        Console.WriteLine($"Critère « {c.Libelle} » supprimé (les MEP gardent leur copie des critères déjà cochés).");
+        Informer($"Critère « {c.Libelle} » supprimé (les MEP gardent leur copie des critères déjà cochés).");
         return 0;
     }
 
@@ -271,7 +278,7 @@ public static partial class LigneDeCommande
         return parTitre.Count switch
         {
             1 => parTitre[0],
-            0 => throw new ErreurHttp(1, $"Résolution type « {idOuTitre} » introuvable (gestion-mep resolutions lister --inactives)."),
+            0 => throw ErreurHttp.NonTrouve($"Résolution type « {idOuTitre} » introuvable (gestion-mep resolutions lister --inactives)."),
             _ => throw new ErreurHttp(1, $"Plusieurs résolutions types s'appellent « {idOuTitre} » : donner l'identifiant ({string.Join(", ", parTitre.Select(r => r.Id))})."),
         };
     }
@@ -290,15 +297,15 @@ public static partial class LigneDeCommande
         }
         if (resolutions.Count == 0)
         {
-            Console.WriteLine("Aucune résolution type.");
+            Informer("Aucune résolution type.");
             return 0;
         }
         var noms = catalogue.ToDictionary(s => s.Id, s => s.Nom);
-        Console.WriteLine($"{"ID",-8}  ACTIVE  VERSION  {"SYSTÈMES",-20}  TITRE");
+        Ecrire($"{"ID",-8}  ACTIVE  VERSION  {"SYSTÈMES",-20}  TITRE");
         foreach (var r in resolutions)
         {
             var systemes = string.Join(", ", r.SystemeCatalogueIds.Select(id => noms.GetValueOrDefault(id, "?")));
-            Console.WriteLine($"{r.Id.ToString()[..8]}  {(r.Actif ? "oui" : "non"),-6}  {r.Version,7}  {systemes,-20}  {r.Titre}");
+            Ecrire($"{r.Id.ToString()[..8]}  {(r.Actif ? "oui" : "non"),-6}  {r.Version,7}  {systemes,-20}  {r.Titre}");
         }
         return 0;
     }
@@ -313,15 +320,15 @@ public static partial class LigneDeCommande
             return 0;
         }
         var noms = await db.SystemesCatalogue.AsNoTracking().ToDictionaryAsync(s => s.Id, s => s.Nom);
-        Console.WriteLine($"Titre        : {r.Titre}");
-        Console.WriteLine($"Identifiant  : {r.Id}");
-        Console.WriteLine($"État         : {(r.Actif ? "active" : "désactivée")}, version {r.Version}, modifiée le {Date(r.ModifieeLe)}{(r.ModifieeParNom is { } n ? $" par {n}" : "")}");
-        Console.WriteLine($"Systèmes     : {(r.SystemeCatalogueIds.Count == 0 ? "tous" : string.Join(", ", r.SystemeCatalogueIds.Select(id => noms.GetValueOrDefault(id, "?"))))}");
-        Console.WriteLine($"Symptômes    : {r.Symptomes}");
-        Console.WriteLine($"Diagnostic   : {r.Diagnostic}");
-        Console.WriteLine("Corrections  :");
-        foreach (var c in r.Corrections) Console.WriteLine($"  {c.Ordre}. {c.Instruction}  →  {c.ResultatAttendu}");
-        Console.WriteLine($"Vérification : {r.VerificationInstruction}  →  {r.VerificationAttendu}");
+        Ecrire($"Titre        : {r.Titre}");
+        Ecrire($"Identifiant  : {r.Id}");
+        Ecrire($"État         : {(r.Actif ? "active" : "désactivée")}, version {r.Version}, modifiée le {Date(r.ModifieeLe)}{(r.ModifieeParNom is { } n ? $" par {n}" : "")}");
+        Ecrire($"Systèmes     : {(r.SystemeCatalogueIds.Count == 0 ? "tous" : string.Join(", ", r.SystemeCatalogueIds.Select(id => noms.GetValueOrDefault(id, "?"))))}");
+        Ecrire($"Symptômes    : {r.Symptomes}");
+        Ecrire($"Diagnostic   : {r.Diagnostic}");
+        Ecrire("Corrections  :");
+        foreach (var c in r.Corrections) Ecrire($"  {c.Ordre}. {c.Instruction}  →  {c.ResultatAttendu}");
+        Ecrire($"Vérification : {r.VerificationInstruction}  →  {r.VerificationAttendu}");
         return 0;
     }
 
@@ -330,7 +337,7 @@ public static partial class LigneDeCommande
         var config = Configuration();
         await using var db = Base(config);
         var r = await TrouverResolution(db, idOuTitre);
-        Console.WriteLine(await ResolutionsEndpoints.Supprimer(db, null, r.Id, DateTimeOffset.UtcNow, new StockagePiecesJointes(config))
+        Informer(await ResolutionsEndpoints.Supprimer(db, null, r.Id, DateTimeOffset.UtcNow, new StockagePiecesJointes(config))
             ? $"Résolution type « {r.Titre} » supprimée."
             : $"Résolution type « {r.Titre} » liée à une étape ou déjà exécutée : désactivée au lieu d'être supprimée.");
         return 0;
@@ -341,7 +348,7 @@ public static partial class LigneDeCommande
         await using var db = Base(Configuration());
         var export = await EchangeResolutions.Exporter(db, DateTimeOffset.UtcNow);
         if (await EcrireFichierOuSortie(fichier, export))
-            Console.WriteLine($"{export.Resolutions!.Count} résolution(s) type(s) exportée(s) dans {fichier}.");
+            Informer($"{export.Resolutions!.Count} résolution(s) type(s) exportée(s) dans {fichier}.");
         return 0;
     }
 
@@ -370,9 +377,9 @@ public static partial class LigneDeCommande
             foreach (var r in resultats)
             {
                 var libelle = r.Resultat switch { "creee" => "créée", "remplacee" => "remplacée", "ignoree" => "ignorée", _ => "refusée" };
-                Console.WriteLine($"[{libelle,-9}] {r.Titre}{(r.Motif is { } m ? $" : {m}" : "")}");
+                Ecrire($"[{libelle,-9}] {r.Titre}{(r.Motif is { } m ? $" : {m}" : "")}");
             }
-            Console.WriteLine($"{(o.A("--essai") ? "Essai, rien n'a été enregistré : " : "")}{resultats.Count(r => r.Resultat == "creee")} créée(s), "
+            Informer($"{(o.A("--essai") ? "Essai, rien n'a été enregistré : " : "")}{resultats.Count(r => r.Resultat == "creee")} créée(s), "
                 + $"{resultats.Count(r => r.Resultat == "remplacee")} remplacée(s), {resultats.Count(r => r.Resultat == "ignoree")} ignorée(s), "
                 + $"{resultats.Count(r => r.Resultat == "refusee")} refusée(s).");
         }
@@ -404,7 +411,8 @@ public static partial class LigneDeCommande
         {
             var f = await ExportsExcelEndpoints.Liste(db, o.A("--modeles"), filtre, DateTimeOffset.UtcNow, (await ServiceCharte.Charger(db, config)).Palette);
             await EcrireClasseur(classeur, f.Contenu);
-            Console.WriteLine($"Liste exportée dans {classeur}.");
+            Resultat(new { Fichier = Path.GetFullPath(classeur) });
+            Informer($"Liste exportée dans {classeur}.");
             return 0;
         }
         var meps = await MepsEndpoints.Rechercher(db, o.A("--modeles"), filtre);
@@ -415,14 +423,14 @@ public static partial class LigneDeCommande
         }
         if (meps.Count == 0)
         {
-            Console.WriteLine(o.A("--modeles") ? "Aucun modèle." : "Aucune MEP.");
+            Informer(o.A("--modeles") ? "Aucun modèle." : "Aucune MEP.");
             return 0;
         }
-        Console.WriteLine($"{"ID",-8}  {"ÉTAT",-22}  {"JOUR",-10}  {"PROD.",-5}  {"TYPE",-11}  ÉTAPES   ÉCHECS  {"SYSTÈMES",-20}  OUTIL ET OBJET");
+        Ecrire($"{"ID",-8}  {"ÉTAT",-22}  {"JOUR",-10}  {"PROD.",-5}  {"TYPE",-11}  ÉTAPES   ÉCHECS  {"SYSTÈMES",-20}  OUTIL ET OBJET");
         foreach (var m in meps)
         {
             var systemes = string.Join(",", m.Systemes.Select(s => s.Nom));
-            Console.WriteLine($"{m.Id.ToString()[..8]}  {FiltreMeps.Libelle(m.Etat),-22}  {m.Jour:yyyy-MM-dd}  {(m.ToucheProduction ? "oui" : ""),-5}  {(m.Type == TypeMep.Simplifiee ? "simplifiée" : "complète"),-11}  {$"{m.NbReussies}/{m.NbEtapes}",-7}  {(m.EchecsSurvenus > 0 ? m.EchecsSurvenus.ToString(CultureInfo.InvariantCulture) : ""),-6}  {systemes,-20}  "
+            Ecrire($"{m.Id.ToString()[..8]}  {FiltreMeps.Libelle(m.Etat),-22}  {m.Jour:yyyy-MM-dd}  {(m.ToucheProduction ? "oui" : ""),-5}  {(m.Type == TypeMep.Simplifiee ? "simplifiée" : "complète"),-11}  {$"{m.NbReussies}/{m.NbEtapes}",-7}  {(m.EchecsSurvenus > 0 ? m.EchecsSurvenus.ToString(CultureInfo.InvariantCulture) : ""),-6}  {systemes,-20}  "
                 + $"{m.Outil}{(m.VersionCible.Length > 0 ? $" {m.VersionCible}" : "")}{(m.Objet.Length > 0 ? $" : {m.Objet}" : "")}");
         }
         return 0;
@@ -452,7 +460,7 @@ public static partial class LigneDeCommande
             var compte = comptes.FirstOrDefault(u => u.Login.Equals(p.Trim(), StringComparison.OrdinalIgnoreCase))
                 ?? (Guid.TryParse(p, out var id) ? comptes.FirstOrDefault(u => u.Id == id) : null)
                 ?? comptes.FirstOrDefault(u => u.NomAffiche.Equals(p.Trim(), StringComparison.OrdinalIgnoreCase))
-                ?? throw new ErreurHttp(1, $"Personne « {p} » introuvable (login, nom ou identifiant : gestion-mep utilisateurs lister).");
+                ?? throw ErreurHttp.NonTrouve($"Personne « {p} » introuvable (login, nom ou identifiant : gestion-mep comptes lister).");
             personne = annuaire.Personne(compte.Id).ToString();
         }
         return FiltreMeps.Lire(new ParametresFiltreMeps(o.Valeur("--recherche"), string.Join(',', systemes), o.Valeur("--environnement"),
@@ -470,7 +478,8 @@ public static partial class LigneDeCommande
         {
             var f = await ExportsExcelEndpoints.Historique(db, s.Id, DateTimeOffset.UtcNow, (await ServiceCharte.Charger(db, config)).Palette);
             await EcrireClasseur(classeur, f.Contenu);
-            Console.WriteLine($"Historique de {s.Nom} exporté dans {classeur}.");
+            Resultat(new { Fichier = Path.GetFullPath(classeur) });
+            Informer($"Historique de {s.Nom} exporté dans {classeur}.");
             return 0;
         }
         var h = await HistoriqueSystemes.Historique(db, s.Id, Fuseaux.Jour(DateTimeOffset.UtcNow, null));
@@ -480,49 +489,19 @@ public static partial class LigneDeCommande
             return 0;
         }
         var r = h.Resume;
-        Console.WriteLine($"{h.Nom} : {r.Total} MEP ({r.DouzeMois} sur les 12 derniers mois), {r.EnCours} en cours, {r.Reussies} réussie(s), "
+        Ecrire($"{h.Nom} : {r.Total} MEP ({r.DouzeMois} sur les 12 derniers mois), {r.EnCours} en cours, {r.Reussies} réussie(s), "
             + $"{r.AvecIncidents} avec incidents, {r.Repliees} après retour arrière, {r.EnEchec} en échec, {r.Annulees} annulée(s) ; "
             + $"{r.Echecs} échec(s) d'étape sur ce système, {r.EchecsRepris} repris.");
         if (h.Meps.Count == 0) return 0;
-        Console.WriteLine();
-        Console.WriteLine($"{"JOUR",-10}  {"ÉTAT",-22}  {"ENVIRONNEMENTS",-24}  ÉCHECS  OUTIL ET OBJET");
+        Ecrire();
+        Ecrire($"{"JOUR",-10}  {"ÉTAT",-22}  {"ENVIRONNEMENTS",-24}  ÉCHECS  OUTIL ET OBJET");
         foreach (var m in h.Meps)
         {
-            Console.WriteLine($"{m.Jour:yyyy-MM-dd}  {FiltreMeps.Libelle(m.Etat),-22}  {string.Join(", ", m.Environnements.Select(e => e.Nom)),-24}  {(m.Echecs.Count > 0 ? m.Echecs.Count.ToString(CultureInfo.InvariantCulture) : ""),-6}  "
+            Ecrire($"{m.Jour:yyyy-MM-dd}  {FiltreMeps.Libelle(m.Etat),-22}  {string.Join(", ", m.Environnements.Select(e => e.Nom)),-24}  {(m.Echecs.Count > 0 ? m.Echecs.Count.ToString(CultureInfo.InvariantCulture) : ""),-6}  "
                 + $"{m.Outil}{(m.VersionCible.Length > 0 ? $" {m.VersionCible}" : "")}{(m.Objet.Length > 0 ? $" : {m.Objet}" : "")}  [{m.Id.ToString()[..8]}]");
             foreach (var e in m.Echecs)
-                Console.WriteLine($"            {e.Code} {e.Action} : {e.Motif}{(e.Repris ? " (repris)" : "")}{(e.Resolution is { } res ? $" · résolution « {res} »" : "")}");
+                Ecrire($"            {e.Code} {e.Action} : {e.Motif}{(e.Repris ? " (repris)" : "")}{(e.Resolution is { } res ? $" · résolution « {res} »" : "")}");
         }
-        return 0;
-    }
-
-    /// <summary>
-    /// MEP complète (comme la renvoie l'API), suivi de ses tests unitaires et journal dans l'ordre chronologique, pour l'archive
-    /// ou l'audit.
-    /// </summary>
-    private static async Task<int> MepsExporter(string mepTexte, string? fichier)
-    {
-        var config = Configuration();
-        await using var db = Base(config);
-        var id = IdentifiantOuPrefixe(mepTexte, await db.Meps.AsNoTracking().Select(m => m.Id).ToListAsync(), "MEP")
-            ?? throw new ErreurHttp(1, $"MEP « {mepTexte} » introuvable (gestion-mep meps lister).");
-        var service = new ServiceMep(db, TimeProvider.System, new DiffuseurMep(config));
-        var mep = await service.Charger(id);
-        var journal = await MepsEndpoints.Journal(db, id);
-        journal.Reverse();
-        var export = new
-        {
-            Format = 1,
-            Application = VersionApplication.Courante,
-            ExporteeLe = DateTimeOffset.UtcNow,
-            Mep = await service.VersDto(mep, null),
-            TestsUnitaires = MepMapping.TestsUnitaires(mep),
-            Journal = journal,
-        };
-        JournalAdmin.Ecrire(db, null, "mep.exportee", $"{(mep.EstModele ? "Modèle" : "MEP")} « {mep.Outil} » ({mep.Id}) exporté{(mep.EstModele ? "" : "e")} avec son journal");
-        await db.SaveChangesAsync();
-        if (await EcrireFichierOuSortie(fichier, export))
-            Console.WriteLine($"MEP « {mep.Outil} » exportée dans {fichier} ({journal.Count} événement(s) de journal ; les fichiers des pièces jointes sont dans les sauvegardes).");
         return 0;
     }
 
@@ -541,7 +520,7 @@ public static partial class LigneDeCommande
         var config = Configuration();
         await using var db = Base(config);
         var id = IdentifiantOuPrefixe(mepTexte, await db.Meps.AsNoTracking().Select(m => m.Id).ToListAsync(), "MEP")
-            ?? throw new ErreurHttp(1, $"MEP « {mepTexte} » introuvable (gestion-mep meps lister).");
+            ?? throw ErreurHttp.NonTrouve($"MEP « {mepTexte} » introuvable (gestion-mep meps lister).");
         var service = new ServiceMep(db, TimeProvider.System, new DiffuseurMep(config));
         // Couleurs de la charte visuelle en vigueur (console, sinon fichier charte.json, sinon par défaut).
         var palette = (await ServiceCharte.Charger(db, config)).Palette;
@@ -585,10 +564,11 @@ public static partial class LigneDeCommande
         }
         fichier ??= export.Nom;
         await EcrireClasseur(fichier, export.Contenu);
+        Resultat(new { Fichier = Path.GetFullPath(fichier) });
         var outil = await db.Meps.AsNoTracking().Where(m => m.Id == id).Select(m => m.Outil).FirstAsync();
         JournalAdmin.Ecrire(db, null, "mep.exportee", $"Vue « {libelle} » de la MEP « {outil} » ({id}) exportée en Excel");
         await db.SaveChangesAsync();
-        Console.WriteLine($"Vue « {libelle} » de la MEP « {outil} » exportée dans {fichier}.");
+        Informer($"Vue « {libelle} » de la MEP « {outil} » exportée dans {fichier}.");
         return 0;
     }
 
@@ -605,12 +585,12 @@ public static partial class LigneDeCommande
         }
         if (equipes.Count == 0)
         {
-            Console.WriteLine("Aucune équipe : « gestion-mep equipes creer \"<nom>\" ».");
+            Informer("Aucune équipe : « gestion-mep equipes creer \"<nom>\" ».");
             return 0;
         }
         var largeur = Math.Max(3, equipes.Max(e => e.Nom.Length));
-        Console.WriteLine($"{"NOM".PadRight(largeur)}  MEMBRES  DESCRIPTION");
-        foreach (var e in equipes) Console.WriteLine($"{e.Nom.PadRight(largeur)}  {e.MembreIds.Count,7}  {e.Description}");
+        Ecrire($"{"NOM".PadRight(largeur)}  MEMBRES  DESCRIPTION");
+        foreach (var e in equipes) Ecrire($"{e.Nom.PadRight(largeur)}  {e.MembreIds.Count,7}  {e.Description}");
         return 0;
     }
 
@@ -625,31 +605,50 @@ public static partial class LigneDeCommande
             EcrireJson(new { Equipe = EquipesEndpoints.Dto(e), Membres = membres.Select(u => Personnes.Dto(u, annuaire)) });
             return 0;
         }
-        Console.WriteLine($"Équipe      : {e.Nom}");
-        Console.WriteLine($"Description : {Texte(e.Description)}");
-        Console.WriteLine($"Membres     : {(membres.Count == 0 ? "aucun" : "")}");
+        Ecrire($"Équipe      : {e.Nom}");
+        Ecrire($"Description : {Texte(e.Description)}");
+        Ecrire($"Membres     : {(membres.Count == 0 ? "aucun" : "")}");
         foreach (var u in membres)
-            Console.WriteLine($"  {u.Login} : {annuaire.NomPersonne(u.Id) ?? u.NomAffiche}{(u.Actif ? "" : " (désactivé)")}");
+            Ecrire($"  {u.Login} : {annuaire.NomPersonne(u.Id) ?? u.NomAffiche}{(u.Actif ? "" : " (désactivé)")}");
         return 0;
     }
+
+    private static readonly string[] OptionsEquipe = ["--nom", "--description", "--contact-support", "--signature"];
 
     private static async Task<int> EquipesCreer(string nom, string[] arguments)
     {
         if (nom.StartsWith('-')) throw new ErreurUsage("nom de l'équipe attendu");
-        var o = Options.Lire(arguments, ["--description"]);
+        var o = Options.Lire(arguments, OptionsEquipe[1..]);
         await using var db = Base(Configuration());
         var e = await EquipesEndpoints.Creer(db, null, new EquipeSaisie(nom, o.Valeur("--description"), null), DateTimeOffset.UtcNow);
-        Console.WriteLine($"Équipe « {e.Nom} » créée : « gestion-mep equipes ajouter \"{e.Nom}\" <login> » pour y ajouter des comptes.");
+        Resultat(await DefinirCommunication(db, e.Id, o) ?? e);
+        Informer($"Équipe « {e.Nom} » créée : « gestion-mep equipes ajouter \"{e.Nom}\" <login> » pour y ajouter des comptes.");
         return 0;
+    }
+
+    /// <summary>
+    /// Contact support et signature des modèles de texte (--contact-support, --signature ; « \n » pour un retour à la ligne),
+    /// mêmes règles que la page Modèles de texte ; null si aucune des deux options n'est donnée.
+    /// </summary>
+    private static async Task<EquipeDto?> DefinirCommunication(MepDbContext db, Guid equipe, Options o)
+    {
+        if (!o.A("--contact-support") && !o.A("--signature")) return null;
+        var e = await db.Equipes.FirstAsync(x => x.Id == equipe);
+        return await CommunicationEndpoints.DefinirCommunicationEquipe(db, null, e,
+            new EquipeCommunicationSaisie(o.Valeur("--contact-support"), o.Valeur("--signature")?.Replace("\\n", "\n")));
     }
 
     private static async Task<int> EquipesModifier(string nomOuId, string[] arguments)
     {
-        var o = Options.Lire(arguments, ["--nom", "--description"]);
+        var o = Options.Lire(arguments, OptionsEquipe);
+        if (o.Liste.Count == 0) throw new ErreurUsage("au moins une option à modifier attendue");
         await using var db = Base(Configuration());
         var e = await EquipesEndpoints.Trouver(db, nomOuId);
-        var modifiee = await EquipesEndpoints.Modifier(db, null, e.Id, new EquipeSaisie(o.Valeur("--nom") ?? e.Nom, o.Valeur("--description") ?? e.Description, null));
-        Console.WriteLine($"Équipe « {modifiee.Nom} » modifiée.");
+        var modifiee = o.A("--nom") || o.A("--description")
+            ? await EquipesEndpoints.Modifier(db, null, e.Id, new EquipeSaisie(o.Valeur("--nom") ?? e.Nom, o.Valeur("--description") ?? e.Description, null))
+            : EquipesEndpoints.Dto(e);
+        Resultat(await DefinirCommunication(db, e.Id, o) ?? modifiee);
+        Informer($"Équipe « {modifiee.Nom} » modifiée.");
         return 0;
     }
 
@@ -664,11 +663,11 @@ public static partial class LigneDeCommande
         var membres = ajouter ? e.MembreIds.Concat(ids.Where(i => !e.MembreIds.Contains(i))).ToList() : e.MembreIds.Where(i => !ids.Contains(i)).ToList();
         if (ajouter ? comptes.All(c => e.MembreIds.Contains(c.Id)) : comptes.All(c => !e.MembreIds.Contains(c.Id)))
         {
-            Console.WriteLine($"Équipe « {e.Nom} » : aucun changement ({(ajouter ? "déjà membres" : "aucun n'en est membre")}).");
+            Informer($"Équipe « {e.Nom} » : aucun changement ({(ajouter ? "déjà membres" : "aucun n'en est membre")}).");
             return 0;
         }
         await EquipesEndpoints.Modifier(db, null, e.Id, new EquipeSaisie(e.Nom, e.Description, membres));
-        Console.WriteLine($"Équipe « {e.Nom} » : {string.Join(", ", comptes.Select(c => c.Login))} {(ajouter ? "ajouté(s)" : "retiré(s)")} ({membres.Count} membre(s)).");
+        Informer($"Équipe « {e.Nom} » : {string.Join(", ", comptes.Select(c => c.Login))} {(ajouter ? "ajouté(s)" : "retiré(s)")} ({membres.Count} membre(s)).");
         return 0;
     }
 
@@ -677,7 +676,7 @@ public static partial class LigneDeCommande
         await using var db = Base(Configuration());
         var e = await EquipesEndpoints.Trouver(db, nomOuId);
         await EquipesEndpoints.Supprimer(db, null, e.Id);
-        Console.WriteLine($"Équipe « {e.Nom} » supprimée (les comptes et les MEP ne changent pas).");
+        Informer($"Équipe « {e.Nom} » supprimée (les comptes et les MEP ne changent pas).");
         return 0;
     }
 
@@ -685,7 +684,7 @@ public static partial class LigneDeCommande
 
     private static async Task<int> Journal(string[] arguments)
     {
-        var o = Options.Lire(arguments, ["--depuis", "--limite"]);
+        var o = Options.Lire(arguments, ["--depuis", "--limite", "--type"]);
         DateTimeOffset? depuis = o.Valeur("--depuis") is { } d
             ? DateOnly.TryParseExact(d, "yyyy-MM-dd", out var jour) ? new DateTimeOffset(jour.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero)
                 : throw ErreurHttp.Saisie("--depuis attend une date AAAA-MM-JJ.")
@@ -694,6 +693,8 @@ public static partial class LigneDeCommande
         if (limite < 1) throw ErreurHttp.Saisie("--limite attend un nombre entier positif.");
         await using var db = Base(Configuration());
         var evenements = await AdminEndpoints.Journal(db, Math.Min(limite, 100_000), depuis);
+        if (o.Valeur("--type") is { Length: > 0 } type)
+            evenements = evenements.Where(e => e.Type == type || e.Type.StartsWith(type + ".", StringComparison.Ordinal)).ToList();
         if (EnJson)
         {
             EcrireJson(evenements);
@@ -701,11 +702,11 @@ public static partial class LigneDeCommande
         }
         if (evenements.Count == 0)
         {
-            Console.WriteLine("Aucun événement.");
+            Informer("Aucun événement.");
             return 0;
         }
         foreach (var e in evenements)
-            Console.WriteLine($"{Date(e.Quand)}  {e.Auteur}{(e.AuteurLogin is { } l ? $" ({l})" : "")}  [{e.Type}]  {e.Detail}");
+            Ecrire($"{Date(e.Quand)}  {e.Auteur}{(e.AuteurLogin is { } l ? $" ({l})" : "")}  [{e.Type}]  {e.Detail}");
         return 0;
     }
 }

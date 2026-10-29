@@ -487,7 +487,7 @@ public class ConnexionsApiTests : IAsyncLifetime, IDisposable
 
         // Le secret ne passe jamais en argument.
         Assert.Equal(2, (await Cli(null, "connexions", "secret", "Tickets (recette)", "--champ", "authentification", "jeton-en-clair")).Code);
-        Assert.Equal(0, (await Cli("jeton-de-recette-77\n", "connexions", "secret", "Tickets (recette)", "--champ", "authentification", "--secret-stdin")).Code);
+        Assert.Equal(0, (await Cli("jeton-de-recette-77\n", "connexions", "secret", "Tickets (recette)", "--champ", "authentification", "--secret-stdin", "--non-interactif")).Code);
         var lue = await AidesApi.Ok(await alice.GetAsync($"/api/admin/connexions/{id}"));
         Assert.True(lue.GetProperty("secret").GetProperty("enregistre").GetBoolean());
         Assert.DoesNotContain("jeton-de-recette-77", lue.GetRawText());

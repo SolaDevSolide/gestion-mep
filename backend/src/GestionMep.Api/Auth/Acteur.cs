@@ -11,6 +11,16 @@ public record Acteur(Guid Id, string Nom, bool EstAdmin)
     /// <summary>Présent tant que le compte a un mot de passe provisoire à changer.</summary>
     public const string ClaimMotDePasseProvisoire = "mep:mdp-provisoire";
 
+    /// <summary>
+    /// Auteur des actions de la ligne de commande sur une MEP (« gestion-mep meps … ») : droits d'administrateur, sans compte.
+    /// Son identifiant vide n'est jamais enregistré comme compte (journaux : <see cref="Compte"/>) ; dans une MEP, il s'affiche
+    /// « Ligne de commande ».
+    /// </summary>
+    public static readonly Acteur LigneDeCommande = new(Guid.Empty, Services.JournalAdmin.AuteurLigneDeCommande, EstAdmin: true);
+
+    /// <summary>Compte de l'acteur, null pour la ligne de commande.</summary>
+    public Guid? Compte => Id == Guid.Empty ? null : Id;
+
     public static Acteur Depuis(ClaimsPrincipal user)
     {
         var id = user.FindFirstValue(ClaimTypes.NameIdentifier);
