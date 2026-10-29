@@ -5463,6 +5463,25 @@
         }
       }
     },
+    "/api/admin/pieces-jointes/stockage": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EtatStockageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/pieces-jointes/{pid}/contenu": {
       "get": {
         "tags": [
@@ -9137,6 +9156,42 @@
         },
         "description": "Simulation de collègues (démonstration) : en cours ou non, jusqu'à quand, sur quelle MEP, quels collègues, lancée par qui."
       },
+      "EtatStockageDto": {
+        "required": [
+          "pieces",
+          "tailleFichiers",
+          "tailleStockee",
+          "compressees",
+          "nonExaminees"
+        ],
+        "type": "object",
+        "properties": {
+          "pieces": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tailleFichiers": {
+            "type": "integer",
+            "description": "Somme des tailles des fichiers déposés (rendus au téléchargement).",
+            "format": "int64"
+          },
+          "tailleStockee": {
+            "type": "integer",
+            "description": "Place occupée sur le serveur, après compression.",
+            "format": "int64"
+          },
+          "compressees": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nonExaminees": {
+            "type": "integer",
+            "description": "Pièces déposées avant la compression (ou pendant qu'elle était désactivée), jamais examinées.",
+            "format": "int32"
+          }
+        },
+        "description": "Occupation du stockage des pièces jointes (console d'administration, `gestion-mep pieces-jointes etat`)."
+      },
       "EvenementAdminDto": {
         "required": [
           "id",
@@ -11014,6 +11069,8 @@
                     "nomFichier",
                     "typeContenu",
                     "taille",
+                    "tailleStockee",
+                    "compression",
                     "sha256",
                     "deposeParId",
                     "deposePar",
@@ -11061,10 +11118,24 @@
                     },
                     "taille": {
                       "type": "integer",
+                      "description": "Taille du fichier déposé (rendu tel quel au téléchargement).",
                       "format": "int64"
                     },
+                    "tailleStockee": {
+                      "type": "integer",
+                      "description": "Place occupée sur le serveur, comptée par les quotas : plus petite que `Taille` si le fichier est compressé.",
+                      "format": "int64"
+                    },
+                    "compression": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "« gzip » si le fichier est stocké compressé, sinon null."
+                    },
                     "sha256": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Empreinte du fichier déposé (et téléchargé), pas de sa version compressée."
                     },
                     "deposeParId": {
                       "type": [
@@ -13362,6 +13433,8 @@
                 "nomFichier",
                 "typeContenu",
                 "taille",
+                "tailleStockee",
+                "compression",
                 "sha256",
                 "deposeParId",
                 "deposePar",
@@ -13409,10 +13482,24 @@
                 },
                 "taille": {
                   "type": "integer",
+                  "description": "Taille du fichier déposé (rendu tel quel au téléchargement).",
                   "format": "int64"
                 },
+                "tailleStockee": {
+                  "type": "integer",
+                  "description": "Place occupée sur le serveur, comptée par les quotas : plus petite que `Taille` si le fichier est compressé.",
+                  "format": "int64"
+                },
+                "compression": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "description": "« gzip » si le fichier est stocké compressé, sinon null."
+                },
                 "sha256": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Empreinte du fichier déposé (et téléchargé), pas de sa version compressée."
                 },
                 "deposeParId": {
                   "type": [
@@ -15549,6 +15636,8 @@
           "nomFichier",
           "typeContenu",
           "taille",
+          "tailleStockee",
+          "compression",
           "sha256",
           "deposeParId",
           "deposePar",
@@ -15596,10 +15685,24 @@
           },
           "taille": {
             "type": "integer",
+            "description": "Taille du fichier déposé (rendu tel quel au téléchargement).",
             "format": "int64"
           },
+          "tailleStockee": {
+            "type": "integer",
+            "description": "Place occupée sur le serveur, comptée par les quotas : plus petite que `Taille` si le fichier est compressé.",
+            "format": "int64"
+          },
+          "compression": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "« gzip » si le fichier est stocké compressé, sinon null."
+          },
           "sha256": {
-            "type": "string"
+            "type": "string",
+            "description": "Empreinte du fichier déposé (et téléchargé), pas de sa version compressée."
           },
           "deposeParId": {
             "type": [
@@ -17825,6 +17928,8 @@
                     "nomFichier",
                     "typeContenu",
                     "taille",
+                    "tailleStockee",
+                    "compression",
                     "sha256",
                     "deposeParId",
                     "deposePar",
@@ -17872,10 +17977,24 @@
                     },
                     "taille": {
                       "type": "integer",
+                      "description": "Taille du fichier déposé (rendu tel quel au téléchargement).",
                       "format": "int64"
                     },
+                    "tailleStockee": {
+                      "type": "integer",
+                      "description": "Place occupée sur le serveur, comptée par les quotas : plus petite que `Taille` si le fichier est compressé.",
+                      "format": "int64"
+                    },
+                    "compression": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "« gzip » si le fichier est stocké compressé, sinon null."
+                    },
                     "sha256": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Empreinte du fichier déposé (et téléchargé), pas de sa version compressée."
                     },
                     "deposeParId": {
                       "type": [
@@ -20828,6 +20947,8 @@
                     "nomFichier",
                     "typeContenu",
                     "taille",
+                    "tailleStockee",
+                    "compression",
                     "sha256",
                     "deposeParId",
                     "deposePar",
@@ -20875,10 +20996,24 @@
                     },
                     "taille": {
                       "type": "integer",
+                      "description": "Taille du fichier déposé (rendu tel quel au téléchargement).",
                       "format": "int64"
                     },
+                    "tailleStockee": {
+                      "type": "integer",
+                      "description": "Place occupée sur le serveur, comptée par les quotas : plus petite que `Taille` si le fichier est compressé.",
+                      "format": "int64"
+                    },
+                    "compression": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "description": "« gzip » si le fichier est stocké compressé, sinon null."
+                    },
                     "sha256": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Empreinte du fichier déposé (et téléchargé), pas de sa version compressée."
                     },
                     "deposeParId": {
                       "type": [
@@ -23238,6 +23373,8 @@
                       "nomFichier",
                       "typeContenu",
                       "taille",
+                      "tailleStockee",
+                      "compression",
                       "sha256",
                       "deposeParId",
                       "deposePar",
@@ -23285,10 +23422,24 @@
                       },
                       "taille": {
                         "type": "integer",
+                        "description": "Taille du fichier déposé (rendu tel quel au téléchargement).",
                         "format": "int64"
                       },
+                      "tailleStockee": {
+                        "type": "integer",
+                        "description": "Place occupée sur le serveur, comptée par les quotas : plus petite que `Taille` si le fichier est compressé.",
+                        "format": "int64"
+                      },
+                      "compression": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "description": "« gzip » si le fichier est stocké compressé, sinon null."
+                      },
                       "sha256": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Empreinte du fichier déposé (et téléchargé), pas de sa version compressée."
                       },
                       "deposeParId": {
                         "type": [

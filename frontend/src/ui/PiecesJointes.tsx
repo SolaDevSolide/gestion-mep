@@ -12,7 +12,7 @@ import {
 import { useContext, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { urlPieceJointe } from '../api';
 import { AuthContext } from '../auth';
-import { formatDateHeure, formatTaille } from '../format';
+import { formatDateHeure, formatTaille, gainCompression } from '../format';
 import type { PieceJointe } from '../types';
 import { Alerte } from './Alerte';
 import { BoutonIcone, Button } from './Button';
@@ -47,6 +47,21 @@ function IconeFichier({ type }: { type: string }) {
   if (type.startsWith('image/')) return <FileImage className={c} aria-hidden />;
   if (type.startsWith('text/') || type === 'application/pdf') return <FileText className={c} aria-hidden />;
   return <File className={c} aria-hidden />;
+}
+
+/** Taille du fichier ; s'il est stocké compressé, la place qu'il occupe sur le serveur en info-bulle. */
+function TaillePiece({ piece }: { piece: PieceJointe }) {
+  const gain = piece.compression ? gainCompression(piece.taille, piece.tailleStockee) : 0;
+  if (gain === 0) return <>{formatTaille(piece.taille)}</>;
+  return (
+    <Tooltip
+      content={`Compressé sur le serveur : ${formatTaille(piece.tailleStockee)} (−${gain} %). Le téléchargement rend le fichier d’origine.`}
+    >
+      <button type="button" className="cursor-help underline decoration-dotted underline-offset-2">
+        {formatTaille(piece.taille)}
+      </button>
+    </Tooltip>
+  );
 }
 
 /** Zone de dépôt (glisser-déposer + bouton) et liste des pièces jointes avec téléchargement et suppression. */
@@ -184,7 +199,7 @@ export function PiecesJointes({
                   {p.nomFichier}
                 </p>
                 <p className="truncate text-xs text-fg-subtle tnum">
-                  {formatTaille(p.taille)} · {p.deposePar ?? 'Inconnu'} · {formatDateHeure(p.deposeLe)}
+                  <TaillePiece piece={p} /> · {p.deposePar ?? 'Inconnu'} · {formatDateHeure(p.deposeLe)}
                 </p>
               </div>
               <Tooltip content="Télécharger">

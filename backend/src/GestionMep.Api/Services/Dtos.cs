@@ -235,8 +235,13 @@ public record EtapeTestDto(Guid Id, int Ordre, string Instructions, string Resul
     string Observation, string? Par, DateTimeOffset? Le, string ValideePar, DateOnly? ValideeLe);
 public record FicheRecetteDto(Guid Id, int Ordre, Guid? SystemeId, string Titre, List<EtapeTestDto> Etapes);
 public record BilanDto(string CeQuiAMarche, string Incidents, string Actions, string? RedigePar, DateTimeOffset? Le);
+/// <param name="Taille">Taille du fichier déposé (rendu tel quel au téléchargement).</param>
+/// <param name="TailleStockee">Place occupée sur le serveur, comptée par les quotas : plus petite que <c>Taille</c> si le fichier est compressé.</param>
+/// <param name="Compression">« gzip » si le fichier est stocké compressé, sinon null.</param>
+/// <param name="Sha256">Empreinte du fichier déposé (et téléchargé), pas de sa version compressée.</param>
 public record PieceJointeDto(Guid Id, Guid? MepId, Guid? EtapeId, Guid? ResolutionTypeId, Guid? ExecutionResolutionId, string NomFichier,
-    string TypeContenu, long Taille, string Sha256, Guid? DeposeParId, string? DeposePar, DateTimeOffset DeposeLe);
+    string TypeContenu, long Taille, long TailleStockee, string? Compression, string Sha256, Guid? DeposeParId, string? DeposePar,
+    DateTimeOffset DeposeLe);
 public record CritereGoNoGoDto(Guid Id, string Libelle, int Ordre, bool Actif);
 public record ParametresDto(int ApprobationsMinimum);
 
