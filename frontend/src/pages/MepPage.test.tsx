@@ -17,7 +17,11 @@ vi.mock('../api', () => ({
   ApiError: class extends Error {
     status = 0;
   },
-  api: { mep: vi.fn(), declarerPresence: vi.fn() },
+  api: {
+    mep: vi.fn(),
+    declarerPresence: vi.fn(),
+    connexionsMep: vi.fn(async () => ({ envois: [], echecs: [], peutEnvoyer: false })),
+  },
 }));
 
 // Les onglets eux-mêmes ont leurs propres tests : ici, des remplaçants légers.

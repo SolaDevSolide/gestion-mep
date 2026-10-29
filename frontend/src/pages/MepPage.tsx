@@ -11,6 +11,7 @@ import { BandeauxCycleDeVie } from '../mep/CycleDeVie';
 import { EnTeteMep } from '../mep/EnTeteMep';
 import EtapesTab from '../mep/EtapesTab';
 import ExecutionTab from '../mep/ExecutionTab';
+import { signalerAppels } from '../mep/connexionsMep';
 import JournalTab from '../mep/JournalTab';
 import { messageConflit } from '../mep/conflit';
 import {
@@ -248,6 +249,10 @@ export default function MepPage() {
         () => void synchroniser(),
         {
           surPresence: setPresences,
+          surAppels: () => {
+            setJournalTick((t) => t + 1);
+            signalerAppels(id);
+          },
           surVerrous: (v) => {
             const liste = lireVerrous(v);
             if (liste) setVerrous(liste);

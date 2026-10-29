@@ -25,6 +25,7 @@ import {
   XCircle,
   NotebookText,
   type LucideIcon,
+  Webhook,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
@@ -117,6 +118,10 @@ function iconeEvenement(type: string): { Icone: LucideIcon; ton: Ton } {
     case 'piece.ajoutee':
     case 'piece.supprimee':
       return { Icone: Paperclip, ton: 'wait' };
+    case 'api.envoye':
+      return { Icone: Webhook, ton: 'ok' };
+    case 'api.echec':
+      return { Icone: Webhook, ton: 'danger' };
     default:
       break;
   }

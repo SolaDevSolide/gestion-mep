@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { api } from '../api';
@@ -27,6 +27,10 @@ vi.mock('../api', () => ({
     cloturerEnEchec: vi.fn(),
     changerPilote: vi.fn(),
     utilisateurs: vi.fn(),
+    connexionsMep: vi.fn(async () => ({ envois: [], echecs: [], peutEnvoyer: false })),
+    apercuEnvoiMep: vi.fn(),
+    envoyerConnexionMep: vi.fn(),
+    appelMep: vi.fn(),
   },
 }));
 
@@ -63,6 +67,7 @@ async function ouvrirMenu() {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(api.utilisateurs).mockResolvedValue([]);
+  vi.mocked(api.connexionsMep).mockResolvedValue({ envois: [], echecs: [], peutEnvoyer: false });
 });
 
 describe('aides du cycle de vie', () => {
@@ -140,6 +145,75 @@ describe('menu « Plus d’actions »', () => {
     const menu = await ouvrirMenu();
     await userEvent.click(within(menu).getByRole('menuitem', { name: /Supprimer définitivement/ }));
     expect(await screen.findByRole('dialog', { name: 'Supprimer définitivement la MEP ?' })).toBeInTheDocument();
+  });
+});
+
+describe('envois aux API externes', () => {
+  const teams = {
+    id: 'c1',
+    nom: 'Canal Teams Exploitation',
+    libelle: 'Prévenir le canal Exploitation',
+    description: '',
+  };
+  const apercu = {
+    methode: 'Post' as const,
+    url: '',
+    entetes: [],
+    typeContenu: 'application/json',
+    corps: '{"text": "Fenêtre décalée"}',
+    lisible: 'Point d’étape : Fenêtre décalée',
+    manquantes: [],
+    inconnues: [],
+    erreurs: [],
+    mepNom: 'Portail 2.0',
+    evenement: { id: null, cle: 'envoi.manuel', libelle: 'Point d’étape', detail: '', quand: null },
+    evenements: [],
+  };
+
+  it('sans le droit d’envoyer, le menu n’apparaît pas', async () => {
+    vi.mocked(api.connexionsMep).mockResolvedValue({ envois: [teams], echecs: [], peutEnvoyer: false });
+    rendre(<MenuPlusActions />, mep());
+    await waitFor(() => expect(api.connexionsMep).toHaveBeenCalledWith('m1'));
+    expect(screen.queryByRole('button', { name: 'Plus d’actions' })).toBeNull();
+  });
+
+  it('pilote d’une MEP clôturée : groupe « Envoyer », aperçu puis envoi', async () => {
+    vi.mocked(api.connexionsMep).mockResolvedValue({ envois: [teams], echecs: [], peutEnvoyer: true });
+    vi.mocked(api.apercuEnvoiMep).mockResolvedValue(apercu);
+    vi.mocked(api.envoyerConnexionMep).mockResolvedValue({ appelId: 'a1' });
+    vi.mocked(api.appelMep).mockResolvedValue({
+      id: 'a1',
+      connexionId: 'c1',
+      connexion: teams.nom,
+      mepId: 'm1',
+      mepNom: 'Portail 2.0',
+      typeEvenement: 'envoi.manuel',
+      libelleEvenement: 'Point d’étape',
+      resume: '',
+      origine: 'Manuel',
+      demandePar: 'Alice',
+      etat: 'Reussi',
+      code: 202,
+      tentatives: 1,
+      tentativesMax: 3,
+      dureeMs: 80,
+      creeLe: '2026-10-29T08:00:00Z',
+      termineLe: '2026-10-29T08:00:01Z',
+      prochaineTentative: null,
+      erreur: '',
+    });
+    rendre(<MenuPlusActions />, mep({ phase: 'Cloturee', droits: droits({ estPilote: true }) }));
+    await screen.findByRole('button', { name: 'Plus d’actions' });
+    const menu = await ouvrirMenu();
+    expect(within(menu).getByText('Envoyer')).toBeInTheDocument();
+    await userEvent.click(within(menu).getByRole('menuitem', { name: /Prévenir le canal Exploitation…/ }));
+
+    const dialogue = await screen.findByRole('dialog', { name: 'Prévenir le canal Exploitation' });
+    await userEvent.type(within(dialogue).getByLabelText(/Commentaire/), 'Fenêtre décalée');
+    expect(await within(dialogue).findByText('Point d’étape : Fenêtre décalée')).toBeInTheDocument();
+    await userEvent.click(within(dialogue).getByRole('button', { name: 'Envoyer' }));
+    expect(api.envoyerConnexionMep).toHaveBeenCalledWith('m1', 'c1', 'Fenêtre décalée');
+    expect(await screen.findByText(/Message envoyé : « Prévenir le canal Exploitation » \(202\)/)).toBeInTheDocument();
   });
 });
 
