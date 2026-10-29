@@ -47,7 +47,7 @@ public class SauvegardeImportTests : IDisposable
         // Après la sauvegarde : une équipe créée, la pièce jointe perdue sur le disque.
         await AidesApi.Ok(await alice.PostAsJsonAsync("/api/admin/equipes", new { nom = "Créée après la sauvegarde", description = "" }));
         stockage.Supprimer(piece);
-        Assert.Null(stockage.Ouvrir(piece));
+        Assert.Null(stockage.Ouvrir(piece, 3));
 
         using (var scope = _api.Services.CreateScope())
         {
@@ -64,7 +64,7 @@ public class SauvegardeImportTests : IDisposable
             // Tout le contenu de l'archive est là (le journal d'administration a en plus la ligne de l'importation).
             Assert.Empty(Sauvegardes.Comparer(Sauvegardes.Releve.De(manifeste), await sauvegardes.Relever(db)));
         }
-        await using (var flux = stockage.Ouvrir(piece))
+        await using (var flux = stockage.Ouvrir(piece, 3))
         {
             Assert.NotNull(flux);
             using var copie = new MemoryStream();

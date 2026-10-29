@@ -11,6 +11,8 @@ namespace GestionMep.Api.Services;
 /// <item>espace libre minimal laissé sur le disque des pièces jointes (<c>Stockage:EspaceLibreMinMo</c>, défaut 2048 Mo),
 /// pour que la base, les sauvegardes et l'application continuent de fonctionner.</item>
 /// </list>
+/// Les plafonds par MEP et par compte comptent la place occupée sur disque (<see cref="GestionMep.Domain.PieceJointe.TailleStockee"/>,
+/// après compression) ; un dépôt en cours, compressé seulement une fois reçu, compte pour sa taille d'origine.
 /// Les dépôts en cours sont réservés en mémoire : deux dépôts simultanés ne peuvent pas dépasser ensemble un plafond. Un dépôt
 /// est vérifié avant d'en lire le corps (taille annoncée), puis pendant sa réception : il s'arrête dès qu'un plafond est dépassé.
 /// </summary>
@@ -68,7 +70,7 @@ public sealed class QuotasPiecesJointes(IConfiguration config, StockagePiecesJoi
                     () => new ErreurHttp(507, "Espace disque presque plein sur le serveur : dépôt refusé. Prévenez l'administrateur.")));
             if (quotaMep > 0 && mepId is { } mep)
             {
-                var occupe = await db.PiecesJointes.Where(p => p.MepId == mep).SumAsync(p => p.Taille, ct)
+                var occupe = await db.PiecesJointes.Where(p => p.MepId == mep).SumAsync(p => p.TailleStockee, ct)
                     + _reservations.Where(r => r.MepId == mep).Sum(r => r.Taille);
                 restes.Add((quotaMep - occupe,
                     () => ErreurHttp.Regle([$"Cette MEP a atteint sa limite de pièces jointes ({quotaMep / Mo} Mo) : supprimez des pièces inutiles ou demandez à l'administrateur de relever la limite."])));
@@ -76,7 +78,7 @@ public sealed class QuotasPiecesJointes(IConfiguration config, StockagePiecesJoi
             if (quotaCompteJour > 0)
             {
                 var depuis = maintenant.AddDays(-1);
-                var depose = await db.PiecesJointes.Where(p => p.DeposeParId == compteId && p.DeposeLe > depuis).SumAsync(p => p.Taille, ct)
+                var depose = await db.PiecesJointes.Where(p => p.DeposeParId == compteId && p.DeposeLe > depuis).SumAsync(p => p.TailleStockee, ct)
                     + _reservations.Where(r => r.CompteId == compteId).Sum(r => r.Taille);
                 restes.Add((quotaCompteJour - depose,
                     () => new ErreurHttp(429, $"Vous avez déposé {quotaCompteJour / Mo} Mo de pièces jointes en 24 heures, la limite : réessayez plus tard.")));
@@ -99,19 +101,7 @@ public sealed class QuotasPiecesJointes(IConfiguration config, StockagePiecesJoi
 
     public void Dispose() => _verrou.Dispose();
 
-    /// <summary>Octets libres sur le disque du dossier des pièces jointes ; null si on ne peut pas le savoir.</summary>
-    private long? EspaceLibre()
-    {
-        try
-        {
-            Directory.CreateDirectory(stockage.Dossier);
-            return new DriveInfo(Path.GetFullPath(stockage.Dossier)).AvailableFreeSpace;
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            return null;
-        }
-    }
+    private long? EspaceLibre() => stockage.EspaceLibre();
 
     private void Liberer(Reservation r)
     {

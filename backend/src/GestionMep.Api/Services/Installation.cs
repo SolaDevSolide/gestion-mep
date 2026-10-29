@@ -77,6 +77,8 @@ public static class FichierInstallation
         ["PIECES_QUOTA_MEP_MO"] = "Stockage:QuotaMepMo",
         ["PIECES_QUOTA_COMPTE_JOUR_MO"] = "Stockage:QuotaCompteJourMo",
         ["PIECES_ESPACE_LIBRE_MIN_MO"] = "Stockage:EspaceLibreMinMo",
+        ["PIECES_COMPRESSION"] = "Stockage:Compression",
+        ["PIECES_COMPRESSION_GAIN_MIN"] = "Stockage:CompressionGainMin",
         ["PROXY_RESEAUX"] = "ProxyInverse:Reseaux",
         ["CONNEXIONS_PAR_MINUTE"] = "Connexion:TentativesParMinute",
         ["VERIFIER_MISES_A_JOUR"] = "MisesAJour:Verifier",

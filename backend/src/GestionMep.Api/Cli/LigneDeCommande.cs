@@ -26,6 +26,7 @@ public static partial class LigneDeCommande
     [
         "aide", "--help", "-h", "version", "--version", "migrer", "config", "comptes", "sauvegarder", "importer", "sso", "reglages", "reglage",
         "systemes", "categories", "criteres", "resolutions", "journal", "sauvegardes", "mettre-a-jour", "meps", "demo", "equipes", "charte",
+        "pieces-jointes",
     ];
 
     private const string Aide = """
@@ -152,6 +153,12 @@ public static partial class LigneDeCommande
           gestion-mep sauvegardes restaurer <archive> --oui   Remplace base et pièces jointes par l'archive (nom dans le dossier
                                                               des sauvegardes ou chemin) ; application arrêtée, voir ci-dessous
           gestion-mep importer <fichier.tar.gz>               Comme « sauvegardes restaurer », sans confirmation (déménagement)
+          gestion-mep pieces-jointes etat                     Place occupée par les pièces jointes : fichiers, disque, gain
+          gestion-mep pieces-jointes compresser [--essai] [--tout]
+                                                              Compresse les pièces déposées avant la compression, sans perte
+                                                              (reprend où elle s'est arrêtée) ; --essai : gain attendu, sans
+                                                              rien écrire ; --tout : réexamine celles laissées telles quelles
+          gestion-mep pieces-jointes decompresser [--essai]   Remet les fichiers compressés dans leur forme d'origine
           gestion-mep mettre-a-jour [--oui] [--version x.y.z] Dernière version publiée ; avec --oui, demande son installation au
                                                               service de mise à jour (refusée pendant une MEP en cours) ;
                                                               --version : une autre version plus récente (registre interne)
@@ -162,7 +169,8 @@ public static partial class LigneDeCommande
                                                               catalogue, réglages, journaux ; pièces jointes supprimées) ;
                                                               les sessions ouvertes sont fermées. Refusée hors démonstration.
 
-        Option --json : sortie JSON pour les scripts (commandes lister, afficher, expertises, journal, mettre-a-jour, charte afficher).
+        Option --json : sortie JSON pour les scripts (commandes lister, afficher, expertises, journal, mettre-a-jour, charte afficher,
+        pieces-jointes).
         Une équipe se désigne par son nom (guillemets s'il contient des espaces) ou son identifiant.
         Exemples : gestion-mep reglages definir url-publique https://mep.entreprise.fr
                    gestion-mep reglages definir lien-signalement ""      (valeur vide : lien masqué)
@@ -305,6 +313,7 @@ public static partial class LigneDeCommande
                 ["charte", "verifier", var fichier] => await CharteVerifier(fichier),
                 ["charte", "definir", var role, var couleur] => await CharteDefinir(role, couleur),
                 ["charte", "retablir"] => await CharteRetablir(),
+                ["pieces-jointes", .. var options] => await PiecesJointes(options),
                 ["aide" or "--help" or "-h"] => AfficherAide(0),
                 _ => AfficherAide(2),
             };

@@ -160,6 +160,8 @@ export type MiseAJour = NonNullable<S['MiseAJourDto']>;
 export type ParametresGlobaux = SaisieVerifiee<S['ParametresSaisie'], S['ParametresDto']>;
 /** Réglage d'exploitation (console ou « gestion-mep reglages ») : valeur en cours et son origine. */
 export type Reglage = S['ReglageDto'];
+/** Place occupée par les pièces jointes : fichiers déposés et stockage sur le serveur, après compression. */
+export type EtatStockage = S['EtatStockageDto'];
 /** Charte visuelle en vigueur vue de la console : charte (format du fichier charte.json), origine, fichier, lisibilité. */
 export type EtatCharteServeur = S['EtatCharteDto'];
 /** Vérification d'un fichier charte.json par le serveur (import à blanc). */
