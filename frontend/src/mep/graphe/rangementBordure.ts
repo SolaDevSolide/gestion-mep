@@ -113,6 +113,7 @@ export function grapheBordure(modele: ModeleGraphe, tailles: ReadonlyMap<string,
   const cerclesCadre = new Map<string, { cadre: string; sens: 'Entree' | 'Sortie' }>();
   const titres = new Map<string, string>();
   const parent = new Map(modele.noeuds.map((n) => [n.id, n.parent]));
+  const sectionsRepliees = new Set(modele.noeuds.filter((n) => n.nature === 'section').map((n) => n.id));
   const ajouterPort = (cadre: string, p: ElkPort) => {
     const c = noeudsElk.get(cadre);
     if (c) (c.ports ??= []).push(p);
@@ -191,10 +192,33 @@ export function grapheBordure(modele: ModeleGraphe, tailles: ReadonlyMap<string,
     (liste ?? racine).push(noeud);
   }
 
+  // Lien direct (sans cercle) qui part d'une section repliée ou y arrive : une étape de la section attend une étape du
+  // dehors, ou l'inverse (étape corrective ajoutée après le Go, qui attend les dernières étapes du plan). Port créé à la
+  // demande, à droite des cercles du même bord : sans lui, ELK refuserait tout le graphe (port inconnu).
+  const portDirect = (section: string, poignee: string) => {
+    const id = `${section}|${poignee}`;
+    const n = noeudsElk.get(section);
+    if (n && !n.ports?.some((p) => p.id === id)) {
+      const entree = poignee === POIGNEE_HAUT;
+      const entrees = n.ports?.filter((p) => p.layoutOptions?.['elk.port.side'] === 'NORTH').length ?? 0;
+      (n.ports ??= []).push({
+        id,
+        width: 0,
+        height: 0,
+        // Indices dans le sens horaire : à droite des entrées en haut ; en bas, à droite des sorties (1000 + rang).
+        layoutOptions: {
+          'elk.port.side': entree ? 'NORTH' : 'SOUTH',
+          'elk.port.index': String(entree ? entrees : 1000),
+        },
+      });
+    }
+    return id;
+  };
   // Bout ELK d'une extrémité de lien, et lieu (cadre ou plan) où elle se trouve vue depuis l'autre extrémité.
   const portDe = (noeud: string, poignee: string): string => {
     if (cerclesCadre.has(noeud)) return `p:${noeud.slice(2)}`;
-    if (noeud.startsWith('s:') && poignee !== POIGNEE_BAS && poignee !== POIGNEE_HAUT) return `p:${poignee}`;
+    if (sectionsRepliees.has(noeud))
+      return poignee === POIGNEE_BAS || poignee === POIGNEE_HAUT ? portDirect(noeud, poignee) : `p:${poignee}`;
     return noeudsElk.get(noeud)?.ports ? `${noeud}|${poignee}` : noeud;
   };
   const lieuPropre = (noeud: string): string | null => {
