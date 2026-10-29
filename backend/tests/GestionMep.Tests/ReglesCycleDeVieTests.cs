@@ -321,7 +321,7 @@ public class ReglesCycleDeVieTests
     public void Changer_de_pilote_est_refuse_en_preparation_une_fois_terminee_sans_motif_ou_sans_compte()
     {
         var preparation = Demo();
-        Assert.Contains("section Personnes", Assert.ThrowsAny<RegleMetierException>(() =>
+        Assert.Contains("section Intervention", Assert.ThrowsAny<RegleMetierException>(() =>
             Regles.ChangerPilote(preparation, Alice, false, P(preparation, Claire), true, null, "x", Maintenant, out _)).Message);
 
         var m = EnExecution();
