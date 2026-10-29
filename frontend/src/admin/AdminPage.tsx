@@ -38,7 +38,7 @@ export default function AdminPage() {
   }, [onglet]);
   if (!utilisateur?.estAdmin) return <Navigate to="/" replace />;
   return (
-    <main className={`mx-auto w-full ${onglet === 'charte' ? 'max-w-6xl' : 'max-w-5xl'} px-6 py-8`}>
+    <main className="mx-auto w-full max-w-6xl px-6 py-8">
       <h1 className="text-2xl font-semibold tracking-tight">Console d’administration</h1>
       <p className="mt-1 text-sm text-fg-subtle">
         Gérez les comptes, les équipes, les paramètres globaux, les connexions aux API externes et la version de

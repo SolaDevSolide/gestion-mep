@@ -416,7 +416,7 @@ function DerniersAppels({ tick, onDetail }: { tick: number; onDetail: (id: strin
                       </StatusPill>
                     </span>
                     <span className="text-fg-subtle tabular-nums md:text-right">
-                      {a.dureeMs > 0 ? duree(a.dureeMs) : '—'}
+                      {a.dureeMs > 0 ? duree(a.dureeMs) : a.tentatives > 0 ? '< 1 ms' : '—'}
                     </span>
                   </button>
                 </li>
