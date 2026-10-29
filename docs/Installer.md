@@ -78,6 +78,8 @@ Les variables se règlent dans `.env`, lu par `docker-compose.yml`. Celles marqu
 | `PIECES_QUOTA_MEP_MO` (console) | `1024` | Total des pièces jointes d'une MEP, en Mo (`0` : sans limite). |
 | `PIECES_QUOTA_COMPTE_JOUR_MO` (console) | `1024` | Pièces jointes qu'un compte peut déposer en 24 heures, en Mo (`0` : sans limite). |
 | `PIECES_ESPACE_LIBRE_MIN_MO` (console) | `2048` | Espace laissé libre sur le disque des pièces jointes : en dessous, les dépôts sont refusés pour protéger la base et les sauvegardes. |
+| `PIECES_COMPRESSION` (console) | `true` | Compression sans perte des pièces jointes déposées : journaux, textes, CSV, JSON, PDF ou images non compressées prennent moins de place. Le téléchargement rend toujours le fichier d'origine (voir [Compression des pièces jointes](Exploiter.md#compression-des-pièces-jointes)). |
+| `PIECES_COMPRESSION_GAIN_MIN` (console) | `10` | Gain minimal, en %, pour garder un fichier compressé ; en dessous, il reste tel quel (de 1 à 90). |
 | `PROXY_RESEAUX` (console) | `172.16.0.0/12` | Réseaux (CIDR, séparés par des virgules) du proxy HTTPS, seuls autorisés à transmettre l'adresse du client. Le défaut couvre un proxy sur le même hôte Docker ; sinon, indiquer l'adresse du proxy (`10.0.5.12/32`). |
 | `VERIFIER_MISES_A_JOUR` (console) | `true` | Consulte les versions publiées sur GitHub pour signaler une mise à jour aux administrateurs. `false` sur un serveur sans accès à Internet. |
 | `LIEN_SIGNALEMENT` (console) | formulaire GitHub du dépôt | Lien « Signaler un problème ou une idée » du menu utilisateur. Vide : lien masqué. Peut pointer vers un outil interne. |
@@ -107,6 +109,7 @@ Pour un déploiement sans Docker Compose (Kubernetes, ECS…) :
 | `Stockage__Dossier` | Dossier des pièces jointes dans le conteneur (`/data/pieces-jointes`), à monter sur un volume persistant. |
 | `Stockage__TailleMaxMo` | Voir `PIECES_TAILLE_MAX_MO`. |
 | `Stockage__QuotaMepMo`, `Stockage__QuotaCompteJourMo`, `Stockage__EspaceLibreMinMo` | Voir `PIECES_QUOTA_MEP_MO`, `PIECES_QUOTA_COMPTE_JOUR_MO`, `PIECES_ESPACE_LIBRE_MIN_MO`. |
+| `Stockage__Compression`, `Stockage__CompressionGainMin` | Voir `PIECES_COMPRESSION`, `PIECES_COMPRESSION_GAIN_MIN`. |
 | `Flux__ConnexionsMax` | Voir `FLUX_MAX`. |
 | `Securite__HttpsObligatoire` | Voir `HTTPS_OBLIGATOIRE`. |
 | `Sauvegardes__Dossier` | Dossier des sauvegardes (`/data/sauvegardes`), à monter sur un volume persistant avec assez de place pour une copie de la base et des pièces jointes : sauvegardes automatiques avant une mise à jour du schéma ou une importation, et défaut de `gestion-mep sauvegarder`. |

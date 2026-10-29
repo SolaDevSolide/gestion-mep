@@ -5835,6 +5835,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/pieces-jointes/stockage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EtatStockageDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pieces-jointes/{pid}/contenu": {
         parameters: {
             query?: never;
@@ -7759,6 +7794,28 @@ export interface components {
             collegues: string[];
             lanceePar: null | string;
         };
+        /** @description Occupation du stockage des pièces jointes (console d'administration, `gestion-mep pieces-jointes etat`). */
+        EtatStockageDto: {
+            /** Format: int32 */
+            pieces: number;
+            /**
+             * Format: int64
+             * @description Somme des tailles des fichiers déposés (rendus au téléchargement).
+             */
+            tailleFichiers: number;
+            /**
+             * Format: int64
+             * @description Place occupée sur le serveur, après compression.
+             */
+            tailleStockee: number;
+            /** Format: int32 */
+            compressees: number;
+            /**
+             * Format: int32
+             * @description Pièces déposées avant la compression (ou pendant qu'elle était désactivée), jamais examinées.
+             */
+            nonExaminees: number;
+        };
         EvenementAdminDto: {
             /** Format: int64 */
             id: number;
@@ -8304,8 +8361,19 @@ export interface components {
                     executionResolutionId: null | string;
                     nomFichier: string;
                     typeContenu: string;
-                    /** Format: int64 */
+                    /**
+                     * Format: int64
+                     * @description Taille du fichier déposé (rendu tel quel au téléchargement).
+                     */
                     taille: number;
+                    /**
+                     * Format: int64
+                     * @description Place occupée sur le serveur, comptée par les quotas : plus petite que `Taille` si le fichier est compressé.
+                     */
+                    tailleStockee: number;
+                    /** @description « gzip » si le fichier est stocké compressé, sinon null. */
+                    compression: null | string;
+                    /** @description Empreinte du fichier déposé (et téléchargé), pas de sa version compressée. */
                     sha256: string;
                     /** Format: uuid */
                     deposeParId: null | string;
@@ -8995,8 +9063,19 @@ export interface components {
                 executionResolutionId: null | string;
                 nomFichier: string;
                 typeContenu: string;
-                /** Format: int64 */
+                /**
+                 * Format: int64
+                 * @description Taille du fichier déposé (rendu tel quel au téléchargement).
+                 */
                 taille: number;
+                /**
+                 * Format: int64
+                 * @description Place occupée sur le serveur, comptée par les quotas : plus petite que `Taille` si le fichier est compressé.
+                 */
+                tailleStockee: number;
+                /** @description « gzip » si le fichier est stocké compressé, sinon null. */
+                compression: null | string;
+                /** @description Empreinte du fichier déposé (et téléchargé), pas de sa version compressée. */
                 sha256: string;
                 /** Format: uuid */
                 deposeParId: null | string;
@@ -9606,8 +9685,19 @@ export interface components {
             executionResolutionId: null | string;
             nomFichier: string;
             typeContenu: string;
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description Taille du fichier déposé (rendu tel quel au téléchargement).
+             */
             taille: number;
+            /**
+             * Format: int64
+             * @description Place occupée sur le serveur, comptée par les quotas : plus petite que `Taille` si le fichier est compressé.
+             */
+            tailleStockee: number;
+            /** @description « gzip » si le fichier est stocké compressé, sinon null. */
+            compression: null | string;
+            /** @description Empreinte du fichier déposé (et téléchargé), pas de sa version compressée. */
             sha256: string;
             /** Format: uuid */
             deposeParId: null | string;
@@ -10264,8 +10354,19 @@ export interface components {
                     executionResolutionId: null | string;
                     nomFichier: string;
                     typeContenu: string;
-                    /** Format: int64 */
+                    /**
+                     * Format: int64
+                     * @description Taille du fichier déposé (rendu tel quel au téléchargement).
+                     */
                     taille: number;
+                    /**
+                     * Format: int64
+                     * @description Place occupée sur le serveur, comptée par les quotas : plus petite que `Taille` si le fichier est compressé.
+                     */
+                    tailleStockee: number;
+                    /** @description « gzip » si le fichier est stocké compressé, sinon null. */
+                    compression: null | string;
+                    /** @description Empreinte du fichier déposé (et téléchargé), pas de sa version compressée. */
                     sha256: string;
                     /** Format: uuid */
                     deposeParId: null | string;
@@ -11120,8 +11221,19 @@ export interface components {
                     executionResolutionId: null | string;
                     nomFichier: string;
                     typeContenu: string;
-                    /** Format: int64 */
+                    /**
+                     * Format: int64
+                     * @description Taille du fichier déposé (rendu tel quel au téléchargement).
+                     */
                     taille: number;
+                    /**
+                     * Format: int64
+                     * @description Place occupée sur le serveur, comptée par les quotas : plus petite que `Taille` si le fichier est compressé.
+                     */
+                    tailleStockee: number;
+                    /** @description « gzip » si le fichier est stocké compressé, sinon null. */
+                    compression: null | string;
+                    /** @description Empreinte du fichier déposé (et téléchargé), pas de sa version compressée. */
                     sha256: string;
                     /** Format: uuid */
                     deposeParId: null | string;
@@ -11795,8 +11907,19 @@ export interface components {
                     executionResolutionId: null | string;
                     nomFichier: string;
                     typeContenu: string;
-                    /** Format: int64 */
+                    /**
+                     * Format: int64
+                     * @description Taille du fichier déposé (rendu tel quel au téléchargement).
+                     */
                     taille: number;
+                    /**
+                     * Format: int64
+                     * @description Place occupée sur le serveur, comptée par les quotas : plus petite que `Taille` si le fichier est compressé.
+                     */
+                    tailleStockee: number;
+                    /** @description « gzip » si le fichier est stocké compressé, sinon null. */
+                    compression: null | string;
+                    /** @description Empreinte du fichier déposé (et téléchargé), pas de sa version compressée. */
                     sha256: string;
                     /** Format: uuid */
                     deposeParId: null | string;

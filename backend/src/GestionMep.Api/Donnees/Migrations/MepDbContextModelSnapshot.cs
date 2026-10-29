@@ -921,6 +921,10 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Compression")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.Property<DateTimeOffset>("DeposeLe")
                         .HasColumnType("timestamp with time zone");
 
@@ -950,6 +954,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .HasColumnType("character varying(64)");
 
                     b.Property<long>("Taille")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("TailleStockee")
                         .HasColumnType("bigint");
 
                     b.Property<string>("TypeContenu")
