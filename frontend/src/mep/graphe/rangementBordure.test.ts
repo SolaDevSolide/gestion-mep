@@ -222,6 +222,54 @@ describe('rangerBordure', () => {
     }
   });
 
+  it('range un lien direct qui part d’une section repliée ou y arrive (étape corrective après le Go, #115)', async () => {
+    // C : étape corrective, hors section, qui attend directement la dernière étape du plan (I2, dans la section repliée Z).
+    // P → I1 : lien direct qui entre dans la section repliée par le haut, sans cercle.
+    const etapes = [
+      etape('P', 0),
+      etape('I1', 1, ['P'], { sectionId: 'Z' }),
+      etape('I2', 2, ['I1'], { sectionId: 'Z' }),
+      etape('C', 3, ['I2']),
+    ];
+    const sections = [
+      section('Z', [
+        { sens: 'Entree', titre: 'Début', ordre: 0, etapes: ['I1'], sources: [] },
+        { sens: 'Sortie', titre: 'Fin', ordre: 0, etapes: ['I2'], sources: [] },
+      ]),
+    ];
+    const m = construireModele({ etapes: etapes as never, sections: sections as never, deplies: new Set() });
+    expect(m.liens.map((l) => l.id).sort()).toEqual(['P:bas>s:Z:haut', 's:Z:bas>C:haut']);
+    // Chaque bout de lien passé à ELK existe : un nœud ou un port déclaré (ELK refuse sinon tout le rangement).
+    const { graphe } = grapheBordure(m, sans);
+    const formes = new Set<string>();
+    const parcourir = (n: typeof graphe) => {
+      formes.add(n.id);
+      for (const p of n.ports ?? []) formes.add(p.id);
+      for (const c of n.children ?? []) parcourir(c);
+    };
+    parcourir(graphe);
+    for (const e of graphe.edges ?? [])
+      for (const b of [...e.sources, ...e.targets]) expect.soft(formes.has(b), `bout inconnu d’ELK : ${b}`).toBe(true);
+
+    const r = await rangerBordure(m, sans);
+    const z = r.places.get('s:Z');
+    const c = r.places.get('C');
+    const p = r.places.get('P');
+    if (!z || !c || !p) throw new Error('places manquantes');
+    // Le lien part du bas de la section et arrive au milieu du haut de C ; l'autre part de P et arrive sur le haut de Z.
+    const versC = r.routes.get('s:Z:bas>C:haut') ?? [];
+    expect(versC[0]?.y).toBe(z.y + z.hauteur);
+    expect(versC.at(-1)).toEqual({ x: c.x + c.largeur / 2, y: c.y });
+    const versZ = r.routes.get('P:bas>s:Z:haut') ?? [];
+    expect(versZ[0]).toEqual({ x: p.x + p.largeur / 2, y: p.y + p.hauteur });
+    expect(versZ.at(-1)?.y).toBe(z.y);
+    // Les cercles restent sur leur bord, dans la section.
+    for (const id of ['Z-c0', 'Z-c1']) {
+      expect(r.cercles.get(id)).toBeGreaterThan(0);
+      expect(r.cercles.get(id)).toBeLessThan(z.largeur);
+    }
+  });
+
   it('respecte l’ordre du modèle dans une rangée (rang imposé), dedans comme dehors', async () => {
     const etapes = [
       etape('R', 0),
