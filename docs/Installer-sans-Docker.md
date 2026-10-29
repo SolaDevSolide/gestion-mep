@@ -118,6 +118,8 @@ Le fichier de configuration reprend **les mêmes noms que le fichier `.env`** de
 | `PROXY_RESEAUX` | vide | Vide : le proxy est sur la même machine (`127.0.0.1` ou `::1`). Sinon, l'adresse du proxy (`10.0.5.12/32`). |
 | `CHARTE_FICHIER` | à côté du fichier de configuration | Fichier de la charte visuelle, facultatif : `/etc/gestion-mep/charte.json` (Linux), `C:\ProgramData\GestionMep\charte.json` (Windows). Lisible par le compte du service ; relu sans redémarrage. Voir [Charte visuelle](Exploiter.md#charte-visuelle). |
 
+Les réglages des connexions aux API externes (`API_RESEAUX_AUTORISES`, `API_PROXY`, `API_APPELS_CONSERVATION_JOURS`, `API_ENVOIS_ACTIFS`) sont les mêmes ; un outil interne signé par l'autorité de certification de l'entreprise demande d'ajouter celle-ci aux autorités du système (voir [Autorité de certification interne](Exploiter.md#autorité-de-certification-interne)).
+
 `MEP_IMAGE` et `COMPOSE_PROFILES` n'ont pas de sens hors Docker. Un réglage avancé de l'application peut aussi s'écrire sous sa forme complète, avec deux tirets bas (`Logging__LogLevel__Default=Warning`).
 
 Les réglages marqués **(console)** se modifient ensuite, sans redémarrage, dans la console d'administration ou par `gestion-mep reglages`, comme avec Docker. Les autres ne sont lus qu'au démarrage : modifier le fichier, puis `sudo systemctl restart gestion-mep` (Linux) ou `Restart-Service GestionMep` (Windows). La console et `gestion-mep reglages lister` indiquent eux-mêmes la bonne commande selon l'installation.

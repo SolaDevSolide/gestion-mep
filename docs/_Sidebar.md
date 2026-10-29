@@ -10,6 +10,7 @@
 - [Suivre une MEP](Suivre-une-MEP.md)
 - [Modèles de texte](Modèles-de-texte.md)
 - [Administrer](Administrer.md)
+- [API externes](API-externes.md)
 
 **Installer et exploiter**
 - [Installer](Installer.md)

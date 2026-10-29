@@ -41,6 +41,8 @@ L'application et la documentation emploient un seul mot pour chaque idée. Les v
 
 **Comptes reliés** : comptes d'une même personne reliés par un administrateur, sans rien fusionner ni supprimer. Ils apparaissent sous le nom du compte principal et chacun garde son historique.
 
+**Connexion à une API** : réglage de la console (onglet API externes) qui envoie les événements des MEP à un autre outil par une requête HTTP : canal Teams ou Slack, outil de tickets, supervision. Chaque envoi est un **appel**, réessayé après une erreur passagère, et inscrit au journal de la MEP. Voir [API externes](API-externes.md).
+
 **Connexion unique (SSO)** : connexion avec son compte d'entreprise (Microsoft Entra ID ou autre fournisseur OpenID Connect) au lieu d'un mot de passe propre à l'application. Facultative : voir [Connexion Microsoft](Connexion-Microsoft.md).
 
 **Communication** : section de la préparation qui rassemble ce qu'on annonce aux utilisateurs (référence de la demande, risque, bénéfices, arrêt applicatif, créneau annoncé, validation par les utilisateurs). Elle remplit les modèles de texte.

@@ -48,6 +48,8 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Pilotage de secours (motif) | Administrateur qui n'est ni pilote ni suppléant, de l'exécution au retour arrière |
 | Ajouter une personne à la MEP après le Go | Pilote, suppléant ou administrateur, de l'exécution au retour arrière |
 | Supprimer définitivement une MEP (motif, nom saisi) | Administrateur, pour une MEP qui n'a jamais eu de Go ou un modèle |
+| Envoyer un message à une API externe depuis la MEP (« ⋯ Plus d'actions › Envoyer »), renvoyer un envoi en échec | Pilote, suppléant ou administrateur, à toutes les phases |
+| Créer, modifier, essayer, activer ou supprimer une connexion à une API externe | Administrateur |
 | Saisir un résultat de recette | Personne de la MEP reliée à un compte, ou administrateur |
 | Faire refaire un test de recette | Pilote ou suppléant |
 | Exporter la recette en Excel | Tout utilisateur qui voit la MEP |
