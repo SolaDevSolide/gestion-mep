@@ -13,6 +13,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
+    "docs:animations": "node animations-doc/generer.mjs",
     "api:types": "npx --yes -p typescript@5.9.3 -p openapi-typescript@7.13.0 openapi-typescript ../docs/openapi.json -o src/api/schema.d.ts"
   },
   "dependencies": {

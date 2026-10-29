@@ -56,6 +56,14 @@
   },
   "overrides": [
     {
+      "files": ["animations-doc/**"],
+      "env": { "node": true, "browser": true },
+      "rules": {
+        "no-await-in-loop": "off",
+        "no-console": "off"
+      }
+    },
+    {
       "files": ["**/*.test.ts", "**/*.test.tsx", "src/test/**"],
       "rules": {
         "typescript/no-floating-promises": "off",

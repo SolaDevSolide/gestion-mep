@@ -112,6 +112,27 @@ La documentation vit dans `docs/` et ce fichier. À chaque fusion sur `main`, l'
 - Un changement visible par les utilisateurs met à jour la page de guide concernée, et [docs/Droits.md](docs/Droits.md) s'il touche aux droits.
 - Une nouvelle page s'ajoute à plat dans `docs/` (le nom du fichier devient le titre de la page du wiki) et dans [docs/_Sidebar.md](docs/_Sidebar.md).
 
+### Animations et captures
+
+Chaque explication des guides est illustrée par une courte animation (`docs/images/*.webp`), placée juste après le texte qu'elle illustre avec un texte alternatif et une légende en italique ; quelques captures (`*.png`) montrent un écran entier. Toutes sont produites par un script Playwright qui pilote l'application de démonstration : on ne les fait jamais à la main, on les régénère.
+
+```bash
+# L'API en développement (démonstration active) sert le front construit, sur http://localhost:5080
+cd frontend && npm run build
+cd ../backend && dotnet run --project src/GestionMep.Api -- --webroot ../frontend/dist
+
+# Puis, dans frontend (ffmpeg doit être installé) :
+ANIMATIONS_URL=http://localhost:5080 npm run docs:animations                       # tout (une demi-heure environ)
+ANIMATIONS_URL=http://localhost:5080 npm run docs:animations -- go-no-go journal   # seulement celles-ci
+npm run docs:animations -- --liste                                                   # page et section de chacune
+```
+
+Sans `ANIMATIONS_URL`, le script vise le serveur de développement Vite (http://localhost:5173). Chaque scénario part d'une **démonstration réinitialisée** : ne jamais viser une installation réelle. Fenêtre de 1200 × 800, thème clair, bandeau de démonstration masqué (sauf là où il est le sujet), transitions coupées et curseur dessiné ; les images brutes passent par `frontend/test-results/animations-doc`, vidé à la fin (`--garder` les conserve, et une capture de l'écran est faite en cas d'échec).
+
+- Les scénarios sont dans `frontend/animations-doc/scenarios/`, un fichier par page de guide ; `outils.mjs` contient le curseur, les gestes (`Scene`) et l'encodage.
+- Format : WebP animé avec perte (qualité 72, 12 images par seconde, couleurs arrondies pour éviter les traces des fondus). Mesuré sur les mêmes enregistrements : 25 à 60 % plus léger qu'un GIF (limité à 256 couleurs, tramé) et 4 à 5 fois plus qu'un APNG ; il s'affiche dans GitHub et dans le wiki (une vidéo `<video>` ne s'y affiche pas depuis un fichier du dépôt). Viser 10 à 20 secondes et moins de 300 Ko par animation.
+- Un changement d'interface qui touche un geste montré : régénérer seulement les animations concernées, puis les regarder avant de committer.
+
 ## Branches et pull requests
 
 - `main` est toujours déployable : chaque fusion publie une image.

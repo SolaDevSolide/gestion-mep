@@ -14,6 +14,7 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 | `npm run typecheck`                       | `tsc --noEmit`                                                                                    |
 | `npm run build`                           | Typage puis construction dans `dist/`                                                             |
 | `npm run api:types`                       | Régénère `src/api/schema.d.ts` depuis `docs/openapi.json`                                         |
+| `npm run docs:animations`                 | Régénère les animations et captures de `docs/images` (voir plus bas)                              |
 
 ## Organisation
 
@@ -30,6 +31,7 @@ React 19, TypeScript 7 (strict), Vite, Tailwind CSS 4, primitives [Radix](https:
 | `src/charte`          | Charte visuelle : calculs des couleurs (`charte.ts`, `couleurs.ts`, mêmes résultats que le serveur), sélecteur de couleur, aperçus                                                |
 | `src/ui`              | Composants génériques (boutons, dialogues, menus, champs, toasts…)                                                                                                                |
 | `src/test`            | Configuration Vitest (les données partagées de `referentiels.ts` sont oubliées après chaque test : l'ordre des tests est indifférent) et fabrique de données de test              |
+| `animations-doc`      | Animations et captures de la documentation : scénarios Playwright par page de guide (`scenarios/`), curseur, gestes et encodage WebP (`outils.mjs`)                               |
 
 Dans `src/mep/graphe`, `GrapheLibre.tsx` s'appuie sur `BarreOutilsGraphe.tsx` (barre d'outils), `MiniCarte.tsx`, `useMontageAnime.ts` (mouvement des nœuds après un rangement) et `noeudsRf.ts` (nœuds React Flow) ; `moteurElk.ts` exécute ELK dans un Web Worker (délai, reprise après échec) et `petitEcran.ts` règle la vue compacte (fenêtre de moins de 800 px de haut).
 
@@ -93,6 +95,10 @@ await run(() => api.demarrerEtape(mep.id, etape.id, etape.revision), 'Étape dé
 ### Tests de bout en bout
 
 `npm run e2e` lance Playwright (`playwright.config.ts`, fichiers `e2e/*.e2e.ts`) sur une instance déjà démarrée en mode démonstration (`DEMO=true`) : `E2E_URL` donne son adresse (par défaut http://localhost:5173, le serveur de développement). `e2e/petit-ecran.e2e.ts` vérifie, sur une fenêtre de 1366 × 641, que le graphe de la vue d'une section garde au moins 480 px de haut et reste visible, avec la carte de l'étape, quand l'étape est ouverte en tiroir. Le navigateur Chromium de Playwright doit être installé (`npx playwright install chromium`).
+
+### Animations de la documentation
+
+`npm run docs:animations` (`animations-doc/generer.mjs`) rejoue chaque scénario de `animations-doc/scenarios/` dans Chromium, sur une démonstration réinitialisée, et écrit `docs/images/<nom>.webp` (ou `.png` pour une capture). L'enregistrement passe par le _screencast_ du protocole Chrome (une image à chaque changement de l'écran, avec son heure), puis ffmpeg encode un WebP animé. Un scénario déclare sa page et sa section de guide, son compte, et deux fonctions : `preparer` (non enregistrée : état voulu, par l'interface ou par l'API) et `jouer` (les gestes, par `Scene` : `cliquer`, `saisir`, `glisser`, `survoler`…). `ctx.autreCompte('bob')` ouvre un second navigateur, non enregistré, pour qu'un collègue agisse pendant l'enregistrement. Mode d'emploi dans [CONTRIBUTING](../CONTRIBUTING.md#animations-et-captures).
 
 ### Charte visuelle
 
