@@ -52,7 +52,7 @@ export default function ApiExternesTab() {
   const enErreur = (connexions ?? []).filter((c) => c.etat === 'EnErreur');
 
   return (
-    <div className="grid gap-5">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
       {enErreur.length > 0 && (
         <Alerte
           ton="danger"
@@ -60,7 +60,7 @@ export default function ApiExternesTab() {
           role="alert"
           titre={`${enErreur.length} connexion${enErreur.length > 1 ? 's' : ''} en erreur`}
         >
-          <ul className="grid gap-1">
+          <ul className="grid gap-1 [overflow-wrap:anywhere]">
             {enErreur.map((c) => (
               <li key={c.id}>
                 « {c.nom} » échoue depuis {heureCourte(c.dernierAppel?.termineLe ?? c.dernierAppel?.creeLe)}
@@ -143,7 +143,7 @@ export default function ApiExternesTab() {
 
       <DerniersAppels tick={tickAppels} onDetail={setDetail} />
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-2">
         <Reseau catalogue={catalogue} />
         <LigneDeCommande />
       </div>

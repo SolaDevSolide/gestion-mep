@@ -364,7 +364,7 @@ function EchecEnvoiCarte({
       <p className="mt-0.5 text-ui text-fg-muted">
         {x.libelleEvenement} : {resultat}
       </p>
-      {x.erreur && <p className="mt-0.5 line-clamp-2 text-ui text-fg-muted">{x.erreur}</p>}
+      {x.erreur && <p className="mt-0.5 line-clamp-2 text-ui [overflow-wrap:anywhere] text-fg-muted">{x.erreur}</p>}
       <p className="mt-1 text-xs text-fg-subtle tnum">depuis {heure(Date.parse(x.quand))}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {peutRenvoyer && (
