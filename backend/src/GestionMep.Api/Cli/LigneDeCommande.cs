@@ -25,7 +25,7 @@ public static partial class LigneDeCommande
     private static readonly string[] Commandes =
     [
         "aide", "--help", "-h", "version", "--version", "migrer", "config", "comptes", "sauvegarder", "importer", "sso", "reglages", "reglage",
-        "systemes", "categories", "criteres", "resolutions", "journal", "sauvegardes", "mettre-a-jour", "meps", "demo", "equipes", "charte",
+        "systemes", "categories", "criteres", "resolutions", "journal", "sauvegardes", "mettre-a-jour", "meps", "demo", "equipes", "charte", "connexions",
     ];
 
     private const string Aide = """
@@ -125,6 +125,18 @@ public static partial class LigneDeCommande
                                                               de fin d'une MEP clôturée, figé à la clôture)
           gestion-mep journal [--depuis AAAA-MM-JJ] [--limite n]
                                                               Journal d'administration (200 derniers événements par défaut)
+
+        Connexions aux API externes (une connexion se désigne par son nom ou son identifiant ; secrets par l'entrée standard)
+          gestion-mep connexions lister | afficher <connexion>        Connexions, état et dernier appel ; réglages d'une connexion
+          gestion-mep connexions exporter [<connexion>] [fichier.json|-]   Export JSON, sans aucun secret
+          gestion-mep connexions importer <fichier.json|-> [--remplacer|--ignorer-existantes] [--essai]
+          gestion-mep connexions secret <connexion> --champ authentification|adresse|hmac|entete:<Nom> (--secret-stdin|--effacer)
+          gestion-mep connexions activer | desactiver <connexion>
+          gestion-mep connexions essayer <connexion> [--mep <id>] [--evenement <clé>] [--commentaire "…"] [--apercu]
+          gestion-mep connexions appels [<connexion>] [--echecs] [--depuis AAAA-MM-JJ] [--limite n]
+          gestion-mep connexions renvoyer <appel>
+          gestion-mep connexions supprimer <connexion> [--oui]
+          (« gestion-mep connexions <action> --help » : options et exemples)
 
         Connexion unique
           gestion-mep sso afficher                            Réglages de la connexion unique (Microsoft Entra ID ou OpenID Connect)
@@ -305,6 +317,7 @@ public static partial class LigneDeCommande
                 ["charte", "verifier", var fichier] => await CharteVerifier(fichier),
                 ["charte", "definir", var role, var couleur] => await CharteDefinir(role, couleur),
                 ["charte", "retablir"] => await CharteRetablir(),
+                ["connexions", .. var reste] => await Connexions(reste),
                 ["aide" or "--help" or "-h"] => AfficherAide(0),
                 _ => AfficherAide(2),
             };
