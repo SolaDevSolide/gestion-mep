@@ -52,6 +52,12 @@ services:
       Flux__ConnexionsMax: ${FLUX_MAX:-1000}
       # false : mode d'essai sans reverse proxy, la session fonctionne en http simple (mots de passe en clair)
       Securite__HttpsObligatoire: ${HTTPS_OBLIGATOIRE:-true}
+      # Connexions aux API externes : réseaux internes qu'elles peuvent joindre (vide : aucun), proxy sortant, historique des
+      # appels (jours) et interrupteur général des envois (false : les appels restent en file)
+      ConnexionsApi__ReseauxAutorises: ${API_RESEAUX_AUTORISES:-}
+      ConnexionsApi__Proxy: ${API_PROXY:-}
+      ConnexionsApi__ConservationJours: ${API_APPELS_CONSERVATION_JOURS:-90}
+      ConnexionsApi__EnvoisActifs: ${API_ENVOIS_ACTIFS:-true}
       # Les réglages ci-dessus marqués (console) dans .env.example se modifient aussi depuis la console ou « gestion-mep reglages ».
     volumes:
       - pieces-jointes:/data/pieces-jointes

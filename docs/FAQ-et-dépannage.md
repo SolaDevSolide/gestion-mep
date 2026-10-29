@@ -105,6 +105,12 @@ Il est stocké compressé (gzip) : `zcat <identifiant> > fichier` le rend tel qu
 **L'envoi d'une pièce jointe échoue (fichier trop volumineux).**
 La taille maximale (20 Mo par défaut) se règle dans la console (onglet Paramètres), par `gestion-mep reglages definir pieces-taille-max-mo <Mo>` ou par `PIECES_TAILLE_MAX_MO` dans `.env`. Le proxy doit accepter des requêtes un peu plus grandes.
 
+**Une connexion à une API externe échoue : « adresse refusée », « certificat refusé » ou « outil injoignable ».**
+« Adresse refusée » : l'outil est sur le réseau interne ; déclarer son réseau dans `api-reseaux-autorises` (console, onglet Paramètres, ou `gestion-mep reglages definir api-reseaux-autorises 10.20.0.0/16`). « Certificat refusé » : le certificat de l'outil est signé par l'autorité de certification de l'entreprise, à ajouter au serveur (voir [Autorité de certification interne](Exploiter.md#autorité-de-certification-interne)). « Outil injoignable » ou « pas de réponse » : pare-feu sortant, ou proxy à régler (`api-proxy`). « Essayer » dans l'éditeur de la connexion vérifie le résultat. Voir [API externes](API-externes.md).
+
+**Les appels aux API externes restent « en attente ».**
+Le réglage `api-envois-actifs` est peut-être à `false` (la carte Réseau de l'onglet API externes le signale) : le remettre à `true`, les appels en file partent aussitôt. Sinon, l'outil appelé répond en erreur passagère et l'appel attend sa prochaine tentative (heure indiquée dans le détail de l'appel).
+
 **Tout le monde est déconnecté après chaque redéploiement.**
 Le dossier des clés de session n'est pas conservé : vérifier le volume `cles` (ou `Cles__Dossier`).
 

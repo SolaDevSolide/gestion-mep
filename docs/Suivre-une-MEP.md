@@ -41,7 +41,7 @@ La mini-carte est masquée par défaut (bouton en bas à droite, mémorisé pour
 
 ### Panneau de droite
 
-- **Blocages et échecs** : chaque étape en échec, avec son motif, sa résolution en cours (corrections faites, vérification) et les étapes qu'elle bloque ; chaque étape en cours qui a dépassé sa durée.
+- **Blocages et échecs** : chaque étape en échec, avec son motif, sa résolution en cours (corrections faites, vérification) et les étapes qu'elle bloque ; chaque étape en cours qui a dépassé sa durée ; chaque envoi à une [API externe](API-externes.md) définitivement en échec (connexion, événement, résultat), avec **Renvoyer** pour le pilote, ses suppléants et les administrateurs.
 - **En ce moment** : le pilote et les personnes qui ont des étapes dans le plan, ce que chacune exécute ou sa prochaine étape, et où se trouvent celles qui ont la MEP ouverte (« sur E0004 », « dans la section Sauvegardes »), d'après la même présence que les avatars du graphe.
 - **Événements marquants** : le journal filtré (Go, échecs et réussites d'étape, résolutions, prises de main, point de non-retour, retour arrière, clôture), avec un lien vers le journal complet.
 

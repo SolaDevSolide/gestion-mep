@@ -19,7 +19,7 @@ Cette page décrit les conventions communes, puis donne la référence de chaque
 
 **Aide.** `gestion-mep aide` liste toutes les commandes. `gestion-mep <groupe> --help` aide sur un groupe. `gestion-mep <groupe> <action> --help` (ou `-h`) donne l'usage, les options, la sortie `--json`, des exemples et les codes de retour. Une commande ou une option mal tapée est refusée avec une suggestion (« vouliez-vous dire « gestion-mep meps lister » ? »).
 
-**Désigner un élément.** Un compte se désigne par son login, une équipe ou un système par son nom (majuscules indifférentes) ou son identifiant. Une MEP, une pièce jointe ou un élément de bibliothèque se désigne par son identifiant. Les 8 premiers caractères suffisent : c'est la colonne `ID` des listes.
+**Désigner un élément.** Un compte se désigne par son login, une équipe, un système ou une connexion aux API externes par son nom (majuscules indifférentes) ou son identifiant. Une MEP, une pièce jointe ou un élément de bibliothèque se désigne par son identifiant. Les 8 premiers caractères suffisent : c'est la colonne `ID` des listes.
 
 **Sorties.** Les données demandées (listes, fiches, identifiant créé) vont sur la sortie standard. Les erreurs, avertissements et questions vont sur la sortie d'erreur. Les comptes rendus (« Compte créé… ») vont sur la sortie standard. On peut donc enchaîner :
 
@@ -72,13 +72,13 @@ Les noms de champs ne changent pas d'une version à l'autre ; des champs peuvent
 
 ### Confirmation des opérations destructives
 
-Les opérations qui suppriment ou remplacent des données demandent une confirmation : `meps annuler`, `meps supprimer`, `sauvegardes purger`, `sauvegardes restaurer` et `demo reinitialiser`. Au terminal, la commande explique ce qu'elle va faire et demande de taper « oui ». Dans un script, ou avec `--non-interactif`, elle s'arrête avec le code 4 sans rien modifier. `--oui` confirme d'avance. Les refus de l'application passent avant la question (par exemple, une MEP qui a eu un Go ne se supprime pas).
+Les opérations qui suppriment ou remplacent des données demandent une confirmation : `meps annuler`, `meps supprimer`, `connexions supprimer`, `sauvegardes purger`, `sauvegardes restaurer` et `demo reinitialiser`. Au terminal, la commande explique ce qu'elle va faire et demande de taper « oui ». Dans un script, ou avec `--non-interactif`, elle s'arrête avec le code 4 sans rien modifier. `--oui` confirme d'avance. Les refus de l'application passent avant la question (par exemple, une MEP qui a eu un Go ne se supprime pas).
 
 Les commandes qui suivent les règles de l'application sans perte de données ne demandent rien. C'est le cas des suppressions d'éléments de bibliothèque et de systèmes : un système utilisé est désactivé au lieu d'être supprimé.
 
 ### Relancer sans risque
 
-Relancer une commande dont l'effet est déjà là ne change rien et réussit : `comptes desactiver` un compte déjà désactivé, `equipes ajouter` un membre déjà présent, `meps annuler` une MEP déjà annulée, `sauvegardes purger` quand il n'y a rien à supprimer, `modeles-texte retablir` un texte d'origine, `sso delier` un compte non relié. Les créations (`comptes creer`, `systemes ajouter`…) refusent un doublon avec le code 1.
+Relancer une commande dont l'effet est déjà là ne change rien et réussit : `comptes desactiver` un compte déjà désactivé, `equipes ajouter` un membre déjà présent, `meps annuler` une MEP déjà annulée, `sauvegardes purger` quand il n'y a rien à supprimer, `modeles-texte retablir` un texte d'origine, `sso delier` un compte non relié, `connexions activer` une connexion déjà active. Les créations (`comptes creer`, `systemes ajouter`…) refusent un doublon avec le code 1.
 
 ### Configuration lue
 
@@ -93,7 +93,7 @@ L'option `--config` remplace donc le fichier, pas les réglages enregistrés dan
 
 ### Secrets
 
-Aucun secret ne se passe en argument : il resterait dans l'historique du shell et dans la liste des processus. Le secret de la connexion unique se lit sur l'entrée standard (`sso configurer --secret-stdin < secret.txt`), ou se saisit sans écho au terminal. Les mots de passe et secrets ne sont jamais affichés : `config afficher` écrit « défini (masqué) », et `--verbose` masque le mot de passe de la base. Seuls les mots de passe provisoires (`comptes creer`, `comptes reinitialiser-mdp`) sont affichés, une seule fois. Ils sont aussi dans `resultat` avec `--json`, même avec `--quiet` : les transmettre par un canal sûr.
+Aucun secret ne se passe en argument : il resterait dans l'historique du shell et dans la liste des processus. Le secret de la connexion unique et ceux des connexions aux API externes se lisent sur l'entrée standard (`sso configurer --secret-stdin < secret.txt`, `connexions secret <connexion> --champ authentification --secret-stdin < jeton.txt`), ou se saisissent sans écho au terminal. `connexions exporter` n'écrit aucun secret. Les mots de passe et secrets ne sont jamais affichés : `config afficher` écrit « défini (masqué) », et `--verbose` masque le mot de passe de la base. Seuls les mots de passe provisoires (`comptes creer`, `comptes reinitialiser-mdp`) sont affichés, une seule fois. Ils sont aussi dans `resultat` avec `--json`, même avec `--quiet` : les transmettre par un canal sûr.
 
 ### Complétion
 
@@ -116,6 +116,7 @@ Certaines opérations restent dans l'application, parce qu'elles sont signées p
 - le report et la reprise d'une MEP, décidés par son pilote ;
 - la rédaction des éléments de bibliothèque (étapes modèles, modèles de recette, modèles de texte), qui se fait dans l'éditeur avec son aperçu. La ligne de commande les consulte, les supprime et rétablit les modèles de texte fournis ;
 - le dépôt et la suppression d'une pièce jointe. Ces gestes sont signés par une personne et soumis aux quotas. La ligne de commande mesure la place occupée, liste les pièces, en extrait les fichiers et contrôle le dossier ;
+- la création et la modification d'une connexion aux API externes, qui se font dans l'éditeur avec son aperçu. La ligne de commande les consulte, les essaie, les active ou les désactive, les copie d'un serveur à l'autre (`connexions exporter` puis `importer`), en saisit les secrets et renvoie un appel ;
 - le suivi en direct (tableau de bord des systèmes, notifications).
 
 L'installation elle-même se fait par les scripts d'installation (voir [Installer](Installer.md) et [Installer sans Docker](Installer-sans-Docker.md)).
@@ -731,6 +732,202 @@ Sortie `--json` : enveloppe { code, messages, avertissements, resultat }.
 
 ```bash
 gestion-mep charte retablir
+```
+
+### Connexions aux API externes
+
+Une connexion se désigne par son nom (guillemets s'il contient des espaces) ou son identifiant (8 premiers caractères suffisent). Les secrets ne passent jamais en argument : --secret-stdin.
+
+#### `connexions lister`
+
+```
+gestion-mep connexions lister
+```
+
+Connexions : état, dernier appel, déclencheurs.
+
+Sortie `--json` : tableau des connexions, comme GET /api/admin/connexions.
+
+```bash
+gestion-mep connexions lister
+gestion-mep connexions lister --json
+```
+
+#### `connexions afficher`
+
+```
+gestion-mep connexions afficher <connexion>
+```
+
+Réglages d'une connexion ; secrets : « enregistré », « absent » ou « illisible », jamais leur valeur.
+
+Sortie `--json` : la connexion, comme GET /api/admin/connexions/{id}.
+
+```bash
+gestion-mep connexions afficher "Canal Teams Exploitation"
+```
+
+#### `connexions exporter`
+
+```
+gestion-mep connexions exporter [<connexion>] [fichier.json|-]
+```
+
+Exporte une connexion (ou toutes) en JSON, sans aucun secret. Chaque secret est remplacé par « <à saisir> ». Le fichier se réimporte sur un autre serveur, puis les secrets se saisissent avec « connexions secret ».
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat }.
+
+```bash
+gestion-mep connexions exporter connexions.json
+gestion-mep connexions exporter "Tickets de changement" -
+```
+
+#### `connexions importer`
+
+```
+gestion-mep connexions importer <fichier.json|-> [--remplacer|--ignorer-existantes] [--essai]
+```
+
+Crée ou met à jour des connexions depuis un fichier au format de l'export. Une connexion dont un secret manque est créée désactivée ; la commande dit quoi saisir. Une erreur sur une connexion annule tout l'import.
+
+| Option | Effet |
+|---|---|
+| `--remplacer` | Met à jour les connexions de même nom (secrets gardés si l'adresse garde son domaine) |
+| `--ignorer-existantes` | Laisse telles quelles les connexions de même nom |
+| `--essai` | Vérifie tout sans rien enregistrer |
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat } ; resultat : { creees, modifiees, ignorees, secretsASaisir }.
+
+```bash
+gestion-mep connexions importer connexions.json --essai
+gestion-mep connexions importer connexions.json --remplacer
+```
+
+#### `connexions secret`
+
+```
+gestion-mep connexions secret <connexion> --champ authentification|adresse|hmac|entete:<Nom> (--secret-stdin|--effacer)
+```
+
+Remplace (ou efface) un secret de la connexion, lu sur l'entrée standard.
+
+| Option | Effet |
+|---|---|
+| `--champ authentification` | Jeton, mot de passe, clé ou secret client, selon l'authentification |
+| `--champ adresse` | Adresse complète secrète (Teams Workflows, Slack) ; un autre domaine efface les autres secrets |
+| `--champ hmac` | Secret de la signature X-Gestion-Mep-Signature |
+| `--champ entete:<Nom>` | En-tête secret (créé s'il n'existe pas) |
+| `--secret-stdin` | Lit le secret sur l'entrée standard (ou le demande au terminal, sans l'afficher) ; jamais en argument |
+| `--effacer` | Retire la signature ou l'en-tête secret |
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat }.
+
+```bash
+gestion-mep connexions secret "Tickets de changement" --champ authentification --secret-stdin < mot-de-passe.txt
+gestion-mep connexions secret "Canal Teams Exploitation" --champ adresse --secret-stdin < adresse.txt
+```
+
+#### `connexions activer`
+
+```
+gestion-mep connexions activer <connexion>
+```
+
+Active la connexion (tous ses secrets doivent être saisis).
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat }.
+
+```bash
+gestion-mep connexions activer "Tickets de changement"
+```
+
+#### `connexions desactiver`
+
+```
+gestion-mep connexions desactiver <connexion>
+```
+
+Désactive la connexion : plus aucun appel ne part.
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat }.
+
+```bash
+gestion-mep connexions desactiver "Tickets de changement"
+```
+
+#### `connexions essayer`
+
+```
+gestion-mep connexions essayer <connexion> [--mep <id>] [--evenement <clé>] [--commentaire "…"] [--apercu]
+```
+
+Envoie vraiment le message (précédé de « [Essai] ») et montre la réponse ; --apercu le rend sans l'envoyer. Code de retour 1 si l'outil répond en erreur ou ne répond pas.
+
+| Option | Effet |
+|---|---|
+| `--mep <id>` | MEP dont prendre les informations (sinon des valeurs d'exemple) |
+| `--evenement <clé>` | Événement : etape.echec, gonogo.go, envoi.manuel… (défaut : le dernier du journal de la MEP) |
+| `--commentaire "…"` | Valeur de {{commentaire}} |
+| `--apercu` | Montre la requête sans l'envoyer |
+
+Sortie `--json` : --apercu : la requête, comme POST /api/admin/connexions/apercu ; sinon resultat : comme POST /api/admin/connexions/essai.
+
+```bash
+gestion-mep connexions essayer "Canal Teams Exploitation" --mep 3f2a9c1e --evenement etape.echec
+gestion-mep connexions essayer Supervision --apercu
+```
+
+#### `connexions appels`
+
+```
+gestion-mep connexions appels [<connexion>] [--echecs] [--depuis AAAA-MM-JJ] [--limite n]
+```
+
+Derniers appels, du plus récent au plus ancien.
+
+| Option | Effet |
+|---|---|
+| `--echecs` | Seulement les échecs définitifs |
+| `--depuis AAAA-MM-JJ` | Appels de ce jour et après |
+| `--limite n` | Nombre d'appels (défaut 50, 500 au plus) |
+
+Sortie `--json` : tableau des appels, comme GET /api/admin/connexions/appels.
+
+```bash
+gestion-mep connexions appels --echecs
+gestion-mep connexions appels "Canal Teams Exploitation" --limite 10
+```
+
+#### `connexions renvoyer`
+
+```
+gestion-mep connexions renvoyer <appel>
+```
+
+Renvoie un appel terminé avec le même message (le serveur l'envoie dans les secondes qui suivent).
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat } ; resultat : { appelId }.
+
+```bash
+gestion-mep connexions renvoyer 6c1e2f0a
+```
+
+#### `connexions supprimer`
+
+```
+gestion-mep connexions supprimer <connexion> [--oui]
+```
+
+Supprime la connexion et son historique d'appels.
+
+| Option | Effet |
+|---|---|
+| `--oui` | Confirme l'opération sans question (obligatoire hors terminal) |
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat }.
+
+```bash
+gestion-mep connexions supprimer "Slack astreinte" --oui
 ```
 
 ### Journal d'administration

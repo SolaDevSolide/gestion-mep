@@ -1,0 +1,532 @@
+{
+  "description": "Cas partagés du rendu des gabarits des connexions (RenduConnexion côté serveur, textes/gabarits.ts côté front). « variables » : clés connues des cas et variable de liste ou non (le test du serveur vérifie qu'elles correspondent au catalogue).",
+  "variables": {
+    "application": false,
+    "donnees_json": false,
+    "essai": false,
+    "etape_systemes": true,
+    "evenement": false,
+    "evenement_cle": false,
+    "evenement_detail": false,
+    "mep_id": false,
+    "motif": false,
+    "phase": false,
+    "pilote": false,
+    "sections": true
+  },
+  "cas": [
+    {
+      "nom": "JSON simple : texte échappé dans une chaîne",
+      "format": "json",
+      "gabarit": "{\n  \"titre\": \"{{essai}}MEP {{application}}\",\n  \"detail\": \"{{evenement_detail}}\"\n}",
+      "valeurs": {
+        "essai": "[Essai] ",
+        "application": "Paiement",
+        "evenement_detail": "E0005 en échec : erreur \"403\"\nau moment de la purge"
+      },
+      "attendu": {
+        "texte": "{\n  \"titre\": \"[Essai] MEP Paiement\",\n  \"detail\": \"E0005 en échec : erreur \\\"403\\\"\\nau moment de la purge\"\n}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": []
+      }
+    },
+    {
+      "nom": "JSON : liste hors guillemets et jointe dans une chaîne",
+      "format": "json",
+      "gabarit": "{\"systemes\": {{etape_systemes}}, \"texte\": \"{{etape_systemes}}\"}",
+      "valeurs": {
+        "etape_systemes": ["API", "Base clients"]
+      },
+      "attendu": {
+        "texte": "{\"systemes\": [\"API\",\"Base clients\"], \"texte\": \"API, Base clients\"}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": []
+      }
+    },
+    {
+      "nom": "JSON : valeurs absentes",
+      "format": "json",
+      "gabarit": "{\"motif\": \"{{motif}}\", \"systemes\": {{etape_systemes}}, \"donnees\": {{donnees_json}}}",
+      "valeurs": {},
+      "attendu": {
+        "texte": "{\"motif\": \"\", \"systemes\": [], \"donnees\": {}}",
+        "manquantes": ["motif", "etape_systemes", "donnees_json"],
+        "inconnues": [],
+        "erreurs": []
+      }
+    },
+    {
+      "nom": "JSON : donnees_json hors guillemets",
+      "format": "json",
+      "gabarit": "{\"donnees\": {{donnees_json}}}",
+      "valeurs": {
+        "donnees_json": "{\"pilote\":\"Alice\",\"sections\":null}"
+      },
+      "attendu": {
+        "texte": "{\"donnees\": {\"pilote\":\"Alice\",\"sections\":null}}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": []
+      }
+    },
+    {
+      "nom": "JSON : variable simple hors guillemets refusée",
+      "format": "json",
+      "gabarit": "{\n  \"pilote\": {{pilote}}\n}",
+      "valeurs": {
+        "pilote": "Alice"
+      },
+      "attendu": {
+        "texte": "{\n  \"pilote\": null\n}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 2,
+            "colonne": 13,
+            "message": "Mettez {{pilote}} entre guillemets : seules les listes et {{donnees_json}} s'écrivent hors guillemets."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : variable inconnue",
+      "format": "json",
+      "gabarit": "{\"lien\": \"{{lien_mpe}}\"}",
+      "valeurs": {},
+      "attendu": {
+        "texte": "{\"lien\": \"\"}",
+        "manquantes": [],
+        "inconnues": ["lien_mpe"],
+        "erreurs": []
+      }
+    },
+    {
+      "nom": "JSON : virgule manquante",
+      "format": "json",
+      "gabarit": "{\n  \"a\": \"{{pilote}}\"\n  \"b\": 1\n}",
+      "valeurs": {
+        "pilote": "Alice"
+      },
+      "attendu": {
+        "texte": "{\n  \"a\": \"Alice\"\n  \"b\": 1\n}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 2,
+            "colonne": 20,
+            "message": "Une virgule est attendue avant la propriété suivante du message."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : virgule en trop",
+      "format": "json",
+      "gabarit": "{\n  \"a\": 1,\n}",
+      "valeurs": {},
+      "attendu": {
+        "texte": "{\n  \"a\": 1,\n}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 3,
+            "colonne": 1,
+            "message": "Virgule en trop avant « } » dans l'objet du message."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : objet non fermé",
+      "format": "json",
+      "gabarit": "{\n  \"facts\": [\n    {\"title\": \"Pilote\", \"value\": \"{{pilote}}\"}\n  ]",
+      "valeurs": {
+        "pilote": "Alice"
+      },
+      "attendu": {
+        "texte": "{\n  \"facts\": [\n    {\"title\": \"Pilote\", \"value\": \"Alice\"}\n  ]",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 4,
+            "colonne": 4,
+            "message": "L'objet du message n'est pas fermé : « } » manque."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : liste non fermée",
+      "format": "json",
+      "gabarit": "{\"facts\": [1, 2}",
+      "valeurs": {},
+      "attendu": {
+        "texte": "{\"facts\": [1, 2}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 16,
+            "message": "Une virgule est attendue avant l'élément suivant de la liste « facts »."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : texte non fermé",
+      "format": "json",
+      "gabarit": "{\"a\": \"{{pilote}}}",
+      "valeurs": {
+        "pilote": "Alice"
+      },
+      "attendu": {
+        "texte": "{\"a\": \"Alice}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 7,
+            "message": "Texte non fermé : un guillemet manque."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : retour à la ligne dans un texte",
+      "format": "json",
+      "gabarit": "{\"a\": \"ligne 1\nligne 2\"}",
+      "valeurs": {},
+      "attendu": {
+        "texte": "{\"a\": \"ligne 1\nligne 2\"}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 15,
+            "message": "Retour à la ligne dans un texte : fermez le guillemet, ou écrivez \\n."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : mot inconnu",
+      "format": "json",
+      "gabarit": "{\"a\": vrai}",
+      "valeurs": {},
+      "attendu": {
+        "texte": "{\"a\": vrai}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 7,
+            "message": "Une valeur est attendue : texte entre guillemets, nombre, objet, liste, true, false ou null."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : deux-points manquant",
+      "format": "json",
+      "gabarit": "{\"a\" 1}",
+      "valeurs": {},
+      "attendu": {
+        "texte": "{\"a\" 1}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 6,
+            "message": "« : » est attendu après le nom « a »."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : contenu en trop",
+      "format": "json",
+      "gabarit": "{} {}",
+      "valeurs": {},
+      "attendu": {
+        "texte": "{} {}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 3,
+            "message": "Contenu en trop après la fin du JSON : un seul objet ou une seule liste est attendu."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : message vide",
+      "format": "json",
+      "gabarit": "  \n ",
+      "valeurs": {},
+      "attendu": {
+        "texte": "  \n ",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 1,
+            "message": "Le message est vide : un JSON est attendu."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : nombre invalide",
+      "format": "json",
+      "gabarit": "[1.]",
+      "valeurs": {},
+      "attendu": {
+        "texte": "[1.]",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 2,
+            "message": "Nombre invalide."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : échappement invalide",
+      "format": "json",
+      "gabarit": "[\"C:\\dossier\"]",
+      "valeurs": {},
+      "attendu": {
+        "texte": "[\"C:\\dossier\"]",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 5,
+            "message": "Échappement invalide dans un texte : écrivez \\\\ pour une barre oblique inverse."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : nom de propriété sans guillemets",
+      "format": "json",
+      "gabarit": "{a: 1}",
+      "valeurs": {},
+      "attendu": {
+        "texte": "{a: 1}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 2,
+            "message": "Un nom de propriété entre guillemets est attendu."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : échappement \\u incomplet",
+      "format": "json",
+      "gabarit": "[\"\\u12\"]",
+      "valeurs": {},
+      "attendu": {
+        "texte": "[\"\\u12\"]",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 3,
+            "message": "Échappement invalide dans un texte : \\u doit être suivi de 4 chiffres hexadécimaux."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : valeur attendue",
+      "format": "json",
+      "gabarit": "{\"a\": }",
+      "valeurs": {},
+      "attendu": {
+        "texte": "{\"a\": }",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 7,
+            "message": "Une valeur est attendue : texte entre guillemets, nombre, objet, liste, true, false ou null."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : erreur après une valeur longue",
+      "format": "json",
+      "gabarit": "{\"a\": \"{{evenement_detail}}\" \"b\": 2}",
+      "valeurs": {
+        "evenement_detail": "un détail assez long pour décaler le rendu"
+      },
+      "attendu": {
+        "texte": "{\"a\": \"un détail assez long pour décaler le rendu\" \"b\": 2}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 29,
+            "message": "Une virgule est attendue avant la propriété suivante du message."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "JSON : nombres, booléens, null et accents",
+      "format": "json",
+      "gabarit": "{\"n\": -1.5e3, \"ok\": true, \"non\": false, \"rien\": null, \"é\": \"àçé {{phase}}\"}",
+      "valeurs": {
+        "phase": "exécution"
+      },
+      "attendu": {
+        "texte": "{\"n\": -1.5e3, \"ok\": true, \"non\": false, \"rien\": null, \"é\": \"àçé exécution\"}",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": []
+      }
+    },
+    {
+      "nom": "Texte : valeurs telles quelles",
+      "format": "texte",
+      "gabarit": "{{essai}}MEP {{application}} : {{evenement}}\nSystèmes : {{sections}} {{motif}}",
+      "valeurs": {
+        "essai": "[Essai] ",
+        "application": "Paiement",
+        "evenement": "Étape en échec",
+        "sections": ["Avant", "Pendant"]
+      },
+      "attendu": {
+        "texte": "[Essai] MEP Paiement : Étape en échec\nSystèmes : Avant, Pendant ",
+        "manquantes": ["motif"],
+        "inconnues": [],
+        "erreurs": []
+      }
+    },
+    {
+      "nom": "Texte : variable inconnue et espaces dans les accolades",
+      "format": "texte",
+      "gabarit": "{{ pilote }} / {{pilot}}",
+      "valeurs": {
+        "pilote": "Alice"
+      },
+      "attendu": {
+        "texte": "Alice / ",
+        "manquantes": [],
+        "inconnues": ["pilot"],
+        "erreurs": []
+      }
+    },
+    {
+      "nom": "Texte : valeur blanche = manquante",
+      "format": "texte",
+      "gabarit": "[{{motif}}]",
+      "valeurs": {
+        "motif": "   "
+      },
+      "attendu": {
+        "texte": "[]",
+        "manquantes": ["motif"],
+        "inconnues": [],
+        "erreurs": []
+      }
+    },
+    {
+      "nom": "Adresse : valeurs encodées",
+      "format": "url",
+      "gabarit": "https://outil.example.com/api/meps/{{mep_id}}?q={{application}}&e={{evenement_cle}}",
+      "valeurs": {
+        "mep_id": "3f2a",
+        "application": "Paiement & co (v2)!*'",
+        "evenement_cle": "etape.echec"
+      },
+      "attendu": {
+        "texte": "https://outil.example.com/api/meps/3f2a?q=Paiement%20%26%20co%20%28v2%29%21%2A%27&e=etape.echec",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": []
+      }
+    },
+    {
+      "nom": "Adresse : variable dans le domaine",
+      "format": "url",
+      "gabarit": "https://{{application}}.example.com/x",
+      "valeurs": {
+        "application": "paiement"
+      },
+      "attendu": {
+        "texte": "https://paiement.example.com/x",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 9,
+            "message": "Les variables sont permises dans le chemin et les paramètres de l'adresse, pas dans le domaine."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "Adresse : incomplète",
+      "format": "url",
+      "gabarit": "outil.example.com/{{mep_id}}",
+      "valeurs": {
+        "mep_id": "1"
+      },
+      "attendu": {
+        "texte": "outil.example.com/1",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": [
+          {
+            "ligne": 1,
+            "colonne": 1,
+            "message": "Adresse complète attendue, commençant par https://."
+          }
+        ]
+      }
+    },
+    {
+      "nom": "Adresse : liste jointe et encodée",
+      "format": "url",
+      "gabarit": "https://outil.example.com/hook?systemes={{etape_systemes}}",
+      "valeurs": {
+        "etape_systemes": ["API", "Base clients"]
+      },
+      "attendu": {
+        "texte": "https://outil.example.com/hook?systemes=API%2C%20Base%20clients",
+        "manquantes": [],
+        "inconnues": [],
+        "erreurs": []
+      }
+    }
+  ]
+}

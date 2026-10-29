@@ -96,6 +96,7 @@ public static partial class VuesExcel
         ["systeme"] = "Systèmes", ["livrable"] = "Livrables", ["etape"] = "Étapes", ["procedure"] = "Validation", ["phase"] = "Phase",
         ["repli"] = "Retour arrière", ["resolution"] = "Résolutions", ["approbation"] = "Approbations", ["gonogo"] = "Go / no-go",
         ["recette"] = "Recette", ["piece"] = "Pièces jointes", ["bilan"] = "Bilan", ["communication"] = "Communication",
+        ["api"] = "API externes",
     };
 
     /// <summary>Famille d'un type d'événement : « etape.reussie » → « etape » (approbateurs et approbations → approbation).</summary>

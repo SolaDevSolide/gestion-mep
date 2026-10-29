@@ -91,6 +91,10 @@ Les variables se règlent dans `.env`, lu par `docker-compose.yml`. Celles marqu
 | `HTTPS_OBLIGATOIRE` (console) | `true` | `false` : mode d'essai, la session fonctionne aussi en http simple (voir [Essayer depuis un autre poste](#essayer-depuis-un-autre-poste-sans-https)). Les mots de passe circulent alors en clair. |
 | `FLUX_MAX` (console) | `1000` | Écrans suivis en temps réel en même temps sur le serveur (20 au plus par compte). Au-delà, l'écran se met à jour à la reconnexion suivante. |
 | `CONNEXIONS_PAR_MINUTE` (console) | `20` | Tentatives de connexion autorisées par minute et par adresse IP. Au-delà : refus temporaire. Un compte est en plus bloqué quelques minutes, depuis l'adresse qui a échoué, après 5 échecs consécutifs. |
+| `API_RESEAUX_AUTORISES` (console) | vide | Réseaux internes (CIDR, séparés par des virgules) que les [connexions aux API externes](API-externes.md) peuvent joindre. Vide : aucune adresse interne. Voir [Réseau sortant](Exploiter.md#réseau-sortant-des-connexions-aux-api). |
+| `API_PROXY` (console) | vide | Proxy sortant des connexions aux API externes vers Internet (`http://proxy.entreprise.fr:3128`). |
+| `API_APPELS_CONSERVATION_JOURS` (console) | `90` | Conservation du détail des appels aux API externes, en jours. |
+| `API_ENVOIS_ACTIFS` (console) | `true` | `false` : les appels aux API externes restent en file sans partir (serveur de recette, restauration à vérifier). |
 
 **Charte visuelle** (facultatif) : pour donner à l'application les couleurs de l'entreprise dès l'installation, poser un fichier `charte.json` à côté de `docker-compose.yml` et décommenter la ligne `./charte.json:/etc/gestion-mep/charte.json:ro` du service `app`. Format, exemple et commandes : [Exploiter](Exploiter.md#charte-visuelle). Les administrateurs peuvent aussi tout régler dans la console (onglet Charte visuelle), sans fichier.
 
@@ -119,6 +123,7 @@ Pour un déploiement sans Docker Compose (Kubernetes, ECS…) :
 | `Connexion__TentativesParMinute` | Voir `CONNEXIONS_PAR_MINUTE`. |
 | `MisesAJour__Verifier` | Voir `VERIFIER_MISES_A_JOUR`. `MisesAJour__Depot` (`SolaDevSolide/gestion-mep`) et `MisesAJour__IntervalleHeures` (`12`) changent le dépôt consulté et la fréquence. |
 | `Signalement__Lien` | Voir `LIEN_SIGNALEMENT`. |
+| `ConnexionsApi__ReseauxAutorises`, `ConnexionsApi__Proxy`, `ConnexionsApi__ConservationJours`, `ConnexionsApi__EnvoisActifs` | Voir `API_RESEAUX_AUTORISES`, `API_PROXY`, `API_APPELS_CONSERVATION_JOURS`, `API_ENVOIS_ACTIFS`. Une autorité de certification interne se déclare avec `SSL_CERT_DIR` (voir [Exploiter](Exploiter.md#autorité-de-certification-interne)). |
 | `MisesAJour__Dossier` | Dossier partagé avec le service de mise à jour (`/data/mise-a-jour`, volume `mise-a-jour`). |
 | `CHARTE_FICHIER` (ou `Charte__Fichier`) | Fichier `charte.json` de la charte visuelle, s'il n'est pas monté sur `/etc/gestion-mep/charte.json`. |
 | `Surveillance__Activer` | `true` par défaut : bascule automatique en retour arrière quand l'échéance d'une MEP est dépassée. Ne pas désactiver en production. |

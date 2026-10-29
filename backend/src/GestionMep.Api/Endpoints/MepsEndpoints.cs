@@ -460,6 +460,8 @@ public static class MepsEndpoints
                             await ctx.Response.WriteAsync($"event: presence\ndata: {JsonSerializer.Serialize(diffuseur.Presences(id), JsonSerializerOptions.Web)}\n\n", ct);
                         if (envoi.Verrous)
                             await ctx.Response.WriteAsync($"event: verrous\ndata: {JsonSerializer.Serialize(diffuseur.Verrous(id), JsonSerializerOptions.Web)}\n\n", ct);
+                        if (envoi.Appels)
+                            await ctx.Response.WriteAsync("event: appels\ndata: {}\n\n", ct);
                     }
                     catch (OperationCanceledException) when (!ct.IsCancellationRequested)
                     {

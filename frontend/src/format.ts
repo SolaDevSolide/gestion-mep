@@ -112,6 +112,7 @@ export const LIBELLE_FAMILLE_EVENEMENT: Record<string, string> = {
   piece: 'Pièces jointes',
   bilan: 'Bilan',
   communication: 'Communication',
+  api: 'API externes',
 };
 
 export function familleEvenement(type: string): string {

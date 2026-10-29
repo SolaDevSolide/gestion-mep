@@ -8,6 +8,7 @@ import { MepContext } from '../../mepContext';
 import { PresenceProvider } from '../../presence';
 import { etape, mep } from '../../test/fabrique';
 import type { Etape, Evenement, Mep, Presence } from '../../types';
+import { ToastProvider } from '../../ui/Toast';
 import { TooltipProvider } from '../../ui/Tooltip';
 import VueEnsembleTab from './VueEnsembleTab';
 
@@ -17,6 +18,8 @@ vi.mock('../../api', async (importOriginal) => ({
     catalogueSystemes: vi.fn(async () => []),
     resolutions: vi.fn(async () => []),
     journal: vi.fn(async () => []),
+    connexionsMep: vi.fn(async () => ({ envois: [], echecs: [], peutEnvoyer: false })),
+    renvoyerAppelMep: vi.fn(async () => ({ appelId: 'a2' })),
   },
 }));
 // Le graphe (React Flow) a sa propre couverture : ici, ce qu'il reçoit et ce que la vue place autour de lui.
@@ -107,7 +110,9 @@ function rendre(m: Mep, autres: Presence[] = []) {
       <TooltipProvider>
         <PresenceProvider value={{ autres, declarer: vi.fn() }}>
           <MepContext.Provider value={{ mep: m, run: vi.fn() }}>
-            <VueEnsembleTab />
+            <ToastProvider>
+              <VueEnsembleTab />
+            </ToastProvider>
           </MepContext.Provider>
         </PresenceProvider>
       </TooltipProvider>
@@ -161,6 +166,35 @@ describe('VueEnsembleTab : vue d’ensemble d’une MEP lancée (#61)', () => {
     expect(blocages).toHaveTextContent('HTTP 502 au démarrage');
     expect(blocages).toHaveTextContent('Bob');
     expect(blocages).toHaveTextContent('Bloque 2 étapes : E0004, E0005');
+  });
+
+  it('un envoi à une API externe en échec est signalé, avec « Renvoyer » pour le pilote', async () => {
+    vi.mocked(api.connexionsMep).mockResolvedValueOnce({
+      envois: [],
+      peutEnvoyer: true,
+      echecs: [
+        {
+          appelId: 'a1',
+          connexionId: 'c1',
+          connexion: 'Canal Teams Exploitation',
+          libelleEvenement: 'Étape en échec',
+          resume: 'E0003 en échec',
+          code: 503,
+          tentatives: 3,
+          erreur: 'Service indisponible',
+          quand: min(35),
+          renvoiEnCours: false,
+        },
+      ],
+    });
+    rendre(lancee());
+    const blocages = await screen.findByRole('region', { name: 'Blocages et échecs' });
+    expect(await within(blocages).findByText('Canal Teams Exploitation')).toBeInTheDocument();
+    expect(blocages).toHaveTextContent('Étape en échec : 503 après 3 tentatives');
+    expect(blocages).toHaveTextContent('Service indisponible');
+    expect(within(blocages).getByText('2')).toHaveClass('bg-danger-solid');
+    await userEvent.click(within(blocages).getByRole('button', { name: 'Renvoyer' }));
+    expect(api.renvoyerAppelMep).toHaveBeenCalledWith('m1', 'a1');
   });
 
   it('rien de bloquant : compteur neutre', async () => {

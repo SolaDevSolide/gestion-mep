@@ -24,7 +24,12 @@ public static partial class LigneDeCommande
         IdentifiantOuPrefixe(texte, await db.Meps.AsNoTracking().Select(m => m.Id).ToListAsync(), "MEP")
             ?? throw ErreurHttp.NonTrouve($"MEP « {texte} » introuvable (gestion-mep meps lister).");
 
-    private static ServiceMep ServiceMep(MepDbContext db, IConfiguration config) => new(db, TimeProvider.System, new DiffuseurMep(config));
+    /// <summary>
+    /// Service des MEP de la ligne de commande : les événements écrits (MEP annulée, pilote changé…) mettent en file les appels
+    /// des connexions aux API externes comme depuis l'application ; le serveur les envoie à son prochain passage.
+    /// </summary>
+    private static ServiceMep ServiceMep(MepDbContext db, IConfiguration config) =>
+        new(db, TimeProvider.System, new DiffuseurMep(config), ServiceConnexionsCli(db, config));
 
     private static string LibellePhase(Mep m) => m.EstModele ? "modèle" : m.Phase switch
     {

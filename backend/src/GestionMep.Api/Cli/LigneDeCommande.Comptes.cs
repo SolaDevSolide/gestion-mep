@@ -320,11 +320,11 @@ public static partial class LigneDeCommande
     }
 
     /// <summary>Secret depuis l'entrée standard redirigée (fichier, tube), sinon saisi au clavier sans écho.</summary>
-    private static string LireSecret()
+    private static string LireSecret(string invite = "Secret client")
     {
         if (Console.IsInputRedirected) return (Console.In.ReadToEnd()).Trim();
         if (S.NonInteractif) throw ErreurHttp.Saisie("--secret-stdin : rien à lire sur l'entrée standard (passer le secret par un tube ou un fichier : < secret.txt).");
-        Console.Error.Write("Secret client : ");
+        Console.Error.Write($"{invite} : ");
         var saisie = new System.Text.StringBuilder();
         while (true)
         {

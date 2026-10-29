@@ -31,7 +31,7 @@ stateDiagram-v2
 > [!IMPORTANT]
 > Une fois le **point de non-retour** franchi, les flèches vers « Retour arrière » et « Préparation » disparaissent : on ne peut plus que corriger en avant (étapes correctives), passer en recette, et en dernier recours clôturer en échec.
 
-Les actions rares sont dans le menu **« ⋯ Plus d'actions »** de l'en-tête de la MEP : reporter, annuler, passer le pilotage, pilotage de secours et, pour un administrateur, supprimer définitivement. Une action impossible y reste visible, grisée, avec la raison (« Revenir d'abord en préparation », « Impossible après un Go : annuler plutôt »).
+Les actions rares sont dans le menu **« ⋯ Plus d'actions »** de l'en-tête de la MEP : reporter, annuler, passer le pilotage, pilotage de secours, envoyer un message aux [API externes](API-externes.md#envoyer-depuis-une-mep) prévues pour cela et, pour un administrateur, supprimer définitivement. Une action impossible y reste visible, grisée, avec la raison (« Revenir d'abord en préparation », « Impossible après un Go : annuler plutôt »).
 
 ## Préparation
 

@@ -29,7 +29,8 @@ function lireMaj(texte: string): Maj | null {
  * `surReconnexion` est appelé à chaque réouverture, car des mises à jour ont pu passer pendant la coupure.
  * Le flux envoie aussi la présence (`event: presence`, liste des personnes qui ont la MEP ouverte) : `surPresence`.
  * `surOuverture` est appelé à chaque ouverture, la première comprise (pour redéclarer les éléments de l'onglet).
- * Le flux envoie enfin les verrous d'édition des étapes (`event: verrous`) : `surVerrous`.
+ * Le flux envoie enfin les verrous d'édition des étapes (`event: verrous`) : `surVerrous`, et la fin d'un envoi à une
+ * API externe (`event: appels`, sans changement de version) : `surAppels`.
  * `surMaj` reçoit la version et l'événement entier (`Maj` : cartes du suivi à relire).
  * Renvoie la fonction qui ferme le flux.
  */
@@ -42,6 +43,8 @@ export function ouvrirFlux(
     surOuverture?: () => void;
     /** Verrous d'édition des étapes (`event: verrous`, liste complète à chaque changement). */
     surVerrous?: (verrous: unknown) => void;
+    /** Envoi à une API externe terminé (`event: appels`, #111) : ligne de journal et échecs à relire. */
+    surAppels?: () => void;
   } = {},
 ): () => void {
   let es: EventSource | null = null;
@@ -73,6 +76,7 @@ export function ouvrirFlux(
         /* événement illisible */
       }
     });
+    courant.addEventListener('appels', () => options.surAppels?.());
     courant.addEventListener('maj', (ev) => {
       try {
         const maj = lireMaj((ev as MessageEvent<string>).data);

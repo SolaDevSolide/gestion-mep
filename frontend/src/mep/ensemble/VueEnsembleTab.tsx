@@ -10,9 +10,11 @@ import {
   ListChecks,
   Play,
   Radio,
+  Send,
   Siren,
   Timer,
   TriangleAlert,
+  Webhook,
   Wrench,
   XCircle,
   type LucideIcon,
@@ -27,15 +29,19 @@ import { useAutresPresents } from '../../presence';
 import { useReferentiels, type DonneePartagee } from '../../referentiels';
 import { SqueletteEnsemble, SqueletteEvenements } from './Squelettes';
 import { metaPhase } from '../../statuts';
-import type { Etape, Evenement, Mep } from '../../types';
+import type { EchecEnvoi, Etape, Evenement, Mep } from '../../types';
+import { api } from '../../api';
 import { Alerte } from '../../ui/Alerte';
 import { Apparition } from '../../ui/Apparition';
 import { Avatar } from '../../ui/Avatar';
+import { Button } from '../../ui/Button';
 import { ErreurChargement } from '../../ui/ErreurChargement';
 import { cn } from '../../ui/cn';
 import { ProgressBar } from '../../ui/ProgressBar';
 import { StatusPill } from '../../ui/StatusPill';
 import { TON } from '../../ui/tons';
+import { useToast } from '../../ui/Toast';
+import { useConnexionsMep } from '../connexionsMep';
 import { GrapheLibre } from '../graphe/GrapheLibre';
 import { sectionsDuPlan } from '../graphe/sections';
 import { useJournalMep } from '../preparation/donnees';
@@ -242,7 +248,10 @@ function Blocages({ mep, etapes, maintenant }: { mep: Mep; etapes: Etape[]; main
   const bloquees = causesBlocage(etapes);
   const echecs = etapes.filter((e) => e.etat === 'Echec');
   const depassements = etapes.filter((e) => depasse(e, maintenant));
-  const nb = echecs.length + depassements.length;
+  // Envois aux API externes définitivement en échec (#111) : relus à chaque version et à chaque fin d'envoi.
+  const connexions = useConnexionsMep(mep.id, mep.estModele, mep.version);
+  const envois = connexions.donnees?.echecs ?? [];
+  const nb = echecs.length + depassements.length + envois.length;
   return (
     <section aria-label="Blocages et échecs" className="grid gap-2">
       <TitrePanneau nombre={nb} ton={nb > 0 ? 'danger' : undefined}>
@@ -313,7 +322,77 @@ function Blocages({ mep, etapes, maintenant }: { mep: Mep; etapes: Etape[]; main
           </div>
         );
       })}
+      {envois.map((x) => (
+        <EchecEnvoiCarte
+          key={x.appelId}
+          mepId={mep.id}
+          echec={x}
+          peutRenvoyer={connexions.donnees?.peutEnvoyer ?? false}
+          onRenvoye={connexions.recharger}
+        />
+      ))}
     </section>
+  );
+}
+
+/**
+ * Envoi à une API externe définitivement en échec : le pilote ne doit pas croire l'outil prévenu. « Renvoyer » (pilote,
+ * suppléants, administrateurs) repart avec le même message ; la carte disparaît au premier envoi réussi ou à la clôture.
+ */
+function EchecEnvoiCarte({
+  mepId,
+  echec: x,
+  peutRenvoyer,
+  onRenvoye,
+}: {
+  mepId: string;
+  echec: EchecEnvoi;
+  peutRenvoyer: boolean;
+  onRenvoye: () => void;
+}) {
+  const toast = useToast();
+  const resultat = `${x.code ?? 'pas de réponse'}${x.tentatives > 1 ? ` après ${x.tentatives} tentatives` : ''}`;
+  return (
+    <div className="rounded-lg border-l-4 border-l-danger-solid bg-surface px-3 py-2 shadow-sm ring-1 ring-line">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-mono text-xs text-fg-subtle">ENVOI</span>
+        <StatusPill taille="sm" ton={x.renvoiEnCours ? 'wait' : 'danger'} icone={x.renvoiEnCours ? Clock : Webhook}>
+          {x.renvoiEnCours ? 'Renvoi en cours' : 'Échec de l’envoi'}
+        </StatusPill>
+      </div>
+      <p className="mt-0.5 text-sm leading-snug font-semibold">{x.connexion}</p>
+      <p className="mt-0.5 text-ui text-fg-muted">
+        {x.libelleEvenement} : {resultat}
+      </p>
+      {x.erreur && <p className="mt-0.5 line-clamp-2 text-ui [overflow-wrap:anywhere] text-fg-muted">{x.erreur}</p>}
+      <p className="mt-1 text-xs text-fg-subtle tnum">depuis {heure(Date.parse(x.quand))}</p>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {peutRenvoyer && (
+          <Button
+            taille="sm"
+            disabled={x.renvoiEnCours}
+            icone={<Send className="size-3.5" aria-hidden />}
+            action={async () => {
+              try {
+                await api.renvoyerAppelMep(mepId, x.appelId);
+                toast.succes(`Message « ${x.connexion} » renvoyé : le résultat s’inscrira au journal.`);
+                onRenvoye();
+              } catch (e) {
+                toast.erreur(e instanceof Error ? e.message : 'Renvoi impossible.');
+              }
+            }}
+          >
+            Renvoyer
+          </Button>
+        )}
+        <Link
+          to="?onglet=journal"
+          className="inline-flex h-8 items-center px-2 text-xs font-medium text-accent-text hover:underline"
+        >
+          Voir le journal
+        </Link>
+      </div>
+    </div>
   );
 }
 

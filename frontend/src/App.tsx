@@ -16,6 +16,7 @@ import { useToast } from './ui/Toast';
 
 // Pages chargées à la demande : l'écran de connexion n'attend pas le code de l'éditeur, de l'exécution ou de la console.
 const AdminPage = lazy(() => import('./admin/AdminPage'));
+const ConnexionEditeurPage = lazy(() => import('./admin/connexions/ConnexionEditeurPage'));
 const ListeMepPage = lazy(() => import('./pages/ListeMepPage'));
 const ProfilPage = lazy(() => import('./pages/ProfilPage'));
 const MepPage = lazy(() => import('./pages/MepPage'));
@@ -118,6 +119,7 @@ export default function App() {
           <Route path="/meps/:id/rapport" element={page('/meps/:id/rapport', <RapportPage />)} />
           <Route path="/profil" element={page('/profil', <ProfilPage />)} />
           <Route path="/admin" element={page('/admin', <AdminPage />)} />
+          <Route path="/admin/api/:id" element={page('/admin/api/:id', <ConnexionEditeurPage />)} />
           <Route path="/parametres/systemes" element={page('/parametres/systemes', <SystemesPage />)} />
           <Route path="/parametres/systemes/:id" element={page('/parametres/systemes/:id', <SystemeFichePage />)} />
           <Route path="/parametres/resolutions" element={page('/parametres/resolutions', <ResolutionsPage />)} />

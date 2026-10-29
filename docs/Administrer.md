@@ -18,7 +18,7 @@ Il est créé au premier démarrage, sur une base vide, à partir des variables 
 
 ## Console d'administration
 
-Menu « Administration › Console d'administration », visible des seuls administrateurs. Sept onglets.
+Menu « Administration › Console d'administration », visible des seuls administrateurs. Huit onglets.
 
 ### Comptes
 
@@ -86,7 +86,7 @@ En ligne de commande : `gestion-mep sso afficher | configurer | tester | activer
 ### Paramètres
 
 - **Nombre minimum d'approbations** exigées avant le Go (0 = aucune).
-- **Réglages du serveur**, appliqués sans redémarrage : adresse publique, réseaux du reverse proxy, HTTPS obligatoire, tailles et plafonds des pièces jointes, compression des pièces jointes (avec la place qu'elles occupent, voir [Exploiter](Exploiter.md#compression-des-pièces-jointes)), tentatives de connexion par minute, écrans suivis en temps réel, vérification des nouvelles versions, lien « Signaler un problème ou une idée ». Chaque réglage indique d'où vient sa valeur : fichier `.env`, valeur par défaut, ou modifiée dans la console (date et auteur). **Rétablir** revient à la valeur du fichier `.env`. Les mêmes réglages se modifient en ligne de commande (`gestion-mep reglages`, voir [Exploiter](Exploiter.md#modifier-un-réglage)).
+- **Réglages du serveur**, appliqués sans redémarrage : adresse publique, réseaux du reverse proxy, HTTPS obligatoire, tailles et plafonds des pièces jointes, compression des pièces jointes (avec la place qu'elles occupent, voir [Exploiter](Exploiter.md#compression-des-pièces-jointes)), tentatives de connexion par minute, écrans suivis en temps réel, vérification des nouvelles versions, lien « Signaler un problème ou une idée », réseau sortant des connexions aux API externes (réseaux internes autorisés, proxy, historique des appels, envois actifs). Chaque réglage indique d'où vient sa valeur : fichier `.env`, valeur par défaut, ou modifiée dans la console (date et auteur). **Rétablir** revient à la valeur du fichier `.env`. Les mêmes réglages se modifient en ligne de commande (`gestion-mep reglages`, voir [Exploiter](Exploiter.md#modifier-un-réglage)).
 - Rappel des réglages lus seulement au démarrage (port, adresse d'écoute, base de données, démonstration…), à changer dans le fichier `.env`.
 - Lien vers les critères go / no-go.
 
@@ -121,11 +121,17 @@ Chaque enregistrement et chaque retour à la charte par défaut est inscrit au j
 
 En ligne de commande : `gestion-mep charte afficher | exporter | importer | verifier | definir | retablir`.
 
+### API externes
+
+Connexions qui envoient les événements des MEP à d'autres outils (canal Teams ou Slack, outil de tickets, supervision) : liste avec l'état de chaque connexion et son dernier appel, connexions en erreur signalées en tête, derniers appels de toutes les connexions avec leur détail et **Renvoyer**, et éditeur pleine page (requête, message avec les variables des modèles de texte, déclencheurs et filtres, aperçu exact, **Essayer** avant d'enregistrer). Les secrets (adresse secrète, jeton, mot de passe, clé) sont chiffrés et jamais réaffichés. Le mode d'emploi complet est dans [API externes](API-externes.md) ; le réseau sortant (réseaux internes autorisés, proxy, autorité de certification interne) se règle dans l'onglet Paramètres et côté serveur (voir [Exploiter](Exploiter.md#réseau-sortant-des-connexions-aux-api)).
+
+En ligne de commande : `gestion-mep connexions lister | afficher | exporter | importer | secret | activer | desactiver | essayer | appels | renvoyer | supprimer`.
+
 ### Journal
 
-Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, reliés à un autre compte de la même personne ou déliés, équipes créées, modifiées ou supprimées, mots de passe réinitialisés ou changés, paramètres, réglages du serveur, charte visuelle et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, premières connexions refusées parce que le nom donné par Microsoft est déjà celui d'un autre compte, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, environnements, catégories et objets de leur fiche modifiés, catégories par défaut modifiées, résolutions types supprimées, désactivées ou importées, modèles de recette et étapes modèles supprimés, modèles de texte créés, modifiés, rétablis ou supprimés, MEP exportées en ligne de commande, MEP supprimées (avec leur nom et le motif), pilotages de secours (MEP, ancien et nouveau pilote, motif), mises à jour demandées, contrôles des données après une mise à jour ou une importation, réinitialisation de la démonstration. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
+Les 200 derniers événements d'administration : comptes créés, modifiés, désactivés, réactivés, renommés par leur titulaire, reliés à un autre compte de la même personne ou déliés, équipes créées, modifiées ou supprimées, mots de passe réinitialisés ou changés, paramètres, réglages du serveur, charte visuelle et critères go / no-go modifiés, réglages de la connexion unique, comptes liés ou déliés, comptes créés à la première connexion par Microsoft, premières connexions refusées parce que le nom donné par Microsoft est déjà celui d'un autre compte, systèmes du catalogue ajoutés, modifiés, désactivés ou supprimés, environnements, catégories et objets de leur fiche modifiés, catégories par défaut modifiées, résolutions types supprimées, désactivées ou importées, modèles de recette et étapes modèles supprimés, modèles de texte créés, modifiés, rétablis ou supprimés, connexions aux API externes créées, modifiées (« jeton remplacé », jamais la valeur), activées, désactivées, essayées ou supprimées, MEP exportées en ligne de commande, MEP supprimées (avec leur nom et le motif), pilotages de secours (MEP, ancien et nouveau pilote, motif), mises à jour demandées, contrôles des données après une mise à jour ou une importation, réinitialisation de la démonstration. Chaque auteur est suivi de son identifiant, qui ne change jamais. Les actions faites en ligne de commande y apparaissent avec l'auteur « Ligne de commande ».
 
-L'application y signale aussi, avec l'auteur « Application », **20 échecs de connexion en moins d'une heure sur un même compte**, toutes adresses confondues : signe probable qu'on essaie de deviner son mot de passe.
+L'application y signale aussi, avec l'auteur « Application », **20 échecs de connexion en moins d'une heure sur un même compte**, toutes adresses confondues : signe probable qu'on essaie de deviner son mot de passe. Elle y inscrit aussi chaque **envoi à une API externe définitivement en échec** (connexion, MEP, événement et résultat).
 
 En ligne de commande : `gestion-mep journal [--depuis AAAA-MM-JJ] [--limite n] [--type <famille>]` (`--json` pour un script). Les sauvegardes purgées (`sauvegardes.purgees`) et les MEP annulées en ligne de commande (`mep.annulee`) y figurent aussi.
 

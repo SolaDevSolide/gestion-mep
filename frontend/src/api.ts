@@ -81,6 +81,22 @@ import type {
   ReinitialisationDemo,
   EtatSimulation,
   SsoIdentite,
+  Appel,
+  AppelCree,
+  AppelResume,
+  ApercuConnexion,
+  ApercuConnexionSaisie,
+  CatalogueConnexions,
+  ConnexionApi,
+  ConnexionApiResume,
+  ConnexionApiSaisie,
+  ConnexionsMep,
+  EssaiConnexion,
+  EstimationConnexion,
+  EtatAppel,
+  MessageRecu,
+  OrigineAppel,
+  PageAppels,
   SsoLiaison,
   SsoProfil,
   SsoReglages,
@@ -611,4 +627,36 @@ export const api = {
   changerPilote: (id: string, s: PilotageSaisie) => post<Mep>(`/meps/${id}/pilotage`, s),
   /** Suppression définitive (administrateur, MEP jamais lancée) : motif et nom de la MEP saisi pour confirmer. */
   supprimerMep: (id: string, s: SuppressionMepSaisie) => del<void>(`/meps/${id}`, s),
+
+  // Connexions aux API externes (#111) : console (administrateurs), puis côté MEP.
+  connexionsApi: () => get<ConnexionApiResume[]>('/admin/connexions'),
+  catalogueConnexions: () => get<CatalogueConnexions>('/admin/connexions/catalogue'),
+  connexionApi: (id: string) => get<ConnexionApi>(`/admin/connexions/${id}`),
+  creerConnexionApi: (s: ConnexionApiSaisie) => post<ConnexionApi>('/admin/connexions', s),
+  modifierConnexionApi: (id: string, s: ConnexionApiSaisie) => put<ConnexionApi>(`/admin/connexions/${id}`, s),
+  supprimerConnexionApi: (id: string) => del<void>(`/admin/connexions/${id}`),
+  activerConnexionApi: (id: string, active: boolean) =>
+    post<ConnexionApi>(`/admin/connexions/${id}/${active ? 'activer' : 'desactiver'}`),
+  apercuConnexion: (s: ApercuConnexionSaisie) =>
+    request<ApercuConnexion>('POST', '/admin/connexions/apercu', s, { silencieux: true }),
+  essayerConnexion: (s: ApercuConnexionSaisie) => post<EssaiConnexion>('/admin/connexions/essai', s),
+  estimerConnexion: (s: ConnexionApiSaisie) =>
+    request<EstimationConnexion>('POST', '/admin/connexions/estimation', s, { silencieux: true }),
+  appelsApi: (
+    f: { connexion?: string; etat?: EtatAppel; origine?: OrigineAppel; avant?: string; limite?: number } = {},
+  ) =>
+    get<PageAppels>(
+      `/admin/connexions/appels${requete({ connexion: f.connexion, etat: f.etat, origine: f.origine, avant: f.avant, limite: f.limite ? String(f.limite) : undefined })}`,
+    ),
+  appelApi: (id: string) => get<Appel>(`/admin/connexions/appels/${id}`),
+  renvoyerAppelApi: (id: string) => post<AppelCree>(`/admin/connexions/appels/${id}/renvoyer`),
+  connexionsMep: (id: string) => get<ConnexionsMep>(`/meps/${id}/connexions`, { silencieux: true }),
+  apercuEnvoiMep: (id: string, cid: string, commentaire: string) =>
+    post<ApercuConnexion>(`/meps/${id}/connexions/${cid}/apercu`, { commentaire }),
+  envoyerConnexionMep: (id: string, cid: string, commentaire: string) =>
+    post<AppelCree>(`/meps/${id}/connexions/${cid}/envoyer`, { commentaire }),
+  appelMep: (id: string, appelId: string) => get<AppelResume>(`/meps/${id}/appels/${appelId}`, { silencieux: true }),
+  renvoyerAppelMep: (id: string, appelId: string) => post<AppelCree>(`/meps/${id}/appels/${appelId}/renvoyer`),
+  recepteurDemo: () => get<MessageRecu[]>('/demo/recepteur'),
+  viderRecepteurDemo: () => del<void>('/demo/recepteur'),
 };

@@ -9,6 +9,7 @@ import {
   LifeBuoy,
   OctagonAlert,
   Plus,
+  Send,
   Trash2,
   Wrench,
   XCircle,
@@ -22,7 +23,7 @@ import { etapesDuPlan, nomParticipant } from '../domaine';
 import { formatDate, formatJourLong, LIBELLE_CRITICITE, LIBELLE_ETAT } from '../format';
 import { useMep } from '../mepContext';
 import { useAutresPresents } from '../presence';
-import type { Criticite, Etape, Mep, CompteAnnuaire } from '../types';
+import type { Criticite, Etape, Mep, CompteAnnuaire, ConnexionManuelle } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { BoutonIcone, Button, type TailleBouton } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
@@ -32,6 +33,8 @@ import { Field, Input, Select, Textarea } from '../ui/Input';
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from '../ui/Menu';
 import { SqueletteLignes } from '../ui/Squelette';
 import { useToast } from '../ui/Toast';
+import { useConnexionsMep } from './connexionsMep';
+import { EnvoyerConnexionDialog } from './EnvoyerConnexionDialog';
 import { estSimplifiee } from './typeMep';
 
 /*
@@ -98,17 +101,21 @@ type DialogueCycle = 'reporter' | 'annuler' | 'pilotage' | 'supprimer' | null;
  * Menu « ⋯ Plus d'actions » de l'en-tête, pour les actions rares. Il n'apparaît que s'il propose au moins une action :
  * reporter (pilote, préparation), annuler (pilote ou administrateur ; grisé après un Go tant que la MEP n'est pas revenue en
  * préparation), passer le pilotage (pilote, après le Go), pilotage de secours (administrateur qui ne pilote pas, après le
- * Go) et, pour un administrateur, la suppression définitive (grisée après un Go).
+ * Go), les envois aux API externes proposés depuis une MEP (pilote, suppléants, administrateurs ; clôturée comprise) et,
+ * pour un administrateur, la suppression définitive (grisée après un Go).
  */
 export function MenuPlusActions() {
   const { mep } = useMep();
   const [dialogue, setDialogue] = useState<DialogueCycle>(null);
+  const [envoi, setEnvoi] = useState<ConnexionManuelle | null>(null);
+  const connexions = useConnexionsMep(mep.id, mep.estModele, null);
+  const envois = connexions.donnees?.peutEnvoyer ? connexions.donnees.envois : [];
   const d = mep.droits;
   const termine = mep.phase === 'Cloturee' || mep.phase === 'Annulee';
   const voitAnnuler = (d.estPilote || d.estAdmin) && !mep.estModele && !termine;
   const passation = d.peutChangerPilote && d.estPilote;
   const secours = d.peutChangerPilote && !d.estPilote;
-  const rien = !d.peutReporter && !voitAnnuler && !d.peutChangerPilote && !d.estAdmin;
+  const rien = !d.peutReporter && !voitAnnuler && !d.peutChangerPilote && !d.estAdmin && envois.length === 0;
   if (rien) return null;
   const ouvrir = (x: DialogueCycle) => () => setDialogue(x);
   const premiers = d.peutReporter || voitAnnuler || passation || secours;
@@ -157,9 +164,24 @@ export function MenuPlusActions() {
               onSelect={ouvrir('pilotage')}
             />
           )}
-          {d.estAdmin && (
+          {envois.length > 0 && (
             <>
               {premiers && <MenuSeparator />}
+              <MenuLabel>Envoyer</MenuLabel>
+              {envois.map((c) => (
+                <ItemMenu
+                  key={c.id}
+                  icone={Send}
+                  libelle={`${c.libelle || c.nom}…`}
+                  description={c.nom}
+                  onSelect={() => setEnvoi(c)}
+                />
+              ))}
+            </>
+          )}
+          {d.estAdmin && (
+            <>
+              {(premiers || envois.length > 0) && <MenuSeparator />}
               <MenuLabel>Administration</MenuLabel>
               <ItemMenu
                 icone={Trash2}
@@ -181,6 +203,7 @@ export function MenuPlusActions() {
       <AnnulerDialog open={dialogue === 'annuler'} onOpenChange={(o) => !o && setDialogue(null)} />
       <PilotageDialog open={dialogue === 'pilotage'} onOpenChange={(o) => !o && setDialogue(null)} />
       <SuppressionDialog open={dialogue === 'supprimer'} onOpenChange={(o) => !o && setDialogue(null)} />
+      <EnvoyerConnexionDialog mepId={mep.id} connexion={envoi} onOpenChange={(o) => !o && setEnvoi(null)} />
     </>
   );
 }

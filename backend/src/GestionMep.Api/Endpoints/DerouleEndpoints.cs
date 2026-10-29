@@ -102,7 +102,8 @@ public static class DerouleEndpoints
             if (c.Resultat is null) throw ErreurHttp.Saisie("Le résultat (Conforme ou Echec) est obligatoire.");
             Regles.ValiderEtapeTest(mep, f, t, c.Resultat.Value, ServiceMep.Texte(c.Observation), acteur.Id, acteur.EstAdmin, svc.Maintenant);
             var resultat = t.Resultat == ResultatControle.Conforme ? "conforme" : "en échec";
-            return await svc.Enregistrer(mep, acteur, "recette.test", $"{Regles.NomRecette(f)} étape {t.Ordre} {resultat} : {t.Observation}");
+            return await svc.Enregistrer(mep, acteur, [new ServiceMep.Evenement("recette.test", $"{Regles.NomRecette(f)} étape {t.Ordre} {resultat} : {t.Observation}",
+                Declencheur: t.Resultat == ResultatControle.Echec ? DeclencheursConnexion.RecetteNonConforme : null)]);
         })));
 
         api.MapPost("/meps/{id:guid}/fiches-recette/{fid:guid}/refaire", async (Guid id, Guid fid, ClaimsPrincipal user, ServiceMep svc) => Results.Ok(await svc.Modifier(id, async mep =>

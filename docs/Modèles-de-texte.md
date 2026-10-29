@@ -7,6 +7,8 @@ Les équipes envoient des courriels à chaque MEP : annonce aux utilisateurs, ra
 - **Dans une MEP** : Préparation › section 8 « Communication », carte « Textes à copier », ou le bouton **Textes à copier** de l'en-tête, à toutes les phases (le rappel et le compte rendu servent pendant et après l'exécution).
 - **Paramètres › Modèles de texte** : les modèles de chaque équipe, à créer, modifier, dupliquer ou supprimer.
 
+Les mêmes variables remplissent aussi les messages des [connexions aux API externes](API-externes.md), qui les envoient automatiquement à un autre outil (Teams, Slack, outil de tickets…), avec en plus les variables du groupe [Événement](#événement).
+
 On choisit l'équipe dont on prend les modèles. Par défaut, c'est l'équipe du pilote (s'il en a plusieurs, la première par ordre alphabétique) ; à défaut, une équipe de la personne connectée, puis la première équipe.
 
 ## Copier un texte
@@ -141,6 +143,29 @@ Mêmes chiffres que la [vue d'ensemble](Suivre-une-MEP.md) au moment où le text
 | `{{contact_support}}` | Contact support | Contact support de l'équipe |
 | `{{signature}}` | Signature | Signature de l'équipe (à défaut « L'équipe {nom} ») |
 
+### Événement
+
+Seulement dans les messages des [connexions aux API externes](API-externes.md#3-message) : l'événement qui déclenche l'appel.
+
+| Variable | Libellé | Contenu |
+|---|---|---|
+| `{{evenement}}` | Événement | Libellé de l'événement. Ex. « Étape en échec », « Point d'étape » pour un envoi depuis la MEP |
+| `{{evenement_detail}}` | Détail | La ligne du journal de la MEP. Ex. « E0005 en échec : erreur 403 au moment de la purge du cache » |
+| `{{auteur}}` | Auteur | Personne qui a fait l'action (« Système » pour un événement automatique, comme l'échéance) |
+| `{{quand}}` | Date et heure | Date et heure de l'événement, dans le fuseau de la MEP. Ex. « jeudi 29 octobre 2026 à 9h16 » |
+| `{{quand_iso}}` | Date ISO 8601 | Date et heure de l'événement pour les outils, en UTC. Ex. « 2026-10-29T08:16:24Z » |
+| `{{etape}}` | Étape | Code et action de l'étape. Ex. « E0005 Publication de l'écran de paiement ». Vide hors événements d'étape |
+| `{{etape_systemes}}` | Systèmes de l'étape | Systèmes de l'étape (liste). Vide hors événements d'étape |
+| `{{etape_criticite}}` | Criticité de l'étape | « faible », « modérée », « élevée » ou « bloquante ». Vide hors événements d'étape |
+| `{{motif}}` | Motif | Motif du no-go, du report, de l'annulation, du retour arrière ou du passage de pilotage |
+| `{{phase}}` | Phase de la MEP | « préparation », « exécution », « recette », « retour arrière », « clôturée » ou « annulée » |
+| `{{commentaire}}` | Commentaire | Saisi lors d'un envoi depuis la MEP ; vide pour un envoi automatique |
+| `{{essai}}` | Essai | « [Essai] » (suivi d'une espace) lors d'un essai depuis l'éditeur, vide sinon : à mettre en tête d'un titre |
+| `{{evenement_cle}}` | Clé de l'événement | Pour les outils. Ex. « etape.echec », « gonogo.go », « envoi.manuel » |
+| `{{mep_id}}` | Identifiant de la MEP | Identifiant unique de la MEP, pour les outils |
+| `{{appel_id}}` | Identifiant de l'appel | Identifiant unique de l'appel (aussi dans l'en-tête `X-Gestion-Mep-Appel`), pour écarter les doublons |
+| `{{donnees_json}}` | Toutes les variables (JSON) | Objet JSON de toutes les variables, clé par clé (`null` quand l'information manque). Format JSON, à écrire hors guillemets |
+
 Les dates et heures sont dans le fuseau horaire de la MEP.
 
 ## Pour les développeurs
@@ -148,7 +173,7 @@ Les dates et heures sont dans le fuseau horaire de la MEP.
 Une fonctionnalité qui ajoute à la MEP une information utile dans un courriel ajoute sa variable dans la même modification :
 
 1. une ligne dans `VariablesTexte.Toutes` et sa valeur dans `VariablesTexte.Valeurs` (`backend/src/GestionMep.Domain/TextesCommunication.cs`) ;
-2. une ligne dans le tableau ci-dessus, dans le bon groupe (un test vérifie que chaque variable y figure) ;
+2. une ligne dans le tableau ci-dessus, dans le bon groupe (un test vérifie que chaque variable y figure) ; une variable propre aux connexions aux API externes va dans `VariablesEvenement.Toutes` (`DeclencheursConnexion.cs`) et dans le groupe Événement ;
 3. si besoin, son emploi dans un modèle fourni (`ModelesTexteFournis`) : les copies déjà faites dans les équipes ne changent pas, elles reprennent le nouveau texte avec « Rétablir le texte fourni ».
 
 L'API est décrite dans [API](API.md).

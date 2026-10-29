@@ -47,6 +47,13 @@ ADMIN_MOT_DE_PASSE=
 # VERIFIER_MISES_A_JOUR=true
 # (console) Lien « Signaler un problème ou une idée » du menu utilisateur (vide : masqué)
 # LIEN_SIGNALEMENT=https://github.com/SolaDevSolide/gestion-mep/issues/new/choose
+# (console) Connexions aux API externes : réseaux internes qu'elles peuvent joindre (CIDR, séparés par des virgules ; vide :
+# aucune adresse interne), proxy sortant (vide : aucun), durée de l'historique des appels en jours, et interrupteur général
+# des envois (false : les appels restent en file sans partir, par exemple après une restauration)
+# API_RESEAUX_AUTORISES=10.20.0.0/16
+# API_PROXY=http://proxy.entreprise.fr:3128
+# API_APPELS_CONSERVATION_JOURS=90
+# API_ENVOIS_ACTIFS=true
 # Charte visuelle (couleurs de l'interface et des exports Excel) : fichier charte.json facultatif, à côté de ce fichier
 # (Linux : /etc/gestion-mep/charte.json ; Windows : C:\ProgramData\GestionMep\charte.json). Relu sans redémarrage ;
 # la charte enregistrée dans la console (onglet Charte visuelle) le remplace. Autre emplacement :

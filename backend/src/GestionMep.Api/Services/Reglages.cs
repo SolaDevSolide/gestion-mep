@@ -44,6 +44,7 @@ public static class Reglages
     private const string GroupePieces = "Pièces jointes";
     private const string GroupeConnexions = "Connexions";
     private const string GroupeMisesAJour = "Mises à jour et signalement";
+    private const string GroupeApi = "API externes";
 
     public static readonly IReadOnlyList<DefinitionReglage> Catalogue =
     [
@@ -79,6 +80,17 @@ public static class Reglages
         new("lien-signalement", "Signalement:Lien", GroupeMisesAJour, "Lien « Signaler un problème ou une idée »",
             "Adresse ouverte depuis le menu utilisateur, par exemple un outil interne. Vide : lien masqué.",
             TypeReglage.Adresse, ApplicationEndpoints.LienSignalementParDefaut),
+        new("api-reseaux-autorises", ReseauSortant.CleReseaux, GroupeApi, "Réseaux internes autorisés",
+            "Adresses internes que les connexions aux API externes peuvent joindre (CIDR, séparés par des virgules), par exemple 10.20.0.0/16. Vide : aucune adresse interne (privée, locale, de métadonnées) ; http n'est accepté que vers ces réseaux.",
+            TypeReglage.Reseaux, ""),
+        new("api-proxy", ReseauSortant.CleProxy, GroupeApi, "Proxy sortant",
+            "Proxy par lequel passent les appels vers Internet, par exemple http://proxy.entreprise.fr:3128. Les réseaux internes autorisés passent sans lui. Vide : aucun proxy.",
+            TypeReglage.Adresse, ""),
+        new("api-appels-conservation-jours", EnvoiAppelsApi.CleConservation, GroupeApi, "Historique des appels (jours)",
+            "Durée de conservation du détail des appels aux API externes, de 1 à 3650 jours.", TypeReglage.Entier, "90", 1, 3650),
+        new("api-envois-actifs", EnvoiAppelsApi.CleEnvoisActifs, GroupeApi, "Envois actifs",
+            "Désactivé, les appels sont mis en file sans partir : utile après une restauration ou sur un serveur de recette. Ils partent à la réactivation.",
+            TypeReglage.Booleen, "true"),
     ];
 
     public static DefinitionReglage Trouver(string nom) =>
@@ -128,6 +140,12 @@ public static class Reglages
                 break;
             case "url-publique" when Uri.TryCreate(valeur, UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttp && !u.IsLoopback:
                 alertes.Add("Adresse en http : Microsoft refuse ce type d'adresse de retour, la connexion Microsoft ne fonctionnera pas.");
+                break;
+            case "api-reseaux-autorises" when valeur.Split(',').Any(r => r.Trim().EndsWith("/0", StringComparison.Ordinal)):
+                alertes.Add("Toutes les adresses sont autorisées : les connexions aux API externes peuvent joindre tout le réseau interne, y compris les adresses de métadonnées.");
+                break;
+            case "api-envois-actifs" when valeur == "false":
+                alertes.Add("Les appels aux API externes restent en file et ne partent pas.");
                 break;
             case "proxy-reseaux" when valeur.Split(',').Any(r => r.Trim().EndsWith("/0", StringComparison.Ordinal)):
                 alertes.Add("Tout le monde peut choisir son adresse IP : la limite des tentatives de connexion par adresse devient contournable.");

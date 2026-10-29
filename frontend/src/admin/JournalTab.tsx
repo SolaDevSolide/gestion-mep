@@ -47,6 +47,13 @@ export const LIBELLE_EVENEMENT_ADMIN: Record<string, string> = {
   'modele-texte.supprime': 'Modèle de texte supprimé',
   'mep.supprimee': 'MEP supprimée',
   'mep.pilotage-secours': 'Pilotage de secours',
+  'connexion-api.creee': 'Connexion créée',
+  'connexion-api.modifiee': 'Connexion modifiée',
+  'connexion-api.activee': 'Connexion activée',
+  'connexion-api.desactivee': 'Connexion désactivée',
+  'connexion-api.supprimee': 'Connexion supprimée',
+  'connexion-api.essayee': 'Connexion essayée',
+  'connexion-api.echec': 'Appel à une API en échec',
 };
 
 export function libelleEvenementAdmin(type: string): string {
@@ -59,10 +66,18 @@ function tonEvenement(type: string): Ton | undefined {
     type === 'critere.supprime' ||
     type === 'equipe.supprimee' ||
     type === 'mep.supprimee' ||
-    type === 'donnees.controle-echoue'
+    type === 'donnees.controle-echoue' ||
+    type === 'connexion-api.supprimee' ||
+    type === 'connexion-api.echec'
   )
     return 'danger';
-  if (type === 'connexion.echecs' || type === 'demo.reinitialisee' || type === 'mep.pilotage-secours') return 'warn';
+  if (
+    type === 'connexion.echecs' ||
+    type === 'demo.reinitialisee' ||
+    type === 'mep.pilotage-secours' ||
+    type === 'connexion-api.desactivee'
+  )
+    return 'warn';
   if (type === 'compte.mdp-reinitialise') return 'warn';
   if (type === 'compte.cree' || type === 'compte.reactive') return 'ok';
   return undefined;

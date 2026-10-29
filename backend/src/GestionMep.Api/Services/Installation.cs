@@ -87,6 +87,10 @@ public static class FichierInstallation
         ["FLUX_MAX"] = "Flux:ConnexionsMax",
         ["HTTPS_OBLIGATOIRE"] = "Securite:HttpsObligatoire",
         ["CHARTE_FICHIER"] = "Charte:Fichier",
+        ["API_RESEAUX_AUTORISES"] = "ConnexionsApi:ReseauxAutorises",
+        ["API_PROXY"] = "ConnexionsApi:Proxy",
+        ["API_APPELS_CONSERVATION_JOURS"] = "ConnexionsApi:ConservationJours",
+        ["API_ENVOIS_ACTIFS"] = "ConnexionsApi:EnvoisActifs",
     };
 
     /// <summary>Emplacement : variable GESTION_MEP_CONFIG, sinon l'emplacement installé par le script de chaque système.</summary>

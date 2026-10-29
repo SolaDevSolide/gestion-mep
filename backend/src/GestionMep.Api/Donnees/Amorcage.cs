@@ -162,6 +162,31 @@ public static class Amorcage
             db.Meps.Add(demo.Mep);
             db.Journal.AddRange(demo.Journal);
         }
+        db.ConnexionsApi.AddRange(ConnexionsDemo(alice.NomAffiche, maintenant));
+    }
+
+    /// <summary>
+    /// Connexions d'exemple de la démonstration : elles visent le récepteur intégré (<see cref="RecepteurDemo"/>), qui garde
+    /// les messages reçus au lieu de les envoyer sur le réseau. Sans secret : rien à saisir pour les essayer.
+    /// </summary>
+    public static List<ConnexionApi> ConnexionsDemo(string auteur, DateTimeOffset maintenant)
+    {
+        var teams = ModelesConnexion.Trouver(ModeleConnexion.Teams);
+        var webhook = ModelesConnexion.Trouver(ModeleConnexion.WebhookJson);
+        ConnexionApi Creer(ModeleConnexionFourni m, string nom, string description, string canal, List<string> declencheurs, string libelleEnvoi) => new()
+        {
+            Nom = nom, Description = description, Modele = m.Modele, Methode = m.Methode, Format = m.Format, Corps = m.Corps,
+            Url = $"https://{RecepteurDemo.Hote}/{canal}", OrigineSecrets = $"https://{RecepteurDemo.Hote}", Declencheurs = declencheurs,
+            EnvoiManuel = libelleEnvoi.Length > 0, LibelleEnvoiManuel = libelleEnvoi, CreeeLe = maintenant, ModifieeLe = maintenant, ModifieePar = auteur,
+            Entetes = [new EnteteConnexion { Nom = "X-Source", Valeur = "gestion-mep/{{equipe}}" }],
+        };
+        return
+        [
+            Creer(teams, "Canal Teams (démonstration)", "Carte Teams fictive, reçue par le récepteur intégré de la démonstration.", "teams",
+                ["gonogo.go", "etape.echec", "repli.declenche", "mep.cloturee"], "Prévenir le canal Teams"),
+            Creer(webhook, "Supervision (démonstration)", "Webhook JSON reçu par le récepteur intégré de la démonstration.", "supervision",
+                ["etape.echec", "echeance.depassee", "repli.declenche"], ""),
+        ];
     }
 
     /// <summary>
