@@ -12,6 +12,10 @@ Dans « Mises en production » :
 - **Nouvelle MEP depuis un modèle** : choisir un modèle, puis « Créer la MEP ». Voir [Partir d'une MEP existante](#partir-dune-mep-existante).
 - **Nouveau modèle** (vue « Modèles ») : comme une nouvelle MEP, mais le résultat est un modèle, toujours complet (pas de choix de type). Voir [Modèles](#modèles).
 
+![Animation : « Nouvelle MEP », outil et objet saisis, puis « Créer la MEP »](images/nouvelle-mep.webp)
+
+*La MEP créée s'ouvre aussitôt sur sa préparation.*
+
 ## MEP complète ou simplifiée
 
 Une **MEP complète** est le plan détaillé décrit dans cette page. Une **MEP simplifiée** convient aux petites interventions : elle garde toutes les sections de la préparation, les tests unitaires, la recette et le [retour arrière](#retour-arrière-facultatif), mais :
@@ -26,6 +30,10 @@ Le type se change pendant la **préparation**, en haut de la section « Interven
 
 - **Passer en MEP complète** : tout est conservé ; les suppléants implicites deviennent des suppléants choisis (le pilote peut ensuite en retirer), les versions sont à renseigner et « Vérifier le plan » réclame la criticité de chaque étape. Le jour J, seules les résolutions liées à l'étape sont alors proposées.
 - **Passer en MEP simplifiée** (MEP complète) : ce passage est **destructif**. La fenêtre de confirmation chiffre ce qui sera supprimé définitivement : durées et criticités des étapes, résolutions liées aux étapes, versions actuelle et cible, choix des suppléants (toutes les personnes sauf le pilote deviennent suppléantes). Il faut cocher « J'ai compris » pour confirmer ; repasser ensuite en complète ne fait pas revenir ces informations.
+
+![Animation : « Passer en MEP simplifiée », la case « J'ai compris » puis la confirmation](images/passer-en-mep-simplifiee.webp)
+
+*La fenêtre chiffre ce qui sera supprimé ; la pastille verte « MEP simplifiée » apparaît ensuite dans l'en-tête.*
 
 Chaque changement de type est inscrit au journal de la MEP (type `mep.type`), avec ce qui a été supprimé. Comme toute modification du contenu, il efface les approbations déjà données.
 
@@ -69,6 +77,11 @@ Il est découpé en neuf sections. Chacune affiche son état (complète ou à co
 4. **Responsables techniques** : les développeurs et sachants, avec ce qu'ils ont développé, leur disponibilité le jour J et leur contact. L'application suggère les comptes dont le profil indique une expertise sur les systèmes de la MEP.
 5. **Objets impactés** : par système, puis par catégorie (tables, vues, traitements…), les objets que la MEP modifie, avec leur version ou leur correction. Voir [Environnements et objets impactés](#environnements-et-objets-impactés).
 6. **Sauvegarde** : pour **chaque système**, indiquer si une sauvegarde est requise. Si oui : avant ou pendant la MEP, quoi sauvegarder, et obligatoirement l'**emplacement** de la sauvegarde et la **méthode de récupération** (comment la restaurer). Si non : une justification. Une sauvegarde faite pendant la MEP doit correspondre à une étape de type « Sauvegarde » sur ce système. S'y ajoutent les informations communes : responsable, copies, test de restauration.
+
+   ![Animation : sauvegarde requise pour BATCH, avec emplacement et méthode, puis justification pour WEB](images/renseigner-la-sauvegarde.webp)
+
+   *Chaque système s'enregistre à part : BATCH avec son emplacement et sa méthode de récupération, WEB avec une justification.*
+
 7. **Validation** : relecture de la procédure, approbations, et rappel du Go.
 8. **Communication** (facultative, toujours complète) : de quoi remplir les courriels de la MEP. Référence de la demande (ticket ou demande de changement), niveau de risque (non évalué, faible, modéré, élevé), bénéfices et nouveautés (un par ligne), utilisateurs impactés, case **« Arrêt applicatif »** (sa durée est l'indisponibilité prévue de la section Intervention), action attendue des utilisateurs et heure limite, **créneau annoncé** (date, heure de début et de fin annoncées aux utilisateurs ; à défaut, les textes prennent le Go et la clôture), validation par les utilisateurs (par qui, quand, et une pièce jointe de la MEP comme preuve). En dessous, la carte **Textes à copier** remplit les modèles de texte de l'équipe avec ces informations : voir [Modèles de texte](Modèles-de-texte.md). Modifier la communication ne remet pas en cause les approbations. Après le Go, le pilote, un suppléant ou un administrateur la complète encore, jusqu'à la clôture.
 9. **Pièces jointes** : documents utiles (procédures, captures, scripts).
@@ -88,9 +101,24 @@ Le plan de déploiement se dessine comme un **graphe libre**, rangé automatique
 - **réorganiser une rangée** : glisser une carte (ou une section) à gauche ou à droite dans sa rangée, hors des liens et des cartes, change l'**ordre de gauche à droite** ; une barre bleue montre où elle ira et la pastille du bas annonce « changer l'ordre dans la rangée (les liens ne changent pas) ». L'ordre choisi vaut pour tout le monde, en direct, et le rangement le respecte ensuite. La hauteur, elle, reste donnée par les liens : on ne peut pas monter ou descendre une carte sans changer ses liens ;
 - **navigation** : la molette fait défiler, **Ctrl + molette** zoome ; la barre « Vue du graphe » zoome, revient à 100 % ou « Ajuste à l'écran » ; la mini-carte, en bas à gauche, montre où l'on est (le bouton de la barre la masque ou l'affiche, choix mémorisé dans le navigateur), et « Aller à une étape » centre la carte d'un code ;
 - **création rapide** : « + » sous une carte (la nouvelle étape l'attend), menu d'un lien (elle s'insère entre les deux étapes) ou « + » à côté d'une carte (en parallèle : mêmes préalables et mêmes suivants) ; le bouton **« Étape »** en haut à droite crée une étape à part, sans lien. Chaque fois, un petit menu propose **« Étape vierge »** ou **« Depuis un modèle »** : les étapes modèles les plus utilisées pour les systèmes de la MEP, ou « Parcourir la bibliothèque… », et la copie est posée à cet endroit. L'étape créée s'ouvre. Si l'étape ouverte a une saisie non enregistrée, on choisit d'abord de l'enregistrer ou non : rien n'est perdu. Un double clic ne crée qu'une étape ;
+
+  ![Animation : « + » après E0006, « Étape vierge », action saisie puis enregistrée](images/creer-une-etape.webp)
+
+  *La nouvelle étape attend E0006 et prend le code suivant.*
+
 - **glisser une carte** : lâchée sur un lien, elle s'y insère ; sur une carte, ou juste **sous** une carte, elle passe après elle (la carte reçoit le lien de base, même si elle n'a aucun suivant) ; sur le **côté** d'une carte, elle se place **en parallèle** (mêmes préalables, mêmes suivants) ; sur un **cercle** de section (ou la poignée de sortie d'une section repliée), elle passe après lui. La zone d'accroche d'un lien est large et, de deux liens proches, c'est le plus proche qui est visé. Pendant le glisser, un **aperçu** en pointillé montre la place de la future carte et les liens qui seront créés, et la pastille du bas annonce ce qui va se passer (« insérer sur le lien… », « placer après E0005 (ses liens changent) », « placer en parallèle de E0005 », « changer l'ordre dans la rangée »). Elle quitte sa place sans casser le plan : ce qui l'attendait attend ce qu'elle attendait. Déplacer une étape n'ouvre pas son espace d'édition ;
+
+  ![Animation : la carte E0006 glissée sur le lien de E0007 vers E0008](images/glisser-une-carte.webp)
+
+  *Lâchée sur un lien, la carte s'y insère : E0008 attend désormais E0006.*
+
 - **« Optimiser les liens »** (barre d'outils, en préparation) repère les liens **inutiles** : « B attend A » alors que B attend déjà A par un autre chemin, étapes ou cercles de section compris (par exemple E0007 → Fin quand Fin attend déjà E0003, qui attend E0007). Ces liens passent en **rouge pointillé** dans le graphe et sont listés dans un bandeau : **« Confirmer »** les retire tous en une seule opération (au journal : « Liens optimisés : 2 liens redondants retirés (…) »), **« Annuler »** ne change rien. Ce que chaque étape attend, directement ou non, ne change pas : l'ordre d'exécution reste le même. Si le plan a changé entre-temps, la confirmation est refusée : relancer le calcul. Dans la **vue d'une section**, le même bouton ne concerne que la section : seuls les liens entre ses étapes et ses cercles sont proposés, le reste du plan n'est pas touché (au journal : « Liens optimisés dans la section « … » : … ») ;
 - **tracer un lien** en tirant la poignée du bas d'une carte vers la poignée du haut de celle qui doit l'attendre (ou vers un cercle de section) ; un lien qui ferait boucler le plan, ou qui existe déjà, est refusé avec un message ;
+
+  ![Animation : un lien tracé de E0004 vers E0008, puis « Optimiser les liens » et « Confirmer »](images/tracer-et-optimiser-les-liens.webp)
+
+  *On tire la poignée du bas d'une carte vers le haut d'une autre ; « Optimiser les liens » repère en rouge pointillé les liens inutiles, « Confirmer » les retire.*
+
 - en haut à gauche du graphe, **« Étape modèle »** propose les étapes modèles les plus utilisées pour les systèmes de la MEP, et **« Parcourir la bibliothèque »** ouvre la [bibliothèque d'étapes](#la-bibliothèque-détapes) (voir plus bas).
 
 ### Les sections
@@ -102,7 +130,17 @@ Une **section** regroupe des étapes sous un titre (« Tables factures », « Ex
 - Dans le graphe, une section est un **cadre replié** (titre, systèmes, nombre d'étapes, auteur) : un clic, ou son grand bouton chevron, la déplie sur place (ses étapes dans un cadre pointillé) et « Tout déplier » / « Tout replier » agissent sur toutes.
 - Dans le plan, l'**intérieur d'une section dépliée se lit seulement** : ni « + », ni glisser, ni lien à tracer ou supprimer entre ses étapes. Ouvrir une de ses cartes montre sa fiche en lecture, avec **« Modifier dans la section »**, qui ouvre la vue de la section sur cette étape. Ses cercles restent reliables depuis le plan, par leur côté extérieur : c'est ce qui relie la section au reste.
 - Le **bouton crayon**, bien visible à droite du titre, ouvre la **vue d'édition** de la section ; un **double-clic** sur la section (repliée ou dépliée) aussi, et un double-clic sur une de ses étapes ouvre la vue de la section avec la fiche de cette étape. Cette vue s'affiche dans le cadre du plan (en plein écran aussi) : même graphe et même espace d'édition, limités à ses étapes et à ses cercles. Son bandeau, dans le cadre, porte **« Retour au plan »** (ou **Échap**, quand rien d'autre n'est ouvert ; le plein écran reste), le fil d'Ariane, qui d'autre y travaille, le titre, la description, les systèmes, l'auteur et les cercles : on y renomme la section, la décrit, choisit ses systèmes, gère ses cercles (un clic sur un cercle le renomme ou le supprime) et y crée et modifie ses étapes. Tant que la vue est ouverte, les autres voient « Prénom modifie » sur la section. Les sections des autres sont repliées par défaut, les siennes dépliées ; le choix est mémorisé dans le navigateur.
+
+  ![Animation : la section « Export et téléchargement » dépliée, sa vue d'édition ouverte, puis « Retour au plan »](images/ouvrir-une-section.webp)
+
+  *Dépliée, la section se lit sur place ; sa vue d'édition s'ouvre dans le cadre du plan.*
+
 - **Nouvelle section** la crée dans le **bac**, le panneau à droite dans le cadre du plan (avec son propre défilement ; il se replie en une fine colonne, et se replie seul tant que l'espace d'une étape est ouvert) : on la prépare, puis on la glisse dans le graphe (ou « Placer dans le graphe ») pour la placer et relier ses cercles ; « Remettre dans le bac », dans sa vue, fait l'inverse. Une section restée dans le bac **bloque le Go** (« Vérifier le plan ») ; un cercle sans étape, ou un cercle d'entrée où rien n'arrive, donne un avertissement.
+
+  ![Animation : une section du bac placée dans le graphe avec « Placer dans le graphe »](images/placer-une-section.webp)
+
+  *La section quitte le bac et prend sa place dans le graphe.*
+
 - Le bac liste aussi les **étapes à placer** (code, action, systèmes) : une étape sortie du graphe sans être supprimée. On y envoie une étape ou une section en la **glissant sur le bac** (il s'éclaire : « Lâcher : retirer du plan » ; le graphe ne défile plus sous le pointeur tant qu'on le survole), ou par **« Retirer du plan »** (espace d'édition d'une étape, bouton à côté du titre d'une section, repliée ou dépliée). Ses liens disparaissent : ce qui l'attendait attend ce qu'elle attendait ; une section remise au bac voit ses cercles déliés du plan. On replace une étape du bac en la glissant sur un lien, une carte ou un cercle, comme une étape de la bibliothèque (même aperçu), ou par **« Placer à part »**. Une étape restée dans le bac **bloque le Go** : « Vérifier le plan » la nomme. Dans la vue d'une section, le bac montre les étapes à placer de cette section.
 - Supprimer une section garde ses étapes, hors section, avec les mêmes préalables.
 - Le jour J, une section repliée montre son avancement (« 4/7, 1 en échec »).
@@ -122,7 +160,11 @@ Au-delà de ces tailles, et en plein écran, rien ne change.
 
 Plusieurs personnes peuvent préparer le plan en même temps. Ouvrir l'espace d'édition d'une étape la **verrouille** : une autre personne qui l'ouvre voit « Alice est dessus », en lecture seule, avec **« Prendre la main »**. Si elle la prend, Alice voit « Bob a pris la main », son espace passe en lecture seule et sa saisie non enregistrée reste affichée pour qu'elle la recopie. Le verrou tombe à la fermeture de l'espace, ou après une minute sans signe de vie. Le reste du graphe reste modifiable par tous. Une prise de main est annoncée à **toutes** les personnes sur la MEP (« Claire a pris la main sur E0005 à Alice ») et la carte porte l'avatar de celle qui la tient, marqué d'une main.
 
-![Graphe des étapes : étapes en parallèle et barrière du point de non-retour](images/graphe-des-etapes.png)
+![Animation : E0005 ouverte par Bob, « Prendre la main » par Alice](images/prendre-la-main-sur-une-etape.webp)
+
+*Bob tient le verrou de E0005 ; Alice la voit en lecture seule et prend la main.*
+
+![Graphe des étapes en plein écran : étapes en parallèle, point de non-retour encadré de rouge](images/graphe-des-etapes.png)
 
 Cliquer une étape ouvre son **espace d'édition** :
 
@@ -136,7 +178,9 @@ Cliquer une étape ouvre son **espace d'édition** :
 - **point de non-retour** : à cocher pour l'étape après laquelle on ne peut plus revenir en arrière ;
 - pièces jointes de l'étape.
 
-![Espace d'édition d'une étape : systèmes, criticité, blocs Texte et Code](images/edition-etape.png)
+![Animation : dans l'espace d'édition de E0005, action renommée, bloc Code ajouté, résolution type liée, puis « Enregistrer »](images/editer-une-etape.webp)
+
+*L'espace d'édition de E0005 : un bloc Code s'ajoute aux instructions et une résolution type se lie à l'étape.*
 
 Les codes d'étape (`E0001` pour le déploiement, `R0001` pour le retour arrière) ne sont jamais renumérotés.
 
@@ -156,6 +200,11 @@ Les environnements et les objets connus de chaque système sont décrits une foi
 - **Préparation › Systèmes** : choisir les environnements de chaque système. Une étape qui garde un environnement retiré du système l'affiche barré sur sa fiche, et « Vérifier le plan » le signale comme une anomalie ;
 - **Préparation › Objets impactés** : un bloc par système, avec ses environnements et le décompte de ses objets (« 2 tables, 1 vue »). Chaque catégorie retenue s'affiche en tuile avec son nombre d'objets ; la sélectionner montre ses objets (catégorie, type, nom, libellé, version ou correction, précision). **« Ajouter une catégorie »** propose les catégories de la fiche pas encore utilisées, puis ouvre le choix des objets ; une catégorie absente de la fiche s'ajoute d'abord à la fiche (lien « Fiche du système »).
 - **« Choisir les objets… »** ouvre une fenêtre qui liste les objets de la fiche, catégorie par catégorie (avec le nombre d'objets cochés sur le total) : recherche sur le nom, le libellé, le type et la précision, filtre par type, « Cochés » pour ne voir que la sélection, version commune à appliquer aux objets cochés, ou une version par ligne. On ne choisit que des objets de la fiche : un objet manquant s'y ajoute d'abord.
+
+  ![Animation : la tuile Tables, « Choisir les objets… », recherche « clients », version, puis « Enregistrer »](images/choisir-les-objets-impactes.webp)
+
+  *La fenêtre liste les objets de la fiche du système : on coche, on renseigne la version, on enregistre.*
+
 - **Excel** : « Modèle Excel » télécharge un classeur à remplir, « Exporter » le même classeur avec les objets déjà choisis. Il a un onglet « À lire » (mode d'emploi, exemple), l'onglet de saisie « Objets impactés » et l'onglet « Catalogue » (les objets connus de chaque système). Seules les cases jaunes se remplissent (Système, Catégorie, Nom, Version ou correction), avec des listes déroulantes ; Type, Libellé et Précision se complètent seuls, et la colonne « Contrôle » dit tout de suite si l'objet est au catalogue. « Importer » ajoute ou met à jour les objets du classeur, sans rien retirer : les colonnes sont reconnues par leur en-tête (l'ordre importe peu), les lignes vides, les espaces et la casse sont ignorés, et les fichiers de la version précédente restent acceptés. Une ligne dont le système, la catégorie ou l'objet est inconnu de la fiche est **refusée** : rien n'est créé à sa place, et la fenêtre d'import liste chaque ligne refusée avec un lien « Compléter la fiche ».
 
 Les livrables des MEP créées avant les objets impactés sont devenus des objets de la catégorie « Packages », marqués **« Repris »** : nom, version et emplacement sont conservés (l'emplacement dans la précision). Pour un système du catalogue, ils ont aussi été ajoutés à sa fiche, dans la même catégorie ; ceux qui n'étaient rattachés à aucun système restent visibles dans un bloc « Sans système ». L'environnement unique des MEP existantes est devenu celui de chacun de leurs systèmes et de chacune de leurs étapes, et s'est ajouté à la fiche des systèmes du catalogue.
@@ -178,6 +227,10 @@ Certains environnements (une préproduction qu'on réinstalle à volonté, par e
   - aucun retour arrière ne peut être déclenché : ni automatiquement (échéance), ni à la main. Une résolution en échec laisse l'étape en échec, et le pilote décide de la suite (nouvelle tentative).
 - **Recocher la case** se fait sans confirmation.
 
+![Animation : la case « Plan de retour arrière » décochée, « Désactiver » puis « Enregistrer »](images/retour-arriere-facultatif.webp)
+
+*Après confirmation et enregistrement, le sous-onglet Plan › Retour arrière disparaît.*
+
 L'activation et la désactivation sont inscrites au journal de la MEP, avec leur auteur et leur date. Le choix ne se modifie qu'en préparation, par un éditeur ; il est repris par la duplication et par les MEP créées depuis un modèle.
 
 Le point de non-retour reste porté par les étapes de déploiement (voir [Cycle de vie](Cycle-de-vie.md#point-de-non-retour)).
@@ -190,6 +243,10 @@ La recette vérifie, après le déploiement, que tout fonctionne. Elle est organ
 - **« Depuis la bibliothèque »** insère une copie d'un modèle de la [bibliothèque de recettes](#la-bibliothèque-de-recettes) ; la fiche insérée se modifie ensuite librement, sans toucher au modèle.
 
 Cliquer une fiche ouvre sa page, avec un fil d'Ariane « Recette / SYSTÈME / titre » et une adresse à partager. Avant le Go, on y rédige la fiche : un titre, puis des étapes de test. Chaque étape a un **déroulé** fait de blocs Texte ou Code (commandes, requêtes, à copier telles quelles) et un **résultat attendu** en texte simple. « Enregistrer comme modèle » ajoute la fiche à la bibliothèque.
+
+![Animation : « Depuis la bibliothèque » pour BDD, « Insérer », puis la fiche ouverte](images/fiche-de-recette.webp)
+
+*La fiche insérée est une copie du modèle : elle se modifie ensuite librement.*
 
 Une fiche ne change pas de système : pour tester un autre système, créer une nouvelle fiche dans sa section. Les fiches créées avant cette règle sans système restent visibles et modifiables dans une section « Sans système », qui n'apparaît que si elle n'est pas vide ; leur page propose de les rattacher à un système, et « Vérifier le plan » le signale en avertissement.
 
@@ -220,6 +277,10 @@ Dans Plan › Étapes, deux boutons sont accolés en haut à gauche du graphe :
 - **« Parcourir la bibliothèque »** ouvre une fenêtre construite comme la page : choix du système (limité par défaut aux systèmes de la MEP, « Tous » pour voir les autres), liste triée par utilisations, aperçu de l'étape choisie, puis « Insérer une copie ».
 
 L'étape choisie arrive **flottante** au-dessus du graphe, avec la pastille « À placer » : on la **glisse** sur un lien (elle s'y insère) ou sur une carte (elle passe après elle), ou l'on clique un « + » de carte, devenu « Poser la copie », un lien (la flèche « Poser la copie sur ce lien »), ou encore **« Poser à part »** en haut à droite. Choisie depuis le menu de création d'un « + » ou d'un lien (« Depuis un modèle »), la copie est posée tout de suite à cet endroit. **Échap** annule : rien n'est écrit tant qu'elle n'est pas posée. Une fois posée, c'est une étape ordinaire : nouveau code, liens de l'endroit où on l'a posée, pas de point de non-retour. La modifier ne change pas le modèle ; son espace d'édition rappelle « Copie de l'étape modèle « … » », sans marque sur la fiche du graphe.
+
+![Animation : « Parcourir la bibliothèque », une étape modèle WEB, « Insérer une copie », puis posée sur un lien](images/inserer-une-etape-modele.webp)
+
+*La copie flotte au-dessus du graphe jusqu'à ce qu'on la pose sur un lien ou une carte.*
 
 Les systèmes du modèle deviennent les systèmes de la MEP issus du même système du catalogue. Si un système du modèle n'est **pas dans la MEP**, il n'est pas ajouté : l'aperçu et le message après la pose le signalent, à vous de l'ajouter aux systèmes de la MEP (Préparation › Systèmes) si besoin. Les environnements ne font pas partie du modèle : un système qui n'a qu'un environnement dans la MEP le donne à la copie ; s'il en a plusieurs, la copie arrive sans environnement pour ce système, à choisir dans son espace d'édition. Le plan de retour arrière n'accepte que les étapes modèles normales.
 
@@ -261,7 +322,9 @@ Le bouton « Vérifier le plan » liste :
 
 Dans une MEP simplifiée, « Vérifier le plan » ne réclame ni criticité ni versions et n'avertit pas des résolutions manquantes (responsable technique absent) ; le pilote responsable technique n'est signalé que s'il n'y a aucune autre personne dans la MEP.
 
-![« Vérifier le plan » : il manque une approbation](images/verifier-le-plan.png)
+![Animation : « Vérifier le plan » sur « Facturation électronique » : anomalies puis avertissements](images/verifier-le-plan.webp)
+
+*Les anomalies bloquent le Go, les avertissements non.*
 
 ## Relecture et approbations
 
@@ -272,7 +335,9 @@ Dans la section Validation :
 - Toute modification du contenu après une approbation l'efface : « Approbations à refaire ».
 - À la première approbation, les **résolutions types liées** sont figées dans la MEP (titre, contenu, version) : le jour J, c'est cette copie qui est appliquée, même si la bibliothèque change entre-temps. Une résolution liée désactivée, supprimée ou incomplète est une anomalie qui bloque l'approbation et le Go.
 
-![Section Validation vue par l'approbatrice](images/approbation.png)
+![Animation : Claire, approbatrice, approuve la MEP dans la section Validation](images/approuver-une-mep.webp)
+
+*Section Validation : la décision de Claire s'ajoute aux approbations.*
 
 Quand le plan est complet, le pilote ou un suppléant donne le Go (voir [Cycle de vie](Cycle-de-vie.md#go--no-go--passage-en-exécution)).
 
@@ -291,6 +356,10 @@ Voir [Cycle de vie](Cycle-de-vie.md#reporter-une-mep) pour le détail.
 - **Dupliquer** (bouton de la liste ou de l'en-tête) copie une MEP : identité, personnes, pilote et suppléants, systèmes avec leurs environnements et leur sauvegarde, responsables techniques, objets impactés, étapes (avec leurs environnements) et liens, résolutions liées, plan de retour arrière (et le choix de l'avoir ou non), fiches de recette (sans les résultats) et approbateurs (sans leurs décisions). La communication est copiée (niveau de risque, bénéfices, utilisateurs impactés, arrêt applicatif, action attendue et heure limite), sauf la référence de la demande, le créneau annoncé et la validation par les utilisateurs. Ne sont pas copiés : l'échéance, la relecture, le Go, les résultats d'exécution (dont les résultats constatés des tests unitaires), le bilan et les pièces jointes. Une MEP **annulée** se duplique aussi, pour la reprogrammer : la copie repart en préparation, sans l'annulation ni le report, et ses étapes correctives deviennent des étapes ordinaires. La copie garde le type (complète ou simplifiée) ; un modèle, lui, est toujours complet : copier une MEP simplifiée en modèle en fait un modèle complet, dont les suppléants implicites deviennent des suppléants choisis.
 - Cocher **« En faire un modèle »** à la duplication crée un modèle, à réutiliser avec « Nouvelle MEP depuis un modèle ».
 
+![Animation : « Dupliquer », la case « En faire un modèle », puis « Créer le modèle »](images/dupliquer-une-mep.webp)
+
+*Le modèle créé s'ouvre aussitôt, prêt à resservir.*
+
 ## Modèles
 
 Un modèle se prépare comme une MEP (intervention, personnes, systèmes, responsables techniques, objets impactés, sauvegarde, étapes, retour arrière, fiches de recette, approbateurs, pièces jointes), mais il ne s'exécute jamais. Ce qui se décide pour chaque intervention n'y apparaît donc pas :
@@ -308,3 +377,7 @@ Un modèle se prépare comme une MEP (intervention, personnes, systèmes, respon
 Un modèle est toujours une MEP complète, et une MEP créée depuis un modèle l'est aussi ; elle peut ensuite passer en simplifiée pendant sa préparation.
 
 « Vérifier le plan » ne réclame dans un modèle ni échéance, ni pilote, ni relecture, ni approbation. Le bouton **« Créer une MEP depuis ce modèle »**, en haut du modèle, crée la MEP et l'ouvre.
+
+![Animation : « Nouvelle MEP depuis un modèle », puis « Créer la MEP »](images/creer-depuis-un-modele.webp)
+
+*La nouvelle MEP reprend le contenu du modèle et s'ouvre sur sa préparation.*

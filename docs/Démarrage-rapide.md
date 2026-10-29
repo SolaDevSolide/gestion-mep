@@ -22,6 +22,10 @@ La première construction prend quelques minutes. Ouvrir ensuite http://localhos
 
 L'écran de connexion propose une **connexion rapide** : un clic sur un compte ouvre directement sa session. Le formulaire reste disponible, avec le mot de passe `demo` pour tous.
 
+![Animation : connexion rapide avec le compte d'Alice](images/connexion-rapide.webp)
+
+*Un clic sur « Alice » ouvre sa session, sans saisir de mot de passe.*
+
 | Compte | Rôle dans l'application | Rôle dans les MEP de démonstration |
 |---|---|---|
 | `alice` | Administratrice | Pilote de la plupart des MEP ; suppléante sur les MEP pilotées par Bob |
@@ -68,6 +72,10 @@ Les bibliothèques sont remplies elles aussi : une vingtaine d'étapes modèles 
 2. Parcourir l'onglet **Plan**, sous-onglet **Étapes** : le plan de déploiement en graphe, de haut en bas. Chaque flèche dit qu'une étape attend la précédente, et deux étapes sans flèche entre elles peuvent se dérouler en parallèle ; l'étape encadrée de rouge est un point de non-retour. Cliquer une étape ouvre son espace d'édition (instructions, résultat attendu, liens, résolutions).
 
    ![Graphe des étapes de la MEP de démonstration](images/graphe-des-etapes.png)
+
+   ![Animation : ouvrir « Portail de démonstration », son onglet Plan, puis l'étape E0005](images/premier-parcours.webp)
+
+   *De la liste au plan : un clic sur la MEP, l'onglet Plan, puis une étape ouvre son espace d'édition.*
 3. **Claire** : ouvrir la même MEP, Préparation, section « Validation », cliquer « Approuver ».
 4. **Alice** : cliquer « Go / no-go », cocher les critères, puis « Go : passer en exécution ». La MEP passe en exécution et un compte à rebours indique le temps restant avant le retour arrière automatique.
 5. Dans l'onglet **Exécution**, chacun démarre les étapes disponibles, saisit une preuve et déclare « Réussie » ou « Échec ». Une étape en échec propose les résolutions prévues pour la corriger.
@@ -85,9 +93,17 @@ Le menu **Suivi en direct** montre toutes les MEP lancées : « Messagerie inter
 
 Dans le bandeau de démonstration, **« Simuler des collègues »** fait travailler Bob et Claire, pour de vrai, sur « Facturation électronique » pendant quelques minutes. Ouvrir son plan (Plan › Étapes, « Tout déplier ») : leurs avatars apparaissent sur les sections et les cartes où ils se trouvent, leurs modifications arrivent en direct et, si vous avez ouvert une étape, Claire finit par y prendre la main (« Claire a pris la main sur E0005 à Alice »). « Arrêter la simulation » les fait partir.
 
+![Animation : « Simuler des collègues », puis Bob et Claire au travail dans le plan](images/simuler-des-collegues.webp)
+
+*Après « Simuler des collègues », les avatars de Bob et Claire se déplacent dans le plan et leurs modifications arrivent en direct.*
+
 ## Repartir de zéro
 
 Avec le compte d'Alice (administratrice), cliquer **« Réinitialiser la démonstration »** dans le bandeau, puis confirmer. La base revient exactement à son état initial : comptes, MEP, catalogue, résolutions types, critères, paramètres, réglages et journaux sont recréés, les pièces jointes supprimées. Tout le monde est déconnecté et revient à l'écran de connexion.
+
+![Animation : « Réinitialiser la démonstration » et sa confirmation](images/reinitialiser-la-demo.webp)
+
+*Après confirmation, la base est recréée et l'écran de connexion revient.*
 
 Même chose en ligne de commande, application en marche :
 

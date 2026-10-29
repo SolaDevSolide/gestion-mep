@@ -20,8 +20,6 @@ Il est créé au premier démarrage, sur une base vide, à partir des variables 
 
 Menu « Administration › Console d'administration », visible des seuls administrateurs. Sept onglets.
 
-![Console d'administration, onglet Comptes](images/console-admin.png)
-
 ### Comptes
 
 - **Nouveau compte** : identifiant, nom affiché, rôle (par exemple « Développeur API »), contact, case « Administrateur ».
@@ -31,6 +29,10 @@ Menu « Administration › Console d'administration », visible des seuls admini
 - Badges : Admin, Actif ou Désactivé, Mot de passe à changer.
 
 À la création et à la réinitialisation, l'application génère un **mot de passe provisoire**, affiché une seule fois. Le transmettre par un canal sûr, puis cliquer « J'ai transmis le mot de passe ». À sa connexion, l'utilisateur doit choisir son propre mot de passe (10 caractères au moins) avant de pouvoir faire quoi que ce soit.
+
+![Animation : console d'administration, onglet Comptes : « Nouveau compte », mot de passe provisoire copié, « J'ai transmis le mot de passe »](images/creer-un-compte.webp)
+
+*Le mot de passe provisoire n'est affiché qu'une fois ; le nouveau compte apparaît avec « Mot de passe à changer ».*
 
 Règles de sécurité :
 
@@ -67,6 +69,10 @@ Les équipes regroupent des personnes pour filtrer les listes : liste des MEP, c
 
 Chaque équipe a aussi un **contact support** et une **signature**, repris par ses [modèles de texte](Modèles-de-texte.md) ; ses membres et les administrateurs les règlent dans Paramètres › Modèles de texte. Une nouvelle équipe reçoit une copie des quatre modèles fournis.
 
+![Animation : « Nouvelle équipe » : nom, description, Alice et Bob comme membres](images/creer-une-equipe.webp)
+
+*L'équipe créée s'ajoute à la liste avec ses membres.*
+
 Toute création, modification (avec les membres ajoutés et retirés) et suppression est inscrite au journal d'administration. Les équipes se lisent par tout utilisateur connecté (pour les filtres) ; seuls les administrateurs les modifient.
 
 En ligne de commande : `gestion-mep equipes lister | afficher | creer | modifier | ajouter | retirer | supprimer`, et `gestion-mep meps lister --equipe <équipe>`.
@@ -102,6 +108,10 @@ Un clic sur une pastille ouvre le sélecteur : zone de couleur, teinte, saisie H
 La carte **Lisibilité (WCAG AA)** contrôle chaque changement dans les deux thèmes : 4,5:1 pour les textes, 3:1 pour les cadres et le contour de focus. **Corriger** garde la teinte et propose la luminosité la plus proche qui passe. Elle prévient aussi quand la primaire ou la tertiaire ressemble à une couleur d'état (un bouton se lirait comme un état de la MEP). Le texte posé sur une couleur d'état pleine (pastille, compteur, bouton « Approuver ») s'écrit en blanc ou en encre foncée, selon ce qui se lit le mieux : la ligne **Texte sur la couleur « … » pleine** signale une couleur où ni l'un ni l'autre n'atteint 4,5:1, et **Corriger** l'assombrit juste assez. Ce ne sont que des avertissements : rien n'est bloqué.
 
 L'**aperçu** montre l'application (clair ou sombre) et un classeur Excel avec la charte en cours de réglage. Rien ne change pour personne avant **Enregistrer** ; ensuite, la charte s'applique dans la minute à tous les écrans ouverts, sans recharger.
+
+![Animation : primaire changée par une suggestion, aperçu en thème sombre puis du classeur Excel](images/charte-visuelle.webp)
+
+*Rien ne change pour personne avant « Enregistrer » : l'aperçu montre l'effet dans les deux thèmes et dans Excel.*
 
 - **Exporter** télécharge la charte affichée au format `charte.json` ; **Importer…** reprend un fichier exporté d'une autre installation ou préparé à la main (le fichier est vérifié, les couleurs actuelles et importées sont comparées ; rien n'est enregistré avant « Enregistrer »).
 - La charte enregistrée dans la console **remplace** le fichier `charte.json` posé par l'équipe informatique (voir [Exploiter](Exploiter.md#charte-visuelle)). **Charte par défaut** l'efface après confirmation : le fichier s'applique de nouveau s'il existe, sinon les couleurs d'origine.

@@ -52,13 +52,19 @@ Le pilote ou un suppléant ouvre « Go / no-go ». Le Go n'est possible que si :
 - tous les critères go / no-go sont cochés (par exemple « Équipe présente et joignable », « Sauvegarde disponible ») ;
 - la MEP n'est pas un modèle.
 
-![Fenêtre Go / no-go, les quatre critères cochés](images/go-no-go.png)
+![Animation : Bob coche les quatre critères go / no-go puis donne le Go](images/go-no-go.webp)
+
+*Les quatre critères cochés, « Go : passer en exécution » : la MEP passe en exécution et le compte à rebours du retour arrière démarre.*
 
 Les critères cochés sont enregistrés avec la MEP. Un **no-go** exige un motif : la MEP reste en préparation et le journal garde la trace de la décision. La fenêtre du no-go propose aussi de **reporter la MEP** dans la foulée (case « Reporter la MEP », date visée facultative). Le moment du Go devient la date de début de la MEP ; le Go lève un report en cours.
 
 ## Reporter une MEP
 
 Une MEP **reportée** reste en préparation : le plan, les personnes et les approbations sont conservés, et l'équipe peut continuer à la préparer. Le pilote ou un suppléant la reporte depuis le menu « ⋯ » (« Reporter la MEP… ») ou depuis le no-go, avec un **motif obligatoire** et une **date visée facultative** (indicative : le Go reste la décision du pilote).
+
+![Animation : « Reporter la MEP » depuis le menu « ⋯ », avec motif et date visée](images/reporter-une-mep.webp)
+
+*Le motif est obligatoire, la date visée facultative ; la pastille devient « Reportée » avec la date.*
 
 - La pastille devient « Reportée · 05/11/2026 » (ou « Reportée » sans date), et un bandeau visible de tous rappelle qui l'a reportée, quand et pourquoi.
 - Un nouveau report remplace le précédent (« Modifier le report… »).
@@ -68,6 +74,10 @@ Une MEP **reportée** reste en préparation : le plan, les personnes et les appr
 ## Annuler une MEP
 
 Le pilote, un suppléant ou un administrateur (même s'il ne pilote pas la MEP) l'**annule** depuis le menu « ⋯ » (« Annuler la MEP… »). L'annulation est **définitive** et ne se fait que **depuis la préparation** : après un Go, il faut d'abord « Revenir en préparation ». Le **motif** est obligatoire ; si la MEP a déjà eu un Go, l'**état laissé en production** l'est aussi, et la fenêtre liste les étapes déjà exécutées, que l'annulation ne défait pas.
+
+![Animation : « Annuler la MEP » depuis le menu « ⋯ », avec son motif](images/annuler-une-mep.webp)
+
+*Après confirmation, la MEP passe en lecture seule, pastille grise « Annulée ».*
 
 Une MEP annulée :
 
@@ -144,6 +154,10 @@ Après le Go, le pilote, un suppléant ou un administrateur peut aussi **ajouter
 ## Supprimer une MEP
 
 Seul un **administrateur** supprime définitivement une MEP, depuis le menu « ⋯ » (« Supprimer définitivement… »), et seulement un **modèle** ou une MEP qui n'a **jamais eu de Go** (même suivi d'un retour en préparation) : une MEP lancée s'annule, pour garder sa trace. Il faut un **motif** et **saisir le nom de la MEP** (outil et version cible) pour confirmer. La MEP, son journal, ses étapes et ses pièces jointes sont effacés ; seule une ligne « MEP supprimée » reste au journal d'administration. Les personnes qui avaient la MEP ouverte reviennent à la liste avec un message. Il n'y a pas de commande de suppression en ligne de commande.
+
+![Animation : « Supprimer définitivement », motif et nom de la MEP saisi pour confirmer](images/supprimer-une-mep.webp)
+
+*La suppression demande un motif et le nom exact de la MEP ; la liste des MEP revient ensuite.*
 
 ## Clôture et bilan
 
