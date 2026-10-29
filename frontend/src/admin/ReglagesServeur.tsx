@@ -1,7 +1,7 @@
 import { FileCog, RotateCcw, Save, TerminalSquare, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '../api';
-import { formatDateHeure } from '../format';
+import { formatDateHeure, formatTaille, gainCompression } from '../format';
 import { useAsync } from '../hooks';
 import type { Reglage } from '../types';
 import { Alerte } from '../ui/Alerte';
@@ -172,6 +172,29 @@ function LigneReglage({
   );
 }
 
+/** Groupe des réglages de pièces jointes : son en-tête rappelle la place occupée. */
+const GROUPE_PIECES = 'Pièces jointes';
+
+/** Place occupée par les pièces jointes et gain de la compression ; rien tant qu'elle n'est pas lue. */
+function OccupationPieces({ installation }: { installation: ModeInstallation }) {
+  const { donnees: e } = useAsync(() => api.stockagePiecesJointes(), []);
+  if (!e) return null;
+  const gain = gainCompression(e.tailleFichiers, e.tailleStockee);
+  return (
+    <>
+      {e.pieces} pièce{e.pieces > 1 ? 's' : ''} jointe{e.pieces > 1 ? 's' : ''} : {formatTaille(e.tailleFichiers)} de
+      fichiers, {formatTaille(e.tailleStockee)} sur le serveur{gain > 0 ? ` (−${gain} % grâce à la compression)` : ''}.
+      {e.nonExaminees > 0 && (
+        <>
+          {' '}
+          {e.nonExaminees} déposée{e.nonExaminees > 1 ? 's' : ''} avant la compression :{' '}
+          <code className="font-mono text-2xs">{commande(installation, 'pieces-jointes compresser')}</code>.
+        </>
+      )}
+    </>
+  );
+}
+
 /** Réglages d'exploitation : valeur de départ dans le fichier .env, modifiables ici ou en ligne de commande, sans redémarrage. */
 export default function ReglagesServeur() {
   const installation = useInstallation();
@@ -207,9 +230,11 @@ export default function ReglagesServeur() {
           <CardHeader
             titre={groupe}
             description={
-              i === 0
-                ? `La valeur de départ vient du ${docker ? 'fichier .env' : 'fichier de configuration'}. Une valeur modifiée ici la remplace, sans redémarrage.`
-                : undefined
+              i === 0 ? (
+                `La valeur de départ vient du ${docker ? 'fichier .env' : 'fichier de configuration'}. Une valeur modifiée ici la remplace, sans redémarrage.`
+              ) : groupe === GROUPE_PIECES ? (
+                <OccupationPieces installation={installation} />
+              ) : undefined
             }
           />
           <div className="divide-y divide-line">
