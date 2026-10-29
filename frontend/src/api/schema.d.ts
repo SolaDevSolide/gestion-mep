@@ -5579,6 +5579,251 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meps/{id}/connexions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnexionsMepDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/connexions/{cid}/apercu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    cid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EnvoiManuelSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApercuConnexionDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/connexions/{cid}/envoyer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    cid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EnvoiManuelSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/appels/{appelId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    appelId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AppelResumeDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/appels/{appelId}/renvoyer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    appelId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/recepteur": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageRecuDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meps/{id}/pieces-jointes": {
         parameters: {
             query?: never;
@@ -7000,6 +7245,478 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/connexions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnexionApiResumeDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConnexionApiSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/connexions/catalogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CatalogueConnexionsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/connexions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnexionApiDto"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConnexionApiSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnexionApiDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/connexions/{id}/activer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/connexions/{id}/desactiver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/connexions/apercu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ApercuConnexionSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApercuConnexionDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/connexions/essai": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ApercuConnexionSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EssaiConnexionDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/connexions/estimation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConnexionApiSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EstimationConnexionDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/connexions/appels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    connexion?: string;
+                    etat?: string;
+                    origine?: string;
+                    avant?: string;
+                    limite?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PageAppelsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/connexions/appels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AppelDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/connexions/appels/{id}/renvoyer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7031,6 +7748,40 @@ export interface components {
             motif: null | string;
             etatProduction?: null | string;
         };
+        /**
+         * @description Requête qui partirait, secrets masqués : `Lisible`, le message sans la syntaxe ; `Manquantes`, les variables
+         *     sans valeur dans cette MEP (envoyées vides) ; `Inconnues` et `Erreurs` empêchent l'envoi.
+         */
+        ApercuConnexionDto: {
+            methode: components["schemas"]["MethodeHttp"];
+            url: string;
+            entetes: components["schemas"]["EnteteAppelDto"][];
+            typeContenu: string;
+            corps: string;
+            lisible: string;
+            manquantes: string[];
+            inconnues: string[];
+            erreurs: components["schemas"]["ErreurChamp"][];
+            mepNom: null | string;
+            evenement: components["schemas"]["EvenementProposeDto"];
+            evenements: components["schemas"]["EvenementProposeDto"][];
+        };
+        /**
+         * @description Aperçu ou essai d'un brouillon : avec une MEP (`MepId`, sinon des valeurs d'exemple) et un événement (ligne du journal
+         *     `EvenementId`, sinon le dernier de type `Evenement`, sinon un événement simulé). `ConnexionId` : connexion
+         *     enregistrée dont reprendre les secrets laissés vides (si le domaine n'a pas changé).
+         */
+        ApercuConnexionSaisie: {
+            brouillon: components["schemas"]["ConnexionApiSaisie"];
+            /** Format: uuid */
+            connexionId: null | string;
+            /** Format: uuid */
+            mepId: null | string;
+            evenement: null | string;
+            /** Format: int64 */
+            evenementId: null | number;
+            commentaire: null | string;
+        };
         /** @description Aperçu d'un import de validation : étapes à renseigner, étapes déjà à jour, lignes sans validation (ignorées). */
         ApercuValidationDto: {
             changements: {
@@ -7053,6 +7804,60 @@ export interface components {
             inchangees: number;
             /** Format: int32 */
             sansValidation: number;
+        };
+        /** @description Réception d'un renvoi ou d'un envoi depuis une MEP : l'appel mis en file (suivi par GET …/appels/{appelId}). */
+        AppelCreeDto: {
+            /** Format: uuid */
+            appelId: string;
+        };
+        /**
+         * @description Détail d'un appel (console) : requête telle qu'elle est partie, secrets masqués (adresse secrète réduite au domaine), et
+         *     `Curl`, la commande équivalente, secrets remplacés par &lt;secret&gt;.
+         */
+        AppelDto: {
+            appel: components["schemas"]["AppelResumeDto"];
+            methode: components["schemas"]["MethodeHttp"];
+            url: string;
+            typeContenu: string;
+            entetes: components["schemas"]["EnteteAppelDto"][];
+            corps: string;
+            tentatives: components["schemas"]["TentativeDto"][];
+            /** Format: uuid */
+            appelOrigineId: null | string;
+            curl: string;
+            connexionModifiable: boolean;
+        };
+        /** @description Appel dans une liste : historique de la console, dernier appel d'une connexion, envoi suivi depuis une MEP. */
+        AppelResumeDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            connexionId: string;
+            connexion: string;
+            /** Format: uuid */
+            mepId: null | string;
+            mepNom: string;
+            typeEvenement: string;
+            libelleEvenement: string;
+            resume: string;
+            origine: components["schemas"]["OrigineAppel"];
+            demandePar: string;
+            etat: components["schemas"]["EtatAppel"];
+            /** Format: int32 */
+            code: null | number;
+            /** Format: int32 */
+            tentatives: number;
+            /** Format: int32 */
+            tentativesMax: number;
+            /** Format: int32 */
+            dureeMs: number;
+            /** Format: date-time */
+            creeLe: string;
+            /** Format: date-time */
+            termineLe: null | string;
+            /** Format: date-time */
+            prochaineTentative: null | string;
+            erreur: string;
         };
         /**
          * @description Version en cours, lien « Signaler un problème ou proposer une idée » (null si désactivé par `Signalement:Lien`)
@@ -7090,6 +7895,8 @@ export interface components {
             le: null | string;
             empechement: null | string;
         };
+        /** @enum {unknown} */
+        AuthentificationApi: "Aucune" | "Jeton" | "Basic" | "CleEntete" | "OAuth2" | null;
         BilanDto: {
             ceQuiAMarche: string;
             incidents: string;
@@ -7097,6 +7904,17 @@ export interface components {
             redigePar: null | string;
             /** Format: date-time */
             le: null | string;
+        };
+        /**
+         * @description Ce dont l'éditeur a besoin : déclencheurs, modèles de départ, variables (groupe Événement puis catalogue des modèles de
+         *     texte), version (en-tête User-Agent) et réglages réseau (réseaux autorisés, proxy, adresse publique, envois actifs).
+         */
+        CatalogueConnexionsDto: {
+            declencheurs: components["schemas"]["DeclencheurDto"][];
+            modeles: components["schemas"]["ModeleConnexionDto"][];
+            variables: components["schemas"]["VariableTexteDto"][];
+            version: string;
+            reglages: components["schemas"]["ReglageDto"][];
         };
         /** @description `Ancien` : nom actuel d'une catégorie renommée (ses objets la suivent). */
         CategorieSaisie: {
@@ -7109,6 +7927,11 @@ export interface components {
         /** @description Catégories de la fiche, dans l'ordre ; une catégorie absente est retirée avec ses objets. */
         CategoriesSystemeSaisie: {
             categories: null | components["schemas"]["CategorieSaisie"][];
+        };
+        /** @description Champ d'un corps au format formulaire (`application/x-www-form-urlencoded`) ; la valeur est un gabarit. */
+        ChampConnexion: {
+            nom?: string;
+            valeur?: string;
         };
         ChangementMotDePasseSaisie: {
             ancien: null | string;
@@ -7300,13 +8123,132 @@ export interface components {
             role: null | string;
             contact: null | string;
         };
+        /**
+         * @description Connexion telle que la lit l'éditeur, sans aucun secret. `Url` : gabarit de l'adresse, ou seulement son origine
+         *     (« https://hote ») si elle est secrète (`AdresseSecrete` en donne l'état).
+         */
+        ConnexionApiDto: {
+            /** Format: uuid */
+            id: string;
+            nom: string;
+            description: string;
+            active: boolean;
+            /** Format: int32 */
+            version: number;
+            modele: components["schemas"]["ModeleConnexion"];
+            methode: components["schemas"]["MethodeHttp"];
+            url: string;
+            urlSecrete: boolean;
+            adresseSecrete: null | components["schemas"]["SecretEtatDto"];
+            authentification: components["schemas"]["AuthentificationApi"];
+            utilisateur: string;
+            nomEntete: string;
+            tokenUrl: string;
+            clientId: string;
+            scope: string;
+            secret: null | components["schemas"]["SecretEtatDto"];
+            entetes: components["schemas"]["EnteteConnexionDto"][];
+            signature: boolean;
+            secretSignature: null | components["schemas"]["SecretEtatDto"];
+            format: components["schemas"]["FormatCorps"];
+            corps: string;
+            champs: components["schemas"]["ChampConnexion"][];
+            /** Format: int32 */
+            delaiSecondes: number;
+            /** Format: int32 */
+            tentatives: number;
+            declencheurs: string[];
+            filtres: components["schemas"]["FiltresConnexion"];
+            envoiManuel: boolean;
+            libelleEnvoiManuel: string;
+            /** Format: date-time */
+            creeeLe: string;
+            /** Format: date-time */
+            modifieeLe: string;
+            modifieePar: string;
+            etat: components["schemas"]["EtatConnexion"];
+            dernierAppel: null | components["schemas"]["AppelResumeDto"];
+        };
+        ConnexionApiResumeDto: {
+            /** Format: uuid */
+            id: string;
+            nom: string;
+            description: string;
+            active: boolean;
+            modele: components["schemas"]["ModeleConnexion"];
+            methode: components["schemas"]["MethodeHttp"];
+            adresse: string;
+            declencheurs: string[];
+            envoiManuel: boolean;
+            libelleEnvoiManuel: string;
+            etat: components["schemas"]["EtatConnexion"];
+            dernierAppel: null | components["schemas"]["AppelResumeDto"];
+            dernierEssai: null | components["schemas"]["AppelResumeDto"];
+        };
+        /**
+         * @description Création ou modification d'une connexion. Secrets en écriture seule : `AdresseSecrete`, `Secret`,
+         *     `SecretSignature` et les `ValeurSecrete` des en-têtes ; null ou absent garde la valeur enregistrée, une valeur
+         *     la remplace. Changer le domaine (ou le port) de l'adresse efface les secrets enregistrés, à ressaisir.
+         *     `Url` : gabarit de l'adresse ; ignoré si `UrlSecrete` (l'adresse complète est alors dans `AdresseSecrete`).
+         *     `Version` : obligatoire en modification (409 si elle est périmée).
+         */
+        ConnexionApiSaisie: {
+            /** Format: int32 */
+            version: null | number;
+            nom: null | string;
+            description: null | string;
+            modele: null | components["schemas"]["ModeleConnexion"];
+            methode: null | components["schemas"]["MethodeHttp"];
+            url: null | string;
+            urlSecrete: boolean;
+            adresseSecrete: null | string;
+            authentification: null | components["schemas"]["AuthentificationApi"];
+            utilisateur: null | string;
+            nomEntete: null | string;
+            tokenUrl: null | string;
+            clientId: null | string;
+            scope: null | string;
+            secret: null | string;
+            entetes: null | components["schemas"]["EnteteConnexionSaisie"][];
+            signature: boolean;
+            secretSignature: null | string;
+            format: null | components["schemas"]["FormatCorps"];
+            corps: null | string;
+            champs: null | components["schemas"]["ChampConnexion"][];
+            /** Format: int32 */
+            delaiSecondes: null | number;
+            /** Format: int32 */
+            tentatives: null | number;
+            declencheurs: null | string[];
+            filtres: null | components["schemas"]["FiltresConnexion"];
+            envoiManuel: boolean;
+            libelleEnvoiManuel: null | string;
+            active?: null | boolean;
+        };
         /** @description Connexion rapide à un compte de démonstration (mode démonstration uniquement). */
         ConnexionDemoSaisie: {
             login: null | string;
         };
+        /** @description Connexion à envoi manuel, telle que la voit une MEP : ni adresse ni réglage. */
+        ConnexionManuelleDto: {
+            /** Format: uuid */
+            id: string;
+            nom: string;
+            libelle: string;
+            description: string;
+        };
         ConnexionSaisie: {
             login: null | string;
             motDePasse: null | string;
+        };
+        /**
+         * @description Connexions dans une MEP : envois manuels proposés (pilote, suppléants, administrateurs : `PeutEnvoyer`) et échecs à
+         *     montrer dans « Blocages et échecs ».
+         */
+        ConnexionsMepDto: {
+            envois: components["schemas"]["ConnexionManuelleDto"][];
+            echecs: components["schemas"]["EchecEnvoiDto"][];
+            peutEnvoyer: boolean;
         };
         ControleSaisie: {
             resultat: null | components["schemas"]["ResultatControle"];
@@ -7371,6 +8313,12 @@ export interface components {
             version: null | number;
             decision: null | components["schemas"]["DecisionApprobation"];
             commentaire: null | string;
+        };
+        DeclencheurDto: {
+            cle: string;
+            libelle: string;
+            groupe: string;
+            frequent: boolean;
         };
         DemarrerResolutionSaisie: {
             /** Format: uuid */
@@ -7455,6 +8403,24 @@ export interface components {
             /** Format: int32 */
             revision?: null | number;
         };
+        /** @description Envoi définitivement en échec, pas encore suivi d'un envoi réussi de la même connexion pour cette MEP. */
+        EchecEnvoiDto: {
+            /** Format: uuid */
+            appelId: string;
+            /** Format: uuid */
+            connexionId: string;
+            connexion: string;
+            libelleEvenement: string;
+            resume: string;
+            /** Format: int32 */
+            code: null | number;
+            /** Format: int32 */
+            tentatives: number;
+            erreur: string;
+            /** Format: date-time */
+            quand: string;
+            renvoiEnCours: boolean;
+        };
         /** @description Échec d'une étape d'un système pendant une MEP : motif, reprise réussie ou non, dernière résolution lancée. */
         EchecSystemeDto: {
             plan: components["schemas"]["TypePlan"];
@@ -7466,6 +8432,24 @@ export interface components {
             repris: boolean;
             resolution: null | string;
             statutResolution: null | components["schemas"]["StatutResolution"];
+        };
+        EnteteAppelDto: {
+            nom: string;
+            valeur: string;
+        };
+        /** @description En-tête d'une connexion : `Valeur` (gabarit) pour un en-tête ordinaire, `ValeurSecrete` (état) pour un secret. */
+        EnteteConnexionDto: {
+            nom: string;
+            valeur: string;
+            secret: boolean;
+            valeurSecrete: null | components["schemas"]["SecretEtatDto"];
+        };
+        /** @description En-tête saisi. `ValeurSecrete` (en-tête secret) : null ou absent garde la valeur enregistrée, une valeur la remplace. */
+        EnteteConnexionSaisie: {
+            nom: null | string;
+            valeur: null | string;
+            secret: boolean;
+            valeurSecrete: null | string;
         };
         EnvironnementCatalogueDto: {
             nom: string;
@@ -7501,6 +8485,9 @@ export interface components {
             nom: string;
             production: boolean;
         };
+        EnvoiManuelSaisie: {
+            commentaire: null | string;
+        };
         /** @description Informations communes aux modèles de texte d'une équipe (membres de l'équipe ou administrateurs). */
         EquipeCommunicationSaisie: {
             contactSupport: null | string;
@@ -7527,6 +8514,15 @@ export interface components {
             description: null | string;
             membreIds: null | string[];
         };
+        /** @description Erreur d'un gabarit de la connexion : Champ vaut « adresse », « corps » ou « entete:Nom ». */
+        ErreurChamp: {
+            champ: string;
+            /** Format: int32 */
+            ligne: number;
+            /** Format: int32 */
+            colonne: number;
+            message: string;
+        };
         /**
          * @description Corps de toute réponse d'erreur de l'API, au format « problem details » (RFC 9457, type `application/problem+json`) :
          *     `status` reprend le code HTTP, `title` sa nature (« Droits insuffisants »…), `detail` et `message` le
@@ -7540,6 +8536,24 @@ export interface components {
             detail: string;
             message: string;
             erreurs?: null | string[];
+        };
+        /** @description Résultat de « Essayer » : la requête, la tentative (code ou erreur, extrait de réponse de 4 Ko au plus). */
+        EssaiConnexionDto: {
+            requete: components["schemas"]["ApercuConnexionDto"];
+            /** Format: uuid */
+            appelId: string;
+            reussi: boolean;
+            tentative: components["schemas"]["TentativeDto"];
+            tronque: boolean;
+        };
+        /** @description Estimation : appels qu'auraient donnés les déclencheurs et filtres sur les journaux des 30 derniers jours. */
+        EstimationConnexionDto: {
+            /** Format: int32 */
+            appels: number;
+            /** Format: int32 */
+            meps: number;
+            /** Format: int32 */
+            jours: number;
         };
         /** @description Étape corrective ajoutée pendant l'exécution (fiche complète : elle ne se modifie plus ensuite). */
         EtapeCorrectiveSaisie: {
@@ -7719,6 +8733,11 @@ export interface components {
             instructions: null | string;
             resultatAttendu: null | string;
         };
+        /**
+         * @description État d'un appel : en file, en cours d'envoi, réussi (réponse 2xx) ou définitivement en échec.
+         * @enum {unknown}
+         */
+        EtatAppel: "EnAttente" | "EnCours" | "Reussi" | "Echec";
         /** @description Charte en vigueur vue de la console d'administration. */
         EtatCharteDto: {
             charte: components["schemas"]["CharteFichier"];
@@ -7731,6 +8750,12 @@ export interface components {
             avertissements: components["schemas"]["ProblemeCharte"][];
             commande: string;
         };
+        /**
+         * @description État d'une connexion : désactivée, en erreur (son dernier appel hors essai est définitivement en échec ; elle repasse
+         *     active au prochain appel réussi), jamais appelée (hors essais) ou active.
+         * @enum {unknown}
+         */
+        EtatConnexion: "Active" | "Desactivee" | "EnErreur" | "JamaisAppelee";
         /** @enum {unknown} */
         EtatEtape: "AFaire" | "EnCours" | "Reussie" | "Echec";
         /**
@@ -7784,6 +8809,16 @@ export interface components {
             auteurLogin: null | string;
             /** Format: uuid */
             etapeId?: null | string;
+        };
+        /** @description Événement proposé pour l'aperçu : une ligne du journal de la MEP (Id) ou un événement simulé (Id null). */
+        EvenementProposeDto: {
+            /** Format: int64 */
+            id: null | number;
+            cle: string;
+            libelle: string;
+            detail: string;
+            /** Format: date-time */
+            quand: null | string;
         };
         ExecutionResolutionDto: {
             /** Format: uuid */
@@ -7918,8 +8953,26 @@ export interface components {
             avertissements: components["schemas"]["ProblemeCharte"][];
             charte: null | components["schemas"]["CharteFichier"];
         };
+        /**
+         * @description Filtres d'une connexion : seulement les MEP qui correspondent (liste vide : tout). Évalués au moment de l'événement. Les
+         *     modèles de MEP sont toujours exclus.
+         */
+        FiltresConnexion: null | {
+            /** @description La MEP appartient à l'une des équipes (une de ses personnes en est membre). */
+            equipeIds?: string[];
+            /** @description La MEP touche l'un des systèmes du catalogue. */
+            systemeCatalogueIds?: string[];
+            /** @description La MEP touche l'un de ces environnements (noms, sans casse ni accents, comme la recherche des MEP). */
+            environnements?: string[];
+            niveauxRisque?: components["schemas"]["NiveauRisque"][];
+            /** @description Criticité de l'étape, pour les événements d'étape seulement. */
+            criticitesEtape?: components["schemas"]["Criticite"][];
+            typesMep?: components["schemas"]["TypeMep"][];
+        };
         /** @enum {unknown} */
         FinEtape: "TestUnitaire" | "Verification" | null;
+        /** @enum {unknown} */
+        FormatCorps: "Json" | "Formulaire" | "Texte" | "Aucun" | null;
         /**
          * @description Fournisseur de la connexion unique : Microsoft Entra ID (préréglage) ou tout autre fournisseur OpenID Connect.
          * @enum {unknown}
@@ -9307,6 +10360,21 @@ export interface components {
             /** Format: int32 */
             echecsRecette: number;
         };
+        /** @description Message reçu par le récepteur de démonstration (en-têtes secrets masqués). */
+        MessageRecuDto: {
+            /** Format: date-time */
+            quand: string;
+            canal: string;
+            methode: string;
+            adresse: string;
+            entetes: components["schemas"]["EnteteAppelDto"][];
+            corps: string;
+        };
+        /**
+         * @description Méthode HTTP d'une connexion. Pas de DELETE : aucun besoin identifié, et une erreur de réglage serait destructrice.
+         * @enum {unknown}
+         */
+        MethodeHttp: "Post" | "Put" | "Patch" | "Get";
         /**
          * @description Dernière version publiée sur GitHub. `Disponible` : elle est plus récente que la version en cours (toujours faux
          *     pour une version de développement). `Erreur` : dernière vérification impossible (serveur sans accès à Internet…).
@@ -9324,6 +10392,27 @@ export interface components {
             erreur: null | string;
             disponible: boolean;
             installateur: components["schemas"]["InstallateurDto"];
+        };
+        /**
+         * @description Modèle de départ d'une connexion (origine, informatif : tout reste modifiable).
+         * @enum {unknown}
+         */
+        ModeleConnexion: "Teams" | "Slack" | "WebhookJson" | "Tickets" | "Libre";
+        ModeleConnexionDto: {
+            modele: components["schemas"]["ModeleConnexion"];
+            libelle: string;
+            description: string;
+            etiquettes: string[];
+            methode: components["schemas"]["MethodeHttp"];
+            format: components["schemas"]["FormatCorps"];
+            authentification: components["schemas"]["AuthentificationApi"];
+            urlSecrete: boolean;
+            signature: boolean;
+            urlExemple: string;
+            corps: string;
+            declencheurs: string[];
+            envoiManuel: boolean;
+            libelleEnvoiManuel: string;
         };
         /** @description « Enregistrer comme modèle » : copie d'une fiche de recette d'une MEP dans la bibliothèque. */
         ModeleDepuisFicheSaisie: {
@@ -9539,6 +10628,19 @@ export interface components {
         OrdrePortsSaisie: {
             sens: null | components["schemas"]["SensPort"];
             ports: null | string[];
+        };
+        /**
+         * @description Origine d'un appel : événement de la MEP, envoi depuis la MEP, essai depuis l'éditeur, renvoi d'un appel.
+         * @enum {unknown}
+         */
+        OrigineAppel: "Automatique" | "Manuel" | "Essai" | "Renvoi";
+        /** @description Page de l'historique des appels : `Suivant`, la valeur de `avant` pour la page suivante (null : fin). */
+        PageAppelsDto: {
+            appels: components["schemas"]["AppelResumeDto"][];
+            /** Format: date-time */
+            suivant: null | string;
+            /** Format: int32 */
+            echecs: number;
         };
         /**
          * @description Page de la liste des MEP (`GET /meps/page`) : `Meps`, la page ; `Total`, le nombre de MEP qui correspondent
@@ -10746,6 +11848,17 @@ export interface components {
             methodeRecuperation?: null | string;
             /** Format: int32 */
             revision?: null | number;
+        };
+        /**
+         * @description État d'un secret, jamais sa valeur : enregistré, lisible (false : clés de l'application changées, à ressaisir), date et
+         *     auteur du dernier remplacement.
+         */
+        SecretEtatDto: null | {
+            enregistre: boolean;
+            lisible: boolean;
+            /** Format: date-time */
+            remplaceLe: null | string;
+            remplacePar: null | string;
         };
         /** @description Section créée (`SectionId`) et MEP à jour. */
         SectionCreeeDto: {
@@ -12169,6 +13282,20 @@ export interface components {
             cible: null | string;
             impact: null | string;
         };
+        /** @description Tentative d'un appel : code et libellé reçus, ou type d'erreur (adresse, certificat, delai, reseau, redirection, secret). */
+        TentativeDto: {
+            /** Format: date-time */
+            debut: string;
+            /** Format: int32 */
+            dureeMs: number;
+            /** Format: int32 */
+            code: null | number;
+            libelle: string;
+            typeErreur: string;
+            erreur: string;
+            extraitReponse: string;
+            entetesReponse: string;
+        };
         /** @description `ResultatConstate` : résultat du test unitaire, exigé pour le réussir (à défaut, la preuve en tient lieu). */
         TerminerSaisie: {
             /** Format: int32 */
@@ -12235,6 +13362,13 @@ export interface components {
          * @enum {unknown}
          */
         UsageModeleTexte: "Annonce" | "Rappel" | "DemandeMep" | "CompteRendu" | "Autre";
+        /**
+         * @description Usage d'une saisie de connexion : enregistrement (tout est vérifié), essai (la requête doit pouvoir partir), aperçu (rien
+         *     n'est refusé) ou importation (comme l'enregistrement, mais un secret absent est seulement relevé dans
+         *     List&lt;string&gt; ServiceConnexions.SecretsManquants : il se saisit ensuite par « connexions secret »).
+         * @enum {unknown}
+         */
+        UsageSaisie: "Enregistrement" | "Essai" | "Apercu" | "Importation";
         /**
          * @description Compte complet : le sien (`/api/auth/moi`, profil) ou ceux de la console d'administration (`/api/admin/utilisateurs`).
          *     `ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom

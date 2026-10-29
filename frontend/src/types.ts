@@ -485,3 +485,102 @@ export type SsoSaisie = SaisieVerifiee<
     libelle: string;
   }
 >;
+
+// ---------- Connexions aux API externes (#111) ----------
+
+export type ModeleConnexion = NonNullable<S['ModeleConnexion']>;
+export type MethodeHttp = NonNullable<S['MethodeHttp']>;
+export type FormatCorps = NonNullable<S['FormatCorps']>;
+export type AuthentificationApi = NonNullable<S['AuthentificationApi']>;
+export type EtatConnexion = NonNullable<S['EtatConnexion']>;
+export type EtatAppel = NonNullable<S['EtatAppel']>;
+export type OrigineAppel = NonNullable<S['OrigineAppel']>;
+/** État d'un secret : jamais sa valeur, seulement s'il est enregistré, lisible, et quand et par qui il a été remplacé. */
+export type SecretEtat = S['SecretEtatDto'];
+export type ConnexionApiResume = S['ConnexionApiResumeDto'];
+/** Connexion complète pour l'éditeur (sans aucun secret). */
+export type ConnexionApi = S['ConnexionApiDto'];
+export type EnteteConnexion = S['EnteteConnexionDto'];
+/** Champ d'un message au format formulaire (nom et gabarit de la valeur). */
+export interface ChampConnexion {
+  nom: string;
+  valeur: string;
+}
+/** Filtres d'une connexion : vides = toutes les MEP. */
+export interface FiltresConnexion {
+  equipeIds: string[];
+  systemeCatalogueIds: string[];
+  environnements: string[];
+  niveauxRisque: NiveauRisque[];
+  criticitesEtape: Criticite[];
+  typesMep: TypeMep[];
+}
+export type CatalogueConnexions = S['CatalogueConnexionsDto'];
+export type DeclencheurConnexion = S['DeclencheurDto'];
+export type ModeleConnexionPropose = S['ModeleConnexionDto'];
+export type EvenementPropose = S['EvenementProposeDto'];
+export type ApercuConnexion = S['ApercuConnexionDto'];
+export type ErreurChamp = S['ErreurChamp'];
+export type EssaiConnexion = S['EssaiConnexionDto'];
+export type EstimationConnexion = S['EstimationConnexionDto'];
+export type AppelCree = S['AppelCreeDto'];
+export type AppelResume = S['AppelResumeDto'];
+export type Appel = S['AppelDto'];
+export type TentativeAppel = S['TentativeDto'];
+export type PageAppels = S['PageAppelsDto'];
+export type EnteteAppel = S['EnteteAppelDto'];
+/** Ce qu'une MEP montre des connexions : envois manuels proposés, échecs définitifs à montrer, droit d'envoyer. */
+export type ConnexionsMep = S['ConnexionsMepDto'];
+export type ConnexionManuelle = S['ConnexionManuelleDto'];
+export type EchecEnvoi = S['EchecEnvoiDto'];
+export type MessageRecu = S['MessageRecuDto'];
+/** En-tête saisi : `valeurSecrete` vide ou omise = valeur enregistrée conservée. */
+export type EnteteConnexionSaisie = SaisieVerifiee<
+  S['EnteteConnexionSaisie'],
+  { nom: string; valeur: string; secret: boolean; valeurSecrete?: string }
+>;
+/** Saisie d'une connexion : un secret vide ou omis est conservé (sauf si le domaine change). */
+export type ConnexionApiSaisie = SaisieVerifiee<
+  S['ConnexionApiSaisie'],
+  {
+    version?: number;
+    nom: string;
+    description: string;
+    modele: ModeleConnexion;
+    methode: MethodeHttp;
+    url: string;
+    urlSecrete: boolean;
+    adresseSecrete?: string;
+    authentification: AuthentificationApi;
+    utilisateur: string;
+    nomEntete: string;
+    tokenUrl: string;
+    clientId: string;
+    scope: string;
+    secret?: string;
+    entetes: EnteteConnexionSaisie[];
+    signature: boolean;
+    secretSignature?: string;
+    format: FormatCorps;
+    corps: string;
+    champs: ChampConnexion[];
+    delaiSecondes: number;
+    tentatives: number;
+    declencheurs: string[];
+    filtres: FiltresConnexion;
+    envoiManuel: boolean;
+    libelleEnvoiManuel: string;
+    active?: boolean;
+  }
+>;
+export type ApercuConnexionSaisie = SaisieVerifiee<
+  S['ApercuConnexionSaisie'],
+  {
+    brouillon: ConnexionApiSaisie;
+    connexionId?: string;
+    mepId?: string;
+    evenement?: string;
+    evenementId?: number;
+    commentaire?: string;
+  }
+>;
