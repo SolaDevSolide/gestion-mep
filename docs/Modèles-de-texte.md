@@ -17,6 +17,10 @@ On choisit l'équipe dont on prend les modèles. Par défaut, c'est l'équipe du
 2. Choisir **Mis en forme** (gras et listes, pour une messagerie qui les accepte) ou **Texte simple** (puces « - », sans gras). Le choix change à la fois l'aperçu et ce qui est copié.
 3. **Copier l'objet**, puis **Copier le texte**.
 
+![Animation : « Textes à copier », modèle « Rappel le jour J », « Texte simple », puis copie de l'objet et du texte](images/copier-un-texte.webp)
+
+*Le texte se remplit avec les informations de « Paiement mobile » ; rien n'est envoyé, tout est copié.*
+
 Une information absente de la MEP est signalée dans un encadré orange et apparaît dans le texte sous la forme « [Indisponibilité prévue à compléter] », pour qu'on la repère avant d'envoyer.
 
 ## Modèles fournis
@@ -47,6 +51,10 @@ Tout le monde consulte les modèles et copie les textes. Les **membres de l'équ
 | Ligne vide | Nouveau paragraphe |
 
 L'éditeur propose les variables par groupe, avec une recherche (plusieurs mots : tous doivent être trouvés dans le libellé, la clé ou la description) ; un clic insère la variable à l'emplacement du curseur, dans l'objet ou dans le texte. L'aperçu se calcule sur une MEP choisie, mis en forme ou en texte simple, et signale les informations absentes de cette MEP et les variables inconnues (faute de frappe).
+
+![Animation : nouveau modèle : variables « Application » et « Fin estimée » insérées, aperçu sur « Paiement mobile »](images/ecrire-un-modele.webp)
+
+*Un clic sur une variable l'insère au curseur ; l'aperçu la remplace par l'information de la MEP choisie.*
 
 ## Variables
 

@@ -35,6 +35,10 @@ Le graphe du plan, en lecture seule, avec les mêmes cartes et le même rangemen
 
 La mini-carte est masquée par défaut (bouton en bas à droite, mémorisé pour la vue d'ensemble). Le bouton plein écran du graphe emporte toute la vue : chiffres, plan et panneau de droite.
 
+![Animation : vue d'ensemble de « Paiement mobile » en plein écran, section « Service paiement » dépliée, pendant que Bob termine E0004](images/vue-d-ensemble.webp)
+
+*Bob termine E0004 dans son navigateur : la carte passe au vert, l'avancement, les blocages et « En ce moment » suivent sans recharger.*
+
 ### Panneau de droite
 
 - **Blocages et échecs** : chaque étape en échec, avec son motif, sa résolution en cours (corrections faites, vérification) et les étapes qu'elle bloque ; chaque étape en cours qui a dépassé sa durée ; chaque envoi à une [API externe](API-externes.md) définitivement en échec (connexion, événement, résultat), avec **Renvoyer** pour le pilote, ses suppléants et les administrateurs.
@@ -47,6 +51,10 @@ Entrée **Suivi en direct** du menu, ouverte à tous. En haut, quatre chiffres :
 
 Puis une carte par MEP lancée (exécution, recette ou retour arrière ; ni les MEP annulées ni les reportées) : avancement, sections colorées comme dans la vue d'ensemble (une pastille par étape hors section), fin estimée et retard, échecs et ce qu'ils bloquent, qui exécute quoi, compte à rebours avant l'échéance de retour arrière. Les **retours arrière** viennent en premier, puis les MEP qui ont des **échecs** à traiter, puis les autres, la plus ancienne lancée d'abord. « Vue d'ensemble » ouvre la MEP sur son premier onglet ; les puces des systèmes touchés (une alerte signale celui d'une étape en échec) ouvrent leur historique.
 
+![Animation : Suivi en direct : la carte de « Paiement mobile » se met à jour, puis « Vue d'ensemble »](images/suivi-en-direct.webp)
+
+*Quand Bob termine une étape, seule la carte de sa MEP change ; « Vue d'ensemble » ouvre la MEP sur son premier onglet.*
+
 En bas, deux listes : les MEP **prévues aujourd'hui et demain** (date et heure annoncées dans la section Communication) et les MEP **clôturées dans les dernières 24 heures**, avec un lien vers leur rapport de fin. Le bouton « Plein écran » affiche le tableau seul, pour un écran de supervision.
 
 Le tableau suit les MEP au fil de l'eau sans tout recharger : une action sur une MEP lancée ne met à jour que sa carte ; le tableau entier n'est relu que lorsqu'une MEP est lancée, clôturée, annoncée ou retirée. Une modification qui n'y apparaît pas (la préparation d'une MEP pas encore lancée, par exemple) ne le fait pas bouger.
@@ -54,6 +62,10 @@ Le tableau suit les MEP au fil de l'eau sans tout recharger : une action sur une
 ## Rapport de fin
 
 Quand une MEP est clôturée, son **rapport de fin** est figé : ce qu'il montre ne change plus, même si la MEP est modifiée ensuite. On l'ouvre par le bouton « Rapport de fin » du bilan de clôture, le lien de la vue d'ensemble ou celui du Suivi en direct (adresse `/meps/{id}/rapport`). Il n'y a pas de rapport, même provisoire, avant la clôture.
+
+![Animation : « Rapport de fin » de « Gestion des stocks », puis ses parties : points bloquants, tests unitaires, qui a fait chaque étape](images/rapport-de-fin.webp)
+
+*Le rapport s'ouvre depuis le bilan de clôture ; « Exporter en Excel » et « Télécharger en PDF » sont en haut.*
 
 Il contient :
 
@@ -72,6 +84,10 @@ Il contient :
 ## Rechercher des MEP
 
 La liste des MEP (page d'accueil) se filtre par une rangée de critères au-dessus des résultats : **Système** (ceux du catalogue, puis ceux saisis à la main dans les MEP, sous « Hors catalogue »), **Environnement** (sur les systèmes choisis), **Équipe**, **Personne** (avec, au besoin, son rôle : pilote, suppléant, responsable technique, exécutant, approbateur), **État** et **Période**. Les critères se combinent ; dans un même critère, une valeur suffit. Sous le critère Système, la case « Avec un échec d'étape sur ces systèmes » ne garde que les MEP qui ont eu un échec sur l'un d'eux, même repris. Sur téléphone, les critères sont dans le bouton « Filtres ».
+
+![Animation : filtre Système : BDD, puis « Avec un échec sur ces systèmes »](images/rechercher-des-mep.webp)
+
+*Dès qu'un critère est actif, les résultats passent en tableau.*
 
 | État | MEP retenues |
 |---|---|
@@ -95,11 +111,19 @@ Partout où un système apparaît (liste, en-tête d'une MEP, section Systèmes 
 
 La palette de commandes (`Ctrl K`) cherche aussi : « Rechercher « … » dans les MEP » ouvre la liste filtrée par le texte tapé, les systèmes du catalogue ouvrent leur historique et les personnes la liste de leurs MEP.
 
+![Animation : Ctrl K, « claire », puis « Claire : ses MEP »](images/palette-de-commandes.webp)
+
+*Une personne trouvée par la palette ouvre la liste de ses MEP.*
+
 En ligne de commande : `gestion-mep meps lister` avec les mêmes critères (voir [Exploiter](Exploiter.md#mep-et-journal)).
 
 ## Historique d'un système
 
 Onglet **« Historique des MEP »** de la fiche d'un système du catalogue (Paramètres › Systèmes, ou la puce du système) : toutes les MEP qui l'ont touché, avec leur date, leurs environnements sur ce système et leur issue.
+
+![Animation : puce BDD d'une MEP, « Historique des MEP », puis « Avec un échec sur BDD »](images/historique-d-un-systeme.webp)
+
+*La puce d'un système ouvre son historique : synthèse, frise des 12 derniers mois, puis les MEP mois par mois.*
 
 - En haut, la synthèse : nombre de MEP (dont celles des 12 derniers mois et celles en cours ou à venir), dernière MEP lancée, part des MEP clôturées avec problème (en échec, clôturées après retour arrière ou avec incidents ; les annulées sont comptées à part) et échecs d'étape survenus sur ce système, repris ou non.
 - Une frise des 12 derniers mois place chaque MEP à sa date, de la couleur de son état.
