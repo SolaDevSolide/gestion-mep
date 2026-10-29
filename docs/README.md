@@ -17,6 +17,7 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 | Gérer les comptes, les équipes, les paramètres et la charte visuelle (je suis administrateur) | [Administrer](Administrer.md) |
 | Installer l'application sur un serveur | [Installer](Installer.md), ou [sans Docker](Installer-sans-Docker.md) (Linux ou Windows) |
 | Mettre à jour, sauvegarder, restaurer, tout administrer en ligne de commande (comptes, équipes, systèmes, critères, résolutions types, réglages, journal, export des MEP) | [Exploiter](Exploiter.md) |
+| Référence de la commande `gestion-mep` : chaque commande, codes de retour, sortie JSON, complétion | [Ligne de commande](Ligne-de-commande.md) |
 | Savoir qui a le droit de faire quoi | [Droits par rôle](Droits.md) |
 | Trouver le sens d'un mot | [Glossaire](Glossaire.md) |
 | Résoudre un problème | [FAQ et dépannage](FAQ-et-dépannage.md) |
@@ -29,4 +30,4 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 - **Suivi** : vue d'ensemble de chaque MEP (plan coloré, fin estimée, blocages, qui fait quoi), tableau de bord « Suivi en direct » de toutes les MEP lancées, rapport de fin figé à la clôture (Excel, PDF par l'impression du navigateur).
 - **Sécurité de l'intervention** : go / no-go sur critères, point de non-retour soumis à l'accord du pilote, échéance de retour arrière surveillée en permanence, recette avant clôture, bilan.
 - **Traçabilité** : chaque action est horodatée et attribuée, y compris quand quelqu'un prend la main sur l'étape d'un autre.
-- **Exploitation** : sauvegarde automatique de la base et des pièces jointes avant chaque mise à jour du schéma ou importation, supprimée seulement si les contrôles internes confirment qu'aucune donnée n'a été perdue ; commandes `gestion-mep sauvegarder`, `gestion-mep sauvegardes lister | restaurer` et `gestion-mep importer` pour les sauvegardes régulières, les restaurations et les changements de serveur.
+- **Exploitation** : sauvegarde automatique de la base et des pièces jointes avant chaque mise à jour du schéma ou importation, supprimée seulement si les contrôles internes confirment qu'aucune donnée n'a été perdue ; commandes `gestion-mep sauvegardes creer | lister | verifier | purger | restaurer` et `gestion-mep importer` pour les sauvegardes régulières, les restaurations et les changements de serveur.

@@ -157,6 +157,8 @@ try {
     Set-Content -Path (Join-Path $Racine 'gestion-mep.cmd') -Encoding ASCII -Value @(
         '@echo off',
         'rem Commandes d''exploitation de Gestion MEP (gestion-mep aide), dans une console lancée en administrateur.',
+        'rem Sans argument : l''aide (et non un second serveur).',
+        'if "%~1"=="" ( "%ProgramFiles%\GestionMep\actuelle\GestionMep.Api.exe" aide & exit /b )',
         '"%ProgramFiles%\GestionMep\actuelle\GestionMep.Api.exe" %*'
     )
     $chemin = [Environment]::GetEnvironmentVariable('Path', 'Machine')

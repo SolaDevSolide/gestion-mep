@@ -66,7 +66,7 @@ public class LigneDeCommandeTests : IDisposable
         // Préfixe « gestion-mep » toléré (docker compose run --rm app gestion-mep …).
         Assert.Equal(aide.Sortie, (await Cli("gestion-mep", "aide")).Sortie);
         foreach (var commande in new[] { "comptes modifier", "comptes expertises", "systemes ajouter", "criteres modifier", "reglages definir",
-                     "resolutions importer", "meps exporter", "equipes ajouter", "comptes relier", "journal [--depuis", "sauvegardes restaurer", "mettre-a-jour", "config afficher", "charte importer", "charte retablir" })
+                     "resolutions importer", "meps exporter", "equipes ajouter", "comptes relier", "journal lister [--depuis", "sauvegardes restaurer", "mettre-a-jour", "config afficher", "charte importer", "charte retablir" })
             Assert.Contains($"gestion-mep {commande}", aide.Sortie);
         Assert.True(LigneDeCommande.EstCommande(["--json", "comptes", "lister"]));
         Assert.False(LigneDeCommande.EstCommande(["--urls", "http://+:8080"]));
@@ -93,7 +93,7 @@ public class LigneDeCommandeTests : IDisposable
         Assert.Equal(1, dernierAdmin.Code);
         Assert.Contains("dernier administrateur", dernierAdmin.Erreur);
         Assert.Equal(1, (await Cli("comptes", "modifier", "alice", "--admin", "peut-etre")).Code);
-        Assert.Equal(1, (await Cli("comptes", "modifier", "inconnu", "--role", "x")).Code);
+        Assert.Equal(5, (await Cli("comptes", "modifier", "inconnu", "--role", "x")).Code);
 
         var modifie = await Cli("comptes", "modifier", "dupont", "--nom", "J. Dupont", "--admin", "oui", "--contact", "poste 13");
         Assert.Equal(0, modifie.Code);
@@ -107,7 +107,7 @@ public class LigneDeCommandeTests : IDisposable
         Assert.Single(expertises);
         Assert.Equal("API", expertises[0].GetProperty("systeme").GetString());
         Assert.Equal("Commandes", expertises[0].GetProperty("detail").GetString());
-        Assert.Equal(1, (await Cli("comptes", "modifier", "dupont", "--ajouter-expertise", "INCONNU")).Code);
+        Assert.Equal(5, (await Cli("comptes", "modifier", "dupont", "--ajouter-expertise", "INCONNU")).Code);
         Assert.Equal(1, (await Cli("comptes", "modifier", "dupont", "--retirer-expertise", "WEB")).Code);
         Assert.Equal(2, (await Cli("comptes", "modifier", "dupont", "--detail", "sans expertise")).Code);
         Assert.True(await Journalise("compte.modifie", "expertise BDD retirée"));
@@ -131,7 +131,7 @@ public class LigneDeCommandeTests : IDisposable
 
         Assert.Contains("supprimé du catalogue", (await Cli("systemes", "supprimer", "CRM2")).Sortie);
         Assert.Contains("désactivé au lieu d'être supprimé", (await Cli("systemes", "supprimer", "API")).Sortie);
-        Assert.Equal(1, (await Cli("systemes", "supprimer", "CRM2")).Code);
+        Assert.Equal(5, (await Cli("systemes", "supprimer", "CRM2")).Code);
         var systemes = (await Cli("systemes", "lister", "--json")).Json.EnumerateArray().ToList();
         Assert.DoesNotContain(systemes, s => s.GetProperty("nom").GetString() == "CRM2");
         Assert.False(systemes.Single(s => s.GetProperty("nom").GetString() == "API").GetProperty("actif").GetBoolean());
@@ -190,7 +190,7 @@ public class LigneDeCommandeTests : IDisposable
         Assert.False(modifie.GetProperty("actif").GetBoolean());
         Assert.Equal(999, modifie.GetProperty("ordre").GetInt32());
 
-        Assert.Equal(1, (await Cli("criteres", "supprimer", "0")).Code);
+        Assert.Equal(5, (await Cli("criteres", "supprimer", "0")).Code);
         Assert.Equal(1, (await Cli("criteres", "ajouter", "  ")).Code);
         Assert.Equal(1, (await Cli("criteres", "modifier", "1", "--ordre", "premier")).Code);
         Assert.Equal(0, (await Cli("criteres", "supprimer", modifie.GetProperty("id").GetString()!)).Code);
@@ -298,7 +298,7 @@ public class LigneDeCommandeTests : IDisposable
         var essai = await Cli("resolutions", "importer", fichierAutre, "--essai", "--json");
         Assert.Equal(1, essai.Code);
         Assert.Equal(["creee", "refusee", "refusee", "refusee"], essai.Json.EnumerateArray().Select(r => r.GetProperty("resultat").GetString()!).ToArray());
-        Assert.Equal(1, (await Cli("resolutions", "afficher", "LDAP : compte de service verrouillé")).Code); // essai : rien d'écrit
+        Assert.Equal(5, (await Cli("resolutions", "afficher", "LDAP : compte de service verrouillé")).Code); // essai : rien d'écrit
 
         var import = await Cli("resolutions", "importer", fichierAutre);
         Assert.Equal(1, import.Code);
@@ -338,8 +338,8 @@ public class LigneDeCommandeTests : IDisposable
         Assert.Equal(2, (await Cli("equipes", "creer", "--description")).Code);
         Assert.Equal(0, (await Cli("equipes", "ajouter", "exploitation", "bob", "claire")).Code);
         Assert.Contains("aucun changement", (await Cli("equipes", "ajouter", "Exploitation", "bob")).Sortie);
-        Assert.Equal(1, (await Cli("equipes", "ajouter", "Exploitation", "inconnu")).Code);
-        Assert.Equal(1, (await Cli("equipes", "ajouter", "Inconnue", "bob")).Code);
+        Assert.Equal(5, (await Cli("equipes", "ajouter", "Exploitation", "inconnu")).Code);
+        Assert.Equal(5, (await Cli("equipes", "ajouter", "Inconnue", "bob")).Code);
         Assert.Equal(0, (await Cli("equipes", "retirer", "Exploitation", "claire")).Code);
         var equipe = (await Cli("equipes", "lister", "--json")).Json.EnumerateArray().Single(e => e.GetProperty("nom").GetString() == "Exploitation");
         Assert.Equal(1, equipe.GetProperty("membreIds").GetArrayLength());
@@ -351,7 +351,7 @@ public class LigneDeCommandeTests : IDisposable
         var deLEquipe = (await Cli("meps", "lister", "--equipe", "Exploitation", "--json")).Json.EnumerateArray().ToList();
         Assert.NotEmpty(deLEquipe);
         Assert.All(deLEquipe, m => Assert.Contains("Bob", m.GetProperty("personnes").EnumerateArray().Select(x => x.GetString())));
-        Assert.Equal(1, (await Cli("meps", "lister", "--equipe", "Inconnue")).Code);
+        Assert.Equal(5, (await Cli("meps", "lister", "--equipe", "Inconnue")).Code);
 
         // Comptes reliés : nom de la personne, désactivation facultative, liaison défaite.
         Assert.Equal(0, (await Cli("comptes", "creer", "bob.sso", "--nom", "Robert")).Code);
@@ -403,7 +403,7 @@ public class LigneDeCommandeTests : IDisposable
         var journal = export.GetProperty("journal").EnumerateArray().ToList();
         Assert.NotEmpty(journal);
         Assert.True(journal[0].GetProperty("id").GetInt64() < journal[^1].GetProperty("id").GetInt64() || journal.Count == 1);
-        Assert.Equal(1, (await Cli("meps", "exporter", "ffffffff")).Code);
+        Assert.Equal(5, (await Cli("meps", "exporter", "ffffffff")).Code);
         Assert.True(await Journalise("mep.exportee", id));
     }
 
@@ -431,9 +431,9 @@ public class LigneDeCommandeTests : IDisposable
         Assert.Contains(nom, (await Cli("sauvegardes", "lister")).Sortie);
 
         var sansConfirmation = await Cli("sauvegardes", "restaurer", nom);
-        Assert.Equal(1, sansConfirmation.Code);
+        Assert.Equal(4, sansConfirmation.Code);
         Assert.Contains("--oui", sansConfirmation.Erreur);
-        Assert.Equal(1, (await Cli("sauvegardes", "restaurer", "absente.tar.gz", "--oui")).Code);
+        Assert.Equal(5, (await Cli("sauvegardes", "restaurer", "absente.tar.gz", "--oui")).Code);
         Assert.Equal(2, (await Cli("sauvegardes", "restaurer")).Code);
 
         // Une autre session ouverte sur la base (l'application en marche) : refus, rien n'est touché.
@@ -514,7 +514,7 @@ public class LigneDeCommandeTests : IDisposable
         Assert.Contains("Liaison supprimée pour « bob »", delier.Sortie);
         Assert.True(await Journalise("sso.delie", "bob@entreprise.fr"));
         Assert.Contains("n'est relié à aucun compte du fournisseur", (await Cli("sso", "delier", "bob")).Sortie);
-        Assert.Equal(1, (await Cli("sso", "delier", "personne")).Code);
+        Assert.Equal(5, (await Cli("sso", "delier", "personne")).Code);
 
         Assert.Equal(0, (await Cli("sso", "desactiver")).Code);
         Assert.Contains("Connexion unique   : désactivée", (await Cli("sso", "afficher")).Sortie);

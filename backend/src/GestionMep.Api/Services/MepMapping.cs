@@ -46,7 +46,8 @@ public static class MepMapping
     public static MepDto VersDto(Mep m, Guid? utilisateurId, IReadOnlyDictionary<Guid, string> nomsUtilisateurs, DateTimeOffset maintenant,
         ContexteVerification contexte, IReadOnlyList<PieceJointe> pieces, bool estAdmin = false)
     {
-        string? Nom(Guid? id) => id is { } g && nomsUtilisateurs.TryGetValue(g, out var n) ? n : null;
+        // Guid.Empty : action de la ligne de commande (Acteur.LigneDeCommande), sans compte.
+        string? Nom(Guid? id) => id == Guid.Empty ? JournalAdmin.AuteurLigneDeCommande : id is { } g && nomsUtilisateurs.TryGetValue(g, out var n) ? n : null;
         ValidationDto? Validation(Guid? par, DateTimeOffset? le) =>
             par is null || le is null ? null : new ValidationDto(Nom(par) ?? "Inconnu", le.Value);
 

@@ -145,7 +145,7 @@ public class CompressionPiecesJointesTests : IDisposable
         var pjCsv = (await Deposer(alice, id, "c.csv", journal[..(200 * 1024)], "text/csv")).GetProperty("id").GetGuid();
         var etat = await Cli("pieces-jointes", "etat", "--json");
         Assert.Equal(0, etat.Code);
-        Assert.Equal(3, JsonDocument.Parse(etat.Sortie).RootElement.GetProperty("nonExaminees").GetInt32());
+        Assert.Equal(3, JsonDocument.Parse(etat.Sortie).RootElement.GetProperty("compression").GetProperty("nonExaminees").GetInt32());
 
         // Essai : le gain est annoncé, rien ne change.
         var essai = await Cli("pieces-jointes", "compresser", "--essai");
@@ -168,6 +168,19 @@ public class CompressionPiecesJointesTests : IDisposable
         Assert.Contains(journalAdmin, e => e.GetProperty("type").GetString() == "pieces.compression"
             && e.GetProperty("detail").GetString()!.Contains("2 compressée(s) sur 3 examinée(s)"));
 
+        // Extraction et contrôle lisent le contenu d'origine d'un fichier compressé (empreinte du dépôt).
+        var extrait = Path.Combine(Path.GetTempPath(), $"extrait-{Guid.NewGuid():N}.log");
+        try
+        {
+            Assert.Equal(0, (await Cli("pieces-jointes", "extraire", pjJournal.ToString(), extrait)).Code);
+            Assert.Equal(journal, await File.ReadAllBytesAsync(extrait));
+        }
+        finally
+        {
+            File.Delete(extrait);
+        }
+        Assert.Equal(0, (await Cli("pieces-jointes", "verifier")).Code);
+
         // Idempotente : plus rien à examiner ; --tout réexamine la pièce laissée telle quelle, sans la changer.
         Assert.Contains("Aucune pièce jointe à examiner", (await Cli("pieces-jointes", "compresser")).Sortie);
         var tout = JsonDocument.Parse((await Cli("pieces-jointes", "compresser", "--tout", "--json")).Sortie).RootElement;
@@ -182,8 +195,8 @@ public class CompressionPiecesJointesTests : IDisposable
         Assert.Equal(journal, await alice.GetByteArrayAsync($"/api/pieces-jointes/{pjJournal}/contenu"));
         etat = await Cli("pieces-jointes", "etat", "--json");
         var e = JsonDocument.Parse(etat.Sortie).RootElement;
-        Assert.Equal(0, e.GetProperty("compressees").GetInt32());
-        Assert.Equal(e.GetProperty("tailleFichiers").GetInt64(), e.GetProperty("tailleStockee").GetInt64());
+        Assert.Equal(0, e.GetProperty("compression").GetProperty("compressees").GetInt32());
+        Assert.Equal(e.GetProperty("total").GetInt64(), e.GetProperty("totalStocke").GetInt64());
 
         Assert.Equal(2, (await Cli("pieces-jointes", "compresser", "--inconnue")).Code);
         Assert.Equal(2, (await Cli("pieces-jointes")).Code);

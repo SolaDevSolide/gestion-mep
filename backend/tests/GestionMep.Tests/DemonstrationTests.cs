@@ -233,7 +233,7 @@ public class DemonstrationTests : IDisposable
         var alice = await _api.ClientConnecte("alice");
         await Ok(await alice.PostAsJsonAsync("/api/meps", new { outil = "Temporaire" }));
         var (code, _, erreur) = await Cli("demo", "reinitialiser");
-        Assert.Equal(1, code);
+        Assert.Equal(4, code);
         Assert.Contains("--oui", erreur);
         Assert.Equal(17, (await Ok(await alice.GetAsync("/api/meps?modele=false"))).GetArrayLength());
 
@@ -245,7 +245,7 @@ public class DemonstrationTests : IDisposable
         Assert.Equal(16, (await Ok(await nouvelleAlice.GetAsync("/api/meps?modele=false"))).GetArrayLength());
         var ligne = Assert.Single((await Ok(await nouvelleAlice.GetAsync("/api/admin/journal"))).EnumerateArray());
         Assert.Equal(("demo.reinitialisee", "Ligne de commande"), (ligne.GetProperty("type").GetString(), ligne.GetProperty("auteur").GetString()));
-        Assert.Contains("gestion-mep demo reinitialiser --oui", (await Cli("aide")).Sortie);
+        Assert.Contains("gestion-mep demo reinitialiser [--oui]", (await Cli("aide")).Sortie);
     }
 
     private static async Task<(int Code, string Sortie, string Erreur)> Cli(params string[] args)
