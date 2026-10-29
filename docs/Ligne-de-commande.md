@@ -1439,13 +1439,13 @@ gestion-mep meps piloter 3f2a9c1e bmartin --motif "Pilote malade, relève de l'a
 gestion-mep pieces-jointes utilisation [--limite n]
 ```
 
-Place occupée : total, par MEP, résolutions types, plafonds et espace disque.
+Place occupée (fichiers et disque), compression, MEP les plus lourdes, plafonds et espace disque.
 
 | Option | Effet |
 |---|---|
 | `--limite n` | Nombre de MEP détaillées (10 par défaut) |
 
-Sortie `--json` : { dossier, total, nombre, resolutions, meps, plafonds, disque }.
+Sortie `--json` : { dossier, total, totalStocke, nombre, compression, resolutions, meps, plafonds, disque }. Autre nom : `gestion-mep pieces-jointes etat`.
 
 ```bash
 gestion-mep pieces-jointes utilisation --limite 20
@@ -1496,6 +1496,44 @@ Sortie `--json` : enveloppe { code, messages, avertissements, resultat } ; resul
 ```bash
 gestion-mep pieces-jointes verifier
 gestion-mep pieces-jointes verifier --isoler-orphelins
+```
+
+#### `pieces-jointes compresser`
+
+```
+gestion-mep pieces-jointes compresser [--essai] [--tout]
+```
+
+Compresse sans perte les pièces déposées avant la compression (reprend où elle s'est arrêtée). Application en marche ou non, pièce par pièce ; Ctrl+C s'arrête proprement entre deux pièces. Code 1 si des pièces n'ont pas pu être traitées.
+
+| Option | Effet |
+|---|---|
+| `--essai` | Gain attendu, sans rien écrire |
+| `--tout` | Réexamine aussi les pièces laissées telles quelles (après une baisse du gain minimal) |
+
+Sortie `--json` : { essai, total, examinees, traitees, inchangees, absentes, echecs, avant, apres, interrompu }.
+
+```bash
+gestion-mep pieces-jointes compresser --essai
+gestion-mep pieces-jointes compresser
+```
+
+#### `pieces-jointes decompresser`
+
+```
+gestion-mep pieces-jointes decompresser [--essai]
+```
+
+Remet les fichiers compressés dans leur forme d'origine. S'arrête avant de laisser moins que l'espace libre minimal. Pour garder les prochains dépôts tels quels : reglages definir pieces-compression non.
+
+| Option | Effet |
+|---|---|
+| `--essai` | Place nécessaire, sans rien écrire |
+
+Sortie `--json` : { essai, total, examinees, traitees, inchangees, absentes, echecs, avant, apres, interrompu }.
+
+```bash
+gestion-mep pieces-jointes decompresser --essai
 ```
 
 ### Sauvegardes et restauration

@@ -95,7 +95,9 @@ public class DepotEnFluxTests : IDisposable
 
     private async Task<(HttpResponseMessage Reponse, long Lus)> Deposer(HttpClient c, Guid id, int taille, bool tailleConnue)
     {
+        // Contenu incompressible : la place occupée reste celle du fichier, comme avant la compression des pièces jointes.
         var contenu = new byte[taille];
+        Random.Shared.NextBytes(contenu);
         using var form = new MultipartFormDataContent
         {
             { new StreamContent(tailleConnue ? new MemoryStream(contenu) : new FluxSansTaille(contenu)), "fichier", "gros.bin" },
@@ -116,7 +118,7 @@ public class DepotEnFluxTests : IDisposable
         await AidesApi.Ok(await alice.PutAsJsonAsync("/api/admin/reglages/pieces-quota-mep-mo", new { valeur = "1" }));
         var depart = await NombrePieces(alice, id);
         // Ce que la MEP de démonstration contient déjà compte dans le quota : on la remplit jusqu'à 600 Ko.
-        var occupe = (await AidesApi.Ok(await alice.GetAsync($"/api/meps/{id}/pieces-jointes"))).EnumerateArray().Sum(p => p.GetProperty("taille").GetInt64());
+        var occupe = (await AidesApi.Ok(await alice.GetAsync($"/api/meps/{id}/pieces-jointes"))).EnumerateArray().Sum(p => p.GetProperty("tailleStockee").GetInt64());
         var (premier, _) = await Deposer(alice, id, (int)(600 * Ko - occupe), tailleConnue: true);
         await AidesApi.Ok(premier);
 

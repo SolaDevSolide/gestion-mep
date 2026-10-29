@@ -536,10 +536,12 @@ public static partial class LigneDeCommande
         },
 
         // ---------- Pièces jointes ----------
-        new("pieces-jointes utilisation", "[--limite n]", "Place occupée : total, par MEP, résolutions types, plafonds et espace disque", a => PiecesUtilisation(a.Args))
+        new("pieces-jointes utilisation", "[--limite n]", "Place occupée (fichiers et disque), compression, MEP les plus lourdes, plafonds et espace disque",
+            a => PiecesUtilisation(a.Args))
         {
+            Alias = ["pieces-jointes etat"],
             Options = [("--limite n", "Nombre de MEP détaillées (10 par défaut)")],
-            Json = "{ dossier, total, nombre, resolutions, meps, plafonds, disque }",
+            Json = "{ dossier, total, totalStocke, nombre, compression, resolutions, meps, plafonds, disque }",
             Exemples = ["gestion-mep pieces-jointes utilisation --limite 20"],
         },
         new("pieces-jointes lister", "<id de MEP>", "Pièces jointes d'une MEP : nom, taille, date, auteur, étape", a => { a.Rien(1); return PiecesLister(a.Arg(0, "<id de MEP>")); })
@@ -558,6 +560,22 @@ public static partial class LigneDeCommande
             Options = [("--isoler-orphelins", "Déplace les fichiers sans pièce jointe (plus d'une heure) dans le sous-dossier « orphelins », comme au démarrage")],
             Json = "resultat : { pieces, manquantes, abimees, orphelins, orphelinsIsoles }",
             Exemples = ["gestion-mep pieces-jointes verifier", "gestion-mep pieces-jointes verifier --isoler-orphelins"],
+        },
+
+        new("pieces-jointes compresser", "[--essai] [--tout]", "Compresse sans perte les pièces déposées avant la compression (reprend où elle s'est arrêtée)",
+            a => PiecesJointesCompresser(a.Args, decompresser: false))
+        {
+            Options = [("--essai", "Gain attendu, sans rien écrire"), ("--tout", "Réexamine aussi les pièces laissées telles quelles (après une baisse du gain minimal)")],
+            Details = "Application en marche ou non, pièce par pièce ; Ctrl+C s'arrête proprement entre deux pièces. Code 1 si des pièces n'ont pas pu être traitées.",
+            Json = "{ essai, total, examinees, traitees, inchangees, absentes, echecs, avant, apres, interrompu }",
+            Exemples = ["gestion-mep pieces-jointes compresser --essai", "gestion-mep pieces-jointes compresser"],
+        },
+        new("pieces-jointes decompresser", "[--essai]", "Remet les fichiers compressés dans leur forme d'origine", a => PiecesJointesCompresser(a.Args, decompresser: true))
+        {
+            Options = [("--essai", "Place nécessaire, sans rien écrire")],
+            Details = "S'arrête avant de laisser moins que l'espace libre minimal. Pour garder les prochains dépôts tels quels : reglages definir pieces-compression non.",
+            Json = "{ essai, total, examinees, traitees, inchangees, absentes, echecs, avant, apres, interrompu }",
+            Exemples = ["gestion-mep pieces-jointes decompresser --essai"],
         },
 
         // ---------- Sauvegardes ----------

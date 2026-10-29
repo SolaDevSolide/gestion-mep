@@ -80,7 +80,7 @@ En ligne de commande : `gestion-mep sso afficher | configurer | tester | activer
 ### Paramètres
 
 - **Nombre minimum d'approbations** exigées avant le Go (0 = aucune).
-- **Réglages du serveur**, appliqués sans redémarrage : adresse publique, réseaux du reverse proxy, HTTPS obligatoire, tailles et plafonds des pièces jointes, tentatives de connexion par minute, écrans suivis en temps réel, vérification des nouvelles versions, lien « Signaler un problème ou une idée ». Chaque réglage indique d'où vient sa valeur : fichier `.env`, valeur par défaut, ou modifiée dans la console (date et auteur). **Rétablir** revient à la valeur du fichier `.env`. Les mêmes réglages se modifient en ligne de commande (`gestion-mep reglages`, voir [Exploiter](Exploiter.md#modifier-un-réglage)).
+- **Réglages du serveur**, appliqués sans redémarrage : adresse publique, réseaux du reverse proxy, HTTPS obligatoire, tailles et plafonds des pièces jointes, compression des pièces jointes (avec la place qu'elles occupent, voir [Exploiter](Exploiter.md#compression-des-pièces-jointes)), tentatives de connexion par minute, écrans suivis en temps réel, vérification des nouvelles versions, lien « Signaler un problème ou une idée ». Chaque réglage indique d'où vient sa valeur : fichier `.env`, valeur par défaut, ou modifiée dans la console (date et auteur). **Rétablir** revient à la valeur du fichier `.env`. Les mêmes réglages se modifient en ligne de commande (`gestion-mep reglages`, voir [Exploiter](Exploiter.md#modifier-un-réglage)).
 - Rappel des réglages lus seulement au démarrage (port, adresse d'écoute, base de données, démonstration…), à changer dans le fichier `.env`.
 - Lien vers les critères go / no-go.
 

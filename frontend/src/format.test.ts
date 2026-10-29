@@ -9,6 +9,8 @@ import {
   formatDate,
   formatDuree,
   formatMinutes,
+  formatTaille,
+  gainCompression,
   initiales,
   LIBELLE_CRITICITE,
   LIBELLE_DISPONIBILITE,
@@ -110,6 +112,15 @@ describe('utilitaires', () => {
     expect(formatMinutes(90)).toBe('1 h 30');
     expect(formatMinutes(120)).toBe('2 h');
     expect(formatMinutes(null)).toBe('—');
+  });
+  it('formate une taille de fichier et le gain de sa compression', () => {
+    expect(formatTaille(512)).toBe('512 o');
+    expect(formatTaille(1536)).toBe('1,5 Ko');
+    expect(formatTaille(3 * 1024 * 1024)).toBe('3 Mo');
+    expect(formatTaille(2.5 * 1024 * 1024 * 1024)).toBe('2,5 Go');
+    expect(gainCompression(1000, 120)).toBe(88);
+    expect(gainCompression(1000, 1000)).toBe(0);
+    expect(gainCompression(0, 0)).toBe(0);
   });
 });
 
