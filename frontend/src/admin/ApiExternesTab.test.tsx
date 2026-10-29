@@ -22,6 +22,9 @@ vi.mock('../api', async (original) => ({
       miseAJour: null,
       installation: 'docker',
     })),
+    demo: vi.fn(async () => null),
+    recepteurDemo: vi.fn(async () => []),
+    viderRecepteurDemo: vi.fn(),
   },
 }));
 
@@ -132,6 +135,24 @@ describe('Onglet API externes', () => {
     expect(await screen.findByText('Impossible de charger les derniers appels')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Canal Teams' })).toBeInTheDocument();
     expect(screen.queryByText('Impossible de charger les connexions')).not.toBeInTheDocument();
+  });
+
+  it('démonstration : les messages du récepteur intégré se lisent dans l’onglet', async () => {
+    vi.mocked(api.connexionsApi).mockResolvedValue([connexion()]);
+    vi.mocked(api.demo).mockResolvedValueOnce({ actif: true, comptes: [] } as never);
+    vi.mocked(api.recepteurDemo).mockResolvedValueOnce([
+      {
+        quand: '2026-10-29T08:00:00Z',
+        canal: 'teams',
+        methode: 'POST',
+        adresse: 'https://recepteur.demo.invalid/teams',
+        entetes: [{ nom: 'X-Gestion-Mep-Evenement', valeur: 'gonogo.go' }],
+        corps: '{"type": "message"}',
+      },
+    ]);
+    rendre();
+    expect(await screen.findByText('Récepteur de démonstration')).toBeInTheDocument();
+    expect(await screen.findByText('teams')).toBeInTheDocument();
   });
 
   it('le filtre « Échecs » recharge les appels en échec', async () => {

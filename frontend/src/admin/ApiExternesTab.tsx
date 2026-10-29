@@ -4,7 +4,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAsync } from '../hooks';
 import { commande, useInstallation } from '../installation';
-import type { CatalogueConnexions, ConnexionApiResume, EtatAppel, OrigineAppel, PageAppels } from '../types';
+import type {
+  CatalogueConnexions,
+  ConnexionApiResume,
+  EtatAppel,
+  MessageRecu,
+  OrigineAppel,
+  PageAppels,
+} from '../types';
 import { Alerte } from '../ui/Alerte';
 import { BoutonIcone, Button } from '../ui/Button';
 import { Card, CardHeader } from '../ui/Card';
@@ -140,6 +147,8 @@ export default function ApiExternesTab() {
         <Reseau catalogue={catalogue} />
         <LigneDeCommande />
       </div>
+
+      <RecepteurDemo tick={tickAppels} />
 
       <DetailAppel
         appelId={detail}
@@ -495,6 +504,79 @@ function LigneDeCommande() {
             commande(mode, 'connexions appels --echecs'),
           ].join('\n')}
         />
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * Mode démonstration seulement : messages reçus par le récepteur intégré, que visent les connexions d'exemple (les 50
+ * derniers, gardés en mémoire). Rien ne part sur le réseau.
+ */
+function RecepteurDemo({ tick }: { tick: number }) {
+  const demo = useAsync(() => api.demo(), []);
+  const actif = demo.donnees !== null && demo.donnees !== undefined;
+  const messages = useAsync(() => (actif ? api.recepteurDemo() : Promise.resolve<MessageRecu[]>([])), [actif, tick]);
+  if (!actif) return null;
+  const liste = messages.donnees ?? [];
+  return (
+    <Card>
+      <CardHeader
+        titre="Récepteur de démonstration"
+        description="Messages reçus par les connexions d’exemple (adresse recepteur.demo.invalid) : rien ne part sur le réseau. Les 50 derniers."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button
+              taille="sm"
+              variante="fantome"
+              icone={<RefreshCw className="size-4" aria-hidden />}
+              onClick={messages.recharger}
+            >
+              Actualiser
+            </Button>
+            <Button
+              taille="sm"
+              variante="fantome"
+              disabled={liste.length === 0}
+              action={async () => {
+                await api.viderRecepteurDemo();
+                messages.recharger();
+              }}
+            >
+              Vider
+            </Button>
+          </div>
+        }
+      />
+      <div className="grid gap-2 p-5">
+        {messages.erreur && (
+          <ErreurChargement
+            variante="ligne"
+            erreur={messages.echec}
+            titre="Impossible de lire le récepteur"
+            onReessayer={messages.recharger}
+          />
+        )}
+        {!messages.erreur && !messages.donnees && <Squelette className="h-16 w-full" />}
+        {messages.donnees && liste.length === 0 && (
+          <p className="text-sm text-fg-subtle">
+            Aucun message reçu. « Essayer » dans l’éditeur d’une connexion d’exemple, ou le Go d’une MEP, en envoie un.
+          </p>
+        )}
+        {liste.map((m, i) => (
+          <details key={`${m.quand}-${i}`} className="rounded-lg border border-line px-3 py-2 text-sm">
+            <summary className="cursor-pointer">
+              <span className="font-mono text-xs font-medium">{m.methode}</span>{' '}
+              <span className="font-medium">{m.canal}</span>{' '}
+              <span className="text-fg-subtle">{quandCourt(m.quand)}</span>
+            </summary>
+            <CodeBlock
+              className="mt-2"
+              titre={m.adresse}
+              code={[...m.entetes.map((e) => `${e.nom}: ${e.valeur}`), '', m.corps].join('\n')}
+            />
+          </details>
+        ))}
       </div>
     </Card>
   );

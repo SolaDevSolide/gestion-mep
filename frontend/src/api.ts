@@ -656,4 +656,5 @@ export const api = {
   appelMep: (id: string, appelId: string) => get<AppelResume>(`/meps/${id}/appels/${appelId}`, { silencieux: true }),
   renvoyerAppelMep: (id: string, appelId: string) => post<AppelCree>(`/meps/${id}/appels/${appelId}/renvoyer`),
   recepteurDemo: () => get<MessageRecu[]>('/demo/recepteur'),
+  viderRecepteurDemo: () => del<void>('/demo/recepteur'),
 };
