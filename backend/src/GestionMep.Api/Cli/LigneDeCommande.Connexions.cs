@@ -332,7 +332,7 @@ public static partial class LigneDeCommande
         string? valeur = null;
         if (!effacer)
         {
-            valeur = LireSecret();
+            valeur = (await Console.In.ReadToEndAsync()).Trim(); // --secret-stdin : toujours l'entrée standard, jamais le clavier
             if (valeur.Length == 0) throw ErreurHttp.Saisie("Secret vide : rien n'a été modifié.");
         }
         var s = ServiceConnexions.Saisie(c);
