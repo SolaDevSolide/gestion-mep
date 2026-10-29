@@ -173,12 +173,19 @@ fi
 cat > /usr/local/bin/gestion-mep <<'COMMANDE'
 #!/bin/sh
 # Commandes d'exploitation de Gestion MEP (« sudo gestion-mep aide »), lancées avec le compte du service.
+# Sans argument : l'aide (et non un second serveur).
+[ $# -eq 0 ] && set -- aide
 if [ "$(id -u)" -eq 0 ]; then
   exec runuser -u gestion-mep -- /opt/gestion-mep/actuelle/GestionMep.Api "$@"
 fi
 exec /opt/gestion-mep/actuelle/GestionMep.Api "$@"
 COMMANDE
 chmod 755 /usr/local/bin/gestion-mep
+# Complétion des commandes dans bash (groupes, actions, options), à jour de la version installée.
+if [ -d /etc/bash_completion.d ]; then
+  "$CIBLE/GestionMep.Api" completion bash > /etc/bash_completion.d/gestion-mep 2>/dev/null \
+    || rm -f /etc/bash_completion.d/gestion-mep
+fi
 systemctl daemon-reload
 systemctl enable gestion-mep > /dev/null 2>&1 || true
 
