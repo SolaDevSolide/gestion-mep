@@ -322,7 +322,7 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         foreach (var ev in evenements)
             db.Journal.Add(ev.Systeme
                 ? NouvelEvenement(mep, null, AuteurSysteme, ev.Type, ev.Detail, ev.EtapeId)
-                : NouvelEvenement(mep, acteur.Id, acteur.Nom, ev.Type, ev.Detail, ev.EtapeId));
+                : NouvelEvenement(mep, acteur.Compte, acteur.Nom, ev.Type, ev.Detail, ev.EtapeId));
         var nouveaux = Regles.NouveauxElementsBibliotheque(mep);
         var portee = Reviser(mep);
         await db.SaveChangesAsync();

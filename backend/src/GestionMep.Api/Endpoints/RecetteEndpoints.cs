@@ -100,19 +100,33 @@ public static class RecetteEndpoints
         c.Fiche.Id, c.Etape.Id, mep.Systemes.FirstOrDefault(s => s.Id == c.Fiche.SystemeId)?.Nom ?? RecetteExcel.SansSysteme,
         c.Fiche.Titre, c.Etape.Ordre, c.Resultat, c.Observation, c.ValidePar, c.Date)).ToList(), a.Inchangees, a.SansValidation);
 
+    /// <summary>Modèles de recette, les plus utilisés d'abord puis par ordre de création (partagé avec la ligne de commande).</summary>
+    public static async Task<List<ModeleRecetteDto>> ListerModeles(MepDbContext db, Guid? systemeCatalogueId)
+    {
+        var q = db.ModelesRecette.AsNoTracking();
+        if (systemeCatalogueId is { } s) q = q.Where(m => m.SystemeCatalogueId == s);
+        var noms = await Noms(db);
+        return (await q.OrderByDescending(m => m.Utilisations).ThenBy(m => m.CreeLe).ThenBy(m => m.Titre).ToListAsync()).Select(m => Dto(m, noms)).ToList();
+    }
+
+    public static async Task<ModeleRecetteDto> DetailModele(MepDbContext db, Guid id) => Dto(await TrouverModele(db, id), await Noms(db));
+
+    /// <summary>Supprime un modèle de recette (administrateur) : les fiches déjà insérées dans des MEP sont des copies.</summary>
+    public static async Task<string> SupprimerModele(MepDbContext db, Acteur? acteur, Guid id)
+    {
+        var m = await TrouverModele(db, id);
+        db.ModelesRecette.Remove(m);
+        JournalAdmin.Ecrire(db, acteur, "modele-recette.supprime", $"Modèle de recette « {m.Titre} » supprimé de la bibliothèque");
+        await db.SaveChangesAsync();
+        return m.Titre;
+    }
+
     public static void MapRecette(this RouteGroupBuilder api)
     {
         // ---------- Bibliothèque de recettes ----------
-        api.MapGet("/modeles-recette", async (Guid? systemeCatalogueId, MepDbContext db) =>
-        {
-            var q = db.ModelesRecette.AsNoTracking();
-            if (systemeCatalogueId is { } s) q = q.Where(m => m.SystemeCatalogueId == s);
-            var noms = await Noms(db);
-            // Tri des bibliothèques : les plus utilisés d'abord, puis par ordre de création.
-            return (await q.OrderByDescending(m => m.Utilisations).ThenBy(m => m.CreeLe).ThenBy(m => m.Titre).ToListAsync()).Select(m => Dto(m, noms));
-        });
+        api.MapGet("/modeles-recette", async (Guid? systemeCatalogueId, MepDbContext db) => (await ListerModeles(db, systemeCatalogueId)).AsEnumerable());
 
-        api.MapGet("/modeles-recette/{id:guid}", async (Guid id, MepDbContext db) => Dto(await TrouverModele(db, id), await Noms(db)));
+        api.MapGet("/modeles-recette/{id:guid}", (Guid id, MepDbContext db) => DetailModele(db, id));
 
         api.MapPost("/modeles-recette", async (ModeleRecetteSaisie c, ClaimsPrincipal user, MepDbContext db, TimeProvider temps) =>
         {
@@ -169,11 +183,7 @@ public static class RecetteEndpoints
         // Les fiches déjà insérées dans des MEP sont des copies : elles ne changent pas.
         api.MapDelete("/modeles-recette/{id:guid}", async (Guid id, ClaimsPrincipal user, MepDbContext db) =>
         {
-            var acteur = Acteur.Depuis(user);
-            var m = await TrouverModele(db, id);
-            db.ModelesRecette.Remove(m);
-            JournalAdmin.Ecrire(db, acteur, "modele-recette.supprime", $"Modèle de recette « {m.Titre} » supprimé de la bibliothèque");
-            await db.SaveChangesAsync();
+            await SupprimerModele(db, Acteur.Depuis(user), id);
             return Results.NoContent();
         }).ExigerAdmin();
 
