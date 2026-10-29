@@ -87,6 +87,18 @@ builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = LimitesReque
 // Surveillance des échéances de retour arrière (désactivable : Surveillance:Activer=false, utile en test).
 if (builder.Configuration.GetValue("Surveillance:Activer", true))
     builder.Services.AddHostedService<SurveillanceEcheances>();
+// Connexions aux API externes (#111) : secrets chiffrés, sortie réseau protégée, file d'envoi en base et service d'envoi
+// (ConnexionsApi:EnvoiArrierePlan=false le coupe, utile en test : les envois se font alors par EnvoiAppelsApi.Traiter).
+builder.Services.AddSingleton<SecretsConnexion>();
+builder.Services.AddSingleton<IResolveurNoms, ResolveurDns>();
+builder.Services.AddSingleton<RecepteurDemo>();
+builder.Services.AddSingleton<ReseauSortant>();
+builder.Services.AddSingleton<ClientConnexionsApi>();
+builder.Services.AddSingleton<SignalAppels>();
+builder.Services.AddScoped<ServiceConnexions>();
+builder.Services.AddSingleton<EnvoiAppelsApi>();
+if (builder.Configuration.GetValue("ConnexionsApi:EnvoiArrierePlan", true))
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<EnvoiAppelsApi>());
 // Indicateur de nouvelle version (MisesAJour:Verifier=false pour ne jamais contacter GitHub).
 builder.Services.AddHttpClient(nameof(VerificationMisesAJour), c => c.Timeout = TimeSpan.FromSeconds(10));
 builder.Services.AddSingleton<VerificationMisesAJour>();
@@ -178,6 +190,7 @@ api.MapEquipes();
 api.MapCommunication();
 api.MapReglages();
 api.MapCharte();
+api.MapConnexions(app.Configuration);
 api.MapPiecesJointes();
 // Une route /api inconnue ne doit jamais retomber sur index.html.
 api.Map("{**reste}", () => ReponsesErreur.Resultat(404, "Route introuvable."));

@@ -5227,6 +5227,230 @@
         }
       }
     },
+    "/api/meps/{id}/connexions": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnexionsMepDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/connexions/{cid}/apercu": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvoiManuelSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApercuConnexionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/connexions/{cid}/envoyer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvoiManuelSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/appels/{appelId}": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "appelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppelResumeDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/appels/{appelId}/renvoyer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "appelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/demo/recepteur": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MessageRecuDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/meps/{id}/pieces-jointes": {
       "get": {
         "tags": [
@@ -6308,6 +6532,401 @@
           }
         }
       }
+    },
+    "/api/admin/connexions": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnexionApiResumeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnexionApiSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/connexions/catalogue": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueConnexionsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/connexions/{id}": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnexionApiDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnexionApiSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnexionApiDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/connexions/{id}/activer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/connexions/{id}/desactiver": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/connexions/apercu": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApercuConnexionSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApercuConnexionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/connexions/essai": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApercuConnexionSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EssaiConnexionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/connexions/estimation": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnexionApiSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstimationConnexionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/connexions/appels": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "connexion",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "etat",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "origine",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "avant",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageAppelsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/connexions/appels/{id}": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppelDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/connexions/appels/{id}/renvoyer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6420,6 +7039,130 @@
         },
         "description": "Annulation : `EtatProduction` obligatoire si la MEP a déjà eu un Go."
       },
+      "ApercuConnexionDto": {
+        "required": [
+          "methode",
+          "url",
+          "entetes",
+          "typeContenu",
+          "corps",
+          "lisible",
+          "manquantes",
+          "inconnues",
+          "erreurs",
+          "mepNom",
+          "evenement",
+          "evenements"
+        ],
+        "type": "object",
+        "properties": {
+          "methode": {
+            "$ref": "#/components/schemas/MethodeHttp"
+          },
+          "url": {
+            "type": "string"
+          },
+          "entetes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnteteAppelDto"
+            }
+          },
+          "typeContenu": {
+            "type": "string"
+          },
+          "corps": {
+            "type": "string"
+          },
+          "lisible": {
+            "type": "string"
+          },
+          "manquantes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "inconnues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "erreurs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ErreurChamp"
+            }
+          },
+          "mepNom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "evenement": {
+            "$ref": "#/components/schemas/EvenementProposeDto"
+          },
+          "evenements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvenementProposeDto"
+            }
+          }
+        },
+        "description": "Requête qui partirait, secrets masqués : `Lisible`, le message sans la syntaxe ; `Manquantes`, les variables\nsans valeur dans cette MEP (envoyées vides) ; `Inconnues` et `Erreurs` empêchent l'envoi."
+      },
+      "ApercuConnexionSaisie": {
+        "required": [
+          "brouillon",
+          "connexionId",
+          "mepId",
+          "evenement",
+          "evenementId",
+          "commentaire"
+        ],
+        "type": "object",
+        "properties": {
+          "brouillon": {
+            "$ref": "#/components/schemas/ConnexionApiSaisie"
+          },
+          "connexionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "mepId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "evenement": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "evenementId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "commentaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Aperçu ou essai d'un brouillon : avec une MEP (`MepId`, sinon des valeurs d'exemple) et un événement (ligne du journal\n`EvenementId`, sinon le dernier de type `Evenement`, sinon un événement simulé). `ConnexionId` : connexion\nenregistrée dont reprendre les secrets laissés vides (si le domaine n'a pas changé)."
+      },
       "ApercuValidationDto": {
         "required": [
           "changements",
@@ -6495,6 +7238,183 @@
           }
         },
         "description": "Aperçu d'un import de validation : étapes à renseigner, étapes déjà à jour, lignes sans validation (ignorées)."
+      },
+      "AppelCreeDto": {
+        "required": [
+          "appelId"
+        ],
+        "type": "object",
+        "properties": {
+          "appelId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "Réception d'un renvoi ou d'un envoi depuis une MEP : l'appel mis en file (suivi par GET …/appels/{appelId})."
+      },
+      "AppelDto": {
+        "required": [
+          "appel",
+          "methode",
+          "url",
+          "typeContenu",
+          "entetes",
+          "corps",
+          "tentatives",
+          "appelOrigineId",
+          "curl",
+          "connexionModifiable"
+        ],
+        "type": "object",
+        "properties": {
+          "appel": {
+            "$ref": "#/components/schemas/AppelResumeDto"
+          },
+          "methode": {
+            "$ref": "#/components/schemas/MethodeHttp"
+          },
+          "url": {
+            "type": "string"
+          },
+          "typeContenu": {
+            "type": "string"
+          },
+          "entetes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnteteAppelDto"
+            }
+          },
+          "corps": {
+            "type": "string"
+          },
+          "tentatives": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TentativeDto"
+            }
+          },
+          "appelOrigineId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "curl": {
+            "type": "string"
+          },
+          "connexionModifiable": {
+            "type": "boolean"
+          }
+        },
+        "description": "Détail d'un appel (console) : requête telle qu'elle est partie, secrets masqués (adresse secrète réduite au domaine), et\n`Curl`, la commande équivalente, secrets remplacés par &lt;secret&gt;."
+      },
+      "AppelResumeDto": {
+        "required": [
+          "id",
+          "connexionId",
+          "connexion",
+          "mepId",
+          "mepNom",
+          "typeEvenement",
+          "libelleEvenement",
+          "resume",
+          "origine",
+          "demandePar",
+          "etat",
+          "code",
+          "tentatives",
+          "tentativesMax",
+          "dureeMs",
+          "creeLe",
+          "termineLe",
+          "prochaineTentative",
+          "erreur"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "connexionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "connexion": {
+            "type": "string"
+          },
+          "mepId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "mepNom": {
+            "type": "string"
+          },
+          "typeEvenement": {
+            "type": "string"
+          },
+          "libelleEvenement": {
+            "type": "string"
+          },
+          "resume": {
+            "type": "string"
+          },
+          "origine": {
+            "$ref": "#/components/schemas/OrigineAppel"
+          },
+          "demandePar": {
+            "type": "string"
+          },
+          "etat": {
+            "$ref": "#/components/schemas/EtatAppel"
+          },
+          "code": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "tentatives": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tentativesMax": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dureeMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "creeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "termineLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "prochaineTentative": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "erreur": {
+            "type": "string"
+          }
+        },
+        "description": "Appel dans une liste : historique de la console, dernier appel d'une connexion, envoi suivi depuis une MEP."
       },
       "ApplicationDto": {
         "required": [
@@ -6612,6 +7532,16 @@
         },
         "description": "`Empechement` (#94) : rôle qui interdit à cet approbateur d'approuver la MEP (« pilote », « suppléant du pilote »,\n« responsable technique », éventuellement « , par un compte relié ») ; sa décision ne compte pas et le Go reste bloqué tant\nqu'il figure parmi les approbateurs. Null s'il peut approuver."
       },
+      "AuthentificationApi": {
+        "enum": [
+          "Aucune",
+          "Jeton",
+          "Basic",
+          "CleEntete",
+          "OAuth2",
+          null
+        ]
+      },
       "BilanDto": {
         "required": [
           "ceQuiAMarche",
@@ -6645,6 +7575,46 @@
             "format": "date-time"
           }
         }
+      },
+      "CatalogueConnexionsDto": {
+        "required": [
+          "declencheurs",
+          "modeles",
+          "variables",
+          "version",
+          "reglages"
+        ],
+        "type": "object",
+        "properties": {
+          "declencheurs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeclencheurDto"
+            }
+          },
+          "modeles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModeleConnexionDto"
+            }
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VariableTexteDto"
+            }
+          },
+          "version": {
+            "type": "string"
+          },
+          "reglages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReglageDto"
+            }
+          }
+        },
+        "description": "Ce dont l'éditeur a besoin : déclencheurs, modèles de départ, variables (groupe Événement puis catalogue des modèles de\ntexte), version (en-tête User-Agent) et réglages réseau (réseaux autorisés, proxy, adresse publique, envois actifs)."
       },
       "CategorieSaisie": {
         "required": [
@@ -6701,6 +7671,18 @@
           }
         },
         "description": "Catégories de la fiche, dans l'ordre ; une catégorie absente est retirée avec ses objets."
+      },
+      "ChampConnexion": {
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string"
+          },
+          "valeur": {
+            "type": "string"
+          }
+        },
+        "description": "Champ d'un corps au format formulaire (`application/x-www-form-urlencoded`) ; la valeur est un gabarit."
       },
       "ChangementMotDePasseSaisie": {
         "required": [
@@ -7434,6 +8416,496 @@
           }
         }
       },
+      "ConnexionApiDto": {
+        "required": [
+          "id",
+          "nom",
+          "description",
+          "active",
+          "version",
+          "modele",
+          "methode",
+          "url",
+          "urlSecrete",
+          "adresseSecrete",
+          "authentification",
+          "utilisateur",
+          "nomEntete",
+          "tokenUrl",
+          "clientId",
+          "scope",
+          "secret",
+          "entetes",
+          "signature",
+          "secretSignature",
+          "format",
+          "corps",
+          "champs",
+          "delaiSecondes",
+          "tentatives",
+          "declencheurs",
+          "filtres",
+          "envoiManuel",
+          "libelleEnvoiManuel",
+          "creeeLe",
+          "modifieeLe",
+          "modifieePar",
+          "etat",
+          "dernierAppel"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modele": {
+            "$ref": "#/components/schemas/ModeleConnexion"
+          },
+          "methode": {
+            "$ref": "#/components/schemas/MethodeHttp"
+          },
+          "url": {
+            "type": "string"
+          },
+          "urlSecrete": {
+            "type": "boolean"
+          },
+          "adresseSecrete": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SecretEtatDto"
+              }
+            ]
+          },
+          "authentification": {
+            "$ref": "#/components/schemas/AuthentificationApi"
+          },
+          "utilisateur": {
+            "type": "string"
+          },
+          "nomEntete": {
+            "type": "string"
+          },
+          "tokenUrl": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "secret": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SecretEtatDto"
+              }
+            ]
+          },
+          "entetes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnteteConnexionDto"
+            }
+          },
+          "signature": {
+            "type": "boolean"
+          },
+          "secretSignature": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SecretEtatDto"
+              }
+            ]
+          },
+          "format": {
+            "$ref": "#/components/schemas/FormatCorps"
+          },
+          "corps": {
+            "type": "string"
+          },
+          "champs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChampConnexion"
+            }
+          },
+          "delaiSecondes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tentatives": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "declencheurs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "filtres": {
+            "$ref": "#/components/schemas/FiltresConnexion"
+          },
+          "envoiManuel": {
+            "type": "boolean"
+          },
+          "libelleEnvoiManuel": {
+            "type": "string"
+          },
+          "creeeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modifieeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modifieePar": {
+            "type": "string"
+          },
+          "etat": {
+            "$ref": "#/components/schemas/EtatConnexion"
+          },
+          "dernierAppel": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AppelResumeDto"
+              }
+            ]
+          }
+        },
+        "description": "Connexion telle que la lit l'éditeur, sans aucun secret. `Url` : gabarit de l'adresse, ou seulement son origine\n(« https://hote ») si elle est secrète (`AdresseSecrete` en donne l'état)."
+      },
+      "ConnexionApiResumeDto": {
+        "required": [
+          "id",
+          "nom",
+          "description",
+          "active",
+          "modele",
+          "methode",
+          "adresse",
+          "declencheurs",
+          "envoiManuel",
+          "libelleEnvoiManuel",
+          "etat",
+          "dernierAppel",
+          "dernierEssai"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "modele": {
+            "$ref": "#/components/schemas/ModeleConnexion"
+          },
+          "methode": {
+            "$ref": "#/components/schemas/MethodeHttp"
+          },
+          "adresse": {
+            "type": "string"
+          },
+          "declencheurs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "envoiManuel": {
+            "type": "boolean"
+          },
+          "libelleEnvoiManuel": {
+            "type": "string"
+          },
+          "etat": {
+            "$ref": "#/components/schemas/EtatConnexion"
+          },
+          "dernierAppel": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AppelResumeDto"
+              }
+            ]
+          },
+          "dernierEssai": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AppelResumeDto"
+              }
+            ]
+          }
+        }
+      },
+      "ConnexionApiSaisie": {
+        "required": [
+          "version",
+          "nom",
+          "description",
+          "modele",
+          "methode",
+          "url",
+          "urlSecrete",
+          "adresseSecrete",
+          "authentification",
+          "utilisateur",
+          "nomEntete",
+          "tokenUrl",
+          "clientId",
+          "scope",
+          "secret",
+          "entetes",
+          "signature",
+          "secretSignature",
+          "format",
+          "corps",
+          "champs",
+          "delaiSecondes",
+          "tentatives",
+          "declencheurs",
+          "filtres",
+          "envoiManuel",
+          "libelleEnvoiManuel"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "modele": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ModeleConnexion"
+              }
+            ]
+          },
+          "methode": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MethodeHttp"
+              }
+            ]
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "urlSecrete": {
+            "type": "boolean"
+          },
+          "adresseSecrete": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "authentification": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AuthentificationApi"
+              }
+            ]
+          },
+          "utilisateur": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nomEntete": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tokenUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "clientId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scope": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secret": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "entetes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/EnteteConnexionSaisie"
+            }
+          },
+          "signature": {
+            "type": "boolean"
+          },
+          "secretSignature": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "format": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FormatCorps"
+              }
+            ]
+          },
+          "corps": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "champs": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ChampConnexion"
+            }
+          },
+          "delaiSecondes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "tentatives": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "declencheurs": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "filtres": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FiltresConnexion"
+              }
+            ]
+          },
+          "envoiManuel": {
+            "type": "boolean"
+          },
+          "libelleEnvoiManuel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "active": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "description": "Création ou modification d'une connexion. Secrets en écriture seule : `AdresseSecrete`, `Secret`,\n`SecretSignature` et les `ValeurSecrete` des en-têtes ; null ou absent garde la valeur enregistrée, une valeur\nla remplace. Changer le domaine (ou le port) de l'adresse efface les secrets enregistrés, à ressaisir.\n`Url` : gabarit de l'adresse ; ignoré si `UrlSecrete` (l'adresse complète est alors dans `AdresseSecrete`).\n`Version` : obligatoire en modification (409 si elle est périmée)."
+      },
       "ConnexionDemoSaisie": {
         "required": [
           "login"
@@ -7448,6 +8920,31 @@
           }
         },
         "description": "Connexion rapide à un compte de démonstration (mode démonstration uniquement)."
+      },
+      "ConnexionManuelleDto": {
+        "required": [
+          "id",
+          "nom",
+          "libelle",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "libelle": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "description": "Connexion à envoi manuel, telle que la voit une MEP : ni adresse ni réglage."
       },
       "ConnexionSaisie": {
         "required": [
@@ -7469,6 +8966,32 @@
             ]
           }
         }
+      },
+      "ConnexionsMepDto": {
+        "required": [
+          "envois",
+          "echecs",
+          "peutEnvoyer"
+        ],
+        "type": "object",
+        "properties": {
+          "envois": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnexionManuelleDto"
+            }
+          },
+          "echecs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EchecEnvoiDto"
+            }
+          },
+          "peutEnvoyer": {
+            "type": "boolean"
+          }
+        },
+        "description": "Connexions dans une MEP : envois manuels proposés (pilote, suppléants, administrateurs : `PeutEnvoyer`) et échecs à\nmontrer dans « Blocages et échecs »."
       },
       "ControleSaisie": {
         "required": [
@@ -7744,6 +9267,29 @@
           }
         }
       },
+      "DeclencheurDto": {
+        "required": [
+          "cle",
+          "libelle",
+          "groupe",
+          "frequent"
+        ],
+        "type": "object",
+        "properties": {
+          "cle": {
+            "type": "string"
+          },
+          "libelle": {
+            "type": "string"
+          },
+          "groupe": {
+            "type": "string"
+          },
+          "frequent": {
+            "type": "boolean"
+          }
+        }
+      },
       "DemarrerResolutionSaisie": {
         "required": [
           "resolutionTypeId",
@@ -7998,6 +9544,62 @@
         },
         "description": "Échéance de retour arrière (#94) : `EcheanceRepli`, instant visé (null : retirer l'échéance), saisi dans le fuseau de la\nMEP ; `Motif`, obligatoire sauf pour la première saisie en préparation (tracé au journal avec l'ancienne valeur)."
       },
+      "EchecEnvoiDto": {
+        "required": [
+          "appelId",
+          "connexionId",
+          "connexion",
+          "libelleEvenement",
+          "resume",
+          "code",
+          "tentatives",
+          "erreur",
+          "quand",
+          "renvoiEnCours"
+        ],
+        "type": "object",
+        "properties": {
+          "appelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "connexionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "connexion": {
+            "type": "string"
+          },
+          "libelleEvenement": {
+            "type": "string"
+          },
+          "resume": {
+            "type": "string"
+          },
+          "code": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "tentatives": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "erreur": {
+            "type": "string"
+          },
+          "quand": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "renvoiEnCours": {
+            "type": "boolean"
+          }
+        },
+        "description": "Envoi définitivement en échec, pas encore suivi d'un envoi réussi de la même connexion pour cette MEP."
+      },
       "EchecSystemeDto": {
         "required": [
           "plan",
@@ -8048,6 +9650,85 @@
           }
         },
         "description": "Échec d'une étape d'un système pendant une MEP : motif, reprise réussie ou non, dernière résolution lancée."
+      },
+      "EnteteAppelDto": {
+        "required": [
+          "nom",
+          "valeur"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string"
+          },
+          "valeur": {
+            "type": "string"
+          }
+        }
+      },
+      "EnteteConnexionDto": {
+        "required": [
+          "nom",
+          "valeur",
+          "secret",
+          "valeurSecrete"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string"
+          },
+          "valeur": {
+            "type": "string"
+          },
+          "secret": {
+            "type": "boolean"
+          },
+          "valeurSecrete": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SecretEtatDto"
+              }
+            ]
+          }
+        },
+        "description": "En-tête d'une connexion : `Valeur` (gabarit) pour un en-tête ordinaire, `ValeurSecrete` (état) pour un secret."
+      },
+      "EnteteConnexionSaisie": {
+        "required": [
+          "nom",
+          "valeur",
+          "secret",
+          "valeurSecrete"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "valeur": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secret": {
+            "type": "boolean"
+          },
+          "valeurSecrete": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "En-tête saisi. `ValeurSecrete` (en-tête secret) : null ou absent garde la valeur enregistrée, une valeur la remplace."
       },
       "EnvironnementCatalogueDto": {
         "required": [
@@ -8187,6 +9868,20 @@
         },
         "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
       },
+      "EnvoiManuelSaisie": {
+        "required": [
+          "commentaire"
+        ],
+        "type": "object",
+        "properties": {
+          "commentaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "EquipeCommunicationSaisie": {
         "required": [
           "contactSupport",
@@ -8284,6 +9979,32 @@
         },
         "description": "Équipe créée ou modifiée ; `MembreIds` absent (null) : membres inchangés."
       },
+      "ErreurChamp": {
+        "required": [
+          "champ",
+          "ligne",
+          "colonne",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "champ": {
+            "type": "string"
+          },
+          "ligne": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "colonne": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "description": "Erreur d'un gabarit de la connexion : Champ vaut « adresse », « corps » ou « entete:Nom »."
+      },
       "ErreurDto": {
         "required": [
           "type",
@@ -8321,6 +10042,58 @@
           }
         },
         "description": "Corps de toute réponse d'erreur de l'API, au format « problem details » (RFC 9457, type `application/problem+json`) :\n`status` reprend le code HTTP, `title` sa nature (« Droits insuffisants »…), `detail` et `message` le\nmessage à afficher, en français ; `erreurs`, absent le plus souvent, liste chaque anomalie quand il y en a plusieurs."
+      },
+      "EssaiConnexionDto": {
+        "required": [
+          "requete",
+          "appelId",
+          "reussi",
+          "tentative",
+          "tronque"
+        ],
+        "type": "object",
+        "properties": {
+          "requete": {
+            "$ref": "#/components/schemas/ApercuConnexionDto"
+          },
+          "appelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reussi": {
+            "type": "boolean"
+          },
+          "tentative": {
+            "$ref": "#/components/schemas/TentativeDto"
+          },
+          "tronque": {
+            "type": "boolean"
+          }
+        },
+        "description": "Résultat de « Essayer » : la requête, la tentative (code ou erreur, extrait de réponse de 4 Ko au plus)."
+      },
+      "EstimationConnexionDto": {
+        "required": [
+          "appels",
+          "meps",
+          "jours"
+        ],
+        "type": "object",
+        "properties": {
+          "appels": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "meps": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "jours": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Estimation : appels qu'auraient donnés les déclencheurs et filtres sur les journaux des 30 derniers jours."
       },
       "EtapeCorrectiveSaisie": {
         "required": [
@@ -8986,6 +10759,15 @@
           }
         }
       },
+      "EtatAppel": {
+        "enum": [
+          "EnAttente",
+          "EnCours",
+          "Reussi",
+          "Echec"
+        ],
+        "description": "État d'un appel : en file, en cours d'envoi, réussi (réponse 2xx) ou définitivement en échec."
+      },
       "EtatCharteDto": {
         "required": [
           "charte",
@@ -9035,6 +10817,15 @@
           }
         },
         "description": "Charte en vigueur vue de la console d'administration."
+      },
+      "EtatConnexion": {
+        "enum": [
+          "Active",
+          "Desactivee",
+          "EnErreur",
+          "JamaisAppelee"
+        ],
+        "description": "État d'une connexion : désactivée, en erreur (son dernier appel hors essai est définitivement en échec ; elle repasse\nactive au prochain appel réussi), jamais appelée (hors essais) ou active."
       },
       "EtatEtape": {
         "enum": [
@@ -9216,6 +11007,42 @@
           }
         },
         "description": "`AuteurLogin` : login actuel du compte auteur (stable, contrairement au nom affiché) ; null pour le système ou un compte\nsupprimé. `EtapeId` (#94) : étape concernée par un événement d'exécution (démarrage, réussite, échec…), null sinon."
+      },
+      "EvenementProposeDto": {
+        "required": [
+          "id",
+          "cle",
+          "libelle",
+          "detail",
+          "quand"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "cle": {
+            "type": "string"
+          },
+          "libelle": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "quand": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "Événement proposé pour l'aperçu : une ligne du journal de la MEP (Id) ou un événement simulé (Id null)."
       },
       "ExecutionResolutionDto": {
         "required": [
@@ -9667,10 +11494,70 @@
         },
         "description": "Fichier charte.json vu de la console : chemin, présence, erreurs (charte par défaut appliquée à la place)."
       },
+      "FiltresConnexion": {
+        "type": [
+          "null",
+          "object"
+        ],
+        "properties": {
+          "equipeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "La MEP appartient à l'une des équipes (une de ses personnes en est membre)."
+          },
+          "systemeCatalogueIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "La MEP touche l'un des systèmes du catalogue."
+          },
+          "environnements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "La MEP touche l'un de ces environnements (noms, sans casse ni accents, comme la recherche des MEP)."
+          },
+          "niveauxRisque": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NiveauRisque"
+            }
+          },
+          "criticitesEtape": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Criticite"
+            },
+            "description": "Criticité de l'étape, pour les événements d'étape seulement."
+          },
+          "typesMep": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TypeMep"
+            }
+          }
+        },
+        "description": "Filtres d'une connexion : seulement les MEP qui correspondent (liste vide : tout). Évalués au moment de l'événement. Les\nmodèles de MEP sont toujours exclus."
+      },
       "FinEtape": {
         "enum": [
           "TestUnitaire",
           "Verification",
+          null
+        ]
+      },
+      "FormatCorps": {
+        "enum": [
+          "Json",
+          "Formulaire",
+          "Texte",
+          "Aucun",
           null
         ]
       },
@@ -14432,6 +16319,51 @@
         },
         "description": "`DateMep` : date du Go (dans le fuseau de la MEP) ou null ; `CreeLe` : création de la MEP ;\n`RetourArriereActive` : false pour une MEP sans plan de retour arrière (son échéance éventuelle ne s'applique pas).\n`ToucheProduction` : l'un des systèmes de la MEP touche un environnement de production.\n`EquipeIds` : équipes des personnes de la MEP (une MEP appartient à une équipe dès qu'une de ses personnes en fait\npartie, par l'un de ses comptes reliés). `Personnes` : noms des personnes de la MEP et, pour celles qui ont un compte,\nnoms et logins de tous leurs comptes reliés (pour la recherche). `Type` : MEP complète ou simplifiée."
       },
+      "MessageRecuDto": {
+        "required": [
+          "quand",
+          "canal",
+          "methode",
+          "adresse",
+          "entetes",
+          "corps"
+        ],
+        "type": "object",
+        "properties": {
+          "quand": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "canal": {
+            "type": "string"
+          },
+          "methode": {
+            "type": "string"
+          },
+          "adresse": {
+            "type": "string"
+          },
+          "entetes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnteteAppelDto"
+            }
+          },
+          "corps": {
+            "type": "string"
+          }
+        },
+        "description": "Message reçu par le récepteur de démonstration (en-têtes secrets masqués)."
+      },
+      "MethodeHttp": {
+        "enum": [
+          "Post",
+          "Put",
+          "Patch",
+          "Get"
+        ],
+        "description": "Méthode HTTP d'une connexion. Pas de DELETE : aucun besoin identifié, et une erreur de réglage serait destructrice."
+      },
       "MiseAJourDto": {
         "required": [
           "active",
@@ -14499,6 +16431,85 @@
           }
         },
         "description": "Dernière version publiée sur GitHub. `Disponible` : elle est plus récente que la version en cours (toujours faux\npour une version de développement). `Erreur` : dernière vérification impossible (serveur sans accès à Internet…)."
+      },
+      "ModeleConnexion": {
+        "enum": [
+          "Teams",
+          "Slack",
+          "WebhookJson",
+          "Tickets",
+          "Libre"
+        ],
+        "description": "Modèle de départ d'une connexion (origine, informatif : tout reste modifiable)."
+      },
+      "ModeleConnexionDto": {
+        "required": [
+          "modele",
+          "libelle",
+          "description",
+          "etiquettes",
+          "methode",
+          "format",
+          "authentification",
+          "urlSecrete",
+          "signature",
+          "urlExemple",
+          "corps",
+          "declencheurs",
+          "envoiManuel",
+          "libelleEnvoiManuel"
+        ],
+        "type": "object",
+        "properties": {
+          "modele": {
+            "$ref": "#/components/schemas/ModeleConnexion"
+          },
+          "libelle": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "etiquettes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "methode": {
+            "$ref": "#/components/schemas/MethodeHttp"
+          },
+          "format": {
+            "$ref": "#/components/schemas/FormatCorps"
+          },
+          "authentification": {
+            "$ref": "#/components/schemas/AuthentificationApi"
+          },
+          "urlSecrete": {
+            "type": "boolean"
+          },
+          "signature": {
+            "type": "boolean"
+          },
+          "urlExemple": {
+            "type": "string"
+          },
+          "corps": {
+            "type": "string"
+          },
+          "declencheurs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "envoiManuel": {
+            "type": "boolean"
+          },
+          "libelleEnvoiManuel": {
+            "type": "string"
+          }
+        }
       },
       "ModeleDepuisFicheSaisie": {
         "required": [
@@ -15358,6 +17369,43 @@
           }
         },
         "description": "Nouvel ordre des cercles d'un bord : tous les cercles de ce sens, de gauche à droite."
+      },
+      "OrigineAppel": {
+        "enum": [
+          "Automatique",
+          "Manuel",
+          "Essai",
+          "Renvoi"
+        ],
+        "description": "Origine d'un appel : événement de la MEP, envoi depuis la MEP, essai depuis l'éditeur, renvoi d'un appel."
+      },
+      "PageAppelsDto": {
+        "required": [
+          "appels",
+          "suivant",
+          "echecs"
+        ],
+        "type": "object",
+        "properties": {
+          "appels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppelResumeDto"
+            }
+          },
+          "suivant": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "echecs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Page de l'historique des appels : `Suivant`, la valeur de `avant` pour la page suivante (null : fin)."
       },
       "PageMepsDto": {
         "required": [
@@ -19521,6 +21569,40 @@
           }
         },
         "description": "`Emplacement` et `MethodeRecuperation` absents : inchangés."
+      },
+      "SecretEtatDto": {
+        "required": [
+          "enregistre",
+          "lisible",
+          "remplaceLe",
+          "remplacePar"
+        ],
+        "type": [
+          "null",
+          "object"
+        ],
+        "properties": {
+          "enregistre": {
+            "type": "boolean"
+          },
+          "lisible": {
+            "type": "boolean"
+          },
+          "remplaceLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "remplacePar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "État d'un secret, jamais sa valeur : enregistré, lisible (false : clés de l'application changées, à ressaisir), date et\nauteur du dernier remplacement."
       },
       "SectionCreeeDto": {
         "required": [
@@ -24420,6 +26502,52 @@
           }
         }
       },
+      "TentativeDto": {
+        "required": [
+          "debut",
+          "dureeMs",
+          "code",
+          "libelle",
+          "typeErreur",
+          "erreur",
+          "extraitReponse",
+          "entetesReponse"
+        ],
+        "type": "object",
+        "properties": {
+          "debut": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dureeMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "libelle": {
+            "type": "string"
+          },
+          "typeErreur": {
+            "type": "string"
+          },
+          "erreur": {
+            "type": "string"
+          },
+          "extraitReponse": {
+            "type": "string"
+          },
+          "entetesReponse": {
+            "type": "string"
+          }
+        },
+        "description": "Tentative d'un appel : code et libellé reçus, ou type d'erreur (adresse, certificat, delai, reseau, redirection, secret)."
+      },
       "TerminerSaisie": {
         "required": [
           "revision",
@@ -24622,6 +26750,15 @@
           "Autre"
         ],
         "description": "Usage d'un modèle de texte. Stocké en entier : toute nouvelle valeur s'ajoute à la fin."
+      },
+      "UsageSaisie": {
+        "enum": [
+          "Enregistrement",
+          "Essai",
+          "Apercu",
+          "Importation"
+        ],
+        "description": "Usage d'une saisie de connexion : enregistrement (tout est vérifié), essai (la requête doit pouvoir partir), aperçu (rien\nn'est refusé) ou importation (comme l'enregistrement, mais un secret absent est seulement relevé dans\nList&lt;string&gt; ServiceConnexions.SecretsManquants : il se saisit ensuite par « connexions secret »)."
       },
       "UtilisateurDto": {
         "required": [

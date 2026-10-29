@@ -256,6 +256,19 @@ public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? te
         return expires.Count > 0;
     }
 
+    /// <summary>
+    /// Un envoi vers une API externe de cette MEP est terminé (journal, « Blocages et échecs ») : ses flux relisent le
+    /// journal et les envois, sans nouvelle version de la MEP (rien n'a changé dans la MEP elle-même).
+    /// </summary>
+    public void NotifierAppels(Guid mepId)
+    {
+        foreach (var a in Cibles(mepId))
+        {
+            lock (a) a.Appels = true;
+            a.Signal.Writer.TryWrite(true);
+        }
+    }
+
     private void NotifierVerrous(Guid mepId)
     {
         foreach (var a in Cibles(mepId))
@@ -283,6 +296,8 @@ public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? te
         public bool Presence { get; set; }
         /// <summary>Les verrous d'édition ont changé depuis le dernier envoi.</summary>
         public bool Verrous { get; set; }
+        /// <summary>Un envoi vers une API externe s'est terminé depuis le dernier envoi.</summary>
+        public bool Appels { get; set; }
         /// <summary>Réveil du flux : capacité 1, les signaux en trop sont ignorés (l'état à envoyer est dans les champs).</summary>
         public Channel<bool> Signal { get; } = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
         {
@@ -295,7 +310,8 @@ public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? te
     /// Ce qu'un flux doit envoyer à son réveil. Suivi : <c>Cartes</c>, les MEP dont la carte a changé ; <c>Liste</c>, tout relire
     /// (aussi quand trop de cartes ont changé d'un coup).
     /// </summary>
-    public readonly record struct Envoi(int? Version, bool Presence, bool Verrous = false, IReadOnlyList<Guid>? Cartes = null, bool Liste = false);
+    public readonly record struct Envoi(int? Version, bool Presence, bool Verrous = false, IReadOnlyList<Guid>? Cartes = null, bool Liste = false,
+        bool Appels = false);
 
     public sealed class Abonnement : IDisposable
     {
@@ -325,12 +341,13 @@ public sealed partial class DiffuseurMep(IConfiguration config, TimeProvider? te
                 var liste = _abonne.Liste || _abonne.Cartes.Count > MaxCartesParEnvoi;
                 // Sans carte à relire : null (un envoi de présence ou de verrous reste égal à Envoi(null, true)).
                 var envoi = new Envoi(_abonne.Version, _abonne.Presence, _abonne.Verrous,
-                    liste || _abonne.Cartes.Count == 0 ? null : [.. _abonne.Cartes], liste);
+                    liste || _abonne.Cartes.Count == 0 ? null : [.. _abonne.Cartes], liste, _abonne.Appels);
                 _abonne.Version = null;
                 _abonne.Cartes.Clear();
                 _abonne.Liste = false;
                 _abonne.Presence = false;
                 _abonne.Verrous = false;
+                _abonne.Appels = false;
                 return envoi;
             }
         }

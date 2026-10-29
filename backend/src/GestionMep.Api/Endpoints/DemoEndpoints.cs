@@ -62,9 +62,10 @@ public static class DemoEndpoints
         // Réinitialisation : administrateurs seulement. La session de l'auteur est fermée (son compte est recréé).
         demo.MapPost("/reinitialiser", async (ClaimsPrincipal user, HttpContext ctx, MepDbContext db, IConfiguration configuration,
             IPasswordHasher<Utilisateur> hasher, StockagePiecesJointes stockage, TimeProvider temps, FournisseurReglagesBase reglages, ILoggerFactory journaux,
-            SimulationDemo simulation) =>
+            SimulationDemo simulation, RecepteurDemo recepteur) =>
         {
             var acteur = Acteur.Depuis(user);
+            recepteur.Vider();
             // Les collègues simulés quittent la MEP avant qu'elle soit recréée.
             await simulation.Arreter();
             var (meps, fichiers) = await Demonstration.Reinitialiser(db, configuration, hasher, stockage, temps.GetUtcNow(), acteur);

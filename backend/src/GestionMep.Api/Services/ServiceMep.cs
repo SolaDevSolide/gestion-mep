@@ -7,15 +7,21 @@ using Npgsql;
 namespace GestionMep.Api.Services;
 
 /// <summary>Chargement d'une MEP, contrôle de version, journal d'audit, enregistrement et notification temps réel.</summary>
-public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffuseur)
+/// <remarks>
+/// <paramref name="connexions"/> : connexions aux API externes, dont les appels sont mis en file avec chaque événement du
+/// journal (absent en ligne de commande : rien n'y est déclenché).
+/// </remarks>
+public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffuseur, ServiceConnexions? connexions = null)
 {
     public const string AuteurSysteme = "Système";
 
     /// <summary>
     /// Événement de journal ; <c>Systeme</c> l'attribue à « Système » plutôt qu'à l'utilisateur courant ; <c>EtapeId</c> : étape
-    /// concernée (événements d'exécution), enregistrée à part pour que rien ne se relise dans le texte du détail.
+    /// concernée (événements d'exécution), enregistrée à part pour que rien ne se relise dans le texte du détail ;
+    /// <c>Declencheur</c> : déclencheur des connexions aux API externes quand le type ne suffit pas à le dire
+    /// (<see cref="DeclencheursConnexion.RecetteNonConforme"/>).
     /// </summary>
-    public record Evenement(string Type, string Detail, bool Systeme = false, Guid? EtapeId = null);
+    public record Evenement(string Type, string Detail, bool Systeme = false, Guid? EtapeId = null, string? Declencheur = null);
 
     public DateTimeOffset Maintenant => temps.GetUtcNow();
 
@@ -58,6 +64,12 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         if (avant.EnCours && apres.EnCours && avant.Suivi == apres.Suivi) return DiffuseurMep.PorteeSuivi.Carte;
         if (avant.EnCours != apres.EnCours || avant.Suivi != apres.Suivi) return DiffuseurMep.PorteeSuivi.Liste;
         return DiffuseurMep.PorteeSuivi.Aucune;
+    }
+
+    /// <summary>Réveille le service d'envoi des appels, sauf pendant une écriture (<see cref="Modifier{T}"/> le fera après validation).</summary>
+    private void ReveillerEnvois()
+    {
+        if (_enAttente is null && connexions?.AReveiller == true) connexions.Reveiller();
     }
 
     /// <summary>Notifie les flux de la MEP et du suivi, ou retient la notification jusqu'à la fin de l'écriture en cours.</summary>
@@ -170,6 +182,7 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
                 }
                 _enAttente = null;
                 foreach (var n in notifications) diffuseur.Notifier(n.Id, n.Version, n.Portee);
+                if (connexions?.AReveiller == true) connexions.Reveiller();
                 return resultat;
             }
             catch (Exception ex) when (essai < EssaisEcriture && EstEcritureSimultanee(ex))
@@ -225,8 +238,10 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         mep.Version++;
         var portee = Reviser(mep);
         db.Journal.Add(evenement);
+        if (connexions is not null) await connexions.Planifier(mep, [(evenement, null)]);
         await db.SaveChangesAsync();
         Notifier(mep.Id, mep.Version, portee);
+        ReveillerEnvois();
         return bascule;
     }
 
@@ -319,16 +334,24 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
     public async Task<MepDto> Enregistrer(Mep mep, Acteur acteur, IEnumerable<Evenement> evenements)
     {
         mep.Version++;
+        var ecrits = new List<(EvenementJournal, string?)>();
         foreach (var ev in evenements)
-            db.Journal.Add(ev.Systeme
+        {
+            var journal = ev.Systeme
                 ? NouvelEvenement(mep, null, AuteurSysteme, ev.Type, ev.Detail, ev.EtapeId)
-                : NouvelEvenement(mep, acteur.Id, acteur.Nom, ev.Type, ev.Detail, ev.EtapeId));
+                : NouvelEvenement(mep, acteur.Id, acteur.Nom, ev.Type, ev.Detail, ev.EtapeId);
+            db.Journal.Add(journal);
+            ecrits.Add((journal, ev.Declencheur));
+        }
         var nouveaux = Regles.NouveauxElementsBibliotheque(mep);
         var portee = Reviser(mep);
+        // Appels aux API externes mis en file dans la même transaction que les événements (rien ne part si elle est annulée).
+        if (connexions is not null) await connexions.Planifier(mep, ecrits);
         await db.SaveChangesAsync();
         // Après l'enregistrement réussi seulement : une écriture rejouée (voir Modifier) ne compte pas deux fois.
         if (nouveaux.Count > 0) await CompterUtilisations(nouveaux);
         Notifier(mep.Id, mep.Version, portee);
+        ReveillerEnvois();
         return await VersDto(mep, acteur.Id);
     }
 
