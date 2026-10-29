@@ -32,8 +32,8 @@ public static class PiecesJointesEndpoints
     /// Reçoit le fichier du formulaire en flux, sans le mettre en tampon : la place est réservée d'après la taille annoncée
     /// (plafonds de <see cref="QuotasPiecesJointes"/>, refus immédiat si elle ne tient pas), puis le fichier est écrit sur disque
     /// au fil de la réception (taille et SHA-256 calculés au passage) ; la réception s'arrête dès que le fichier dépasse la
-    /// taille maximale (413) ou la place restante (422, 429 ou 507). La réservation est à libérer une fois la pièce enregistrée
-    /// ou abandonnée.
+    /// taille maximale (413) ou la place restante (422, 429 ou 507). Le fichier reçu est ensuite compressé s'il y gagne assez.
+    /// La réservation est à libérer une fois la pièce enregistrée ou abandonnée.
     /// </summary>
     private static async Task<(PieceJointe Piece, IDisposable Reservation)> Recevoir(HttpRequest req, StockagePiecesJointes stockage,
         QuotasPiecesJointes quotas, MepDbContext db, Guid? mepId, Acteur acteur, DateTimeOffset maintenant)
@@ -86,6 +86,10 @@ public static class PiecesJointesEndpoints
                 }
             }
             if (piece is null) throw ErreurHttp.Saisie($"Aucun fichier reçu (champ « {ChampFichier} »).");
+            // Compression sans perte si le fichier y gagne assez (réglages pieces-compression et pieces-compression-gain-min).
+            (piece.TailleStockee, piece.Compression) = stockage.CompressionActive
+                ? await stockage.Compresser(piece.Id, piece.Taille, piece.Sha256, ct)
+                : new StockagePiecesJointes.Stockage(piece.Taille, null);
             return (piece, depot);
         }
         catch
@@ -269,7 +273,9 @@ public static class PiecesJointesEndpoints
         api.MapGet("/pieces-jointes/{pid:guid}/contenu", async (Guid pid, HttpContext ctx, MepDbContext db, StockagePiecesJointes stockage) =>
         {
             var piece = await db.PiecesJointes.AsNoTracking().FirstOrDefaultAsync(p => p.Id == pid) ?? throw ErreurHttp.NonTrouve("Pièce jointe introuvable.");
-            var flux = stockage.Ouvrir(piece.Id) ?? throw ErreurHttp.NonTrouve("Le contenu de cette pièce jointe est introuvable sur le serveur.");
+            // Contenu d'origine, décompressé au fil de l'envoi si le fichier est stocké compressé : mêmes octets, nom et type qu'au dépôt.
+            var flux = stockage.Ouvrir(piece.Id, piece.Taille) ?? throw ErreurHttp.NonTrouve("Le contenu de cette pièce jointe est introuvable sur le serveur.");
+            ctx.Response.ContentLength = piece.Taille;
             // Toujours en téléchargement (Content-Disposition: attachment), jamais interprété par le navigateur.
             ctx.Response.Headers.XContentTypeOptions = "nosniff";
             return Results.File(flux, piece.TypeContenu, piece.NomFichier);
