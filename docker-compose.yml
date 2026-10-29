@@ -33,6 +33,9 @@ services:
       Stockage__QuotaMepMo: ${PIECES_QUOTA_MEP_MO:-1024}
       Stockage__QuotaCompteJourMo: ${PIECES_QUOTA_COMPTE_JOUR_MO:-1024}
       Stockage__EspaceLibreMinMo: ${PIECES_ESPACE_LIBRE_MIN_MO:-2048}
+      # Compression sans perte des pièces jointes (gain minimal en %, sinon le fichier reste tel quel)
+      Stockage__Compression: ${PIECES_COMPRESSION:-true}
+      Stockage__CompressionGainMin: ${PIECES_COMPRESSION_GAIN_MIN:-10}
       Cles__Dossier: /data/cles
       # Sauvegardes automatiques avant une mise à jour du schéma ou une importation (supprimées si les contrôles passent)
       Sauvegardes__Dossier: /data/sauvegardes

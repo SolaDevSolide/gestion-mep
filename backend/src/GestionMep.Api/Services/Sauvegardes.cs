@@ -199,6 +199,27 @@ public sealed partial class Sauvegardes(string dossier, string dossierPieces, Ac
         }
     }
 
+    // ---- Vérification ----
+
+    /// <summary>
+    /// Contrôle complet d'une archive sans rien restaurer (« gestion-mep sauvegardes verifier ») : mêmes contrôles que le
+    /// début d'une importation (entrées attendues, manifeste, présence de chaque table, empreinte de chaque pièce jointe),
+    /// dans un dossier temporaire supprimé ensuite. Une archive invalide lève <see cref="ErreurHttp"/> avec la raison.
+    /// </summary>
+    public async Task<Manifeste> Verifier(string archive)
+    {
+        if (!File.Exists(archive)) throw ErreurHttp.NonTrouve($"Archive introuvable : {archive}");
+        var temporaire = Path.Combine(Dossier, $".verification-{Guid.NewGuid():N}");
+        try
+        {
+            return await Extraire(archive, temporaire);
+        }
+        finally
+        {
+            if (Directory.Exists(temporaire)) Directory.Delete(temporaire, recursive: true);
+        }
+    }
+
     // ---- Exportation ----
 
     /// <summary>Écrit l'archive (dans un fichier « .partiel » renommé à la fin) ; renvoie son manifeste.</summary>

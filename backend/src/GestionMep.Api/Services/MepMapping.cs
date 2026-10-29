@@ -14,8 +14,8 @@ public static class MepMapping
         new(u.Id, u.Login, u.NomAffiche, u.Role, u.Contact, u.Expertises, u.Actif, u.ComptePrincipalId, u.NomPersonne, u.EquipeIds);
 
     public static PieceJointeDto VersDto(PieceJointe p, IReadOnlyDictionary<Guid, string> nomsUtilisateurs) =>
-        new(p.Id, p.MepId, p.EtapeId, p.ResolutionTypeId, p.ExecutionResolutionId, p.NomFichier, p.TypeContenu, p.Taille, p.Sha256,
-            p.DeposeParId, p.DeposeParId is { } d && nomsUtilisateurs.TryGetValue(d, out var n) ? n : null, p.DeposeLe);
+        new(p.Id, p.MepId, p.EtapeId, p.ResolutionTypeId, p.ExecutionResolutionId, p.NomFichier, p.TypeContenu, p.Taille,
+            p.TailleStockee, p.Compression == CompressionPiece.Gzip ? CompressionPiece.Gzip : null, p.Sha256, p.DeposeParId, p.DeposeParId is { } d && nomsUtilisateurs.TryGetValue(d, out var n) ? n : null, p.DeposeLe);
 
     public static SectionDto VersDto(Section s, string? auteur) =>
         new(s.Id, s.Plan, s.Titre, s.Description, [.. s.SystemeIds], s.AuteurId, auteur, s.CreeLe, s.Placee, s.Revision,
@@ -46,7 +46,8 @@ public static class MepMapping
     public static MepDto VersDto(Mep m, Guid? utilisateurId, IReadOnlyDictionary<Guid, string> nomsUtilisateurs, DateTimeOffset maintenant,
         ContexteVerification contexte, IReadOnlyList<PieceJointe> pieces, bool estAdmin = false)
     {
-        string? Nom(Guid? id) => id is { } g && nomsUtilisateurs.TryGetValue(g, out var n) ? n : null;
+        // Guid.Empty : action de la ligne de commande (Acteur.LigneDeCommande), sans compte.
+        string? Nom(Guid? id) => id == Guid.Empty ? JournalAdmin.AuteurLigneDeCommande : id is { } g && nomsUtilisateurs.TryGetValue(g, out var n) ? n : null;
         ValidationDto? Validation(Guid? par, DateTimeOffset? le) =>
             par is null || le is null ? null : new ValidationDto(Nom(par) ?? "Inconnu", le.Value);
 

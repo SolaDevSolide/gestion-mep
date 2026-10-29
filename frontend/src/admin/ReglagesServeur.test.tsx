@@ -6,7 +6,7 @@ import { ToastProvider } from '../ui/Toast';
 import ReglagesServeur from './ReglagesServeur';
 
 vi.mock('../api', () => ({
-  api: { reglages: vi.fn(), definirReglage: vi.fn(), retablirReglage: vi.fn() },
+  api: { reglages: vi.fn(), definirReglage: vi.fn(), retablirReglage: vi.fn(), stockagePiecesJointes: vi.fn() },
 }));
 
 const base: Omit<Reglage, 'nom' | 'variable' | 'libelle' | 'type' | 'valeur' | 'origine' | 'defaut'> = {
@@ -57,6 +57,36 @@ describe('Réglages du serveur', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.reglages).mockResolvedValue([urlPublique, https]);
+    vi.mocked(api.stockagePiecesJointes).mockResolvedValue({
+      pieces: 12,
+      tailleFichiers: 40 * 1024 * 1024,
+      tailleStockee: 10 * 1024 * 1024,
+      compressees: 8,
+      nonExaminees: 3,
+    });
+  });
+
+  it('rappelle la place occupée par les pièces jointes et le gain de la compression', async () => {
+    const compression: Reglage = {
+      ...base,
+      groupe: 'Pièces jointes',
+      nom: 'pieces-compression',
+      variable: 'PIECES_COMPRESSION',
+      libelle: 'Compresser les fichiers déposés',
+      type: 'Booleen',
+      valeur: 'true',
+      origine: 'defaut',
+      defaut: 'true',
+    };
+    vi.mocked(api.reglages).mockResolvedValue([urlPublique, compression]);
+    rendre();
+    expect(
+      await screen.findByText(
+        /12 pièces jointes : 40 Mo de fichiers, 10 Mo sur le serveur \(−75 % grâce à la compression\)/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/3 déposées avant la compression/)).toBeInTheDocument();
+    expect(screen.getByText(/pieces-jointes compresser/)).toBeInTheDocument();
   });
 
   it('enregistre l’adresse publique et affiche sa nouvelle origine', async () => {

@@ -990,10 +990,27 @@ public class PieceJointe
     public Guid? ExecutionResolutionId { get; set; }
     public string NomFichier { get; set; } = "";
     public string TypeContenu { get; set; } = "application/octet-stream";
+    /// <summary>Taille du fichier déposé, en octets : celle du fichier rendu au téléchargement.</summary>
     public long Taille { get; set; }
+    /// <summary>Taille occupée sur disque (compressé ou non) : celle que comptent les quotas.</summary>
+    public long TailleStockee { get; set; }
+    /// <summary>
+    /// Compression du fichier sur disque : <see cref="CompressionPiece.Gzip"/>, <see cref="CompressionPiece.Aucune"/>
+    /// (examiné, stocké tel quel car la compression n'y gagnait pas assez) ou null (jamais examiné : déposé avant la compression
+    /// ou compression désactivée).
+    /// </summary>
+    public string? Compression { get; set; }
+    /// <summary>Empreinte SHA-256 du fichier déposé (avant compression).</summary>
     public string Sha256 { get; set; } = "";
     public Guid? DeposeParId { get; set; }
     public DateTimeOffset DeposeLe { get; set; }
+}
+
+/// <summary>Valeurs de <see cref="PieceJointe.Compression"/>.</summary>
+public static class CompressionPiece
+{
+    public const string Gzip = "gzip";
+    public const string Aucune = "aucune";
 }
 
 /// <summary>Journal d'administration : comptes, paramètres globaux, critères go / no-go (hors MEP).</summary>

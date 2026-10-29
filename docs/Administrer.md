@@ -1,6 +1,6 @@
 # Administrer
 
-Cette page s'adresse aux **administrateurs** de l'application. Tout ce qui se règle dans la console d'administration se règle aussi en ligne de commande (`gestion-mep`), pour l'équipe informatique : la commande équivalente est indiquée pour chaque onglet ci-dessous, le détail est dans [Exploiter](Exploiter.md#commandes-dadministration).
+Cette page s'adresse aux **administrateurs** de l'application. Tout ce qui se règle dans la console d'administration se règle aussi en ligne de commande (`gestion-mep`), pour l'équipe informatique : la commande équivalente est indiquée pour chaque onglet ci-dessous, le détail est dans [Exploiter](Exploiter.md#commandes-dadministration) et la référence de chaque commande dans [Ligne de commande](Ligne-de-commande.md).
 
 Être administrateur donne accès à la console et aux paramètres globaux, mais ne donne pas les droits du pilote dans une MEP (go / no-go, retour arrière, clôture…). Voir [Droits par rôle](Droits.md).
 
@@ -8,7 +8,7 @@ Pour les MEP, un administrateur peut toutefois, depuis le menu « ⋯ Plus d'act
 
 - **annuler** une MEP en préparation, même s'il ne la pilote pas (motif obligatoire) ;
 - prendre le **pilotage de secours** après le Go, quand le pilote et les suppléants ne répondent plus : il prend le pilotage ou désigne un pilote, avec un motif, tracé au journal de la MEP et au journal d'administration, et un bandeau le rappelle à tous jusqu'à la clôture ;
-- **supprimer définitivement** une MEP qui n'a jamais eu de Go, ou un modèle, avec un motif et le nom de la MEP saisi pour confirmer. Seule une ligne « MEP supprimée » reste au journal d'administration ; une MEP lancée s'annule à la place. Il n'y a pas de commande de suppression en ligne de commande.
+- **supprimer définitivement** une MEP qui n'a jamais eu de Go, ou un modèle, avec un motif et le nom de la MEP saisi pour confirmer. Seule une ligne « MEP supprimée » reste au journal d'administration ; une MEP lancée s'annule à la place. En ligne de commande : `gestion-mep meps supprimer <id> --motif "…" --oui` et `gestion-mep meps annuler <id> --motif "…" --oui`.
 
 Voir [Cycle de vie](Cycle-de-vie.md#annuler-une-mep).
 
@@ -75,7 +75,7 @@ Chaque équipe a aussi un **contact support** et une **signature**, repris par s
 
 Toute création, modification (avec les membres ajoutés et retirés) et suppression est inscrite au journal d'administration. Les équipes se lisent par tout utilisateur connecté (pour les filtres) ; seuls les administrateurs les modifient.
 
-En ligne de commande : `gestion-mep equipes lister | afficher | creer | modifier | ajouter | retirer | supprimer`, et `gestion-mep meps lister --equipe <équipe>`.
+En ligne de commande : `gestion-mep equipes lister | afficher | creer | modifier | ajouter | retirer | supprimer` (`--contact-support` et `--signature` pour les modèles de texte), `gestion-mep modeles-texte lister | afficher | supprimer | retablir | variables`, et `gestion-mep meps lister --equipe <équipe>`.
 
 ### Connexion unique
 
@@ -86,7 +86,7 @@ En ligne de commande : `gestion-mep sso afficher | configurer | tester | activer
 ### Paramètres
 
 - **Nombre minimum d'approbations** exigées avant le Go (0 = aucune).
-- **Réglages du serveur**, appliqués sans redémarrage : adresse publique, réseaux du reverse proxy, HTTPS obligatoire, tailles et plafonds des pièces jointes, tentatives de connexion par minute, écrans suivis en temps réel, vérification des nouvelles versions, lien « Signaler un problème ou une idée ». Chaque réglage indique d'où vient sa valeur : fichier `.env`, valeur par défaut, ou modifiée dans la console (date et auteur). **Rétablir** revient à la valeur du fichier `.env`. Les mêmes réglages se modifient en ligne de commande (`gestion-mep reglages`, voir [Exploiter](Exploiter.md#modifier-un-réglage)).
+- **Réglages du serveur**, appliqués sans redémarrage : adresse publique, réseaux du reverse proxy, HTTPS obligatoire, tailles et plafonds des pièces jointes, compression des pièces jointes (avec la place qu'elles occupent, voir [Exploiter](Exploiter.md#compression-des-pièces-jointes)), tentatives de connexion par minute, écrans suivis en temps réel, vérification des nouvelles versions, lien « Signaler un problème ou une idée ». Chaque réglage indique d'où vient sa valeur : fichier `.env`, valeur par défaut, ou modifiée dans la console (date et auteur). **Rétablir** revient à la valeur du fichier `.env`. Les mêmes réglages se modifient en ligne de commande (`gestion-mep reglages`, voir [Exploiter](Exploiter.md#modifier-un-réglage)).
 - Rappel des réglages lus seulement au démarrage (port, adresse d'écoute, base de données, démonstration…), à changer dans le fichier `.env`.
 - Lien vers les critères go / no-go.
 
@@ -127,7 +127,7 @@ Les 200 derniers événements d'administration : comptes créés, modifiés, dé
 
 L'application y signale aussi, avec l'auteur « Application », **20 échecs de connexion en moins d'une heure sur un même compte**, toutes adresses confondues : signe probable qu'on essaie de deviner son mot de passe.
 
-En ligne de commande : `gestion-mep journal [--depuis AAAA-MM-JJ] [--limite n]` (`--json` pour un script).
+En ligne de commande : `gestion-mep journal [--depuis AAAA-MM-JJ] [--limite n] [--type <famille>]` (`--json` pour un script). Les sauvegardes purgées (`sauvegardes.purgees`) et les MEP annulées en ligne de commande (`mep.annulee`) y figurent aussi.
 
 ### Version
 
@@ -162,7 +162,7 @@ Le menu « Paramètres » est visible de tous, en lecture seule pour les non-adm
 | Go / no-go | Critères à cocher avant chaque Go, et nombre minimum d'approbations. | Administrateurs |
 | Modèles de texte | Courriels types de chaque équipe (annonce, rappel, demande de MEP, compte rendu), contact support et signature de l'équipe (voir [Modèles de texte](Modèles-de-texte.md)). | Membres de l'équipe et administrateurs ; les modèles fournis ne se suppriment pas |
 
-En ligne de commande : `gestion-mep systemes lister | afficher | ajouter | modifier | supprimer | environnement | categorie | objet`, `gestion-mep categories lister | ajouter | retirer`, `gestion-mep resolutions lister | afficher | supprimer | exporter | importer` (import contrôlé fiche par fiche, avec un essai à blanc possible) et `gestion-mep criteres …`. Les MEP se listent et s'exportent en JSON, avec leur journal, pour l'archive ou un audit : `gestion-mep meps lister | exporter`.
+En ligne de commande : `gestion-mep systemes lister | afficher | ajouter | modifier | supprimer | environnement | categorie | objet`, `gestion-mep categories lister | ajouter | retirer`, `gestion-mep resolutions lister | afficher | supprimer | exporter | importer` (import contrôlé fiche par fiche, avec un essai à blanc possible) et `gestion-mep criteres …`. Les bibliothèques se consultent et se nettoient avec `gestion-mep etapes-modeles …` et `gestion-mep modeles-recette …`. Les MEP se listent, s'affichent et s'exportent en JSON, avec leur journal, pour l'archive ou un audit (`gestion-mep meps lister | afficher | journal | exporter`), et un export se réimporte sur un autre serveur (`gestion-mep meps importer`).
 
 ## Profils
 

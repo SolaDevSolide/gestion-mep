@@ -31,6 +31,9 @@ ADMIN_MOT_DE_PASSE=
 # PIECES_QUOTA_MEP_MO=1024
 # PIECES_QUOTA_COMPTE_JOUR_MO=1024
 # PIECES_ESPACE_LIBRE_MIN_MO=2048
+# (console) Compression sans perte des pièces jointes (false : désactivée) et gain minimal en %
+# PIECES_COMPRESSION=true
+# PIECES_COMPRESSION_GAIN_MIN=10
 # (console) Réseau(x) du reverse proxy HTTPS (CIDR, séparés par des virgules), seuls autorisés à transmettre l'adresse du
 # client. Vide : proxy sur la même machine (127.0.0.1 ou ::1). Proxy sur une autre machine : son adresse, par exemple :
 # PROXY_RESEAUX=10.0.5.12/32

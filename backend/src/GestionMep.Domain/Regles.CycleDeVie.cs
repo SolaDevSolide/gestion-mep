@@ -163,7 +163,7 @@ public static partial class Regles
         if (!pilote && !estAdmin)
             throw new DroitInsuffisantException("Seul le pilote, un suppléant ou un administrateur (pilotage de secours) peut changer le pilote.");
         if (mep.Phase == Phase.Preparation)
-            throw new RegleMetierException("En préparation, le pilote se change dans la section Personnes.");
+            throw new RegleMetierException("En préparation, le pilote se change dans la section Intervention de l'onglet Préparation.");
         if (!EstApresGoEnCours(mep)) throw new RegleMetierException("La MEP est terminée : son pilote ne change plus.");
         if (string.IsNullOrWhiteSpace(motif)) throw new RegleMetierException("Indiquer le motif du changement de pilote.");
         if (nouveau.UtilisateurId is null) throw new RegleMetierException($"{nouveau.Nom} n'est relié à aucun compte : il ne pourrait pas piloter.");

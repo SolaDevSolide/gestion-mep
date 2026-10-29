@@ -60,18 +60,32 @@ public static class EtapesModelesEndpoints
         m.ResolutionIds = (c.ResolutionIds ?? []).Distinct().ToList();
     }
 
+    /// <summary>Les plus utilisées d'abord, puis par ordre de création. Filtre « contient » sur un système du catalogue (partagé avec la ligne de commande).</summary>
+    public static async Task<List<ModeleEtapeDto>> Lister(MepDbContext db, Guid? systemeCatalogueId)
+    {
+        var q = db.ModelesEtape.AsNoTracking();
+        if (systemeCatalogueId is { } s) q = q.Where(m => m.SystemeCatalogueIds.Contains(s));
+        var noms = await Noms(db);
+        return (await q.OrderByDescending(m => m.Utilisations).ThenBy(m => m.CreeLe).ThenBy(m => m.Action).ToListAsync()).Select(m => Dto(m, noms)).ToList();
+    }
+
+    public static async Task<ModeleEtapeDto> Detail(MepDbContext db, Guid id) => Dto(await Trouver(db, id), await Noms(db));
+
+    /// <summary>Supprime une étape modèle (administrateur) : les étapes déjà insérées dans des MEP sont des copies, elles ne changent pas.</summary>
+    public static async Task<string> Supprimer(MepDbContext db, Acteur? acteur, Guid id)
+    {
+        var m = await Trouver(db, id);
+        db.ModelesEtape.Remove(m);
+        JournalAdmin.Ecrire(db, acteur, "etape-modele.supprimee", $"Étape modèle « {m.Action} » supprimée de la bibliothèque");
+        await db.SaveChangesAsync();
+        return m.Action;
+    }
+
     public static void MapEtapesModeles(this RouteGroupBuilder api)
     {
-        // Les plus utilisées d'abord, puis par ordre de création. Filtre « contient » sur un système du catalogue.
-        api.MapGet("/etapes-modeles", async (Guid? systemeCatalogueId, MepDbContext db) =>
-        {
-            var q = db.ModelesEtape.AsNoTracking();
-            if (systemeCatalogueId is { } s) q = q.Where(m => m.SystemeCatalogueIds.Contains(s));
-            var noms = await Noms(db);
-            return (await q.OrderByDescending(m => m.Utilisations).ThenBy(m => m.CreeLe).ThenBy(m => m.Action).ToListAsync()).Select(m => Dto(m, noms));
-        });
+        api.MapGet("/etapes-modeles", async (Guid? systemeCatalogueId, MepDbContext db) => (await Lister(db, systemeCatalogueId)).AsEnumerable());
 
-        api.MapGet("/etapes-modeles/{id:guid}", async (Guid id, MepDbContext db) => Dto(await Trouver(db, id), await Noms(db)));
+        api.MapGet("/etapes-modeles/{id:guid}", (Guid id, MepDbContext db) => Detail(db, id));
 
         api.MapPost("/etapes-modeles", async (ModeleEtapeSaisie c, ClaimsPrincipal user, MepDbContext db, TimeProvider temps) =>
         {
@@ -126,11 +140,7 @@ public static class EtapesModelesEndpoints
         // Les étapes déjà insérées dans des MEP sont des copies : elles ne changent pas.
         api.MapDelete("/etapes-modeles/{id:guid}", async (Guid id, ClaimsPrincipal user, MepDbContext db) =>
         {
-            var acteur = Acteur.Depuis(user);
-            var m = await Trouver(db, id);
-            db.ModelesEtape.Remove(m);
-            JournalAdmin.Ecrire(db, acteur, "etape-modele.supprimee", $"Étape modèle « {m.Action} » supprimée de la bibliothèque");
-            await db.SaveChangesAsync();
+            await Supprimer(db, Acteur.Depuis(user), id);
             return Results.NoContent();
         }).ExigerAdmin();
 
