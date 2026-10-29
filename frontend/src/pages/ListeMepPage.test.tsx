@@ -296,6 +296,11 @@ describe('ListeMepPage : MEP simplifiée', () => {
     rendre();
     await userEvent.click((await screen.findAllByRole('button', { name: /^Nouvelle MEP$/ }))[0]);
     expect(screen.getByRole('radio', { name: /MEP complète/ })).toBeChecked();
+    // Le créateur devient responsable technique, pas pilote (#116).
+    const dialogue = screen.getByRole('dialog', { name: 'Nouvelle mise en production' });
+    expect(dialogue).toHaveTextContent('Vous en serez responsable technique.');
+    expect(dialogue).toHaveTextContent('Le pilote se désigne ensuite dans « Intervention »');
+    expect(dialogue).not.toHaveTextContent('Vous en serez le pilote');
     await userEvent.click(screen.getByRole('radio', { name: /MEP simplifiée/ }));
     await userEvent.type(screen.getByLabelText('Outil ou application'), 'Correctif');
     await userEvent.click(screen.getByRole('button', { name: 'Créer la MEP' }));
