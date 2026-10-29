@@ -23,6 +23,118 @@ namespace GestionMep.Api.Donnees.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("GestionMep.Domain.AppelApi", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AppelOrigineId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConnexionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Corps")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DelaiSecondes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DemandePar")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("DemandeParId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("DernierCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Entetes")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Etat")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<long?>("EvenementId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("LibelleEvenement")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("MepId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("MepNom")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Methode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Origine")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("ProchaineTentative")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Resume")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Tentatives")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("TentativesMax")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("TermineLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TypeContenu")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TypeEvenement")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("UrlSecrete")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreeLe");
+
+                    b.HasIndex("EvenementId");
+
+                    b.HasIndex("Etat", "ProchaineTentative");
+
+                    b.HasIndex("MepId", "CreeLe");
+
+                    b.HasIndex("ConnexionId", "MepId", "CreeLe");
+
+                    b.ToTable("AppelsApi");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.ConfigurationSso", b =>
                 {
                     b.Property<int>("Id")
@@ -92,6 +204,137 @@ namespace GestionMep.Api.Donnees.Migrations
                             RoleAdmin = "",
                             SecretChiffre = ""
                         });
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.ConnexionApi", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Authentification")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Champs")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ClientId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Corps")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreeeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Declencheurs")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("DelaiSecondes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Entetes")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("EnvoiManuel")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Filtres")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("LibelleEnvoiManuel")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Methode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Modele")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset>("ModifieeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifieePar")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NomEntete")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OrigineSecrets")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Secret")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("SecretSignature")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("Tentatives")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TokenUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("UrlSecrete")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Utilisateur")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Nom")
+                        .IsUnique();
+
+                    b.ToTable("ConnexionsApi");
                 });
 
             modelBuilder.Entity("GestionMep.Domain.CritereGoNoGo", b =>
@@ -1268,6 +1511,27 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.HasIndex("ResolutionTypeId", "Version");
 
                     b.ToTable("VersionsResolutionType");
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.AppelApi", b =>
+                {
+                    b.HasOne("GestionMep.Domain.ConnexionApi", null)
+                        .WithMany()
+                        .HasForeignKey("ConnexionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GestionMep.Domain.EvenementJournal", "Evenement")
+                        .WithMany()
+                        .HasForeignKey("EvenementId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("GestionMep.Domain.Mep", null)
+                        .WithMany()
+                        .HasForeignKey("MepId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Evenement");
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Etape", b =>

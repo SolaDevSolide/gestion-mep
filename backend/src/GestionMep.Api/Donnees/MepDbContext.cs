@@ -64,6 +64,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<Equipe> Equipes => Set<Equipe>();
     public DbSet<ModeleTexte> ModelesTexte => Set<ModeleTexte>();
     public DbSet<RapportFin> RapportsFin => Set<RapportFin>();
+    public DbSet<ConnexionApi> ConnexionsApi => Set<ConnexionApi>();
+    public DbSet<AppelApi> AppelsApi => Set<AppelApi>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -284,6 +286,48 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Libelle).HasMaxLength(60);
             // Ligne unique créée par la migration, connexion unique désactivée.
             e.HasData(new ConfigurationSso { Id = ConfigurationSso.IdUnique });
+        });
+
+        // Connexions aux API externes (#111) : réglages (secrets chiffrés en jsonb) et appels (file d'envoi et historique).
+        b.Entity<ConnexionApi>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.Nom).HasMaxLength(200);
+            e.HasIndex(x => x.Nom).IsUnique();
+            e.Property(x => x.Version).IsConcurrencyToken();
+            e.Property(x => x.Modele).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Methode).HasConversion<string>().HasMaxLength(10);
+            e.Property(x => x.Authentification).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Format).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Url).HasMaxLength(2000);
+            e.Property(x => x.OrigineSecrets).HasMaxLength(500);
+            e.Property(x => x.UrlSecrete).AsJsonObjet();
+            e.Property(x => x.Secret).AsJsonObjet();
+            e.Property(x => x.SecretSignature).AsJsonObjet();
+            e.Property<FiltresConnexion?>(nameof(ConnexionApi.Filtres)).AsJsonObjet().IsRequired();
+            e.Property(x => x.Entetes).AsJson();
+            e.Property(x => x.Champs).AsJson();
+            e.Property(x => x.Declencheurs).AsJson();
+        });
+
+        b.Entity<AppelApi>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            // Supprimer une connexion supprime son historique ; supprimer une MEP garde les appels (nom de la MEP conservé).
+            e.HasOne<ConnexionApi>().WithMany().HasForeignKey(x => x.ConnexionId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Mep>().WithMany().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Evenement).WithMany().HasForeignKey(x => x.EvenementId).OnDelete(DeleteBehavior.SetNull);
+            e.Property(x => x.Etat).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Origine).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Methode).HasConversion<string>().HasMaxLength(10);
+            e.Property(x => x.TypeEvenement).HasMaxLength(64);
+            e.Property(x => x.Tentatives).AsJson();
+            e.Property(x => x.Entetes).AsJson();
+            // File d'envoi : appels à envoyer, par échéance ; ordre gardé par connexion et MEP ; historique par date.
+            e.HasIndex(x => new { x.Etat, x.ProchaineTentative });
+            e.HasIndex(x => new { x.ConnexionId, x.MepId, x.CreeLe });
+            e.HasIndex(x => new { x.MepId, x.CreeLe });
+            e.HasIndex(x => x.CreeLe);
         });
 
         b.Entity<IdentiteExterne>(e =>
