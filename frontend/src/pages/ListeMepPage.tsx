@@ -179,7 +179,7 @@ function NouvelleMepDialog({
       description={
         modele
           ? 'Un modèle ne s’exécute pas : il sert de base aux prochaines MEP. Le plan se prépare ensuite, section par section.'
-          : 'Vous en serez le pilote. Le plan se prépare ensuite, section par section.'
+          : 'Vous en serez responsable technique. Le pilote se désigne ensuite dans « Intervention », et le plan se prépare section par section.'
       }
       pied={
         <>
