@@ -29,7 +29,7 @@ Filtres en haut du graphe :
 - **Mes systèmes** : mettre en avant les étapes de certains systèmes ;
 - **À moi** : les étapes que j'exécute.
 
-![Onglet Exécution : trois étapes réussies, une en échec, le point de non-retour en attente](images/execution.png)
+![Onglet Exécution de « Paiement mobile » en plein écran : étapes réussies, en cours, une en échec avec sa résolution en cours, point de non-retour en attente](images/execution.png)
 
 Les étapes filtrées sont estompées, pas masquées. Les choix sont mémorisés pour chaque MEP.
 
@@ -52,11 +52,19 @@ flowchart LR
 3. Réaliser l'intervention, puis renseigner la **preuve** (ce que vous avez constaté : sortie de commande, capture décrite…).
 4. **Réussie** (avec la confirmation « J'ai vérifié et obtenu le résultat attendu ») ou **Échec** (preuve obligatoire). Pour une étape qui se termine par un **test unitaire** (le cas par défaut), la confirmation « Réussie » demande aussi le **résultat constaté** ; une **simple vérification** n'en demande pas. En cas d'échec d'un test unitaire, la preuve tient lieu de résultat constaté.
 
+![Animation : Bob démarre E0001, saisit sa preuve, la déclare réussie avec le résultat constaté](images/derouler-une-etape.webp)
+
+*Démarrer, preuve, « Réussie » puis le résultat constaté : E0002 et E0003, qui attendaient E0001, deviennent disponibles.*
+
 Seuls l'exécutant, le pilote et les suppléants peuvent terminer une étape. Un commentaire peut être ajouté à tout moment. Les étapes suivantes deviennent disponibles dès que leurs préalables ont réussi : plusieurs personnes travaillent en parallèle.
 
 ## Prendre la main
 
 Si l'exécutant d'une étape en cours ou en échec est injoignable, une autre personne de la MEP (ou un administrateur) peut **prendre la main**, avec un motif obligatoire. L'étape indique alors « Exécutée par X à la place de Y », et le journal garde le motif.
+
+![Animation : Alice prend la main sur E0004, démarrée par Bob, avec un motif](images/prendre-la-main.webp)
+
+*Le motif est obligatoire ; l'étape passe à Alice et le journal garde le motif.*
 
 ## Quand une étape échoue
 
@@ -66,7 +74,9 @@ L'étape en échec propose ses **résolutions prévues** (« Problème connu ? �
 2. pour chaque correction : l'appliquer, noter l'observation, déclarer « Conforme » ou « Échec » ;
 3. après les corrections, la **vérification finale**.
 
-![Résolution guidée en cours sur une étape en échec](images/resolution-guidee.png)
+![Animation : Claire applique une résolution type à E0002 en échec : deux corrections puis la vérification finale, toutes conformes](images/resolution-guidee.webp)
+
+*Chaque correction se déclare « Conforme » ou « Échec » avec ce qu'on constate ; tout conforme, l'étape peut être redémarrée.*
 
 La résolution appliquée est la copie **figée dans la MEP** à l'approbation (ou au Go) : titre, contenu et version approuvés, même si la fiche a changé depuis dans la bibliothèque. Le journal indique la version appliquée.
 
@@ -83,6 +93,10 @@ Une résolution utile qui manquait peut être créée depuis « Paramètres › 
 
 L'étape point de non-retour est encadrée de rouge. Avant qu'on puisse la démarrer, le pilote ou un suppléant doit cliquer **« Autoriser le passage »**.
 
+![Animation : Alice, pilote, ouvre E0006 et clique « Autoriser le passage »](images/autoriser-le-passage.webp)
+
+*Une fois le passage autorisé, l'encadré le rappelle avec son auteur et l'heure.*
+
 > [!WARNING]
 > Dès qu'elle démarre, le retour arrière n'est plus possible, ni manuel ni automatique : tout problème se corrige en avant. Un bandeau le rappelle à tous.
 
@@ -90,14 +104,27 @@ L'étape point de non-retour est encadrée de rouge. Avant qu'on puisse la déma
 
 Tant que le point de non-retour n'est pas franchi et qu'aucune étape ni résolution n'est en cours, le pilote peut cliquer « Revenir en préparation » (par exemple pour corriger le plan), avec un **motif obligatoire**, inscrit au journal. Les états des étapes sont conservés, comme l'heure du premier Go. Une fois revenue en préparation, la MEP peut être corrigée puis relancée par un nouveau Go, ou [annulée](Cycle-de-vie.md#annuler-une-mep) depuis le menu « ⋯ Plus d'actions » (motif et état laissé en production obligatoires).
 
+![Animation : Claire, pilote, revient en préparation avec un motif](images/revenir-en-preparation.webp)
+
+*Le motif est inscrit au journal ; la MEP rouvre sur sa préparation.*
+
 ## Ajouter une étape corrective
 
 Pendant l'exécution, le pilote ou un suppléant clique **« Ajouter une étape corrective »** dans **Plan › Étapes** pour corriger en avant : action, système, instructions et résultat attendu sont obligatoires, comme la durée et la criticité dans une MEP complète. L'étape prend le code suivant (`E0006`, `E0007`…), attend les dernières étapes du plan, et porte la mention **« Ajoutée après le Go »** dans le graphe, la fiche de l'étape et le rapport de fin. Sa fiche ne se modifie plus ensuite : si elle ne convient pas, on en ajoute une autre.
+
+![Animation : Bob, pilote, ajoute l'étape corrective E0006 après le Go](images/ajouter-une-etape-corrective.webp)
+
+*L'étape s'ajoute à la fin du plan et porte la mention « Ajoutée après le Go ».*
 
 ## Recette et clôture
 
 1. Quand toutes les étapes de déploiement ont réussi, le pilote clique **« Passer en recette »**.
 2. Dans **Plan › Recette** (la MEP s'y ouvre pendant la recette), ouvrir chaque fiche : chaque étape de test est déclarée « Conforme » ou « Non conforme » avec une observation, par toute personne de la MEP reliée à un compte. Le pilote peut faire refaire un test ou une fiche. Les équipes métier peuvent aussi valider dans Excel (voir ci-dessous).
+
+   ![Animation : la fiche « Soldes de congés » ouverte, l'étape 1 déclarée conforme avec une observation](images/derouler-la-recette.webp)
+
+   *L'observation est obligatoire ; le retour à la recette montre l'avancement mis à jour.*
+
 3. Quand tout est conforme, le pilote clique **« Clôturer : MEP réussie »** et rédige le bilan. Le [rapport de fin](Suivre-une-MEP.md#rapport-de-fin) est alors figé (bouton « Rapport de fin » du bilan). Si une étape ou un test de recette a échoué en route, même repris ensuite, la MEP s'affiche « Clôturée : réussie avec incidents » (voir [Cycle de vie](Cycle-de-vie.md#clôture-et-bilan)).
 
 ### Valider la recette dans Excel
@@ -119,6 +146,11 @@ Si l'**échéance de retour arrière** est atteinte pendant la recette, le retou
 ## Retour arrière
 
 - **Déclencher le retour arrière** (pilote ou suppléant, motif obligatoire) arrête le déploiement. Un bandeau rouge l'indique à tous, avec son motif et son auteur (« Déclenchement automatique » s'il vient de l'échéance, en exécution).
+
+  ![Animation : Alice déclenche le retour arrière de « Paiement mobile », avec un motif](images/declencher-le-retour-arriere.webp)
+
+  *La MEP s'ouvre sur Plan › Retour arrière, sous le bandeau rouge qui rappelle le motif et son auteur.*
+
 - **Plan › Retour arrière** (la MEP s'y ouvre pendant un retour arrière) déroule son propre plan, étape par étape, comme l'exécution.
 - Quand toutes ses étapes ont réussi, le pilote clique **« Service rétabli : clôturer »** et rédige le bilan. La MEP est clôturée après retour arrière.
 - Si une étape du retour arrière échoue et que le service ne peut pas être rétabli, l'encadré **« Retour arrière en échec »** propose de suivre la consigne « Si le retour arrière échoue » du plan, puis **« Clôturer en échec… »**.
@@ -131,6 +163,10 @@ Si l'**échéance de retour arrière** est atteinte pendant la recette, le retou
 
 Après le Go, le pilote ou un suppléant **passe le pilotage** depuis le menu « ⋯ Plus d'actions » (« Passer le pilotage… ») : choisir une personne de la MEP reliée à un compte, ou un compte qui n'y figure pas encore, et indiquer le motif. L'ancien pilote reste suppléant par défaut. Si ni le pilote ni les suppléants ne répondent, un administrateur peut prendre le **pilotage de secours** (voir [Cycle de vie](Cycle-de-vie.md#pilotage-de-secours-et-passation)) : un bandeau le signale à tous jusqu'à la clôture.
 
+![Animation : « Passer le pilotage… » depuis le menu « ⋯ », Bob choisi, motif « Relève de nuit. »](images/passer-le-pilotage.webp)
+
+*Bob devient pilote ; Alice reste suppléante.*
+
 Une personne (astreinte, renfort) s'ajoute aussi après le Go, par le pilote, un suppléant ou un administrateur, dans **Préparation › Personnes**.
 
 ## Le journal
@@ -139,7 +175,9 @@ L'onglet **Journal** retrace tout, du plus récent au plus ancien, groupé par j
 
 En tête du journal, l'encadré **Tests unitaires** compte les tests faits et non faits (et les simples vérifications) ; déplié, il donne pour chaque test le résultat attendu, le résultat constaté, l'exécutant et l'état (réussi, échec, non fait). Les étapes du retour arrière n'y figurent qu'une fois celui-ci déclenché. Une étape reprise après un échec redevient « non faite » jusqu'à sa nouvelle fin.
 
-![Onglet Journal](images/journal.png)
+![Animation : recherche « E0004 » dans le journal, filtre « Résolutions », puis l'encadré Tests unitaires déplié](images/journal.webp)
+
+*La recherche et le filtre portent sur tout le journal ; l'encadré Tests unitaires détaille chaque test.*
 
 ## Suivre sans exécuter
 
