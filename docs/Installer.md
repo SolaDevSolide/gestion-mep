@@ -95,6 +95,8 @@ Les variables se règlent dans `.env`, lu par `docker-compose.yml`. Celles marqu
 | `API_PROXY` (console) | vide | Proxy sortant des connexions aux API externes vers Internet (`http://proxy.entreprise.fr:3128`). |
 | `API_APPELS_CONSERVATION_JOURS` (console) | `90` | Conservation du détail des appels aux API externes, en jours. |
 | `API_ENVOIS_ACTIFS` (console) | `true` | `false` : les appels aux API externes restent en file sans partir (serveur de recette, restauration à vérifier). |
+| `LIAISON_NOM_INSTANCE` (console) | `gestion-mep` | Nom de cette instance affiché par [Noosphere](Liaison-Noosphere.md). |
+| `NOOSPHERE_URL`, `NOOSPHERE_CODE_LIAISON` | vides | Appairage avec Noosphere au premier démarrage, avec un code fixé à l'avance (16 caractères au moins) : voir [Démarrer avec Noosphere](Liaison-Noosphere.md#démarrer-avec-noosphere-docker-compose). |
 
 **Charte visuelle** (facultatif) : pour donner à l'application les couleurs de l'entreprise dès l'installation, poser un fichier `charte.json` à côté de `docker-compose.yml` et décommenter la ligne `./charte.json:/etc/gestion-mep/charte.json:ro` du service `app`. Format, exemple et commandes : [Exploiter](Exploiter.md#charte-visuelle). Les administrateurs peuvent aussi tout régler dans la console (onglet Charte visuelle), sans fichier.
 
@@ -124,6 +126,7 @@ Pour un déploiement sans Docker Compose (Kubernetes, ECS…) :
 | `MisesAJour__Verifier` | Voir `VERIFIER_MISES_A_JOUR`. `MisesAJour__Depot` (`SolaDevSolide/gestion-mep`) et `MisesAJour__IntervalleHeures` (`12`) changent le dépôt consulté et la fréquence. |
 | `Signalement__Lien` | Voir `LIEN_SIGNALEMENT`. |
 | `ConnexionsApi__ReseauxAutorises`, `ConnexionsApi__Proxy`, `ConnexionsApi__ConservationJours`, `ConnexionsApi__EnvoisActifs` | Voir `API_RESEAUX_AUTORISES`, `API_PROXY`, `API_APPELS_CONSERVATION_JOURS`, `API_ENVOIS_ACTIFS`. Une autorité de certification interne se déclare avec `SSL_CERT_DIR` (voir [Exploiter](Exploiter.md#autorité-de-certification-interne)). |
+| `Liaison__NomInstance`, `Liaison__NoosphereUrl`, `Liaison__CodeAppairage` | Voir `LIAISON_NOM_INSTANCE`, `NOOSPHERE_URL`, `NOOSPHERE_CODE_LIAISON`. |
 | `MisesAJour__Dossier` | Dossier partagé avec le service de mise à jour (`/data/mise-a-jour`, volume `mise-a-jour`). |
 | `CHARTE_FICHIER` (ou `Charte__Fichier`) | Fichier `charte.json` de la charte visuelle, s'il n'est pas monté sur `/etc/gestion-mep/charte.json`. |
 | `Surveillance__Activer` | `true` par défaut : bascule automatique en retour arrière quand l'échéance d'une MEP est dépassée. Ne pas désactiver en production. |

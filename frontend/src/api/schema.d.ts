@@ -7752,6 +7752,470 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/liaisons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LiaisonDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/liaisons/appairer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AppairageLiaisonSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/liaisons/echanges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    liaison?: string;
+                    avant?: string;
+                    limite?: number;
+                    refus?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EchangeLiaisonDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/liaisons/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LiaisonDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/liaisons/{id}/confirmer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConfirmationLiaisonSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LiaisonDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/liaisons/{id}/catalogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CatalogueLiaisonDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/liaisons/{id}/suivi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SuiviLiaisonSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CatalogueLiaisonDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/liaisons/{id}/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OptionsLiaisonSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LiaisonDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/liaisons/{id}/synchroniser": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SynchroLiaisonDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/liaisons/{id}/renouveler": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LiaisonDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/liaisons/{id}/couper": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CoupureLiaisonSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LiaisonDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/liaisons/{id}/echanges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    avant?: string;
+                    limite?: number;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EchangeLiaisonDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7840,6 +8304,11 @@ export interface components {
             /** Format: int32 */
             sansValidation: number;
         };
+        /** @description Appairage : adresse de Noosphere et code à usage unique créé par un administrateur de Noosphere. */
+        AppairageLiaisonSaisie: {
+            url: null | string;
+            code: null | string;
+        };
         /** @description Réception d'un renvoi ou d'un envoi depuis une MEP : l'appel mis en file (suivi par GET …/appels/{appelId}). */
         AppelCreeDto: {
             /** Format: uuid */
@@ -7905,6 +8374,23 @@ export interface components {
             miseAJour: null | components["schemas"]["MiseAJourDto"];
             installation: string;
         };
+        /** @description Application du dernier catalogue lu : suivie ou non, système rattaché, systèmes proposés pour la rattacher. */
+        ApplicationLiaisonDto: {
+            id: string;
+            nom: string;
+            description: string;
+            domaineId: null | string;
+            domaine: string;
+            equipe: string;
+            type: string;
+            cycle: string;
+            url: string;
+            suivie: boolean;
+            /** Format: uuid */
+            systemeId: null | string;
+            systeme: null | string;
+            suggestions: components["schemas"]["SuggestionSystemeDto"][];
+        };
         ApprobateursSaisie: {
             /** Format: int32 */
             version: null | number;
@@ -7950,6 +8436,14 @@ export interface components {
             variables: components["schemas"]["VariableTexteDto"][];
             version: string;
             reglages: components["schemas"]["ReglageDto"][];
+        };
+        /** @description Dernier catalogue de Noosphere lu (null : pas encore lu) et choix de suivi. */
+        CatalogueLiaisonDto: {
+            /** Format: date-time */
+            luLe: null | string;
+            nomInstance: string;
+            domaines: components["schemas"]["DomaineLiaisonDto"][];
+            applications: components["schemas"]["ApplicationLiaisonDto"][];
         };
         /** @description `Ancien` : nom actuel d'une catégorie renommée (ses objets la suivent). */
         CategorieSaisie: {
@@ -8158,6 +8652,10 @@ export interface components {
             role: null | string;
             contact: null | string;
         };
+        /** @description Empreinte en quatre mots lue sur l'écran de Noosphere (casse et espaces indifférents). */
+        ConfirmationLiaisonSaisie: {
+            empreinte: null | string;
+        };
         /**
          * @description Connexion telle que la lit l'éditeur, sans aucun secret. `Url` : gabarit de l'adresse, ou seulement son origine
          *     (« https://hote ») si elle est secrète (`AdresseSecrete` en donne l'état).
@@ -8319,6 +8817,9 @@ export interface components {
             /** @description Couleur, ou « primaire » pour suivre la primaire. */
             tertiaire?: null | string;
         };
+        CoupureLiaisonSaisie: {
+            confirmer: null | boolean;
+        };
         CritereGoNoGoDto: {
             /** Format: uuid */
             id: string;
@@ -8398,6 +8899,13 @@ export interface components {
         };
         /** @enum {unknown} */
         DisponibiliteJourJ: "Joignable" | "Absent" | null;
+        DomaineLiaisonDto: {
+            id: string;
+            nom: string;
+            suivi: boolean;
+            /** Format: int32 */
+            nbApplications: number;
+        };
         /**
          * @description Droits du compte courant sur la MEP. Cycle de vie (#93) : `EstAdmin` ; `PeutAnnuler` et `PeutReporter` (en
          *     préparation) ; `PeutSupprimer` (administrateur, MEP jamais lancée ou modèle) ; `PeutChangerPilote` (après le Go :
@@ -8424,6 +8932,21 @@ export interface components {
         /** @description Duplication : la copie reprend les systèmes avec leurs environnements, modifiables ensuite. */
         DuplicationSaisie: {
             commeModele: boolean;
+        };
+        /** @description Échange du journal (90 jours) : sens « entrant » ou « sortant », résultat « ok », « refuse », « echec » ou « demo ». */
+        EchangeLiaisonDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            liaisonId: null | string;
+            /** Format: date-time */
+            quand: string;
+            sens: string;
+            operation: string;
+            resultat: string;
+            /** Format: int32 */
+            code: null | number;
+            detail: string;
         };
         /**
          * @description Échéance de retour arrière (#94) : `EcheanceRepli`, instant visé (null : retirer l'échéance), saisi dans le fuseau de la
@@ -8793,6 +9316,13 @@ export interface components {
         EtatConnexion: "Active" | "Desactivee" | "EnErreur" | "JamaisAppelee";
         /** @enum {unknown} */
         EtatEtape: "AFaire" | "EnCours" | "Reussie" | "Echec";
+        /**
+         * @description État d'une liaison avec Noosphere (contrat : pending, active, cut). EtatLiaison.EnAttente : appairée, empreinte pas encore
+         *     confirmée ici ; EtatLiaison.Active : confirmée ici (les échanges de données attendent aussi la confirmation de Noosphere) ;
+         *     EtatLiaison.Coupee : coupée par l'un des côtés, clés effacées, gardée pour l'historique.
+         * @enum {unknown}
+         */
+        EtatLiaison: "EnAttente" | "Active" | "Coupee";
         /**
          * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
          *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
@@ -9681,6 +10211,46 @@ export interface components {
             comptePrincipalId: null | string;
             /** @default false */
             desactiver: boolean;
+        };
+        /**
+         * @description Liaison avec une instance de Noosphere. `ConfirmeeParNoosphere` : confirmation de l'empreinte côté Noosphere d'après
+         *     son dernier `/status` (null : pas encore connue) ; les données ne s'échangent qu'une fois confirmée des deux côtés.
+         *     `Demo` : liaison fictive de la démonstration (aucun appel ne part).
+         */
+        LiaisonDto: {
+            /** Format: uuid */
+            id: string;
+            produit: string;
+            nomInstance: string;
+            url: string;
+            versionNoosphere: string;
+            etat: components["schemas"]["EtatLiaison"];
+            confirmeeIci: boolean;
+            /** Format: date-time */
+            confirmeeLe: null | string;
+            confirmeePar: string;
+            confirmeeParNoosphere: null | boolean;
+            capacites: string[];
+            empreinte: string;
+            /** Format: date-time */
+            appaireeLe: string;
+            appaireePar: string;
+            /** Format: date-time */
+            clesRenouveleesLe: null | string;
+            /** Format: date-time */
+            dernierEchangeLe: null | string;
+            /** Format: date-time */
+            coupeeLe: null | string;
+            coupeePar: string;
+            envoyerMeps: boolean;
+            suiviAutomatique: boolean;
+            domainesSuivis: string[];
+            /** Format: date-time */
+            derniereSynchro: null | string;
+            derniereErreur: string;
+            /** Format: int32 */
+            systemesSuivis: number;
+            demo: boolean;
         };
         /** @description Lien redondant : `Vers` attend déjà `De` par un autre chemin ; `Libelle` : « E0007 → Fin (Export) ». */
         LienRedondantDto: {
@@ -10697,6 +11267,11 @@ export interface components {
         OptionsConnexionDto: {
             ssoActif: boolean;
             ssoLibelle: null | string;
+        };
+        /** @description Interrupteurs « envoyer les MEP à Noosphere » et « suivre automatiquement les nouvelles applications des domaines suivis ». */
+        OptionsLiaisonSaisie: {
+            envoyerMeps: null | boolean;
+            suiviAutomatique: null | boolean;
         };
         /** @description Ordre gauche-droite du graphe : `Ids`, étapes et sections du plan de gauche à droite (les autres suivent). */
         OrdreGrapheSaisie: {
@@ -12586,6 +13161,19 @@ export interface components {
         SimulationSaisie: {
             actif: boolean;
         };
+        /** @description Système suivi depuis Noosphere (« Géré par Noosphere ») : nom et description en lecture seule ; `Url` : « Ouvrir dans Noosphere ». */
+        SourceNoosphereDto: null | {
+            /** Format: uuid */
+            liaisonId: string;
+            applicationId: string;
+            url: string;
+            domaine: string;
+            equipe: string;
+            cycle: string;
+            /** Format: date-time */
+            derniereSynchro: null | string;
+            absente: boolean;
+        };
         /** @description Compte de l'application relié à un compte du fournisseur. */
         SsoIdentiteDto: {
             /** Format: uuid */
@@ -12660,6 +13248,23 @@ export interface components {
         StatutResolution: "EnCours" | "Reussie" | "Echouee" | null;
         /** @enum {unknown} */
         StatutSauvegarde: "ARenseigner" | "Requise" | "NonRequise" | null;
+        /** @description Système local proposé pour rattacher une application (nom identique ou proche). */
+        SuggestionSystemeDto: {
+            /** Format: uuid */
+            id: string;
+            nom: string;
+            memeNom: boolean;
+        };
+        /**
+         * @description `Suivre` false : l'application n'est plus suivie, son système redevient local. true : suivie, rattachée au système
+         *     `SystemeId` (local) s'il est donné, sinon à un système local du même nom, sinon un nouveau système est créé.
+         */
+        SuiviApplicationSaisie: {
+            applicationId: null | string;
+            suivre: null | boolean;
+            /** Format: uuid */
+            systemeId: null | string;
+        };
         /**
          * @description Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur
          *     avancement par le navigateur ; MEP prévues aujourd'hui ou demain (date annoncée) et la prochaine à venir ; MEP clôturées
@@ -13289,10 +13894,30 @@ export interface components {
             /** Format: date-time */
             maintenant: string;
         };
+        /**
+         * @description Applications suivies. `DomainesSuivis` (facultatif) remplace la liste des domaines suivis : un domaine ajouté suit
+         *     toutes ses applications, un domaine retiré cesse de les suivre. `Applications` : choix une par une, appliqués ensuite.
+         */
+        SuiviLiaisonSaisie: {
+            domainesSuivis: null | string[];
+            applications: null | components["schemas"]["SuiviApplicationSaisie"][];
+        };
         /** @description Suppression définitive : motif, et nom de la MEP saisi pour confirmer (outil et version cible). */
         SuppressionMepSaisie: {
             motif: null | string;
             nom: null | string;
+        };
+        /** @description Résultat d'une synchronisation : `Inchange` quand Noosphere répond 304 (catalogue identique au dernier lu). */
+        SynchroLiaisonDto: {
+            inchange: boolean;
+            resume: string;
+            crees: string[];
+            rattaches: string[];
+            misAJour: string[];
+            desactives: string[];
+            reactives: string[];
+            avertissements: string[];
+            liaison: components["schemas"]["LiaisonDto"];
         };
         /**
          * @description Chiffres du rapport : étapes du déploiement, Go et fin de l'exécution du déploiement (dernière étape terminée), durées réelle
@@ -13348,6 +13973,7 @@ export interface components {
             categories: string[];
             /** Format: int32 */
             nbObjets: number;
+            source?: null | components["schemas"]["SourceNoosphereDto"];
         };
         SystemeCatalogueSaisie: {
             nom: null | string;

@@ -6946,6 +6946,434 @@
           }
         }
       }
+    },
+    "/api/admin/liaisons": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LiaisonDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/liaisons/appairer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppairageLiaisonSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/liaisons/echanges": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "liaison",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "avant",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "refus",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EchangeLiaisonDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/liaisons/{id}": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiaisonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/liaisons/{id}/confirmer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmationLiaisonSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiaisonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/liaisons/{id}/catalogue": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueLiaisonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/liaisons/{id}/suivi": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuiviLiaisonSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueLiaisonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/liaisons/{id}/options": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptionsLiaisonSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiaisonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/liaisons/{id}/synchroniser": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SynchroLiaisonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/liaisons/{id}/renouveler": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiaisonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/liaisons/{id}/couper": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoupureLiaisonSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiaisonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/liaisons/{id}/echanges": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "avant",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EchangeLiaisonDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7258,6 +7686,28 @@
         },
         "description": "Aperçu d'un import de validation : étapes à renseigner, étapes déjà à jour, lignes sans validation (ignorées)."
       },
+      "AppairageLiaisonSaisie": {
+        "required": [
+          "url",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Appairage : adresse de Noosphere et code à usage unique créé par un administrateur de Noosphere."
+      },
       "AppelCreeDto": {
         "required": [
           "appelId"
@@ -7469,6 +7919,79 @@
         },
         "description": "Version en cours, lien « Signaler un problème ou proposer une idée » (null si désactivé par `Signalement:Lien`)\net, pour un administrateur seulement, l'état des mises à jour. `Installation` : « docker », « linux » ou « windows »\n(installation sans Docker), pour que la console donne les commandes adaptées."
       },
+      "ApplicationLiaisonDto": {
+        "required": [
+          "id",
+          "nom",
+          "description",
+          "domaineId",
+          "domaine",
+          "equipe",
+          "type",
+          "cycle",
+          "url",
+          "suivie",
+          "systemeId",
+          "systeme",
+          "suggestions"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "domaineId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "domaine": {
+            "type": "string"
+          },
+          "equipe": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "cycle": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "suivie": {
+            "type": "boolean"
+          },
+          "systemeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "systeme": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "suggestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuggestionSystemeDto"
+            }
+          }
+        },
+        "description": "Application du dernier catalogue lu : suivie ou non, système rattaché, systèmes proposés pour la rattacher."
+      },
       "ApprobateursSaisie": {
         "required": [
           "version",
@@ -7634,6 +8157,40 @@
           }
         },
         "description": "Ce dont l'éditeur a besoin : déclencheurs, modèles de départ, variables (groupe Événement puis catalogue des modèles de\ntexte), version (en-tête User-Agent) et réglages réseau (réseaux autorisés, proxy, adresse publique, envois actifs)."
+      },
+      "CatalogueLiaisonDto": {
+        "required": [
+          "luLe",
+          "nomInstance",
+          "domaines",
+          "applications"
+        ],
+        "type": "object",
+        "properties": {
+          "luLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "nomInstance": {
+            "type": "string"
+          },
+          "domaines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DomaineLiaisonDto"
+            }
+          },
+          "applications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationLiaisonDto"
+            }
+          }
+        },
+        "description": "Dernier catalogue de Noosphere lu (null : pas encore lu) et choix de suivi."
       },
       "CategorieSaisie": {
         "required": [
@@ -8435,6 +8992,21 @@
           }
         }
       },
+      "ConfirmationLiaisonSaisie": {
+        "required": [
+          "empreinte"
+        ],
+        "type": "object",
+        "properties": {
+          "empreinte": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Empreinte en quatre mots lue sur l'écran de Noosphere (casse et espaces indifférents)."
+      },
       "ConnexionApiDto": {
         "required": [
           "id",
@@ -9160,6 +9732,20 @@
           }
         }
       },
+      "CoupureLiaisonSaisie": {
+        "required": [
+          "confirmer"
+        ],
+        "type": "object",
+        "properties": {
+          "confirmer": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
       "CritereGoNoGoDto": {
         "required": [
           "id",
@@ -9449,6 +10035,30 @@
           null
         ]
       },
+      "DomaineLiaisonDto": {
+        "required": [
+          "id",
+          "nom",
+          "suivi",
+          "nbApplications"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "suivi": {
+            "type": "boolean"
+          },
+          "nbApplications": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "DroitsDto": {
         "required": [
           "estPilote",
@@ -9524,6 +10134,56 @@
           }
         },
         "description": "Duplication : la copie reprend les systèmes avec leurs environnements, modifiables ensuite."
+      },
+      "EchangeLiaisonDto": {
+        "required": [
+          "id",
+          "liaisonId",
+          "quand",
+          "sens",
+          "operation",
+          "resultat",
+          "code",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "liaisonId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "quand": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sens": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "resultat": {
+            "type": "string"
+          },
+          "code": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "description": "Échange du journal (90 jours) : sens « entrant » ou « sortant », résultat « ok », « refuse », « echec » ou « demo »."
       },
       "EcheanceSaisie": {
         "required": [
@@ -10853,6 +11513,14 @@
           "Reussie",
           "Echec"
         ]
+      },
+      "EtatLiaison": {
+        "enum": [
+          "EnAttente",
+          "Active",
+          "Coupee"
+        ],
+        "description": "État d'une liaison avec Noosphere (contrat : pending, active, cut). EtatLiaison.EnAttente : appairée, empreinte pas encore\nconfirmée ici ; EtatLiaison.Active : confirmée ici (les échanges de données attendent aussi la confirmation de Noosphere) ;\nEtatLiaison.Coupee : coupée par l'un des côtés, clés effacées, gardée pour l'historique."
       },
       "EtatMep": {
         "enum": [
@@ -13834,6 +14502,146 @@
           }
         },
         "description": "Relie le compte à `ComptePrincipalId` (même personne) ; `Desactiver` : désactive aussi le compte relié."
+      },
+      "LiaisonDto": {
+        "required": [
+          "id",
+          "produit",
+          "nomInstance",
+          "url",
+          "versionNoosphere",
+          "etat",
+          "confirmeeIci",
+          "confirmeeLe",
+          "confirmeePar",
+          "confirmeeParNoosphere",
+          "capacites",
+          "empreinte",
+          "appaireeLe",
+          "appaireePar",
+          "clesRenouveleesLe",
+          "dernierEchangeLe",
+          "coupeeLe",
+          "coupeePar",
+          "envoyerMeps",
+          "suiviAutomatique",
+          "domainesSuivis",
+          "derniereSynchro",
+          "derniereErreur",
+          "systemesSuivis",
+          "demo"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produit": {
+            "type": "string"
+          },
+          "nomInstance": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "versionNoosphere": {
+            "type": "string"
+          },
+          "etat": {
+            "$ref": "#/components/schemas/EtatLiaison"
+          },
+          "confirmeeIci": {
+            "type": "boolean"
+          },
+          "confirmeeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "confirmeePar": {
+            "type": "string"
+          },
+          "confirmeeParNoosphere": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "capacites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "empreinte": {
+            "type": "string"
+          },
+          "appaireeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "appaireePar": {
+            "type": "string"
+          },
+          "clesRenouveleesLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "dernierEchangeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "coupeeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "coupeePar": {
+            "type": "string"
+          },
+          "envoyerMeps": {
+            "type": "boolean"
+          },
+          "suiviAutomatique": {
+            "type": "boolean"
+          },
+          "domainesSuivis": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "derniereSynchro": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "derniereErreur": {
+            "type": "string"
+          },
+          "systemesSuivis": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "demo": {
+            "type": "boolean"
+          }
+        },
+        "description": "Liaison avec une instance de Noosphere. `ConfirmeeParNoosphere` : confirmation de l'empreinte côté Noosphere d'après\nson dernier `/status` (null : pas encore connue) ; les données ne s'échangent qu'une fois confirmée des deux côtés.\n`Demo` : liaison fictive de la démonstration (aucun appel ne part)."
       },
       "LienRedondantDto": {
         "required": [
@@ -17396,6 +18204,28 @@
           }
         },
         "description": "Options de la page de connexion (sans authentification) : bouton de connexion unique s'il est actif."
+      },
+      "OptionsLiaisonSaisie": {
+        "required": [
+          "envoyerMeps",
+          "suiviAutomatique"
+        ],
+        "type": "object",
+        "properties": {
+          "envoyerMeps": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "suiviAutomatique": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "description": "Interrupteurs « envoyer les MEP à Noosphere » et « suivre automatiquement les nouvelles applications des domaines suivis »."
       },
       "OrdreGrapheSaisie": {
         "required": [
@@ -23862,6 +24692,54 @@
         },
         "description": "Lancer (`actif` vrai) ou arrêter la simulation de collègues."
       },
+      "SourceNoosphereDto": {
+        "required": [
+          "liaisonId",
+          "applicationId",
+          "url",
+          "domaine",
+          "equipe",
+          "cycle",
+          "derniereSynchro",
+          "absente"
+        ],
+        "type": [
+          "null",
+          "object"
+        ],
+        "properties": {
+          "liaisonId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "domaine": {
+            "type": "string"
+          },
+          "equipe": {
+            "type": "string"
+          },
+          "cycle": {
+            "type": "string"
+          },
+          "derniereSynchro": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "absente": {
+            "type": "boolean"
+          }
+        },
+        "description": "Système suivi depuis Noosphere (« Géré par Noosphere ») : nom et description en lecture seule ; `Url` : « Ouvrir dans Noosphere »."
+      },
       "SsoIdentiteDto": {
         "required": [
           "id",
@@ -24147,6 +25025,57 @@
           "NonRequise",
           null
         ]
+      },
+      "SuggestionSystemeDto": {
+        "required": [
+          "id",
+          "nom",
+          "memeNom"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "memeNom": {
+            "type": "boolean"
+          }
+        },
+        "description": "Système local proposé pour rattacher une application (nom identique ou proche)."
+      },
+      "SuiviApplicationSaisie": {
+        "required": [
+          "applicationId",
+          "suivre",
+          "systemeId"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "suivre": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "systemeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "`Suivre` false : l'application n'est plus suivie, son système redevient local. true : suivie, rattachée au système\n`SystemeId` (local) s'il est donné, sinon à un système local du même nom, sinon un nouveau système est créé."
       },
       "SuiviDto": {
         "required": [
@@ -26289,6 +27218,34 @@
         },
         "description": "Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur\navancement par le navigateur ; MEP prévues aujourd'hui ou demain (date annoncée) et la prochaine à venir ; MEP clôturées\ndepuis moins de 24 heures. `Maintenant` : heure du serveur."
       },
+      "SuiviLiaisonSaisie": {
+        "required": [
+          "domainesSuivis",
+          "applications"
+        ],
+        "type": "object",
+        "properties": {
+          "domainesSuivis": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "applications": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SuiviApplicationSaisie"
+            }
+          }
+        },
+        "description": "Applications suivies. `DomainesSuivis` (facultatif) remplace la liste des domaines suivis : un domaine ajouté suit\ntoutes ses applications, un domaine retiré cesse de les suivre. `Applications` : choix une par une, appliqués ensuite."
+      },
       "SuppressionMepSaisie": {
         "required": [
           "motif",
@@ -26310,6 +27267,68 @@
           }
         },
         "description": "Suppression définitive : motif, et nom de la MEP saisi pour confirmer (outil et version cible)."
+      },
+      "SynchroLiaisonDto": {
+        "required": [
+          "inchange",
+          "resume",
+          "crees",
+          "rattaches",
+          "misAJour",
+          "desactives",
+          "reactives",
+          "avertissements",
+          "liaison"
+        ],
+        "type": "object",
+        "properties": {
+          "inchange": {
+            "type": "boolean"
+          },
+          "resume": {
+            "type": "string"
+          },
+          "crees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rattaches": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "misAJour": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "desactives": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reactives": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "avertissements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "liaison": {
+            "$ref": "#/components/schemas/LiaisonDto"
+          }
+        },
+        "description": "Résultat d'une synchronisation : `Inchange` quand Noosphere répond 304 (catalogue identique au dernier lu)."
       },
       "SyntheseRapportDto": {
         "required": [
@@ -26454,6 +27473,16 @@
           "nbObjets": {
             "type": "integer",
             "format": "int32"
+          },
+          "source": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SourceNoosphereDto"
+              }
+            ]
           }
         },
         "description": "Système du catalogue : `Environnements` et `Categories` (dans l'ordre de la fiche), `NbObjets` connus\n(le détail : `GET /catalogue/systemes/{id}/objets`)."

@@ -16,6 +16,7 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 | Annoncer une MEP, faire la demande de MEP, envoyer le compte rendu (textes à copier) | [Modèles de texte](Modèles-de-texte.md) |
 | Gérer les comptes, les équipes, les paramètres et la charte visuelle (je suis administrateur) | [Administrer](Administrer.md) |
 | Envoyer les événements des MEP à Teams, Slack, un outil de tickets ou une supervision | [API externes](API-externes.md) |
+| Relier Gestion MEP à Noosphere : reprendre ses applications dans le catalogue, lui annoncer les MEP | [Liaison avec Noosphere](Liaison-Noosphere.md) |
 | Installer l'application sur un serveur | [Installer](Installer.md), ou [sans Docker](Installer-sans-Docker.md) (Linux ou Windows) |
 | Mettre à jour, sauvegarder, restaurer, tout administrer en ligne de commande (comptes, équipes, systèmes, critères, résolutions types, réglages, journal, export des MEP) | [Exploiter](Exploiter.md) |
 | Référence de la commande `gestion-mep` : chaque commande, codes de retour, sortie JSON, complétion | [Ligne de commande](Ligne-de-commande.md) |
@@ -32,4 +33,5 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 - **Sécurité de l'intervention** : go / no-go sur critères, point de non-retour soumis à l'accord du pilote, échéance de retour arrière surveillée en permanence, recette avant clôture, bilan.
 - **Traçabilité** : chaque action est horodatée et attribuée, y compris quand quelqu'un prend la main sur l'étape d'un autre.
 - **API externes** : les événements des MEP partent automatiquement vers d'autres outils (Teams, Slack, tickets, supervision), ou à la demande du pilote.
+- **Liaison avec Noosphere** : les applications de la cartographie deviennent des systèmes du catalogue, et les MEP qui les touchent sont annoncées à Noosphere, par une liaison signée et chiffrée.
 - **Exploitation** : sauvegarde automatique de la base et des pièces jointes avant chaque mise à jour du schéma ou importation, supprimée seulement si les contrôles internes confirment qu'aucune donnée n'a été perdue ; commandes `gestion-mep sauvegardes creer | lister | verifier | purger | restaurer` et `gestion-mep importer` pour les sauvegardes régulières, les restaurations et les changements de serveur.
