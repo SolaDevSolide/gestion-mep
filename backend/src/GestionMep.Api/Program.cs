@@ -60,7 +60,9 @@ builder.Services.AddHostedService<RafraichissementCharte>();
 
 builder.Services.AddDbContext<MepDbContext>((sp, options) =>
     options.UseNpgsql(sp.GetRequiredService<IConfiguration>().GetConnectionString("Mep")
-        ?? throw new InvalidOperationException("Chaîne de connexion ConnectionStrings:Mep absente (variable d'environnement ConnectionStrings__Mep).")));
+        ?? throw new InvalidOperationException("Chaîne de connexion ConnectionStrings:Mep absente (variable d'environnement ConnectionStrings__Mep)."))
+        // Liaison avec Noosphere (#123) : toute écriture d'une MEP la met dans la file des déploiements à envoyer.
+        .AddInterceptors(sp.GetRequiredService<IntercepteurMeps>()));
 
 builder.Services.ConfigureHttpJsonOptions(o =>
 {
@@ -99,6 +101,15 @@ builder.Services.AddScoped<ServiceConnexions>();
 builder.Services.AddSingleton<EnvoiAppelsApi>();
 if (builder.Configuration.GetValue("ConnexionsApi:EnvoiArrierePlan", true))
     builder.Services.AddHostedService(sp => sp.GetRequiredService<EnvoiAppelsApi>());
+// Liaison avec Noosphere (#123) : sortie HTTP signée, file des déploiements, tâches de fond (appairage au démarrage,
+// catalogue toutes les 15 minutes, envois). Liaisons:ArrierePlan=false les coupe (tests : TachesLiaisons.Passage).
+builder.Services.AddSingleton<TransportLiaison>();
+builder.Services.AddSingleton<SignalLiaisons>();
+builder.Services.AddSingleton<IntercepteurMeps>();
+builder.Services.AddScoped<ServiceLiaisons>();
+builder.Services.AddSingleton<TachesLiaisons>();
+if (builder.Configuration.GetValue("Liaisons:ArrierePlan", true))
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<TachesLiaisons>());
 // Indicateur de nouvelle version (MisesAJour:Verifier=false pour ne jamais contacter GitHub).
 builder.Services.AddHttpClient(nameof(VerificationMisesAJour), c => c.Timeout = TimeSpan.FromSeconds(10));
 builder.Services.AddSingleton<VerificationMisesAJour>();
@@ -192,9 +203,12 @@ api.MapReglages();
 api.MapCharte();
 api.MapConnexions(app.Configuration);
 api.MapPiecesJointes();
+api.MapLiaisons();
 // Une route /api inconnue ne doit jamais retomber sur index.html.
 api.Map("{**reste}", () => ReponsesErreur.Resultat(404, "Route introuvable."));
 
+// Protocole de la liaison avec Noosphere, hors /api : requêtes signées, sans cookie ni CSRF.
+app.MapLiaisonProtocole();
 app.MapFeuilleCharte();
 app.MapFallbackToFile("index.html", fichiersStatiques);
 

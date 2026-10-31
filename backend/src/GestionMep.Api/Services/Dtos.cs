@@ -259,7 +259,7 @@ public record EnvironnementCatalogueDto(string Nom, string Cible, bool Productio
 /// (le détail : <c>GET /catalogue/systemes/{id}/objets</c>).
 /// </summary>
 public record SystemeCatalogueDto(Guid Id, string Nom, string Description, string Cible, bool Actif, List<EnvironnementCatalogueDto> Environnements,
-    List<string> Categories, int NbObjets);
+    List<string> Categories, int NbObjets, SourceNoosphereDto? Source = null);
 public record ObjetCatalogueDto(Guid Id, string Categorie, string Type, string Nom, string Libelle, string Precision);
 /// <summary>
 /// <c>Utilisations</c> : nombre de MEP où la résolution a été liée à une étape (une fois par MEP) ; <c>CreeeLe</c> : création.

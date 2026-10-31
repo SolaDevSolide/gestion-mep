@@ -45,6 +45,7 @@ public static class Reglages
     private const string GroupeConnexions = "Connexions";
     private const string GroupeMisesAJour = "Mises à jour et signalement";
     private const string GroupeApi = "API externes";
+    private const string GroupeLiaison = "Liaison avec Noosphere";
 
     public static readonly IReadOnlyList<DefinitionReglage> Catalogue =
     [
@@ -91,6 +92,9 @@ public static class Reglages
         new("api-envois-actifs", EnvoiAppelsApi.CleEnvoisActifs, GroupeApi, "Envois actifs",
             "Désactivé, les appels sont mis en file sans partir : utile après une restauration ou sur un serveur de recette. Ils partent à la réactivation.",
             TypeReglage.Booleen, "true"),
+        new("liaison-nom-instance", ServiceLiaisons.CleNomInstance, GroupeLiaison, "Nom de cette instance",
+            "Nom de gestion-mep montré dans Noosphere (fiche de la liaison), par exemple « MEP Alizé ». Vide : « gestion-mep ».",
+            TypeReglage.Texte, ""),
     ];
 
     public static DefinitionReglage Trouver(string nom) =>

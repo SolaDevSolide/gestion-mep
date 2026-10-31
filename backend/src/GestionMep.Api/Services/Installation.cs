@@ -89,6 +89,9 @@ public static class FichierInstallation
         ["CHARTE_FICHIER"] = "Charte:Fichier",
         ["API_RESEAUX_AUTORISES"] = "ConnexionsApi:ReseauxAutorises",
         ["API_PROXY"] = "ConnexionsApi:Proxy",
+        ["NOOSPHERE_URL"] = "Liaison:NoosphereUrl",
+        ["NOOSPHERE_CODE_LIAISON"] = "Liaison:CodeAppairage",
+        ["LIAISON_NOM_INSTANCE"] = "Liaison:NomInstance",
         ["API_APPELS_CONSERVATION_JOURS"] = "ConnexionsApi:ConservationJours",
         ["API_ENVOIS_ACTIFS"] = "ConnexionsApi:EnvoisActifs",
     };

@@ -36,7 +36,12 @@ public static class ProtectionsHttp
         {
             o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             o.OnRejected = (ctx, annulation) => new ValueTask(ReponsesErreur.Ecrire(ctx.HttpContext, StatusCodes.Status429TooManyRequests,
-                "Trop de tentatives de connexion. Réessayez dans une minute.", annulation: annulation));
+                ctx.HttpContext.Request.Path.StartsWithSegments(Services.ServiceLiaisons.Chemin)
+                    ? $"Plus de {Endpoints.LiaisonEndpoints.RequetesParMinute} requêtes par minute sur cette liaison. Réessayez dans une minute."
+                    : "Trop de tentatives de connexion. Réessayez dans une minute.", annulation: annulation));
+            // Liaison avec Noosphere : 120 requêtes par minute et par liaison (clé de signature), par adresse sans signature.
+            o.AddPolicy(Endpoints.LiaisonEndpoints.PolitiqueDebit, ctx => RateLimitPartition.GetFixedWindowLimiter(Endpoints.LiaisonEndpoints.Cle(ctx),
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = Endpoints.LiaisonEndpoints.RequetesParMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             // Limite relue à chaque requête (réglage modifiable) ; elle fait partie de la clé, donc un changement s'applique tout de suite.
             o.AddPolicy(PolitiqueConnexion, ctx =>
             {
