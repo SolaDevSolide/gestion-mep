@@ -13359,12 +13359,14 @@ export interface components {
         /**
          * @description `Suivre` false : l'application n'est plus suivie, son système redevient local. true : suivie, rattachée au système
          *     `SystemeId` (local) s'il est donné, sinon à un système local du même nom, sinon un nouveau système est créé.
+         *     `Creer` true (sans `SystemeId`) : un nouveau système est créé même si un système local porte déjà ce nom.
          */
         SuiviApplicationSaisie: {
             applicationId: null | string;
             suivre: null | boolean;
             /** Format: uuid */
             systemeId: null | string;
+            creer?: null | boolean;
         };
         /**
          * @description Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur

@@ -747,7 +747,7 @@ public sealed class ServiceLiaisons(MepDbContext db, IConfiguration config, Time
                 existant.Source = null;
                 existant.Version++;
             }
-            try { SynchroLiaison.Suivre(l, c, app, systemes, choix.SystemeId, Maintenant, bilan); }
+            try { SynchroLiaison.Suivre(l, c, app, systemes, choix.SystemeId, Maintenant, bilan, creer: choix.Creer == true && choix.SystemeId is null); }
             catch (SaisieInvalideException e) { throw ErreurHttp.Saisie(e.Message); }
         }
         db.SystemesCatalogue.AddRange(bilan.Nouveaux);

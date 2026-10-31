@@ -33,8 +33,9 @@ public record SuiviLiaisonSaisie(List<string>? DomainesSuivis, List<SuiviApplica
 /// <summary>
 /// <c>Suivre</c> false : l'application n'est plus suivie, son système redevient local. true : suivie, rattachée au système
 /// <c>SystemeId</c> (local) s'il est donné, sinon à un système local du même nom, sinon un nouveau système est créé.
+/// <c>Creer</c> true (sans <c>SystemeId</c>) : un nouveau système est créé même si un système local porte déjà ce nom.
 /// </summary>
-public record SuiviApplicationSaisie(string? ApplicationId, bool? Suivre, Guid? SystemeId);
+public record SuiviApplicationSaisie(string? ApplicationId, bool? Suivre, Guid? SystemeId, bool? Creer = null);
 
 public record CoupureLiaisonSaisie(bool? Confirmer);
 

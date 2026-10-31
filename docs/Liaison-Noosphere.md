@@ -29,7 +29,7 @@ L'adresse de Gestion MEP envoyée à Noosphere est l'**adresse publique** (régl
 On suit les applications :
 
 - **par domaine** : toutes les applications du domaine, et, avec le **suivi automatique** (actif par défaut), celles qui y apparaîtront ensuite (sauf les applications retirées) ;
-- **une par une**, en indiquant pour chacune soit un système existant à **rattacher**, soit rien pour en **créer** un. Sans système indiqué, un système local au même nom (casse et accents ignorés) est rattaché ; sinon un système est créé (avec le suffixe « (2) » si le nom est déjà pris par un système lui-même suivi).
+- **une par une**, en indiquant pour chacune soit un système existant à **rattacher**, soit d'en **créer** un (`creer: true`). Sans système indiqué ni `creer`, un système local au même nom (casse et accents ignorés) est rattaché ; sinon un système est créé (avec le suffixe « (2) » si le nom est déjà pris).
 
 `PUT /api/admin/liaisons/{id}/suivi { domainesSuivis, applications: [{ applicationId, suivre, systemeId }] }` enregistre ces choix et synchronise aussitôt. Dans une même saisie, le choix fait pour une application passe avant son domaine : une application d'un domaine ajouté, rattachée à un système désigné ou écartée (`suivre: false`), ne reçoit pas d'abord un système créé par le domaine. Ne plus suivre une application rend son système local, sans le supprimer.
 

@@ -25217,9 +25217,15 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "creer": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         },
-        "description": "`Suivre` false : l'application n'est plus suivie, son système redevient local. true : suivie, rattachée au système\n`SystemeId` (local) s'il est donné, sinon à un système local du même nom, sinon un nouveau système est créé."
+        "description": "`Suivre` false : l'application n'est plus suivie, son système redevient local. true : suivie, rattachée au système\n`SystemeId` (local) s'il est donné, sinon à un système local du même nom, sinon un nouveau système est créé.\n`Creer` true (sans `SystemeId`) : un nouveau système est créé même si un système local porte déjà ce nom."
       },
       "SuiviDto": {
         "required": [

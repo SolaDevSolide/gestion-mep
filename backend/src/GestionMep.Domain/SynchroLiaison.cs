@@ -105,10 +105,11 @@ public static class SynchroLiaison
 
     /// <summary>
     /// Suit une application : rattachée au système <paramref name="systemeId"/> (local), sinon à un système local de même
-    /// nom, sinon un nouveau système est créé. Renvoie le système.
+    /// nom (sauf <paramref name="creer"/> : choix « Créer un système » de la console), sinon un nouveau système est créé.
+    /// Renvoie le système.
     /// </summary>
     public static SystemeCatalogue Suivre(Liaison l, CatalogueNoosphere c, ApplicationNoosphere app, List<SystemeCatalogue> systemes,
-        Guid? systemeId, DateTimeOffset maintenant, BilanSynchro bilan)
+        Guid? systemeId, DateTimeOffset maintenant, BilanSynchro bilan, bool creer = false)
     {
         if (systemes.FirstOrDefault(s => s.Source?.LiaisonId == l.Id && s.Source.ApplicationId == app.Id) is { } deja) return deja;
         SystemeCatalogue? cible;
@@ -118,7 +119,7 @@ public static class SynchroLiaison
             if (cible.Source is not null)
                 throw new RegleMetierException($"« {cible.Nom} » suit déjà une application de Noosphere : choisissez un autre système ou créez-en un.");
         }
-        else cible = systemes.FirstOrDefault(s => s.Source is null && NomNormalise(s.Nom) == NomNormalise(app.Nom));
+        else cible = creer ? null : systemes.FirstOrDefault(s => s.Source is null && NomNormalise(s.Nom) == NomNormalise(app.Nom));
         if (cible is not null) bilan.Rattaches.Add(cible.Nom);
         else
         {

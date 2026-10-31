@@ -534,6 +534,24 @@ public class LiaisonNoosphereTests : IDisposable
     }
 
     [Fact]
+    public async Task Creer_un_systeme_plutot_que_rattacher_le_systeme_du_meme_nom()
+    {
+        // Le rapprochement par le nom se confirme toujours : « Créer un système » l'emporte sur le système local du même nom.
+        var admin = await Appairer();
+        (await admin.PostAsync($"/api/admin/liaisons/{_pair.LinkId}/synchroniser", null)).EnsureSuccessStatusCode();
+        var bdd = await Lire(db => db.SystemesCatalogue.AsNoTracking().SingleAsync(s => s.Nom == "BDD"));
+        (await admin.PutAsJsonAsync($"/api/admin/liaisons/{_pair.LinkId}/suivi", new
+        {
+            applications = new object[] { new { applicationId = "bdd", suivre = true, creer = true } },
+        })).EnsureSuccessStatusCode();
+        var systemes = await Lire(db => db.SystemesCatalogue.AsNoTracking().ToListAsync());
+        Assert.Null(systemes.Single(s => s.Id == bdd.Id).Source); // le système local reste local
+        var cree = systemes.Single(s => s.Source?.ApplicationId == "bdd" && s.Source.LiaisonId == _pair.LinkId);
+        Assert.NotEqual(bdd.Id, cree.Id);
+        Assert.StartsWith("BDD", cree.Nom, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Confirmation_de_Noosphere_apres_la_notre_relue_des_qu_il_lit_notre_etat()
     {
         // Essai d'interopérabilité : confirmée ici d'abord, la liaison attendait le passage suivant (15 minutes) pour
