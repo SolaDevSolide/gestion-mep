@@ -158,6 +158,7 @@ export default function SystemesPage() {
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
                 <Segmented<Source>
                   label="Systèmes montrés"
+                  className="max-w-full overflow-x-auto whitespace-nowrap"
                   valeur={source}
                   onChange={(v) => setParams(v === 'tous' ? {} : { source: v }, { replace: true })}
                   options={[
@@ -172,7 +173,7 @@ export default function SystemesPage() {
                 </p>
               </div>
             )}
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-line bg-surface-2/60 text-xs tracking-wide text-fg-subtle uppercase">
                   <tr>

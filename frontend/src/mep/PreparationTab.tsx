@@ -82,7 +82,7 @@ export default function PreparationTab() {
   const nbOk = SECTIONS.filter((s) => ok[s.id]).length;
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-6 px-6 py-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
+    <div className="mx-auto grid w-full max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 px-6 py-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
       <nav
         aria-label="Sections de la préparation"
         className="lg:self-start lg:[@media(min-height:760px)]:sticky lg:[@media(min-height:760px)]:top-[calc(var(--entete-h,12rem)+var(--bandeau-demo,0px)+1rem)]"
@@ -90,7 +90,7 @@ export default function PreparationTab() {
         <p className="mb-2 hidden px-2 text-xs text-fg-subtle lg:block tnum">
           {nbOk}/{SECTIONS.length} sections complètes
         </p>
-        <ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
+        <ul className="relative flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
           {SECTIONS.map((s) => {
             const actif = section === s.id;
             return (

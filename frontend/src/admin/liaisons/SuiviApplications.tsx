@@ -227,12 +227,12 @@ function ChoisirApplications({
                   />
                   <button
                     type="button"
-                    className="flex min-w-0 flex-1 items-start justify-between gap-3 text-left"
+                    className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-x-3 gap-y-1.5 text-left"
                     aria-expanded={ouvert}
                     aria-controls={idListe}
                     onClick={() => basculer(d.id)}
                   >
-                    <span className="min-w-0">
+                    <span className="min-w-0 flex-1 basis-40">
                       <span className="block text-sm font-medium">{d.nom}</span>
                       <span className="block text-xs text-fg-subtle">
                         {compte(apps.length, 'application')}
@@ -309,7 +309,8 @@ function ChoisirApplications({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-b-xl border-t border-line bg-surface-2/50 px-5 py-3.5">
         <Button
           variante="primaire"
-          icone={<ArrowRight className="size-4" aria-hidden />}
+          className="h-auto min-h-9 max-w-full py-1.5 text-left whitespace-normal"
+          icone={<ArrowRight className="size-4 shrink-0" aria-hidden />}
           disabled={!modifie}
           action={onSuite}
         >

@@ -298,7 +298,7 @@ function CarteEnvironnements({ systeme, admin, agir }: { systeme: SystemeCatalog
     agir(() => api.environnementsCatalogue(systeme.id, nouvelle), message);
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="relative overflow-hidden">
       <CardHeader
         titre="Environnements"
         description="Proposés dans les MEP : on y choisit le ou les environnements touchés, puis ceux de chaque étape."
@@ -319,51 +319,53 @@ function CarteEnvironnements({ systeme, admin, agir }: { systeme: SystemeCatalog
           Aucun environnement : les MEP ne pourront pas en choisir pour ce système.
         </p>
       ) : (
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-line bg-surface-2/60 text-xs tracking-wide text-fg-subtle uppercase">
-            <tr>
-              <th scope="col" className="px-5 py-2.5 font-semibold">
-                Environnement
-              </th>
-              <th scope="col" className="px-5 py-2.5 font-semibold">
-                Cible exacte
-              </th>
-              {admin && (
-                <th scope="col" className="px-5 py-2.5">
-                  <span className="sr-only">Actions</span>
+        <div className="relative overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-line bg-surface-2/60 text-xs tracking-wide text-fg-subtle uppercase">
+              <tr>
+                <th scope="col" className="px-5 py-2.5 font-semibold">
+                  Environnement
                 </th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            {liste.map((e, i) => (
-              <tr key={e.nom}>
-                <th scope="row" className="px-5 py-2.5 font-medium">
-                  <span className="inline-flex items-center gap-2">
-                    <Server className="size-4 text-fg-subtle" aria-hidden />
-                    {e.nom}
-                    {e.production && <PastilleEnvironnement nom="Production" production />}
-                  </span>
+                <th scope="col" className="px-5 py-2.5 font-semibold">
+                  Cible exacte
                 </th>
-                <td className="px-5 py-2.5 font-mono text-ui text-fg-muted">{e.cible || '—'}</td>
                 {admin && (
-                  <td className="px-5 py-2 text-right whitespace-nowrap">
-                    <Tooltip content="Modifier">
-                      <BoutonIcone label={`Modifier ${e.nom}`} taille="sm" onClick={() => setEdition({ index: i })}>
-                        <Pencil className="size-4" aria-hidden />
-                      </BoutonIcone>
-                    </Tooltip>
-                    <Tooltip content="Supprimer">
-                      <BoutonIcone label={`Supprimer ${e.nom}`} taille="sm" onClick={() => setSuppr(i)}>
-                        <Trash2 className="size-4" aria-hidden />
-                      </BoutonIcone>
-                    </Tooltip>
-                  </td>
+                  <th scope="col" className="px-5 py-2.5">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 )}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {liste.map((e, i) => (
+                <tr key={e.nom}>
+                  <th scope="row" className="px-5 py-2.5 font-medium">
+                    <span className="inline-flex items-center gap-2">
+                      <Server className="size-4 text-fg-subtle" aria-hidden />
+                      {e.nom}
+                      {e.production && <PastilleEnvironnement nom="Production" production />}
+                    </span>
+                  </th>
+                  <td className="px-5 py-2.5 font-mono text-ui text-fg-muted">{e.cible || '—'}</td>
+                  {admin && (
+                    <td className="px-5 py-2 text-right whitespace-nowrap">
+                      <Tooltip content="Modifier">
+                        <BoutonIcone label={`Modifier ${e.nom}`} taille="sm" onClick={() => setEdition({ index: i })}>
+                          <Pencil className="size-4" aria-hidden />
+                        </BoutonIcone>
+                      </Tooltip>
+                      <Tooltip content="Supprimer">
+                        <BoutonIcone label={`Supprimer ${e.nom}`} taille="sm" onClick={() => setSuppr(i)}>
+                          <Trash2 className="size-4" aria-hidden />
+                        </BoutonIcone>
+                      </Tooltip>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       <EnvironnementDialog
         open={edition !== null}
@@ -620,7 +622,7 @@ function CarteObjets({
               {liste.length === 0 ? (
                 <p className="px-5 py-6 text-sm text-fg-subtle">Aucun élément dans cette catégorie.</p>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="relative overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-line bg-surface-2/60 text-xs tracking-wide text-fg-subtle uppercase">
                       <tr>

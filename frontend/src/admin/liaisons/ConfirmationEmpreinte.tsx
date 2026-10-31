@@ -89,10 +89,20 @@ export function ConfirmationEmpreinte({
           )}
         </div>
         <div className="flex flex-wrap gap-3 rounded-b-xl border-t border-line bg-surface-2/50 px-5 py-3.5">
-          <Button variante="danger-doux" icone={<CircleX className="size-4" aria-hidden />} action={annuler}>
+          <Button
+            variante="danger-doux"
+            className="h-auto min-h-9 max-w-full py-1.5 text-left whitespace-normal"
+            icone={<CircleX className="size-4 shrink-0" aria-hidden />}
+            action={annuler}
+          >
             Ils diffèrent : annuler
           </Button>
-          <Button variante="primaire" icone={<Check className="size-4" aria-hidden />} action={confirmer}>
+          <Button
+            variante="primaire"
+            className="h-auto min-h-9 max-w-full py-1.5 text-left whitespace-normal"
+            icone={<Check className="size-4 shrink-0" aria-hidden />}
+            action={confirmer}
+          >
             Les mots sont identiques : confirmer
           </Button>
         </div>
