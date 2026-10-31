@@ -407,6 +407,41 @@ public class LiaisonNoosphereTests : IDisposable
     // ---------- Renouvellement des clés et coupure ----------
 
     [Fact]
+    public async Task Domaine_suivi_et_rattachement_choisi_dans_la_meme_saisie_sans_systeme_en_double()
+    {
+        // Essai d'interopérabilité : suivre le domaine Finance et, dans la même saisie, rattacher Facturation à un système
+        // local de nom proche créait d'abord un système « Facturation », laissé ensuite comme système local en double, et le
+        // système rattaché gardait son nom local (nom déjà pris).
+        var admin = await Appairer();
+        var local = (await (await admin.PostAsJsonAsync("/api/catalogue/systemes", new { nom = "Factu", description = "locale", cible = "srv" }))
+            .Content.ReadFromJsonAsync<SystemeCatalogueDto>(Web))!;
+        (await admin.PostAsync($"/api/admin/liaisons/{_pair.LinkId}/synchroniser", null)).EnsureSuccessStatusCode();
+        var avant = await Lire(db => db.SystemesCatalogue.CountAsync());
+
+        var suivi = await admin.PutAsJsonAsync($"/api/admin/liaisons/{_pair.LinkId}/suivi", new
+        {
+            domainesSuivis = new[] { "finance", "socle" },
+            applications = new object[]
+            {
+                new { applicationId = "billing", suivre = true, systemeId = local.Id },
+                new { applicationId = "ldap", suivre = false },
+            },
+        });
+        Assert.Equal(HttpStatusCode.OK, suivi.StatusCode);
+        var systemes = await Lire(db => db.SystemesCatalogue.AsNoTracking().ToListAsync());
+        // Facturation : rattachée au système choisi, qui prend le nom et la description de Noosphere ; aucun autre créé.
+        var rattache = systemes.Single(x => x.Id == local.Id);
+        Assert.Equal("billing", rattache.Source!.ApplicationId);
+        Assert.Equal("Facturation", rattache.Nom);
+        Assert.Equal("Factures", rattache.Description);
+        Assert.Single(systemes, x => x.Nom.StartsWith("Facturation", StringComparison.OrdinalIgnoreCase));
+        // LDAP, écartée une par une : pas suivie, et aucun système créé pour elle par le domaine.
+        Assert.DoesNotContain(systemes, x => x.Source?.ApplicationId == "ldap");
+        Assert.Equal(avant, systemes.Count);
+        Assert.Contains(systemes, x => x.Source?.ApplicationId == "bdd");
+    }
+
+    [Fact]
     public async Task Renouvellement_des_cles_dans_les_deux_sens_avec_delai_de_grace()
     {
         var admin = await Appairer();

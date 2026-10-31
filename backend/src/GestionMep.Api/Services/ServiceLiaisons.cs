@@ -689,7 +689,11 @@ public sealed class ServiceLiaisons(MepDbContext db, IConfiguration config, Time
             var ajoutes = domaines.Except(l.DomainesSuivis).ToList();
             var enleves = l.DomainesSuivis.Except(domaines).ToList();
             l.DomainesSuivis = [.. domaines.Distinct()];
-            foreach (var app in apps.Values.Where(a => a.DomaineId is { } d && ajoutes.Contains(d) && !string.Equals(a.Cycle, "retired", StringComparison.OrdinalIgnoreCase)))
+            // Une application choisie une par une dans la même saisie suit ce choix (système désigné, ou plus suivie) : le
+            // domaine ne lui crée pas d'abord un système qui resterait ensuite dans le catalogue comme système local en double.
+            var choisies = (s.Applications ?? []).Select(a => a.ApplicationId).OfType<string>().ToHashSet(StringComparer.Ordinal);
+            foreach (var app in apps.Values.Where(a => a.DomaineId is { } d && ajoutes.Contains(d) && !choisies.Contains(a.Id)
+                         && !string.Equals(a.Cycle, "retired", StringComparison.OrdinalIgnoreCase)))
                 SynchroLiaison.Suivre(l, c, app, systemes, null, Maintenant, bilan);
             foreach (var sys in systemes.Where(x => x.Source?.LiaisonId == l.Id && apps.TryGetValue(x.Source.ApplicationId, out var a) && a.DomaineId is { } d
                          && enleves.Contains(d)).ToList())
