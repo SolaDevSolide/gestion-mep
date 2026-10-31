@@ -803,6 +803,10 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ApplicationsARapprocher")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("ApplicationsConnues")
                         .IsRequired()
                         .HasColumnType("jsonb");

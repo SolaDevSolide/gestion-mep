@@ -81,6 +81,11 @@ public class Liaison
     public List<string> DomainesSuivis { get; set; } = [];
     /// <summary>Applications déjà vues dans le catalogue : seules les autres sont « nouvelles » pour le suivi automatique.</summary>
     public List<string> ApplicationsConnues { get; set; } = [];
+    /// <summary>
+    /// Nouvelles applications des domaines suivis dont le nom est proche d'un système local : ni créées ni rattachées tant
+    /// que l'administrateur n'a pas choisi « Rattacher » ou « Créer un système » (un rapprochement par nom se confirme).
+    /// </summary>
+    public List<string> ApplicationsARapprocher { get; set; } = [];
 
     // Dernier catalogue lu
     public string EtagCatalogue { get; set; } = "";

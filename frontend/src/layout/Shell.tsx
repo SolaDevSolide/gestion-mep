@@ -19,8 +19,8 @@ import {
   UserRound,
   Wrench,
 } from 'lucide-react';
-import { Suspense, useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { forwardRef, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate, type NavLinkProps } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useAsync, useLocalStorageState } from '../hooks';
@@ -46,6 +46,31 @@ const THEMES: { id: PreferenceTheme; libelle: string; Icone: typeof Sun }[] = [
 /** Boutons du pied du menu latéral : couleurs du menu (charte visuelle, menu en secondaire possible). */
 const BOUTON_NAV = 'text-nav-muted hover:bg-nav-hover hover:text-nav-fg';
 
+/** Classes d'un lien du menu : calculées ici, en chaîne, et jamais passées en fonction à travers le déclencheur d'une bulle. */
+function classesLien(actif: boolean, replie: boolean): string {
+  return cn(
+    'group flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm font-medium transition-colors duration-150',
+    actif ? 'bg-nav-active text-nav-active-fg' : 'text-nav-muted hover:bg-nav-hover hover:text-nav-fg',
+    replie && 'justify-center px-0',
+  );
+}
+
+/**
+ * Lien du menu latéral. Menu replié, il sert de déclencheur à une bulle : le `Slot` de Radix fusionne alors son propre
+ * `className` (une chaîne) avec celui de l'enfant. Un `className` en fonction (celui de `NavLink`) y serait converti en
+ * texte, d'où ce composant intermédiaire, qui reçoit les propriétés de la bulle et calcule lui-même la classe du lien.
+ */
+const LienMenu = forwardRef<
+  HTMLAnchorElement,
+  Omit<NavLinkProps, 'className' | 'children'> & { replie: boolean; className?: string; children: ReactNode }
+>(function LienMenu({ replie, className, children, ...rest }, ref) {
+  return (
+    <NavLink ref={ref} {...rest} className={({ isActive }) => cn(classesLien(isActive, replie), className)}>
+      {children}
+    </NavLink>
+  );
+});
+
 function Lien({
   to,
   end,
@@ -60,21 +85,10 @@ function Lien({
   replie: boolean;
 }) {
   const lien = (
-    <NavLink
-      to={to}
-      end={end}
-      aria-label={replie ? libelle : undefined}
-      className={({ isActive }) =>
-        cn(
-          'group flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm font-medium transition-colors duration-150',
-          isActive ? 'bg-nav-active text-nav-active-fg' : 'text-nav-muted hover:bg-nav-hover hover:text-nav-fg',
-          replie && 'justify-center px-0',
-        )
-      }
-    >
+    <LienMenu to={to} end={end} aria-label={replie ? libelle : undefined} replie={replie}>
       <Icone className="size-[18px] shrink-0" aria-hidden />
       {!replie && <span className="truncate">{libelle}</span>}
-    </NavLink>
+    </LienMenu>
   );
   return replie ? (
     <Tooltip content={libelle} cote="right">

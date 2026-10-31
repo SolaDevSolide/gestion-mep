@@ -97,3 +97,22 @@ describe('Menu : version et signalement', () => {
     );
   });
 });
+
+describe('Menu replié', () => {
+  afterEach(() => window.localStorage.removeItem('mep.menu.replie'));
+
+  it('donne aux liens une vraie classe, pas le texte d’une fonction', () => {
+    window.localStorage.setItem('mep.menu.replie', 'true');
+    rendre(utilisateur({ estAdmin: true }));
+    const liens = screen.getAllByRole('link');
+    expect(liens.length).toBeGreaterThan(3);
+    for (const lien of liens) {
+      const classe = lien.getAttribute('class') ?? '';
+      expect(classe).not.toMatch(/isActive|=>|function/);
+    }
+    const accueil = screen.getByRole('link', { name: 'Mises en production' });
+    expect(accueil).toHaveClass('bg-nav-active', 'justify-center');
+    expect(screen.getByRole('link', { name: 'Systèmes' })).toHaveClass('text-nav-muted', 'justify-center');
+    expect(screen.getByRole('link', { name: 'Systèmes' })).not.toHaveClass('bg-nav-active');
+  });
+});

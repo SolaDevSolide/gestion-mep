@@ -129,7 +129,7 @@ En ligne de commande : `gestion-mep connexions lister | afficher | exporter | im
 
 ### Liaisons
 
-Liaison avec [Noosphere](Liaison-Noosphere.md) : appairage par l'adresse de Noosphere et un code d'appairage, confirmation de l'empreinte de quatre mots, choix des applications suivies (par domaine ou une par une, rattachées à un système existant ou créées), « Envoyer les MEP », suivi automatique, **Synchroniser maintenant**, **Renouveler les clés**, **Couper la liaison** et journal des échanges (requêtes refusées comprises). L'onglet de la console arrive avec sa maquette ; tout est déjà possible par l'API (`/api/admin/liaisons`) et en ligne de commande. Les systèmes suivis portent leur origine dans le catalogue : leur nom et leur description ne se modifient que dans Noosphere, et ils ne se suppriment pas tant qu'ils sont suivis.
+Liaison avec [Noosphere](Liaison-Noosphere.md) : appairage par l'adresse de Noosphere et un code d'appairage, confirmation de l'empreinte de quatre mots, choix des applications suivies (par domaine ou une par une, rattachées à un système existant ou créées), « Envoyer les MEP », suivi automatique, **Synchroniser maintenant**, **Renouveler les clés**, **Couper la liaison** et journal des échanges (requêtes refusées comprises). L'état de Noosphere est relu à l'ouverture de l'onglet. Tout est aussi possible par l'API (`/api/admin/liaisons`) et en ligne de commande. Les systèmes suivis portent leur origine dans le catalogue : leur nom et leur description ne se modifient que dans Noosphere, et ils ne se suppriment pas tant qu'ils sont suivis.
 
 En ligne de commande : `gestion-mep liaison appairer | liste | confirmer | synchroniser | options | renouveler | couper | echanges`.
 

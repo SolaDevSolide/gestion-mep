@@ -109,8 +109,8 @@ public sealed class TachesLiaisons(IServiceScopeFactory scopes, SignalLiaisons s
     }
 
     /// <summary>
-    /// Appairage au premier démarrage : avec une adresse et un code d'au moins 16 caractères, et aucune liaison vers cette
-    /// adresse. Noosphere peut démarrer après gestion-mep : nouvel essai toutes les 30 s (10 fois) tant qu'il est injoignable ;
+    /// Appairage au premier démarrage : avec une adresse et un code d'au moins 16 caractères, et aucune liaison en attente ou
+    /// active vers cette adresse (une liaison coupée ne compte pas). Noosphere peut démarrer après gestion-mep : nouvel essai toutes les 30 s (10 fois) tant qu'il est injoignable ;
     /// un refus du code (404, 409, 410) est définitif. L'empreinte reste à confirmer des deux côtés.
     /// </summary>
     public async Task<bool> Amorcer(CancellationToken ct)
@@ -128,7 +128,8 @@ public sealed class TachesLiaisons(IServiceScopeFactory scopes, SignalLiaisons s
         using var scope = scopes.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MepDbContext>();
         var adresse = url.TrimEnd('/');
-        if (await db.Liaisons.AnyAsync(l => l.Url == adresse, ct)) return false;
+        // Une liaison coupée n'empêche pas l'appairage : seule une liaison en attente ou active vers cette adresse le rend inutile.
+        if (await db.Liaisons.AnyAsync(l => l.Url == adresse && l.Etat != EtatLiaison.Coupee, ct)) return false;
         var svc = scope.ServiceProvider.GetRequiredService<ServiceLiaisons>();
         try
         {

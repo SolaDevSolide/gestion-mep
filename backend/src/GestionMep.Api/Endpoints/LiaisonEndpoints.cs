@@ -326,6 +326,10 @@ public static class LiaisonEndpoints
         admin.MapPost("/{id:guid}/confirmer", async (Guid id, ConfirmationLiaisonSaisie s, ClaimsPrincipal user, ServiceLiaisons svc) =>
             await svc.Dto(await svc.Confirmer(id, s.Empreinte, Acteur.Depuis(user), Auteur)));
 
+        // État de la liaison chez Noosphere (GET /link/v1/status), relu à l'ouverture de l'onglet « Liaisons ».
+        admin.MapPost("/{id:guid}/statut", async (Guid id, ServiceLiaisons svc, CancellationToken ct) =>
+            await svc.Dto(await svc.RelireStatut(await svc.Charger(id), ct)));
+
         admin.MapGet("/{id:guid}/catalogue", async (Guid id, ServiceLiaisons svc, MepDbContext db) =>
             svc.Catalogue(await svc.Charger(id), await db.SystemesCatalogue.AsNoTracking().ToListAsync()));
 
@@ -371,6 +375,14 @@ public static class LiaisonEndpoints
         {
             await svc.Charger(id);
             return await svc.Echanges(id, avant, limite);
+        });
+
+        // Marque « Envoyée à Noosphere » d'une MEP : lisible par tous ceux qui voient la MEP.
+        api.MapGet("/meps/{id:guid}/noosphere", async (Guid id, MepDbContext db, ServiceLiaisons svc) =>
+        {
+            var mep = await db.Meps.AsNoTracking().Include(m => m.Systemes).AsSplitQuery().FirstOrDefaultAsync(m => m.Id == id)
+                ?? throw ErreurHttp.NonTrouve("MEP introuvable.");
+            return await svc.EnvoisMep(mep);
         });
     }
 

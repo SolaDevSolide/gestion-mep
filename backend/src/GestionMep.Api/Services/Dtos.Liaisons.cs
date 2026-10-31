@@ -7,13 +7,14 @@ namespace GestionMep.Api.Services;
 /// <summary>
 /// Liaison avec une instance de Noosphere. <c>ConfirmeeParNoosphere</c> : confirmation de l'empreinte côté Noosphere d'après
 /// son dernier <c>/status</c> (null : pas encore connue) ; les données ne s'échangent qu'une fois confirmée des deux côtés.
-/// <c>Demo</c> : liaison fictive de la démonstration (aucun appel ne part).
+/// <c>ARapprocher</c> : nouvelles applications des domaines suivis mises de côté parce qu'un système local porte un nom proche
+/// (ni créées ni rattachées tant que l'administrateur n'a pas choisi). <c>Demo</c> : liaison fictive de la démonstration (aucun appel ne part).
 /// </summary>
 public record LiaisonDto(Guid Id, string Produit, string NomInstance, string Url, string VersionNoosphere, EtatLiaison Etat, bool ConfirmeeIci,
     DateTimeOffset? ConfirmeeLe, string ConfirmeePar, bool? ConfirmeeParNoosphere, List<string> Capacites, string Empreinte, DateTimeOffset AppaireeLe,
     string AppaireePar, DateTimeOffset? ClesRenouveleesLe, DateTimeOffset? DernierEchangeLe, DateTimeOffset? CoupeeLe, string CoupeePar,
     bool EnvoyerMeps, bool SuiviAutomatique, List<string> DomainesSuivis, DateTimeOffset? DerniereSynchro, string DerniereErreur, int SystemesSuivis,
-    bool Demo);
+    int ARapprocher, bool Demo);
 
 /// <summary>Appairage : adresse de Noosphere et code à usage unique créé par un administrateur de Noosphere.</summary>
 public record AppairageLiaisonSaisie(string? Url, string? Code);
@@ -33,8 +34,9 @@ public record SuiviLiaisonSaisie(List<string>? DomainesSuivis, List<SuiviApplica
 /// <summary>
 /// <c>Suivre</c> false : l'application n'est plus suivie, son système redevient local. true : suivie, rattachée au système
 /// <c>SystemeId</c> (local) s'il est donné, sinon à un système local du même nom, sinon un nouveau système est créé.
+/// <c>Creer</c> true (sans <c>SystemeId</c>) : un nouveau système est créé même si un système local porte déjà ce nom.
 /// </summary>
-public record SuiviApplicationSaisie(string? ApplicationId, bool? Suivre, Guid? SystemeId);
+public record SuiviApplicationSaisie(string? ApplicationId, bool? Suivre, Guid? SystemeId, bool? Creer = null);
 
 public record CoupureLiaisonSaisie(bool? Confirmer);
 
@@ -45,7 +47,7 @@ public record SuggestionSystemeDto(Guid Id, string Nom, bool MemeNom);
 
 /// <summary>Application du dernier catalogue lu : suivie ou non, système rattaché, systèmes proposés pour la rattacher.</summary>
 public record ApplicationLiaisonDto(string Id, string Nom, string Description, string? DomaineId, string Domaine, string Equipe, string Type, string Cycle,
-    string Url, bool Suivie, Guid? SystemeId, string? Systeme, List<SuggestionSystemeDto> Suggestions);
+    string Url, bool Suivie, bool ARapprocher, Guid? SystemeId, string? Systeme, List<SuggestionSystemeDto> Suggestions);
 
 /// <summary>Dernier catalogue de Noosphere lu (null : pas encore lu) et choix de suivi.</summary>
 public record CatalogueLiaisonDto(DateTimeOffset? LuLe, string NomInstance, List<DomaineLiaisonDto> Domaines, List<ApplicationLiaisonDto> Applications);
@@ -60,3 +62,14 @@ public record SynchroLiaisonDto(bool Inchange, string Resume, List<string> Crees
 /// <summary>Système suivi depuis Noosphere (« Géré par Noosphere ») : nom et description en lecture seule ; <c>Url</c> : « Ouvrir dans Noosphere ».</summary>
 public record SourceNoosphereDto(Guid LiaisonId, string ApplicationId, string Url, string Domaine, string Equipe, string Cycle,
     DateTimeOffset? DerniereSynchro, bool Absente);
+
+/// <summary>Application de Noosphere touchée par une MEP, par un système suivi : « Voir dans Noosphere » (<c>Url</c>).</summary>
+public record ApplicationMepNoosphereDto(Guid SystemeId, string Systeme, string ApplicationId, string Url, string Domaine, string Equipe);
+
+/// <summary>
+/// MEP envoyée à Noosphere (« Envoyée à Noosphere »), pour une liaison. <c>EnvoyeeLe</c> : dernier envoi (null : pas encore
+/// envoyée) ; <c>Phase</c> : phase du contrat de ce dernier envoi. <c>EnvoiActif</c> : la liaison envoie les MEP (option et
+/// confirmation des deux côtés). <c>DatePrevue</c> : la MEP a une date ; sans date, elle n'est pas encore annoncée.
+/// </summary>
+public record EnvoiMepNoosphereDto(Guid LiaisonId, string NomInstance, bool EnvoiActif, bool Demo, DateTimeOffset? EnvoyeeLe, string Phase,
+    bool DatePrevue, List<ApplicationMepNoosphereDto> Applications);

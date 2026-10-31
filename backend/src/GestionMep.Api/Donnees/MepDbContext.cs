@@ -354,6 +354,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Capacites).AsJson();
             e.Property(x => x.DomainesSuivis).AsJson();
             e.Property(x => x.ApplicationsConnues).AsJson();
+            e.Property(x => x.ApplicationsARapprocher).AsJson();
             e.Property(x => x.Cles).AsJsonObjet();
             e.Property(x => x.AnciennesCles).AsJsonObjet();
             e.Property(x => x.ClesPair).AsJsonObjet();

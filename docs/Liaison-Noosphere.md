@@ -7,7 +7,14 @@
 
 Seul ce que tout le monde voit dans Noosphere est partagé : ni fiches restreintes, ni notes protégées. Les objets impactés ne sont pas envoyés.
 
-La liaison se gère dans la console d'administration (API `/api/admin/liaisons`, voir [API](API.md#liaison-avec-noosphere)) ou en ligne de commande (`gestion-mep liaison`, voir plus bas). L'onglet « Liaisons » de la console arrive avec sa maquette ; en attendant, tout se fait par l'API ou la ligne de commande.
+La liaison se gère dans la console d'administration (API `/api/admin/liaisons`, voir [API](API.md#liaison-avec-noosphere)) ou en ligne de commande (`gestion-mep liaison`, voir plus bas). L'onglet **Liaisons** de la console (Administration → Liaisons) en suit chaque étape :
+
+- **sans liaison** : l'adresse de Noosphere et le code d'appairage, ce qui sera échangé, et l'équivalent en ligne de commande ou avec Docker Compose ; les liaisons coupées restent listées dessous ;
+- **empreinte à comparer** : les quatre mots en grand, « Les mots sont identiques : confirmer » ou « Ils diffèrent : annuler » (qui coupe la liaison), et l'état de chaque côté ;
+- **applications suivies** : par domaine (case du domaine, applications dépliables) ou une par une, avec le suivi automatique ; puis **Rapprocher du catalogue** : pour chaque nouvelle application, **Rattacher** au système proposé (même nom ou nom proche, jamais sans confirmation) ou **Créer un système**. « Valider et synchroniser » attend un choix pour chaque ligne ;
+- **liaison active** : le nombre d'applications **à rapprocher** avec le bouton **Rapprocher**, qui ouvre directement leur rapprochement ; état des deux côtés, options (« Envoyer les MEP à Noosphere », suivi automatique), **Synchroniser maintenant**, **Renouveler les clés**, **Couper la liaison** (confirmation dans la page), applications suivies par domaine et journal des échanges (Tous, Refusés, Envoyés, Reçus).
+
+À l'ouverture de l'onglet, Gestion MEP relit l'état de la liaison chez Noosphere (`POST /api/admin/liaisons/{id}/statut`) : l'écran montre toujours un état à jour du pair (confirmé ou non, liaison coupée de son côté). Si Noosphere ne répond pas, l'onglet s'affiche quand même avec un avertissement.
 
 ## Appairer
 
@@ -28,8 +35,8 @@ L'adresse de Gestion MEP envoyée à Noosphere est l'**adresse publique** (régl
 
 On suit les applications :
 
-- **par domaine** : toutes les applications du domaine, et, avec le **suivi automatique** (actif par défaut), celles qui y apparaîtront ensuite (sauf les applications retirées) ;
-- **une par une**, en indiquant pour chacune soit un système existant à **rattacher**, soit rien pour en **créer** un. Sans système indiqué, un système local au même nom (casse et accents ignorés) est rattaché ; sinon un système est créé (avec le suffixe « (2) » si le nom est déjà pris par un système lui-même suivi).
+- **par domaine** : toutes les applications du domaine, et, avec le **suivi automatique** (actif par défaut), celles qui y apparaîtront ensuite (sauf les applications retirées). Une application dont le nom est identique ou proche de celui d'un système local n'est **ni rattachée ni créée** : un rapprochement par le nom se confirme toujours. Elle reste **à rapprocher** (`aRapprocher` sur l'application et, en nombre, sur la liaison) jusqu'au choix de l'administrateur, « Rattacher » ou « Créer un système » ; décochée (`suivre: false`), elle n'attend plus. Les autres reçoivent un nouveau système. Si le système proche disparaît (supprimé, ou suivi par une autre application), la synchronisation suivante crée le système ;
+- **une par une**, en indiquant pour chacune soit un système existant à **rattacher**, soit d'en **créer** un (`creer: true`). Sans système indiqué ni `creer`, un système local au même nom (casse et accents ignorés) est rattaché ; sinon un système est créé (avec le suffixe « (2) » si le nom est déjà pris).
 
 `PUT /api/admin/liaisons/{id}/suivi { domainesSuivis, applications: [{ applicationId, suivre, systemeId }] }` enregistre ces choix et synchronise aussitôt. Dans une même saisie, le choix fait pour une application passe avant son domaine : une application d'un domaine ajouté, rattachée à un système désigné ou écartée (`suivre: false`), ne reçoit pas d'abord un système créé par le domaine. Ne plus suivre une application rend son système local, sans le supprimer.
 
@@ -57,15 +64,19 @@ Règles appliquées à un système suivi :
 | Application supprimée ou devenue restreinte (absente du catalogue) | Système désactivé, marqué « absent de Noosphere ». |
 | Domaine, équipe, cycle de vie, adresse de la fiche | Affichés avec le système (`source` dans `GET /api/catalogue/systemes`). |
 
+Dans le catalogue (Paramètres → Systèmes), les systèmes suivis portent le badge **« Géré par Noosphere »** avec leur domaine et leur équipe ; un filtre les isole et la dernière synchronisation est rappelée. Leur fiche montre la carte « Dans Noosphere » (domaine, équipe, cycle de vie, identifiant, dernière synchronisation) et **Ouvrir dans Noosphere** ; dans « Modifier », le nom et la description sont verrouillés.
+
 Un système suivi ne se supprime pas (400) : arrêtez d'abord de le suivre. Environnements, catégories, objets et MEP du système ne sont jamais touchés par la synchronisation.
 
 ## MEP envoyées à Noosphere
 
-Une MEP qui touche au moins un système suivi est envoyée à Noosphere quand elle est créée ou annoncée, quand sa date, son créneau, sa phase ou son issue change, et quand elle est supprimée. Les modèles ne sont jamais envoyés.
+Une MEP qui touche au moins un système suivi est envoyée à Noosphere dès qu'une date est prévue (date de la MEP, date annoncée ou date visée d'un report), puis à chaque changement de date, de créneau, de systèmes, de phase ou d'issue, à son annulation et à sa suppression. Une MEP sans date n'est pas encore annoncée. Les modèles ne sont jamais envoyés.
 
 - **Regroupement** : la première modification fixe l'envoi 30 secondes plus tard ; les modifications suivantes s'y ajoutent. Un événement identique au dernier envoyé ne repart pas.
 - **Nouvelles tentatives** : 30 s, 2 min, puis 10 min. Après ces essais, une ligne est inscrite au journal d'administration (`liaison.envoi-echec`) et le rapprochement des 15 minutes reprend l'envoi.
 - **Rapprochement** : toutes les 15 minutes, et au rétablissement de « Envoyer les MEP », toutes les MEP qui touchent un système suivi sont comparées au dernier envoi (sauf les MEP terminées depuis plus de 90 jours jamais envoyées).
+
+Dans l'en-tête de la MEP, la mention **« Envoyée à Noosphere »** (ou « dès qu'une date est prévue », « envoi coupé ») donne au clic la date du dernier envoi et un lien vers chaque application dans Noosphere ; la section Systèmes de la préparation le rappelle et marque les systèmes « Géré par Noosphere » (`GET /api/meps/{id}/noosphere`).
 
 Chaque événement porte : l'identifiant de la MEP et son lien, le titre (« Outil VersionCible »), les applications suivies touchées, leurs environnements, la phase, l'issue, le créneau prévu et l'heure de mise à jour. Seuls les environnements des systèmes suivis sont envoyés.
 
@@ -128,7 +139,7 @@ Quand les deux applications démarrent ensemble, Gestion MEP s'appaire au premie
 - côté Noosphere : `NOOSPHERE_LINK_BOOTSTRAP_CODE` ;
 - côté Gestion MEP : `NOOSPHERE_URL` (adresse de Noosphere) et `NOOSPHERE_CODE_LIAISON` (le même code).
 
-Gestion MEP essaie toutes les 30 secondes tant que Noosphere ne répond pas (dix fois au plus), puis ne réessaie plus : tant qu'une liaison existe avec cette adresse, rien n'est refait aux démarrages suivants. Un code de moins de 16 caractères est ignoré. Les administrateurs confirment toujours l'empreinte des deux côtés.
+Gestion MEP essaie toutes les 30 secondes tant que Noosphere ne répond pas (dix fois au plus), puis ne réessaie plus : tant qu'une liaison en attente ou active existe avec cette adresse, rien n'est refait aux démarrages suivants. Une liaison coupée ne compte pas : après une coupure, un nouveau code au démarrage appaire à nouveau. Un code de moins de 16 caractères est ignoré. Les administrateurs confirment toujours l'empreinte des deux côtés.
 
 ```yaml
 # Exemple : docker compose up, puis confirmer l'empreinte dans les deux consoles
@@ -163,14 +174,14 @@ Les appels vers Noosphere partent directement du serveur, sans passer par le ré
 
 ## Mode démonstration
 
-La démonstration contient une liaison fictive, active, avec `https://noosphere.demo.invalid` : les systèmes API et WEB y sont suivis (domaine « Commerce »), le catalogue contient des applications retirées, prévues et en cours de retrait, et le journal des échanges est rempli. Aucun appel réel ne part : synchroniser relit le catalogue fictif, les MEP « envoyées » sont seulement inscrites au journal des échanges.
+La démonstration contient une liaison fictive, active, avec `https://noosphere.demo.invalid` : les systèmes API et WEB y sont suivis (domaine « Commerce »), le catalogue contient des applications retirées, prévues et en cours de retrait, et le journal des échanges est rempli. Aucun appel réel ne part : synchroniser relit le catalogue fictif, les MEP « envoyées » sont seulement inscrites au journal des échanges. Dans l'onglet Liaisons, la liaison porte la pastille « Démonstration », son état n'est pas relu chez Noosphere et les liens « Ouvrir dans Noosphere » sont inactifs.
 
 ## Ligne de commande
 
 | Commande | Effet |
 |---|---|
 | `gestion-mep liaison appairer <url> <code>` | Appaire avec Noosphere et affiche l'empreinte. |
-| `gestion-mep liaison liste` | Liaisons, état, empreinte, systèmes suivis. |
+| `gestion-mep liaison liste` | Liaisons, état, empreinte, systèmes suivis, applications à rapprocher. |
 | `gestion-mep liaison confirmer <id> --empreinte "…"` | Confirme l'empreinte affichée par Noosphere. |
 | `gestion-mep liaison synchroniser [<id>]` | Relit le catalogue maintenant. |
 | `gestion-mep liaison options <id> [--envoyer-meps oui\|non] [--suivi-automatique oui\|non]` | Change les options. |

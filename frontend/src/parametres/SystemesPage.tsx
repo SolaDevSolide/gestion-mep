@@ -1,10 +1,11 @@
 import { CheckCircle2, CircleOff, Layers, ListTree, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { BadgeNoosphere, raisonInactif } from '../admin/liaisons/communs';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { useAsync } from '../hooks';
-import { formatDate } from '../format';
+import { formatDate, formatDateHeure } from '../format';
 import { lienHistoriqueSysteme } from '../mep/SystemeCliquable';
 import { metaEtatMep } from '../statuts';
 import type { ActiviteSysteme, SystemeCatalogue } from '../types';
@@ -14,6 +15,7 @@ import { Card } from '../ui/Card';
 import { ConfirmDialog } from '../ui/Dialog';
 import { EmptyState } from '../ui/EmptyState';
 import { PastilleEnvironnement } from '../ui/PastilleEnvironnement';
+import { Segmented } from '../ui/Segmented';
 import { StatusPill } from '../ui/StatusPill';
 import { Tooltip } from '../ui/Tooltip';
 import { useToast } from '../ui/Toast';
@@ -53,6 +55,8 @@ function resumeFiche(s: Pick<SystemeCatalogue, 'nbObjets' | 'categories'>): stri
   return `${s.nbObjets} dans ${c} catégorie${c > 1 ? 's' : ''}`;
 }
 
+type Source = 'tous' | 'noosphere' | 'local';
+
 export default function SystemesPage() {
   const { utilisateur } = useAuth();
   const toast = useToast();
@@ -64,6 +68,19 @@ export default function SystemesPage() {
   const [edition, setEdition] = useState<{ existant: SystemeCatalogue | null } | null>(null);
   const [suppr, setSuppr] = useState<SystemeCatalogue | null>(null);
   const [categories, setCategories] = useState(false);
+  // Systèmes gérés par Noosphere (#123) : filtre « Tous / Gérés par Noosphere / Locaux », gardé dans l'adresse.
+  const [params, setParams] = useSearchParams();
+  const demande = params.get('source');
+  const source: Source = demande === 'noosphere' || demande === 'local' ? demande : 'tous';
+  const geres = (donnees ?? []).filter((s) => s.source);
+  const derniereSynchro = geres
+    .map((s) => s.source?.derniereSynchro)
+    .filter((d): d is string => !!d)
+    .sort()
+    .at(-1);
+  const montres = (donnees ?? []).filter((s) =>
+    source === 'noosphere' ? !!s.source : source === 'local' ? !s.source : true,
+  );
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
@@ -71,7 +88,8 @@ export default function SystemesPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Catalogue des systèmes</h1>
           <p className="mt-1 text-sm text-fg-subtle">
-            Les systèmes réutilisables d’une MEP à l’autre.{' '}
+            Les systèmes réutilisables d’une MEP à l’autre.
+            {geres.length > 0 && ' Ceux gérés par Noosphere suivent ses applications.'}{' '}
             {!admin && (
               <span className="inline-flex items-center gap-1">
                 <Lock className="size-3.5" aria-hidden />
@@ -135,104 +153,154 @@ export default function SystemesPage() {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-line bg-surface-2/60 text-xs tracking-wide text-fg-subtle uppercase">
-                <tr>
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    Nom
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    Description
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    Cible
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    Environnements
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    Objets
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold whitespace-nowrap">
-                    Dernière MEP
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold">
-                    État
-                  </th>
-                  {admin && (
-                    <th scope="col" className="px-4 py-3">
-                      <span className="sr-only">Actions</span>
+          <>
+            {geres.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+                <Segmented<Source>
+                  label="Systèmes montrés"
+                  className="max-w-full overflow-x-auto whitespace-nowrap"
+                  valeur={source}
+                  onChange={(v) => setParams(v === 'tous' ? {} : { source: v }, { replace: true })}
+                  options={[
+                    { valeur: 'tous', libelle: `Tous · ${donnees?.length ?? 0}` },
+                    { valeur: 'noosphere', libelle: `Gérés par Noosphere · ${geres.length}` },
+                    { valeur: 'local', libelle: `Locaux · ${(donnees?.length ?? 0) - geres.length}` },
+                  ]}
+                />
+                <p className="text-ui text-fg-subtle">
+                  {geres.length} système{geres.length > 1 ? 's' : ''} géré{geres.length > 1 ? 's' : ''} par Noosphere
+                  {derniereSynchro && ` · dernière synchronisation ${formatDateHeure(derniereSynchro)}`}
+                </p>
+              </div>
+            )}
+            <div className="relative overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-line bg-surface-2/60 text-xs tracking-wide text-fg-subtle uppercase">
+                  <tr>
+                    <th scope="col" className="px-4 py-3 font-semibold">
+                      Nom
                     </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody
-                className={cn('divide-y divide-line', donnees !== null && 'apparition')}
-                aria-busy={(donnees === null && !erreur) || undefined}
-                aria-label={donnees === null && !erreur ? 'Chargement du catalogue…' : undefined}
-              >
-                {donnees === null && !erreur && <SqueletteRangees lignes={6} colonnes={admin ? 8 : 7} />}
-                {(donnees ?? []).map((s) => (
-                  <tr key={s.id} className="transition-colors duration-150 hover:bg-surface-2/50">
-                    <th scope="row" className="px-4 py-3 font-medium">
-                      <Link to={`/parametres/systemes/${s.id}`} className="hover:text-accent-text hover:underline">
-                        {s.nom}
-                      </Link>
+                    <th scope="col" className="px-4 py-3 font-semibold">
+                      Description
                     </th>
-                    <td className="max-w-xs px-4 py-3 text-fg-muted">{s.description || '—'}</td>
-                    <td className="px-4 py-3 font-mono text-ui text-fg-muted">{s.cible || '—'}</td>
-                    <td className="px-4 py-3">
-                      {s.environnements.length === 0 ? (
-                        <span className="text-fg-subtle">—</span>
-                      ) : (
-                        <span className="flex max-w-64 flex-wrap gap-1">
-                          {s.environnements.map((e) => (
-                            <PastilleEnvironnement key={e.nom} nom={e.nom} production={e.production} />
-                          ))}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-fg-muted">
-                      <Link to={`/parametres/systemes/${s.id}`} className="hover:text-accent-text hover:underline">
-                        {resumeFiche(s)}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      {activite ? (
-                        <DerniereMep a={activite.get(s.id)} systeme={s} />
-                      ) : lue.echec === null ? (
-                        <Squelette className="h-4 w-20" />
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusPill taille="sm" ton={s.actif ? 'ok' : 'wait'} icone={s.actif ? CheckCircle2 : CircleOff}>
-                        {s.actif ? 'Actif' : 'Inactif'}
-                      </StatusPill>
-                    </td>
+                    <th scope="col" className="px-4 py-3 font-semibold">
+                      Cible
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-semibold">
+                      Environnements
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-semibold">
+                      Objets
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-semibold whitespace-nowrap">
+                      Dernière MEP
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-semibold">
+                      État
+                    </th>
                     {admin && (
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <Tooltip content="Modifier">
-                          <BoutonIcone
-                            label={`Modifier ${s.nom}`}
-                            taille="sm"
-                            onClick={() => setEdition({ existant: s })}
-                          >
-                            <Pencil className="size-4" aria-hidden />
-                          </BoutonIcone>
-                        </Tooltip>
-                        <Tooltip content="Supprimer">
-                          <BoutonIcone label={`Supprimer ${s.nom}`} taille="sm" onClick={() => setSuppr(s)}>
-                            <Trash2 className="size-4" aria-hidden />
-                          </BoutonIcone>
-                        </Tooltip>
-                      </td>
+                      <th scope="col" className="px-4 py-3">
+                        <span className="sr-only">Actions</span>
+                      </th>
                     )}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody
+                  className={cn('divide-y divide-line', donnees !== null && 'apparition')}
+                  aria-busy={(donnees === null && !erreur) || undefined}
+                  aria-label={donnees === null && !erreur ? 'Chargement du catalogue…' : undefined}
+                >
+                  {donnees === null && !erreur && <SqueletteRangees lignes={6} colonnes={admin ? 8 : 7} />}
+                  {montres.map((s) => (
+                    <tr key={s.id} className="transition-colors duration-150 hover:bg-surface-2/50">
+                      <th scope="row" className="px-4 py-3 font-medium">
+                        <Link to={`/parametres/systemes/${s.id}`} className="hover:text-accent-text hover:underline">
+                          {s.nom}
+                        </Link>
+                        {s.source && (
+                          <span className="mt-1 flex flex-col items-start gap-0.5">
+                            <BadgeNoosphere court />
+                            {(s.source.domaine || s.source.equipe) && (
+                              <span className="text-xs font-normal text-fg-subtle">
+                                {[s.source.domaine, s.source.equipe].filter(Boolean).join(' · ')}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </th>
+                      <td className="max-w-xs px-4 py-3 text-fg-muted">{s.description || '—'}</td>
+                      <td className="px-4 py-3 font-mono text-ui text-fg-muted">{s.cible || '—'}</td>
+                      <td className="px-4 py-3">
+                        {s.environnements.length === 0 ? (
+                          <span className="text-fg-subtle">—</span>
+                        ) : (
+                          <span className="flex max-w-64 flex-wrap gap-1">
+                            {s.environnements.map((e) => (
+                              <PastilleEnvironnement key={e.nom} nom={e.nom} production={e.production} />
+                            ))}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-fg-muted">
+                        <Link to={`/parametres/systemes/${s.id}`} className="hover:text-accent-text hover:underline">
+                          {resumeFiche(s)}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        {activite ? (
+                          <DerniereMep a={activite.get(s.id)} systeme={s} />
+                        ) : lue.echec === null ? (
+                          <Squelette className="h-4 w-20" />
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusPill
+                          taille="sm"
+                          ton={s.actif ? 'ok' : 'wait'}
+                          icone={s.actif ? CheckCircle2 : CircleOff}
+                        >
+                          {s.actif ? 'Actif' : 'Inactif'}
+                          {!s.actif && raisonInactif(s.source) && ` · ${raisonInactif(s.source)}`}
+                        </StatusPill>
+                      </td>
+                      {admin && (
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          <Tooltip content="Modifier">
+                            <BoutonIcone
+                              label={`Modifier ${s.nom}`}
+                              taille="sm"
+                              onClick={() => setEdition({ existant: s })}
+                            >
+                              <Pencil className="size-4" aria-hidden />
+                            </BoutonIcone>
+                          </Tooltip>
+                          <Tooltip
+                            content={
+                              s.source
+                                ? 'Géré par Noosphere : cessez de le suivre (console › Liaisons), il redeviendra local'
+                                : 'Supprimer'
+                            }
+                          >
+                            {/* Un bouton désactivé ne reçoit pas le survol : la bulle se pose sur son enveloppe. */}
+                            <span className="inline-flex">
+                              <BoutonIcone
+                                label={`Supprimer ${s.nom}`}
+                                taille="sm"
+                                disabled={!!s.source}
+                                onClick={() => setSuppr(s)}
+                              >
+                                <Trash2 className="size-4" aria-hidden />
+                              </BoutonIcone>
+                            </span>
+                          </Tooltip>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 

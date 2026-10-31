@@ -123,17 +123,20 @@ Mode d'emploi : [Liaison avec Noosphere](Liaison-Noosphere.md). Routes de la con
 
 | Route | Effet |
 |---|---|
-| `GET /api/admin/liaisons` | Liaisons (`LiaisonDto` : `id`, `nomInstance`, `url`, `versionNoosphere`, `etat` `EnAttente` / `Active` / `Coupee`, `confirmeeIci`, `confirmeeParNoosphere`, `empreinte`, `capacites`, `envoyerMeps`, `suiviAutomatique`, `domainesSuivis`, `systemesSuivis`, `derniereSynchro`, `derniereErreur`, `clesRenouveleesLe`, `demo`…). |
+| `GET /api/admin/liaisons` | Liaisons (`LiaisonDto` : `id`, `nomInstance`, `url`, `versionNoosphere`, `etat` `EnAttente` / `Active` / `Coupee`, `confirmeeIci`, `confirmeeParNoosphere`, `empreinte`, `capacites`, `envoyerMeps`, `suiviAutomatique`, `domainesSuivis`, `systemesSuivis`, `aRapprocher` (applications mises de côté, en attente d'un rapprochement), `derniereSynchro`, `derniereErreur`, `clesRenouveleesLe`, `demo`…). |
 | `POST /api/admin/liaisons/appairer { url, code }` | Appaire avec Noosphere ; renvoie la liaison, en attente de confirmation, avec son empreinte. 400 adresse ou code invalide, 404 code inconnu ou expiré, 409 code déjà utilisé, 422 code incorrect ou bloqué, 502 Noosphere injoignable ou réponse invalide. |
 | `GET /api/admin/liaisons/{id}` | Une liaison. |
+| `POST /api/admin/liaisons/{id}/statut` | Relit l'état de la liaison chez Noosphere (`GET /link/v1/status`) et renvoie la liaison : la console l'appelle à l'ouverture de l'onglet « Liaisons ». Rien n'est appelé pour une liaison coupée ou fictive ; 502 si Noosphere est injoignable ou répond mal. |
 | `POST /api/admin/liaisons/{id}/confirmer { empreinte }` | Confirme l'empreinte (casse et espaces indifférents) ; 422 si elle diffère. |
-| `GET /api/admin/liaisons/{id}/catalogue` | Domaines (`{ id, nom, suivi, nbApplications }`) et applications de Noosphere (`{ id, nom, description, domaineId, domaine, equipe, type, cycle, url, suivie, systemeId, systeme, suggestions }`), lus à la dernière synchronisation (`luLe`). |
-| `PUT /api/admin/liaisons/{id}/suivi { domainesSuivis, applications }` | Domaines suivis (absent : inchangés) et choix par application `{ applicationId, suivre, systemeId }` (`systemeId` : système à rattacher ; absent : système au même nom ou créé). Synchronise aussitôt et renvoie le catalogue, comme `GET …/catalogue`. |
+| `GET /api/admin/liaisons/{id}/catalogue` | Domaines (`{ id, nom, suivi, nbApplications }`) et applications de Noosphere (`{ id, nom, description, domaineId, domaine, equipe, type, cycle, url, suivie, aRapprocher, systemeId, systeme, suggestions }`), lus à la dernière synchronisation (`luLe`). |
+| `PUT /api/admin/liaisons/{id}/suivi { domainesSuivis, applications }` | Domaines suivis (absent : inchangés) et choix par application `{ applicationId, suivre, systemeId, creer }` (`systemeId` : système à rattacher ; absent : système au même nom ou créé ; `creer: true` : système créé même si un système local porte ce nom). Synchronise aussitôt et renvoie le catalogue, comme `GET …/catalogue`. |
 | `PUT /api/admin/liaisons/{id}/options { envoyerMeps, suiviAutomatique }` | Options (absent : inchangée). |
 | `POST /api/admin/liaisons/{id}/synchroniser` | Synchronise maintenant : `SynchroLiaisonDto { inchange, resume, crees, rattaches, misAJour, desactives, reactives, avertissements, liaison }`. |
 | `POST /api/admin/liaisons/{id}/renouveler` | Renouvelle les clés de cette instance ; renvoie la liaison (nouvelle empreinte). |
 | `POST /api/admin/liaisons/{id}/couper { confirmer: true }` | Coupe la liaison (400 sans `confirmer: true`). |
 | `GET /api/admin/liaisons/echanges`, `GET /api/admin/liaisons/{id}/echanges` | Journal des échanges, le plus récent d'abord (`?liaison=`, `?refus=true`, `?avant=<date>`, `?limite=`, 50 par défaut, 500 au plus) : `{ id, liaisonId, quand, sens, operation, resultat, code, detail }`. |
+
+`GET /api/meps/{id}/noosphere` (tout utilisateur connecté) : envoi de la MEP à Noosphere, une entrée par liaison concernée (liste vide pour une MEP qui ne touche aucun système suivi et n'a jamais été envoyée, ou pour un modèle) : `{ liaisonId, nomInstance, envoiActif, demo, envoyeeLe, phase, datePrevue, applications: [{ systemeId, systeme, applicationId, url, domaine, equipe }] }`. `envoyeeLe` null : pas encore envoyée (sans date prévue, ou envoi dans les 30 secondes).
 
 Un système du catalogue suivi porte `source` (`{ liaisonId, applicationId, url, domaine, equipe, cycle, derniereSynchro, absente, desactiveParLiaison }`, null pour un système local). Pour lui, `PUT /api/catalogue/systemes/{id}` refuse (400) un nom ou une description différents, et `DELETE` répond 400.
 

@@ -6150,6 +6150,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meps/{id}/noosphere": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EnvoiMepNoosphereDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/sso": {
         parameters: {
             query?: never;
@@ -7942,6 +7979,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/liaisons/{id}/statut": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LiaisonDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/liaisons/{id}/catalogue": {
         parameters: {
             query?: never;
@@ -8386,10 +8460,21 @@ export interface components {
             cycle: string;
             url: string;
             suivie: boolean;
+            aRapprocher: boolean;
             /** Format: uuid */
             systemeId: null | string;
             systeme: null | string;
             suggestions: components["schemas"]["SuggestionSystemeDto"][];
+        };
+        /** @description Application de Noosphere touchée par une MEP, par un système suivi : « Voir dans Noosphere » (`Url`). */
+        ApplicationMepNoosphereDto: {
+            /** Format: uuid */
+            systemeId: string;
+            systeme: string;
+            applicationId: string;
+            url: string;
+            domaine: string;
+            equipe: string;
         };
         ApprobateursSaisie: {
             /** Format: int32 */
@@ -9045,6 +9130,23 @@ export interface components {
         };
         EnvoiManuelSaisie: {
             commentaire: null | string;
+        };
+        /**
+         * @description MEP envoyée à Noosphere (« Envoyée à Noosphere »), pour une liaison. `EnvoyeeLe` : dernier envoi (null : pas encore
+         *     envoyée) ; `Phase` : phase du contrat de ce dernier envoi. `EnvoiActif` : la liaison envoie les MEP (option et
+         *     confirmation des deux côtés). `DatePrevue` : la MEP a une date ; sans date, elle n'est pas encore annoncée.
+         */
+        EnvoiMepNoosphereDto: {
+            /** Format: uuid */
+            liaisonId: string;
+            nomInstance: string;
+            envoiActif: boolean;
+            demo: boolean;
+            /** Format: date-time */
+            envoyeeLe: null | string;
+            phase: string;
+            datePrevue: boolean;
+            applications: components["schemas"]["ApplicationMepNoosphereDto"][];
         };
         /** @description Informations communes aux modèles de texte d'une équipe (membres de l'équipe ou administrateurs). */
         EquipeCommunicationSaisie: {
@@ -10215,7 +10317,8 @@ export interface components {
         /**
          * @description Liaison avec une instance de Noosphere. `ConfirmeeParNoosphere` : confirmation de l'empreinte côté Noosphere d'après
          *     son dernier `/status` (null : pas encore connue) ; les données ne s'échangent qu'une fois confirmée des deux côtés.
-         *     `Demo` : liaison fictive de la démonstration (aucun appel ne part).
+         *     `ARapprocher` : nouvelles applications des domaines suivis mises de côté parce qu'un système local porte un nom proche
+         *     (ni créées ni rattachées tant que l'administrateur n'a pas choisi). `Demo` : liaison fictive de la démonstration (aucun appel ne part).
          */
         LiaisonDto: {
             /** Format: uuid */
@@ -10250,6 +10353,8 @@ export interface components {
             derniereErreur: string;
             /** Format: int32 */
             systemesSuivis: number;
+            /** Format: int32 */
+            aRapprocher: number;
             demo: boolean;
         };
         /** @description Lien redondant : `Vers` attend déjà `De` par un autre chemin ; `Libelle` : « E0007 → Fin (Export) ». */
@@ -13258,12 +13363,14 @@ export interface components {
         /**
          * @description `Suivre` false : l'application n'est plus suivie, son système redevient local. true : suivie, rattachée au système
          *     `SystemeId` (local) s'il est donné, sinon à un système local du même nom, sinon un nouveau système est créé.
+         *     `Creer` true (sans `SystemeId`) : un nouveau système est créé même si un système local porte déjà ce nom.
          */
         SuiviApplicationSaisie: {
             applicationId: null | string;
             suivre: null | boolean;
             /** Format: uuid */
             systemeId: null | string;
+            creer?: null | boolean;
         };
         /**
          * @description Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur

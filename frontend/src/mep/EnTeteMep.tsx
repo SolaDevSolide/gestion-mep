@@ -27,6 +27,7 @@ import { DuplicationDialog } from './DuplicationDialog';
 import { NomSystemeMep } from './SystemeCliquable';
 import { CompteARebours } from './CompteARebours';
 import { PlanCheck } from './PlanCheck';
+import { MarqueNoosphere } from './MarqueNoosphere';
 import { PresentsMep } from '../presence';
 import { BadgeSimplifiee, estSimplifiee } from './typeMep';
 
@@ -106,6 +107,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                 </span>
               )}
               <EnvironnementsMep mep={mep} />
+              {!mep.estModele && <MarqueNoosphere mep={mep} />}
               {pilote && !mep.estModele && (
                 <span className="inline-flex items-center gap-1.5">
                   <Avatar nom={pilote} taille="xs" />

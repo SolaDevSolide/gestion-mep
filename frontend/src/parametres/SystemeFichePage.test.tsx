@@ -314,3 +314,65 @@ describe('Fiche d’un système : historique des MEP (#59)', () => {
     expect(lien).toHaveTextContent('Batch de nuit → 4.2 · 3 MEP');
   });
 });
+
+describe('Catalogue des systèmes : systèmes gérés par Noosphere', () => {
+  const billing: SystemeCatalogue = {
+    ...bdd,
+    id: 'c-bil',
+    nom: 'Billing',
+    description: 'Issues invoices',
+    source: {
+      liaisonId: 'l1',
+      applicationId: 'billing',
+      url: 'https://docs.alize.example/applications/billing',
+      domaine: 'Finance',
+      equipe: 'Équipe Finance',
+      cycle: 'live',
+      derniereSynchro: '2026-10-31T11:44:00Z',
+      absente: false,
+    },
+  };
+  const archive: SystemeCatalogue = {
+    ...billing,
+    id: 'c-arc',
+    nom: 'Invoice archive',
+    actif: false,
+    source: { ...billing.source!, applicationId: 'archive', cycle: 'retired' },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.catalogueSystemes).mockResolvedValue([billing, archive, bdd]);
+    vi.mocked(api.objetsCatalogue).mockResolvedValue([]);
+    vi.mocked(api.categoriesParDefaut).mockResolvedValue([]);
+  });
+
+  it('la liste marque les systèmes gérés, filtre par source et ne propose pas de les supprimer', async () => {
+    rendre('/parametres/systemes');
+    const ligne = (await screen.findByRole('rowheader', { name: /Billing/ })).closest('tr')!;
+    expect(within(ligne).getByText('Noosphere')).toBeInTheDocument();
+    expect(within(ligne).getByText('Finance · Équipe Finance')).toBeInTheDocument();
+    expect(within(ligne).getByRole('button', { name: 'Supprimer Billing' })).toBeDisabled();
+    expect(screen.getByText('Inactif · retirée dans Noosphere')).toBeInTheDocument();
+    expect(screen.getByText(/2 systèmes gérés par Noosphere · dernière synchronisation/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: 'Locaux · 1' }));
+    expect(screen.queryByRole('rowheader', { name: /Billing/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('rowheader', { name: 'BDD' })).toBeInTheDocument();
+  });
+
+  it('la fiche montre la source et verrouille nom et description', async () => {
+    rendre('/parametres/systemes/c-bil');
+    expect(await screen.findByText('Géré par Noosphere')).toBeInTheDocument();
+    expect(screen.getByText('Nom et description viennent de Noosphere')).toBeInTheDocument();
+    expect(screen.getByText('Dans Noosphere')).toBeInTheDocument();
+    expect(screen.getByText('En service')).toBeInTheDocument();
+    for (const lien of screen.getAllByRole('link', { name: /Ouvrir (la fiche )?dans Noosphere/ }))
+      expect(lien).toHaveAttribute('href', 'https://docs.alize.example/applications/billing');
+    await userEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    const dialogue = await screen.findByRole('dialog');
+    expect(within(dialogue).getByLabelText('Nom')).toHaveAttribute('readonly');
+    expect(within(dialogue).getByLabelText('Description')).toHaveAttribute('readonly');
+    expect(within(dialogue).getByRole('link', { name: 'Ouvrir Billing dans Noosphere' })).toBeInTheDocument();
+    expect(within(dialogue).getByLabelText('Cible exacte')).not.toHaveAttribute('readonly');
+  });
+});
