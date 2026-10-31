@@ -6150,6 +6150,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meps/{id}/noosphere": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EnvoiMepNoosphereDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/sso": {
         parameters: {
             query?: never;
@@ -7942,6 +7979,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/liaisons/{id}/statut": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LiaisonDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/liaisons/{id}/catalogue": {
         parameters: {
             query?: never;
@@ -8390,6 +8464,16 @@ export interface components {
             systemeId: null | string;
             systeme: null | string;
             suggestions: components["schemas"]["SuggestionSystemeDto"][];
+        };
+        /** @description Application de Noosphere touchée par une MEP, par un système suivi : « Voir dans Noosphere » (`Url`). */
+        ApplicationMepNoosphereDto: {
+            /** Format: uuid */
+            systemeId: string;
+            systeme: string;
+            applicationId: string;
+            url: string;
+            domaine: string;
+            equipe: string;
         };
         ApprobateursSaisie: {
             /** Format: int32 */
@@ -9045,6 +9129,23 @@ export interface components {
         };
         EnvoiManuelSaisie: {
             commentaire: null | string;
+        };
+        /**
+         * @description MEP envoyée à Noosphere (« Envoyée à Noosphere »), pour une liaison. `EnvoyeeLe` : dernier envoi (null : pas encore
+         *     envoyée) ; `Phase` : phase du contrat de ce dernier envoi. `EnvoiActif` : la liaison envoie les MEP (option et
+         *     confirmation des deux côtés). `DatePrevue` : la MEP a une date ; sans date, elle n'est pas encore annoncée.
+         */
+        EnvoiMepNoosphereDto: {
+            /** Format: uuid */
+            liaisonId: string;
+            nomInstance: string;
+            envoiActif: boolean;
+            demo: boolean;
+            /** Format: date-time */
+            envoyeeLe: null | string;
+            phase: string;
+            datePrevue: boolean;
+            applications: components["schemas"]["ApplicationMepNoosphereDto"][];
         };
         /** @description Informations communes aux modèles de texte d'une équipe (membres de l'équipe ou administrateurs). */
         EquipeCommunicationSaisie: {

@@ -5729,6 +5729,39 @@
         }
       }
     },
+    "/api/meps/{id}/noosphere": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EnvoiMepNoosphereDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/sso": {
       "get": {
         "tags": [
@@ -7116,6 +7149,36 @@
         }
       }
     },
+    "/api/admin/liaisons/{id}/statut": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiaisonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/liaisons/{id}/catalogue": {
       "get": {
         "tags": [
@@ -7991,6 +8054,39 @@
           }
         },
         "description": "Application du dernier catalogue lu : suivie ou non, système rattaché, systèmes proposés pour la rattacher."
+      },
+      "ApplicationMepNoosphereDto": {
+        "required": [
+          "systemeId",
+          "systeme",
+          "applicationId",
+          "url",
+          "domaine",
+          "equipe"
+        ],
+        "type": "object",
+        "properties": {
+          "systemeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "systeme": {
+            "type": "string"
+          },
+          "applicationId": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "domaine": {
+            "type": "string"
+          },
+          "equipe": {
+            "type": "string"
+          }
+        },
+        "description": "Application de Noosphere touchée par une MEP, par un système suivi : « Voir dans Noosphere » (`Url`)."
       },
       "ApprobateursSaisie": {
         "required": [
@@ -10560,6 +10656,54 @@
             ]
           }
         }
+      },
+      "EnvoiMepNoosphereDto": {
+        "required": [
+          "liaisonId",
+          "nomInstance",
+          "envoiActif",
+          "demo",
+          "envoyeeLe",
+          "phase",
+          "datePrevue",
+          "applications"
+        ],
+        "type": "object",
+        "properties": {
+          "liaisonId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nomInstance": {
+            "type": "string"
+          },
+          "envoiActif": {
+            "type": "boolean"
+          },
+          "demo": {
+            "type": "boolean"
+          },
+          "envoyeeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "datePrevue": {
+            "type": "boolean"
+          },
+          "applications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationMepNoosphereDto"
+            }
+          }
+        },
+        "description": "MEP envoyée à Noosphere (« Envoyée à Noosphere »), pour une liaison. `EnvoyeeLe` : dernier envoi (null : pas encore\nenvoyée) ; `Phase` : phase du contrat de ce dernier envoi. `EnvoiActif` : la liaison envoie les MEP (option et\nconfirmation des deux côtés). `DatePrevue` : la MEP a une date ; sans date, elle n'est pas encore annoncée."
       },
       "EquipeCommunicationSaisie": {
         "required": [

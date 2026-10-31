@@ -61,7 +61,7 @@ Un système suivi ne se supprime pas (400) : arrêtez d'abord de le suivre. Envi
 
 ## MEP envoyées à Noosphere
 
-Une MEP qui touche au moins un système suivi est envoyée à Noosphere quand elle est créée ou annoncée, quand sa date, son créneau, sa phase ou son issue change, et quand elle est supprimée. Les modèles ne sont jamais envoyés.
+Une MEP qui touche au moins un système suivi est envoyée à Noosphere dès qu'une date est prévue (date de la MEP, date annoncée ou date visée d'un report), puis à chaque changement de date, de créneau, de systèmes, de phase ou d'issue, à son annulation et à sa suppression. Une MEP sans date n'est pas encore annoncée. Les modèles ne sont jamais envoyés.
 
 - **Regroupement** : la première modification fixe l'envoi 30 secondes plus tard ; les modifications suivantes s'y ajoutent. Un événement identique au dernier envoyé ne repart pas.
 - **Nouvelles tentatives** : 30 s, 2 min, puis 10 min. Après ces essais, une ligne est inscrite au journal d'administration (`liaison.envoi-echec`) et le rapprochement des 15 minutes reprend l'envoi.
@@ -128,7 +128,7 @@ Quand les deux applications démarrent ensemble, Gestion MEP s'appaire au premie
 - côté Noosphere : `NOOSPHERE_LINK_BOOTSTRAP_CODE` ;
 - côté Gestion MEP : `NOOSPHERE_URL` (adresse de Noosphere) et `NOOSPHERE_CODE_LIAISON` (le même code).
 
-Gestion MEP essaie toutes les 30 secondes tant que Noosphere ne répond pas (dix fois au plus), puis ne réessaie plus : tant qu'une liaison existe avec cette adresse, rien n'est refait aux démarrages suivants. Un code de moins de 16 caractères est ignoré. Les administrateurs confirment toujours l'empreinte des deux côtés.
+Gestion MEP essaie toutes les 30 secondes tant que Noosphere ne répond pas (dix fois au plus), puis ne réessaie plus : tant qu'une liaison en attente ou active existe avec cette adresse, rien n'est refait aux démarrages suivants. Une liaison coupée ne compte pas : après une coupure, un nouveau code au démarrage appaire à nouveau. Un code de moins de 16 caractères est ignoré. Les administrateurs confirment toujours l'empreinte des deux côtés.
 
 ```yaml
 # Exemple : docker compose up, puis confirmer l'empreinte dans les deux consoles

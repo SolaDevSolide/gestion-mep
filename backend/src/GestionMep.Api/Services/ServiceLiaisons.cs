@@ -574,6 +574,28 @@ public sealed class ServiceLiaisons(MepDbContext db, IConfiguration config, Time
     }
 
     /// <summary>
+    /// Relit l'état de la liaison chez Noosphere à la demande de la console (ouverture de l'onglet « Liaisons »), pour ne pas
+    /// afficher un état du pair périmé. Rien pour une liaison coupée ou fictive (démonstration). Si Noosphere vient de
+    /// confirmer et que la liaison est confirmée ici, le catalogue est relu dans la foulée.
+    /// </summary>
+    public async Task<Liaison> RelireStatut(Liaison l, CancellationToken ct)
+    {
+        if (l.Etat == EtatLiaison.Coupee || l.Cles is null || EstDemo(l)) return l;
+        var verrou = signal.Verrou(l.Id);
+        await verrou.WaitAsync(ct);
+        try
+        {
+            var avant = l.ConfirmeeParPair;
+            try { await LireStatut(l, ct); }
+            finally { await db.SaveChangesAsync(CancellationToken.None); }
+            if (avant != true && l.ConfirmeeParPair == true && l.ConfirmeeIci && l.Etat == EtatLiaison.Active)
+                signal.DemanderSynchro(l.Id, Maintenant.AddSeconds(2));
+            return l;
+        }
+        finally { verrou.Release(); }
+    }
+
+    /// <summary>
     /// Synchronise la liaison : état du pair puis catalogue (<c>If-None-Match</c> avec le dernier ETag : 304 si rien n'a
     /// changé), appliqué aux systèmes suivis. Exige la confirmation ici ; Noosphere répond 403 tant qu'il n'a pas confirmé.
     /// </summary>
@@ -789,6 +811,8 @@ public sealed class ServiceLiaisons(MepDbContext db, IConfiguration config, Time
             var touche = m.Systemes.Any(s => s.CatalogueId is { } c && suivis.ContainsKey(c));
             var precedent = envoyes.GetValueOrDefault(m.Id);
             if (!touche && precedent is null) continue;
+            // Une MEP n'est annoncée qu'à partir du moment où une date est prévue ; ensuite, chaque changement part (annulation comprise).
+            if (precedent is null && SynchroLiaison.Creneau(m).Debut is null) continue;
             if (precedent is null && Regles.EstTerminee(m) && (m.ClotureeLe ?? m.Annulation?.Le ?? m.CreeLe) < maintenant - HistoriqueEnvoye) continue;
             var e = SynchroLiaison.Evenement(m, suivis, urlBase, maintenant);
             if (precedent?.Empreinte != SynchroLiaison.Empreinte(e)) evenements.Add(e);
@@ -800,6 +824,32 @@ public sealed class ServiceLiaisons(MepDbContext db, IConfiguration config, Time
             if (designees is null || designees.Contains(mepId)) evenements.Add(SynchroLiaison.Supprimee(envoi.Contenu, maintenant));
         }
         return evenements;
+    }
+
+    /// <summary>
+    /// Envoi d'une MEP à Noosphere, liaison par liaison (hors liaisons coupées) : les applications suivies qu'elle touche, et
+    /// le dernier événement envoyé (null : pas encore envoyée). Vide pour une MEP qui ne touche aucun système suivi et n'a
+    /// jamais été envoyée, ou pour un modèle.
+    /// </summary>
+    public async Task<List<EnvoiMepNoosphereDto>> EnvoisMep(Mep m)
+    {
+        if (m.EstModele) return [];
+        var envois = await db.DeploiementsLiaison.AsNoTracking().Where(d => d.MepId == m.Id).ToListAsync();
+        var catalogueIds = m.Systemes.Where(s => s.CatalogueId != null).Select(s => s.CatalogueId!.Value).Distinct().ToList();
+        var suivis = (await db.SystemesCatalogue.AsNoTracking().Where(s => s.Source != null && catalogueIds.Contains(s.Id)).ToListAsync())
+            .Where(s => !s.Source!.Absente).ToList();
+        var ids = envois.Select(e => e.LiaisonId).Concat(suivis.Select(s => s.Source!.LiaisonId)).Distinct().ToList();
+        if (ids.Count == 0) return [];
+        var liaisons = await db.Liaisons.AsNoTracking().Where(l => ids.Contains(l.Id) && l.Etat != EtatLiaison.Coupee)
+            .OrderBy(l => l.AppaireeLe).ToListAsync();
+        return liaisons.Select(l =>
+        {
+            var envoi = envois.FirstOrDefault(e => e.LiaisonId == l.Id);
+            var apps = suivis.Where(s => s.Source!.LiaisonId == l.Id).OrderBy(s => s.Nom, StringComparer.OrdinalIgnoreCase)
+                .Select(s => new ApplicationMepNoosphereDto(s.Id, s.Nom, s.Source!.ApplicationId, s.Source.Url, s.Source.Domaine, s.Source.Equipe)).ToList();
+            return new EnvoiMepNoosphereDto(l.Id, l.NomInstance, EnvoieLesMeps(l), EstDemo(l), envoi?.EnvoyeLe, envoi?.Contenu?.Phase ?? "",
+                SynchroLiaison.Creneau(m).Debut is not null, apps);
+        }).Where(e => e.Applications.Count > 0 || e.EnvoyeeLe is not null).ToList();
     }
 
     /// <summary>Liaison qui reçoit les MEP : confirmée ici, pas refusée par Noosphere, envoi activé, capacité accordée.</summary>

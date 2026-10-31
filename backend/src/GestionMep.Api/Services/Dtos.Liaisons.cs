@@ -60,3 +60,14 @@ public record SynchroLiaisonDto(bool Inchange, string Resume, List<string> Crees
 /// <summary>Système suivi depuis Noosphere (« Géré par Noosphere ») : nom et description en lecture seule ; <c>Url</c> : « Ouvrir dans Noosphere ».</summary>
 public record SourceNoosphereDto(Guid LiaisonId, string ApplicationId, string Url, string Domaine, string Equipe, string Cycle,
     DateTimeOffset? DerniereSynchro, bool Absente);
+
+/// <summary>Application de Noosphere touchée par une MEP, par un système suivi : « Voir dans Noosphere » (<c>Url</c>).</summary>
+public record ApplicationMepNoosphereDto(Guid SystemeId, string Systeme, string ApplicationId, string Url, string Domaine, string Equipe);
+
+/// <summary>
+/// MEP envoyée à Noosphere (« Envoyée à Noosphere »), pour une liaison. <c>EnvoyeeLe</c> : dernier envoi (null : pas encore
+/// envoyée) ; <c>Phase</c> : phase du contrat de ce dernier envoi. <c>EnvoiActif</c> : la liaison envoie les MEP (option et
+/// confirmation des deux côtés). <c>DatePrevue</c> : la MEP a une date ; sans date, elle n'est pas encore annoncée.
+/// </summary>
+public record EnvoiMepNoosphereDto(Guid LiaisonId, string NomInstance, bool EnvoiActif, bool Demo, DateTimeOffset? EnvoyeeLe, string Phase,
+    bool DatePrevue, List<ApplicationMepNoosphereDto> Applications);
