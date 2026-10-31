@@ -442,6 +442,34 @@ public class LiaisonNoosphereTests : IDisposable
     }
 
     [Fact]
+    public async Task Confirmation_de_Noosphere_apres_la_notre_relue_des_qu_il_lit_notre_etat()
+    {
+        // Essai d'interopérabilité : confirmée ici d'abord, la liaison attendait le passage suivant (15 minutes) pour
+        // apprendre que Noosphere avait confirmé à son tour. Noosphere lit /status juste après sa confirmation.
+        var admin = await Appairer(confirmer: false);
+        (await admin.PostAsJsonAsync($"/api/admin/liaisons/{_pair.LinkId}/confirmer", new { empreinte = _pair.Empreinte() })).EnsureSuccessStatusCode();
+        await Taches.Passage(CancellationToken.None); // refusée par Noosphere (403) : prochaine relecture dans 15 minutes
+        Assert.False((await Liaison()).ConfirmeeParPair);
+        Assert.Null((await Liaison()).DerniereSynchro);
+
+        _pair.Confirme = true;
+        var etat = await Envoyer(_pair.Requete(HttpMethod.Get, "/link/v1/status"));
+        Assert.Equal(HttpStatusCode.OK, etat.StatusCode);
+        _horloge.Decalage = TimeSpan.FromSeconds(3);
+        await Taches.Passage(CancellationToken.None);
+        var l = await Liaison();
+        Assert.True(l.ConfirmeeParPair);
+        Assert.NotNull(l.DerniereSynchro);
+
+        // Une fois sa confirmation connue, une lecture de l'état par Noosphere ne relance plus rien.
+        var lectures = _pair.Recus.Count(r => r == "GET /link/v1/catalog");
+        await Envoyer(_pair.Requete(HttpMethod.Get, "/link/v1/status"));
+        _horloge.Decalage = TimeSpan.FromSeconds(6);
+        await Taches.Passage(CancellationToken.None);
+        Assert.Equal(lectures, _pair.Recus.Count(r => r == "GET /link/v1/catalog"));
+    }
+
+    [Fact]
     public async Task Renouvellement_des_cles_dans_les_deux_sens_avec_delai_de_grace()
     {
         var admin = await Appairer();

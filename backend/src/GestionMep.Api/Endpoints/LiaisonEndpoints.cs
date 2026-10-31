@@ -215,6 +215,10 @@ public static class LiaisonEndpoints
             svc.Noter(l.Id, "entrant", "status", "ok", 200, "État demandé par Noosphere.");
             l.DernierEchangeLe = svc.Maintenant;
             await db.SaveChangesAsync();
+            // Noosphere lit cet état juste après avoir confirmé l'empreinte de son côté : tant que sa confirmation n'est pas
+            // connue ici, relire son état et le catalogue dans la foulée plutôt qu'au prochain passage (15 minutes).
+            if (l.ConfirmeeIci && l.Etat == EtatLiaison.Active && l.ConfirmeeParPair != true)
+                svc.Signal.DemanderSynchro(l.Id, svc.Maintenant.AddSeconds(2));
             await Repondre(ctx, svc, l, 200, svc.Chiffrer(l, statut));
         });
 

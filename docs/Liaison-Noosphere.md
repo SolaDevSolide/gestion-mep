@@ -16,7 +16,7 @@ La liaison se gère dans la console d'administration (API `/api/admin/liaisons`,
 3. Les deux serveurs échangent leurs clés publiques. Les deux écrans affichent la même **empreinte** de quatre mots, par exemple `orbit cedar 0712 lumen`.
 4. Chaque administrateur vérifie que les deux empreintes sont identiques (par téléphone, en visio…) et **confirme** de son côté : `gestion-mep liaison confirmer <id> --empreinte "orbit cedar 0712 lumen"`, ou `POST /api/admin/liaisons/{id}/confirmer { empreinte }`. Une empreinte différente est refusée (422) et inscrite au journal d'administration (`liaison.empreinte-differente`) : ne confirmez pas, coupez la liaison et recommencez.
 
-Un côté n'échange des données qu'après avoir confirmé : tant que Noosphere n'a pas confirmé, la liaison indique `confirmeeParNoosphere: false` et la lecture du catalogue attend. Avant confirmation, seuls l'état de la liaison (`/status`) et la coupure (`/unpair`) sont acceptés.
+Un côté n'échange des données qu'après avoir confirmé : tant que Noosphere n'a pas confirmé, la liaison indique `confirmeeParNoosphere: false` et la lecture du catalogue attend. Quand Noosphere confirme après Gestion MEP, il lit aussitôt l'état de la liaison (`/status`) : Gestion MEP relit alors son état et le catalogue dans les secondes qui suivent, sans attendre le passage suivant (15 minutes). Avant confirmation, seuls l'état de la liaison (`/status`) et la coupure (`/unpair`) sont acceptés.
 
 Erreurs à l'appairage : code inconnu ou expiré (404), déjà utilisé (409), incorrect (422 ; Noosphere bloque le code après 5 essais erronés), bloqué (422, demandez un nouveau code), adresse injoignable ou réponse invalide (502).
 
