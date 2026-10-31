@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { useReferentiel } from '../../referentiels';
 import { AuthContext } from '../../auth';
+import { BadgeNoosphere } from '../../admin/liaisons/communs';
+import { DetailEnvoi, useEnvoisNoosphere } from '../MarqueNoosphere';
 import { useMep } from '../../mepContext';
 import { filtrerParEquipe } from '../../personnes';
 import { ENVIRONNEMENTS, memeEnvironnement, nomDeProduction } from '../../environnements';
@@ -301,6 +303,9 @@ export function SystemesSection() {
   const [forme, setForme] = useState<{ existant?: Systeme } | null>(null);
   const [suppr, setSuppr] = useState<Systeme | null>(null);
   const dejaPresents = new Set(mep.systemes.map((s) => s.catalogueId).filter(Boolean));
+  const fiches = new Map(catalogue.map((c) => [c.id, c]));
+  // Envoi de la MEP à Noosphere (#123) : encadré quand elle touche un système géré par Noosphere.
+  const envoi = useEnvoisNoosphere(mep).donnees?.[0];
   const options = catalogue
     .filter((c) => c.actif && !dejaPresents.has(c.id))
     .map((c) => ({ valeur: c.id, libelle: c.nom, detail: c.cible || c.description }));
@@ -392,6 +397,7 @@ export function SystemesSection() {
           </div>
         </div>
       )}
+      {envoi && <DetailEnvoi envoi={envoi} className="mb-5 animate-fade-in border" />}
       {mep.systemes.length === 0 ? (
         <EmptyState
           icone={Layers}
@@ -408,12 +414,13 @@ export function SystemesSection() {
                   <p className="flex flex-wrap items-center gap-2 font-medium">
                     {/* Menu du système : historique de ses MEP, MEP sur ce système (#59). */}
                     <NomSystemeMep s={s} />
-                    {s.catalogueId && (
+                    {s.catalogueId && !fiches.get(s.catalogueId)?.source && (
                       <Badge ton="run">
                         <Library className="size-3" aria-hidden />
                         Catalogue
                       </Badge>
                     )}
+                    {s.catalogueId && fiches.get(s.catalogueId)?.source && <BadgeNoosphere />}
                   </p>
                   <p className="truncate font-mono text-xs text-fg-subtle">{s.cible || 'Cible non précisée'}</p>
                 </div>

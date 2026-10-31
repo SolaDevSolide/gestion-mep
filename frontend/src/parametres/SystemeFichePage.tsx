@@ -1,5 +1,7 @@
 import {
   ArrowLeft,
+  ExternalLink,
+  Link2,
   Boxes,
   CheckCircle2,
   CircleOff,
@@ -34,6 +36,9 @@ import { Tooltip } from '../ui/Tooltip';
 import { useToast } from '../ui/Toast';
 import { EnChargement, Squelette, SqueletteTableau } from '../ui/Squelette';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
+import { BadgeNoosphere, LienNoosphere, raisonInactif } from '../admin/liaisons/communs';
+import { libelleCycle } from '../admin/liaisons/liaisons';
+import { formatDateHeure } from '../format';
 import { HistoriqueSysteme } from './HistoriqueSysteme';
 import { SystemeDialog } from './SystemeDialog';
 
@@ -111,11 +116,13 @@ export default function SystemeFichePage() {
         <div className="apparition">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight">
-                {s.nom}
+              <h1 className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-2xl font-semibold tracking-tight">
+                <span className="min-w-0 [overflow-wrap:anywhere]">{s.nom}</span>
                 <StatusPill taille="sm" ton={s.actif ? 'ok' : 'wait'} icone={s.actif ? CheckCircle2 : CircleOff}>
                   {s.actif ? 'Actif' : 'Inactif'}
+                  {!s.actif && raisonInactif(s.source) && ` · ${raisonInactif(s.source)}`}
                 </StatusPill>
+                {s.source && <BadgeNoosphere className="text-xs" />}
               </h1>
               <p className="mt-1 text-sm text-fg-subtle">
                 {s.description || 'Sans description'}
@@ -128,11 +135,14 @@ export default function SystemeFichePage() {
                 </p>
               )}
             </div>
-            {admin && (
-              <Button icone={<Pencil className="size-4" aria-hidden />} onClick={() => setModifier(true)}>
-                Modifier
-              </Button>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {s.source?.url && <BoutonOuvrirNoosphere url={s.source.url} />}
+              {admin && (
+                <Button icone={<Pencil className="size-4" aria-hidden />} onClick={() => setModifier(true)}>
+                  Modifier
+                </Button>
+              )}
+            </div>
           </div>
           <Tabs
             value={onglet}
@@ -148,7 +158,34 @@ export default function SystemeFichePage() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="fiche" className="mt-6 space-y-6 outline-none">
-              <CarteEnvironnements systeme={s} admin={admin} agir={agir} />
+              {s.source ? (
+                <>
+                  <Alerte
+                    ton="run"
+                    icone={Link2}
+                    titre="Nom et description viennent de Noosphere"
+                    action={
+                      s.source.url && (
+                        <LienNoosphere
+                          url={s.source.url}
+                          className="rounded-md border border-line-strong bg-surface px-2.5 py-1 text-ui text-fg shadow-sm hover:bg-surface-2 hover:no-underline"
+                        >
+                          Ouvrir la fiche dans Noosphere
+                        </LienNoosphere>
+                      )
+                    }
+                  >
+                    Ils sont en lecture seule ici et suivent la fiche Noosphere à chaque synchronisation.
+                    Environnements, cibles et objets restent gérés dans Gestion MEP.
+                  </Alerte>
+                  <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-2">
+                    <CarteNoosphere systeme={s} admin={admin} />
+                    <CarteEnvironnements systeme={s} admin={admin} agir={agir} />
+                  </div>
+                </>
+              ) : (
+                <CarteEnvironnements systeme={s} admin={admin} agir={agir} />
+              )}
               <CarteObjets
                 systeme={s}
                 objets={donnees.objets}
@@ -181,6 +218,75 @@ export default function SystemeFichePage() {
 }
 
 type Agir = (action: () => Promise<unknown>, succes: string) => Promise<boolean>;
+
+/* ------------------------------------------------------------------ Noosphere (#123) */
+
+/** « Ouvrir dans Noosphere » : la fiche de l'application, dans un nouvel onglet (inactif en démonstration). */
+function BoutonOuvrirNoosphere({ url }: { url: string }) {
+  return (
+    <LienNoosphere
+      url={url}
+      icone={false}
+      className="h-9 gap-2 rounded-lg border border-line-strong bg-surface px-3.5 text-sm text-fg shadow-sm transition-colors duration-150 hover:bg-surface-2 hover:no-underline"
+    >
+      <ExternalLink className="size-4" aria-hidden />
+      Ouvrir dans Noosphere
+    </LienNoosphere>
+  );
+}
+
+/** Ce que Noosphere dit du système suivi : domaine, équipe, cycle de vie, identifiant, dernière synchronisation. */
+function CarteNoosphere({ systeme: s, admin }: { systeme: SystemeCatalogue; admin: boolean }) {
+  const src = s.source;
+  if (!src) return null;
+  const ligne = (libelle: string, valeur: ReactNode) => (
+    <div className="grid gap-0.5 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-4">
+      <dt className="text-fg-subtle">{libelle}</dt>
+      <dd className="min-w-0 [overflow-wrap:anywhere]">{valeur || <span className="text-fg-subtle">—</span>}</dd>
+    </div>
+  );
+  return (
+    <Card>
+      <CardHeader
+        titre="Dans Noosphere"
+        description="Lu à chaque synchronisation, en lecture seule."
+        action={
+          src.url && (
+            <LienNoosphere url={src.url} className="text-ui">
+              Ouvrir dans Noosphere
+            </LienNoosphere>
+          )
+        }
+      />
+      <dl className="grid gap-3 p-5 text-sm">
+        {ligne('Domaine', src.domaine)}
+        {ligne('Équipe', src.equipe)}
+        {ligne('Cycle de vie', src.cycle && libelleCycle(src.cycle))}
+        {ligne('Identifiant Noosphere', <span className="font-mono">{src.applicationId}</span>)}
+        {ligne(
+          'Dernière synchronisation',
+          <>
+            {formatDateHeure(src.derniereSynchro)}
+            {admin && (
+              <>
+                {' · '}
+                <Link to="/admin?onglet=liaisons" className="font-semibold text-accent-text hover:underline">
+                  Liaison
+                </Link>
+              </>
+            )}
+          </>,
+        )}
+        {src.absente && (
+          <p className="text-ui text-warn-text">
+            L’application n’est plus dans le catalogue de Noosphere (supprimée ou devenue restreinte) : système
+            désactivé.
+          </p>
+        )}
+      </dl>
+    </Card>
+  );
+}
 
 /* ------------------------------------------------------------------ Environnements */
 

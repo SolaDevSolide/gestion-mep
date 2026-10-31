@@ -605,3 +605,6 @@ export type EchangeLiaison = S['EchangeLiaisonDto'];
 export type SynchroLiaison = S['SynchroLiaisonDto'];
 /** Système du catalogue suivi depuis Noosphere (« Géré par Noosphere »). */
 export type SourceNoosphere = S['SourceNoosphereDto'];
+/** Envoi d'une MEP à Noosphere, pour une liaison (« Envoyée à Noosphere »). */
+export type EnvoiMepNoosphere = S['EnvoiMepNoosphereDto'];
+export type ApplicationMepNoosphere = S['ApplicationMepNoosphereDto'];
