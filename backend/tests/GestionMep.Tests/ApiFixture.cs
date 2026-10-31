@@ -57,6 +57,7 @@ public class ApiFixture : IDisposable
         Environment.SetEnvironmentVariable("MisesAJour__Dossier", DossierMiseAJour);
         Environment.SetEnvironmentVariable("Connexion__TentativesParMinute", "1000"); // les tests se connectent sans cesse depuis la même « adresse »
         Environment.SetEnvironmentVariable("ConnexionsApi__EnvoiArrierePlan", "false"); // les tests font passer la file des appels eux-mêmes (EnvoiAppelsApi.Traiter)
+        Environment.SetEnvironmentVariable("Liaisons__ArrierePlan", "false"); // les tests font passer les tâches de la liaison eux-mêmes (TachesLiaisons.Passage)
         // Fichier de charte visuelle propre au test (absent par défaut) : jamais celui de la machine (/etc/gestion-mep/charte.json).
         Environment.SetEnvironmentVariable("Charte__Fichier", FichierCharte);
         _usine = _racine = new WebApplicationFactory<Program>();
