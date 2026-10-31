@@ -23,7 +23,7 @@ public static partial class LigneDeCommande
             Json = "resultat : la liaison, comme GET /api/admin/liaisons/{id}",
             Exemples = ["gestion-mep liaison appairer https://noosphere.entreprise.fr 7K4Q-29XD-M3PA"],
         },
-        new("liaison liste", "", "Liaisons : instance, état, confirmation des deux côtés, empreinte, dernière synchronisation", a => { a.Rien(0); return LiaisonListe(); })
+        new("liaison liste", "", "Liaisons : instance, état, confirmation des deux côtés, empreinte, systèmes suivis, applications à rapprocher, dernière synchronisation", a => { a.Rien(0); return LiaisonListe(); })
         {
             Json = "tableau des liaisons, comme GET /api/admin/liaisons",
             Exemples = ["gestion-mep liaison liste", "gestion-mep liaison liste --json"],
@@ -126,9 +126,9 @@ public static partial class LigneDeCommande
             return Codes.Succes;
         }
         var largeur = Math.Max(8, liste.Max(l => l.NomInstance.Length));
-        Ecrire($"{"ID",-8}  {"INSTANCE".PadRight(largeur)}  {"ÉTAT",-27}  {"EMPREINTE",-28}  {"SYSTÈMES",-8}  SYNCHRONISÉE");
+        Ecrire($"{"ID",-8}  {"INSTANCE".PadRight(largeur)}  {"ÉTAT",-27}  {"EMPREINTE",-28}  {"SYSTÈMES",-8}  {"À RAPPROCHER",-12}  SYNCHRONISÉE");
         foreach (var l in liste)
-            Ecrire($"{l.Id.ToString()[..8]}  {l.NomInstance.PadRight(largeur)}  {LibelleEtat(l),-27}  {l.Empreinte,-28}  {l.SystemesSuivis,-8}  "
+            Ecrire($"{l.Id.ToString()[..8]}  {l.NomInstance.PadRight(largeur)}  {LibelleEtat(l),-27}  {l.Empreinte,-28}  {l.SystemesSuivis,-8}  {l.ARapprocher,-12}  "
                 + (l.DerniereSynchro is { } d ? Date(d) : "—"));
         return Codes.Succes;
     }

@@ -8460,6 +8460,7 @@ export interface components {
             cycle: string;
             url: string;
             suivie: boolean;
+            aRapprocher: boolean;
             /** Format: uuid */
             systemeId: null | string;
             systeme: null | string;
@@ -10316,7 +10317,8 @@ export interface components {
         /**
          * @description Liaison avec une instance de Noosphere. `ConfirmeeParNoosphere` : confirmation de l'empreinte côté Noosphere d'après
          *     son dernier `/status` (null : pas encore connue) ; les données ne s'échangent qu'une fois confirmée des deux côtés.
-         *     `Demo` : liaison fictive de la démonstration (aucun appel ne part).
+         *     `ARapprocher` : nouvelles applications des domaines suivis mises de côté parce qu'un système local porte un nom proche
+         *     (ni créées ni rattachées tant que l'administrateur n'a pas choisi). `Demo` : liaison fictive de la démonstration (aucun appel ne part).
          */
         LiaisonDto: {
             /** Format: uuid */
@@ -10351,6 +10353,8 @@ export interface components {
             derniereErreur: string;
             /** Format: int32 */
             systemesSuivis: number;
+            /** Format: int32 */
+            aRapprocher: number;
             demo: boolean;
         };
         /** @description Lien redondant : `Vers` attend déjà `De` par un autre chemin ; `Libelle` : « E0007 → Fin (Export) ». */

@@ -955,7 +955,7 @@ gestion-mep liaison appairer https://noosphere.entreprise.fr 7K4Q-29XD-M3PA
 gestion-mep liaison liste
 ```
 
-Liaisons : instance, état, confirmation des deux côtés, empreinte, dernière synchronisation.
+Liaisons : instance, état, confirmation des deux côtés, empreinte, systèmes suivis, applications à rapprocher, dernière synchronisation.
 
 Sortie `--json` : tableau des liaisons, comme GET /api/admin/liaisons.
 

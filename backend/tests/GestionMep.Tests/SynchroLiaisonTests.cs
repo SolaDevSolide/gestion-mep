@@ -110,6 +110,45 @@ public class SynchroLiaisonTests
     }
 
     [Fact]
+    public void Suivi_automatique_met_de_cote_une_application_au_nom_proche_d_un_systeme_local()
+    {
+        // Le rapprochement par le nom se confirme toujours : ni rattachée ni créée, l'application attend le choix de l'administrateur.
+        var l = new Liaison { Id = Guid.NewGuid(), DomainesSuivis = ["fin"], ApplicationsConnues = ["old"] };
+        var local = new SystemeCatalogue { Nom = "Facturation" };
+        var proche = new SystemeCatalogue { Nom = "Portail" };
+        var systemes = new List<SystemeCatalogue> { local, proche };
+        var c = Catalogue(App("old", "Ancienne"), App("billing", "facturation"), App("portal", "Portail RH"), App("crm", "CRM"));
+        var bilan = SynchroLiaison.Appliquer(l, c, systemes, T0);
+        Assert.Equal(["CRM"], bilan.Crees);
+        Assert.Empty(bilan.Rattaches);
+        Assert.Equal(["facturation", "Portail RH"], bilan.ARapprocher);
+        Assert.Null(local.Source);
+        Assert.Null(proche.Source);
+        Assert.Equal(3, systemes.Count);
+        Assert.Equal(["billing", "portal"], l.ApplicationsARapprocher);
+
+        // Lectures suivantes : toujours en attente, même suivi automatique coupé, jamais rattachées seules.
+        l.SuiviAutomatique = false;
+        SynchroLiaison.Appliquer(l, c, systemes, T0.AddMinutes(15));
+        Assert.Null(local.Source);
+        Assert.Equal(["billing", "portal"], l.ApplicationsARapprocher);
+
+        // Le choix de l'administrateur la sort de l'attente.
+        SynchroLiaison.Suivre(l, c, c.Applications![1], systemes, local.Id, T0, new BilanSynchro());
+        Assert.Equal("billing", local.Source!.ApplicationId);
+        Assert.Equal(["portal"], l.ApplicationsARapprocher);
+
+        // Le système proche a disparu : plus rien à confirmer, le système est créé ; une application disparue n'attend plus.
+        systemes.Remove(proche);
+        var suite = SynchroLiaison.Appliquer(l, c, systemes, T0.AddMinutes(30));
+        Assert.Equal(["Portail RH"], suite.Crees);
+        Assert.Empty(l.ApplicationsARapprocher);
+        l.ApplicationsARapprocher = ["gone"];
+        SynchroLiaison.Appliquer(l, c, systemes, T0.AddMinutes(45));
+        Assert.Empty(l.ApplicationsARapprocher);
+    }
+
+    [Fact]
     public void Coupure_rend_les_systemes_locaux()
     {
         var l = new Liaison { Id = Guid.NewGuid() };

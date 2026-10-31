@@ -51,7 +51,7 @@ export default function LiaisonsTab() {
   const [etat, setEtat] = useState<Etat | null>(null);
   const [echec, setEchec] = useState<unknown>(null);
   const [enCours, setEnCours] = useState(false);
-  const [edition, setEdition] = useState(false);
+  const [edition, setEdition] = useState<false | 'choisir' | 'rapprocher'>(false);
 
   const lire = useCallback(async (relire: boolean) => {
     setEnCours(true);
@@ -132,8 +132,9 @@ export default function LiaisonsTab() {
     return (
       <div className="apparition">
         <SuiviApplications
-          key={etat.catalogue.luLe ?? ''}
+          key={`${etat.catalogue.luLe ?? ''}-${edition || ''}`}
           liaison={courante}
+          rapprocherDabord={edition === 'rapprocher'}
           catalogue={etat.catalogue}
           onTermine={(c, l) => {
             setEdition(false);
@@ -152,7 +153,8 @@ export default function LiaisonsTab() {
         avertissement={etat.avertissement}
         onChange={remplacer}
         onCoupee={() => void lire(false)}
-        onModifierSuivi={() => setEdition(true)}
+        onModifierSuivi={() => setEdition('choisir')}
+        onRapprocher={() => setEdition('rapprocher')}
         onRelireStatut={() => lire(true)}
       />
     </div>

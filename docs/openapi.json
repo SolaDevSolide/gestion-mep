@@ -7994,6 +7994,7 @@
           "cycle",
           "url",
           "suivie",
+          "aRapprocher",
           "systemeId",
           "systeme",
           "suggestions"
@@ -8031,6 +8032,9 @@
             "type": "string"
           },
           "suivie": {
+            "type": "boolean"
+          },
+          "aRapprocher": {
             "type": "boolean"
           },
           "systemeId": {
@@ -14673,6 +14677,7 @@
           "derniereSynchro",
           "derniereErreur",
           "systemesSuivis",
+          "aRapprocher",
           "demo"
         ],
         "type": "object",
@@ -14781,11 +14786,15 @@
             "type": "integer",
             "format": "int32"
           },
+          "aRapprocher": {
+            "type": "integer",
+            "format": "int32"
+          },
           "demo": {
             "type": "boolean"
           }
         },
-        "description": "Liaison avec une instance de Noosphere. `ConfirmeeParNoosphere` : confirmation de l'empreinte côté Noosphere d'après\nson dernier `/status` (null : pas encore connue) ; les données ne s'échangent qu'une fois confirmée des deux côtés.\n`Demo` : liaison fictive de la démonstration (aucun appel ne part)."
+        "description": "Liaison avec une instance de Noosphere. `ConfirmeeParNoosphere` : confirmation de l'empreinte côté Noosphere d'après\nson dernier `/status` (null : pas encore connue) ; les données ne s'échangent qu'une fois confirmée des deux côtés.\n`ARapprocher` : nouvelles applications des domaines suivis mises de côté parce qu'un système local porte un nom proche\n(ni créées ni rattachées tant que l'administrateur n'a pas choisi). `Demo` : liaison fictive de la démonstration (aucun appel ne part)."
       },
       "LienRedondantDto": {
         "required": [

@@ -52,6 +52,7 @@ function liaison(p: Partial<LiaisonNoosphere> = {}): LiaisonNoosphere {
     derniereSynchro: '2026-10-31T11:44:00Z',
     derniereErreur: '',
     systemesSuivis: 2,
+    aRapprocher: 0,
     demo: false,
     ...p,
   };
@@ -67,6 +68,7 @@ function app(p: Partial<ApplicationLiaison> & { id: string; nom: string }): Appl
     cycle: 'live',
     url: `https://docs.alize.example/applications/${p.id}`,
     suivie: false,
+    aRapprocher: false,
     systemeId: null,
     systeme: null,
     suggestions: [],
@@ -355,6 +357,35 @@ describe('Onglet Liaisons : applications suivies et rapprochement', () => {
       domainesSuivis: [],
       applications: [{ applicationId: 'archive', suivre: false, systemeId: null }],
     });
+  });
+
+  it('application mise de côté par la synchronisation : signalée, puis rapprochée sans rien créer seule', async () => {
+    const enAttente = liaison({ aRapprocher: 1 });
+    vi.mocked(api.liaisons).mockResolvedValue([enAttente]);
+    vi.mocked(api.statutLiaison).mockResolvedValue(enAttente);
+    vi.mocked(api.catalogueLiaison).mockResolvedValue({
+      ...catalogue,
+      domaines: catalogue.domaines.map((d) => ({ ...d, suivi: true })),
+      applications: catalogue.applications.map((a) =>
+        a.id === 'crm' ? { ...a, aRapprocher: true } : a.domaineId === 'socle' ? { ...a, suivie: true } : a,
+      ),
+    });
+    vi.mocked(api.suiviLiaison).mockResolvedValue(catalogue);
+    vi.mocked(api.liaison).mockResolvedValue(liaison());
+    rendre();
+    expect(await screen.findByText('1 application à rapprocher du catalogue')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Rapprocher' }));
+    // Directement sur le rapprochement : seule l'application en attente, son système du même nom proposé.
+    expect(screen.getByText('Rapprocher du catalogue')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Choix pour CRM' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Choix pour Payments' })).not.toBeInTheDocument();
+    expect(api.suiviLiaison).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Valider et synchroniser' }));
+    expect(api.suiviLiaison).toHaveBeenCalledWith('l1', {
+      domainesSuivis: ['finance', 'socle'],
+      applications: [{ applicationId: 'crm', suivre: true, systemeId: 's3' }],
+    });
+    expect(await screen.findByText('Journal des échanges')).toBeInTheDocument();
   });
 
   it('catalogue lu sans rien de suivi : le choix des applications s’ouvre de lui-même', async () => {

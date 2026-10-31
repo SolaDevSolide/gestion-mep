@@ -215,7 +215,7 @@ public sealed class ServiceLiaisons(MepDbContext db, IConfiguration config, Time
     public static LiaisonDto Dto(Liaison l, int suivis, bool demo) => new(l.Id, l.Produit, l.NomInstance, l.Url, l.VersionPair, l.Etat, l.ConfirmeeIci,
         l.ConfirmeeLe, l.ConfirmeePar, l.ConfirmeeParPair, [.. l.Capacites], l.Empreinte, l.AppaireeLe, l.AppaireePar, l.ClesRenouveleesLe,
         l.DernierEchangeLe, l.CoupeeLe, l.CoupeePar, l.EnvoyerMeps, l.SuiviAutomatique, [.. l.DomainesSuivis], l.DerniereSynchro, l.DerniereErreur,
-        suivis, demo);
+        suivis, l.ApplicationsARapprocher.Count, demo);
 
     public async Task<LiaisonDto> Dto(Liaison l)
     {
@@ -688,7 +688,7 @@ public sealed class ServiceLiaisons(MepDbContext db, IConfiguration config, Time
         {
             var suivi = parApp.GetValueOrDefault(a.Id);
             return new ApplicationLiaisonDto(a.Id, a.Nom, a.Description ?? "", a.DomaineId, c.Domaines?.FirstOrDefault(d => d.Id == a.DomaineId)?.Nom ?? "",
-                c.Equipes?.FirstOrDefault(e => e.Id == a.EquipeId)?.Nom ?? "", a.Type ?? "", a.Cycle ?? "", a.Url ?? "", suivi is not null, suivi?.Id, suivi?.Nom,
+                c.Equipes?.FirstOrDefault(e => e.Id == a.EquipeId)?.Nom ?? "", a.Type ?? "", a.Cycle ?? "", a.Url ?? "", suivi is not null, suivi is null && l.ApplicationsARapprocher.Contains(a.Id), suivi?.Id, suivi?.Nom,
                 suivi is not null ? [] : SynchroLiaison.Suggestions(a, systemes).Take(5)
                     .Select(s => new SuggestionSystemeDto(s.Id, s.Nom, SynchroLiaison.NomNormalise(s.Nom) == SynchroLiaison.NomNormalise(a.Nom))).ToList());
         }).ToList());
@@ -714,9 +714,10 @@ public sealed class ServiceLiaisons(MepDbContext db, IConfiguration config, Time
             // Une application choisie une par une dans la même saisie suit ce choix (système désigné, ou plus suivie) : le
             // domaine ne lui crée pas d'abord un système qui resterait ensuite dans le catalogue comme système local en double.
             var choisies = (s.Applications ?? []).Select(a => a.ApplicationId).OfType<string>().ToHashSet(StringComparer.Ordinal);
-            foreach (var app in apps.Values.Where(a => a.DomaineId is { } d && ajoutes.Contains(d) && !choisies.Contains(a.Id)
-                         && !string.Equals(a.Cycle, "retired", StringComparison.OrdinalIgnoreCase)))
-                SynchroLiaison.Suivre(l, c, app, systemes, null, Maintenant, bilan);
+            SynchroLiaison.SuivreDomaine(l, c, apps.Values.Where(a => a.DomaineId is { } d && ajoutes.Contains(d) && !choisies.Contains(a.Id)),
+                systemes, Maintenant, bilan);
+            // Domaine retiré : ses applications en attente de rapprochement n'attendent plus.
+            l.ApplicationsARapprocher = [.. l.ApplicationsARapprocher.Where(id => apps.TryGetValue(id, out var a) && a.DomaineId is { } d && l.DomainesSuivis.Contains(d))];
             foreach (var sys in systemes.Where(x => x.Source?.LiaisonId == l.Id && apps.TryGetValue(x.Source.ApplicationId, out var a) && a.DomaineId is { } d
                          && enleves.Contains(d)).ToList())
             {
@@ -731,6 +732,7 @@ public sealed class ServiceLiaisons(MepDbContext db, IConfiguration config, Time
                 throw ErreurHttp.Saisie($"Application inconnue de Noosphere : {choix.ApplicationId}.");
             if (choix.Suivre == false)
             {
+                l.ApplicationsARapprocher = [.. l.ApplicationsARapprocher.Where(x => x != app.Id)];
                 if (systemes.FirstOrDefault(x => x.Source?.LiaisonId == l.Id && x.Source.ApplicationId == app.Id) is { } sys)
                 {
                     retires.Add(sys.Nom);
@@ -754,6 +756,7 @@ public sealed class ServiceLiaisons(MepDbContext db, IConfiguration config, Time
         var details = new List<string>();
         if (bilan.Crees.Count > 0) details.Add($"créés : {string.Join(", ", bilan.Crees)}");
         if (bilan.Rattaches.Count > 0) details.Add($"rattachés : {string.Join(", ", bilan.Rattaches)}");
+        if (bilan.ARapprocher.Count > 0) details.Add($"à rapprocher : {string.Join(", ", bilan.ARapprocher)}");
         if (retires.Count > 0) details.Add($"redevenus locaux : {string.Join(", ", retires)}");
         JournalAdmin.Ecrire(db, acteur, "liaison.suivi", $"Applications suivies de {l.NomInstance}{(details.Count > 0 ? $" ({string.Join(" ; ", details)})" : "")}"
             + (s.DomainesSuivis is not null ? $", domaines suivis : {(l.DomainesSuivis.Count == 0 ? "aucun" : string.Join(", ", l.DomainesSuivis.Select(d => c.Domaines?.FirstOrDefault(x => x.Id == d)?.Nom ?? d)))}" : ""), auteur);

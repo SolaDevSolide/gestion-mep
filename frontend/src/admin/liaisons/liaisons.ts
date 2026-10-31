@@ -116,9 +116,14 @@ export const estRetiree = (a: Pick<ApplicationLiaison, 'cycle'>) => a.cycle.toLo
 export function choixInitial(c: CatalogueLiaison): ChoixSuivi {
   return {
     domaines: c.domaines.filter((d) => d.suivi).map((d) => d.id),
-    applications: c.applications.filter((a) => a.suivie).map((a) => a.id),
+    // Une application mise de côté par la synchronisation (nom proche d'un système local) est déjà choisie : il ne reste
+    // qu'à la rapprocher du catalogue.
+    applications: c.applications.filter((a) => a.suivie || a.aRapprocher).map((a) => a.id),
   };
 }
+
+/** Applications mises de côté par la synchronisation, en attente de « Rattacher » ou « Créer un système ». */
+export const aRapprocher = (c: CatalogueLiaison) => c.applications.filter((a) => a.aRapprocher && !a.suivie);
 
 /** Applications d'un domaine. */
 export const applicationsDu = (c: CatalogueLiaison, domaineId: string) =>
@@ -226,7 +231,8 @@ export function saisieSuivi(
           ? { applicationId: a.id, suivre: true, systemeId: r.systemeId }
           : { applicationId: a.id, suivre: true, systemeId: null, creer: true },
       );
-    } else if (!suivie && a.suivie) applications.push({ applicationId: a.id, suivre: false, systemeId: null });
+    } else if (!suivie && (a.suivie || a.aRapprocher))
+      applications.push({ applicationId: a.id, suivre: false, systemeId: null });
   }
   return { domainesSuivis: choix.domaines, applications };
 }

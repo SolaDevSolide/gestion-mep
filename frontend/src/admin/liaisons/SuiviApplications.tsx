@@ -16,6 +16,7 @@ import {
   applicationsDu,
   basculerApplication,
   basculerDomaine,
+  aRapprocher,
   choixInitial,
   etatDomaine,
   mentionCycle,
@@ -37,17 +38,24 @@ export function SuiviApplications({
   catalogue,
   onTermine,
   onAnnuler,
+  rapprocherDabord = false,
 }: {
   liaison: LiaisonNoosphere;
   catalogue: CatalogueLiaison;
   onTermine: (c: CatalogueLiaison, l: LiaisonNoosphere) => void;
   onAnnuler?: () => void;
+  /** Ouvrir directement sur le rapprochement des applications mises de côté par la synchronisation. */
+  rapprocherDabord?: boolean;
 }) {
   const toast = useToast();
   const [choix, setChoix] = useState<ChoixSuivi>(() => choixInitial(catalogue));
   const [auto, setAuto] = useState(liaison.suiviAutomatique);
-  const [etape, setEtape] = useState<'choisir' | 'rapprocher'>('choisir');
-  const [rapprochements, setRapprochements] = useState<Record<string, Rapprochement>>({});
+  const [etape, setEtape] = useState<'choisir' | 'rapprocher'>(() =>
+    rapprocherDabord && aRapprocher(catalogue).length > 0 ? 'rapprocher' : 'choisir',
+  );
+  const [rapprochements, setRapprochements] = useState<Record<string, Rapprochement>>(() =>
+    rapprocherDabord ? rapprochementsInitiaux(aRapprocher(catalogue)) : {},
+  );
   const [erreur, setErreur] = useState('');
   const initial = useMemo(() => choixInitial(catalogue), [catalogue]);
   const modifie =
@@ -93,6 +101,7 @@ export function SuiviApplications({
         onChange={setRapprochements}
         erreur={erreur}
         onRetour={() => setEtape('choisir')}
+        onAnnuler={rapprocherDabord ? onAnnuler : undefined}
         onValider={enregistrer}
       />
     );
@@ -344,6 +353,7 @@ function Rapprocher({
   erreur,
   onRetour,
   onValider,
+  onAnnuler,
 }: {
   nouvelles: ApplicationLiaison[];
   retirees: ApplicationLiaison[];
@@ -352,6 +362,8 @@ function Rapprocher({
   erreur: string;
   onRetour: () => void;
   onValider: () => Promise<void>;
+  /** Ouvert depuis « Rapprocher » de la liaison active : revenir sans rien changer. */
+  onAnnuler?: () => void;
 }) {
   const [tout, setTout] = useState(false);
   // Celles qui ont un système proche d'abord : ce sont elles qui demandent un choix.
@@ -521,8 +533,13 @@ function Rapprocher({
           Valider et synchroniser
         </Button>
         <Button variante="fantome" icone={<ArrowLeft className="size-4" aria-hidden />} onClick={onRetour}>
-          Retour
+          {onAnnuler ? 'Toutes les applications' : 'Retour'}
         </Button>
+        {onAnnuler && (
+          <Button variante="fantome" onClick={onAnnuler}>
+            Annuler
+          </Button>
+        )}
         <p className="min-w-0 flex-1 basis-60 text-ui text-fg-subtle" aria-live="polite">
           {[
             aChoisir > 0 && compte(aChoisir, 'rattachement à choisir', 'rattachements à choisir'),

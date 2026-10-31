@@ -12,7 +12,7 @@ La liaison se gère dans la console d'administration (API `/api/admin/liaisons`,
 - **sans liaison** : l'adresse de Noosphere et le code d'appairage, ce qui sera échangé, et l'équivalent en ligne de commande ou avec Docker Compose ; les liaisons coupées restent listées dessous ;
 - **empreinte à comparer** : les quatre mots en grand, « Les mots sont identiques : confirmer » ou « Ils diffèrent : annuler » (qui coupe la liaison), et l'état de chaque côté ;
 - **applications suivies** : par domaine (case du domaine, applications dépliables) ou une par une, avec le suivi automatique ; puis **Rapprocher du catalogue** : pour chaque nouvelle application, **Rattacher** au système proposé (même nom ou nom proche, jamais sans confirmation) ou **Créer un système**. « Valider et synchroniser » attend un choix pour chaque ligne ;
-- **liaison active** : état des deux côtés, options (« Envoyer les MEP à Noosphere », suivi automatique), **Synchroniser maintenant**, **Renouveler les clés**, **Couper la liaison** (confirmation dans la page), applications suivies par domaine et journal des échanges (Tous, Refusés, Envoyés, Reçus).
+- **liaison active** : le nombre d'applications **à rapprocher** avec le bouton **Rapprocher**, qui ouvre directement leur rapprochement ; état des deux côtés, options (« Envoyer les MEP à Noosphere », suivi automatique), **Synchroniser maintenant**, **Renouveler les clés**, **Couper la liaison** (confirmation dans la page), applications suivies par domaine et journal des échanges (Tous, Refusés, Envoyés, Reçus).
 
 À l'ouverture de l'onglet, Gestion MEP relit l'état de la liaison chez Noosphere (`POST /api/admin/liaisons/{id}/statut`) : l'écran montre toujours un état à jour du pair (confirmé ou non, liaison coupée de son côté). Si Noosphere ne répond pas, l'onglet s'affiche quand même avec un avertissement.
 
@@ -35,7 +35,7 @@ L'adresse de Gestion MEP envoyée à Noosphere est l'**adresse publique** (régl
 
 On suit les applications :
 
-- **par domaine** : toutes les applications du domaine, et, avec le **suivi automatique** (actif par défaut), celles qui y apparaîtront ensuite (sauf les applications retirées) ;
+- **par domaine** : toutes les applications du domaine, et, avec le **suivi automatique** (actif par défaut), celles qui y apparaîtront ensuite (sauf les applications retirées). Une application dont le nom est identique ou proche de celui d'un système local n'est **ni rattachée ni créée** : un rapprochement par le nom se confirme toujours. Elle reste **à rapprocher** (`aRapprocher` sur l'application et, en nombre, sur la liaison) jusqu'au choix de l'administrateur, « Rattacher » ou « Créer un système » ; décochée (`suivre: false`), elle n'attend plus. Les autres reçoivent un nouveau système. Si le système proche disparaît (supprimé, ou suivi par une autre application), la synchronisation suivante crée le système ;
 - **une par une**, en indiquant pour chacune soit un système existant à **rattacher**, soit d'en **créer** un (`creer: true`). Sans système indiqué ni `creer`, un système local au même nom (casse et accents ignorés) est rattaché ; sinon un système est créé (avec le suffixe « (2) » si le nom est déjà pris).
 
 `PUT /api/admin/liaisons/{id}/suivi { domainesSuivis, applications: [{ applicationId, suivre, systemeId }] }` enregistre ces choix et synchronise aussitôt. Dans une même saisie, le choix fait pour une application passe avant son domaine : une application d'un domaine ajouté, rattachée à un système désigné ou écartée (`suivre: false`), ne reçoit pas d'abord un système créé par le domaine. Ne plus suivre une application rend son système local, sans le supprimer.
@@ -181,7 +181,7 @@ La démonstration contient une liaison fictive, active, avec `https://noosphere.
 | Commande | Effet |
 |---|---|
 | `gestion-mep liaison appairer <url> <code>` | Appaire avec Noosphere et affiche l'empreinte. |
-| `gestion-mep liaison liste` | Liaisons, état, empreinte, systèmes suivis. |
+| `gestion-mep liaison liste` | Liaisons, état, empreinte, systèmes suivis, applications à rapprocher. |
 | `gestion-mep liaison confirmer <id> --empreinte "…"` | Confirme l'empreinte affichée par Noosphere. |
 | `gestion-mep liaison synchroniser [<id>]` | Relit le catalogue maintenant. |
 | `gestion-mep liaison options <id> [--envoyer-meps oui\|non] [--suivi-automatique oui\|non]` | Change les options. |

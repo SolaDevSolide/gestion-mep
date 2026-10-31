@@ -1,11 +1,14 @@
 import type { ApplicationLiaison, CatalogueLiaison, LiaisonNoosphere } from '../../types';
 import {
+  aRapprocher,
   basculerApplication,
+  choixInitial,
   basculerDomaine,
   etatDomaine,
   libelleOperation,
   liaisonCourante,
   rapprochementsInitiaux,
+  saisieSuivi,
   resumeChoix,
   resultatEchange,
 } from './liaisons';
@@ -22,6 +25,7 @@ const app = (id: string, domaineId: string | null, p: Partial<ApplicationLiaison
   cycle: 'live',
   url: '',
   suivie: false,
+  aRapprocher: false,
   systemeId: null,
   systeme: null,
   suggestions: [],
@@ -61,6 +65,27 @@ describe('choix des applications suivies', () => {
       app('z', null),
     ]);
     expect(r).toEqual({ x: { type: 'rattacher', systemeId: 's1', nom: 'X' }, z: { type: 'creer' } });
+  });
+});
+
+describe('applications mises de côté par la synchronisation', () => {
+  it('déjà choisies, à rapprocher ; décochées, elles sortent de l’attente', () => {
+    const cat: CatalogueLiaison = {
+      ...c,
+      domaines: [{ ...c.domaines[0], suivi: true }, c.domaines[1]],
+      applications: [
+        app('a', 'fin', { suivie: true, systemeId: 's0', systeme: 'A' }),
+        app('b', 'fin', { aRapprocher: true, suggestions: [{ id: 's1', nom: 'B', memeNom: true }] }),
+      ],
+    };
+    expect(aRapprocher(cat).map((a) => a.id)).toEqual(['b']);
+    const ch = choixInitial(cat);
+    expect(ch.applications).toEqual(['a', 'b']);
+    expect(saisieSuivi(cat, ch, { b: { type: 'rattacher', systemeId: 's1', nom: 'B' } }).applications).toEqual([
+      { applicationId: 'b', suivre: true, systemeId: 's1' },
+    ]);
+    const sans = basculerApplication(cat, ch, 'b', false);
+    expect(saisieSuivi(cat, sans, {}).applications).toEqual([{ applicationId: 'b', suivre: false, systemeId: null }]);
   });
 });
 

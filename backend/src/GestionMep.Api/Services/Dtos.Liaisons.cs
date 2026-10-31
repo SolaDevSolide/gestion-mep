@@ -7,13 +7,14 @@ namespace GestionMep.Api.Services;
 /// <summary>
 /// Liaison avec une instance de Noosphere. <c>ConfirmeeParNoosphere</c> : confirmation de l'empreinte côté Noosphere d'après
 /// son dernier <c>/status</c> (null : pas encore connue) ; les données ne s'échangent qu'une fois confirmée des deux côtés.
-/// <c>Demo</c> : liaison fictive de la démonstration (aucun appel ne part).
+/// <c>ARapprocher</c> : nouvelles applications des domaines suivis mises de côté parce qu'un système local porte un nom proche
+/// (ni créées ni rattachées tant que l'administrateur n'a pas choisi). <c>Demo</c> : liaison fictive de la démonstration (aucun appel ne part).
 /// </summary>
 public record LiaisonDto(Guid Id, string Produit, string NomInstance, string Url, string VersionNoosphere, EtatLiaison Etat, bool ConfirmeeIci,
     DateTimeOffset? ConfirmeeLe, string ConfirmeePar, bool? ConfirmeeParNoosphere, List<string> Capacites, string Empreinte, DateTimeOffset AppaireeLe,
     string AppaireePar, DateTimeOffset? ClesRenouveleesLe, DateTimeOffset? DernierEchangeLe, DateTimeOffset? CoupeeLe, string CoupeePar,
     bool EnvoyerMeps, bool SuiviAutomatique, List<string> DomainesSuivis, DateTimeOffset? DerniereSynchro, string DerniereErreur, int SystemesSuivis,
-    bool Demo);
+    int ARapprocher, bool Demo);
 
 /// <summary>Appairage : adresse de Noosphere et code à usage unique créé par un administrateur de Noosphere.</summary>
 public record AppairageLiaisonSaisie(string? Url, string? Code);
@@ -46,7 +47,7 @@ public record SuggestionSystemeDto(Guid Id, string Nom, bool MemeNom);
 
 /// <summary>Application du dernier catalogue lu : suivie ou non, système rattaché, systèmes proposés pour la rattacher.</summary>
 public record ApplicationLiaisonDto(string Id, string Nom, string Description, string? DomaineId, string Domaine, string Equipe, string Type, string Cycle,
-    string Url, bool Suivie, Guid? SystemeId, string? Systeme, List<SuggestionSystemeDto> Suggestions);
+    string Url, bool Suivie, bool ARapprocher, Guid? SystemeId, string? Systeme, List<SuggestionSystemeDto> Suggestions);
 
 /// <summary>Dernier catalogue de Noosphere lu (null : pas encore lu) et choix de suivi.</summary>
 public record CatalogueLiaisonDto(DateTimeOffset? LuLe, string NomInstance, List<DomaineLiaisonDto> Domaines, List<ApplicationLiaisonDto> Applications);

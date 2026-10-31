@@ -155,13 +155,26 @@ public class LiaisonNoosphereTests : IDisposable
         Assert.Equal("Équipe Socle", bdd.Equipe);
         Assert.Contains(bdd.Suggestions, x => x.Nom == "BDD" && x.MemeNom);
 
-        // Suivre le domaine Socle (BDD et LDAP rattachés aux systèmes existants) et Facturation une par une (système créé).
-        var suivi = await admin.PutAsJsonAsync($"/api/admin/liaisons/{dto.Id}/suivi", new
+        // Suivre le domaine Socle et Facturation une par une (système créé) : BDD et LDAP, au nom d'un système local, attendent
+        // « Rattacher » ou « Créer un système » (un rapprochement par le nom se confirme toujours).
+        var domaine = await admin.PutAsJsonAsync($"/api/admin/liaisons/{dto.Id}/suivi", new
         {
             domainesSuivis = new[] { "socle" }, applications = new[] { new { applicationId = "billing", suivre = true } },
         });
+        Assert.Equal(HttpStatusCode.OK, domaine.StatusCode);
+        var enAttente = (await domaine.Content.ReadFromJsonAsync<CatalogueLiaisonDto>(Web))!;
+        Assert.True(enAttente.Applications.Single(a => a.Id == "billing").Suivie);
+        Assert.All(enAttente.Applications.Where(a => a.Id != "billing"), a => Assert.True(!a.Suivie && a.ARapprocher));
+        Assert.Contains((await admin.GetFromJsonAsync<List<LiaisonDto>>("/api/admin/liaisons", Web))!, x => x.Id == dto.Id && x.ARapprocher == 2);
+        var suivi = await admin.PutAsJsonAsync($"/api/admin/liaisons/{dto.Id}/suivi", new
+        {
+            domainesSuivis = new[] { "socle" },
+            applications = enAttente.Applications.Where(a => a.ARapprocher)
+                .Select(a => new { applicationId = a.Id, suivre = true, systemeId = a.Suggestions.Single(x => x.MemeNom).Id }),
+        });
         Assert.Equal(HttpStatusCode.OK, suivi.StatusCode);
         var apres = (await suivi.Content.ReadFromJsonAsync<CatalogueLiaisonDto>(Web))!;
+        Assert.All(apres.Applications, a => Assert.False(a.ARapprocher));
         Assert.All(apres.Applications, a => Assert.True(a.Suivie));
         var systemes = await Lire(db => db.SystemesCatalogue.AsNoTracking().Where(x => x.Source != null).ToListAsync());
         var sysBdd = systemes.Single(x => x.Source!.ApplicationId == "bdd");
@@ -217,7 +230,7 @@ public class LiaisonNoosphereTests : IDisposable
 
         // Liste et journal des échanges.
         var liste = (await admin.GetFromJsonAsync<List<LiaisonDto>>("/api/admin/liaisons", Web))!;
-        Assert.Contains(liste, x => x.Id == dto.Id && x.SystemesSuivis == 3);
+        Assert.Contains(liste, x => x.Id == dto.Id && x.SystemesSuivis == 3 && x.ARapprocher == 0);
         var echanges = (await admin.GetFromJsonAsync<List<EchangeLiaisonDto>>($"/api/admin/liaisons/{dto.Id}/echanges", Web))!;
         Assert.Contains(echanges, e => e.Operation == "pair" && e.Resultat == "ok");
         Assert.Contains(echanges, e => e.Operation == "notices" && e.Sens == "entrant" && e.Resultat == "ok");
@@ -320,7 +333,7 @@ public class LiaisonNoosphereTests : IDisposable
     {
         var admin = await Appairer();
         (await admin.PostAsync($"/api/admin/liaisons/{_pair.LinkId}/synchroniser", null)).EnsureSuccessStatusCode();
-        (await admin.PutAsJsonAsync($"/api/admin/liaisons/{_pair.LinkId}/suivi", new { domainesSuivis = new[] { "socle" } })).EnsureSuccessStatusCode();
+        await SuivreSocle(admin);
         var bdd = await Lire(db => db.SystemesCatalogue.AsNoTracking().SingleAsync(s => s.Nom == "BDD"));
         // La liaison fictive de la démonstration n'envoie rien ici (ses envois « demo » fausseraient les comptes).
         await Lire(db => db.Liaisons.Where(l => l.Id != _pair.LinkId).ExecuteUpdateAsync(x => x.SetProperty(l => l.EnvoyerMeps, false)));
@@ -451,7 +464,7 @@ public class LiaisonNoosphereTests : IDisposable
     {
         var admin = await Appairer();
         (await admin.PostAsync($"/api/admin/liaisons/{_pair.LinkId}/synchroniser", null)).EnsureSuccessStatusCode();
-        (await admin.PutAsJsonAsync($"/api/admin/liaisons/{_pair.LinkId}/suivi", new { domainesSuivis = new[] { "socle" } })).EnsureSuccessStatusCode();
+        await SuivreSocle(admin);
         await Lire(db => db.Liaisons.Where(l => l.Id != _pair.LinkId).ExecuteUpdateAsync(x => x.SetProperty(l => l.EnvoyerMeps, false)));
         var bdd = await Lire(db => db.SystemesCatalogue.AsNoTracking().SingleAsync(s => s.Nom == "BDD"));
         var mep = await Lire(db => db.Meps.AsNoTracking().Include(m => m.Systemes)
@@ -530,7 +543,73 @@ public class LiaisonNoosphereTests : IDisposable
         // LDAP, écartée une par une : pas suivie, et aucun système créé pour elle par le domaine.
         Assert.DoesNotContain(systemes, x => x.Source?.ApplicationId == "ldap");
         Assert.Equal(avant, systemes.Count);
-        Assert.Contains(systemes, x => x.Source?.ApplicationId == "bdd");
+        // BDD, au nom d'un système local : ni rattachée ni créée par le domaine, elle attend le choix de l'administrateur.
+        Assert.DoesNotContain(systemes, x => x.Source?.ApplicationId == "bdd");
+        Assert.Equal(["bdd"], (await Liaison()).ApplicationsARapprocher);
+    }
+
+    /// <summary>Suit le domaine Socle, puis rattache BDD et LDAP, mises de côté, aux systèmes locaux du même nom.</summary>
+    private async Task SuivreSocle(HttpClient admin)
+    {
+        var c = (await (await admin.PutAsJsonAsync($"/api/admin/liaisons/{_pair.LinkId}/suivi", new { domainesSuivis = new[] { "socle" } }))
+            .EnsureSuccessStatusCode().Content.ReadFromJsonAsync<CatalogueLiaisonDto>(Web))!;
+        (await admin.PutAsJsonAsync($"/api/admin/liaisons/{_pair.LinkId}/suivi", new
+        {
+            applications = c.Applications.Where(a => a.ARapprocher)
+                .Select(a => new { applicationId = a.Id, suivre = true, systemeId = a.Suggestions.Single(x => x.MemeNom).Id }),
+        })).EnsureSuccessStatusCode();
+    }
+
+    [Fact]
+    public async Task Suivi_automatique_attend_la_confirmation_d_un_rapprochement_par_le_nom()
+    {
+        // Décision validée : tout rapprochement par le nom se confirme. Une nouvelle application d'un domaine suivi dont le nom
+        // est proche d'un système local attend « Rattacher » ou « Créer un système » ; les autres sont créées comme avant.
+        var admin = await Appairer();
+        (await admin.PostAsync($"/api/admin/liaisons/{_pair.LinkId}/synchroniser", null)).EnsureSuccessStatusCode();
+        await SuivreSocle(admin);
+        var local = (await (await admin.PostAsJsonAsync("/api/catalogue/systemes", new { nom = "Supervision", description = "locale", cible = "srv" }))
+            .Content.ReadFromJsonAsync<SystemeCatalogueDto>(Web))!;
+        var avant = await Lire(db => db.SystemesCatalogue.CountAsync());
+        var defaut = PairNoosphereFactice.CatalogueParDefaut();
+        _pair.Catalogue = defaut with
+        {
+            Applications =
+            [
+                .. defaut.Applications!,
+                new("supervision", "supervision", "Supervision (Noosphere)", "socle", "equipe-socle", "app", "live", null, $"{PairNoosphereFactice.Url}/applications/supervision"),
+                new("messagerie", "Messagerie", "Messagerie (Noosphere)", "socle", "equipe-socle", "app", "live", null, $"{PairNoosphereFactice.Url}/applications/messagerie"),
+            ],
+        };
+        _pair.Etag = "\"v2\"";
+        var synchro = (await (await admin.PostAsync($"/api/admin/liaisons/{_pair.LinkId}/synchroniser", null)).Content.ReadFromJsonAsync<SynchroLiaisonDto>(Web))!;
+        Assert.Contains("1 créé(s)", synchro.Resume);
+        Assert.Contains("1 à rapprocher", synchro.Resume);
+        Assert.Equal(1, synchro.Liaison.ARapprocher);
+        var systemes = await Lire(db => db.SystemesCatalogue.AsNoTracking().ToListAsync());
+        Assert.Equal(avant + 1, systemes.Count); // Messagerie créée, rien pour Supervision
+        Assert.Null(systemes.Single(x => x.Id == local.Id).Source);
+        Assert.DoesNotContain(systemes, x => x.Source?.ApplicationId == "supervision");
+        var catalogue = (await admin.GetFromJsonAsync<CatalogueLiaisonDto>($"/api/admin/liaisons/{_pair.LinkId}/catalogue", Web))!;
+        var attente = catalogue.Applications.Single(a => a.Id == "supervision");
+        Assert.True(attente.ARapprocher);
+        Assert.False(attente.Suivie);
+        Assert.Contains(attente.Suggestions, x => x.Id == local.Id && x.MemeNom);
+        // Relu plus tard (passage des 15 minutes) : toujours en attente, jamais rattachée seule.
+        _pair.Etag = "\"v3\"";
+        (await admin.PostAsync($"/api/admin/liaisons/{_pair.LinkId}/synchroniser", null)).EnsureSuccessStatusCode();
+        Assert.Null((await Lire(db => db.SystemesCatalogue.AsNoTracking().SingleAsync(x => x.Id == local.Id))).Source);
+        // Visible en ligne de commande.
+        var json = await LigneDeCommandeConventionsTests.Cli("liaison", "liste", "--json");
+        Assert.Equal(1, json.Json.EnumerateArray().Single(x => x.GetProperty("id").GetGuid() == _pair.LinkId).GetProperty("aRapprocher").GetInt32());
+
+        // L'administrateur choisit « Rattacher » : plus rien en attente.
+        (await admin.PutAsJsonAsync($"/api/admin/liaisons/{_pair.LinkId}/suivi", new
+        {
+            applications = new object[] { new { applicationId = "supervision", suivre = true, systemeId = local.Id } },
+        })).EnsureSuccessStatusCode();
+        Assert.Equal("supervision", (await Lire(db => db.SystemesCatalogue.AsNoTracking().SingleAsync(x => x.Id == local.Id))).Source!.ApplicationId);
+        Assert.Empty((await Liaison()).ApplicationsARapprocher);
     }
 
     [Fact]
@@ -626,7 +705,7 @@ public class LiaisonNoosphereTests : IDisposable
     {
         var admin = await Appairer();
         (await admin.PostAsync($"/api/admin/liaisons/{_pair.LinkId}/synchroniser", null)).EnsureSuccessStatusCode();
-        (await admin.PutAsJsonAsync($"/api/admin/liaisons/{_pair.LinkId}/suivi", new { domainesSuivis = new[] { "socle" } })).EnsureSuccessStatusCode();
+        await SuivreSocle(admin);
         Assert.Equal(2, await Lire(db => db.SystemesCatalogue.CountAsync(s => s.Source != null && s.Nom != "API" && s.Nom != "WEB")));
 
         var rep = await Envoyer(_pair.Requete(HttpMethod.Post, "/link/v1/unpair"));

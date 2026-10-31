@@ -14,6 +14,8 @@ public sealed class BilanSynchro
     public List<string> Desactives { get; } = [];
     public List<string> Reactives { get; } = [];
     public List<string> Avertissements { get; } = [];
+    /// <summary>Applications mises de côté : un système local a un nom proche, l'administrateur choisit.</summary>
+    public List<string> ARapprocher { get; } = [];
     /// <summary>Systèmes à ajouter au catalogue (créés par le suivi d'une application).</summary>
     public List<SystemeCatalogue> Nouveaux { get; } = [];
 
@@ -31,6 +33,7 @@ public sealed class BilanSynchro
         Ajouter(MisAJour, "mis à jour");
         Ajouter(Desactives, "désactivé(s)");
         Ajouter(Reactives, "réactivé(s)");
+        Ajouter(ARapprocher, "à rapprocher");
         return parties.Count == 0 ? "aucun changement" : string.Join(", ", parties);
     }
 }
@@ -131,6 +134,7 @@ public static class SynchroLiaison
         cible.Source = new SourceNoosphere { LiaisonId = l.Id, ApplicationId = app.Id };
         Mettre(c, app, cible, systemes, maintenant, bilan, nouveau: true);
         if (!l.ApplicationsConnues.Contains(app.Id)) l.ApplicationsConnues = [.. l.ApplicationsConnues, app.Id];
+        if (l.ApplicationsARapprocher.Contains(app.Id)) l.ApplicationsARapprocher = [.. l.ApplicationsARapprocher.Where(x => x != app.Id)];
         return cible;
     }
 
@@ -228,13 +232,43 @@ public static class SynchroLiaison
             }
         }
         var connues = l.ApplicationsConnues.ToHashSet();
-        foreach (var app in apps.Values.Where(a => !connues.Contains(a.Id)))
+        var enAttente = l.ApplicationsARapprocher.ToHashSet();
+        foreach (var app in apps.Values.Where(a => !connues.Contains(a.Id) || enAttente.Contains(a.Id)).OrderBy(a => a.Id, StringComparer.Ordinal))
         {
-            if (l.SuiviAutomatique && app.DomaineId is { } d && l.DomainesSuivis.Contains(d) && !EstRetiree(app))
-                Suivre(l, c, app, systemes, null, maintenant, bilan);
+            // Une application déjà en attente y reste même sans suivi automatique : l'administrateur l'a demandée par son domaine.
+            if (!enAttente.Remove(app.Id) && !l.SuiviAutomatique) continue;
+            if (app.DomaineId is not { } d || !l.DomainesSuivis.Contains(d) || EstRetiree(app)
+                || systemes.Any(s => s.Source?.LiaisonId == l.Id && s.Source.ApplicationId == app.Id)) continue;
+            if (Suggestions(app, systemes).Count > 0)
+            {
+                enAttente.Add(app.Id);
+                bilan.ARapprocher.Add(app.Nom);
+            }
+            else Suivre(l, c, app, systemes, null, maintenant, bilan);
         }
+        // Une application en attente disparue du catalogue n'attend plus rien.
+        l.ApplicationsARapprocher = [.. enAttente.Where(apps.ContainsKey).Order(StringComparer.Ordinal)];
         l.ApplicationsConnues = [.. connues.Union(apps.Keys).Order(StringComparer.Ordinal)];
         return bilan;
+    }
+
+    /// <summary>
+    /// Suit les applications d'un domaine que l'administrateur vient d'ajouter, sauf les retirées et celles qu'il a choisies une
+    /// par une : une application au nom proche d'un système local attend « Rattacher » ou « Créer un système ».
+    /// </summary>
+    public static void SuivreDomaine(Liaison l, CatalogueNoosphere c, IEnumerable<ApplicationNoosphere> apps, List<SystemeCatalogue> systemes,
+        DateTimeOffset maintenant, BilanSynchro bilan)
+    {
+        foreach (var app in apps.Where(a => !EstRetiree(a)))
+        {
+            if (systemes.Any(s => s.Source?.LiaisonId == l.Id && s.Source.ApplicationId == app.Id)) continue;
+            if (Suggestions(app, systemes).Count > 0)
+            {
+                if (!l.ApplicationsARapprocher.Contains(app.Id)) l.ApplicationsARapprocher = [.. l.ApplicationsARapprocher, app.Id];
+                bilan.ARapprocher.Add(app.Nom);
+            }
+            else Suivre(l, c, app, systemes, null, maintenant, bilan);
+        }
     }
 
     // ---------- Événements de déploiement ----------

@@ -4,6 +4,7 @@ import {
   FlaskConical,
   Hourglass,
   KeyRound,
+  Link2,
   Pencil,
   RefreshCw,
   TriangleAlert,
@@ -36,6 +37,7 @@ export function LiaisonActive({
   onChange,
   onCoupee,
   onModifierSuivi,
+  onRapprocher,
   onRelireStatut,
 }: {
   liaison: LiaisonNoosphere;
@@ -45,6 +47,8 @@ export function LiaisonActive({
   onChange: (l: LiaisonNoosphere, c?: CatalogueLiaison) => void;
   onCoupee: () => void;
   onModifierSuivi: () => void;
+  /** Ouvre le rapprochement des applications mises de côté par la synchronisation. */
+  onRapprocher: () => void;
   onRelireStatut: () => Promise<void>;
 }) {
   const toast = useToast();
@@ -190,6 +194,32 @@ export function LiaisonActive({
             >
               Confirmée ici. Un administrateur de Noosphere doit encore confirmer la même empreinte sur sa page Links ;
               d’ici là, rien n’est échangé.
+            </Alerte>
+          )}
+          {l.aRapprocher > 0 && (
+            <Alerte
+              ton="warn"
+              icone={Link2}
+              className="animate-fade-in"
+              titre={`${compte(l.aRapprocher, 'application', 'applications')} à rapprocher du catalogue`}
+              action={
+                catalogue?.luLe && (
+                  <Button
+                    taille="sm"
+                    variante="primaire"
+                    icone={<Link2 className="size-4" aria-hidden />}
+                    onClick={onRapprocher}
+                  >
+                    Rapprocher
+                  </Button>
+                )
+              }
+            >
+              {l.aRapprocher > 1
+                ? 'Nouvelles dans un domaine suivi, elles portent'
+                : 'Nouvelle dans un domaine suivi, elle porte'}{' '}
+              le nom d’un système local : rien n’est créé ni rattaché avant votre choix, « Rattacher » ou « Créer un
+              système ».
             </Alerte>
           )}
           {avertissement && (
