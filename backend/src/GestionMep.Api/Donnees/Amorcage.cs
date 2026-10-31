@@ -163,6 +163,10 @@ public static class Amorcage
             db.Journal.AddRange(demo.Journal);
         }
         db.ConnexionsApi.AddRange(ConnexionsDemo(alice.NomAffiche, maintenant));
+        // Liaison fictive avec Noosphere (#123) : active, API et WEB suivis ; aucun appel ne part (adresse *.demo.invalid).
+        var (liaison, echanges) = DonneesDemo.Liaison(jeu.Systemes, maintenant);
+        db.Liaisons.Add(liaison);
+        db.EchangesLiaison.AddRange(echanges);
     }
 
     /// <summary>
