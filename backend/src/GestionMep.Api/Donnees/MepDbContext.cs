@@ -66,6 +66,10 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<RapportFin> RapportsFin => Set<RapportFin>();
     public DbSet<ConnexionApi> ConnexionsApi => Set<ConnexionApi>();
     public DbSet<AppelApi> AppelsApi => Set<AppelApi>();
+    public DbSet<Liaison> Liaisons => Set<Liaison>();
+    public DbSet<EchangeLiaison> EchangesLiaison => Set<EchangeLiaison>();
+    public DbSet<NonceLiaison> NoncesLiaison => Set<NonceLiaison>();
+    public DbSet<DeploiementLiaison> DeploiementsLiaison => Set<DeploiementLiaison>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -178,6 +182,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Objets).AsJson();
             // Deux administrateurs qui modifient la même fiche en même temps : le second reçoit un conflit (409).
             e.Property(x => x.Version).IsConcurrencyToken();
+            // Liaison avec Noosphere (#123) : application suivie (null : système local).
+            e.Property(x => x.Source).AsJsonObjet();
         });
 
         b.Entity<ResolutionType>(e =>
@@ -329,6 +335,61 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.HasIndex(x => new { x.ConnexionId, x.MepId, x.CreeLe });
             e.HasIndex(x => new { x.MepId, x.CreeLe });
             e.HasIndex(x => x.CreeLe);
+        });
+
+        // Liaison avec Noosphere (#123) : liaisons (clés privées chiffrées au repos), journal des échanges, nonces vus et
+        // derniers événements de déploiement envoyés.
+        b.Entity<Liaison>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.Etat).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Produit).HasMaxLength(40);
+            e.Property(x => x.NomInstance).HasMaxLength(200);
+            e.Property(x => x.Url).HasMaxLength(2000);
+            e.Property(x => x.VersionPair).HasMaxLength(40);
+            e.Property(x => x.KidPair).HasMaxLength(64);
+            e.Property(x => x.AncienKidPair).HasMaxLength(64);
+            e.Property(x => x.Empreinte).HasMaxLength(100);
+            e.Property(x => x.EtagCatalogue).HasMaxLength(200);
+            e.Property(x => x.Capacites).AsJson();
+            e.Property(x => x.DomainesSuivis).AsJson();
+            e.Property(x => x.ApplicationsConnues).AsJson();
+            e.Property(x => x.Cles).AsJsonObjet();
+            e.Property(x => x.AnciennesCles).AsJsonObjet();
+            e.Property(x => x.ClesPair).AsJsonObjet();
+            e.Property(x => x.AnciennesClesPair).AsJsonObjet();
+            e.Property(x => x.Catalogue).AsJsonObjet();
+            e.HasIndex(x => x.KidPair);
+            e.HasIndex(x => x.AncienKidPair);
+        });
+
+        b.Entity<EchangeLiaison>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.Sens).HasMaxLength(10);
+            e.Property(x => x.Operation).HasMaxLength(20);
+            e.Property(x => x.Resultat).HasMaxLength(10);
+            e.Property(x => x.Detail).HasMaxLength(2000);
+            // Supprimer une liaison supprimerait son journal ; une liaison n'est jamais supprimée (coupée, elle reste listée).
+            e.HasOne<Liaison>().WithMany().HasForeignKey(x => x.LiaisonId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.LiaisonId, x.Quand });
+            e.HasIndex(x => x.Quand);
+        });
+
+        b.Entity<NonceLiaison>(e =>
+        {
+            e.HasKey(x => x.Nonce);
+            e.Property(x => x.Nonce).HasMaxLength(100);
+            e.HasIndex(x => x.VuLe);
+        });
+
+        b.Entity<DeploiementLiaison>(e =>
+        {
+            e.HasKey(x => new { x.LiaisonId, x.MepId });
+            e.Property(x => x.Empreinte).HasMaxLength(64);
+            e.Property(x => x.Contenu).AsJsonObjet();
+            // La MEP peut disparaître : la ligne garde le dernier envoi, pour annoncer la suppression à Noosphere.
+            e.HasOne<Liaison>().WithMany().HasForeignKey(x => x.LiaisonId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<IdentiteExterne>(e =>

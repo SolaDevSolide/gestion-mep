@@ -357,6 +357,73 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("CriteresGoNoGo");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.DeploiementLiaison", b =>
+                {
+                    b.Property<Guid>("LiaisonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MepId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Contenu")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Empreinte")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("EnvoyeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("LiaisonId", "MepId");
+
+                    b.ToTable("DeploiementsLiaison");
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.EchangeLiaison", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("Code")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Detail")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("LiaisonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset>("Quand")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Resultat")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Sens")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Quand");
+
+                    b.HasIndex("LiaisonId", "Quand");
+
+                    b.ToTable("EchangesLiaison");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.Equipe", b =>
                 {
                     b.Property<Guid>("Id")
@@ -713,6 +780,138 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("IdentitesExternes");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.Liaison", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AncienKidPair")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("AnciennesCles")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("AnciennesClesPair")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("AppaireeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AppaireePar")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApplicationsConnues")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Capacites")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Catalogue")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Cles")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ClesPair")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset?>("ClesRenouveleesLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("ConfirmeeIci")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("ConfirmeeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConfirmeePar")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool?>("ConfirmeeParPair")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("CoupeeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CoupeePar")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DernierEchangeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DerniereErreur")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DerniereSynchro")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DomainesSuivis")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Empreinte")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("EnvoyerMeps")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("EtagCatalogue")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Etat")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("KidPair")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("NomInstance")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Produit")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<bool>("SuiviAutomatique")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("VersionPair")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AncienKidPair");
+
+                    b.HasIndex("KidPair");
+
+                    b.ToTable("Liaisons");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.Mep", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1049,6 +1248,22 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsUnique();
 
                     b.ToTable("ModelesTexte");
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.NonceLiaison", b =>
+                {
+                    b.Property<string>("Nonce")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("VuLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Nonce");
+
+                    b.HasIndex("VuLe");
+
+                    b.ToTable("NoncesLiaison");
                 });
 
             modelBuilder.Entity("GestionMep.Domain.ObjetImpacte", b =>
@@ -1395,6 +1610,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("Source")
+                        .HasColumnType("jsonb");
+
                     b.Property<int>("Version")
                         .IsConcurrencyToken()
                         .HasColumnType("integer");
@@ -1539,6 +1757,23 @@ namespace GestionMep.Api.Donnees.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Evenement");
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.DeploiementLiaison", b =>
+                {
+                    b.HasOne("GestionMep.Domain.Liaison", null)
+                        .WithMany()
+                        .HasForeignKey("LiaisonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.EchangeLiaison", b =>
+                {
+                    b.HasOne("GestionMep.Domain.Liaison", null)
+                        .WithMany()
+                        .HasForeignKey("LiaisonId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Etape", b =>

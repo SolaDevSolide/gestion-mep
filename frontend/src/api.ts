@@ -104,6 +104,13 @@ import type {
   SsoTest,
   RapportFin,
   Suivi,
+  LiaisonNoosphere,
+  AppairageLiaisonSaisie,
+  OptionsLiaisonSaisie,
+  SuiviLiaisonSaisie,
+  CatalogueLiaison,
+  EchangeLiaison,
+  SynchroLiaison,
 } from './types';
 
 export class ApiError extends Error {
@@ -659,4 +666,21 @@ export const api = {
   renvoyerAppelMep: (id: string, appelId: string) => post<AppelCree>(`/meps/${id}/appels/${appelId}/renvoyer`),
   recepteurDemo: () => get<MessageRecu[]>('/demo/recepteur'),
   viderRecepteurDemo: () => del<void>('/demo/recepteur'),
+
+  // Liaison avec Noosphere (#123), console › Liaisons.
+  liaisons: () => get<LiaisonNoosphere[]>('/admin/liaisons'),
+  liaison: (id: string) => get<LiaisonNoosphere>(`/admin/liaisons/${id}`),
+  appairerLiaison: (s: AppairageLiaisonSaisie) => post<LiaisonNoosphere>('/admin/liaisons/appairer', s),
+  confirmerLiaison: (id: string, empreinte: string) =>
+    post<LiaisonNoosphere>(`/admin/liaisons/${id}/confirmer`, { empreinte }),
+  catalogueLiaison: (id: string) => get<CatalogueLiaison>(`/admin/liaisons/${id}/catalogue`),
+  suiviLiaison: (id: string, s: SuiviLiaisonSaisie) => put<CatalogueLiaison>(`/admin/liaisons/${id}/suivi`, s),
+  optionsLiaison: (id: string, s: OptionsLiaisonSaisie) => put<LiaisonNoosphere>(`/admin/liaisons/${id}/options`, s),
+  synchroniserLiaison: (id: string) => post<SynchroLiaison>(`/admin/liaisons/${id}/synchroniser`),
+  renouvelerLiaison: (id: string) => post<LiaisonNoosphere>(`/admin/liaisons/${id}/renouveler`),
+  couperLiaison: (id: string) => post<LiaisonNoosphere>(`/admin/liaisons/${id}/couper`, { confirmer: true }),
+  echangesLiaisons: (f: { liaison?: string; avant?: string; limite?: number; refus?: boolean } = {}) =>
+    get<EchangeLiaison[]>(
+      `/admin/liaisons/echanges${requete({ liaison: f.liaison, avant: f.avant, limite: f.limite ? String(f.limite) : undefined, refus: f.refus ? 'true' : undefined })}`,
+    ),
 };

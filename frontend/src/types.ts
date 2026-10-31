@@ -586,3 +586,22 @@ export type ApercuConnexionSaisie = SaisieVerifiee<
     commentaire?: string;
   }
 >;
+
+// ---------- Liaison avec Noosphere (#123) ----------
+
+export type EtatLiaison = NonNullable<S['EtatLiaison']>;
+/** Liaison avec une instance de Noosphere (empreinte, confirmation des deux côtés, interrupteurs). */
+export type LiaisonNoosphere = S['LiaisonDto'];
+export type AppairageLiaisonSaisie = S['AppairageLiaisonSaisie'];
+export type OptionsLiaisonSaisie = S['OptionsLiaisonSaisie'];
+export type SuiviLiaisonSaisie = S['SuiviLiaisonSaisie'];
+export type SuiviApplicationSaisie = S['SuiviApplicationSaisie'];
+/** Dernier catalogue de Noosphere lu : domaines et applications, suivies ou non, avec les systèmes proposés. */
+export type CatalogueLiaison = S['CatalogueLiaisonDto'];
+export type DomaineLiaison = S['DomaineLiaisonDto'];
+export type ApplicationLiaison = S['ApplicationLiaisonDto'];
+export type SuggestionSysteme = S['SuggestionSystemeDto'];
+export type EchangeLiaison = S['EchangeLiaisonDto'];
+export type SynchroLiaison = S['SynchroLiaisonDto'];
+/** Système du catalogue suivi depuis Noosphere (« Géré par Noosphere »). */
+export type SourceNoosphere = S['SourceNoosphereDto'];

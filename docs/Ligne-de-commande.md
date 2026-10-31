@@ -117,6 +117,7 @@ Certaines opérations restent dans l'application, parce qu'elles sont signées p
 - la rédaction des éléments de bibliothèque (étapes modèles, modèles de recette, modèles de texte), qui se fait dans l'éditeur avec son aperçu. La ligne de commande les consulte, les supprime et rétablit les modèles de texte fournis ;
 - le dépôt et la suppression d'une pièce jointe. Ces gestes sont signés par une personne et soumis aux quotas. La ligne de commande mesure la place occupée, liste les pièces, en extrait les fichiers et contrôle le dossier ;
 - la création et la modification d'une connexion aux API externes, qui se font dans l'éditeur avec son aperçu. La ligne de commande les consulte, les essaie, les active ou les désactive, les copie d'un serveur à l'autre (`connexions exporter` puis `importer`), en saisit les secrets et renvoie un appel ;
+- le choix des applications de Noosphere suivies, qui se fait avec le catalogue de Noosphere sous les yeux (`PUT /api/admin/liaisons/{id}/suivi`). La ligne de commande appaire, confirme l'empreinte, synchronise, règle les options, renouvelle les clés, coupe la liaison et lit le journal des échanges (`liaison …`, voir [Liaison avec Noosphere](Liaison-Noosphere.md)) ;
 - le suivi en direct (tableau de bord des systèmes, notifications).
 
 L'installation elle-même se fait par les scripts d'installation (voir [Installer](Installer.md) et [Installer sans Docker](Installer-sans-Docker.md)).
@@ -928,6 +929,143 @@ Sortie `--json` : enveloppe { code, messages, avertissements, resultat }.
 
 ```bash
 gestion-mep connexions supprimer "Slack astreinte" --oui
+```
+
+### Liaison avec Noosphere
+
+Une liaison se désigne par son identifiant (8 premiers caractères suffisent) ; sans identifiant, la seule liaison en service.
+
+#### `liaison appairer`
+
+```
+gestion-mep liaison appairer <url> <code>
+```
+
+Appaire avec Noosphere par le code à usage unique créé dans Noosphere (valable 15 minutes). Affiche l'empreinte en quatre mots : la comparer avec celle de Noosphere, puis « liaison confirmer ». Adresse annoncée à Noosphere : le réglage url-publique.
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat } ; resultat : la liaison, comme GET /api/admin/liaisons/{id}.
+
+```bash
+gestion-mep liaison appairer https://noosphere.entreprise.fr 7K4Q-29XD-M3PA
+```
+
+#### `liaison liste`
+
+```
+gestion-mep liaison liste
+```
+
+Liaisons : instance, état, confirmation des deux côtés, empreinte, dernière synchronisation.
+
+Sortie `--json` : tableau des liaisons, comme GET /api/admin/liaisons.
+
+```bash
+gestion-mep liaison liste
+gestion-mep liaison liste --json
+```
+
+#### `liaison confirmer`
+
+```
+gestion-mep liaison confirmer <id> --empreinte "…"
+```
+
+Confirme l'empreinte lue sur l'écran de Noosphere (code 1 si elle diffère).
+
+| Option | Effet |
+|---|---|
+| `--empreinte "…"` | Les quatre mots affichés par Noosphere, entre guillemets (casse indifférente) |
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat }.
+
+```bash
+gestion-mep liaison confirmer 3f2a9c1e --empreinte "orbit cedar 0712 lumen"
+```
+
+#### `liaison synchroniser`
+
+```
+gestion-mep liaison synchroniser [<id>]
+```
+
+Relit l'état de Noosphere et son catalogue, et met à jour les systèmes suivis. Le serveur le fait aussi toutes les 15 minutes et après chaque avis de changement de Noosphere. Code 1 si Noosphere refuse ou ne répond pas (par exemple tant qu'il n'a pas confirmé l'empreinte).
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat } ; resultat : { inchange, resume, crees, rattaches, misAJour, desactives, reactives, avertissements, liaison }.
+
+```bash
+gestion-mep liaison synchroniser
+gestion-mep liaison synchroniser 3f2a9c1e --json
+```
+
+#### `liaison renouveler`
+
+```
+gestion-mep liaison renouveler <id>
+```
+
+Renouvelle les clés de gestion-mep (l'empreinte change, sans nouvelle confirmation). La demande part signée avec l'ancienne clé ; Noosphere accepte encore l'ancienne clé 5 minutes.
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat }.
+
+```bash
+gestion-mep liaison renouveler 3f2a9c1e
+```
+
+#### `liaison couper`
+
+```
+gestion-mep liaison couper <id> [--oui]
+```
+
+Coupe la liaison : Noosphere est prévenu, les clés effacées, les systèmes suivis redeviennent locaux.
+
+| Option | Effet |
+|---|---|
+| `--oui` | Confirme l'opération sans question (obligatoire hors terminal) |
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat }.
+
+```bash
+gestion-mep liaison couper 3f2a9c1e --oui
+```
+
+#### `liaison options`
+
+```
+gestion-mep liaison options <id> [--envoyer-meps oui|non] [--suivi-automatique oui|non]
+```
+
+Interrupteurs de la liaison.
+
+| Option | Effet |
+|---|---|
+| `--envoyer-meps oui\|non` | Envoyer à Noosphere les MEP des systèmes suivis |
+| `--suivi-automatique oui\|non` | Suivre automatiquement les nouvelles applications des domaines suivis |
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat }.
+
+```bash
+gestion-mep liaison options 3f2a9c1e --envoyer-meps non
+```
+
+#### `liaison echanges`
+
+```
+gestion-mep liaison echanges [<id>] [--refus] [--limite n]
+```
+
+Journal des échanges avec Noosphere (90 jours), du plus récent au plus ancien.
+
+| Option | Effet |
+|---|---|
+| `--refus` | Seulement les requêtes refusées (signature, rejeu, horloge, clé inconnue…) |
+| `--limite n` | Nombre d'échanges (défaut 50, 500 au plus) |
+
+Sortie `--json` : tableau des échanges, comme GET /api/admin/liaisons/echanges.
+
+```bash
+gestion-mep liaison echanges
+gestion-mep liaison echanges --refus --limite 20
 ```
 
 ### Journal d'administration

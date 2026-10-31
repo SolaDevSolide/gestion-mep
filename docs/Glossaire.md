@@ -83,6 +83,8 @@ L'application et la documentation emploient un seul mot pour chaque idée. Les v
 
 **Journal** : historique horodaté et attribué de toutes les actions sur une MEP.
 
+**Liaison avec Noosphere** : lien de confiance entre ce serveur et un serveur Noosphere (cartographie des applications), établi par un code d'appairage et confirmé des deux côtés par une **empreinte** de quatre mots. Les applications suivies deviennent des systèmes du catalogue « gérés par Noosphere », et les MEP qui les touchent sont annoncées à Noosphere. Voir [Liaison avec Noosphere](Liaison-Noosphere.md).
+
 **Lien** : dans le graphe des étapes, « B attend A ». Seuls les liens règlent le déroulement : deux étapes qui ne s'attendent pas peuvent se dérouler en parallèle. Le rangement du graphe est automatique.
 
 **MEP** : mise en production, c'est-à-dire l'intervention qui déploie un changement sur un ou plusieurs environnements de ses systèmes.

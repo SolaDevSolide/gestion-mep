@@ -71,6 +71,7 @@ Les erreurs suivent le format *problem details* (RFC 9457), type de contenu `app
 | `/api/pieces-jointes` | Téléchargement d'une pièce jointe (`GET /api/pieces-jointes/{id}/contenu`) : toujours le fichier déposé, avec son nom, son type et sa taille (`Content-Length`), même s'il est stocké compressé sur le serveur (pas de `Content-Encoding`). Une pièce jointe (`PieceJointeDto`) porte `taille` (fichier déposé), `tailleStockee` (place occupée sur le serveur, comptée par les quotas), `compression` (`"gzip"` si le fichier est stocké compressé, sinon null) et `sha256` (empreinte du fichier déposé). |
 | `/api/admin` | Console d'administration : comptes (dont `POST /api/admin/utilisateurs/{id}/relier { comptePrincipalId, desactiver }` et `POST …/{id}/delier` pour les comptes d'une même personne), équipes (`POST /api/admin/equipes`, `PUT` et `DELETE /api/admin/equipes/{id}`, saisie `{ nom, description, membreIds }`, `membreIds` absent : membres inchangés), journal d'administration, vérification des mises à jour, réglages de la connexion unique (`/api/admin/sso`), place occupée par les pièces jointes (`GET /api/admin/pieces-jointes/stockage` : `{ pieces, tailleFichiers, tailleStockee, compressees, nonExaminees }`) (administrateurs seulement). |
 | `/api/admin/connexions`, `/api/meps/{id}/connexions` | Connexions aux API externes : console (administrateurs) et envoi depuis une MEP. Voir « Connexions aux API externes » plus bas. |
+| `/api/admin/liaisons`, `/link/v1` | Liaison avec Noosphere : console (administrateurs) et protocole entre serveurs. Voir « Liaison avec Noosphere » plus bas. |
 | `/api/application` | Version en cours, lien de signalement et, pour un administrateur, dernière version publiée. |
 | `/api/demo` | Mode démonstration uniquement (`DEMO=true` ; sinon 404 comme une route inconnue) : `GET /api/demo` (sans session) donne les comptes de démonstration ; `POST /api/demo/connexion { login }` ouvre la session d'un compte de démonstration, avec les mêmes protections que `/api/auth/connexion` (en-tête anti-CSRF, limite par adresse, blocage progressif), 403 pour tout autre login ; `POST /api/demo/reinitialiser` (administrateurs) remet la base dans son état initial et ferme la session (après avoir arrêté la simulation) ; `GET /api/demo/simulation` donne l'état de la simulation de collègues (`actif`, `jusqua`, `mepId`, `outil`, `collegues`, `lanceePar`) et `POST /api/demo/simulation { actif }` la lance ou l'arrête (toute personne connectée ; 422 si la MEP « Facturation électronique » n'est pas en préparation) ; `GET /api/demo/recepteur` (administrateurs) donne les 50 derniers messages reçus par le récepteur intégré des connexions d'exemple (`{ quand, canal, methode, adresse, entetes, corps }`, secrets masqués) et `DELETE /api/demo/recepteur` le vide. |
 | `/api/suivi` | Tableau de bord « Suivi en direct » (tout utilisateur connecté) : `GET /api/suivi` renvoie `{ enCours, prevues, prochaine, cloturees, maintenant }` : `enCours`, les MEP lancées (exécution, recette, retour arrière ; hors modèles), complètes et vues par la personne qui demande (droits compris), comme `GET /api/meps/{id}` ; `prevues`, les MEP en préparation annoncées (section Communication) aujourd'hui ou demain dans leur fuseau (`{ id, outil, versionCible, type, date, heure, debut, fuseauHoraire, pilote }`, par heure de début) ; `prochaine`, la première MEP annoncée qui n'a pas encore commencé (null sinon) ; `cloturees`, les MEP clôturées depuis 24 heures (`{ id, outil, versionCible, type, issue, etat, clotureeLe, pilote }`, la plus récente d'abord). `GET /api/suivi/flux` : flux SSE qui envoie `event: maj` avec `{ version, meps, liste }` quand une modification change ce que montre le tableau de bord : `version`, le nombre de modifications diffusées ; `meps`, les MEP lancées dont la carte a changé (le navigateur ne relit qu'elles, par `GET /api/meps/{id}`) ; `liste` vrai quand les listes changent (MEP lancée, clôturée, annoncée, retirée, renommée…, ou plus de 20 cartes d'un coup) : le navigateur relit alors `/api/suivi`. Une écriture sur une MEP non lancée qui ne change ni sa phase, ni son annonce, ni son nom, sa version cible ou son pilote n'envoie rien. Les MEP lancées de `GET /api/suivi` sont lues en un nombre fixe de requêtes, quel que soit leur nombre. Commentaire `: ping` toutes les 20 secondes, flux renouvelé toutes les heures, 429 quand trop de flux sont ouverts. |
@@ -115,6 +116,41 @@ Voir [API externes](API-externes.md). Les secrets sont en **écriture seule** : 
 La fin d'un envoi de la MEP (réussi ou en échec définitif) est annoncée sur le flux de la MEP par `event: appels`, sans changer sa version : l'écran relit le journal et `GET /api/meps/{id}/connexions`. Le journal de la MEP reçoit `api.envoye` (sauf pour les déclencheurs fréquents) ou `api.echec` ; le journal d'administration, `connexion-api.creee`, `.modifiee`, `.activee`, `.desactivee`, `.supprimee`, `.essayee` et `.echec`.
 
 L'API ne propose pas encore de jeton d'accès : un script doit se connecter et conserver le cookie de session.
+
+## Liaison avec Noosphere
+
+Mode d'emploi : [Liaison avec Noosphere](Liaison-Noosphere.md). Routes de la console, réservées aux administrateurs (`/api/admin/liaisons`) :
+
+| Route | Effet |
+|---|---|
+| `GET /api/admin/liaisons` | Liaisons (`LiaisonDto` : `id`, `nomInstance`, `url`, `versionNoosphere`, `etat` `EnAttente` / `Active` / `Coupee`, `confirmeeIci`, `confirmeeParNoosphere`, `empreinte`, `capacites`, `envoyerMeps`, `suiviAutomatique`, `domainesSuivis`, `systemesSuivis`, `derniereSynchro`, `derniereErreur`, `clesRenouveleesLe`, `demo`…). |
+| `POST /api/admin/liaisons/appairer { url, code }` | Appaire avec Noosphere ; renvoie la liaison, en attente de confirmation, avec son empreinte. 400 adresse ou code invalide, 404 code inconnu ou expiré, 409 code déjà utilisé, 422 code incorrect ou bloqué, 502 Noosphere injoignable ou réponse invalide. |
+| `GET /api/admin/liaisons/{id}` | Une liaison. |
+| `POST /api/admin/liaisons/{id}/confirmer { empreinte }` | Confirme l'empreinte (casse et espaces indifférents) ; 422 si elle diffère. |
+| `GET /api/admin/liaisons/{id}/catalogue` | Domaines (`{ id, nom, suivi, nbApplications }`) et applications de Noosphere (`{ id, nom, description, domaineId, domaine, equipe, type, cycle, url, suivie, systemeId, systeme, suggestions }`), lus à la dernière synchronisation (`luLe`). |
+| `PUT /api/admin/liaisons/{id}/suivi { domainesSuivis, applications }` | Domaines suivis (absent : inchangés) et choix par application `{ applicationId, suivre, systemeId }` (`systemeId` : système à rattacher ; absent : système au même nom ou créé). Synchronise aussitôt et renvoie le catalogue, comme `GET …/catalogue`. |
+| `PUT /api/admin/liaisons/{id}/options { envoyerMeps, suiviAutomatique }` | Options (absent : inchangée). |
+| `POST /api/admin/liaisons/{id}/synchroniser` | Synchronise maintenant : `SynchroLiaisonDto { inchange, resume, crees, rattaches, misAJour, desactives, reactives, avertissements, liaison }`. |
+| `POST /api/admin/liaisons/{id}/renouveler` | Renouvelle les clés de cette instance ; renvoie la liaison (nouvelle empreinte). |
+| `POST /api/admin/liaisons/{id}/couper { confirmer: true }` | Coupe la liaison (400 sans `confirmer: true`). |
+| `GET /api/admin/liaisons/echanges`, `GET /api/admin/liaisons/{id}/echanges` | Journal des échanges, le plus récent d'abord (`?liaison=`, `?refus=true`, `?avant=<date>`, `?limite=`, 50 par défaut, 500 au plus) : `{ id, liaisonId, quand, sens, operation, resultat, code, detail }`. |
+
+Un système du catalogue suivi porte `source` (`{ liaisonId, applicationId, url, domaine, equipe, cycle, derniereSynchro, absente, desactiveParLiaison }`, null pour un système local). Pour lui, `PUT /api/catalogue/systemes/{id}` refuse (400) un nom ou une description différents, et `DELETE` répond 400.
+
+### Protocole entre serveurs (`/link/v1`)
+
+Noosphere appelle Gestion MEP sous `/link/v1`, hors de `/api`, sans session : chaque requête est signée (RFC 9421) avec la clé de Noosphere et chaque réponse avec celle de Gestion MEP ; les corps porteurs de données sont chiffrés (JWE compact, `Content-Type: application/jose`). Le contrat complet est commun aux deux dépôts ; Gestion MEP sert :
+
+| Route | Effet |
+|---|---|
+| `GET /link/v1/status` | État de la liaison (JWE) : produit, nom de l'instance, version, capacités, empreinte, dernier renouvellement des clés. |
+| `POST /link/v1/notices` | Avis de changement du catalogue (JWE) ; 202, catalogue relu dans les secondes qui suivent. |
+| `POST /link/v1/rekey` | Nouvelles clés de Noosphere, signé avec l'ancienne clé ; 200. |
+| `POST /link/v1/unpair` | Noosphere coupe la liaison ; 204. |
+
+Gestion MEP appelle chez Noosphere `POST /link/v1/pair` (seule requête non signée, protégée par le code d'appairage), `GET /link/v1/status`, `GET /link/v1/catalog` (`If-None-Match`, 304 sans changement), `POST /link/v1/deployments`, `POST /link/v1/rekey` et `POST /link/v1/unpair`.
+
+Refus : 401 (403 pour `link-not-confirmed`) en `application/problem+json`, `type` `https://noosphere.dev/problems/<raison>` avec `unknown-key`, `link-cut`, `link-not-confirmed`, `clock-skew`, `replay`, `bad-digest` ou `bad-signature`, 403 `capability-missing`, 400 `bad-body` ; refus signés, sauf `unknown-key` et `link-cut`. `/status` et `/unpair` passent avant la confirmation de l'empreinte, les autres routes répondent `link-not-confirmed`. 429 au-delà de 120 requêtes par minute et par clé ; 404 pour une route inconnue. Les routes `/link/v1` ne figurent pas dans `docs/openapi.json`.
 
 ## Recherche des MEP
 

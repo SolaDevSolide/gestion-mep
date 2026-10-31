@@ -474,6 +474,11 @@ public class SystemeCatalogue
     public List<ObjetCatalogue> Objets { get; set; } = [];
     /// <summary>Compteur de révision : protège la fiche contre deux écritures simultanées.</summary>
     public int Version { get; set; }
+    /// <summary>
+    /// Application de Noosphere suivie (null : système local). Nom et description sont alors gérés par Noosphere, en lecture
+    /// seule ici ; environnements, catégories et objets restent locaux. Une liaison coupée rend le système local.
+    /// </summary>
+    public SourceNoosphere? Source { get; set; }
 }
 
 /// <summary>Environnement d'un système du catalogue : nom, cible exacte et marque « production ».</summary>

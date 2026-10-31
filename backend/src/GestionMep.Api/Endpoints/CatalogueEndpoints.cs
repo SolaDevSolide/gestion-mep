@@ -14,7 +14,11 @@ namespace GestionMep.Api.Endpoints;
 public static class CatalogueEndpoints
 {
     public static SystemeCatalogueDto Dto(SystemeCatalogue s) => new(s.Id, s.Nom, s.Description, s.Cible, s.Actif,
-        s.Environnements.Select(e => new EnvironnementCatalogueDto(e.Nom, e.Cible, e.Production)).ToList(), [.. s.Categories], s.Objets.Count);
+        s.Environnements.Select(e => new EnvironnementCatalogueDto(e.Nom, e.Cible, e.Production)).ToList(), [.. s.Categories], s.Objets.Count,
+        s.Source is { } src ? new SourceNoosphereDto(src.LiaisonId, src.ApplicationId, src.Url, src.Domaine, src.Equipe, src.Cycle, src.DerniereSynchro, src.Absente) : null);
+
+    /// <summary>Système suivi depuis Noosphere : nom et description y sont gérés (changements par « Ouvrir dans Noosphere »).</summary>
+    public const string MessageGereParNoosphere = "Ce système est géré par Noosphere : son nom et sa description se modifient dans Noosphere (« Ouvrir dans Noosphere »).";
 
     public static ObjetCatalogueDto Dto(ObjetCatalogue o) => new(o.Id, o.Categorie, o.Type, o.Nom, o.Libelle, o.Precision);
 
@@ -61,8 +65,17 @@ public static class CatalogueEndpoints
     {
         var s = await db.SystemesCatalogue.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Système du catalogue introuvable.");
         var ancien = s.Nom;
-        s.Nom = await NomUnique(db, c.Nom, id);
-        s.Description = ServiceMep.Texte(c.Description);
+        if (s.Source is not null)
+        {
+            // Géré par Noosphere : nom et description en lecture seule (les renvoyer inchangés reste accepté).
+            if ((c.Nom is not null && ServiceMep.Texte(c.Nom) != s.Nom) || (c.Description is not null && ServiceMep.Texte(c.Description) != s.Description))
+                throw ErreurHttp.Saisie(MessageGereParNoosphere);
+        }
+        else
+        {
+            s.Nom = await NomUnique(db, c.Nom, id);
+            s.Description = ServiceMep.Texte(c.Description);
+        }
         s.Cible = ServiceMep.Texte(c.Cible);
         s.Actif = c.Actif ?? s.Actif;
         JournalAdmin.Ecrire(db, acteur, "systeme.modifie",
@@ -153,6 +166,8 @@ public static class CatalogueEndpoints
     public static async Task<bool> Supprimer(MepDbContext db, Acteur? acteur, Guid id)
     {
         var s = await db.SystemesCatalogue.FirstOrDefaultAsync(x => x.Id == id) ?? throw ErreurHttp.NonTrouve("Système du catalogue introuvable.");
+        if (s.Source is not null)
+            throw ErreurHttp.Saisie("Ce système est géré par Noosphere : cessez d'abord de suivre l'application (console › Liaisons), il redeviendra local.");
         // Utilisé par une MEP, une résolution type, un modèle de recette ou une étape modèle : on le désactive au lieu de le supprimer.
         var utilise = await db.Systemes.AnyAsync(x => x.CatalogueId == id) || await db.ResolutionsTypes.AnyAsync(r => r.SystemeCatalogueIds.Contains(id))
             || await db.ModelesRecette.AnyAsync(r => r.SystemeCatalogueId == id) || await db.ModelesEtape.AnyAsync(m => m.SystemeCatalogueIds.Contains(id));

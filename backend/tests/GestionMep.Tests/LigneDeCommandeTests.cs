@@ -130,13 +130,17 @@ public class LigneDeCommandeTests : IDisposable
         Assert.Equal("crm01", crm.GetProperty("cible").GetString());
 
         Assert.Contains("supprimé du catalogue", (await Cli("systemes", "supprimer", "CRM2")).Sortie);
-        Assert.Contains("désactivé au lieu d'être supprimé", (await Cli("systemes", "supprimer", "API")).Sortie);
+        Assert.Contains("désactivé au lieu d'être supprimé", (await Cli("systemes", "supprimer", "MDM")).Sortie);
+        // API est suivi depuis Noosphere (liaison de démonstration) : il ne se supprime pas.
+        var gere = await Cli("systemes", "supprimer", "API");
+        Assert.Equal(1, gere.Code);
+        Assert.Contains("géré par Noosphere", gere.Erreur);
         Assert.Equal(5, (await Cli("systemes", "supprimer", "CRM2")).Code);
         var systemes = (await Cli("systemes", "lister", "--json")).Json.EnumerateArray().ToList();
         Assert.DoesNotContain(systemes, s => s.GetProperty("nom").GetString() == "CRM2");
-        Assert.False(systemes.Single(s => s.GetProperty("nom").GetString() == "API").GetProperty("actif").GetBoolean());
+        Assert.False(systemes.Single(s => s.GetProperty("nom").GetString() == "MDM").GetProperty("actif").GetBoolean());
         Assert.True(await Journalise("systeme.cree", "CRM"));
-        Assert.True(await Journalise("systeme.desactive", "API"));
+        Assert.True(await Journalise("systeme.desactive", "MDM"));
     }
 
     [Fact]
