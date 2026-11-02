@@ -18,6 +18,7 @@ import { ObjetsImpactesSection } from './preparation/ObjetsImpactesSection';
 import { PiecesSection } from './preparation/PiecesSection';
 import { usePreparation } from './preparation/donnees';
 import { SauvegardeSection, ValidationSection } from './preparation/SauvegardeValidation';
+import { BandeauGelConflits } from './gel/GelMep';
 
 const SECTIONS: { id: IdSection; numero: number; titre: string }[] = [
   { id: 'intervention', numero: 1, titre: 'Intervention' },
@@ -154,6 +155,7 @@ export default function PreparationTab() {
                 : ' Le pilote peut encore modifier la sauvegarde et la communication.')}
           </Alerte>
         )}
+        <BandeauGelConflits allerIntervention={() => setSection('intervention')} />
         <Apparition
           pret={revele}
           squelette={<SqueletteSection />}

@@ -30,6 +30,7 @@ import { PlanCheck } from './PlanCheck';
 import { MarqueNoosphere } from './MarqueNoosphere';
 import { PresentsMep } from '../presence';
 import { BadgeSimplifiee, estSimplifiee } from './typeMep';
+import { PastilleGel } from './gel/GelMep';
 
 /** En-tête collant : identité, phase, personnes présentes, compte à rebours, progression, actions du pilote, onglets. */
 export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
@@ -95,6 +96,7 @@ export function EnTeteMep({ mep, onglets }: { mep: Mep; onglets: ReactNode }) {
                 </Badge>
               )}
               {estSimplifiee(mep) && <BadgeSimplifiee />}
+              <PastilleGel mep={mep} />
             </div>
             <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 pl-8 text-ui text-fg-muted">
               {mep.objet && <span className="max-w-md truncate">{mep.objet}</span>}

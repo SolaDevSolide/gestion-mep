@@ -51,6 +51,7 @@ import { SqueletteSuivi } from '../mep/ensemble/Squelettes';
 import { ProgressBar } from '../ui/ProgressBar';
 import { StatusPill } from '../ui/StatusPill';
 import { TON } from '../ui/tons';
+import { DerogationsADecider } from '../mep/gel/DerogationsADecider';
 
 /** Pastille d'une section (ou d'une étape hors section) dans la carte d'une MEP, colorée par état. */
 const PUCE_ETAT: Partial<Record<Ton, string>> = {
@@ -508,6 +509,7 @@ export default function SuiviPage() {
       )}
 
       <Apparition pret={suivi !== null || erreur !== ''} libelle="Chargement du suivi…" squelette={<SqueletteSuivi />}>
+        <DerogationsADecider derogations={suivi?.derogations ?? []} onDecide={recharger} />
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Tuile titre="MEP en cours" Icone={Play} valeur={meps.length} />
           <Tuile titre="Échecs à traiter" Icone={XCircle} valeur={nbEchecs} ton={nbEchecs > 0 ? 'danger' : undefined} />
@@ -537,7 +539,7 @@ export default function SuiviPage() {
           </ul>
         )}
 
-        <div className="mt-6 grid gap-3 lg:grid-cols-2">
+        <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-2">
           <ListePrevues prevues={suivi?.prevues ?? []} maintenant={maintenant} />
           <ListeCloturees cloturees={suivi?.cloturees ?? []} />
         </div>
