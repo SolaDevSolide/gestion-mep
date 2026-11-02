@@ -168,7 +168,8 @@ public class ApiCalendrierTests : IDisposable
         var du = jour.ToString("yyyy-MM-dd");
         var page = await Ok(await bob.GetAsync($"/api/calendrier?du={du}&au={du}"));
         var meps = page.GetProperty("meps").EnumerateArray().ToList();
-        Assert.Equal([a, b, c], meps.Where(m => m.GetProperty("outil").GetString()!.StartsWith("Calendrier", StringComparison.Ordinal)).Select(m => m.GetProperty("id").GetGuid()));
+        // Même début pour B et C : l'ordre suit alors l'identifiant (celui du curseur de page).
+        Assert.Equal([a, .. new[] { b, c }.Order()], meps.Where(m => m.GetProperty("outil").GetString()!.StartsWith("Calendrier", StringComparison.Ordinal)).Select(m => m.GetProperty("id").GetGuid()));
         var ma = meps.Single(m => m.GetProperty("id").GetGuid() == a);
         Assert.Equal(Fuseaux.Instant(jour, new TimeOnly(20, 0), "Europe/Paris"), ma.GetProperty("debut").GetDateTimeOffset());
         Assert.True(ma.GetProperty("prevu").GetBoolean());
