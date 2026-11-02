@@ -248,6 +248,21 @@ public class ApiTests : IDisposable
         Assert.Equal(["La procédure doit être relue par une personne de la MEP.", "Il faut 1 approbation(s)."], apres.GetProperty("erreursPlan").EnumerateArray().Select(e => e.GetString()!).ToArray());
     }
 
+    // Règle sur laquelle repose le texte du dialogue « Nouvelle MEP » (#130) : quel que soit le type, le créateur devient
+    // responsable technique et personne n'est pilote tant qu'il n'est pas désigné dans « Intervention ».
+    [Theory]
+    [InlineData("Complete")]
+    [InlineData("Simplifiee")]
+    public async Task A_la_creation_le_createur_est_responsable_technique_et_aucun_pilote_n_est_designe(string type)
+    {
+        var claire = await _api.ClientConnecte("claire");
+        var mep = await Ok(await claire.PostAsJsonAsync("/api/meps", new { outil = $"Création {type}", objet = "", type }));
+        Assert.Equal(JsonValueKind.Null, mep.GetProperty("piloteId").ValueKind);
+        Assert.False(mep.GetProperty("droits").GetProperty("estPilote").GetBoolean());
+        Assert.True(mep.GetProperty("droits").GetProperty("estResponsableTechnique").GetBoolean());
+        Assert.Empty(mep.GetProperty("suppleantIds").EnumerateArray());
+    }
+
     [Fact]
     public async Task Creation_de_mep_etapes_et_cycle()
     {

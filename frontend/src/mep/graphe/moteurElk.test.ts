@@ -65,6 +65,33 @@ describe('moteurElk : un échec ne reste pas en mémoire', () => {
     expect(elk.demarrages).toBe(2);
   });
 
+  it('un calcul interrompu par l’échec d’un autre est refait sur le moteur neuf (#130)', async () => {
+    // A (état déjà dépassé) échoue pendant que B (graphe affiché, valide) attend son tour : le moteur est remplacé, B ne
+    // doit pas pour autant finir en « indisponible ».
+    let rejeterA: (e: Error) => void = () => undefined;
+    const b: ElkNode = { id: 'b', children: [] };
+    elk.layout
+      .mockImplementationOnce(() => new Promise<ElkNode>((_, rejeter) => (rejeterA = rejeter)))
+      .mockImplementationOnce(() => new Promise<ElkNode>(() => undefined));
+    const pa = raison(calculerRangement(graphe));
+    const pb = calculerRangement(b);
+    await vi.waitFor(() => expect(elk.layout).toHaveBeenCalledTimes(2));
+    rejeterA(new Error('graphe invalide'));
+    expect(await pa).toBe('calcul');
+    await expect(pb).resolves.toBe(b);
+    expect(elk.demarrages).toBe(2);
+  });
+
+  it('interrompu deux fois : « chargement », sans boucle', async () => {
+    elk.layout.mockImplementation(() => new Promise<ElkNode>(() => undefined));
+    const p = raison(calculerRangement(graphe));
+    await vi.waitFor(() => expect(elk.layout).toHaveBeenCalledTimes(1));
+    oublierMoteur();
+    await vi.waitFor(() => expect(elk.layout).toHaveBeenCalledTimes(2));
+    oublierMoteur();
+    expect(await p).toBe('chargement');
+  });
+
   it('plus de 15 s : « delai », le moteur bloqué est abandonné', async () => {
     vi.useFakeTimers();
     elk.layout.mockImplementationOnce(() => new Promise<ElkNode>(() => undefined));

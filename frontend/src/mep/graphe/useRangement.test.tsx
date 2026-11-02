@@ -124,6 +124,27 @@ describe('useRangement : échec du rangement', () => {
     expect(result.current.indisponible).toBeNull();
   });
 
+  it('se rétablit seul : un changement qui rend le graphe rangeable efface l’échec, sans « Réessayer » (#130)', async () => {
+    echecs.push(new RangementIndisponible('calcul'));
+    const { result, rerender } = renderHook(({ modele }) => useRangement(modele, mesurees, false, 0, false), {
+      initialProps: { modele: replie },
+    });
+    await vider();
+    expect(result.current.indisponible).toBe('calcul');
+    // Même graphe : pas de nouvel essai de lui-même (pas de boucle sur un graphe refusé).
+    rerender({ modele: replie });
+    await vider();
+    expect(appels).toHaveLength(1);
+    // Une étape ajoutée (ou reçue) change le graphe : il est rangé de nouveau, et l'échec disparaît.
+    const ajoute: ModeleGraphe = { ...replie, noeuds: [...replie.noeuds, { id: 'e9', nature: 'etape', parent: null }] };
+    rerender({ modele: ajoute });
+    await vider();
+    expect(appels).toHaveLength(2);
+    expect(result.current.indisponible).toBeNull();
+    expect(result.current.range?.modele).toBe(ajoute);
+    expect(oublierMoteur).not.toHaveBeenCalled();
+  });
+
   it('une autre erreur compte comme un échec de calcul ; le rangement affiché reste', async () => {
     const { result, rerender } = renderHook(({ modele }) => useRangement(modele, mesurees, false, 0, false), {
       initialProps: { modele: replie },

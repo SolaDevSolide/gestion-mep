@@ -300,8 +300,11 @@ describe('ListeMepPage : MEP simplifiée', () => {
     const dialogue = screen.getByRole('dialog', { name: 'Nouvelle mise en production' });
     expect(dialogue).toHaveTextContent('Vous en serez responsable technique.');
     expect(dialogue).toHaveTextContent('Le pilote se désigne ensuite dans « Intervention »');
-    expect(dialogue).not.toHaveTextContent('Vous en serez le pilote');
+    expect(dialogue).not.toHaveTextContent(/serez (le )?pilote/);
     await userEvent.click(screen.getByRole('radio', { name: /MEP simplifiée/ }));
+    // MEP simplifiée : même règle (#130), le pilote n'est connu qu'une fois désigné.
+    expect(dialogue).toHaveTextContent('Vous en serez responsable technique.');
+    expect(dialogue).not.toHaveTextContent(/serez (le )?pilote/);
     await userEvent.type(screen.getByLabelText('Outil ou application'), 'Correctif');
     await userEvent.click(screen.getByRole('button', { name: 'Créer la MEP' }));
     expect(api.creerMep).toHaveBeenCalledWith('Correctif', '', false, 'Simplifiee');

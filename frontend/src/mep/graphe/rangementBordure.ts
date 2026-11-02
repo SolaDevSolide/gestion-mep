@@ -294,8 +294,18 @@ export function grapheBordure(modele: ModeleGraphe, tailles: ReadonlyMap<string,
       'elk.nodeSize.minimum': `(${Math.max(largeur(nord), largeur(sud))},${2 * (GRILLE + CERCLE_BORD.dedans) + GRILLE * 2})`,
     };
   }
+  // Garde-fou : un bout de lien inconnu d'ELK (nœud ou port absent) lui ferait refuser tout le graphe, et le rangement
+  // resterait indisponible tant que ce lien existe. Un tel morceau est laissé de côté : son lien n'est pas tracé, le reste
+  // du plan est rangé.
+  const formes = new Set<string>();
+  for (const n of noeudsElk.values()) {
+    formes.add(n.id);
+    for (const p of n.ports ?? []) formes.add(p.id);
+  }
   const edges = (conteneur: string | null): ElkExtendedEdge[] =>
-    tous.filter((x) => x.conteneur === conteneur).map((x) => ({ id: x.id, sources: [x.source], targets: [x.cible] }));
+    tous
+      .filter((x) => x.conteneur === conteneur && formes.has(x.source) && formes.has(x.cible))
+      .map((x) => ({ id: x.id, sources: [x.source], targets: [x.cible] }));
   for (const [id, n] of noeudsElk) if (n.children) n.edges = edges(id);
   return {
     graphe: { id: 'racine', layoutOptions: OPTIONS_RACINE, children: racine, edges: edges(null) },
