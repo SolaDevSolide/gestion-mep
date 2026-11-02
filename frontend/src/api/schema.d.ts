@@ -6187,6 +6187,173 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/jetons/portees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PorteeJetonDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jetons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JetonDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JetonSaisie"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JetonCreeDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jetons/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JetonDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jetons/{id}/revoquer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JetonDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/sso": {
         parameters: {
             query?: never;
@@ -8290,6 +8457,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/jetons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    type?: components["schemas"]["TypeJeton"];
+                    compte?: string;
+                    actifs?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JetonDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JetonSaisie"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JetonCreeDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/jetons/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JetonDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/jetons/{id}/revoquer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JetonDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -8687,6 +8990,7 @@ export interface components {
             comptePrincipalId: null | string;
             nomPersonne: string;
             equipeIds: string[];
+            estTechnique: boolean;
         };
         /** @description Compte de démonstration : `Description` donne son rôle dans les MEP de démonstration. */
         CompteDemoDto: {
@@ -8700,7 +9004,8 @@ export interface components {
             /**
              * @description Compte complet : le sien (`/api/auth/moi`, profil) ou ceux de la console d'administration (`/api/admin/utilisateurs`).
              *     `ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom
-             *     affiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre.
+             *     affiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre ;
+             *     `EstTechnique` : compte technique d'un jeton de service (sans mot de passe, il ne se connecte pas).
              */
             utilisateur: {
                 /** Format: uuid */
@@ -8721,6 +9026,7 @@ export interface components {
                 comptePrincipalId: null | string;
                 nomPersonne: string;
                 equipeIds: string[];
+                estTechnique: boolean;
             };
             motDePasseProvisoire: string;
         };
@@ -9418,6 +9724,11 @@ export interface components {
         EtatConnexion: "Active" | "Desactivee" | "EnErreur" | "JamaisAppelee";
         /** @enum {unknown} */
         EtatEtape: "AFaire" | "EnCours" | "Reussie" | "Echec";
+        /**
+         * @description État d'un jeton à un instant donné : seul EtatJeton.Actif permet d'appeler l'API.
+         * @enum {unknown}
+         */
+        EtatJeton: "Actif" | "Expire" | "Revoque";
         /**
          * @description État d'une liaison avec Noosphere (contrat : pending, active, cut). EtatLiaison.EnAttente : appairée, empreinte pas encore
          *     confirmée ici ; EtatLiaison.Active : confirmée ici (les échanges de données attendent aussi la confirmation de Noosphere) ;
@@ -10307,6 +10618,51 @@ export interface components {
         };
         /** @enum {unknown} */
         IssueMep: "Reussie" | "Repliee" | "Echec" | null;
+        /** @description Jeton créé : `Secret` est le jeton complet (`gmep_…`), renvoyé cette seule fois et jamais conservé. */
+        JetonCreeDto: {
+            jeton: components["schemas"]["JetonDto"];
+            secret: string;
+        };
+        /**
+         * @description Jeton d'accès à l'API, sans son secret. `Prefixe` : début visible du jeton (`gmep_` et 8 caractères) ;
+         *     `Etat` : `Actif`, `Expire` ou `Revoque` ; `DerniereUtilisationLe` et `DerniereAdresseIp` :
+         *     dernier appel, à 5 minutes près ; `CompteId`, `CompteLogin`, `CompteNom` : compte au nom duquel il agit
+         *     (la personne, ou le compte technique d'un jeton de service).
+         */
+        JetonDto: {
+            /** Format: uuid */
+            id: string;
+            nom: string;
+            type: components["schemas"]["TypeJeton"];
+            etat: components["schemas"]["EtatJeton"];
+            prefixe: string;
+            portees: string[];
+            /** Format: date-time */
+            creeLe: string;
+            creePar: string;
+            /** Format: date-time */
+            expireLe: string;
+            /** Format: date-time */
+            revoqueLe: null | string;
+            revoquePar: null | string;
+            /** Format: date-time */
+            derniereUtilisationLe: null | string;
+            derniereAdresseIp: null | string;
+            /** Format: uuid */
+            compteId: string;
+            compteLogin: string;
+            compteNom: string;
+        };
+        /**
+         * @description Nouveau jeton : nom (100 caractères au plus), portées (au moins une ; `admin` pour un jeton de service seulement)
+         *     et durée de validité en jours (1 à 365, 90 si absente).
+         */
+        JetonSaisie: {
+            nom: null | string;
+            portees: null | string[];
+            /** Format: int32 */
+            dureeJours: null | number;
+        };
         /** @description Relie le compte à `ComptePrincipalId` (même personne) ; `Desactiver` : désactive aussi le compte relié. */
         LiaisonCompteSaisie: {
             /** Format: uuid */
@@ -11574,6 +11930,12 @@ export interface components {
             repriseReussieLe: null | string;
             /** Format: int32 */
             arretMinutes: null | number;
+        };
+        /** @description Portée d'un jeton (`GET /api/jetons/portees`) : nom, description et types de jetons qui peuvent la porter. */
+        PorteeJetonDto: {
+            nom: string;
+            description: string;
+            types: components["schemas"]["TypeJeton"][];
         };
         /** @description Cercle d'une section : `Sens` obligatoire à la création, ignoré ensuite ; titre absent à la création : « Entrée 2 »… */
         PortSaisie: {
@@ -14193,6 +14555,12 @@ export interface components {
         /** @enum {unknown} */
         TypeEtape: "Standard" | "Sauvegarde" | null;
         /**
+         * @description Jeton personnel : créé par une personne pour ses scripts, il agit avec ses droits (jamais plus). Jeton de service : créé
+         *     par un administrateur pour un outil (CI/CD, supervision), il agit sous un compte technique qui porte son nom.
+         * @enum {unknown}
+         */
+        TypeJeton: "Personnel" | "Service";
+        /**
          * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
          *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
          *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
@@ -14228,7 +14596,8 @@ export interface components {
         /**
          * @description Compte complet : le sien (`/api/auth/moi`, profil) ou ceux de la console d'administration (`/api/admin/utilisateurs`).
          *     `ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom
-         *     affiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre.
+         *     affiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre ;
+         *     `EstTechnique` : compte technique d'un jeton de service (sans mot de passe, il ne se connecte pas).
          */
         UtilisateurDto: {
             /** Format: uuid */
@@ -14245,6 +14614,7 @@ export interface components {
             comptePrincipalId: null | string;
             nomPersonne: string;
             equipeIds: string[];
+            estTechnique: boolean;
         };
         /** @description Valeur d'une variable pour une MEP : `Texte` ou `Liste` ; les deux null : information manquante. */
         ValeurVariableDto: {
