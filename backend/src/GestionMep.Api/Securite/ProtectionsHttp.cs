@@ -20,6 +20,11 @@ public static class ProtectionsHttp
 
     public const string CleRequetesParJeton = "Jetons:RequetesParMinute";
 
+    /// <summary>Limite du jeton de la requête : la sienne (jeton de service réglé à part), sinon le réglage global.</summary>
+    public static int RequetesParJeton(IConfiguration config, System.Security.Claims.ClaimsPrincipal user) =>
+        int.TryParse(user.FindFirst(Auth.AuthentificationJeton.ClaimDebit)?.Value, System.Globalization.CultureInfo.InvariantCulture, out var propre) && propre > 0
+            ? propre : RequetesParJeton(config);
+
     public static IServiceCollection AjouterProtectionsHttp(this IServiceCollection services, IConfiguration config)
     {
         // Reverse proxy HTTPS (IIS, nginx, Traefik…) : adresse du client et schéma d'origine, acceptés seulement des
@@ -40,18 +45,25 @@ public static class ProtectionsHttp
         services.AddRateLimiter(o =>
         {
             o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            o.OnRejected = (ctx, annulation) => new ValueTask(ReponsesErreur.Ecrire(ctx.HttpContext, StatusCodes.Status429TooManyRequests,
+            o.OnRejected = (ctx, annulation) =>
+            {
+                // Délai avant la prochaine fenêtre (limites à fenêtre fixe), pour qu'un outil sache quand réessayer.
+                if (ctx.Lease.TryGetMetadata(MetadataName.RetryAfter, out var attente))
+                    ctx.HttpContext.Response.Headers.RetryAfter = Math.Max(1, (int)Math.Ceiling(attente.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return new ValueTask(ReponsesErreur.Ecrire(ctx.HttpContext, StatusCodes.Status429TooManyRequests,
                 ctx.HttpContext.Request.Path.StartsWithSegments(Services.ServiceLiaisons.Chemin)
                     ? $"Plus de {Endpoints.LiaisonEndpoints.RequetesParMinute} requêtes par minute sur cette liaison. Réessayez dans une minute."
                     : ctx.HttpContext.User.HasClaim(c => c.Type == Auth.AuthentificationJeton.ClaimJeton)
-                    ? $"Plus de {RequetesParJeton(config)} requêtes par minute avec ce jeton d'accès. Réessayez dans une minute."
+                    ? $"Plus de {RequetesParJeton(config, ctx.HttpContext.User)} requêtes par minute avec ce jeton d'accès. Réessayez dans une minute."
                     : "Trop de tentatives de connexion. Réessayez dans une minute.", annulation: annulation));
-            // Jetons d'accès (#128) : requêtes par minute et par jeton (réglage modifiable, relu à chaque requête). Les autres
+            };
+            // Jetons d'accès (#128) : requêtes par minute et par jeton (réglage modifiable, relu à chaque requête, ou limite propre
+            // d'un jeton de service). Les autres
             // requêtes n'ont pas de limite globale.
             o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
             {
                 if (ctx.User.FindFirst(Auth.AuthentificationJeton.ClaimJeton)?.Value is not { } jeton) return RateLimitPartition.GetNoLimiter("");
-                var parMinute = RequetesParJeton(config);
+                var parMinute = RequetesParJeton(config, ctx.User);
                 return RateLimitPartition.GetFixedWindowLimiter($"jeton|{jeton}|{parMinute}",
                     _ => new FixedWindowRateLimiterOptions { PermitLimit = parMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 });
             });

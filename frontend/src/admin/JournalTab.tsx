@@ -1,4 +1,5 @@
-import { NotebookText, RefreshCw } from 'lucide-react';
+import { NotebookText, RefreshCw, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { formatDateHeure } from '../format';
 import { useAsync } from '../hooks';
@@ -54,6 +55,8 @@ export const LIBELLE_EVENEMENT_ADMIN: Record<string, string> = {
   'connexion-api.supprimee': 'Connexion supprimée',
   'connexion-api.essayee': 'Connexion essayée',
   'connexion-api.echec': 'Appel à une API en échec',
+  'jeton.cree': 'Jeton créé',
+  'jeton.revoque': 'Jeton révoqué',
 };
 
 export function libelleEvenementAdmin(type: string): string {
@@ -75,25 +78,57 @@ function tonEvenement(type: string): Ton | undefined {
     type === 'connexion.echecs' ||
     type === 'demo.reinitialisee' ||
     type === 'mep.pilotage-secours' ||
-    type === 'connexion-api.desactivee'
+    type === 'connexion-api.desactivee' ||
+    type === 'jeton.revoque'
   )
     return 'warn';
   if (type === 'compte.mdp-reinitialise') return 'warn';
-  if (type === 'compte.cree' || type === 'compte.reactive') return 'ok';
+  if (type === 'compte.cree' || type === 'compte.reactive' || type === 'jeton.cree') return 'ok';
   return undefined;
 }
 
+/** Filtres du journal ouverts depuis un autre onglet (`?onglet=journal&filtre=jetons`). */
+const FILTRES: Record<string, { libelle: string; prefixe: string }> = {
+  jetons: { libelle: 'Jetons', prefixe: 'jeton.' },
+};
+
 export default function JournalTab() {
-  const { donnees, erreur, echec, chargement, recharger } = useAsync(() => api.adminJournal(200), []);
+  const { donnees: tous, erreur, echec, chargement, recharger } = useAsync(() => api.adminJournal(200), []);
+  const [params, setParams] = useSearchParams();
+  const filtre = FILTRES[params.get('filtre') ?? ''];
+  const donnees = tous && filtre ? tous.filter((ev) => ev.type.startsWith(filtre.prefixe)) : tous;
+  const retirerFiltre = () => {
+    const suite = new URLSearchParams(params);
+    suite.delete('filtre');
+    setParams(suite, { replace: true });
+  };
   return (
     <Card>
       <CardHeader
         titre="Journal d’administration"
-        description="Les 200 derniers événements, du plus récent au plus ancien."
+        description={
+          filtre
+            ? `Parmi les 200 derniers événements, filtrés sur « ${filtre.libelle} ».`
+            : 'Les 200 derniers événements, du plus récent au plus ancien.'
+        }
         action={
-          <Button taille="sm" icone={<RefreshCw className="size-4" aria-hidden />} onClick={recharger}>
-            Actualiser
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {filtre && (
+              <Button
+                taille="sm"
+                variante="secondaire"
+                className="border-accent text-accent-text"
+                icone={<X className="size-3.5" aria-hidden />}
+                aria-label={`Retirer le filtre « ${filtre.libelle} »`}
+                onClick={retirerFiltre}
+              >
+                {filtre.libelle}
+              </Button>
+            )}
+            <Button taille="sm" icone={<RefreshCw className="size-4" aria-hidden />} onClick={recharger}>
+              Actualiser
+            </Button>
+          </div>
         }
       />
       {erreur && (
@@ -114,8 +149,12 @@ export default function JournalTab() {
       {donnees && donnees.length === 0 && (
         <EmptyState
           icone={NotebookText}
-          titre="Journal vide"
-          description="Aucune action d’administration n’a encore été enregistrée."
+          titre={filtre ? 'Aucun événement' : 'Journal vide'}
+          description={
+            filtre
+              ? `Aucun des 200 derniers événements ne concerne « ${filtre.libelle} ».`
+              : 'Aucune action d’administration n’a encore été enregistrée.'
+          }
         />
       )}
       {donnees && donnees.length > 0 && (

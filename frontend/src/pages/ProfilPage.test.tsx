@@ -14,6 +14,8 @@ vi.mock('../api', () => ({
     ssoEtat: vi.fn(),
     ssoLier: vi.fn(),
     ssoDelierMoi: vi.fn(),
+    mesJetons: vi.fn(),
+    porteesJetons: vi.fn(),
   },
 }));
 
@@ -25,6 +27,8 @@ const catalogue: SystemeCatalogue[] = [
 function rendre(u: Utilisateur, sso?: Partial<SsoProfil>, url = '/profil') {
   const majUtilisateur = vi.fn();
   vi.mocked(api.catalogueSystemes).mockResolvedValue(catalogue);
+  vi.mocked(api.mesJetons).mockResolvedValue([]);
+  vi.mocked(api.porteesJetons).mockResolvedValue([]);
   vi.mocked(api.ssoEtat).mockResolvedValue({
     disponible: false,
     libelle: null,

@@ -33,7 +33,7 @@ Chaque refus a un seul code, choisi selon sa cause, quelle que soit la route :
 | 409 | **Conflit** : la partie modifiée a changé depuis sa lecture (`revision`, ou `version` là où elle est demandée), ou la MEP est restée verrouillée par d'autres écritures plus de 15 secondes. |
 | 413 | Fichier ou requête trop volumineux (une pièce jointe est refusée dès sa taille annoncée, ou coupée dès qu'elle dépasse la taille maximale). |
 | 422 | **Règle métier** : la demande est bien formée et permise à la personne, mais l'état des données la refuse (démarrer une étape qui attend une autre étape, retour arrière en préparation, MEP clôturée), ou l'action exige une information que la saisie n'apporte pas (motif, preuve, observation). Go pendant une période de gel sans dérogation accordée (type `urn:gestion-mep:probleme:go-pendant-un-gel`, voir plus bas). Aussi : fichier importé dont le contenu est refusé (fichier de recette ou d'objets impactés incohérent, archive de sauvegarde). |
-| 429 | Trop de requêtes : tentatives de connexion, flux ouverts, dépôts de pièces jointes d'un compte, requêtes d'un jeton d'accès (réglage `jetons-par-minute`). |
+| 429 | Trop de requêtes : tentatives de connexion, flux ouverts, dépôts de pièces jointes d'un compte, requêtes d'un jeton d'accès (réglage `jetons-par-minute`, ou limite propre d'un jeton de service), avec l'en-tête `Retry-After` (secondes avant la minute suivante). |
 | 503 | Service indisponible : sonde `/api/sante/prete` (l'application ne peut pas servir : base injoignable, schéma différent de celui de la version, surveillance des échéances arrêtée), connexion quand le serveur est trop sollicité. |
 | 507 | Espace disque insuffisant pour une pièce jointe. |
 
@@ -138,12 +138,12 @@ Mode d'emploi : [Jetons d'accès à l'API](Jetons-d-accès.md). Un jeton s'envoi
 | Route | Effet |
 |---|---|
 | `GET /api/jetons/portees` | Portées : `[{ nom, description, types }]` (`types` : `Personnel`, `Service`). |
-| `GET /api/jetons`, `GET /api/jetons/{id}` | Ses jetons personnels (du plus récent au plus ancien), y compris expirés et révoqués : `{ id, nom, type, etat, prefixe, portees, creeLe, creePar, expireLe, revoqueLe, revoquePar, derniereUtilisationLe, derniereAdresseIp, compteId, compteLogin, compteNom }`. `etat` : `Actif`, `Expire`, `Revoque`. Jamais le secret. |
+| `GET /api/jetons`, `GET /api/jetons/{id}` | Ses jetons personnels (du plus récent au plus ancien), y compris expirés et révoqués : `{ id, nom, type, etat, prefixe, portees, creeLe, creePar, expireLe, revoqueLe, revoquePar, derniereUtilisationLe, derniereAdresseIp, compteId, compteLogin, compteNom, requetesParMinute }`. `etat` : `Actif`, `Expire`, `Revoque` ; `requetesParMinute` : limite de débit propre à un jeton de service (null : réglage `jetons-par-minute`). Jamais le secret. |
 | `POST /api/jetons` | `{ nom, portees, dureeJours }` → 201 `{ jeton, secret }` : `secret`, le jeton complet `gmep_…`, n'est renvoyé que cette fois. `dureeJours` : 1 à 365, 90 si absent. 400 pour un nom vide ou de plus de 100 caractères, une portée inconnue, `admin`, ou une durée hors bornes ; 422 au-delà de 20 jetons actifs. |
 | `POST /api/jetons/{id}/revoquer` | Révoque l'un de ses jetons (404 pour celui d'un autre, 422 s'il l'est déjà) ; renvoie le jeton. |
 | `GET /api/admin/jetons` | Tous les jetons, personnels et de service. Filtres facultatifs : `type` (`Personnel`, `Service`), `compte` (identifiant), `actifs=true`. `GET /api/admin/jetons/{id}` : un jeton. |
-| `POST /api/admin/jetons` | Jeton de service, même saisie (`admin` permise) → 201 `{ jeton, secret }`. Crée le compte technique du jeton (login `service-…`, nom du jeton, sans mot de passe, `estTechnique: true` dans les comptes) ; 400 si le nom est celui ou le login d'un autre compte. |
-| `POST /api/admin/jetons/{id}/revoquer` | Révoque n'importe quel jeton (422 s'il l'est déjà) ; celui d'un jeton de service désactive aussi son compte technique. |
+| `POST /api/admin/jetons` | Jeton de service : `{ nom, portees, dureeJours, compteTechniqueId, requetesParMinute }` (`admin` permise) → 201 `{ jeton, secret }`. Sans `compteTechniqueId`, crée le compte technique du jeton (login `svc-` suivi du nom, par exemple `svc-ci-gitlab`, nom du jeton, sans mot de passe, `estTechnique: true` dans les comptes) ; 400 si le nom est celui ou le login d'un autre compte. Avec, le jeton agit sous ce compte technique existant (422 pour le compte d'une personne), réactivé s'il était désactivé. `requetesParMinute` : 1 à 100 000, réglage global si absent. |
+| `POST /api/admin/jetons/{id}/revoquer` | Révoque n'importe quel jeton (422 s'il l'est déjà) ; celui d'un jeton de service désactive aussi son compte technique, s'il n'a plus d'autre jeton actif. |
 
 Exemples :
 
@@ -161,7 +161,7 @@ curl -s -X POST -H "Authorization: Bearer $GMEP_JETON" -H "Content-Type: applica
   "https://mep.entreprise.fr/api/meps/$MEP/etapes/$ETAPE/terminer"
 ```
 
-Le compte technique d'un jeton de service ne se connecte jamais : `POST /api/admin/utilisateurs/{id}/reinitialiser-mot-de-passe` et `…/relier` répondent 422 pour lui. Il se désactive et se réactive comme un autre compte (ses jetons suivent). Journal d'administration : `jeton.cree`, `jeton.revoque`.
+Le compte technique d'un jeton de service ne se connecte jamais : `POST /api/admin/utilisateurs/{id}/reinitialiser-mot-de-passe` et `…/relier` répondent 422 pour lui. Il se désactive et se réactive comme un autre compte (ses jetons de service suivent). Désactiver le compte d'une personne révoque ses jetons personnels : ils ne reviennent pas avec le compte. Journal d'administration : `jeton.cree`, `jeton.revoque`.
 
 ## Liaison avec Noosphere
 

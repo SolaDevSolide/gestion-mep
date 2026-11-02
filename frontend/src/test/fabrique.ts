@@ -1,4 +1,13 @@
-import type { Etape, ExecutionResolution, Mep, MepResume, StatutDisponibilite, Utilisateur } from '../types';
+import type {
+  Etape,
+  ExecutionResolution,
+  Mep,
+  MepResume,
+  StatutDisponibilite,
+  Utilisateur,
+  JetonApi,
+  PorteeJeton,
+} from '../types';
 
 export function etape(p: Partial<Etape> = {}, statut: StatutDisponibilite = 'Disponible'): Etape {
   return {
@@ -284,3 +293,39 @@ export const SESSION_ACTIVE = {
   reconnecter: async () => undefined,
   abandonnerSession: () => undefined,
 };
+
+/** Jeton d'accès (#128), daté par rapport à maintenant : `jours(n)` donne une date dans n jours. */
+export const jours = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString();
+
+export function jetonApi(p: Partial<JetonApi> = {}): JetonApi {
+  return {
+    id: 'j1',
+    nom: 'Rapport hebdo des MEP',
+    type: 'Personnel',
+    etat: 'Actif',
+    prefixe: 'gmep_r8Fq2x0A',
+    portees: ['meps:lecture'],
+    creeLe: jours(-20),
+    creePar: 'Alice',
+    expireLe: jours(70),
+    revoqueLe: null,
+    revoquePar: null,
+    derniereUtilisationLe: null,
+    derniereAdresseIp: null,
+    compteId: 'u-alice',
+    compteLogin: 'alice',
+    compteNom: 'Alice',
+    requetesParMinute: null,
+    ...p,
+  };
+}
+
+/** Portées telles que les renvoie `GET /api/jetons/portees`. */
+export const PORTEES_JETONS: PorteeJeton[] = [
+  { nom: 'meps:lecture', description: 'Lire les MEP', types: ['Personnel', 'Service'] },
+  { nom: 'meps:ecriture', description: 'Créer et modifier les MEP', types: ['Personnel', 'Service'] },
+  { nom: 'execution', description: 'Démarrer, terminer et commenter les étapes', types: ['Personnel', 'Service'] },
+  { nom: 'catalogue:lecture', description: 'Lire le catalogue des systèmes', types: ['Personnel', 'Service'] },
+  { nom: 'catalogue:ecriture', description: 'Modifier le catalogue des systèmes', types: ['Personnel', 'Service'] },
+  { nom: 'admin', description: 'Routes d’administration', types: ['Service'] },
+];

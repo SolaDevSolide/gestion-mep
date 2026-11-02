@@ -207,10 +207,67 @@ public class JetonsApiTests : IDisposable
         invalide.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "gmep_inconnu");
         await Erreur(await alice.SendAsync(invalide), HttpStatusCode.Unauthorized);
 
+        // Compte désactivé : ses jetons personnels sont révoqués aussitôt, au journal, et ne reviennent pas avec le compte.
         await Ok(await alice.PostAsync($"/api/admin/utilisateurs/{idBob}/desactiver", null));
-        Assert.Contains("désactivé", (await Erreur(await ParJeton(secret).GetAsync("/api/meps"), HttpStatusCode.Unauthorized)).GetProperty("message").GetString());
+        Assert.Contains("révoqué", (await Erreur(await ParJeton(secret).GetAsync("/api/meps"), HttpStatusCode.Unauthorized)).GetProperty("message").GetString());
+        var trace = await EnBase(db => db.JournalAdmin.AsNoTracking().OrderByDescending(e => e.Id).FirstAsync(e => e.Type == "jeton.revoque"));
+        Assert.Contains("compte désactivé", trace.Detail);
         await Ok(await alice.PostAsync($"/api/admin/utilisateurs/{idBob}/reactiver", null));
-        await Ok(await ParJeton(secret).GetAsync("/api/meps"));
+        await Erreur(await ParJeton(secret).GetAsync("/api/meps"), HttpStatusCode.Unauthorized);
+        var jetons = await Ok(await alice.GetAsync($"/api/admin/jetons?compte={idBob}"));
+        Assert.Equal("Revoque", jetons.EnumerateArray().Single().GetProperty("etat").GetString());
+    }
+
+    [Fact]
+    public async Task Un_jeton_de_service_peut_reprendre_un_compte_technique_et_avoir_sa_propre_limite_de_debit()
+    {
+        var alice = await _api.ClientConnecte("alice");
+        await Ok(await alice.PutAsJsonAsync("/api/admin/reglages/jetons-par-minute", new { valeur = "2" }));
+        var rep = await alice.PostAsJsonAsync("/api/admin/jetons", new { nom = "Chaîne CI GitLab", portees = new[] { "meps:lecture" }, requetesParMinute = 4 });
+        Assert.Equal(HttpStatusCode.Created, rep.StatusCode);
+        var premier = await Ok(rep);
+        var jeton = premier.GetProperty("jeton");
+        Assert.Equal("svc-chaine-ci-gitlab", jeton.GetProperty("compteLogin").GetString());
+        Assert.Equal(4, jeton.GetProperty("requetesParMinute").GetInt32());
+        var compteId = jeton.GetProperty("compteId").GetGuid();
+
+        // Limite propre au jeton (4) au lieu du réglage global (2), avec Retry-After au-delà.
+        var outil = ParJeton(premier.GetProperty("secret").GetString()!);
+        for (var i = 0; i < 4; i++) await Ok(await outil.GetAsync("/api/auth/moi"));
+        var refus = await outil.GetAsync("/api/auth/moi");
+        Assert.Contains("4 requêtes", (await Erreur(refus, HttpStatusCode.TooManyRequests)).GetProperty("message").GetString());
+        Assert.NotNull(refus.Headers.RetryAfter);
+
+        // « Recréer » : nouveau jeton sous le même compte technique ; révoquer l'ancien laisse le compte actif.
+        var (secret2, jeton2) = await Creer2(alice, new { nom = "Chaîne CI GitLab", portees = new[] { "meps:lecture" }, compteTechniqueId = compteId });
+        Assert.Equal(compteId, jeton2.GetProperty("compteId").GetGuid());
+        Assert.Equal(JsonValueKind.Null, jeton2.GetProperty("requetesParMinute").ValueKind);
+        await Ok(await alice.PostAsync($"/api/admin/jetons/{jeton.GetProperty("id").GetGuid()}/revoquer", null));
+        Assert.True(await EnBase(db => db.Utilisateurs.Where(u => u.Id == compteId).Select(u => u.Actif).SingleAsync()));
+        Assert.Equal("Chaîne CI GitLab", (await Ok(await ParJeton(secret2).GetAsync("/api/auth/moi"))).GetProperty("nomAffiche").GetString());
+        // Le dernier jeton révoqué désactive le compte ; un nouveau jeton sur ce compte le réactive.
+        await Ok(await alice.PostAsync($"/api/admin/jetons/{jeton2.GetProperty("id").GetGuid()}/revoquer", null));
+        Assert.False(await EnBase(db => db.Utilisateurs.Where(u => u.Id == compteId).Select(u => u.Actif).SingleAsync()));
+        var (secret3, _) = await Creer2(alice, new { nom = "CI 2027", portees = new[] { "meps:lecture" }, compteTechniqueId = compteId });
+        await Ok(await ParJeton(secret3).GetAsync("/api/auth/moi"));
+        // Un autre jeton du même nom reçoit un login distinct.
+        var (_, autre) = await Creer2(alice, new { nom = "Chaine CI GitLab", portees = new[] { "meps:lecture" } });
+        Assert.Equal("svc-chaine-ci-gitlab-2", autre.GetProperty("compteLogin").GetString());
+
+        // Jamais une personne, jamais de limite propre pour un jeton personnel, limite dans les bornes.
+        var idBob = (await Ok(await alice.GetAsync("/api/admin/utilisateurs"))).EnumerateArray()
+            .Single(u => u.GetProperty("login").GetString() == "bob").GetProperty("id").GetGuid();
+        await Erreur(await alice.PostAsJsonAsync("/api/admin/jetons", new { nom = "X", portees = new[] { "meps:lecture" }, compteTechniqueId = idBob }), (HttpStatusCode)422);
+        await Erreur(await alice.PostAsJsonAsync("/api/admin/jetons", new { nom = "X", portees = new[] { "meps:lecture" }, requetesParMinute = 0 }), HttpStatusCode.BadRequest);
+        Assert.Throws<SaisieInvalideException>(() => Regles.ValiderDebitJeton(TypeJeton.Personnel, 10));
+    }
+
+    private static async Task<(string Secret, JsonElement Jeton)> Creer2(HttpClient session, object corps)
+    {
+        var rep = await session.PostAsJsonAsync("/api/admin/jetons", corps);
+        Assert.Equal(HttpStatusCode.Created, rep.StatusCode);
+        var c = await Ok(rep);
+        return (c.GetProperty("secret").GetString()!, c.GetProperty("jeton"));
     }
 
     [Fact]
@@ -224,7 +281,7 @@ public class JetonsApiTests : IDisposable
         var (secret, jeton) = await Creer(alice, "Supervision", [PorteesJeton.Admin, PorteesJeton.MepsLecture], 365, "/api/admin/jetons");
         Assert.Equal("Service", jeton.GetProperty("type").GetString());
         var login = jeton.GetProperty("compteLogin").GetString()!;
-        Assert.StartsWith("service-", login);
+        Assert.Equal("svc-supervision", login);
 
         var outil = ParJeton(secret);
         var moi = await Ok(await outil.GetAsync("/api/auth/moi"));
@@ -329,6 +386,11 @@ public class JetonsApiTests : IDisposable
         Assert.Equal(maintenant.AddDays(365), Regles.ValiderJeton(TypeJeton.Personnel, "x", ["meps:lecture"], 365, maintenant).ExpireLe);
         Assert.Throws<SaisieInvalideException>(() => Regles.ValiderJeton(TypeJeton.Personnel, "x", [], null, maintenant));
         Assert.Throws<SaisieInvalideException>(() => Regles.ValiderJeton(TypeJeton.Personnel, "x", ["meps:lecture"], 0, maintenant));
+        Assert.Equal("svc-chaine-ci-gitlab", Regles.LoginCompteTechnique("  Chaîne CI : GitLab ! "));
+        Assert.Equal("svc-jeton", Regles.LoginCompteTechnique("« »"));
+        Assert.Equal(44, Regles.LoginCompteTechnique(new string('a', 80)).Length);
+        Assert.Null(Regles.ValiderDebitJeton(TypeJeton.Personnel, null));
+        Assert.Equal(1200, Regles.ValiderDebitJeton(TypeJeton.Service, 1200));
         Assert.True(PorteesJeton.Couvre(["meps:ecriture"], "meps:lecture"));
         Assert.False(PorteesJeton.Couvre(["meps:lecture"], "meps:ecriture"));
         Assert.False(PorteesJeton.Couvre(["meps:ecriture"], "execution"));

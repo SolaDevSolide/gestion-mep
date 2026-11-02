@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { cn } from './cn';
 import { Button } from './Button';
 
-async function copierTexte(texte: string): Promise<boolean> {
+export async function copierTexte(texte: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(texte);
     return true;

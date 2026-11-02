@@ -34,6 +34,11 @@ public class JetonApi
     /// <summary>Dernière utilisation, à quelques minutes près (écriture espacée, voir <see cref="Regles.UtilisationAEnregistrer"/>).</summary>
     public DateTimeOffset? DerniereUtilisationLe { get; set; }
     public string? DerniereAdresseIp { get; set; }
+    /// <summary>
+    /// Requêtes par minute propres à un jeton de service (supervision bavarde, par exemple) ; null : le réglage global
+    /// <c>jetons-par-minute</c>. Toujours null pour un jeton personnel.
+    /// </summary>
+    public int? RequetesParMinute { get; set; }
 
     public EtatJeton Etat(DateTimeOffset maintenant) =>
         RevoqueLe is not null ? EtatJeton.Revoque : ExpireLe <= maintenant ? EtatJeton.Expire : EtatJeton.Actif;
@@ -75,6 +80,8 @@ public static partial class Regles
     public const int LongueurMaxNomJeton = 100;
     /// <summary>Jetons actifs au plus par compte (jetons personnels) : au-delà, en révoquer un.</summary>
     public const int JetonsActifsMaxParCompte = 20;
+    /// <summary>Limite de débit propre à un jeton de service : de 1 à cette valeur, en requêtes par minute.</summary>
+    public const int RequetesParMinuteJetonMax = 100_000;
     /// <summary>Écart minimal entre deux enregistrements de la dernière utilisation d'un jeton.</summary>
     public static readonly TimeSpan IntervalleUtilisationJeton = TimeSpan.FromMinutes(5);
 
@@ -98,6 +105,39 @@ public static partial class Regles
         if (duree < 1 || duree > DureeJetonMaxJours)
             throw new SaisieInvalideException($"La durée de validité va de 1 à {DureeJetonMaxJours} jours.");
         return (n, PorteesJeton.Toutes.Where(liste.Contains).ToList(), maintenant.AddDays(duree));
+    }
+
+    /// <summary>
+    /// Limite de débit propre à un jeton (null : réglage global) : jetons de service seulement, de 1 à
+    /// <see cref="RequetesParMinuteJetonMax"/> requêtes par minute.
+    /// </summary>
+    public static int? ValiderDebitJeton(TypeJeton type, int? requetesParMinute)
+    {
+        if (requetesParMinute is not { } n) return null;
+        if (type == TypeJeton.Personnel)
+            throw new SaisieInvalideException("Un jeton personnel suit la limite de débit globale : seule celle d'un jeton de service se règle.");
+        if (n < 1 || n > RequetesParMinuteJetonMax)
+            throw new SaisieInvalideException($"La limite de débit va de 1 à {RequetesParMinuteJetonMax} requêtes par minute.");
+        return n;
+    }
+
+    /// <summary>
+    /// Login du compte technique d'un jeton de service : <c>svc-</c> suivi du nom en minuscules, sans accents, mots séparés
+    /// par des tirets (40 caractères au plus) ; « svc-jeton » si le nom n'a ni lettre ni chiffre.
+    /// </summary>
+    public static string LoginCompteTechnique(string nom)
+    {
+        var sansAccents = new string(nom.Normalize(System.Text.NormalizationForm.FormD)
+            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+        var morceaux = new System.Text.StringBuilder();
+        foreach (var c in sansAccents.ToLowerInvariant())
+        {
+            if (c is >= 'a' and <= 'z' or >= '0' and <= '9') morceaux.Append(c);
+            else if (morceaux.Length > 0 && morceaux[^1] != '-') morceaux.Append('-');
+        }
+        var slug = morceaux.ToString().Trim('-');
+        if (slug.Length > 40) slug = slug[..40].TrimEnd('-');
+        return "svc-" + (slug.Length == 0 ? "jeton" : slug);
     }
 
     /// <summary>Révocation définitive ; 422 si le jeton l'est déjà.</summary>

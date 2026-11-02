@@ -18,7 +18,7 @@ Il est créé au premier démarrage, sur une base vide, à partir des variables 
 
 ## Console d'administration
 
-Menu « Administration › Console d'administration », visible des seuls administrateurs. Huit onglets.
+Menu « Administration › Console d'administration », visible des seuls administrateurs. Dix onglets.
 
 ### Comptes
 
@@ -127,6 +127,17 @@ Connexions qui envoient les événements des MEP à d'autres outils (canal Teams
 
 En ligne de commande : `gestion-mep connexions lister | afficher | exporter | importer | secret | activer | desactiver | essayer | appels | renvoyer | supprimer`.
 
+### Jetons d'API
+
+[Jetons d'accès à l'API](Jetons-d-accès.md), en deux listes :
+
+- **Jetons de service** : outil, compte technique (étiquette « Technique », aussi dans l'onglet Comptes), portées (`admin` en rouge), expiration, dernière utilisation (date et adresse IP) et limite de débit propre. **Nouveau jeton de service** demande le nom de l'outil, le compte technique (créé avec le jeton, login `svc-…`, ou un compte technique existant), les portées, la durée (1 an par défaut et au plus) et la limite de débit (par défaut, le réglage `jetons-par-minute`). Un jeton qui expire dans moins de 30 jours passe en orange : **Recréer** ouvre la création avec le même nom, les mêmes portées, le même compte technique et la même limite.
+- **Jetons personnels de tous les comptes** : compte, nom, portées, expiration et dernière utilisation, jamais la valeur, avec un filtre par compte. L'administrateur peut les révoquer, pas en créer pour autrui.
+
+Les jetons révoqués ou expirés restent affichés 30 jours, atténués. **Révoquer** demande une confirmation ; la révocation est immédiate (401 pour l'outil) et inscrite au journal. Le lien **Voir au journal** ouvre le journal filtré sur les jetons.
+
+En ligne de commande : `gestion-mep jetons creer | liste | revoquer`.
+
 ### Liaisons
 
 Liaison avec [Noosphere](Liaison-Noosphere.md) : appairage par l'adresse de Noosphere et un code d'appairage, confirmation de l'empreinte de quatre mots, choix des applications suivies (par domaine ou une par une, rattachées à un système existant ou créées), « Envoyer les MEP », suivi automatique, **Synchroniser maintenant**, **Renouveler les clés**, **Couper la liaison** et journal des échanges (requêtes refusées comprises). L'état de Noosphere est relu à l'ouverture de l'onglet. Tout est aussi possible par l'API (`/api/admin/liaisons`) et en ligne de commande. Les systèmes suivis portent leur origine dans le catalogue : leur nom et leur description ne se modifient que dans Noosphere, et ils ne se suppriment pas tant qu'ils sont suivis.
@@ -182,4 +193,4 @@ En ligne de commande : `gestion-mep systemes lister | afficher | ajouter | modif
 
 ## Profils
 
-Chaque utilisateur gère son profil dans « Mon profil » : nom affiché, rôle, contact, **expertises** (systèmes du catalogue, avec un détail comme « Expert de la zone facturation ») et mot de passe. Quand la connexion unique est active, « Lier mon compte » relie un compte local à son compte Microsoft ; ensuite le bouton « Se connecter avec Microsoft » ouvre ce compte. Les expertises servent à suggérer des responsables techniques lors de la préparation d'une MEP.
+Chaque utilisateur gère son profil dans « Mon profil » : nom affiché, rôle, contact, **expertises** (systèmes du catalogue, avec un détail comme « Expert de la zone facturation »), mot de passe et **jetons d'accès personnels** pour ses scripts (voir [Jetons d'accès à l'API](Jetons-d-accès.md#créer-un-jeton)). Quand la connexion unique est active, « Lier mon compte » relie un compte local à son compte Microsoft ; ensuite le bouton « Se connecter avec Microsoft » ouvre ce compte. Les expertises servent à suggérer des responsables techniques lors de la préparation d'une MEP.

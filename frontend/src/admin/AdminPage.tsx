@@ -1,5 +1,6 @@
 import {
   CircleArrowUp,
+  Key,
   KeyRound,
   Link2,
   NotebookText,
@@ -17,13 +18,25 @@ import ApiExternesTab from './ApiExternesTab';
 import CharteTab from './CharteTab';
 import ComptesTab from './ComptesTab';
 import EquipesTab from './EquipesTab';
+import JetonsTab from './JetonsTab';
 import JournalTab from './JournalTab';
 import LiaisonsTab from './liaisons/LiaisonsTab';
 import ParametresTab from './ParametresTab';
 import SsoTab from './SsoTab';
 import VersionTab from './VersionTab';
 
-const ONGLETS = new Set(['comptes', 'equipes', 'parametres', 'charte', 'sso', 'api', 'liaisons', 'journal', 'version']);
+const ONGLETS = new Set([
+  'comptes',
+  'equipes',
+  'parametres',
+  'charte',
+  'sso',
+  'api',
+  'jetons',
+  'liaisons',
+  'journal',
+  'version',
+]);
 
 /** Console d'administration : comptes, équipes, paramètres globaux et journal. Réservée aux administrateurs. */
 export default function AdminPage() {
@@ -43,8 +56,8 @@ export default function AdminPage() {
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
       <h1 className="text-2xl font-semibold tracking-tight">Console d’administration</h1>
       <p className="mt-1 text-sm text-fg-subtle">
-        Gérez les comptes, les équipes, les paramètres globaux, les connexions aux API externes, la liaison avec
-        Noosphere et la version de l’application, et consultez le journal des actions d’administration.
+        Gérez les comptes, les équipes, les paramètres globaux, les connexions aux API externes, les jetons d’API, la
+        liaison avec Noosphere et la version de l’application, et consultez le journal des actions d’administration.
       </p>
       <Tabs value={onglet} onValueChange={(o) => setParams({ onglet: o }, { replace: true })} className="mt-6">
         <TabsList ref={rangee} className="border-b border-line" aria-label="Sections de la console">
@@ -65,6 +78,9 @@ export default function AdminPage() {
           </TabsTrigger>
           <TabsTrigger value="api">
             <Webhook className="size-4" aria-hidden /> API externes
+          </TabsTrigger>
+          <TabsTrigger value="jetons">
+            <Key className="size-4" aria-hidden /> Jetons d’API
           </TabsTrigger>
           <TabsTrigger value="liaisons">
             <Link2 className="size-4" aria-hidden /> Liaisons
@@ -93,6 +109,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="api" className="mt-6 outline-none">
           <ApiExternesTab />
+        </TabsContent>
+        <TabsContent value="jetons" className="mt-6 outline-none">
+          <JetonsTab />
         </TabsContent>
         <TabsContent value="liaisons" className="mt-6 outline-none">
           <LiaisonsTab />

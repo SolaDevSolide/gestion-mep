@@ -31,6 +31,8 @@ public static class AuthentificationJeton
     public const int LongueurPrefixeVisible = 8;
     public const string ClaimJeton = "mep:jeton";
     public const string ClaimPortee = "mep:portee";
+    /// <summary>Limite de débit propre au jeton (jeton de service), en requêtes par minute ; absente : réglage global.</summary>
+    public const string ClaimDebit = "mep:debit";
     public const string MessageInvalide = "Jeton d'accès invalide.";
     private const string Base62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
@@ -138,6 +140,7 @@ public static class AuthentificationJeton
                 new(ClaimJeton, jeton.Id.ToString()),
             };
             claims.AddRange(jeton.Portees.Select(p => new Claim(ClaimPortee, p)));
+            if (jeton.RequetesParMinute is { } debit) claims.Add(new Claim(ClaimDebit, debit.ToString(CultureInfo.InvariantCulture)));
             if (jeton.Type == TypeJeton.Service && jeton.Portees.Contains(PorteesJeton.Admin)) claims.Add(new Claim(ClaimTypes.Role, Acteur.RoleAdmin));
             if (compte.DoitChangerMotDePasse) claims.Add(new Claim(Acteur.ClaimMotDePasseProvisoire, "1"));
             await EnregistrerUtilisation(db, jeton, maintenant);

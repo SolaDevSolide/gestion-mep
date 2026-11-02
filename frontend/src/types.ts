@@ -617,5 +617,10 @@ export type EtatJeton = NonNullable<S['EtatJeton']>;
 export type JetonApi = S['JetonDto'];
 /** Jeton créé : le secret complet n'est renvoyé qu'à cette occasion. */
 export type JetonCree = S['JetonCreeDto'];
-export type JetonSaisie = S['JetonSaisie'];
+export type JetonSaisie = SaisieVerifiee<S['JetonSaisie'], { nom: string; portees: string[]; dureeJours: number }>;
+/** Jeton de service : compte technique repris (absent : créé au nom du jeton), limite de débit propre (absente : globale). */
+export type JetonServiceSaisie = SaisieVerifiee<
+  S['JetonServiceSaisie'],
+  { nom: string; portees: string[]; dureeJours: number; compteTechniqueId?: string; requetesParMinute?: number }
+>;
 export type PorteeJeton = S['PorteeJetonDto'];
