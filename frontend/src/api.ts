@@ -117,6 +117,10 @@ import type {
   JetonSaisie,
   JetonServiceSaisie,
   PorteeJeton,
+  AbonnementCalendrier,
+  PageCalendrier,
+  PeriodeGel,
+  PeriodeGelSaisie,
 } from './types';
 
 export class ApiError extends Error {
@@ -386,6 +390,29 @@ export const api = {
       { silencieux },
     ),
   rapport: (id: string) => get<RapportFin>(`/meps/${id}/rapport`),
+  // ----- Calendrier et périodes de gel (#129) -----
+  /** Page du calendrier (`parametres` : ceux de `parametresCalendrier`) ; `apres` : curseur de la page suivante. */
+  calendrier: (parametres: URLSearchParams, apres?: string | null) => {
+    const p = new URLSearchParams(parametres);
+    if (apres) p.set('apres', apres);
+    return get<PageCalendrier>(`/calendrier?${p.toString()}`);
+  },
+  periodesGel: () => get<PeriodeGel[]>('/periodes-gel'),
+  creerPeriodeGel: (s: PeriodeGelSaisie) => post<PeriodeGel>('/admin/periodes-gel', s),
+  modifierPeriodeGel: (id: string, s: PeriodeGelSaisie) => put<PeriodeGel>(`/admin/periodes-gel/${id}`, s),
+  supprimerPeriodeGel: (id: string) => del<void>(`/admin/periodes-gel/${id}`),
+  abonnementCalendrier: () => get<AbonnementCalendrier>('/calendrier/abonnement'),
+  /** Crée ou régénère l'adresse d'abonnement : `url` n'est donnée que dans cette réponse ; l'ancienne cesse de répondre. */
+  regenererAbonnement: () => post<AbonnementCalendrier>('/calendrier/abonnement'),
+  revoquerAbonnement: () => del<void>('/calendrier/abonnement'),
+  /** Demande de dérogation au gel (pilote ou suppléant) : `occurrence`, début de l'occurrence visée. */
+  demanderDerogation: (id: string, periodeGelId: string, occurrence: string, motif: string) =>
+    post<Mep>(`/meps/${id}/derogations-gel`, { periodeGelId, occurrence, motif }),
+  /** Décision d'un approbateur : commentaire obligatoire pour un refus. */
+  deciderDerogation: (id: string, derogationId: string, accorder: boolean, commentaire: string) =>
+    post<Mep>(`/meps/${id}/derogations-gel/${derogationId}/decision`, { accorder, commentaire }),
+  retirerDerogation: (id: string, derogationId: string) =>
+    post<Mep>(`/meps/${id}/derogations-gel/${derogationId}/retirer`),
   suivi: () => get<Suivi>('/suivi'),
   /** Tests unitaires faits, non faits et leurs résultats constatés. */
   testsUnitaires: (id: string) => get<TestsUnitaires>(`/meps/${id}/tests-unitaires`),

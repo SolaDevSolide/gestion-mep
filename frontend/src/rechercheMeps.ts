@@ -295,3 +295,27 @@ export const systemesTries = <S extends Pick<SystemeResume, 'catalogueId' | 'nom
   f: FiltreMeps,
   systemes: S[],
 ): S[] => (f.systemes.length ? [...systemes].sort((a, b) => Number(retient(f, b)) - Number(retient(f, a))) : systemes);
+
+/**
+ * Filtres de la liste repris par le calendrier (#129) : tous sauf la période (remplacée par la plage affichée), la phase et
+ * « avec échec », que le calendrier ne connaît pas.
+ */
+export const filtreCalendrier = (f: FiltreMeps): FiltreMeps => ({ ...f, du: '', au: '', phase: '', echec: false });
+
+/** Paramètres du calendrier (`GET /api/calendrier`, `/api/calendrier/ics`) : filtres et plage de jours incluse. */
+export function parametresCalendrier(f: FiltreMeps, du: string, au: string): URLSearchParams {
+  const p = ecrireFiltre(filtreCalendrier(f));
+  p.set('du', du);
+  p.set('au', au);
+  return p;
+}
+
+/** Export iCalendar de la vue affichée : mêmes filtres et même plage que le calendrier. */
+export const urlExportCalendrier = (f: FiltreMeps, du: string, au: string): string =>
+  `/api/calendrier/ics?${parametresCalendrier(f, du, au).toString()}`;
+
+/** Adresse d'abonnement avec les filtres en cours (le flux accepte les mêmes paramètres, sans plage). */
+export function urlAbonnementFiltre(url: string, f: FiltreMeps): string {
+  const q = ecrireFiltre(filtreCalendrier(f)).toString();
+  return q ? `${url}${url.includes('?') ? '&' : '?'}${q}` : url;
+}
