@@ -11,8 +11,8 @@ L'interface web s'appuie entièrement sur une API HTTP JSON. Cette page en donne
 ## Conventions
 
 - Toutes les routes sont sous `/api`, en JSON (`camelCase`). Les énumérations s'écrivent en texte (`"Preparation"`, `"Conforme"`) ; un entier est refusé. Les dates sont en ISO 8601, renvoyées en UTC. Les identifiants sont des GUID.
-- **Authentification** par cookie de session : `POST /api/auth/connexion` avec `{ login, motDePasse }`. Toutes les routes l'exigent, sauf la connexion, `/api/sante`, `/api/sante/prete`, `/api/version`, `/api/charte` et `/api/charte/schema.json`.
-- **Protection CSRF** : toute requête qui modifie (autre que `GET`, `HEAD`, `OPTIONS`) doit porter l'en-tête `X-Requested-With` (valeur libre), sinon 403.
+- **Authentification** par cookie de session : `POST /api/auth/connexion` avec `{ login, motDePasse }`. Toutes les routes l'exigent, sauf la connexion, `/api/sante`, `/api/sante/prete`, `/api/version`, `/api/charte` et `/api/charte/schema.json`. Scripts et outils : **jeton d'accès** `Authorization: Bearer gmep_…`, limité à ses portées (voir « Jetons d'accès » plus bas et [Jetons d'accès à l'API](Jetons-d-accès.md)).
+- **Protection CSRF** : toute requête qui modifie (autre que `GET`, `HEAD`, `OPTIONS`) doit porter l'en-tête `X-Requested-With` (valeur libre), sinon 403. Une requête qui porte un jeton d'accès n'en a pas besoin (elle ne lit pas le cookie).
 - **Réponse des écritures** : une modification d'une MEP renvoie la MEP complète, recalculée pour l'utilisateur courant (états des étapes, anomalies du plan, droits).
 - **Concurrence** : chaque étape et chaque section portent une `revision`, chaque bloc de formulaire de la MEP la sienne (`revisions` : `identite`, `echeance`, `sauvegarde`, `planRepli`, `communication`, `responsablesTechniques`, `approbateurs`), chaque système de la MEP `revisionSauvegarde`, et la MEP une `version` qui augmente à chaque écriture. Le client renvoie la révision de ce qu'il modifie, telle qu'il l'a lue (`revision` dans la saisie) ; si cette partie a changé entre-temps, la réponse est 409, avec un message qui la nomme (« « Plan de retour arrière » a été modifié par quelqu'un d'autre depuis votre dernière lecture… »), et il faut relire. Une révision n'augmente que lorsque le contenu de sa partie change : une écriture ailleurs dans la MEP (une autre étape, un autre bloc) ne la périme pas. Les écritures sur une même MEP passent l'une après l'autre (verrou de la MEP en base, attente bornée à 15 secondes, puis 409 « réessayez dans un instant ») : dix personnes qui écrivent en même temps sur des étapes ou des blocs différents aboutissent toutes. Les blocs acceptent encore `version` (celle de la MEP) à la place de `revision`, pour les scripts existants : elle est alors périmée par toute écriture sur la MEP. Le changement de type (`PUT /api/meps/{id}/type`) et la décision d'approbation (`POST /api/meps/{id}/approbation`) gardent `version`.
 - **Temps réel** : `GET /api/meps/{id}/flux?session={onglet}` est un flux Server-Sent Events. Il envoie `event: maj` avec `data: {"version": n}` à chaque modification (le client relit alors la MEP) et `event: presence` avec la liste des personnes qui ont la MEP ouverte, à l'ouverture puis à chaque changement : `[{"utilisateurId": "…", "nom": "Bob Martin", "elements": ["etape:…"]}]`. `session` (facultatif, 64 caractères au plus) identifie l'onglet du navigateur.
@@ -27,13 +27,13 @@ Chaque refus a un seul code, choisi selon sa cause, quelle que soit la route :
 | Code | Sens |
 |---|---|
 | 400 | **Saisie invalide** : la demande est mal formée ou une valeur ne convient pas, quel que soit l'état des données. JSON illisible, champ obligatoire vide ou trop long, valeur ou référence inconnue (compte, étape d'une autre MEP, fuseau horaire), doublon d'un nom qui doit être unique, mot de passe actuel incorrect, formulaire d'une bibliothèque incomplet (tous les motifs dans `erreurs`). |
-| 401 | **Authentification requise** : pas de session, ou session expirée. |
-| 403 | **Droits insuffisants** : la personne n'a pas le droit de faire cela (pilote ou suppléant exigé, route réservée aux administrateurs, mot de passe provisoire à changer d'abord), ou en-tête `X-Requested-With` absent. |
+| 401 | **Authentification requise** : pas de session, ou session expirée ; jeton d'accès inconnu, expiré, révoqué ou dont le compte est désactivé (même sur une route publique). |
+| 403 | **Droits insuffisants** : la personne n'a pas le droit de faire cela (pilote ou suppléant exigé, route réservée aux administrateurs, mot de passe provisoire à changer d'abord), ou en-tête `X-Requested-With` absent ; jeton d'accès sans la portée de la route, ou route fermée aux jetons. |
 | 404 | **Introuvable** : ressource inconnue, ou route inconnue. |
 | 409 | **Conflit** : la partie modifiée a changé depuis sa lecture (`revision`, ou `version` là où elle est demandée), ou la MEP est restée verrouillée par d'autres écritures plus de 15 secondes. |
 | 413 | Fichier ou requête trop volumineux (une pièce jointe est refusée dès sa taille annoncée, ou coupée dès qu'elle dépasse la taille maximale). |
 | 422 | **Règle métier** : la demande est bien formée et permise à la personne, mais l'état des données la refuse (démarrer une étape qui attend une autre étape, retour arrière en préparation, MEP clôturée), ou l'action exige une information que la saisie n'apporte pas (motif, preuve, observation). Aussi : fichier importé dont le contenu est refusé (fichier de recette ou d'objets impactés incohérent, archive de sauvegarde). |
-| 429 | Trop de requêtes : tentatives de connexion, flux ouverts, dépôts de pièces jointes d'un compte. |
+| 429 | Trop de requêtes : tentatives de connexion, flux ouverts, dépôts de pièces jointes d'un compte, requêtes d'un jeton d'accès (réglage `jetons-par-minute`). |
 | 503 | Service indisponible : sonde `/api/sante/prete` (l'application ne peut pas servir : base injoignable, schéma différent de celui de la version, surveillance des échéances arrêtée), connexion quand le serveur est trop sollicité. |
 | 507 | Espace disque insuffisant pour une pièce jointe. |
 
@@ -70,6 +70,7 @@ Les erreurs suivent le format *problem details* (RFC 9457), type de contenu `app
 | `/api/parametres`, `/api/criteres-go-no-go` | Paramètres globaux. |
 | `/api/pieces-jointes` | Téléchargement d'une pièce jointe (`GET /api/pieces-jointes/{id}/contenu`) : toujours le fichier déposé, avec son nom, son type et sa taille (`Content-Length`), même s'il est stocké compressé sur le serveur (pas de `Content-Encoding`). Une pièce jointe (`PieceJointeDto`) porte `taille` (fichier déposé), `tailleStockee` (place occupée sur le serveur, comptée par les quotas), `compression` (`"gzip"` si le fichier est stocké compressé, sinon null) et `sha256` (empreinte du fichier déposé). |
 | `/api/admin` | Console d'administration : comptes (dont `POST /api/admin/utilisateurs/{id}/relier { comptePrincipalId, desactiver }` et `POST …/{id}/delier` pour les comptes d'une même personne), équipes (`POST /api/admin/equipes`, `PUT` et `DELETE /api/admin/equipes/{id}`, saisie `{ nom, description, membreIds }`, `membreIds` absent : membres inchangés), journal d'administration, vérification des mises à jour, réglages de la connexion unique (`/api/admin/sso`), place occupée par les pièces jointes (`GET /api/admin/pieces-jointes/stockage` : `{ pieces, tailleFichiers, tailleStockee, compressees, nonExaminees }`) (administrateurs seulement). |
+| `/api/jetons`, `/api/admin/jetons` | Jetons d'accès à l'API : les siens (jetons personnels) et, pour les administrateurs, tous les jetons et les jetons de service. Voir « Jetons d'accès » plus bas. |
 | `/api/admin/connexions`, `/api/meps/{id}/connexions` | Connexions aux API externes : console (administrateurs) et envoi depuis une MEP. Voir « Connexions aux API externes » plus bas. |
 | `/api/admin/liaisons`, `/link/v1` | Liaison avec Noosphere : console (administrateurs) et protocole entre serveurs. Voir « Liaison avec Noosphere » plus bas. |
 | `/api/application` | Version en cours, lien de signalement et, pour un administrateur, dernière version publiée. |
@@ -115,7 +116,39 @@ Voir [API externes](API-externes.md). Les secrets sont en **écriture seule** : 
 
 La fin d'un envoi de la MEP (réussi ou en échec définitif) est annoncée sur le flux de la MEP par `event: appels`, sans changer sa version : l'écran relit le journal et `GET /api/meps/{id}/connexions`. Le journal de la MEP reçoit `api.envoye` (sauf pour les déclencheurs fréquents) ou `api.echec` ; le journal d'administration, `connexion-api.creee`, `.modifiee`, `.activee`, `.desactivee`, `.supprimee`, `.essayee` et `.echec`.
 
-L'API ne propose pas encore de jeton d'accès : un script doit se connecter et conserver le cookie de session.
+Un script peut aussi appeler l'API avec un jeton d'accès plutôt qu'avec le cookie de session : voir « Jetons d'accès » ci-dessous.
+
+## Jetons d'accès
+
+Mode d'emploi : [Jetons d'accès à l'API](Jetons-d-accès.md). Un jeton s'envoie dans `Authorization: Bearer gmep_…` ; la requête est alors authentifiée par lui seul (le cookie est ignoré), n'ouvre jamais de session et n'a pas besoin de `X-Requested-With`. Portées : `meps:lecture`, `meps:ecriture` (comprend la lecture), `execution`, `catalogue:lecture`, `catalogue:ecriture` (comprend la lecture), `admin` (jetons de service seulement). La portée de chaque route se déduit de son chemin : `/api/catalogue/…` demande `catalogue:lecture` en lecture et `catalogue:ecriture` en écriture ; `/api/admin/…` et les autres routes réservées aux administrateurs, `admin` ; l'exécution des étapes (`…/etapes/{eid}/demarrer`, `terminer`, `prendre-la-main`, `commentaire`, `autoriser-non-retour`, `autoriser-reprise`), la saisie de la recette (`…/fiches-recette/{fid}/etapes/{tid}/resultat`, `…/refaire`, `…/fiches-recette/{fid}/refaire`) et le déroulé des résolutions (`…/resolutions/{rid}/corrections/{ordre}`, `…/verification`), `execution` ; le dépôt d'une preuve sur une étape ou une résolution, `execution` ou `meps:ecriture` ; tout le reste, `meps:lecture` en lecture et `meps:ecriture` en écriture. Fermées à tout jeton (403) : `/api/auth/…` (sauf `GET /api/auth/moi`, ouvert à tout jeton valide), `/api/utilisateurs/moi/…`, `/api/jetons/…`, `/api/admin/jetons/…`, `/api/demo/…`. Les droits habituels s'appliquent ensuite : un jeton personnel n'a jamais le rôle administrateur ; un jeton de service l'a avec la portée `admin`.
+
+| Route | Effet |
+|---|---|
+| `GET /api/jetons/portees` | Portées : `[{ nom, description, types }]` (`types` : `Personnel`, `Service`). |
+| `GET /api/jetons`, `GET /api/jetons/{id}` | Ses jetons personnels (du plus récent au plus ancien), y compris expirés et révoqués : `{ id, nom, type, etat, prefixe, portees, creeLe, creePar, expireLe, revoqueLe, revoquePar, derniereUtilisationLe, derniereAdresseIp, compteId, compteLogin, compteNom }`. `etat` : `Actif`, `Expire`, `Revoque`. Jamais le secret. |
+| `POST /api/jetons` | `{ nom, portees, dureeJours }` → 201 `{ jeton, secret }` : `secret`, le jeton complet `gmep_…`, n'est renvoyé que cette fois. `dureeJours` : 1 à 365, 90 si absent. 400 pour un nom vide ou de plus de 100 caractères, une portée inconnue, `admin`, ou une durée hors bornes ; 422 au-delà de 20 jetons actifs. |
+| `POST /api/jetons/{id}/revoquer` | Révoque l'un de ses jetons (404 pour celui d'un autre, 422 s'il l'est déjà) ; renvoie le jeton. |
+| `GET /api/admin/jetons` | Tous les jetons, personnels et de service. Filtres facultatifs : `type` (`Personnel`, `Service`), `compte` (identifiant), `actifs=true`. `GET /api/admin/jetons/{id}` : un jeton. |
+| `POST /api/admin/jetons` | Jeton de service, même saisie (`admin` permise) → 201 `{ jeton, secret }`. Crée le compte technique du jeton (login `service-…`, nom du jeton, sans mot de passe, `estTechnique: true` dans les comptes) ; 400 si le nom est celui ou le login d'un autre compte. |
+| `POST /api/admin/jetons/{id}/revoquer` | Révoque n'importe quel jeton (422 s'il l'est déjà) ; celui d'un jeton de service désactive aussi son compte technique. |
+
+Exemples :
+
+```sh
+# Lire les MEP en préparation (meps:lecture)
+curl -s -H "Authorization: Bearer $GMEP_JETON" "https://mep.entreprise.fr/api/meps?modele=false&phase=Preparation"
+
+# Créer une MEP (meps:ecriture) : pas d'en-tête X-Requested-With avec un jeton
+curl -s -X POST -H "Authorization: Bearer $GMEP_JETON" -H "Content-Type: application/json" \
+  -d '{"outil": "Portail client", "objet": "Version 2.4.0"}' https://mep.entreprise.fr/api/meps
+
+# Terminer une étape depuis la CI (execution)
+curl -s -X POST -H "Authorization: Bearer $GMEP_JETON" -H "Content-Type: application/json" \
+  -d '{"revision": 4, "resultat": "Reussie", "resultatVerifie": true, "preuve": "Pipeline 1287 réussi"}' \
+  "https://mep.entreprise.fr/api/meps/$MEP/etapes/$ETAPE/terminer"
+```
+
+Le compte technique d'un jeton de service ne se connecte jamais : `POST /api/admin/utilisateurs/{id}/reinitialiser-mot-de-passe` et `…/relier` répondent 422 pour lui. Il se désactive et se réactive comme un autre compte (ses jetons suivent). Journal d'administration : `jeton.cree`, `jeton.revoque`.
 
 ## Liaison avec Noosphere
 

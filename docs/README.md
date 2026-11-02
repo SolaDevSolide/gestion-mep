@@ -23,6 +23,7 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 | Savoir qui a le droit de faire quoi | [Droits par rôle](Droits.md) |
 | Trouver le sens d'un mot | [Glossaire](Glossaire.md) |
 | Résoudre un problème | [FAQ et dépannage](FAQ-et-dépannage.md) |
+| Appeler l'API depuis un script, la CI/CD ou une supervision (jetons d'accès et portées) | [Jetons d'accès à l'API](Jetons-d-accès.md) |
 | Modifier le code | [Contribuer](../CONTRIBUTING.md), [Architecture](Architecture.md), [API](API.md) |
 
 ## En bref
@@ -33,5 +34,6 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 - **Sécurité de l'intervention** : go / no-go sur critères, point de non-retour soumis à l'accord du pilote, échéance de retour arrière surveillée en permanence, recette avant clôture, bilan.
 - **Traçabilité** : chaque action est horodatée et attribuée, y compris quand quelqu'un prend la main sur l'étape d'un autre.
 - **API externes** : les événements des MEP partent automatiquement vers d'autres outils (Teams, Slack, tickets, supervision), ou à la demande du pilote.
+- **Jetons d'accès à l'API** : scripts, CI/CD et supervision appellent l'API avec un jeton personnel ou de service, limité à ses portées, sans session.
 - **Liaison avec Noosphere** : les applications de la cartographie deviennent des systèmes du catalogue, et les MEP qui les touchent sont annoncées à Noosphere, par une liaison signée et chiffrée.
 - **Exploitation** : sauvegarde automatique de la base et des pièces jointes avant chaque mise à jour du schéma ou importation, supprimée seulement si les contrôles internes confirment qu'aucune donnée n'a été perdue ; commandes `gestion-mep sauvegardes creer | lister | verifier | purger | restaurer` et `gestion-mep importer` pour les sauvegardes régulières, les restaurations et les changements de serveur.

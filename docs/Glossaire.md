@@ -81,6 +81,8 @@ L'application et la documentation emploient un seul mot pour chaque idée. Les v
 
 **Hors catalogue** : système saisi à la main dans une MEP, sans fiche au catalogue. La recherche des MEP le retrouve par son nom, mais il n'a pas d'historique.
 
+**Jeton d'accès** : clé `gmep_…` avec laquelle un script ou un outil appelle l'API sans session, limitée à ses portées ; personnel (droits de la personne) ou de service (compte technique). Voir [Jetons d'accès à l'API](Jetons-d-accès.md).
+
 **Journal** : historique horodaté et attribué de toutes les actions sur une MEP.
 
 **Liaison avec Noosphere** : lien de confiance entre ce serveur et un serveur Noosphere (cartographie des applications), établi par un code d'appairage et confirmé des deux côtés par une **empreinte** de quatre mots. Les applications suivies deviennent des systèmes du catalogue « gérés par Noosphere », et les MEP qui les touchent sont annoncées à Noosphere. Voir [Liaison avec Noosphere](Liaison-Noosphere.md).
