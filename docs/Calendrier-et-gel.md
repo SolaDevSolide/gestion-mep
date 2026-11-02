@@ -2,6 +2,53 @@
 
 Le calendrier place chaque MEP sur son créneau, avec les périodes de gel décidées par les administrateurs (clôture comptable, fêtes de fin d'année…). Une MEP prévue pendant un gel est signalée dès la préparation. Son Go est refusé tant qu'un approbateur n'a pas accordé de dérogation. Le calendrier signale aussi les MEP qui touchent un même système au même moment. Il s'exporte en iCalendar (`.ics`) ou s'ouvre dans un agenda par une adresse d'abonnement personnelle.
 
+## À l'écran
+
+### Le calendrier des MEP
+
+Dans la liste des MEP, l'affichage **Calendrier** (à côté de Cartes et Tableau) place les MEP sur leur créneau. Les filtres de la liste s'appliquent (recherche, système, environnement, équipe, personne, état, type) ; la période, elle, est celle de la vue. L'affichage choisi est retenu par le navigateur ; la vue et le jour affichés sont dans l'adresse de la page (`?vue=semaine&jour=2026-11-27`).
+
+- **Mois** : une case par jour. Chaque MEP y figure avec son heure de début, la couleur de sa phase, `PROD` si elle touche la production, un triangle en cas de conflit et un flocon pendant un gel. Les jours de gel sont hachurés, avec le nom de la période. Un clic sur un jour affiche ses MEP sous la grille. Sur téléphone, les cases ne montrent que des points de couleur : touchez un jour pour voir sa liste.
+- **Semaine** : une colonne par jour, de 6 h à minuit (plus tôt ou plus tard si une MEP le demande). Les MEP qui se chevauchent sont côte à côte ; celles en conflit sont entourées de rouge. Sur téléphone, la semaine se lit jour par jour.
+- **Liste** : les MEP du mois, jour par jour, avec horaire, systèmes, pilote, phase, gels et conflits.
+
+Les heures sont celles du fuseau de l'instance (`Europe/Paris`), indiqué sous le calendrier avec la légende des couleurs. « Aujourd'hui » revient au jour courant ; les flèches passent au mois ou à la semaine d'avant ou d'après.
+
+Dans l'affichage Cartes, la carte d'une MEP porte aussi ses signalements : « Gel : Clôture comptable · Go bloqué sans dérogation » (ou « dérogation demandée », « dérogation accordée ») et « Conflit sur BDD avec Paie 3.1 (21:00 → 23:00) ». Plusieurs conflits se résument en « Conflit avec 2 MEP sur BDD, WEB », le détail au survol.
+
+### Exporter ou s'abonner
+
+- **Exporter .ics** télécharge les MEP de la période affichée, filtres compris, et les périodes de gel. Le fichier s'importe dans n'importe quel agenda, mais ne se met pas à jour.
+- **S'abonner** ouvre l'adresse d'abonnement personnelle. Choisissez ce qu'elle contient : les filtres actuels de la liste ou toutes les MEP que vous pouvez voir, avec ou sans les périodes de gel. **Créer mon adresse** l'affiche, une seule fois : copiez-la dans votre agenda (Outlook : « Ajouter un calendrier › À partir d'Internet » ; Thunderbird : « Nouvel agenda › Sur le réseau »). Ensuite, la fenêtre indique seulement sa date de création et sa dernière lecture par un agenda. **Régénérer l'adresse** en crée une nouvelle et coupe l'ancienne ; **Révoquer** la coupe sans la remplacer. Les filtres et le choix des gels font partie de l'adresse : en changer ne demande pas de nouvelle adresse, seulement de recopier celle qui est affichée à la création.
+
+### Paramètres › Périodes de gel
+
+Tout le monde voit la page ; seuls les administrateurs créent, modifient et suppriment. Le tableau (une fiche par période sur téléphone) donne pour chaque période :
+
+- quand elle a lieu (« Ponctuelle » ou « Récurrente », en clair : « Chaque fin de mois, comme du 26/11 00:00 au 01/12 00:00 ») ;
+- les systèmes et les environnements concernés ;
+- sa prochaine occurrence dans l'année et le nombre de MEP qu'elle touche.
+
+**Nouvelle période** ou **Modifier** ouvre le formulaire :
+
+- le nom et le motif ;
+- ponctuelle ou récurrente (chaque fin de mois, chaque mois, chaque semaine, chaque année), avec un « jusqu'au » facultatif ;
+- le début et la fin de la première occurrence, la fin étant exclue ;
+- les systèmes concernés : tous, ou une sélection du catalogue ;
+- les environnements concernés : tout environnement marqué « production », ou des environnements nommés.
+
+Le formulaire rappelle les prochaines occurrences de la période enregistrée. Les dérogations sont décidées par les approbateurs désignés de chaque MEP.
+
+### Sur la fiche d'une MEP
+
+Pendant la préparation, si le créneau de la MEP touche un gel, l'en-tête porte la pastille **Période de gel** et l'onglet Préparation affiche un encadré avec le créneau, la période, son motif et la date à laquelle le gel prend fin. Le pilote y trouve **Demander une dérogation** et **Choisir une autre date** (qui ouvre la section Intervention). Un conflit avec une autre MEP est rappelé dans un encadré orange, avec un lien vers elle ; rien n'est bloqué.
+
+Dans la fenêtre **Go / no-go**, un Go qui tomberait dans un gel sans dérogation accordée est grisé (« Bloqué : période de gel « Clôture comptable » »). La fenêtre explique pourquoi et permet de demander la dérogation sur place, avec son motif. La demande apparaît ensuite sur la fiche, « en attente de la décision d'un approbateur » ; le pilote peut la retirer.
+
+### Décider d'une dérogation
+
+Un approbateur désigné de la MEP voit les demandes qui l'attendent en haut de **Suivi en direct** : la MEP et son créneau, le pilote, la période, le motif et le plan (nombre d'étapes, retour arrière prévu ou non). Il peut aussi décider depuis la fiche de la MEP. **Accorder la dérogation** (commentaire facultatif) rend le Go possible ; **Refuser** demande un commentaire. La décision s'affiche sur la fiche avec son auteur et son heure ; la dérogation vaut pour cette occurrence du gel seulement.
+
 ## Le créneau d'une MEP
 
 Le créneau est calculé par l'application à chaque enregistrement de la MEP. Il est gardé en base, en UTC, pour que le calendrier se lise vite quel que soit le nombre de MEP.
@@ -28,7 +75,7 @@ Une MEP sans date prévue n'a pas de créneau : elle n'apparaît pas dans le cal
 
 ## Périodes de gel
 
-Une période de gel est définie par un administrateur (console, API ou ligne de commande). Chaque création, modification ou suppression est inscrite au journal d'administration (`gel.cree`, `gel.modifie` avec l'ancienne et la nouvelle valeur, `gel.supprime`).
+Une période de gel est définie par un administrateur (Paramètres › Périodes de gel, API ou ligne de commande). Chaque création, modification ou suppression est inscrite au journal d'administration (`gel.cree`, `gel.modifie` avec l'ancienne et la nouvelle valeur, `gel.supprime`).
 
 | Champ | Sens |
 |---|---|
