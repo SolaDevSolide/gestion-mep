@@ -5893,6 +5893,505 @@
         }
       }
     },
+    "/api/calendrier": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "du",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "au",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fuseau",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recherche",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "systeme",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environnement",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "equipe",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personne",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "etat",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gels",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "apres",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageCalendrierDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/calendrier/ics": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "du",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "au",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fuseau",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recherche",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "systeme",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environnement",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "equipe",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personne",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "etat",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gels",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/calendrier/abonnement": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbonnementCalendrierDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbonnementCalendrierDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/calendrier/abonnement/{secret}.ics": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "secret",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "du",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "au",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fuseau",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recherche",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "systeme",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environnement",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "equipe",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personne",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "etat",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gels",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/periodes-gel": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PeriodeGelDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/derogations-gel": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DerogationGelSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/derogations-gel/{derogationId}/decision": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "derogationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionDerogationSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/meps/{id}/derogations-gel/{derogationId}/retirer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "derogationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/admin/sso": {
       "get": {
         "tags": [
@@ -7701,10 +8200,121 @@
           }
         }
       }
+    },
+    "/api/admin/periodes-gel": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PeriodeGelSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/periodes-gel/{id}": {
+      "put": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PeriodeGelSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AbonnementCalendrierDto": {
+        "required": [
+          "actif",
+          "creeLe",
+          "dernierAcces",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "actif": {
+            "type": "boolean"
+          },
+          "creeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "dernierAcces": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Abonnement au calendrier du compte courant. `Url` : adresse secrète, donnée une seule fois, à sa création ou sa\nrégénération (seule son empreinte est gardée) ; null ensuite."
+      },
       "ActiviteSystemeDto": {
         "required": [
           "systemeId",
@@ -8481,6 +9091,292 @@
             "format": "date-time"
           }
         }
+      },
+      "CalendrierMepDto": {
+        "required": [
+          "debut",
+          "fin",
+          "journeeEntiere",
+          "prevu",
+          "enCours",
+          "gels",
+          "gelsAuGo",
+          "conflits",
+          "derogations"
+        ],
+        "type": "object",
+        "properties": {
+          "debut": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "fin": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "journeeEntiere": {
+            "type": "boolean"
+          },
+          "prevu": {
+            "type": "boolean"
+          },
+          "enCours": {
+            "type": "boolean"
+          },
+          "gels": {
+            "type": "array",
+            "items": {
+              "required": [
+                "periodeGelId",
+                "nom",
+                "motif",
+                "debut",
+                "fin",
+                "fuseauHoraire",
+                "globale"
+              ],
+              "type": "object",
+              "properties": {
+                "periodeGelId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "nom": {
+                  "type": "string"
+                },
+                "motif": {
+                  "type": "string"
+                },
+                "debut": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "fin": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "fuseauHoraire": {
+                  "type": "string"
+                },
+                "globale": {
+                  "type": "boolean"
+                },
+                "derogation": {
+                  "enum": [
+                    "Demandee",
+                    "Accordee",
+                    "Refusee",
+                    "Retiree",
+                    null
+                  ]
+                }
+              },
+              "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+            }
+          },
+          "gelsAuGo": {
+            "type": "array",
+            "items": {
+              "required": [
+                "periodeGelId",
+                "nom",
+                "motif",
+                "debut",
+                "fin",
+                "fuseauHoraire",
+                "globale"
+              ],
+              "type": "object",
+              "properties": {
+                "periodeGelId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "nom": {
+                  "type": "string"
+                },
+                "motif": {
+                  "type": "string"
+                },
+                "debut": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "fin": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "fuseauHoraire": {
+                  "type": "string"
+                },
+                "globale": {
+                  "type": "boolean"
+                },
+                "derogation": {
+                  "enum": [
+                    "Demandee",
+                    "Accordee",
+                    "Refusee",
+                    "Retiree",
+                    null
+                  ]
+                }
+              },
+              "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+            }
+          },
+          "conflits": {
+            "type": "array",
+            "items": {
+              "required": [
+                "mepId",
+                "outil",
+                "versionCible",
+                "etat",
+                "debut",
+                "fin",
+                "systemes"
+              ],
+              "type": "object",
+              "properties": {
+                "mepId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "outil": {
+                  "type": "string"
+                },
+                "versionCible": {
+                  "type": "string"
+                },
+                "etat": {
+                  "enum": [
+                    "Preparation",
+                    "Execution",
+                    "Recette",
+                    "RetourArriere",
+                    "Reussie",
+                    "AvecIncidents",
+                    "Repliee",
+                    "Annulee",
+                    "Reportee",
+                    "Echec"
+                  ],
+                  "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+                },
+                "debut": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "fin": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                },
+                "systemes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "description": "Autre MEP sur un même système dont le créneau chevauche celui de la MEP (signalement, jamais bloquant)."
+            }
+          },
+          "derogations": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "periodeGelId",
+                "nomPeriode",
+                "occurrence",
+                "occurrenceFin",
+                "motif",
+                "statut",
+                "demandeePar",
+                "demandeeLe",
+                "decideePar",
+                "decideeLe",
+                "commentaire",
+                "peutDecider"
+              ],
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "periodeGelId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "nomPeriode": {
+                  "type": "string"
+                },
+                "occurrence": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "occurrenceFin": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "motif": {
+                  "type": "string"
+                },
+                "statut": {
+                  "enum": [
+                    "Demandee",
+                    "Accordee",
+                    "Refusee",
+                    "Retiree"
+                  ],
+                  "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                },
+                "demandeePar": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "demandeeLe": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "decideePar": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "decideeLe": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                },
+                "commentaire": {
+                  "type": "string"
+                },
+                "peutDecider": {
+                  "type": "boolean"
+                }
+              },
+              "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+            }
+          }
+        },
+        "description": "Place de la MEP dans le calendrier (détail d'une MEP). `Debut` null : MEP sans date prévue (absente du calendrier).\n`Prevu` : créneau prévu (pas encore lancée) ; `EnCours` : lancée, elle s'étend au moins jusqu'à maintenant.\n`Gels` : occurrences de gel qui touchent le créneau ; `GelsAuGo` : celles qu'un Go donné maintenant toucherait sans\ndérogation accordée (non vide : le Go serait refusé) ; `Conflits` : MEP sur un même système au même moment."
       },
       "CatalogueConnexionsDto": {
         "required": [
@@ -9379,6 +10275,51 @@
         },
         "description": "Empreinte en quatre mots lue sur l'écran de Noosphere (casse et espaces indifférents)."
       },
+      "ConflitDto": {
+        "required": [
+          "mepId",
+          "outil",
+          "versionCible",
+          "etat",
+          "debut",
+          "fin",
+          "systemes"
+        ],
+        "type": "object",
+        "properties": {
+          "mepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outil": {
+            "type": "string"
+          },
+          "versionCible": {
+            "type": "string"
+          },
+          "etat": {
+            "$ref": "#/components/schemas/EtatMep"
+          },
+          "debut": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fin": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "systemes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Autre MEP sur un même système dont le créneau chevauche celui de la MEP (signalement, jamais bloquant)."
+      },
       "ConnexionApiDto": {
         "required": [
           "id",
@@ -10211,6 +11152,25 @@
           null
         ]
       },
+      "DecisionDerogationSaisie": {
+        "required": [
+          "accorder",
+          "commentaire"
+        ],
+        "type": "object",
+        "properties": {
+          "accorder": {
+            "type": "boolean"
+          },
+          "commentaire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Décision d'un approbateur sur une dérogation : accordée ou refusée (commentaire obligatoire pour un refus)."
+      },
       "DecisionSaisie": {
         "required": [
           "version",
@@ -10371,6 +11331,115 @@
             ]
           }
         }
+      },
+      "DerogationGelDto": {
+        "required": [
+          "id",
+          "periodeGelId",
+          "nomPeriode",
+          "occurrence",
+          "occurrenceFin",
+          "motif",
+          "statut",
+          "demandeePar",
+          "demandeeLe",
+          "decideePar",
+          "decideeLe",
+          "commentaire",
+          "peutDecider"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "periodeGelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nomPeriode": {
+            "type": "string"
+          },
+          "occurrence": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "occurrenceFin": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "motif": {
+            "type": "string"
+          },
+          "statut": {
+            "enum": [
+              "Demandee",
+              "Accordee",
+              "Refusee",
+              "Retiree"
+            ],
+            "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+          },
+          "demandeePar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "demandeeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decideePar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decideeLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "commentaire": {
+            "type": "string"
+          },
+          "peutDecider": {
+            "type": "boolean"
+          }
+        },
+        "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+      },
+      "DerogationGelSaisie": {
+        "required": [
+          "periodeGelId",
+          "occurrence",
+          "motif"
+        ],
+        "type": "object",
+        "properties": {
+          "periodeGelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurrence": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "motif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Demande de dérogation : `PeriodeGelId` et, pour une période répétée, `Occurrence` (début de l'occurrence visée ;\nabsent : la première qui concerne la MEP) ; `Motif` obligatoire."
       },
       "DisponibiliteDto": {
         "required": [
@@ -10701,6 +11770,112 @@
           }
         },
         "description": "Échec d'une étape d'un système pendant une MEP : motif, reprise réussie ou non, dernière résolution lancée."
+      },
+      "ElementCalendrierDto": {
+        "required": [
+          "id",
+          "outil",
+          "versionCible",
+          "objet",
+          "type",
+          "phase",
+          "etat",
+          "debut",
+          "fin",
+          "journeeEntiere",
+          "prevu",
+          "enCours",
+          "fuseauHoraire",
+          "pilote",
+          "toucheProduction",
+          "systemes",
+          "equipeIds",
+          "gels",
+          "conflits"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outil": {
+            "type": "string"
+          },
+          "versionCible": {
+            "type": "string"
+          },
+          "objet": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TypeMep"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/Phase"
+          },
+          "etat": {
+            "$ref": "#/components/schemas/EtatMep"
+          },
+          "debut": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fin": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "journeeEntiere": {
+            "type": "boolean"
+          },
+          "prevu": {
+            "type": "boolean"
+          },
+          "enCours": {
+            "type": "boolean"
+          },
+          "fuseauHoraire": {
+            "type": "string"
+          },
+          "pilote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "toucheProduction": {
+            "type": "boolean"
+          },
+          "systemes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SystemeResumeDto"
+            }
+          },
+          "equipeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "gels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OccurrenceGelDto"
+            }
+          },
+          "conflits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConflitDto"
+            }
+          }
+        },
+        "description": "MEP du calendrier. `Debut`, `Fin` (exclue, null : durée inconnue) en UTC ; `JourneeEntiere` : date prévue sans\nheure (minuit à minuit dans `FuseauHoraire`). Couleurs : `Phase`, `Etat` et `ToucheProduction`."
       },
       "EnteteAppelDto": {
         "required": [
@@ -11138,9 +12313,63 @@
             "items": {
               "type": "string"
             }
+          },
+          "gels": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "required": [
+                "periodeGelId",
+                "nom",
+                "motif",
+                "debut",
+                "fin",
+                "fuseauHoraire",
+                "globale"
+              ],
+              "type": "object",
+              "properties": {
+                "periodeGelId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "nom": {
+                  "type": "string"
+                },
+                "motif": {
+                  "type": "string"
+                },
+                "debut": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "fin": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "fuseauHoraire": {
+                  "type": "string"
+                },
+                "globale": {
+                  "type": "boolean"
+                },
+                "derogation": {
+                  "enum": [
+                    "Demandee",
+                    "Accordee",
+                    "Refusee",
+                    "Retiree",
+                    null
+                  ]
+                }
+              },
+              "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+            }
           }
         },
-        "description": "Corps de toute réponse d'erreur de l'API, au format « problem details » (RFC 9457, type `application/problem+json`) :\n`status` reprend le code HTTP, `title` sa nature (« Droits insuffisants »…), `detail` et `message` le\nmessage à afficher, en français ; `erreurs`, absent le plus souvent, liste chaque anomalie quand il y en a plusieurs."
+        "description": "Corps de toute réponse d'erreur de l'API, au format « problem details » (RFC 9457, type `application/problem+json`) :\n`status` reprend le code HTTP, `title` sa nature (« Droits insuffisants »…), `detail` et `message` le\nmessage à afficher, en français ; `erreurs`, absent le plus souvent, liste chaque anomalie quand il y en a plusieurs.\n`type` vaut `about:blank`, sauf pour un refus qui a ses propres données : Go pendant une période de gel\n(`urn:gestion-mep:probleme:go-pendant-un-gel`, 422), dont `gels` donne les occurrences sans dérogation accordée."
       },
       "EssaiConnexionDto": {
         "required": [
@@ -12814,7 +14043,8 @@
               "echeanceSignalee",
               "resolutionsFigees",
               "resolutionsFigeesLe",
-              "revisions"
+              "revisions",
+              "calendrier"
             ],
             "type": "object",
             "properties": {
@@ -14683,6 +15913,295 @@
                   }
                 },
                 "description": "Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la\nrenvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas."
+              },
+              "calendrier": {
+                "required": [
+                  "debut",
+                  "fin",
+                  "journeeEntiere",
+                  "prevu",
+                  "enCours",
+                  "gels",
+                  "gelsAuGo",
+                  "conflits",
+                  "derogations"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "debut": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date-time"
+                  },
+                  "fin": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date-time"
+                  },
+                  "journeeEntiere": {
+                    "type": "boolean"
+                  },
+                  "prevu": {
+                    "type": "boolean"
+                  },
+                  "enCours": {
+                    "type": "boolean"
+                  },
+                  "gels": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "periodeGelId",
+                        "nom",
+                        "motif",
+                        "debut",
+                        "fin",
+                        "fuseauHoraire",
+                        "globale"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "periodeGelId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "nom": {
+                          "type": "string"
+                        },
+                        "motif": {
+                          "type": "string"
+                        },
+                        "debut": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fin": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fuseauHoraire": {
+                          "type": "string"
+                        },
+                        "globale": {
+                          "type": "boolean"
+                        },
+                        "derogation": {
+                          "enum": [
+                            "Demandee",
+                            "Accordee",
+                            "Refusee",
+                            "Retiree",
+                            null
+                          ]
+                        }
+                      },
+                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                    }
+                  },
+                  "gelsAuGo": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "periodeGelId",
+                        "nom",
+                        "motif",
+                        "debut",
+                        "fin",
+                        "fuseauHoraire",
+                        "globale"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "periodeGelId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "nom": {
+                          "type": "string"
+                        },
+                        "motif": {
+                          "type": "string"
+                        },
+                        "debut": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fin": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fuseauHoraire": {
+                          "type": "string"
+                        },
+                        "globale": {
+                          "type": "boolean"
+                        },
+                        "derogation": {
+                          "enum": [
+                            "Demandee",
+                            "Accordee",
+                            "Refusee",
+                            "Retiree",
+                            null
+                          ]
+                        }
+                      },
+                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                    }
+                  },
+                  "conflits": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "mepId",
+                        "outil",
+                        "versionCible",
+                        "etat",
+                        "debut",
+                        "fin",
+                        "systemes"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "mepId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "outil": {
+                          "type": "string"
+                        },
+                        "versionCible": {
+                          "type": "string"
+                        },
+                        "etat": {
+                          "enum": [
+                            "Preparation",
+                            "Execution",
+                            "Recette",
+                            "RetourArriere",
+                            "Reussie",
+                            "AvecIncidents",
+                            "Repliee",
+                            "Annulee",
+                            "Reportee",
+                            "Echec"
+                          ],
+                          "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+                        },
+                        "debut": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fin": {
+                          "type": [
+                            "null",
+                            "string"
+                          ],
+                          "format": "date-time"
+                        },
+                        "systemes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "description": "Autre MEP sur un même système dont le créneau chevauche celui de la MEP (signalement, jamais bloquant)."
+                    }
+                  },
+                  "derogations": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "id",
+                        "periodeGelId",
+                        "nomPeriode",
+                        "occurrence",
+                        "occurrenceFin",
+                        "motif",
+                        "statut",
+                        "demandeePar",
+                        "demandeeLe",
+                        "decideePar",
+                        "decideeLe",
+                        "commentaire",
+                        "peutDecider"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "periodeGelId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "nomPeriode": {
+                          "type": "string"
+                        },
+                        "occurrence": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "occurrenceFin": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "motif": {
+                          "type": "string"
+                        },
+                        "statut": {
+                          "enum": [
+                            "Demandee",
+                            "Accordee",
+                            "Refusee",
+                            "Retiree"
+                          ],
+                          "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                        },
+                        "demandeePar": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "demandeeLe": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "decideePar": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "decideeLe": {
+                          "type": [
+                            "null",
+                            "string"
+                          ],
+                          "format": "date-time"
+                        },
+                        "commentaire": {
+                          "type": "string"
+                        },
+                        "peutDecider": {
+                          "type": "boolean"
+                        }
+                      },
+                      "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+                    }
+                  }
+                },
+                "description": "Place de la MEP dans le calendrier (détail d'une MEP). `Debut` null : MEP sans date prévue (absente du calendrier).\n`Prevu` : créneau prévu (pas encore lancée) ; `EnCours` : lancée, elle s'étend au moins jusqu'à maintenant.\n`Gels` : occurrences de gel qui touchent le créneau ; `GelsAuGo` : celles qu'un Go donné maintenant toucherait sans\ndérogation accordée (non vide : le Go serait refusé) ; `Conflits` : MEP sur un même système au même moment."
               }
             },
             "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
@@ -15465,7 +16984,8 @@
           "echeanceSignalee",
           "resolutionsFigees",
           "resolutionsFigeesLe",
-          "revisions"
+          "revisions",
+          "calendrier"
         ],
         "type": "object",
         "properties": {
@@ -17334,6 +18854,295 @@
               }
             },
             "description": "Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la\nrenvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas."
+          },
+          "calendrier": {
+            "required": [
+              "debut",
+              "fin",
+              "journeeEntiere",
+              "prevu",
+              "enCours",
+              "gels",
+              "gelsAuGo",
+              "conflits",
+              "derogations"
+            ],
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "debut": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "fin": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "journeeEntiere": {
+                "type": "boolean"
+              },
+              "prevu": {
+                "type": "boolean"
+              },
+              "enCours": {
+                "type": "boolean"
+              },
+              "gels": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "periodeGelId",
+                    "nom",
+                    "motif",
+                    "debut",
+                    "fin",
+                    "fuseauHoraire",
+                    "globale"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "periodeGelId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "nom": {
+                      "type": "string"
+                    },
+                    "motif": {
+                      "type": "string"
+                    },
+                    "debut": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "fin": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "fuseauHoraire": {
+                      "type": "string"
+                    },
+                    "globale": {
+                      "type": "boolean"
+                    },
+                    "derogation": {
+                      "enum": [
+                        "Demandee",
+                        "Accordee",
+                        "Refusee",
+                        "Retiree",
+                        null
+                      ]
+                    }
+                  },
+                  "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                }
+              },
+              "gelsAuGo": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "periodeGelId",
+                    "nom",
+                    "motif",
+                    "debut",
+                    "fin",
+                    "fuseauHoraire",
+                    "globale"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "periodeGelId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "nom": {
+                      "type": "string"
+                    },
+                    "motif": {
+                      "type": "string"
+                    },
+                    "debut": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "fin": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "fuseauHoraire": {
+                      "type": "string"
+                    },
+                    "globale": {
+                      "type": "boolean"
+                    },
+                    "derogation": {
+                      "enum": [
+                        "Demandee",
+                        "Accordee",
+                        "Refusee",
+                        "Retiree",
+                        null
+                      ]
+                    }
+                  },
+                  "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                }
+              },
+              "conflits": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "mepId",
+                    "outil",
+                    "versionCible",
+                    "etat",
+                    "debut",
+                    "fin",
+                    "systemes"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "mepId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "outil": {
+                      "type": "string"
+                    },
+                    "versionCible": {
+                      "type": "string"
+                    },
+                    "etat": {
+                      "enum": [
+                        "Preparation",
+                        "Execution",
+                        "Recette",
+                        "RetourArriere",
+                        "Reussie",
+                        "AvecIncidents",
+                        "Repliee",
+                        "Annulee",
+                        "Reportee",
+                        "Echec"
+                      ],
+                      "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+                    },
+                    "debut": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "fin": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    },
+                    "systemes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "description": "Autre MEP sur un même système dont le créneau chevauche celui de la MEP (signalement, jamais bloquant)."
+                }
+              },
+              "derogations": {
+                "type": "array",
+                "items": {
+                  "required": [
+                    "id",
+                    "periodeGelId",
+                    "nomPeriode",
+                    "occurrence",
+                    "occurrenceFin",
+                    "motif",
+                    "statut",
+                    "demandeePar",
+                    "demandeeLe",
+                    "decideePar",
+                    "decideeLe",
+                    "commentaire",
+                    "peutDecider"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "periodeGelId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "nomPeriode": {
+                      "type": "string"
+                    },
+                    "occurrence": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "occurrenceFin": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "motif": {
+                      "type": "string"
+                    },
+                    "statut": {
+                      "enum": [
+                        "Demandee",
+                        "Accordee",
+                        "Refusee",
+                        "Retiree"
+                      ],
+                      "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                    },
+                    "demandeePar": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "demandeeLe": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "decideePar": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "decideeLe": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    },
+                    "commentaire": {
+                      "type": "string"
+                    },
+                    "peutDecider": {
+                      "type": "boolean"
+                    }
+                  },
+                  "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+                }
+              }
+            },
+            "description": "Place de la MEP dans le calendrier (détail d'une MEP). `Debut` null : MEP sans date prévue (absente du calendrier).\n`Prevu` : créneau prévu (pas encore lancée) ; `EnCours` : lancée, elle s'étend au moins jusqu'à maintenant.\n`Gels` : occurrences de gel qui touchent le créneau ; `GelsAuGo` : celles qu'un Go donné maintenant toucherait sans\ndérogation accordée (non vide : le Go serait refusé) ; `Conflits` : MEP sur un même système au même moment."
           }
         },
         "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
@@ -18725,6 +20534,55 @@
         },
         "description": "Objets impactés d'un système : la liste remplace les objets du catalogue déjà retenus pour ce système."
       },
+      "OccurrenceGelDto": {
+        "required": [
+          "periodeGelId",
+          "nom",
+          "motif",
+          "debut",
+          "fin",
+          "fuseauHoraire",
+          "globale"
+        ],
+        "type": "object",
+        "properties": {
+          "periodeGelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "motif": {
+            "type": "string"
+          },
+          "debut": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fin": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fuseauHoraire": {
+            "type": "string"
+          },
+          "globale": {
+            "type": "boolean"
+          },
+          "derogation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/StatutDerogation"
+              }
+            ]
+          }
+        },
+        "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+      },
       "OptimisationLiensSaisie": {
         "required": [
           "plan",
@@ -18899,6 +20757,54 @@
         },
         "description": "Page de l'historique des appels : `Suivant`, la valeur de `avant` pour la page suivante (null : fin)."
       },
+      "PageCalendrierDto": {
+        "required": [
+          "meps",
+          "gels",
+          "total",
+          "suivant",
+          "du",
+          "au",
+          "fuseauHoraire"
+        ],
+        "type": "object",
+        "properties": {
+          "meps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ElementCalendrierDto"
+            }
+          },
+          "gels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OccurrenceGelDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "suivant": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "du": {
+            "type": "string",
+            "format": "date"
+          },
+          "au": {
+            "type": "string",
+            "format": "date"
+          },
+          "fuseauHoraire": {
+            "type": "string"
+          }
+        },
+        "description": "Page du calendrier (`GET /api/calendrier`) : MEP dont le créneau touche la plage [`Du`, `Au`] (jours inclus,\ndans `FuseauHoraire`), par début puis identifiant ; `Gels` : occurrences des périodes de gel de la plage ;\n`Total` : MEP qui correspondent ; `Suivant` : curseur de la page suivante (null : dernière page)."
+      },
       "PageMepsDto": {
         "required": [
           "meps",
@@ -19032,6 +20938,193 @@
             "format": "uuid"
           }
         }
+      },
+      "PeriodeGelDto": {
+        "required": [
+          "id",
+          "nom",
+          "debut",
+          "fin",
+          "motif",
+          "systemeCatalogueIds",
+          "systemes",
+          "environnements",
+          "productionSeulement",
+          "recurrence",
+          "finRecurrence",
+          "fuseauHoraire",
+          "version",
+          "creeeLe",
+          "modifieeLe"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "debut": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fin": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "motif": {
+            "type": "string"
+          },
+          "systemeCatalogueIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "systemes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "environnements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "productionSeulement": {
+            "type": "boolean"
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/RecurrenceGel"
+          },
+          "finRecurrence": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "fuseauHoraire": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "creeeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modifieeLe": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Période de gel (#129). `Debut` et `Fin` (exclue) : première occurrence, en UTC. `SystemeCatalogueIds` vide :\ntous les systèmes ; `Environnements` vide : tous. `Recurrence` : répétition dans `FuseauHoraire`, jusqu'au\njour local `FinRecurrence` (null : sans fin). `Systemes` : noms des systèmes concernés, pour l'affichage."
+      },
+      "PeriodeGelSaisie": {
+        "required": [
+          "nom",
+          "debut",
+          "fin",
+          "motif",
+          "systemeCatalogueIds",
+          "environnements",
+          "productionSeulement",
+          "recurrence",
+          "finRecurrence",
+          "fuseauHoraire"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "debut": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "fin": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "motif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "systemeCatalogueIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "environnements": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "productionSeulement": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "recurrence": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RecurrenceGel"
+              }
+            ]
+          },
+          "finRecurrence": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "fuseauHoraire": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Création ou modification d'une période de gel (administrateurs). Instants ISO 8601 avec leur décalage (enregistrés en UTC).\nAbsents : `SystemeCatalogueIds` et `Environnements` vides (tous), `Recurrence` Aucune, `FuseauHoraire`\ncelui de l'instance. `Version` : obligatoire en modification (409 si la période a changé depuis sa lecture)."
       },
       "Phase": {
         "enum": [
@@ -20166,7 +22259,8 @@
               "echeanceSignalee",
               "resolutionsFigees",
               "resolutionsFigeesLe",
-              "revisions"
+              "revisions",
+              "calendrier"
             ],
             "type": "object",
             "properties": {
@@ -22035,6 +24129,295 @@
                   }
                 },
                 "description": "Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la\nrenvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas."
+              },
+              "calendrier": {
+                "required": [
+                  "debut",
+                  "fin",
+                  "journeeEntiere",
+                  "prevu",
+                  "enCours",
+                  "gels",
+                  "gelsAuGo",
+                  "conflits",
+                  "derogations"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "debut": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date-time"
+                  },
+                  "fin": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date-time"
+                  },
+                  "journeeEntiere": {
+                    "type": "boolean"
+                  },
+                  "prevu": {
+                    "type": "boolean"
+                  },
+                  "enCours": {
+                    "type": "boolean"
+                  },
+                  "gels": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "periodeGelId",
+                        "nom",
+                        "motif",
+                        "debut",
+                        "fin",
+                        "fuseauHoraire",
+                        "globale"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "periodeGelId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "nom": {
+                          "type": "string"
+                        },
+                        "motif": {
+                          "type": "string"
+                        },
+                        "debut": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fin": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fuseauHoraire": {
+                          "type": "string"
+                        },
+                        "globale": {
+                          "type": "boolean"
+                        },
+                        "derogation": {
+                          "enum": [
+                            "Demandee",
+                            "Accordee",
+                            "Refusee",
+                            "Retiree",
+                            null
+                          ]
+                        }
+                      },
+                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                    }
+                  },
+                  "gelsAuGo": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "periodeGelId",
+                        "nom",
+                        "motif",
+                        "debut",
+                        "fin",
+                        "fuseauHoraire",
+                        "globale"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "periodeGelId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "nom": {
+                          "type": "string"
+                        },
+                        "motif": {
+                          "type": "string"
+                        },
+                        "debut": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fin": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fuseauHoraire": {
+                          "type": "string"
+                        },
+                        "globale": {
+                          "type": "boolean"
+                        },
+                        "derogation": {
+                          "enum": [
+                            "Demandee",
+                            "Accordee",
+                            "Refusee",
+                            "Retiree",
+                            null
+                          ]
+                        }
+                      },
+                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                    }
+                  },
+                  "conflits": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "mepId",
+                        "outil",
+                        "versionCible",
+                        "etat",
+                        "debut",
+                        "fin",
+                        "systemes"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "mepId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "outil": {
+                          "type": "string"
+                        },
+                        "versionCible": {
+                          "type": "string"
+                        },
+                        "etat": {
+                          "enum": [
+                            "Preparation",
+                            "Execution",
+                            "Recette",
+                            "RetourArriere",
+                            "Reussie",
+                            "AvecIncidents",
+                            "Repliee",
+                            "Annulee",
+                            "Reportee",
+                            "Echec"
+                          ],
+                          "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+                        },
+                        "debut": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fin": {
+                          "type": [
+                            "null",
+                            "string"
+                          ],
+                          "format": "date-time"
+                        },
+                        "systemes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "description": "Autre MEP sur un même système dont le créneau chevauche celui de la MEP (signalement, jamais bloquant)."
+                    }
+                  },
+                  "derogations": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "id",
+                        "periodeGelId",
+                        "nomPeriode",
+                        "occurrence",
+                        "occurrenceFin",
+                        "motif",
+                        "statut",
+                        "demandeePar",
+                        "demandeeLe",
+                        "decideePar",
+                        "decideeLe",
+                        "commentaire",
+                        "peutDecider"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "periodeGelId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "nomPeriode": {
+                          "type": "string"
+                        },
+                        "occurrence": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "occurrenceFin": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "motif": {
+                          "type": "string"
+                        },
+                        "statut": {
+                          "enum": [
+                            "Demandee",
+                            "Accordee",
+                            "Refusee",
+                            "Retiree"
+                          ],
+                          "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                        },
+                        "demandeePar": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "demandeeLe": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "decideePar": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "decideeLe": {
+                          "type": [
+                            "null",
+                            "string"
+                          ],
+                          "format": "date-time"
+                        },
+                        "commentaire": {
+                          "type": "string"
+                        },
+                        "peutDecider": {
+                          "type": "boolean"
+                        }
+                      },
+                      "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+                    }
+                  }
+                },
+                "description": "Place de la MEP dans le calendrier (détail d'une MEP). `Debut` null : MEP sans date prévue (absente du calendrier).\n`Prevu` : créneau prévu (pas encore lancée) ; `EnCours` : lancée, elle s'étend au moins jusqu'à maintenant.\n`Gels` : occurrences de gel qui touchent le créneau ; `GelsAuGo` : celles qu'un Go donné maintenant toucherait sans\ndérogation accordée (non vide : le Go serait refusé) ; `Conflits` : MEP sur un même système au même moment."
               }
             },
             "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
@@ -22088,6 +24471,16 @@
           }
         },
         "description": "Rapport de fin d'une MEP, figé à la clôture (`FigeLe`) ou, pour une MEP clôturée avant son existence, à la première\ndemande (`CalculeApres`). `Mep` et `Journal` (du plus récent au plus ancien) sont ceux du moment où il a été figé."
+      },
+      "RecurrenceGel": {
+        "enum": [
+          "Aucune",
+          "Hebdomadaire",
+          "Mensuelle",
+          "FinDeMois",
+          "Annuelle"
+        ],
+        "description": "Répétition d'une période de gel. Stockée en entier : toute nouvelle valeur s'ajoute à la fin.\nRecurrenceGel.Mensuelle garde le même jour du mois (31 → dernier jour des mois plus courts) ; RecurrenceGel.FinDeMois garde\nl'écart avec le dernier jour du mois (« les trois derniers jours » de chaque mois, clôture comptable)."
       },
       "ReglageDto": {
         "required": [
@@ -23219,7 +25612,8 @@
               "echeanceSignalee",
               "resolutionsFigees",
               "resolutionsFigeesLe",
-              "revisions"
+              "revisions",
+              "calendrier"
             ],
             "type": "object",
             "properties": {
@@ -25088,6 +27482,295 @@
                   }
                 },
                 "description": "Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la\nrenvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas."
+              },
+              "calendrier": {
+                "required": [
+                  "debut",
+                  "fin",
+                  "journeeEntiere",
+                  "prevu",
+                  "enCours",
+                  "gels",
+                  "gelsAuGo",
+                  "conflits",
+                  "derogations"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ],
+                "properties": {
+                  "debut": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date-time"
+                  },
+                  "fin": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "format": "date-time"
+                  },
+                  "journeeEntiere": {
+                    "type": "boolean"
+                  },
+                  "prevu": {
+                    "type": "boolean"
+                  },
+                  "enCours": {
+                    "type": "boolean"
+                  },
+                  "gels": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "periodeGelId",
+                        "nom",
+                        "motif",
+                        "debut",
+                        "fin",
+                        "fuseauHoraire",
+                        "globale"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "periodeGelId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "nom": {
+                          "type": "string"
+                        },
+                        "motif": {
+                          "type": "string"
+                        },
+                        "debut": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fin": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fuseauHoraire": {
+                          "type": "string"
+                        },
+                        "globale": {
+                          "type": "boolean"
+                        },
+                        "derogation": {
+                          "enum": [
+                            "Demandee",
+                            "Accordee",
+                            "Refusee",
+                            "Retiree",
+                            null
+                          ]
+                        }
+                      },
+                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                    }
+                  },
+                  "gelsAuGo": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "periodeGelId",
+                        "nom",
+                        "motif",
+                        "debut",
+                        "fin",
+                        "fuseauHoraire",
+                        "globale"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "periodeGelId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "nom": {
+                          "type": "string"
+                        },
+                        "motif": {
+                          "type": "string"
+                        },
+                        "debut": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fin": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fuseauHoraire": {
+                          "type": "string"
+                        },
+                        "globale": {
+                          "type": "boolean"
+                        },
+                        "derogation": {
+                          "enum": [
+                            "Demandee",
+                            "Accordee",
+                            "Refusee",
+                            "Retiree",
+                            null
+                          ]
+                        }
+                      },
+                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                    }
+                  },
+                  "conflits": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "mepId",
+                        "outil",
+                        "versionCible",
+                        "etat",
+                        "debut",
+                        "fin",
+                        "systemes"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "mepId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "outil": {
+                          "type": "string"
+                        },
+                        "versionCible": {
+                          "type": "string"
+                        },
+                        "etat": {
+                          "enum": [
+                            "Preparation",
+                            "Execution",
+                            "Recette",
+                            "RetourArriere",
+                            "Reussie",
+                            "AvecIncidents",
+                            "Repliee",
+                            "Annulee",
+                            "Reportee",
+                            "Echec"
+                          ],
+                          "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+                        },
+                        "debut": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fin": {
+                          "type": [
+                            "null",
+                            "string"
+                          ],
+                          "format": "date-time"
+                        },
+                        "systemes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "description": "Autre MEP sur un même système dont le créneau chevauche celui de la MEP (signalement, jamais bloquant)."
+                    }
+                  },
+                  "derogations": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "id",
+                        "periodeGelId",
+                        "nomPeriode",
+                        "occurrence",
+                        "occurrenceFin",
+                        "motif",
+                        "statut",
+                        "demandeePar",
+                        "demandeeLe",
+                        "decideePar",
+                        "decideeLe",
+                        "commentaire",
+                        "peutDecider"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "periodeGelId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "nomPeriode": {
+                          "type": "string"
+                        },
+                        "occurrence": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "occurrenceFin": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "motif": {
+                          "type": "string"
+                        },
+                        "statut": {
+                          "enum": [
+                            "Demandee",
+                            "Accordee",
+                            "Refusee",
+                            "Retiree"
+                          ],
+                          "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                        },
+                        "demandeePar": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "demandeeLe": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "decideePar": {
+                          "type": [
+                            "null",
+                            "string"
+                          ]
+                        },
+                        "decideeLe": {
+                          "type": [
+                            "null",
+                            "string"
+                          ],
+                          "format": "date-time"
+                        },
+                        "commentaire": {
+                          "type": "string"
+                        },
+                        "peutDecider": {
+                          "type": "boolean"
+                        }
+                      },
+                      "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+                    }
+                  }
+                },
+                "description": "Place de la MEP dans le calendrier (détail d'une MEP). `Debut` null : MEP sans date prévue (absente du calendrier).\n`Prevu` : créneau prévu (pas encore lancée) ; `EnCours` : lancée, elle s'étend au moins jusqu'à maintenant.\n`Gels` : occurrences de gel qui touchent le créneau ; `GelsAuGo` : celles qu'un Go donné maintenant toucherait sans\ndérogation accordée (non vide : le Go serait refusé) ; `Conflits` : MEP sur un même système au même moment."
               }
             },
             "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."
@@ -25608,6 +28291,15 @@
           }
         }
       },
+      "StatutDerogation": {
+        "enum": [
+          "Demandee",
+          "Accordee",
+          "Refusee",
+          "Retiree",
+          null
+        ]
+      },
       "StatutResolution": {
         "enum": [
           "EnCours",
@@ -25750,7 +28442,8 @@
                 "echeanceSignalee",
                 "resolutionsFigees",
                 "resolutionsFigeesLe",
-                "revisions"
+                "revisions",
+                "calendrier"
               ],
               "type": "object",
               "properties": {
@@ -27619,6 +30312,295 @@
                     }
                   },
                   "description": "Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la\nrenvoie (`revision`) ; une écriture sur un autre bloc, une étape ou une section ne la périme pas."
+                },
+                "calendrier": {
+                  "required": [
+                    "debut",
+                    "fin",
+                    "journeeEntiere",
+                    "prevu",
+                    "enCours",
+                    "gels",
+                    "gelsAuGo",
+                    "conflits",
+                    "derogations"
+                  ],
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "properties": {
+                    "debut": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    },
+                    "fin": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    },
+                    "journeeEntiere": {
+                      "type": "boolean"
+                    },
+                    "prevu": {
+                      "type": "boolean"
+                    },
+                    "enCours": {
+                      "type": "boolean"
+                    },
+                    "gels": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "periodeGelId",
+                          "nom",
+                          "motif",
+                          "debut",
+                          "fin",
+                          "fuseauHoraire",
+                          "globale"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "periodeGelId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "nom": {
+                            "type": "string"
+                          },
+                          "motif": {
+                            "type": "string"
+                          },
+                          "debut": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "fin": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "fuseauHoraire": {
+                            "type": "string"
+                          },
+                          "globale": {
+                            "type": "boolean"
+                          },
+                          "derogation": {
+                            "enum": [
+                              "Demandee",
+                              "Accordee",
+                              "Refusee",
+                              "Retiree",
+                              null
+                            ]
+                          }
+                        },
+                        "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                      }
+                    },
+                    "gelsAuGo": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "periodeGelId",
+                          "nom",
+                          "motif",
+                          "debut",
+                          "fin",
+                          "fuseauHoraire",
+                          "globale"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "periodeGelId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "nom": {
+                            "type": "string"
+                          },
+                          "motif": {
+                            "type": "string"
+                          },
+                          "debut": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "fin": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "fuseauHoraire": {
+                            "type": "string"
+                          },
+                          "globale": {
+                            "type": "boolean"
+                          },
+                          "derogation": {
+                            "enum": [
+                              "Demandee",
+                              "Accordee",
+                              "Refusee",
+                              "Retiree",
+                              null
+                            ]
+                          }
+                        },
+                        "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                      }
+                    },
+                    "conflits": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "mepId",
+                          "outil",
+                          "versionCible",
+                          "etat",
+                          "debut",
+                          "fin",
+                          "systemes"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "mepId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "outil": {
+                            "type": "string"
+                          },
+                          "versionCible": {
+                            "type": "string"
+                          },
+                          "etat": {
+                            "enum": [
+                              "Preparation",
+                              "Execution",
+                              "Recette",
+                              "RetourArriere",
+                              "Reussie",
+                              "AvecIncidents",
+                              "Repliee",
+                              "Annulee",
+                              "Reportee",
+                              "Echec"
+                            ],
+                            "description": "État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.\n`AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test\nde recette a été en échec (même refait ensuite).\n`Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.\nToute nouvelle valeur s'ajoute à la fin."
+                          },
+                          "debut": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "fin": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "format": "date-time"
+                          },
+                          "systemes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "description": "Autre MEP sur un même système dont le créneau chevauche celui de la MEP (signalement, jamais bloquant)."
+                      }
+                    },
+                    "derogations": {
+                      "type": "array",
+                      "items": {
+                        "required": [
+                          "id",
+                          "periodeGelId",
+                          "nomPeriode",
+                          "occurrence",
+                          "occurrenceFin",
+                          "motif",
+                          "statut",
+                          "demandeePar",
+                          "demandeeLe",
+                          "decideePar",
+                          "decideeLe",
+                          "commentaire",
+                          "peutDecider"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "periodeGelId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "nomPeriode": {
+                            "type": "string"
+                          },
+                          "occurrence": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "occurrenceFin": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "motif": {
+                            "type": "string"
+                          },
+                          "statut": {
+                            "enum": [
+                              "Demandee",
+                              "Accordee",
+                              "Refusee",
+                              "Retiree"
+                            ],
+                            "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                          },
+                          "demandeePar": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "demandeeLe": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decideePar": {
+                            "type": [
+                              "null",
+                              "string"
+                            ]
+                          },
+                          "decideeLe": {
+                            "type": [
+                              "null",
+                              "string"
+                            ],
+                            "format": "date-time"
+                          },
+                          "commentaire": {
+                            "type": "string"
+                          },
+                          "peutDecider": {
+                            "type": "boolean"
+                          }
+                        },
+                        "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+                      }
+                    }
+                  },
+                  "description": "Place de la MEP dans le calendrier (détail d'une MEP). `Debut` null : MEP sans date prévue (absente du calendrier).\n`Prevu` : créneau prévu (pas encore lancée) ; `EnCours` : lancée, elle s'étend au moins jusqu'à maintenant.\n`Gels` : occurrences de gel qui touchent le créneau ; `GelsAuGo` : celles qu'un Go donné maintenant toucherait sans\ndérogation accordée (non vide : le Go serait refusé) ; `Conflits` : MEP sur un même système au même moment."
                 }
               },
               "description": "`RetourArriereActive` : plan de retour arrière prévu (false : ni plan ni échéance réclamés, aucun déclenchement).\n`EcheanceRepli` est facultative et ne s'applique que si le retour arrière est activé.\n`Type` : MEP complète ou simplifiée. MEP simplifiée : `SuppleantIds` liste les suppléants implicites (toutes les\npersonnes sauf le pilote, aucune sans pilote), les versions sont vides, les étapes n'ont ni durée, ni criticité, ni\nrésolutions liées.\n`Etat` : la phase, puis l'issue une fois clôturée (réussie, avec incidents, repliée), comme dans la recherche ;\n`EchecsSurvenus` : échecs d'étape survenus (une étape reprise garde son échec) ; `EchecsRecette` : tests de\nrecette en échec survenus (même refaits ensuite). Les deux comptent pour « réussie avec incidents ».\nCycle de vie (#93) : `Annulation`, `Report`, `PremierGo` (gardé après un retour en préparation ; le dernier\nGo est `DemarrageAutorise`) et `PilotageSecours`.\nApprobation et traçabilité (#94) : `EcheanceSignalee`, échéance atteinte pendant la recette (signalée, sans retour arrière\nautomatique) ; `ResolutionsFigees` et `ResolutionsFigeesLe`, copies des résolutions liées figées à l'approbation ou\nau Go (vides avant)."

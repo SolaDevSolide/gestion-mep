@@ -13,6 +13,7 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 | Préparer une MEP (je suis développeur ou responsable technique) | [Préparer une MEP](Préparer-une-MEP.md) |
 | Conduire ou exécuter une MEP le jour J (je suis pilote ou exécutant) | [Exécuter une MEP](Exécuter-une-MEP.md) |
 | Suivre une MEP en cours, voir toutes les MEP lancées, lire le rapport de fin (je suis chef de projet ou astreinte) | [Suivre une MEP](Suivre-une-MEP.md) |
+| Voir les MEP dans un calendrier, l'exporter dans mon agenda, gérer les périodes de gel et leurs dérogations | [Calendrier et périodes de gel](Calendrier-et-gel.md) |
 | Annoncer une MEP, faire la demande de MEP, envoyer le compte rendu (textes à copier) | [Modèles de texte](Modèles-de-texte.md) |
 | Gérer les comptes, les équipes, les paramètres et la charte visuelle (je suis administrateur) | [Administrer](Administrer.md) |
 | Envoyer les événements des MEP à Teams, Slack, un outil de tickets ou une supervision | [API externes](API-externes.md) |
@@ -33,6 +34,7 @@ Elle s'installe sur un serveur avec Docker, sans autre dépendance que PostgreSQ
 - **Suivi** : vue d'ensemble de chaque MEP (plan coloré, fin estimée, blocages, qui fait quoi), tableau de bord « Suivi en direct » de toutes les MEP lancées, rapport de fin figé à la clôture (Excel, PDF par l'impression du navigateur).
 - **Sécurité de l'intervention** : go / no-go sur critères, point de non-retour soumis à l'accord du pilote, échéance de retour arrière surveillée en permanence, recette avant clôture, bilan.
 - **Traçabilité** : chaque action est horodatée et attribuée, y compris quand quelqu'un prend la main sur l'étape d'un autre.
+- **Calendrier et gel** : calendrier des MEP filtrable par système, équipe ou pilote, export et abonnement iCalendar, périodes de gel (ponctuelles ou répétées, comme la clôture comptable) qui bloquent le Go sauf dérogation accordée par un approbateur, MEP en même temps sur un même système signalées.
 - **API externes** : les événements des MEP partent automatiquement vers d'autres outils (Teams, Slack, tickets, supervision), ou à la demande du pilote.
 - **Jetons d'accès à l'API** : scripts, CI/CD et supervision appellent l'API avec un jeton personnel ou de service, limité à ses portées, sans session.
 - **Liaison avec Noosphere** : les applications de la cartographie deviennent des systèmes du catalogue, et les MEP qui les touchent sont annoncées à Noosphere, par une liaison signée et chiffrée.

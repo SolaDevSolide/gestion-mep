@@ -78,6 +78,8 @@ builder.Services.AddSingleton<SantePrete>();
 builder.Services.AddSingleton<DiffuseurMep>();
 builder.Services.AddScoped<ServiceMep>();
 builder.Services.AddScoped<RapportsFin>();
+// Calendrier des MEP, périodes de gel et abonnement iCalendar (#129).
+builder.Services.AddScoped<ServiceCalendrier>();
 builder.Services.AddSingleton<SimulationDemo>();
 // Pièces jointes : dossier Stockage:Dossier, taille maximale Stockage:TailleMaxMo (réglage modifiable : le formulaire est
 // accepté jusqu'au plafond du réglage, la limite en cours est appliquée à chaque dépôt).
@@ -207,6 +209,7 @@ api.MapConnexions(app.Configuration);
 api.MapPiecesJointes();
 api.MapLiaisons();
 api.MapJetons();
+api.MapCalendrier();
 // Une route /api inconnue ne doit jamais retomber sur index.html.
 api.Map("{**reste}", () => ReponsesErreur.Resultat(404, "Route introuvable."));
 

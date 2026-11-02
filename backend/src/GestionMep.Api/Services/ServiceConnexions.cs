@@ -107,7 +107,9 @@ public sealed partial class ServiceConnexions(MepDbContext db, IConfiguration co
         var equipes = await Equipes();
         var equipeId = CommunicationEndpoints.EquipeProposee(mep, equipes, await Annuaire(), acteurId);
         var pieces = await db.PiecesJointes.AsNoTracking().Where(p => p.MepId == mep.Id).ToDictionaryAsync(p => p.Id, p => p.NomFichier);
-        var texte = VariablesTexte.Valeurs(mep, equipes.FirstOrDefault(e => e.Id == equipeId), LienMep(mep.Id), pieces, Maintenant, Regles.Incidents(mep));
+        var annuaire = await Annuaire();
+        var gel = Regles.TexteGel(mep, await db.PeriodesGel.AsNoTracking().ToListAsync(), compte => annuaire.NomPersonne(compte), Maintenant);
+        var texte = VariablesTexte.Valeurs(mep, equipes.FirstOrDefault(e => e.Id == equipeId), LienMep(mep.Id), pieces, Maintenant, Regles.Incidents(mep), gel);
         return VariablesEvenement.Valeurs(mep, ev, texte);
     }
 

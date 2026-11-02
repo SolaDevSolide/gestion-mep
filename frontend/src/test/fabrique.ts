@@ -119,6 +119,7 @@ export function mep(p: Partial<Mep> = {}): Mep {
     },
     procedureRelue: null,
     demarrageAutorise: null,
+    calendrier: null,
     participants: [
       { id: 'p1', nom: 'Claire', role: 'Opérateur', contact: '', utilisateurId: 'u1', utilisateurNom: 'Claire' },
       { id: 'p2', nom: 'Bob', role: 'Opérateur', contact: '', utilisateurId: 'u2', utilisateurNom: 'Bob' },

@@ -225,6 +225,11 @@ public class Mep
     /// <summary>Résultats de recette en échec survenus (saisis dans l'application ou importés d'Excel), même refaits ensuite.</summary>
     public int EchecsRecette { get; set; }
 
+    /// <summary>Créneau de la MEP dans le calendrier (#129), recalculé à chaque enregistrement : jamais saisi.</summary>
+    public FenetreCalendrier Calendrier { get; set; } = new();
+    /// <summary>Demandes de dérogation aux périodes de gel, dans l'ordre des demandes (historique gardé).</summary>
+    public List<DerogationGel> DerogationsGel { get; set; } = [];
+
     public DateTimeOffset CreeLe { get; set; } = DateTimeOffset.UtcNow;
     public Guid? CreeParUtilisateurId { get; set; }
 

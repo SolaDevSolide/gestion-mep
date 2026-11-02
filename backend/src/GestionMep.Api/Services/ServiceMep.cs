@@ -383,8 +383,11 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         var mepIds = meps.Select(m => (Guid?)m.Id).ToList();
         var pieces = (await db.PiecesJointes.AsNoTracking().Where(p => mepIds.Contains(p.MepId)).ToListAsync()).ToLookup(p => p.MepId);
         var estAdmin = utilisateurId is { } u && await db.Utilisateurs.AsNoTracking().AnyAsync(x => x.Id == u && x.EstAdmin);
+        // Calendrier (#129) : créneau, périodes de gel touchées, dérogations et conflits avec les autres MEP.
+        var calendrier = await new ServiceCalendrier(db, temps).PourMeps(meps, utilisateurId, annuaire);
         return [.. meps.Select(m => MepMapping.VersDto(m, utilisateurId, noms, Maintenant,
-            new ContexteVerification(minimum, annuaire, [.. resolutions.Where(r => liees[m.Id].Contains(r.Id))]), [.. pieces[m.Id]], estAdmin))];
+            new ContexteVerification(minimum, annuaire, [.. resolutions.Where(r => liees[m.Id].Contains(r.Id))]), [.. pieces[m.Id]], estAdmin,
+            calendrier.GetValueOrDefault(m.Id)))];
     }
 
     /// <summary>
@@ -410,6 +413,9 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
     /// <summary>Paramètre global <see cref="ParametresGlobaux.ApprobationsMinimum"/> (1 si la ligne manque).</summary>
     public async Task<int> ApprobationsMinimum() =>
         await db.Parametres.AsNoTracking().Where(p => p.Id == ParametresGlobaux.IdUnique).Select(p => (int?)p.ApprobationsMinimum).FirstOrDefaultAsync() ?? 1;
+
+    /// <summary>Périodes de gel (#129), lues pour le Go et les dérogations.</summary>
+    public async Task<List<PeriodeGel>> PeriodesGel() => await db.PeriodesGel.AsNoTracking().ToListAsync();
 
     public async Task<List<CritereGoNoGo>> CriteresGoNoGo() => await db.CriteresGoNoGo.AsNoTracking().OrderBy(c => c.Ordre).ToListAsync();
 

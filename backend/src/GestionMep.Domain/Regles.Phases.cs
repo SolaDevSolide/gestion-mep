@@ -13,10 +13,12 @@ public static partial class Regles
 
     /// <summary>
     /// Comme ci-dessus, avec la séparation des tâches sur les comptes reliés et les résolutions liées (actives et complètes),
-    /// figées au Go si aucune approbation ne l'a fait (<see cref="FigerResolutions"/>).
+    /// figées au Go si aucune approbation ne l'a fait (<see cref="FigerResolutions"/>). <paramref name="gels"/> : périodes de gel ;
+    /// un Go qui en touche une sans dérogation accordée est refusé (<see cref="ExigerHorsGel"/>), en dernier contrôle.
     /// </summary>
     public static void PasserEnExecution(Mep mep, Guid utilisateurId, IReadOnlyCollection<Guid> criteresCoches,
-        IReadOnlyCollection<CritereGoNoGo> criteres, ContexteVerification contexte, DateTimeOffset maintenant)
+        IReadOnlyCollection<CritereGoNoGo> criteres, ContexteVerification contexte, DateTimeOffset maintenant,
+        IReadOnlyCollection<PeriodeGel>? gels = null)
     {
         if (!EstPilote(mep, utilisateurId)) throw new DroitInsuffisantException("Seul le pilote ou un suppléant peut passer le plan en exécution.");
         if (mep.EstModele) throw new RegleMetierException("Un modèle ne passe pas en exécution : le dupliquer pour créer une MEP.");
@@ -26,6 +28,7 @@ public static partial class Regles
         var actifs = criteres.Where(c => c.Actif).OrderBy(c => c.Ordre).ToList();
         var manquants = actifs.Where(c => !criteresCoches.Contains(c.Id)).Select(c => $"« {c.Libelle} »").ToList();
         if (manquants.Count > 0) throw new RegleMetierException("Go impossible : cocher " + string.Join(", ", manquants) + ".");
+        if (gels is not null) ExigerHorsGel(mep, gels, maintenant);
         mep.Phase = Phase.Execution;
         mep.DemarrageAutoriseParId = utilisateurId;
         mep.DemarrageAutoriseLe = maintenant;

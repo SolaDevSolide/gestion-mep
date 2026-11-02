@@ -191,8 +191,9 @@ public static class CommunicationEndpoints
             var proposee = EquipeProposee(mep, equipesParNom, annuaire, acteur.Id);
             var choisie = equipe ?? proposee;
             var pieces = await db.PiecesJointes.AsNoTracking().Where(p => p.MepId == id).ToDictionaryAsync(p => p.Id, p => p.NomFichier);
+            var gel = Regles.TexteGel(mep, await db.PeriodesGel.AsNoTracking().ToListAsync(), compte => annuaire.NomPersonne(compte), svc.Maintenant);
             var valeurs = VariablesTexte.Valeurs(mep, choisie is { } c ? parId[c] : null, LienMep(config, requete, id), pieces, svc.Maintenant,
-                Regles.Incidents(mep));
+                Regles.Incidents(mep), gel);
             return new VariablesMepDto(choisie, proposee,
                 VariablesTexte.Toutes.Select(v => new ValeurVariableDto(v.Cle, valeurs[v.Cle].Texte, valeurs[v.Cle].Liste?.ToList())).ToList());
         });

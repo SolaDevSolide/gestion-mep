@@ -6354,6 +6354,371 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/calendrier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    du?: string;
+                    au?: string;
+                    fuseau?: string;
+                    recherche?: string;
+                    systeme?: string;
+                    environnement?: string;
+                    equipe?: string;
+                    personne?: string;
+                    role?: string;
+                    etat?: string;
+                    type?: string;
+                    gels?: string;
+                    limite?: number;
+                    apres?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PageCalendrierDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/calendrier/ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    du?: string;
+                    au?: string;
+                    fuseau?: string;
+                    recherche?: string;
+                    systeme?: string;
+                    environnement?: string;
+                    equipe?: string;
+                    personne?: string;
+                    role?: string;
+                    etat?: string;
+                    type?: string;
+                    gels?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/calendrier/abonnement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AbonnementCalendrierDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AbonnementCalendrierDto"];
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/calendrier/abonnement/{secret}.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    du?: string;
+                    au?: string;
+                    fuseau?: string;
+                    recherche?: string;
+                    systeme?: string;
+                    environnement?: string;
+                    equipe?: string;
+                    personne?: string;
+                    role?: string;
+                    etat?: string;
+                    type?: string;
+                    gels?: string;
+                };
+                header?: never;
+                path: {
+                    secret: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/periodes-gel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodeGelDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/derogations-gel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DerogationGelSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/derogations-gel/{derogationId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    derogationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DecisionDerogationSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meps/{id}/derogations-gel/{derogationId}/retirer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    derogationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/sso": {
         parameters: {
             query?: never;
@@ -8593,10 +8958,117 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/periodes-gel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PeriodeGelSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/periodes-gel/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PeriodeGelSaisie"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description Abonnement au calendrier du compte courant. `Url` : adresse secrète, donnée une seule fois, à sa création ou sa
+         *     régénération (seule son empreinte est gardée) ; null ensuite.
+         */
+        AbonnementCalendrierDto: {
+            actif: boolean;
+            /** Format: date-time */
+            creeLe: null | string;
+            /** Format: date-time */
+            dernierAcces: null | string;
+            url: null | string;
+        };
         /** @description Activité d'un système du catalogue : nombre de MEP et dernière MEP lancée (colonne « Dernière MEP » du catalogue). */
         ActiviteSystemeDto: {
             /** Format: uuid */
@@ -8813,6 +9285,94 @@ export interface components {
             redigePar: null | string;
             /** Format: date-time */
             le: null | string;
+        };
+        /**
+         * @description Place de la MEP dans le calendrier (détail d'une MEP). `Debut` null : MEP sans date prévue (absente du calendrier).
+         *     `Prevu` : créneau prévu (pas encore lancée) ; `EnCours` : lancée, elle s'étend au moins jusqu'à maintenant.
+         *     `Gels` : occurrences de gel qui touchent le créneau ; `GelsAuGo` : celles qu'un Go donné maintenant toucherait sans
+         *     dérogation accordée (non vide : le Go serait refusé) ; `Conflits` : MEP sur un même système au même moment.
+         */
+        CalendrierMepDto: {
+            /** Format: date-time */
+            debut: null | string;
+            /** Format: date-time */
+            fin: null | string;
+            journeeEntiere: boolean;
+            prevu: boolean;
+            enCours: boolean;
+            gels: {
+                /** Format: uuid */
+                periodeGelId: string;
+                nom: string;
+                motif: string;
+                /** Format: date-time */
+                debut: string;
+                /** Format: date-time */
+                fin: string;
+                fuseauHoraire: string;
+                globale: boolean;
+                /** @enum {unknown} */
+                derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+            }[];
+            gelsAuGo: {
+                /** Format: uuid */
+                periodeGelId: string;
+                nom: string;
+                motif: string;
+                /** Format: date-time */
+                debut: string;
+                /** Format: date-time */
+                fin: string;
+                fuseauHoraire: string;
+                globale: boolean;
+                /** @enum {unknown} */
+                derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+            }[];
+            conflits: {
+                /** Format: uuid */
+                mepId: string;
+                outil: string;
+                versionCible: string;
+                /**
+                 * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+                 *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+                 *     de recette a été en échec (même refait ensuite).
+                 *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
+                 *     Toute nouvelle valeur s'ajoute à la fin.
+                 * @enum {unknown}
+                 */
+                etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee" | "Annulee" | "Reportee" | "Echec";
+                /** Format: date-time */
+                debut: string;
+                /** Format: date-time */
+                fin: null | string;
+                systemes: string[];
+            }[];
+            derogations: {
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                periodeGelId: string;
+                nomPeriode: string;
+                /** Format: date-time */
+                occurrence: string;
+                /** Format: date-time */
+                occurrenceFin: string;
+                motif: string;
+                /**
+                 * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                 * @enum {unknown}
+                 */
+                statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                demandeePar: null | string;
+                /** Format: date-time */
+                demandeeLe: string;
+                decideePar: null | string;
+                /** Format: date-time */
+                decideeLe: null | string;
+                commentaire: string;
+                peutDecider: boolean;
+            }[];
         };
         /**
          * @description Ce dont l'éditeur a besoin : déclencheurs, modèles de départ, variables (groupe Événement puis catalogue des modèles de
@@ -9047,6 +9607,19 @@ export interface components {
         ConfirmationLiaisonSaisie: {
             empreinte: null | string;
         };
+        /** @description Autre MEP sur un même système dont le créneau chevauche celui de la MEP (signalement, jamais bloquant). */
+        ConflitDto: {
+            /** Format: uuid */
+            mepId: string;
+            outil: string;
+            versionCible: string;
+            etat: components["schemas"]["EtatMep"];
+            /** Format: date-time */
+            debut: string;
+            /** Format: date-time */
+            fin: null | string;
+            systemes: string[];
+        };
         /**
          * @description Connexion telle que la lit l'éditeur, sans aucun secret. `Url` : gabarit de l'adresse, ou seulement son origine
          *     (« https://hote ») si elle est secrète (`AdresseSecrete` en donne l'état).
@@ -9235,6 +9808,11 @@ export interface components {
         Criticite: "Faible" | "Moderee" | "Elevee" | "Bloquante" | null;
         /** @enum {unknown} */
         DecisionApprobation: "Approuvee" | "Refusee" | null;
+        /** @description Décision d'un approbateur sur une dérogation : accordée ou refusée (commentaire obligatoire pour un refus). */
+        DecisionDerogationSaisie: {
+            accorder: boolean;
+            commentaire: null | string;
+        };
         DecisionSaisie: {
             /** Format: int32 */
             version: null | number;
@@ -9282,6 +9860,46 @@ export interface components {
             /** Format: uuid */
             catalogueId: null | string;
             impact: null | string;
+        };
+        /**
+         * @description Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui
+         *     lit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur).
+         */
+        DerogationGelDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            periodeGelId: string;
+            nomPeriode: string;
+            /** Format: date-time */
+            occurrence: string;
+            /** Format: date-time */
+            occurrenceFin: string;
+            motif: string;
+            /**
+             * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+             * @enum {unknown}
+             */
+            statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+            demandeePar: null | string;
+            /** Format: date-time */
+            demandeeLe: string;
+            decideePar: null | string;
+            /** Format: date-time */
+            decideeLe: null | string;
+            commentaire: string;
+            peutDecider: boolean;
+        };
+        /**
+         * @description Demande de dérogation : `PeriodeGelId` et, pour une période répétée, `Occurrence` (début de l'occurrence visée ;
+         *     absent : la première qui concerne la MEP) ; `Motif` obligatoire.
+         */
+        DerogationGelSaisie: {
+            /** Format: uuid */
+            periodeGelId: string;
+            /** Format: date-time */
+            occurrence: null | string;
+            motif: null | string;
         };
         DisponibiliteDto: {
             /** @enum {unknown} */
@@ -9381,6 +9999,34 @@ export interface components {
             repris: boolean;
             resolution: null | string;
             statutResolution: null | components["schemas"]["StatutResolution"];
+        };
+        /**
+         * @description MEP du calendrier. `Debut`, `Fin` (exclue, null : durée inconnue) en UTC ; `JourneeEntiere` : date prévue sans
+         *     heure (minuit à minuit dans `FuseauHoraire`). Couleurs : `Phase`, `Etat` et `ToucheProduction`.
+         */
+        ElementCalendrierDto: {
+            /** Format: uuid */
+            id: string;
+            outil: string;
+            versionCible: string;
+            objet: string;
+            type: components["schemas"]["TypeMep"];
+            phase: components["schemas"]["Phase"];
+            etat: components["schemas"]["EtatMep"];
+            /** Format: date-time */
+            debut: string;
+            /** Format: date-time */
+            fin: null | string;
+            journeeEntiere: boolean;
+            prevu: boolean;
+            enCours: boolean;
+            fuseauHoraire: string;
+            pilote: null | string;
+            toucheProduction: boolean;
+            systemes: components["schemas"]["SystemeResumeDto"][];
+            equipeIds: string[];
+            gels: components["schemas"]["OccurrenceGelDto"][];
+            conflits: components["schemas"]["ConflitDto"][];
         };
         EnteteAppelDto: {
             nom: string;
@@ -9493,6 +10139,8 @@ export interface components {
          * @description Corps de toute réponse d'erreur de l'API, au format « problem details » (RFC 9457, type `application/problem+json`) :
          *     `status` reprend le code HTTP, `title` sa nature (« Droits insuffisants »…), `detail` et `message` le
          *     message à afficher, en français ; `erreurs`, absent le plus souvent, liste chaque anomalie quand il y en a plusieurs.
+         *     `type` vaut `about:blank`, sauf pour un refus qui a ses propres données : Go pendant une période de gel
+         *     (`urn:gestion-mep:probleme:go-pendant-un-gel`, 422), dont `gels` donne les occurrences sans dérogation accordée.
          */
         ErreurDto: {
             type: string;
@@ -9502,6 +10150,20 @@ export interface components {
             detail: string;
             message: string;
             erreurs?: null | string[];
+            gels?: null | {
+                /** Format: uuid */
+                periodeGelId: string;
+                nom: string;
+                motif: string;
+                /** Format: date-time */
+                debut: string;
+                /** Format: date-time */
+                fin: string;
+                fuseauHoraire: string;
+                globale: boolean;
+                /** @enum {unknown} */
+                derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+            }[];
         };
         /** @description Résultat de « Essayer » : la requête, la tentative (code ou erreur, extrait de réponse de 4 Ko au plus). */
         EssaiConnexionDto: {
@@ -10549,6 +11211,94 @@ export interface components {
                     /** Format: int32 */
                     approbateurs: number;
                 };
+                /**
+                 * @description Place de la MEP dans le calendrier (détail d'une MEP). `Debut` null : MEP sans date prévue (absente du calendrier).
+                 *     `Prevu` : créneau prévu (pas encore lancée) ; `EnCours` : lancée, elle s'étend au moins jusqu'à maintenant.
+                 *     `Gels` : occurrences de gel qui touchent le créneau ; `GelsAuGo` : celles qu'un Go donné maintenant toucherait sans
+                 *     dérogation accordée (non vide : le Go serait refusé) ; `Conflits` : MEP sur un même système au même moment.
+                 */
+                calendrier: null | {
+                    /** Format: date-time */
+                    debut: null | string;
+                    /** Format: date-time */
+                    fin: null | string;
+                    journeeEntiere: boolean;
+                    prevu: boolean;
+                    enCours: boolean;
+                    gels: {
+                        /** Format: uuid */
+                        periodeGelId: string;
+                        nom: string;
+                        motif: string;
+                        /** Format: date-time */
+                        debut: string;
+                        /** Format: date-time */
+                        fin: string;
+                        fuseauHoraire: string;
+                        globale: boolean;
+                        /** @enum {unknown} */
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                    }[];
+                    gelsAuGo: {
+                        /** Format: uuid */
+                        periodeGelId: string;
+                        nom: string;
+                        motif: string;
+                        /** Format: date-time */
+                        debut: string;
+                        /** Format: date-time */
+                        fin: string;
+                        fuseauHoraire: string;
+                        globale: boolean;
+                        /** @enum {unknown} */
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                    }[];
+                    conflits: {
+                        /** Format: uuid */
+                        mepId: string;
+                        outil: string;
+                        versionCible: string;
+                        /**
+                         * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+                         *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+                         *     de recette a été en échec (même refait ensuite).
+                         *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
+                         *     Toute nouvelle valeur s'ajoute à la fin.
+                         * @enum {unknown}
+                         */
+                        etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee" | "Annulee" | "Reportee" | "Echec";
+                        /** Format: date-time */
+                        debut: string;
+                        /** Format: date-time */
+                        fin: null | string;
+                        systemes: string[];
+                    }[];
+                    derogations: {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        periodeGelId: string;
+                        nomPeriode: string;
+                        /** Format: date-time */
+                        occurrence: string;
+                        /** Format: date-time */
+                        occurrenceFin: string;
+                        motif: string;
+                        /**
+                         * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                         * @enum {unknown}
+                         */
+                        statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                        demandeePar: null | string;
+                        /** Format: date-time */
+                        demandeeLe: string;
+                        decideePar: null | string;
+                        /** Format: date-time */
+                        decideeLe: null | string;
+                        commentaire: string;
+                        peutDecider: boolean;
+                    }[];
+                };
             };
             /** Format: int32 */
             ajoutes: number;
@@ -11339,6 +12089,94 @@ export interface components {
                 /** Format: int32 */
                 approbateurs: number;
             };
+            /**
+             * @description Place de la MEP dans le calendrier (détail d'une MEP). `Debut` null : MEP sans date prévue (absente du calendrier).
+             *     `Prevu` : créneau prévu (pas encore lancée) ; `EnCours` : lancée, elle s'étend au moins jusqu'à maintenant.
+             *     `Gels` : occurrences de gel qui touchent le créneau ; `GelsAuGo` : celles qu'un Go donné maintenant toucherait sans
+             *     dérogation accordée (non vide : le Go serait refusé) ; `Conflits` : MEP sur un même système au même moment.
+             */
+            calendrier: null | {
+                /** Format: date-time */
+                debut: null | string;
+                /** Format: date-time */
+                fin: null | string;
+                journeeEntiere: boolean;
+                prevu: boolean;
+                enCours: boolean;
+                gels: {
+                    /** Format: uuid */
+                    periodeGelId: string;
+                    nom: string;
+                    motif: string;
+                    /** Format: date-time */
+                    debut: string;
+                    /** Format: date-time */
+                    fin: string;
+                    fuseauHoraire: string;
+                    globale: boolean;
+                    /** @enum {unknown} */
+                    derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                }[];
+                gelsAuGo: {
+                    /** Format: uuid */
+                    periodeGelId: string;
+                    nom: string;
+                    motif: string;
+                    /** Format: date-time */
+                    debut: string;
+                    /** Format: date-time */
+                    fin: string;
+                    fuseauHoraire: string;
+                    globale: boolean;
+                    /** @enum {unknown} */
+                    derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                }[];
+                conflits: {
+                    /** Format: uuid */
+                    mepId: string;
+                    outil: string;
+                    versionCible: string;
+                    /**
+                     * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+                     *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+                     *     de recette a été en échec (même refait ensuite).
+                     *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
+                     *     Toute nouvelle valeur s'ajoute à la fin.
+                     * @enum {unknown}
+                     */
+                    etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee" | "Annulee" | "Reportee" | "Echec";
+                    /** Format: date-time */
+                    debut: string;
+                    /** Format: date-time */
+                    fin: null | string;
+                    systemes: string[];
+                }[];
+                derogations: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    periodeGelId: string;
+                    nomPeriode: string;
+                    /** Format: date-time */
+                    occurrence: string;
+                    /** Format: date-time */
+                    occurrenceFin: string;
+                    motif: string;
+                    /**
+                     * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                     * @enum {unknown}
+                     */
+                    statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                    demandeePar: null | string;
+                    /** Format: date-time */
+                    demandeeLe: string;
+                    decideePar: null | string;
+                    /** Format: date-time */
+                    decideeLe: null | string;
+                    commentaire: string;
+                    peutDecider: boolean;
+                }[];
+            };
         };
         /**
          * @description MEP de l'historique d'un système : `Environnements` touchés sur ce système, `AutresSystemes` de la MEP,
@@ -11715,6 +12553,23 @@ export interface components {
             objets: null | components["schemas"]["ObjetChoisiSaisie"][];
         };
         /**
+         * @description Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP
+         *     pour cette occurrence (null : aucune, ou hors d'une MEP).
+         */
+        OccurrenceGelDto: {
+            /** Format: uuid */
+            periodeGelId: string;
+            nom: string;
+            motif: string;
+            /** Format: date-time */
+            debut: string;
+            /** Format: date-time */
+            fin: string;
+            fuseauHoraire: string;
+            globale: boolean;
+            derogation?: null | components["schemas"]["StatutDerogation"];
+        };
+        /**
          * @description Optimisation des liens d'un plan : la liste des liens redondants montrée à la personne (voir `liens/redondants`).
          *     `SectionId` : seulement les liens entre éléments de cette section (vue d'une section).
          */
@@ -11758,6 +12613,23 @@ export interface components {
             echecs: number;
         };
         /**
+         * @description Page du calendrier (`GET /api/calendrier`) : MEP dont le créneau touche la plage [`Du`, `Au`] (jours inclus,
+         *     dans `FuseauHoraire`), par début puis identifiant ; `Gels` : occurrences des périodes de gel de la plage ;
+         *     `Total` : MEP qui correspondent ; `Suivant` : curseur de la page suivante (null : dernière page).
+         */
+        PageCalendrierDto: {
+            meps: components["schemas"]["ElementCalendrierDto"][];
+            gels: components["schemas"]["OccurrenceGelDto"][];
+            /** Format: int32 */
+            total: number;
+            suivant: null | string;
+            /** Format: date */
+            du: string;
+            /** Format: date */
+            au: string;
+            fuseauHoraire: string;
+        };
+        /**
          * @description Page de la liste des MEP (`GET /meps/page`) : `Meps`, la page ; `Total`, le nombre de MEP qui correspondent
          *     aux filtres ; `Ensemble`, le nombre de MEP (ou de modèles) sans filtre ; `Suivant`, le curseur à passer dans
          *     `apres` pour la page suivante (null : c'était la dernière).
@@ -11794,6 +12666,57 @@ export interface components {
             contact: null | string;
             /** Format: uuid */
             utilisateurId: null | string;
+        };
+        /**
+         * @description Période de gel (#129). `Debut` et `Fin` (exclue) : première occurrence, en UTC. `SystemeCatalogueIds` vide :
+         *     tous les systèmes ; `Environnements` vide : tous. `Recurrence` : répétition dans `FuseauHoraire`, jusqu'au
+         *     jour local `FinRecurrence` (null : sans fin). `Systemes` : noms des systèmes concernés, pour l'affichage.
+         */
+        PeriodeGelDto: {
+            /** Format: uuid */
+            id: string;
+            nom: string;
+            /** Format: date-time */
+            debut: string;
+            /** Format: date-time */
+            fin: string;
+            motif: string;
+            systemeCatalogueIds: string[];
+            systemes: string[];
+            environnements: string[];
+            productionSeulement: boolean;
+            recurrence: components["schemas"]["RecurrenceGel"];
+            /** Format: date */
+            finRecurrence: null | string;
+            fuseauHoraire: string;
+            /** Format: int32 */
+            version: number;
+            /** Format: date-time */
+            creeeLe: string;
+            /** Format: date-time */
+            modifieeLe: string;
+        };
+        /**
+         * @description Création ou modification d'une période de gel (administrateurs). Instants ISO 8601 avec leur décalage (enregistrés en UTC).
+         *     Absents : `SystemeCatalogueIds` et `Environnements` vides (tous), `Recurrence` Aucune, `FuseauHoraire`
+         *     celui de l'instance. `Version` : obligatoire en modification (409 si la période a changé depuis sa lecture).
+         */
+        PeriodeGelSaisie: {
+            nom: null | string;
+            /** Format: date-time */
+            debut: null | string;
+            /** Format: date-time */
+            fin: null | string;
+            motif: null | string;
+            systemeCatalogueIds: null | string[];
+            environnements: null | string[];
+            productionSeulement: null | boolean;
+            recurrence: null | components["schemas"]["RecurrenceGel"];
+            /** Format: date */
+            finRecurrence: null | string;
+            fuseauHoraire: null | string;
+            /** Format: int32 */
+            version?: null | number;
         };
         /**
          * @description Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin. Phase.Annulee : MEP arrêtée depuis la
@@ -12690,6 +13613,94 @@ export interface components {
                     /** Format: int32 */
                     approbateurs: number;
                 };
+                /**
+                 * @description Place de la MEP dans le calendrier (détail d'une MEP). `Debut` null : MEP sans date prévue (absente du calendrier).
+                 *     `Prevu` : créneau prévu (pas encore lancée) ; `EnCours` : lancée, elle s'étend au moins jusqu'à maintenant.
+                 *     `Gels` : occurrences de gel qui touchent le créneau ; `GelsAuGo` : celles qu'un Go donné maintenant toucherait sans
+                 *     dérogation accordée (non vide : le Go serait refusé) ; `Conflits` : MEP sur un même système au même moment.
+                 */
+                calendrier: null | {
+                    /** Format: date-time */
+                    debut: null | string;
+                    /** Format: date-time */
+                    fin: null | string;
+                    journeeEntiere: boolean;
+                    prevu: boolean;
+                    enCours: boolean;
+                    gels: {
+                        /** Format: uuid */
+                        periodeGelId: string;
+                        nom: string;
+                        motif: string;
+                        /** Format: date-time */
+                        debut: string;
+                        /** Format: date-time */
+                        fin: string;
+                        fuseauHoraire: string;
+                        globale: boolean;
+                        /** @enum {unknown} */
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                    }[];
+                    gelsAuGo: {
+                        /** Format: uuid */
+                        periodeGelId: string;
+                        nom: string;
+                        motif: string;
+                        /** Format: date-time */
+                        debut: string;
+                        /** Format: date-time */
+                        fin: string;
+                        fuseauHoraire: string;
+                        globale: boolean;
+                        /** @enum {unknown} */
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                    }[];
+                    conflits: {
+                        /** Format: uuid */
+                        mepId: string;
+                        outil: string;
+                        versionCible: string;
+                        /**
+                         * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+                         *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+                         *     de recette a été en échec (même refait ensuite).
+                         *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
+                         *     Toute nouvelle valeur s'ajoute à la fin.
+                         * @enum {unknown}
+                         */
+                        etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee" | "Annulee" | "Reportee" | "Echec";
+                        /** Format: date-time */
+                        debut: string;
+                        /** Format: date-time */
+                        fin: null | string;
+                        systemes: string[];
+                    }[];
+                    derogations: {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        periodeGelId: string;
+                        nomPeriode: string;
+                        /** Format: date-time */
+                        occurrence: string;
+                        /** Format: date-time */
+                        occurrenceFin: string;
+                        motif: string;
+                        /**
+                         * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                         * @enum {unknown}
+                         */
+                        statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                        demandeePar: null | string;
+                        /** Format: date-time */
+                        demandeeLe: string;
+                        decideePar: null | string;
+                        /** Format: date-time */
+                        decideeLe: null | string;
+                        commentaire: string;
+                        peutDecider: boolean;
+                    }[];
+                };
             };
             journal: {
                 /** Format: int64 */
@@ -12704,6 +13715,13 @@ export interface components {
                 etapeId?: null | string;
             }[];
         };
+        /**
+         * @description Répétition d'une période de gel. Stockée en entier : toute nouvelle valeur s'ajoute à la fin.
+         *     RecurrenceGel.Mensuelle garde le même jour du mois (31 → dernier jour des mois plus courts) ; RecurrenceGel.FinDeMois garde
+         *     l'écart avec le dernier jour du mois (« les trois derniers jours » de chaque mois, clôture comptable).
+         * @enum {unknown}
+         */
+        RecurrenceGel: "Aucune" | "Hebdomadaire" | "Mensuelle" | "FinDeMois" | "Annuelle";
         /** @description Réglage tel que l'affichent la console et la ligne de commande. */
         ReglageDto: {
             nom: string;
@@ -13568,6 +14586,94 @@ export interface components {
                     /** Format: int32 */
                     approbateurs: number;
                 };
+                /**
+                 * @description Place de la MEP dans le calendrier (détail d'une MEP). `Debut` null : MEP sans date prévue (absente du calendrier).
+                 *     `Prevu` : créneau prévu (pas encore lancée) ; `EnCours` : lancée, elle s'étend au moins jusqu'à maintenant.
+                 *     `Gels` : occurrences de gel qui touchent le créneau ; `GelsAuGo` : celles qu'un Go donné maintenant toucherait sans
+                 *     dérogation accordée (non vide : le Go serait refusé) ; `Conflits` : MEP sur un même système au même moment.
+                 */
+                calendrier: null | {
+                    /** Format: date-time */
+                    debut: null | string;
+                    /** Format: date-time */
+                    fin: null | string;
+                    journeeEntiere: boolean;
+                    prevu: boolean;
+                    enCours: boolean;
+                    gels: {
+                        /** Format: uuid */
+                        periodeGelId: string;
+                        nom: string;
+                        motif: string;
+                        /** Format: date-time */
+                        debut: string;
+                        /** Format: date-time */
+                        fin: string;
+                        fuseauHoraire: string;
+                        globale: boolean;
+                        /** @enum {unknown} */
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                    }[];
+                    gelsAuGo: {
+                        /** Format: uuid */
+                        periodeGelId: string;
+                        nom: string;
+                        motif: string;
+                        /** Format: date-time */
+                        debut: string;
+                        /** Format: date-time */
+                        fin: string;
+                        fuseauHoraire: string;
+                        globale: boolean;
+                        /** @enum {unknown} */
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                    }[];
+                    conflits: {
+                        /** Format: uuid */
+                        mepId: string;
+                        outil: string;
+                        versionCible: string;
+                        /**
+                         * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+                         *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+                         *     de recette a été en échec (même refait ensuite).
+                         *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
+                         *     Toute nouvelle valeur s'ajoute à la fin.
+                         * @enum {unknown}
+                         */
+                        etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee" | "Annulee" | "Reportee" | "Echec";
+                        /** Format: date-time */
+                        debut: string;
+                        /** Format: date-time */
+                        fin: null | string;
+                        systemes: string[];
+                    }[];
+                    derogations: {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        periodeGelId: string;
+                        nomPeriode: string;
+                        /** Format: date-time */
+                        occurrence: string;
+                        /** Format: date-time */
+                        occurrenceFin: string;
+                        motif: string;
+                        /**
+                         * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                         * @enum {unknown}
+                         */
+                        statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                        demandeePar: null | string;
+                        /** Format: date-time */
+                        demandeeLe: string;
+                        decideePar: null | string;
+                        /** Format: date-time */
+                        decideeLe: null | string;
+                        commentaire: string;
+                        peutDecider: boolean;
+                    }[];
+                };
             };
         };
         /**
@@ -13711,6 +14817,8 @@ export interface components {
             ok: boolean;
             detail: string;
         };
+        /** @enum {unknown} */
+        StatutDerogation: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
         /** @enum {unknown} */
         StatutResolution: "EnCours" | "Reussie" | "Echouee" | null;
         /** @enum {unknown} */
@@ -14285,6 +15393,94 @@ export interface components {
                     responsablesTechniques: number;
                     /** Format: int32 */
                     approbateurs: number;
+                };
+                /**
+                 * @description Place de la MEP dans le calendrier (détail d'une MEP). `Debut` null : MEP sans date prévue (absente du calendrier).
+                 *     `Prevu` : créneau prévu (pas encore lancée) ; `EnCours` : lancée, elle s'étend au moins jusqu'à maintenant.
+                 *     `Gels` : occurrences de gel qui touchent le créneau ; `GelsAuGo` : celles qu'un Go donné maintenant toucherait sans
+                 *     dérogation accordée (non vide : le Go serait refusé) ; `Conflits` : MEP sur un même système au même moment.
+                 */
+                calendrier: null | {
+                    /** Format: date-time */
+                    debut: null | string;
+                    /** Format: date-time */
+                    fin: null | string;
+                    journeeEntiere: boolean;
+                    prevu: boolean;
+                    enCours: boolean;
+                    gels: {
+                        /** Format: uuid */
+                        periodeGelId: string;
+                        nom: string;
+                        motif: string;
+                        /** Format: date-time */
+                        debut: string;
+                        /** Format: date-time */
+                        fin: string;
+                        fuseauHoraire: string;
+                        globale: boolean;
+                        /** @enum {unknown} */
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                    }[];
+                    gelsAuGo: {
+                        /** Format: uuid */
+                        periodeGelId: string;
+                        nom: string;
+                        motif: string;
+                        /** Format: date-time */
+                        debut: string;
+                        /** Format: date-time */
+                        fin: string;
+                        fuseauHoraire: string;
+                        globale: boolean;
+                        /** @enum {unknown} */
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                    }[];
+                    conflits: {
+                        /** Format: uuid */
+                        mepId: string;
+                        outil: string;
+                        versionCible: string;
+                        /**
+                         * @description État d'une MEP pour la recherche et l'historique : sa phase tant qu'elle n'est pas clôturée, puis son issue.
+                         *     `AvecIncidents` : clôturée réussie alors qu'au moins une étape a échoué en route (même reprise ensuite) ou qu'un test
+                         *     de recette a été en échec (même refait ensuite).
+                         *     `Reportee` : en préparation avec un report en cours ; `Echec` : clôturée en échec ; `Annulee` : annulée.
+                         *     Toute nouvelle valeur s'ajoute à la fin.
+                         * @enum {unknown}
+                         */
+                        etat: "Preparation" | "Execution" | "Recette" | "RetourArriere" | "Reussie" | "AvecIncidents" | "Repliee" | "Annulee" | "Reportee" | "Echec";
+                        /** Format: date-time */
+                        debut: string;
+                        /** Format: date-time */
+                        fin: null | string;
+                        systemes: string[];
+                    }[];
+                    derogations: {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        periodeGelId: string;
+                        nomPeriode: string;
+                        /** Format: date-time */
+                        occurrence: string;
+                        /** Format: date-time */
+                        occurrenceFin: string;
+                        motif: string;
+                        /**
+                         * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                         * @enum {unknown}
+                         */
+                        statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                        demandeePar: null | string;
+                        /** Format: date-time */
+                        demandeeLe: string;
+                        decideePar: null | string;
+                        /** Format: date-time */
+                        decideeLe: null | string;
+                        commentaire: string;
+                        peutDecider: boolean;
+                    }[];
                 };
             }[];
             prevues: {

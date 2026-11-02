@@ -314,7 +314,7 @@ public record MepDto(Guid Id, int Version, string Outil, string VersionActuelle,
     List<ResponsableTechniqueDto> ResponsablesTechniques, List<string> Avertissements, bool RetourArriereActive, CommunicationDto Communication, TypeMep Type,
     List<SectionDto> Sections, EtatMep Etat, int EchecsSurvenus, AnnulationDto? Annulation, ReportDto? Report, DateTimeOffset? PremierGo,
     PilotageSecoursDto? PilotageSecours, int EchecsRecette, DateTimeOffset? EcheanceSignalee, List<ResolutionFigeeDto> ResolutionsFigees,
-    DateTimeOffset? ResolutionsFigeesLe, RevisionsMepDto Revisions);
+    DateTimeOffset? ResolutionsFigeesLe, RevisionsMepDto Revisions, CalendrierMepDto? Calendrier);
 
 /// <summary>
 /// Révision de chaque bloc de formulaire de la MEP : elle n'augmente que lorsque le contenu du bloc change. Le formulaire la
