@@ -81,6 +81,7 @@ La liste est tenue à jour à chaque fonctionnalité qui ajoute une information 
 | `{{heure_debut}}` | Heure de début | Heure de début annoncée, sinon heure du Go. Ex. « 20h00 » |
 | `{{heure_fin}}` | Heure de fin | Heure de fin annoncée, sinon heure de la clôture |
 | `{{indisponibilite}}` | Indisponibilité prévue | Durée saisie dans Intervention. Ex. « 2 h 30 » |
+| `{{gel}}` | Période de gel | Périodes de gel qui touchent le créneau de la MEP, avec l'état de la dérogation. Ex. « « Clôture comptable » du 28/11/2026 18h00 au 02/12/2026 08h00 (Europe/Paris) : dérogation accordée par Claire Durand » ; « aucune » hors gel ; vide sans date prévue. Voir [Calendrier et périodes de gel](Calendrier-et-gel.md) |
 
 ### Personnes
 

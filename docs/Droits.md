@@ -33,7 +33,9 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Modifier l'échéance de retour arrière (MEP avec plan de retour arrière ; motif obligatoire, sauf première saisie en préparation ; plus possible une fois le retour arrière déclenché ou la MEP clôturée ou annulée) | Éditeur en préparation ; pilote, suppléant ou administrateur en exécution et en recette |
 | Cocher « Procédure relue » | Personne de la MEP reliée à un compte |
 | Approuver ou refuser | Approbateur désigné, qui n'est ni pilote, ni suppléant, ni responsable technique de la MEP (comptes reliés compris) |
-| Go / no-go | Pilote ou suppléant |
+| Go / no-go | Pilote ou suppléant (pendant une période de gel : seulement avec une dérogation accordée) |
+| Demander ou retirer une dérogation au gel (motif obligatoire) | Pilote ou suppléant, en préparation |
+| Accorder ou refuser une dérogation au gel (commentaire obligatoire pour un refus) | Approbateur désigné, qui n'est ni pilote, ni suppléant, ni responsable technique de la MEP, ni la personne qui l'a demandée (comptes reliés compris) |
 | Démarrer une étape disponible | Personne de la MEP reliée à un compte, ou administrateur |
 | Terminer une étape, appliquer une résolution | Exécutant de l'étape, pilote ou suppléant |
 | Prendre la main sur une étape | Personne de la MEP reliée à un compte, ou administrateur (motif obligatoire) |
@@ -67,6 +69,7 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Modifier la communication d'une MEP | Éditeur en préparation ; après le Go, pilote, suppléant ou administrateur ; plus personne une fois la MEP clôturée ou annulée |
 | Copier les textes d'une MEP, consulter les modèles de texte | Tout utilisateur qui voit la MEP |
 | Créer, modifier, rétablir ou supprimer un modèle de texte d'une équipe, régler son contact support et sa signature | Membre de l'équipe (par l'un de ses comptes reliés) ou administrateur ; les modèles fournis ne se suppriment pas |
+| Périodes de gel : créer, modifier, supprimer | Administrateur (lecture pour tous) |
 | Catalogue des systèmes (fiches : environnements, catégories, objets ; catégories par défaut), critères go / no-go, nombre minimum d'approbations | Administrateur (lecture pour tous) |
 | Comptes et console d'administration, équipes, comptes reliés d'une même personne | Administrateur (équipes : lecture pour tous) |
 | Modifier son propre profil et son mot de passe | Chacun |
