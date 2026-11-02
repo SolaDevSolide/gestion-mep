@@ -50,6 +50,9 @@ public static class VariablesTexte
         new("heure_debut", "Heure de début", GroupeDates, "Heure de début annoncée, sinon heure du Go. Ex. « 20h00 »."),
         new("heure_fin", "Heure de fin", GroupeDates, "Heure de fin annoncée, sinon heure de la clôture."),
         new("indisponibilite", "Indisponibilité prévue", GroupeDates, "Durée d'indisponibilité saisie dans Intervention. Ex. « 2 h 30 »."),
+        new("gel", "Période de gel", GroupeDates,
+            "Périodes de gel qui touchent le créneau de la MEP, avec l'état de la dérogation. Ex. « « Clôture comptable » du 28/11/2026 00h00 "
+            + "au 01/12/2026 00h00 (Europe/Paris) : dérogation accordée par Claire Durand » ; « aucune » hors gel ; absente sans date prévue."),
 
         new("pilote", "Pilote", GroupePersonnes, "Nom du pilote de la MEP."),
         new("pilote_contact", "Contact du pilote", GroupePersonnes, "Contact du pilote (fiche Personnes)."),
@@ -136,9 +139,10 @@ public static class VariablesTexte
     /// <paramref name="nomsPieces"/> : noms des pièces jointes de la MEP (preuve de validation). <paramref name="maintenant"/> :
     /// heure de la fin estimée (absente sans elle). <paramref name="echecsSurvenus"/> : incidents survenus, échecs d'étape et
     /// de recette (issue « réussie avec incidents », voir <see cref="Regles.Incidents"/> et <see cref="Regles.EtatDe"/>).
+    /// <paramref name="gel"/> : valeur de <c>{{gel}}</c>, calculée avec les périodes de gel (<see cref="Regles.TexteGel"/>).
     /// </summary>
     public static Dictionary<string, ValeurVariable> Valeurs(Mep mep, Equipe? equipe, string? lienMep, IReadOnlyDictionary<Guid, string> nomsPieces,
-        DateTimeOffset? maintenant = null, int echecsSurvenus = 0)
+        DateTimeOffset? maintenant = null, int echecsSurvenus = 0, string? gel = null)
     {
         var c = mep.Communication;
         var go = mep.DemarrageAutoriseLe is { } g ? Fuseaux.Local(g, mep.FuseauHoraire) : (DateTime?)null;
@@ -185,6 +189,7 @@ public static class VariablesTexte
             ["heure_debut"] = V(c.HeureDebutAnnoncee is { } hd ? Heure(hd) : go is { } hg ? Heure(TimeOnly.FromDateTime(hg)) : null),
             ["heure_fin"] = V(c.HeureFinAnnoncee is { } hf ? Heure(hf) : fin is { } hc ? Heure(TimeOnly.FromDateTime(hc)) : null),
             ["indisponibilite"] = V(indispo),
+            ["gel"] = V(gel),
 
             ["pilote"] = V(pilote?.Nom),
             ["pilote_contact"] = V(pilote?.Contact),
