@@ -33,6 +33,7 @@ public static partial class LigneDeCommande
         new("charte", "Charte visuelle (couleurs de l'interface et des exports Excel)", "Ordre : charte de la console > fichier charte.json > charte par défaut."),
         GroupeConnexions,
         GroupeLiaisons,
+        GroupeJetons,
         new("journal", "Journal d'administration"),
         new("systemes", "Catalogue des systèmes", "Un système se désigne par son nom (sans tenir compte des majuscules) ou son identifiant."),
         new("categories", "Catégories d'objets proposées par défaut à chaque système"),
@@ -286,6 +287,9 @@ public static partial class LigneDeCommande
 
         // ---------- Liaison avec Noosphere (LigneDeCommande.Liaisons.cs) ----------
         .. CommandesLiaisons,
+
+        // ---------- Jetons d'accès à l'API (LigneDeCommande.Jetons.cs) ----------
+        .. CommandesJetons,
 
         // ---------- Journal d'administration ----------
         new("journal lister", "[--depuis AAAA-MM-JJ] [--limite n] [--type <type>]", "Journal d'administration, du plus récent au plus ancien (200 événements par défaut)",

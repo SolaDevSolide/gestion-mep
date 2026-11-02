@@ -118,6 +118,7 @@ Certaines opérations restent dans l'application, parce qu'elles sont signées p
 - le dépôt et la suppression d'une pièce jointe. Ces gestes sont signés par une personne et soumis aux quotas. La ligne de commande mesure la place occupée, liste les pièces, en extrait les fichiers et contrôle le dossier ;
 - la création et la modification d'une connexion aux API externes, qui se font dans l'éditeur avec son aperçu. La ligne de commande les consulte, les essaie, les active ou les désactive, les copie d'un serveur à l'autre (`connexions exporter` puis `importer`), en saisit les secrets et renvoie un appel ;
 - le choix des applications de Noosphere suivies, qui se fait avec le catalogue de Noosphere sous les yeux (`PUT /api/admin/liaisons/{id}/suivi`). La ligne de commande appaire, confirme l'empreinte, synchronise, règle les options, renouvelle les clés, coupe la liaison et lit le journal des échanges (`liaison …`, voir [Liaison avec Noosphere](Liaison-Noosphere.md)) ;
+- les jetons d'accès personnels, créés par chaque personne pour ses propres scripts (`POST /api/jetons`). La ligne de commande crée les jetons de service, liste et révoque tous les jetons (`jetons …`, voir [Jetons d'accès à l'API](Jetons-d-accès.md)) ;
 - le suivi en direct (tableau de bord des systèmes, notifications).
 
 L'installation elle-même se fait par les scripts d'installation (voir [Installer](Installer.md) et [Installer sans Docker](Installer-sans-Docker.md)).
@@ -1066,6 +1067,69 @@ Sortie `--json` : tableau des échanges, comme GET /api/admin/liaisons/echanges.
 ```bash
 gestion-mep liaison echanges
 gestion-mep liaison echanges --refus --limite 20
+```
+
+### Jetons d'accès à l'API
+
+Un jeton se désigne par son préfixe (gmep_ et 8 caractères, colonne PRÉFIXE de « jetons liste ») ou son identifiant (8 premiers caractères suffisent).
+
+#### `jetons creer`
+
+```
+gestion-mep jetons creer "<nom>" --portees <portée,…> [--duree <jours>]
+```
+
+Crée un jeton de service (outil CI/CD, supervision) et affiche son secret, une seule fois. Le jeton agit sous un compte technique qui porte son nom (sans mot de passe) : ajouter ce compte à une MEP pour qu'il puisse la modifier ou l'exécuter. Le secret n'est affiché qu'une fois (même avec --quiet) : le ranger aussitôt dans le coffre de l'outil. Les jetons personnels se créent depuis « Mon profil ».
+
+| Option | Effet |
+|---|---|
+| `--portees <portée,…>` | Portées séparées par des virgules : meps:lecture, meps:ecriture, execution, catalogue:lecture, catalogue:ecriture, admin |
+| `--duree <jours>` | Durée de validité, de 1 à 365 jours (défaut 90) |
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat } ; resultat : { jeton, secret }, jeton comme GET /api/admin/jetons/{id}.
+
+```bash
+gestion-mep jetons creer "CI GitLab" --portees meps:lecture,execution --duree 180
+gestion-mep jetons creer Supervision --portees meps:lecture --json   (pour un script : resultat.secret)
+```
+
+#### `jetons liste`
+
+```
+gestion-mep jetons liste [--type personnel|service] [--compte <login>] [--actifs]
+```
+
+Jetons : préfixe, nom, type, compte, portées, état, expiration, dernière utilisation.
+
+| Option | Effet |
+|---|---|
+| `--type personnel\|service` | Seulement les jetons de ce type |
+| `--compte <login>` | Seulement les jetons de ce compte |
+| `--actifs` | Seulement les jetons utilisables (ni expirés, ni révoqués) |
+
+Sortie `--json` : tableau des jetons, comme GET /api/admin/jetons.
+
+```bash
+gestion-mep jetons liste
+gestion-mep jetons liste --type service --actifs --json
+```
+
+#### `jetons revoquer`
+
+```
+gestion-mep jetons revoquer <jeton> [--oui]
+```
+
+Révoque un jeton, personnel ou de service : il ne fonctionne plus, définitivement. Le compte technique d'un jeton de service est aussi désactivé ; son nom reste dans l'historique des MEP.
+
+| Option | Effet |
+|---|---|
+| `--oui` | Confirme l'opération sans question (obligatoire hors terminal) |
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat } ; resultat : le jeton révoqué.
+
+```bash
+gestion-mep jetons revoquer gmep_3fK9aQ2x --oui
 ```
 
 ### Journal d'administration
