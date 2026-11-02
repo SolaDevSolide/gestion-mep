@@ -28,6 +28,36 @@ interface Moteur {
 }
 
 /**
+ * Calcul interrompu parce que le moteur a été arrêté pendant qu'il attendait ou tournait : un autre rangement (souvent
+ * celui d'un état déjà dépassé) a échoué et fait remplacer le moteur. Ce graphe-ci n'y est pour rien : il est recalculé.
+ */
+class MoteurArrete extends Error {
+  constructor() {
+    super('moteur arrêté');
+    this.name = 'MoteurArrete';
+  }
+}
+
+/** Calculs en cours d'un moteur : tous rejetés quand il s'arrête (`echouer`). */
+function suivreCalculs(ranger: (g: ElkNode) => Promise<ElkNode>) {
+  const enCours = new Set<(e: Error) => void>();
+  const echouer = (e: Error) => {
+    for (const rejeter of enCours) rejeter(e);
+    enCours.clear();
+  };
+  return {
+    echouer,
+    ranger: (g: ElkNode) =>
+      new Promise<ElkNode>((resoudre, rejeter) => {
+        enCours.add(rejeter);
+        ranger(g)
+          .then(resoudre, rejeter)
+          .finally(() => enCours.delete(rejeter));
+      }),
+  };
+}
+
+/**
  * Moteur ELK dans un fil de calcul à part (Web Worker) : un gros plan ne fige plus l'interface. Dans les tests (jsdom, sans
  * Web Worker), ELK tourne dans la page ; cette branche n'existe pas dans l'interface construite.
  */
@@ -35,36 +65,30 @@ async function creerMoteur(): Promise<Moteur> {
   if (import.meta.env.MODE === 'test') {
     const { default: ELK } = await import('elkjs/lib/elk.bundled.js');
     const elk = new ELK();
-    return { ranger: (g) => elk.layout(g), arreter: () => undefined };
+    const calculs = suivreCalculs((g) =>
+      elk.layout(g).catch((e: unknown) => Promise.reject(new RangementIndisponible('calcul', e))),
+    );
+    return { ranger: calculs.ranger, arreter: () => calculs.echouer(new MoteurArrete()) };
   }
   const [{ default: ELK }, { default: TravailleurElk }] = await Promise.all([
     import('elkjs/lib/elk-api.js'),
     import('elkjs/lib/elk-worker.min.js?worker'),
   ]);
-  // Calculs en cours : rejetés si le fil de calcul s'arrête (fichier introuvable, erreur non rattrapée) ou est arrêté.
-  const enCours = new Set<(e: Error) => void>();
-  const echouer = (e: Error) => {
-    for (const rejeter of enCours) rejeter(e);
-    enCours.clear();
-  };
   const travailleur = new TravailleurElk({ name: 'rangement-elk' });
+  const elk = new ELK({ workerFactory: () => travailleur });
+  // Calculs en cours : rejetés si le fil de calcul s'arrête (fichier introuvable, erreur non rattrapée) ou est arrêté.
+  const calculs = suivreCalculs((g) =>
+    elk.layout(g).catch((e: unknown) => Promise.reject(new RangementIndisponible('calcul', e))),
+  );
   travailleur.addEventListener('error', (ev) => {
     ev.preventDefault();
-    echouer(new RangementIndisponible('chargement', ev.message));
+    calculs.echouer(new RangementIndisponible('chargement', ev.message));
   });
-  const elk = new ELK({ workerFactory: () => travailleur });
   return {
-    ranger: (g) =>
-      new Promise<ElkNode>((resoudre, rejeter) => {
-        enCours.add(rejeter);
-        elk
-          .layout(g)
-          .then(resoudre, (e: unknown) => rejeter(new RangementIndisponible('calcul', e)))
-          .finally(() => enCours.delete(rejeter));
-      }),
+    ranger: calculs.ranger,
     arreter: () => {
       elk.terminateWorker();
-      echouer(new RangementIndisponible('chargement', 'moteur arrêté'));
+      calculs.echouer(new MoteurArrete());
     },
   };
 }
@@ -105,9 +129,23 @@ export function oublierMoteur() {
 
 /**
  * Calcule le rangement ELK du graphe. Échec (moteur introuvable, erreur, délai dépassé) : `RangementIndisponible`, et le
- * moteur est oublié pour que l'essai suivant reparte de zéro.
+ * moteur est oublié pour que l'essai suivant reparte de zéro. Un calcul interrompu par l'échec d'un autre (moteur arrêté
+ * entre-temps) est refait une fois sur un moteur neuf : sans cela, un graphe valide restait affiché comme indisponible.
  */
 export async function calculerRangement(graphe: ElkNode, delai = DELAI_RANGEMENT_MS): Promise<ElkNode> {
+  try {
+    return await essayer(graphe, delai);
+  } catch (e) {
+    if (!(e instanceof MoteurArrete)) throw e;
+  }
+  try {
+    return await essayer(graphe, delai);
+  } catch (e) {
+    throw e instanceof MoteurArrete ? new RangementIndisponible('chargement', e) : e;
+  }
+}
+
+async function essayer(graphe: ElkNode, delai: number): Promise<ElkNode> {
   let minuteur: number | undefined;
   try {
     const m = await chargerMoteur();
@@ -116,6 +154,8 @@ export async function calculerRangement(graphe: ElkNode, delai = DELAI_RANGEMENT
     });
     return await Promise.race([m.ranger(graphe), depasse]);
   } catch (e) {
+    // Interrompu par l'arrêt du moteur : un autre calcul l'a déjà remplacé, rien à oublier de plus.
+    if (e instanceof MoteurArrete) throw e;
     oublierMoteur();
     throw e instanceof RangementIndisponible ? e : new RangementIndisponible('calcul', e);
   } finally {

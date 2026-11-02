@@ -51,7 +51,7 @@ Une liste n'a pas pu être lue ; le message en donne la cause. « Le serveur ne 
 La session a pris fin (déconnexion depuis un autre onglet, redémarrage du serveur sans conservation des clés, longue inactivité). La page reste affichée derrière, avec votre saisie : saisir le mot de passe et cliquer « Se reconnecter ». Ce qui était en cours d'envoi repart alors une fois, et le message « Reconnecté. Votre saisie est intacte. » le confirme. Avec la connexion Microsoft, le navigateur passe par la page de Microsoft puis revient sur la même page, saisie reprise. « Changer de compte » abandonne la saisie, après confirmation.
 
 **« Rangement automatique indisponible » s'affiche en haut du plan.**
-Le rangement des cartes a échoué ou a pris plus de 15 secondes. Les cartes restent à leurs places et le plan se modifie normalement. « Réessayer » relance le rangement ; si le message revient, recharger la page.
+Le rangement des cartes a échoué ou a pris plus de 15 secondes. Les cartes restent à leurs places et le plan se modifie normalement. Le rangement reprend de lui-même au changement suivant du plan (étape ajoutée ou reçue, section repliée ou dépliée) ; « Réessayer » le relance tout de suite. Si le message revient, recharger la page. Avant la version 1.10.0, ajouter une étape corrective dans une MEP à sections laissait ce message affiché : mettre à jour l'application.
 
 **Sur mon portable, le plan d'étapes est très petit.**
 Sur une fenêtre de moins de 800 px de haut, le plan passe en vue compacte : la page défile jusqu'au graphe, qui prend toute la hauteur, et une étape s'ouvre en tiroir par-dessus le graphe. Le plein écran du plan (bouton en haut à droite du graphe) donne encore plus de place. Voir [Sur un petit écran](Préparer-une-MEP.md#sur-un-petit-écran).

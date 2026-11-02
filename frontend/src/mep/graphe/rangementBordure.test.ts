@@ -270,6 +270,54 @@ describe('rangerBordure', () => {
     }
   });
 
+  it('range une étape corrective dans une MEP à sections, section repliée ou dépliée (#130)', async () => {
+    // Comme « Paiement mobile » : la dernière étape du plan (I2) est dans la section Z ; la corrective C l'attend
+    // directement, une seconde corrective D attend C.
+    const etapes = [
+      etape('P', 0),
+      etape('I1', 1, ['P'], { sectionId: 'Z' }),
+      etape('I2', 2, ['I1'], { sectionId: 'Z' }),
+      etape('C', 3, ['I2']),
+      etape('D', 4, ['C']),
+    ];
+    const sections = [
+      section('Z', [
+        { sens: 'Entree', titre: 'Début', ordre: 0, etapes: ['I1'], sources: ['P'] },
+        { sens: 'Sortie', titre: 'Fin', ordre: 0, etapes: ['I2'], sources: [] },
+      ]),
+    ];
+    const etats = [new Set<string>(), new Set(['Z'])];
+    const modeles = etats.map((deplies) =>
+      construireModele({ etapes: etapes as never, sections: sections as never, deplies }),
+    );
+    const rangements = await Promise.all(modeles.map((m) => rangerBordure(m, sans)));
+    rangements.forEach((r, i) => {
+      for (const id of ['P', 'C', 'D', etats[i].size ? 'I2' : 's:Z']) expect(r.places.has(id)).toBe(true);
+      // Chaque lien est tracé, celui de la corrective compris.
+      const nonTraces = modeles[i].liens.filter((l) => (r.routes.get(l.id)?.length ?? 0) < 2).map((l) => l.id);
+      expect(nonTraces).toEqual([]);
+    });
+  });
+
+  it('un lien dont un bout n’existe pas pour ELK n’empêche pas de ranger le reste (#130)', async () => {
+    // Bout inconnu (ici une poignée de section qui n'est ni un cercle ni un bord) : ELK refuserait tout le graphe
+    // (« Referenced shape does not exist ») et le rangement resterait indisponible. Le lien est laissé de côté.
+    const etapes = [etape('P', 0), etape('I1', 1, [], { sectionId: 'Z' }), etape('C', 2, ['P'])];
+    const sections = [section('Z', [{ sens: 'Sortie', titre: 'Fin', ordre: 0, etapes: ['I1'], sources: [] }])];
+    const m = construireModele({ etapes: etapes as never, sections: sections as never, deplies: new Set() });
+    const casse: ModeleGraphe = {
+      ...m,
+      liens: [
+        ...m.liens,
+        { id: 'casse', source: 's:Z', sourcePoignee: 'cercle-disparu', cible: 'C', ciblePoignee: 'haut' },
+      ],
+    };
+    const r = await rangerBordure(casse, sans);
+    expect(r.places.has('C')).toBe(true);
+    expect(r.routes.has('casse')).toBe(false);
+    expect(r.routes.get('P:bas>C:haut')?.length).toBeGreaterThanOrEqual(2);
+  });
+
   it('respecte l’ordre du modèle dans une rangée (rang imposé), dedans comme dehors', async () => {
     const etapes = [
       etape('R', 0),
