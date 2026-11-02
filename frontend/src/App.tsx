@@ -23,6 +23,7 @@ const MepPage = lazy(() => import('./pages/MepPage'));
 const SuiviPage = lazy(() => import('./pages/SuiviPage'));
 const RapportPage = lazy(() => import('./pages/RapportPage'));
 const GoNoGoPage = lazy(() => import('./parametres/GoNoGoPage'));
+const PeriodesGelPage = lazy(() => import('./parametres/PeriodesGelPage'));
 const NouvelleResolutionPage = lazy(() => import('./parametres/NouvelleResolutionPage'));
 const ResolutionsPage = lazy(() => import('./parametres/ResolutionsPage'));
 const BibliothequeEtapesPage = lazy(() => import('./parametres/BibliothequeEtapesPage'));
@@ -130,6 +131,7 @@ export default function App() {
           <Route path="/parametres/etapes" element={page('/parametres/etapes', <BibliothequeEtapesPage />)} />
           <Route path="/parametres/recettes" element={page('/parametres/recettes', <BibliothequeRecettesPage />)} />
           <Route path="/parametres/go-no-go" element={page('/parametres/go-no-go', <GoNoGoPage />)} />
+          <Route path="/parametres/periodes-gel" element={page('/parametres/periodes-gel', <PeriodesGelPage />)} />
           <Route path="/parametres/textes" element={page('/parametres/textes', <ModelesTextePage />)} />
           <Route path="/parametres/textes/:id" element={page('/parametres/textes/:id', <ModeleTexteEditeurPage />)} />
         </Route>
