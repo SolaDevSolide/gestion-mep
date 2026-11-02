@@ -440,7 +440,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.HasOne<Utilisateur>().WithMany().HasForeignKey(x => x.UtilisateurId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Périodes de gel (#129) : systèmes du catalogue et environnements concernés (vides : tous).
+        // Périodes de gel (#129) : systèmes du catalogue et environnements concernés (vides : tous) ; approbateurs des dérogations
+        // (comptes et équipes ; vides : les administrateurs).
         b.Entity<PeriodeGel>(e =>
         {
             e.Property(x => x.Id).ValueGeneratedNever();
@@ -449,6 +450,8 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.FuseauHoraire).HasMaxLength(100);
             e.Property(x => x.SystemeCatalogueIds).HasColumnType("uuid[]");
             e.Property(x => x.Environnements).AsJson();
+            e.Property(x => x.ApprobateurIds).HasColumnType("uuid[]");
+            e.Property(x => x.EquipeApprobatriceIds).HasColumnType("uuid[]");
             e.Property(x => x.Version).IsConcurrencyToken();
             e.HasIndex(x => x.Debut);
         });

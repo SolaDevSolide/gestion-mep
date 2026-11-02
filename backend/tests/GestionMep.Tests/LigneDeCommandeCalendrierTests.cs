@@ -18,7 +18,8 @@ public class LigneDeCommandeCalendrierTests : IDisposable
     public async Task Une_periode_de_gel_se_cree_se_liste_et_se_supprime_avec_confirmation()
     {
         var creee = await Cli("periodes-gel", "creer", "Clôture comptable", "--debut", "2026-11-28 18:00", "--fin", "2026-12-02 08:00",
-            "--systeme", "bdd", "--environnement", "Production", "--repetition", "fin-de-mois", "--motif", "Arrêté des comptes", "--json");
+            "--systeme", "bdd", "--environnement", "Production", "--repetition", "fin-de-mois", "--motif", "Arrêté des comptes",
+            "--approbateur", "claire", "--json");
         Assert.Equal(0, creee.Code);
         var periode = creee.Json.GetProperty("resultat");
         // 18h à Paris en novembre : 17h UTC.
@@ -26,12 +27,15 @@ public class LigneDeCommandeCalendrierTests : IDisposable
         Assert.Equal("FinDeMois", periode.GetProperty("recurrence").GetString());
         Assert.Equal(["BDD"], periode.GetProperty("systemes").EnumerateArray().Select(s => s.GetString()));
         var id = periode.GetProperty("id").GetString()!;
+        Assert.Single(periode.GetProperty("approbateurIds").EnumerateArray());
+        Assert.Equal("Claire", periode.GetProperty("decideurs").GetString());
 
         var liste = await Cli("periodes-gel", "lister");
         Assert.Equal(0, liste.Code);
         Assert.Contains("Clôture comptable", liste.Sortie);
         Assert.Contains("2026-11-28 18:00", liste.Sortie);
         Assert.Contains("fin-de-mois", liste.Sortie);
+        Assert.Contains("dérogations : Claire", liste.Sortie);
         Assert.Single((await Cli("periodes-gel", "lister", "--json")).Json.EnumerateArray());
 
         // Saisie invalide : 1 ; option inconnue : 2 ; sans confirmation : 4 ; introuvable : 5.
@@ -39,6 +43,7 @@ public class LigneDeCommandeCalendrierTests : IDisposable
         Assert.Equal(1, (await Cli("periodes-gel", "creer", "À l'envers","--debut", "2026-12-02", "--fin", "2026-12-01")).Code);
         Assert.Equal(1, (await Cli("periodes-gel", "creer", "Répétition", "--debut", "2026-12-01", "--fin", "2026-12-02", "--repetition", "quotidienne")).Code);
         Assert.Equal(2, (await Cli("periodes-gel", "creer", "Sans fin", "--debut", "2026-12-01", "--durée", "2")).Code);
+        Assert.Equal(5, (await Cli("periodes-gel", "creer", "Approbateur inconnu", "--debut", "2026-12-01", "--fin", "2026-12-02", "--approbateur", "personne")).Code);
         Assert.Equal(5, (await Cli("periodes-gel", "creer", "Système inconnu", "--debut", "2026-12-01", "--fin", "2026-12-02", "--systeme", "ZZZ")).Code);
         Assert.Equal(4, (await Cli("periodes-gel", "supprimer", id[..8])).Code);
         Assert.Equal(5, (await Cli("periodes-gel", "supprimer", "ffffffff", "--oui")).Code);

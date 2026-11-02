@@ -75,10 +75,22 @@ public sealed class ServiceCalendrier(MepDbContext db, TimeProvider temps)
     public static OccurrenceGelDto Dto(OccurrenceGel o, StatutDerogation? derogation = null) =>
         new(o.Periode.Id, o.Periode.Nom, o.Periode.Motif, o.Debut, o.Fin, o.Periode.FuseauHoraire, o.Periode.SystemeCatalogueIds.Count == 0, derogation);
 
-    public static PeriodeGelDto Dto(PeriodeGel p, IReadOnlyDictionary<Guid, string> nomsSystemes) =>
+    public static PeriodeGelDto Dto(PeriodeGel p, Noms noms) =>
         new(p.Id, p.Nom, p.Debut, p.Fin, p.Motif, [.. p.SystemeCatalogueIds],
-            [.. p.SystemeCatalogueIds.Select(id => nomsSystemes.GetValueOrDefault(id) ?? id.ToString())], [.. p.Environnements],
-            p.ProductionSeulement, p.Recurrence, p.FinRecurrence, p.FuseauHoraire, p.Version, p.CreeeLe, p.ModifieeLe);
+            [.. p.SystemeCatalogueIds.Select(id => noms.Systemes.GetValueOrDefault(id) ?? id.ToString())], [.. p.Environnements],
+            p.ProductionSeulement, p.Recurrence, p.FinRecurrence, p.FuseauHoraire, [.. p.ApprobateurIds], [.. p.EquipeApprobatriceIds],
+            Decideurs(p, noms), p.Version, p.CreeeLe, p.ModifieeLe);
+
+    /// <summary>Noms affichés des systèmes du catalogue, des comptes (leur personne) et des équipes.</summary>
+    public sealed record Noms(IReadOnlyDictionary<Guid, string> Systemes, IReadOnlyDictionary<Guid, string> Comptes, IReadOnlyDictionary<Guid, string> Equipes);
+
+    /// <summary>Qui décide des dérogations à la période, en clair : « Claire Durand, équipe Comptabilité », « les administrateurs ».</summary>
+    public static string Decideurs(PeriodeGel? p, Noms noms)
+    {
+        if (p is null || (p.ApprobateurIds.Count == 0 && p.EquipeApprobatriceIds.Count == 0)) return "les administrateurs";
+        return string.Join(", ", p.ApprobateurIds.Select(id => noms.Comptes.GetValueOrDefault(id) ?? "compte supprimé").Distinct()
+            .Concat(p.EquipeApprobatriceIds.Select(id => $"équipe {noms.Equipes.GetValueOrDefault(id) ?? "supprimée"}")));
+    }
 
     private static Systeme VersSysteme(SystemeResumeDto s) => new()
     {
@@ -86,8 +98,10 @@ public sealed class ServiceCalendrier(MepDbContext db, TimeProvider temps)
         Environnements = [.. s.Environnements.Select(e => new EnvironnementSysteme { Nom = e.Nom, Production = e.Production })],
     };
 
-    private async Task<Dictionary<Guid, string>> NomsSystemes() =>
-        await db.SystemesCatalogue.AsNoTracking().ToDictionaryAsync(s => s.Id, s => s.Nom);
+    private async Task<Noms> LireNoms() => new(
+        await db.SystemesCatalogue.AsNoTracking().ToDictionaryAsync(s => s.Id, s => s.Nom),
+        (await Personnes.Charger(db, avecEquipes: false)).NomsAffiches(),
+        await db.Equipes.AsNoTracking().ToDictionaryAsync(e => e.Id, e => e.Nom));
 
     public async Task<List<PeriodeGel>> Periodes() => await db.PeriodesGel.AsNoTracking().OrderBy(p => p.Debut).ThenBy(p => p.Nom).ToListAsync();
 
@@ -193,17 +207,24 @@ public sealed class ServiceCalendrier(MepDbContext db, TimeProvider temps)
                 [.. m.Systemes.Select(Regles.CleSysteme).Distinct()]))
             .ToList();
         var conflits = await Conflits(cibles);
+        // Décideurs des dérogations : approbateurs de chaque période (comptes, équipes), les administrateurs sinon.
+        var noms = new Noms(new Dictionary<Guid, string>(), annuaire.NomsAffiches(),
+            await db.Equipes.AsNoTracking().ToDictionaryAsync(e => e.Id, e => e.Nom));
+        var enAttente = utilisateurId is not null && meps.Any(m => m.DerogationsGel.Any(d => d.Statut == StatutDerogation.Demandee));
+        var annuaireEquipes = enAttente ? await Personnes.Charger(db) : annuaire;
+        var estAdmin = enAttente && await db.Utilisateurs.AsNoTracking().AnyAsync(u => u.Id == utilisateurId && u.EstAdmin);
+        var parPeriode = periodes.ToDictionary(p => p.Id);
+        OccurrenceGelDto DtoMep(OccurrenceGel o, StatutDerogation? statut) => Dto(o, statut) with { Decideurs = Decideurs(o.Periode, noms) };
         foreach (var m in meps)
         {
             var f = fenetres[m.Id];
             StatutDerogation? Derogation(OccurrenceGel o) => Regles.DerogationPour(m, o.Periode.Id, o.Debut)?.Statut;
-            var gels = Regles.GelsDeLaMep(m, periodes, maintenant).Select(o => Dto(o, Derogation(o))).ToList();
+            var gels = Regles.GelsDeLaMep(m, periodes, maintenant).Select(o => DtoMep(o, Derogation(o))).ToList();
             var auGo = m.Phase == Phase.Preparation && !m.EstModele
-                ? Regles.GelsAuGo(m, periodes, maintenant).Where(o => !Regles.DerogationAccordee(m, o)).Select(o => Dto(o, Derogation(o))).ToList()
+                ? Regles.GelsAuGo(m, periodes, maintenant).Where(o => !Regles.DerogationAccordee(m, o)).Select(o => DtoMep(o, Derogation(o))).ToList()
                 : [];
             bool PeutDecider(DerogationGel d) => utilisateurId is { } u && d.Statut == StatutDerogation.Demandee && m.Phase == Phase.Preparation
-                && m.Approbations.Any(a => a.UtilisateurId == u) && Regles.EmpechementApprobation(m, u, annuaire) is null
-                && annuaire.Personne(d.DemandeeParId) != annuaire.Personne(u);
+                && Regles.PeutDeciderDerogation(m, u, estAdmin, parPeriode.GetValueOrDefault(d.PeriodeGelId), d, annuaireEquipes) is null;
             var derogations = m.DerogationsGel.Select(d => new DerogationGelDto(d.Id, d.PeriodeGelId, d.NomPeriode, d.Occurrence, d.OccurrenceFin,
                 d.Motif, d.Statut, annuaire.NomPersonne(d.DemandeeParId), d.DemandeeLe, d.DecideeParId is { } p ? annuaire.NomPersonne(p) : null,
                 d.DecideeLe, d.Commentaire, PeutDecider(d))).ToList();
@@ -353,7 +374,7 @@ public sealed class ServiceCalendrier(MepDbContext db, TimeProvider temps)
 
     public async Task<List<PeriodeGelDto>> ListerPeriodes()
     {
-        var noms = await NomsSystemes();
+        var noms = await LireNoms();
         return [.. (await Periodes()).Select(p => Dto(p, noms))];
     }
 
@@ -385,6 +406,8 @@ public sealed class ServiceCalendrier(MepDbContext db, TimeProvider temps)
         p.Fin = s.Fin.Value.ToUniversalTime();
         p.Motif = ServiceMep.Texte(s.Motif);
         p.SystemeCatalogueIds = [.. (s.SystemeCatalogueIds ?? []).Distinct()];
+        p.ApprobateurIds = [.. (s.ApprobateurIds ?? []).Distinct()];
+        p.EquipeApprobatriceIds = [.. (s.EquipeApprobatriceIds ?? []).Distinct()];
         p.Environnements = [.. (s.Environnements ?? []).Select(e => e.Trim()).Distinct(StringComparer.OrdinalIgnoreCase)];
         p.ProductionSeulement = s.ProductionSeulement ?? false;
         p.Recurrence = s.Recurrence ?? RecurrenceGel.Aucune;
@@ -396,6 +419,16 @@ public sealed class ServiceCalendrier(MepDbContext db, TimeProvider temps)
             var connus = await db.SystemesCatalogue.AsNoTracking().CountAsync(x => p.SystemeCatalogueIds.Contains(x.Id));
             if (connus != p.SystemeCatalogueIds.Count) erreurs.Add("Système du catalogue inconnu.");
         }
+        if (p.ApprobateurIds.Count > 0)
+        {
+            var actifs = await db.Utilisateurs.AsNoTracking().CountAsync(u => p.ApprobateurIds.Contains(u.Id) && u.Actif);
+            if (actifs != p.ApprobateurIds.Count) erreurs.Add("Approbateur inconnu ou compte désactivé.");
+        }
+        if (p.EquipeApprobatriceIds.Count > 0)
+        {
+            var connues = await db.Equipes.AsNoTracking().CountAsync(e => p.EquipeApprobatriceIds.Contains(e.Id));
+            if (connues != p.EquipeApprobatriceIds.Count) erreurs.Add("Équipe approbatrice inconnue.");
+        }
         // Nom unique, sans casse ni accents : la ligne de commande désigne une période par son nom.
         if (p.Nom.Length > 0)
         {
@@ -406,14 +439,14 @@ public sealed class ServiceCalendrier(MepDbContext db, TimeProvider temps)
         if (erreurs.Count > 0) throw ErreurHttp.Saisie(erreurs);
     }
 
-    private static string Decrire(PeriodeGel p, IReadOnlyDictionary<Guid, string> noms)
+    private static string Decrire(PeriodeGel p, Noms noms)
     {
         var o = Regles.DecrireOccurrence(new OccurrenceGel(p, p.Debut, p.Fin));
         if (p.Recurrence != RecurrenceGel.Aucune) o += $", répétée ({p.Recurrence}{(p.FinRecurrence is { } f ? $" jusqu'au {f:dd/MM/yyyy}" : "")})";
-        o += p.SystemeCatalogueIds.Count == 0 ? ", tous les systèmes" : ", systèmes " + string.Join(", ", p.SystemeCatalogueIds.Select(i => noms.GetValueOrDefault(i) ?? i.ToString()));
+        o += p.SystemeCatalogueIds.Count == 0 ? ", tous les systèmes" : ", systèmes " + string.Join(", ", p.SystemeCatalogueIds.Select(i => noms.Systemes.GetValueOrDefault(i) ?? i.ToString()));
         if (p.Environnements.Count > 0) o += ", environnements " + string.Join(", ", p.Environnements);
         if (p.ProductionSeulement) o += ", production seulement";
-        return o;
+        return o + ", dérogations décidées par " + Decideurs(p, noms);
     }
 
     /// <summary>Crée une période de gel (journal d'administration « gel.cree »). <paramref name="acteur"/> null : ligne de commande.</summary>
@@ -422,7 +455,7 @@ public sealed class ServiceCalendrier(MepDbContext db, TimeProvider temps)
         var p = new PeriodeGel { CreeeLe = Maintenant, ModifieeLe = Maintenant };
         await Appliquer(p, s);
         db.PeriodesGel.Add(p);
-        var noms = await NomsSystemes();
+        var noms = await LireNoms();
         JournalAdmin.Ecrire(db, acteur, "gel.cree", $"Période de gel créée : {Decrire(p, noms)}" + (p.Motif.Length > 0 ? $". Motif : {p.Motif}" : ""));
         await db.SaveChangesAsync();
         return Dto(p, noms);
@@ -435,7 +468,7 @@ public sealed class ServiceCalendrier(MepDbContext db, TimeProvider temps)
         if (s.Version is null) throw ErreurHttp.Saisie("La version de la période de gel est obligatoire.");
         if (s.Version != p.Version)
             throw ErreurHttp.Conflit("La période de gel a été modifiée par quelqu'un d'autre depuis votre dernière lecture. Rechargez-la puis recommencez.");
-        var noms = await NomsSystemes();
+        var noms = await LireNoms();
         var avant = Decrire(p, noms);
         await Appliquer(p, s);
         var apres = Decrire(p, noms);
@@ -451,7 +484,7 @@ public sealed class ServiceCalendrier(MepDbContext db, TimeProvider temps)
     {
         var p = await ChargerPeriode(id);
         db.PeriodesGel.Remove(p);
-        JournalAdmin.Ecrire(db, acteur, "gel.supprime", $"Période de gel supprimée : {Decrire(p, await NomsSystemes())}");
+        JournalAdmin.Ecrire(db, acteur, "gel.supprime", $"Période de gel supprimée : {Decrire(p, await LireNoms())}");
         await db.SaveChangesAsync();
     }
 

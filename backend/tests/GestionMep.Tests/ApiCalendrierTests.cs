@@ -38,6 +38,10 @@ public class ApiCalendrierTests : IDisposable
     private static async Task<Guid> Systeme(HttpClient c, string nom) =>
         (await Ok(await c.GetAsync("/api/catalogue/systemes"))).EnumerateArray().Single(s => s.GetProperty("nom").GetString() == nom).GetProperty("id").GetGuid();
 
+    private static async Task<Guid> IdCompte(HttpClient admin, string login) =>
+        (await Ok(await admin.GetAsync("/api/admin/utilisateurs"))).EnumerateArray()
+            .Single(u => u.GetProperty("login").GetString() == login).GetProperty("id").GetGuid();
+
     private static async Task<JsonElement> CreerGel(HttpClient admin, object saisie) =>
         await Ok(await admin.PostAsJsonAsync("/api/admin/periodes-gel", saisie));
 
@@ -105,8 +109,13 @@ public class ApiCalendrierTests : IDisposable
         var claire = await _api.ClientConnecte("claire");
         var id = await AidesApi.IdDemo(alice);
         var maintenant = DateTimeOffset.UtcNow;
-        var gel = await CreerGel(alice, new { nom = "Fêtes de fin d'année", debut = maintenant.AddHours(-1), fin = maintenant.AddHours(6), motif = "Activité commerciale" });
+        var gel = await CreerGel(alice, new
+        {
+            nom = "Fêtes de fin d'année", debut = maintenant.AddHours(-1), fin = maintenant.AddHours(6), motif = "Activité commerciale",
+            approbateurIds = new[] { await IdCompte(alice, "claire") },
+        });
         var gelId = gel.GetProperty("id").GetGuid();
+        Assert.Equal("Claire", gel.GetProperty("decideurs").GetString());
 
         await AidesApi.Approuver(_api, id);
         var criteres = await AidesApi.CriteresActifs(alice);
@@ -120,6 +129,7 @@ public class ApiCalendrierTests : IDisposable
         // Signalé sur la MEP : le Go toucherait ce gel sans dérogation.
         var mep = await Ok(await alice.GetAsync($"/api/meps/{id}"));
         Assert.Equal(gelId, mep.GetProperty("calendrier").GetProperty("gelsAuGo")[0].GetProperty("periodeGelId").GetGuid());
+        Assert.Equal("Claire", mep.GetProperty("calendrier").GetProperty("gelsAuGo")[0].GetProperty("decideurs").GetString());
         Assert.Equal("Preparation", mep.GetProperty("phase").GetString());
 
         // Demande : motif obligatoire, pas pour Claire (approbatrice) ; décision : jamais par le pilote.
@@ -145,6 +155,22 @@ public class ApiCalendrierTests : IDisposable
         Assert.Empty(accordee.GetProperty("calendrier").GetProperty("gelsAuGo").EnumerateArray());
         Assert.Empty((await Ok(await claire.GetAsync("/api/suivi"))).GetProperty("derogations").EnumerateArray());
 
+        // La date de la MEP change après l'accord : il tombe, et se redemande.
+        using (var scope = _api.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MepDbContext>();
+            var m = await db.Meps.SingleAsync(x => x.Id == id);
+            m.Communication.DateAnnoncee = (m.Communication.DateAnnoncee ?? JourDans(0)).AddDays(1);
+            m.Version++;
+            await db.SaveChangesAsync();
+        }
+        var tombee = await Ok(await alice.GetAsync($"/api/meps/{id}"));
+        Assert.Equal("Caduque", tombee.GetProperty("calendrier").GetProperty("derogations")[0].GetProperty("statut").GetString());
+        Assert.NotEmpty(tombee.GetProperty("calendrier").GetProperty("gelsAuGo").EnumerateArray());
+        var redemandee = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/derogations-gel", new { periodeGelId = gelId, motif = "Correctif de sécurité, nouvelle date" }));
+        var nouvelleId = redemandee.GetProperty("calendrier").GetProperty("derogations")[1].GetProperty("id").GetGuid();
+        await Ok(await claire.PostAsJsonAsync($"/api/meps/{id}/derogations-gel/{nouvelleId}/decision", new { accorder = true }));
+
         var go = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Execution", criteresCoches = criteres }));
         Assert.Equal("Execution", go.GetProperty("phase").GetString());
         var journal = await TypesJournal(alice, id);
@@ -153,6 +179,30 @@ public class ApiCalendrierTests : IDisposable
         Assert.Contains("gel.go", journal);
         Assert.Equal(HttpStatusCode.UnprocessableEntity,
             (await alice.PostAsJsonAsync($"/api/meps/{id}/derogations-gel", new { periodeGelId = gelId, motif = "Après le Go" })).StatusCode);
+    }
+
+    [Fact]
+    public async Task Sans_approbateurs_la_periode_laisse_decider_les_administrateurs_jamais_le_pilote()
+    {
+        var alice = await _api.ClientConnecte("alice");
+        var claire = await _api.ClientConnecte("claire");
+        var id = await AidesApi.IdDemo(alice);
+        var maintenant = DateTimeOffset.UtcNow;
+        var gel = await CreerGel(alice, new { nom = "Inventaire", debut = maintenant.AddHours(-1), fin = maintenant.AddHours(6) });
+        Assert.Equal("les administrateurs", gel.GetProperty("decideurs").GetString());
+        Assert.Empty(gel.GetProperty("approbateurIds").EnumerateArray());
+        var demandee = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/derogations-gel", new { periodeGelId = gel.GetProperty("id").GetGuid(), motif = "Urgent" }));
+        var derogationId = demandee.GetProperty("calendrier").GetProperty("derogations")[0].GetProperty("id").GetGuid();
+        // Claire, approbatrice de la MEP mais pas administratrice : plus de décision ; Alice, administratrice mais pilote : non plus.
+        Assert.False((await Ok(await claire.GetAsync($"/api/meps/{id}"))).GetProperty("calendrier").GetProperty("derogations")[0].GetProperty("peutDecider").GetBoolean());
+        Assert.Empty((await Ok(await claire.GetAsync("/api/suivi"))).GetProperty("derogations").EnumerateArray());
+        Assert.Equal(HttpStatusCode.Forbidden, (await claire.PostAsJsonAsync($"/api/meps/{id}/derogations-gel/{derogationId}/decision", new { accorder = true })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await alice.PostAsJsonAsync($"/api/meps/{id}/derogations-gel/{derogationId}/decision", new { accorder = true })).StatusCode);
+
+        // Approbateur inconnu : 400.
+        var inconnu = await Probleme(await alice.PostAsJsonAsync("/api/admin/periodes-gel",
+            new { nom = "Autre", debut = maintenant, fin = maintenant.AddHours(1), approbateurIds = new[] { Guid.NewGuid() } }), HttpStatusCode.BadRequest);
+        Assert.Contains("Approbateur inconnu", inconnu.GetRawText());
     }
 
     [Fact]

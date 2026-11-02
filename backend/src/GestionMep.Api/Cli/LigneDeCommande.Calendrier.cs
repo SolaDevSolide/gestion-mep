@@ -38,10 +38,12 @@ public static partial class LigneDeCommande
                 ("--motif \"…\"", "Motif affiché aux pilotes"), ("--systeme <SYSTÈME>", "Système du catalogue concerné (répétable ; absent : tous)"),
                 ("--environnement <nom>", "Environnement concerné (répétable ; absent : tous)"), ("--production", "Seulement les MEP qui touchent la production"),
                 ("--repetition aucune|hebdomadaire|mensuelle|fin-de-mois|annuelle", "Répétition (fin-de-mois : même écart avec le dernier jour du mois)"),
-                ("--jusqu-au AAAA-MM-JJ", "Dernier jour où une répétition peut commencer"), ("--fuseau <IANA>", $"Fuseau des heures saisies (défaut {Fuseaux.ParDefaut})")],
+                ("--jusqu-au AAAA-MM-JJ", "Dernier jour où une répétition peut commencer"), ("--fuseau <IANA>", $"Fuseau des heures saisies (défaut {Fuseaux.ParDefaut})"),
+                ("--approbateur <login>", "Compte qui décide des dérogations (répétable ; absent, comme --equipe-approbatrice : les administrateurs)"),
+                ("--equipe-approbatrice <équipe>", "Équipe dont chaque membre décide des dérogations (répétable)")],
             Json = "resultat : la période, comme GET /api/periodes-gel",
             Exemples = ["gestion-mep periodes-gel creer \"Fêtes de fin d'année\" --debut 2026-12-20 --fin 2027-01-04 --production --motif \"Activité commerciale\"",
-                "gestion-mep periodes-gel creer \"Clôture comptable\" --debut \"2026-11-28 18:00\" --fin \"2026-12-02 08:00\" --systeme BDD --repetition fin-de-mois"],
+                "gestion-mep periodes-gel creer \"Clôture comptable\" --debut \"2026-11-28 18:00\" --fin \"2026-12-02 08:00\" --systeme BDD --repetition fin-de-mois --approbateur claire"],
         },
         new("periodes-gel supprimer", "<période> [--oui]", "Supprime une période de gel (les dérogations déjà inscrites dans les MEP restent)",
             a => GelsSupprimer(a.Arg(0, "<période>"), a.Depuis(1)))
@@ -83,12 +85,13 @@ public static partial class LigneDeCommande
             return Codes.Succes;
         }
         var largeur = Math.Max(3, periodes.Max(p => p.Nom.Length));
-        Ecrire($"{"ID",-8}  {"NOM".PadRight(largeur)}  {"DÉBUT",-16}  {"FIN",-16}  {"RÉPÉTITION",-12}  PORTÉE");
+        Ecrire($"{"ID",-8}  {"NOM".PadRight(largeur)}  {"DÉBUT",-16}  {"FIN",-16}  {"RÉPÉTITION",-12}  PORTÉE ; DÉROGATIONS");
         foreach (var p in periodes)
         {
             var portee = p.Systemes.Count == 0 ? "tous les systèmes" : string.Join(", ", p.Systemes);
             if (p.Environnements.Count > 0) portee += " ; " + string.Join(", ", p.Environnements);
             if (p.ProductionSeulement) portee += " ; production";
+            portee += " ; dérogations : " + p.Decideurs;
             var repetition = NomsRepetitions.First(x => x.Value == p.Recurrence).Key + (p.FinRecurrence is { } f ? $" → {f:yyyy-MM-dd}" : "");
             Ecrire($"{p.Id.ToString()[..8]}  {p.Nom.PadRight(largeur)}  {Local(p.Debut, p.FuseauHoraire),-16}  {Local(p.Fin, p.FuseauHoraire),-16}  {repetition,-12}  {portee}");
         }
@@ -110,7 +113,8 @@ public static partial class LigneDeCommande
 
     private static async Task<int> GelsCreer(string nom, string[] args)
     {
-        var o = Options.Lire(args, ["--debut", "--fin", "--motif", "--systeme", "--environnement", "--repetition", "--jusqu-au", "--fuseau"], "--production");
+        var o = Options.Lire(args, ["--debut", "--fin", "--motif", "--systeme", "--environnement", "--repetition", "--jusqu-au", "--fuseau", "--approbateur",
+            "--equipe-approbatrice"], "--production");
         var fuseau = ServiceCalendrier.LireFuseau(o.Valeur("--fuseau"));
         var debut = InstantLocal(o.Valeur("--debut"), "--debut", fuseau);
         var fin = InstantLocal(o.Valeur("--fin"), "--fin", fuseau);
@@ -125,10 +129,15 @@ public static partial class LigneDeCommande
         await using var db = Base(Configuration());
         var systemes = new List<Guid>();
         foreach (var s in Repetees(o, "--systeme")) systemes.Add((await TrouverSysteme(db, s)).Id);
+        var approbateurs = new List<Guid>();
+        foreach (var login in Repetees(o, "--approbateur")) approbateurs.Add((await Compte(db, login)).Id);
+        var equipes = new List<Guid>();
+        foreach (var e in Repetees(o, "--equipe-approbatrice")) equipes.Add((await EquipesEndpoints.Trouver(db, e)).Id);
         var p = await Calendrier(db).Creer(null, new PeriodeGelSaisie(nom, debut, fin, o.Valeur("--motif"), systemes, [.. Repetees(o, "--environnement")],
-            o.A("--production"), repetition, jusquau, fuseau));
+            o.A("--production"), repetition, jusquau, fuseau, ApprobateurIds: approbateurs, EquipeApprobatriceIds: equipes));
         Resultat(p);
-        Informer($"Période de gel « {p.Nom} » créée ({p.Id.ToString()[..8]}) : du {Local(p.Debut, p.FuseauHoraire)} au {Local(p.Fin, p.FuseauHoraire)} ({p.FuseauHoraire}).");
+        Informer($"Période de gel « {p.Nom} » créée ({p.Id.ToString()[..8]}) : du {Local(p.Debut, p.FuseauHoraire)} au {Local(p.Fin, p.FuseauHoraire)} ({p.FuseauHoraire}) ; "
+            + $"dérogations décidées par {p.Decideurs}.");
         return Codes.Succes;
     }
 

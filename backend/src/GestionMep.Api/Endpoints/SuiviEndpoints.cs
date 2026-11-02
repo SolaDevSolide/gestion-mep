@@ -60,16 +60,17 @@ public static class SuiviEndpoints
     }
 
     /// <summary>
-    /// Demandes de dérogation au gel (#129) que <paramref name="utilisateurId"/> peut accorder ou refuser : MEP en préparation dont
-    /// il est approbateur désigné, mêmes règles que la décision elle-même (<see cref="ServiceCalendrier.PourMeps"/>). Les plus
+    /// Demandes de dérogation au gel (#129) que <paramref name="utilisateurId"/> peut accorder ou refuser : MEP en préparation, à
+    /// une période dont il est approbateur (administrateur par défaut), mêmes règles que la décision elle-même (<see cref="ServiceCalendrier.PourMeps"/>). Les plus
     /// anciennes demandes d'abord.
     /// </summary>
     public static async Task<List<DerogationEnAttenteDto>> DerogationsADecider(MepDbContext db, ServiceMep svc, Guid utilisateurId)
     {
-        // Approbations et dérogations sont rangées en JSON : le tri se fait ici, sur les seules MEP en préparation.
+        // Les dérogations sont rangées en JSON : le tri se fait ici, sur les seules MEP en préparation ; qui peut décider (approbateurs
+        // de la période, administrateurs par défaut) est vu par le calendrier de chaque MEP.
         var candidates = (await db.Meps.AsNoTracking().Where(m => !m.EstModele && m.Phase == Phase.Preparation)
-                .Select(m => new { m.Id, m.Approbations, m.DerogationsGel }).ToListAsync())
-            .Where(m => m.Approbations.Any(a => a.UtilisateurId == utilisateurId) && m.DerogationsGel.Any(d => d.Statut == StatutDerogation.Demandee))
+                .Select(m => new { m.Id, m.DerogationsGel }).ToListAsync())
+            .Where(m => m.DerogationsGel.Any(d => d.Statut == StatutDerogation.Demandee))
             .Select(m => m.Id).ToList();
         if (candidates.Count == 0) return [];
         var meps = await svc.ChargerPlusieurs(candidates);

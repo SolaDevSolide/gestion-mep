@@ -87,11 +87,25 @@ public static partial class Regles
     public static void MettreAJourCalendrier(Mep m)
     {
         var f = FenetreDe(m);
+        TomberDerogations(m, f);
         var c = m.Calendrier ??= new FenetreCalendrier();
         if (c.Debut != f.Debut) c.Debut = f.Debut;
         if (c.Fin != f.Fin) c.Fin = f.Fin;
         if (c.JourneeEntiere != f.JourneeEntiere) c.JourneeEntiere = f.JourneeEntiere;
         if (c.Format != f.Format) c.Format = f.Format;
+    }
+
+    /// <summary>
+    /// Une dérogation demandée ou accordée vaut pour le créneau prévu au moment de la demande : si la date de la MEP change
+    /// pendant la préparation, elle tombe (<see cref="StatutDerogation.Caduque"/>) et se redemande.
+    /// </summary>
+    public static void TomberDerogations(Mep m, FenetreCalendrier f)
+    {
+        if (m.Phase != Phase.Preparation) return;
+        foreach (var d in m.DerogationsGel)
+            if (d.Statut is StatutDerogation.Demandee or StatutDerogation.Accordee && d.CreneauDebut is not null
+                && (d.CreneauDebut != f.Debut || d.CreneauFin != f.Fin))
+                d.Statut = StatutDerogation.Caduque;
     }
 
     /// <summary>
@@ -316,25 +330,35 @@ public static partial class Regles
             PeriodeGelId = o.Periode.Id, NomPeriode = o.Periode.Nom, Occurrence = o.Debut, OccurrenceFin = o.Fin, Motif = motif.Trim(),
             DemandeeParId = compteId, DemandeeLe = maintenant,
         };
+        var creneau = FenetreDe(m);
+        (d.CreneauDebut, d.CreneauFin) = (creneau.Debut, creneau.Fin);
         m.DerogationsGel.Add(d);
         return d;
     }
 
     /// <summary>
-    /// Décision sur une dérogation : par un approbateur désigné de la MEP (<see cref="Mep.Approbations"/>) que la séparation des
-    /// tâches n'écarte pas (<see cref="EmpechementApprobation"/>), jamais par la personne qui l'a demandée (comptes reliés
-    /// compris) ; en préparation, demande en attente ; un refus exige un commentaire.
+    /// Approbateur d'une période de gel : un compte de la liste de la période (comptes reliés compris) ou membre d'une de ses
+    /// équipes ; sans liste (ou période supprimée depuis la demande), un administrateur.
     /// </summary>
-    public static void DeciderDerogation(Mep m, Guid compteId, DerogationGel d, bool accorder, string commentaire, DateTimeOffset maintenant,
-        AnnuairePersonnes? annuaire = null)
+    public static bool EstApprobateurGel(PeriodeGel? p, Guid compteId, bool estAdmin, AnnuairePersonnes? annuaire = null)
     {
-        Guid Personne(Guid c) => annuaire?.Personne(c) ?? c;
-        if (!m.Approbations.Any(a => a.UtilisateurId == compteId))
-            throw new DroitInsuffisantException("Seul un approbateur désigné de la MEP peut accorder ou refuser une dérogation au gel.");
-        if (EmpechementApprobation(m, compteId, annuaire) is { } role)
-            throw new DroitInsuffisantException($"Vous ne pouvez pas décider de cette dérogation ({role}).");
-        if (Personne(d.DemandeeParId) == Personne(compteId))
-            throw new DroitInsuffisantException("Une dérogation ne s'accorde jamais par la personne qui l'a demandée.");
+        if (p is null || (p.ApprobateurIds.Count == 0 && p.EquipeApprobatriceIds.Count == 0)) return estAdmin;
+        var comptes = annuaire?.ComptesDeLaPersonne(compteId).Select(c => c.Id).ToHashSet() is { Count: > 0 } liste ? liste : [compteId];
+        if (comptes.Overlaps(p.ApprobateurIds)) return true;
+        var equipes = annuaire?.EquipesDeLaPersonne(compteId) ?? new HashSet<Guid>();
+        return p.EquipeApprobatriceIds.Any(equipes.Contains);
+    }
+
+    /// <summary>
+    /// Décision sur une dérogation : par un approbateur de la période (<see cref="EstApprobateurGel"/>) que la séparation des
+    /// tâches n'écarte pas (<see cref="EmpechementApprobation"/> : ni pilote, ni suppléant, ni responsable technique de la MEP),
+    /// jamais par la personne qui l'a demandée (comptes reliés compris) ; en préparation, demande en attente ; un refus exige un
+    /// commentaire. <paramref name="annuaire"/> : avec les équipes, pour les approbateurs par équipe.
+    /// </summary>
+    public static void DeciderDerogation(Mep m, Guid compteId, bool estAdmin, PeriodeGel? periode, DerogationGel d, bool accorder,
+        string commentaire, DateTimeOffset maintenant, AnnuairePersonnes? annuaire = null)
+    {
+        if (PeutDeciderDerogation(m, compteId, estAdmin, periode, d, annuaire) is { } refus) throw new DroitInsuffisantException(refus);
         if (m.Phase != Phase.Preparation) throw new RegleMetierException("Une dérogation au gel se décide en préparation, avant le Go.");
         if (d.Statut != StatutDerogation.Demandee) throw new RegleMetierException("Cette dérogation n'attend plus de décision.");
         if (!accorder && string.IsNullOrWhiteSpace(commentaire)) throw new RegleMetierException("Expliquer le refus dans le commentaire.");
@@ -342,6 +366,20 @@ public static partial class Regles
         d.DecideeParId = compteId;
         d.DecideeLe = maintenant;
         d.Commentaire = commentaire.Trim();
+    }
+
+    /// <summary>Raison pour laquelle ce compte ne peut pas décider de la dérogation (null : il le peut, à l'état et à la phase près).</summary>
+    public static string? PeutDeciderDerogation(Mep m, Guid compteId, bool estAdmin, PeriodeGel? periode, DerogationGel d,
+        AnnuairePersonnes? annuaire = null)
+    {
+        Guid Personne(Guid c) => annuaire?.Personne(c) ?? c;
+        if (!EstApprobateurGel(periode, compteId, estAdmin, annuaire))
+            return periode is null || (periode.ApprobateurIds.Count == 0 && periode.EquipeApprobatriceIds.Count == 0)
+                ? "Seul un administrateur peut accorder ou refuser une dérogation à cette période de gel."
+                : $"Seul un approbateur de la période de gel « {periode.Nom} » peut accorder ou refuser cette dérogation.";
+        if (Personne(d.DemandeeParId) == Personne(compteId)) return "Une dérogation ne s'accorde jamais par la personne qui l'a demandée.";
+        if (EmpechementApprobation(m, compteId, annuaire) is { } role) return $"Vous ne pouvez pas décider de cette dérogation ({role}).";
+        return null;
     }
 
     /// <summary>Retrait d'une dérogation demandée ou accordée, par le pilote ou un suppléant, en préparation.</summary>
