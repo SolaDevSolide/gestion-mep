@@ -71,6 +71,30 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<NonceLiaison> NoncesLiaison => Set<NonceLiaison>();
     public DbSet<DeploiementLiaison> DeploiementsLiaison => Set<DeploiementLiaison>();
     public DbSet<JetonApi> JetonsApi => Set<JetonApi>();
+    public DbSet<PeriodeGel> PeriodesGel => Set<PeriodeGel>();
+    public DbSet<AbonnementCalendrier> AbonnementsCalendrier => Set<AbonnementCalendrier>();
+
+    /// <summary>
+    /// Avant tout enregistrement : créneau du calendrier recalculé pour chaque MEP suivie (#129), quelle que soit l'écriture
+    /// (API, ligne de commande, démonstration), pour que le calendrier se lise par une requête indexée.
+    /// </summary>
+    private void PreparerEnregistrement()
+    {
+        foreach (var e in ChangeTracker.Entries<Mep>())
+            if (e.State is EntityState.Added or EntityState.Modified) Regles.MettreAJourCalendrier(e.Entity);
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        PreparerEnregistrement();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        PreparerEnregistrement();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -131,6 +155,11 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.PilotageSecours).AsJsonObjet();
             // Approbation et traçabilité (#94) : résolutions types figées à l'approbation ou au Go.
             e.Property(x => x.ResolutionsFigees).AsJson();
+            // Calendrier et gel (#129) : créneau recalculé à chaque enregistrement (colonnes Calendrier_Debut…, début indexé) et
+            // demandes de dérogation.
+            e.OwnsOne(x => x.Calendrier, c => c.HasIndex(x => x.Debut));
+            e.Navigation(x => x.Calendrier).IsRequired();
+            e.Property(x => x.DerogationsGel).AsJson();
             e.HasIndex(x => x.EstModele);
             e.HasMany(x => x.Participants).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Systemes).WithOne().HasForeignKey(x => x.MepId).OnDelete(DeleteBehavior.Cascade);
@@ -408,6 +437,29 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.CreePar).HasMaxLength(255);
             e.Property(x => x.RevoquePar).HasMaxLength(255);
             e.Property(x => x.DerniereAdresseIp).HasMaxLength(64);
+            e.HasOne<Utilisateur>().WithMany().HasForeignKey(x => x.UtilisateurId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Périodes de gel (#129) : systèmes du catalogue et environnements concernés (vides : tous).
+        b.Entity<PeriodeGel>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.Nom).HasMaxLength(200);
+            e.Property(x => x.Motif).HasMaxLength(2000);
+            e.Property(x => x.FuseauHoraire).HasMaxLength(100);
+            e.Property(x => x.SystemeCatalogueIds).HasColumnType("uuid[]");
+            e.Property(x => x.Environnements).AsJson();
+            e.Property(x => x.Version).IsConcurrencyToken();
+            e.HasIndex(x => x.Debut);
+        });
+
+        // Abonnement au calendrier : une adresse secrète par compte, dont seule l'empreinte est gardée ; supprimé avec le compte.
+        b.Entity<AbonnementCalendrier>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.Empreinte).HasMaxLength(64);
+            e.HasIndex(x => x.Empreinte).IsUnique();
+            e.HasIndex(x => x.UtilisateurId).IsUnique();
             e.HasOne<Utilisateur>().WithMany().HasForeignKey(x => x.UtilisateurId).OnDelete(DeleteBehavior.Cascade);
         });
 

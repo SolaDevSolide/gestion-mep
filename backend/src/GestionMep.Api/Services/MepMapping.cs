@@ -44,7 +44,7 @@ public static class MepMapping
     /// plan et la séparation des tâches (voir <see cref="ServiceMep.Contexte"/>).
     /// </summary>
     public static MepDto VersDto(Mep m, Guid? utilisateurId, IReadOnlyDictionary<Guid, string> nomsUtilisateurs, DateTimeOffset maintenant,
-        ContexteVerification contexte, IReadOnlyList<PieceJointe> pieces, bool estAdmin = false)
+        ContexteVerification contexte, IReadOnlyList<PieceJointe> pieces, bool estAdmin = false, CalendrierMepDto? calendrier = null)
     {
         // Guid.Empty : action de la ligne de commande (Acteur.LigneDeCommande), sans compte.
         string? Nom(Guid? id) => id == Guid.Empty ? JournalAdmin.AuteurLigneDeCommande : id is { } g && nomsUtilisateurs.TryGetValue(g, out var n) ? n : null;
@@ -139,6 +139,7 @@ public static class MepMapping
                 f.VerificationInstruction, f.VerificationAttendu)).ToList(),
             m.ResolutionsFigeesLe,
             new RevisionsMepDto(m.Revisions.Identite, m.Revisions.Echeance, m.Revisions.Sauvegarde, m.Revisions.PlanRepli, m.Revisions.Communication,
-                m.Revisions.ResponsablesTechniques, m.Revisions.Approbateurs));
+                m.Revisions.ResponsablesTechniques, m.Revisions.Approbateurs),
+            calendrier);
     }
 }

@@ -27,6 +27,7 @@ public static class Amorcage
             m => journal.LogInformation("{Message}", m), m => journal.LogError("{Message}", m));
         await sauvegardes.MigrerAvecSauvegarde(db, "Mise à jour au démarrage");
         await PlacerEtapesAnciennes(db, journal);
+        await RecalculerCalendrier(db, journal);
         await IsolerPiecesOrphelines(db, sp.GetRequiredService<StockagePiecesJointes>(), temps, journal);
         // Équipes créées avant les modèles de texte : elles reçoivent leur copie des modèles fournis.
         if (await Endpoints.CommunicationEndpoints.CompleterModelesFournis(db, temps.GetUtcNow()) is > 0 and var ajoutes)
@@ -205,6 +206,20 @@ public static class Amorcage
             Regles.CalculerLignes(await db.Etapes.Where(e => e.MepId == p.MepId && e.Plan == p.Plan).ToListAsync());
         await db.SaveChangesAsync();
         journal.LogInformation("Lignes du graphe calculées pour {Nombre} plan(s) existant(s).", plans.Count);
+    }
+
+    /// <summary>
+    /// Créneaux du calendrier (#129) calculés par une version plus ancienne de la règle, ou jamais calculés (MEP d'avant le
+    /// calendrier) : recalculés une fois (<see cref="Regles.FenetreDe"/>), sans toucher à la version des MEP. Sans effet ensuite.
+    /// </summary>
+    public static async Task<int> RecalculerCalendrier(MepDbContext db, ILogger? journal = null)
+    {
+        var meps = await db.Meps.Where(m => m.Calendrier.Format < Regles.FormatCalendrier).ToListAsync();
+        if (meps.Count == 0) return 0;
+        foreach (var m in meps) Regles.MettreAJourCalendrier(m);
+        await db.SaveChangesAsync();
+        journal?.LogInformation("Créneau du calendrier calculé pour {Nombre} MEP existante(s).", meps.Count);
+        return meps.Count;
     }
 
     /// <summary>

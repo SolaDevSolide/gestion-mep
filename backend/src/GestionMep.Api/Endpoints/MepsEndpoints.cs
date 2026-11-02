@@ -62,7 +62,7 @@ public static class MepsEndpoints
             .Select(e => new { e.MepId, e.EtapeId }).ToListAsync())
         .ToLookup(e => e.MepId, e => e.EtapeId!.Value);
 
-    private static async Task<List<MepResumeDto>> Resumes(MepDbContext db, IQueryable<Mep> source, AnnuairePersonnes annuaire)
+    internal static async Task<List<MepResumeDto>> Resumes(MepDbContext db, IQueryable<Mep> source, AnnuairePersonnes annuaire)
     {
         var echecs = await EtapesEnEchec(db, source);
         var lignes = await source.OrderByDescending(m => m.CreeLe)

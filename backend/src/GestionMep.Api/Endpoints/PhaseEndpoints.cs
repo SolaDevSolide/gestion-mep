@@ -110,9 +110,17 @@ public static class PhaseEndpoints
                     var report = mep.Report;
                     var figeesAvant = mep.ResolutionsFigeesLe;
                     // Séparation des tâches sur les comptes reliés, résolutions liées actives et complètes, figées si besoin.
-                    Regles.PasserEnExecution(mep, acteur.Id, corps.CriteresCoches ?? [], await svc.CriteresGoNoGo(), await svc.Contexte(mep), svc.Maintenant);
+                    // Période de gel (#129) : le Go la touche-t-il ? Refusé sans dérogation accordée (problème typé, 422).
+                    var gels = await svc.PeriodesGel();
+                    var gelsDuGo = Regles.GelsAuGo(mep, gels, svc.Maintenant);
+                    Regles.PasserEnExecution(mep, acteur.Id, corps.CriteresCoches ?? [], await svc.CriteresGoNoGo(), await svc.Contexte(mep), svc.Maintenant, gels);
                     var criteres = mep.GoNoGo.Count == 0 ? "" : " (" + string.Join(", ", mep.GoNoGo.Select(g => g.Libelle)) + ")";
                     List<ServiceMep.Evenement> evenements = [new("gonogo.go", $"Go{criteres}"), new("phase.execution", "Plan passé en exécution")];
+                    foreach (var o in gelsDuGo)
+                    {
+                        var d = mep.DerogationsGel.Last(x => x.Statut == StatutDerogation.Accordee && x.PeriodeGelId == o.Periode.Id && x.Occurrence == o.Debut);
+                        evenements.Add(new("gel.go", $"Go pendant la période de gel {Regles.DecrireOccurrence(o)}, par dérogation : {d.Motif}"));
+                    }
                     if (report is not null) evenements.Insert(0, new("mep.reprise", "Report levé par le Go"));
                     evenements.AddRange(ServiceMep.EvenementsFigees(mep, figeesAvant));
                     return await svc.Enregistrer(mep, acteur, evenements);

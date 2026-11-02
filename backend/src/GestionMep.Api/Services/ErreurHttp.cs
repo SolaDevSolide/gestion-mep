@@ -32,9 +32,12 @@ public class ErreurHttp(int statut, string message, IReadOnlyList<string>? erreu
 /// Corps de toute réponse d'erreur de l'API, au format « problem details » (RFC 9457, type <c>application/problem+json</c>) :
 /// <c>status</c> reprend le code HTTP, <c>title</c> sa nature (« Droits insuffisants »…), <c>detail</c> et <c>message</c> le
 /// message à afficher, en français ; <c>erreurs</c>, absent le plus souvent, liste chaque anomalie quand il y en a plusieurs.
+/// <c>type</c> vaut <c>about:blank</c>, sauf pour un refus qui a ses propres données : Go pendant une période de gel
+/// (<c>urn:gestion-mep:probleme:go-pendant-un-gel</c>, 422), dont <c>gels</c> donne les occurrences sans dérogation accordée.
 /// </summary>
 public record ErreurDto(string Type, string Title, int Status, string Detail, string Message,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? Erreurs = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? Erreurs = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<OccurrenceGelDto>? Gels = null);
 
 /// <summary>Écriture des réponses d'erreur, partagée par le traducteur d'exceptions et les contrôles placés avant les routes.</summary>
 public static class ReponsesErreur
@@ -93,6 +96,19 @@ public static class MiddlewareErreurs
             catch (OperationCanceledException) when (ctx.RequestAborted.IsCancellationRequested)
             {
                 // Client déconnecté (flux SSE notamment) : rien à répondre.
+            }
+            catch (GestionMep.Domain.GoBloqueParGelException ex)
+            {
+                // Go pendant un gel (#129) : problème typé, avec les occurrences de gel en cause.
+                if (ctx.Response.HasStarted) return;
+                ctx.Response.Clear();
+                ctx.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
+                var corps = ReponsesErreur.Corps(422, ex.Message) with
+                {
+                    Type = GestionMep.Domain.GoBloqueParGelException.Type,
+                    Gels = [.. ex.Gels.Select(o => ServiceCalendrier.Dto(o))],
+                };
+                await ctx.Response.WriteAsJsonAsync(corps, (System.Text.Json.JsonSerializerOptions?)null, ReponsesErreur.TypeContenu, ctx.RequestAborted);
             }
             catch (Exception ex)
             {

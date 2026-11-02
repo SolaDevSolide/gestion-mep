@@ -23,6 +23,36 @@ namespace GestionMep.Api.Donnees.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("GestionMep.Domain.AbonnementCalendrier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DernierAcces")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Empreinte")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("UtilisateurId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Empreinte")
+                        .IsUnique();
+
+                    b.HasIndex("UtilisateurId")
+                        .IsUnique();
+
+                    b.ToTable("AbonnementsCalendrier");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.AppelApi", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1025,6 +1055,10 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid?>("DemarrageAutoriseParId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("DerogationsGel")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTimeOffset?>("EcheanceRepli")
                         .HasColumnType("timestamp with time zone");
 
@@ -1448,6 +1482,66 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("Participants");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.PeriodeGel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreeeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("Debut")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Environnements")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("Fin")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("FinRecurrence")
+                        .HasColumnType("date");
+
+                    b.Property<string>("FuseauHoraire")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("ModifieeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Motif")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("ProductionSeulement")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Recurrence")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<List<Guid>>("SystemeCatalogueIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Debut");
+
+                    b.ToTable("PeriodesGel");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.PieceJointe", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1815,6 +1909,15 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("VersionsResolutionType");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.AbonnementCalendrier", b =>
+                {
+                    b.HasOne("GestionMep.Domain.Utilisateur", null)
+                        .WithMany()
+                        .HasForeignKey("UtilisateurId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("GestionMep.Domain.AppelApi", b =>
                 {
                     b.HasOne("GestionMep.Domain.ConnexionApi", null)
@@ -1962,6 +2065,33 @@ namespace GestionMep.Api.Donnees.Migrations
                                 .HasForeignKey("MepId");
                         });
 
+                    b.OwnsOne("GestionMep.Domain.FenetreCalendrier", "Calendrier", b1 =>
+                        {
+                            b1.Property<Guid>("MepId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<DateTimeOffset?>("Debut")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<DateTimeOffset?>("Fin")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<int>("Format")
+                                .HasColumnType("integer");
+
+                            b1.Property<bool>("JourneeEntiere")
+                                .HasColumnType("boolean");
+
+                            b1.HasKey("MepId");
+
+                            b1.HasIndex("Debut");
+
+                            b1.ToTable("Meps");
+
+                            b1.WithOwner()
+                                .HasForeignKey("MepId");
+                        });
+
                     b.OwnsOne("GestionMep.Domain.PlanRepli", "PlanRepli", b1 =>
                         {
                             b1.Property<Guid>("MepId")
@@ -2076,6 +2206,9 @@ namespace GestionMep.Api.Donnees.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("MepId");
                         });
+
+                    b.Navigation("Calendrier")
+                        .IsRequired();
 
                     b.Navigation("Communication")
                         .IsRequired();
