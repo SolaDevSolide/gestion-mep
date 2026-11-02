@@ -264,6 +264,8 @@ export type PeriodeGelSaisie = SaisieVerifiee<
     recurrence: RecurrenceGel;
     finRecurrence: string | null;
     version?: number;
+    approbateurIds: string[];
+    equipeApprobatriceIds: string[];
   }
 >;
 

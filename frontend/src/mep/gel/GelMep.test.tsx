@@ -16,6 +16,7 @@ const occurrence: OccurrenceGel = {
   fuseauHoraire: 'Europe/Paris',
   globale: true,
   derogation: null,
+  decideurs: 'Claire Dubois',
 };
 
 const derogation = (p: Partial<DerogationGel> = {}): DerogationGel => ({
@@ -115,7 +116,7 @@ describe('BandeauGelConflits', () => {
       <BandeauGelConflits allerIntervention={allerIntervention} />,
     );
     expect(screen.getByText('Cette MEP tombe pendant la période de gel « Clôture comptable ».')).toBeInTheDocument();
-    expect(screen.getByText(/Le Go sera bloqué sauf dérogation/)).toBeInTheDocument();
+    expect(screen.getByText(/Le Go sera bloqué sauf dérogation, accordée par Claire Dubois/)).toBeInTheDocument();
     expect(screen.getByText('Libre à partir du mardi 1er décembre')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Choisir une autre date' }));
     expect(allerIntervention).toHaveBeenCalled();
@@ -178,12 +179,23 @@ describe('BandeauGelConflits', () => {
   });
 });
 
+describe('dérogation tombée', () => {
+  it('dit que la date a changé et propose de la redemander', () => {
+    rendre(
+      { ...pilote(), calendrier: calendrier({ derogations: [derogation({ statut: 'Caduque' })] }) },
+      <BandeauGelConflits allerIntervention={vi.fn()} />,
+    );
+    expect(screen.getByText('Dérogation tombée : la date de la MEP a changé')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Demander une dérogation' })).toBeInTheDocument();
+  });
+});
+
 describe('BlocageGoGel', () => {
   it('explique le blocage et propose la demande dans le dialogue Go', async () => {
     const appel = vi.spyOn(api, 'demanderDerogation').mockResolvedValue(undefined as never);
     rendre({ calendrier: calendrier({ gelsAuGo: [occurrence] }) }, <BlocageGoGel />);
     expect(screen.getByText('Go bloqué : période de gel « Clôture comptable »')).toBeInTheDocument();
-    expect(screen.getByText(/pas encore d’approbateur/)).toBeInTheDocument();
+    expect(screen.getByText(/Peut accorder la dérogation : Claire Dubois/)).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Motif de la dérogation (obligatoire)'), 'Urgence');
     await userEvent.click(screen.getByRole('button', { name: 'Demander la dérogation' }));
     expect(appel).toHaveBeenCalledWith(expect.any(String), 'g1', occurrence.debut, 'Urgence');

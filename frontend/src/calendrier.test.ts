@@ -124,6 +124,9 @@ describe('calendrier : conflits et gels d’une MEP', () => {
     expect(texteGelMep(gel('', '', { derogation: 'Accordee' }), 'Preparation')).toBe(
       'Clôture comptable · dérogation accordée',
     );
+    expect(texteGelMep(gel('', '', { derogation: 'Caduque' }), 'Preparation')).toBe(
+      'Clôture comptable · dérogation tombée (date changée), Go bloqué',
+    );
     expect(texteGelMep(gel('', ''), 'Execution')).toBe('Clôture comptable');
   });
 

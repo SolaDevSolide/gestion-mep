@@ -14,6 +14,8 @@ vi.mock('../api', async (importOriginal) => ({
     periodesGel: vi.fn(),
     calendrier: vi.fn(),
     catalogueSystemes: vi.fn(async () => []),
+    utilisateurs: vi.fn(async () => []),
+    equipes: vi.fn(async () => []),
     creerPeriodeGel: vi.fn(async () => ({})),
     modifierPeriodeGel: vi.fn(async () => ({})),
     supprimerPeriodeGel: vi.fn(async () => undefined),
@@ -33,6 +35,9 @@ const periode = (p: Partial<PeriodeGel> = {}): PeriodeGel => ({
   recurrence: 'FinDeMois',
   finRecurrence: null,
   fuseauHoraire: 'Europe/Paris',
+  approbateurIds: [],
+  equipeApprobatriceIds: [],
+  decideurs: 'les administrateurs',
   version: 3,
   creeeLe: '2026-10-01T08:00:00Z',
   modifieeLe: '2026-10-01T08:00:00Z',
@@ -86,6 +91,8 @@ describe('périodes de gel : textes et saisie', () => {
       systemes: ['s1'],
       environnements: ['Préproduction'],
       productionSeulement: false,
+      approbateurs: ['c1'],
+      equipes: [],
     };
     expect(saisieDe(b, 'Europe/Paris', 4)).toEqual({
       nom: 'Fin d’année',
@@ -97,6 +104,8 @@ describe('périodes de gel : textes et saisie', () => {
       systemeCatalogueIds: [],
       environnements: ['Préproduction'],
       productionSeulement: false,
+      approbateurIds: ['c1'],
+      equipeApprobatriceIds: [],
       version: 4,
     });
   });
@@ -122,6 +131,29 @@ describe('PeriodesGelPage', () => {
     expect(within(tableau).getByText('Récurrente')).toBeInTheDocument();
     expect(within(tableau).getByText('Production')).toBeInTheDocument();
     expect(within(tableau).getByText('Aucune dans l’année')).toBeInTheDocument();
+    expect(within(tableau).getByText('Administrateurs')).toBeInTheDocument();
+  });
+
+  it('montre les approbateurs choisis et les propose dans le formulaire', async () => {
+    vi.mocked(api.periodesGel).mockResolvedValue([
+      periode({
+        approbateurIds: ['c1'],
+        equipeApprobatriceIds: ['e1'],
+        decideurs: 'Claire Durand, équipe Comptabilité',
+      }),
+    ]);
+    vi.mocked(api.utilisateurs).mockResolvedValue([
+      { id: 'c1', login: 'claire', nomAffiche: 'Claire Durand', role: '', contact: '', expertises: [], actif: true },
+    ] as never);
+    vi.mocked(api.equipes).mockResolvedValue([{ id: 'e1', nom: 'Comptabilité' }] as never);
+    rendre();
+    const tableau = await screen.findByRole('table');
+    expect(within(tableau).getByText('Claire Durand, équipe Comptabilité')).toBeInTheDocument();
+    await userEvent.click(within(tableau).getByRole('button', { name: 'Modifier Clôture comptable' }));
+    const editeur = await screen.findByRole('dialog');
+    expect(within(editeur).getByText('Qui accorde les dérogations')).toBeInTheDocument();
+    expect(await within(editeur).findByText('Claire Durand')).toBeInTheDocument();
+    expect(within(editeur).getByText(/Jamais la personne qui a demandé la dérogation/)).toBeInTheDocument();
   });
 
   it('propose d’en créer une quand il n’y en a pas', async () => {

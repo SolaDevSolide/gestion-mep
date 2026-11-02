@@ -1,6 +1,17 @@
 // Périodes de gel et conflits sur la fiche d'une MEP (#129) : signalés dès la préparation, Go bloqué pendant un gel sauf
-// dérogation (motif obligatoire, accord d'un approbateur désigné de la MEP, tout au journal).
-import { CalendarDays, Check, Send, ShieldCheck, Snowflake, TriangleAlert, Undo2, X } from 'lucide-react';
+// dérogation (motif obligatoire, accord d'un approbateur de la période, les administrateurs par défaut ; tout au journal).
+// Une dérogation tombe si la date de la MEP change ensuite : elle se redemande.
+import {
+  CalendarClock,
+  CalendarDays,
+  Check,
+  Send,
+  ShieldCheck,
+  Snowflake,
+  TriangleAlert,
+  Undo2,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
@@ -78,7 +89,7 @@ export function PastilleGel({ mep }: { mep: Mep }) {
   );
 }
 
-/** Demande de dérogation : motif obligatoire, approbateurs de la MEP prévenus. */
+/** Demande de dérogation : motif obligatoire ; les approbateurs de la période la voient dans « Suivi en direct ». */
 export function DemandeDerogationDialog({
   occurrence,
   onOpenChange,
@@ -89,13 +100,12 @@ export function DemandeDerogationDialog({
   const { mep, run } = useMep();
   const [motif, setMotif] = useState('');
   const [envoi, setEnvoi] = useState(false);
-  const approbateurs = mep.approbations.map((a) => a.nom);
   async function envoyer() {
     if (!occurrence) return;
     setEnvoi(true);
     const ok = await run(
       () => api.demanderDerogation(mep.id, occurrence.periodeGelId, occurrence.debut, motif.trim()),
-      'Dérogation demandée : les approbateurs de la MEP la voient dans « Suivi en direct ».',
+      'Dérogation demandée : les approbateurs de la période la voient dans « Suivi en direct ».',
     );
     setEnvoi(false);
     if (ok) {
@@ -130,7 +140,7 @@ export function DemandeDerogationDialog({
         </>
       }
     >
-      <ChampsDerogation motif={motif} setMotif={setMotif} approbateurs={approbateurs} />
+      <ChampsDerogation motif={motif} setMotif={setMotif} decideurs={occurrence?.decideurs} />
     </Dialog>
   );
 }
@@ -138,11 +148,12 @@ export function DemandeDerogationDialog({
 function ChampsDerogation({
   motif,
   setMotif,
-  approbateurs,
+  decideurs,
 }: {
   motif: string;
   setMotif: (m: string) => void;
-  approbateurs: string[];
+  /** Qui peut accorder la dérogation, en clair (« Claire Durand, équipe Comptabilité », « les administrateurs »). */
+  decideurs: string | null | undefined;
 }) {
   return (
     <div className="space-y-3">
@@ -161,9 +172,7 @@ function ChampsDerogation({
         )}
       </Field>
       <p className="text-xs text-fg-subtle">
-        {approbateurs.length > 0
-          ? `Approbateurs de cette MEP : ${approbateurs.join(', ')}. L’un d’eux décide depuis « Suivi en direct » ou la fiche de la MEP ; jamais la personne qui demande.`
-          : 'Cette MEP n’a pas encore d’approbateur : désignez-en un dans « Validation » pour qu’il puisse décider.'}
+        {`Peut accorder la dérogation : ${decideurs ?? 'un approbateur de la période'}, depuis « Suivi en direct » ou la fiche de la MEP. Jamais la personne qui demande, ni le pilote, un suppléant ou un responsable technique de la MEP.`}
       </p>
     </div>
   );
@@ -266,7 +275,20 @@ function EtatDerogation({ d, peutRetirer }: { d: DerogationGel; peutRetirer: boo
         titre={`Dérogation demandée par ${d.demandeePar ?? 'le pilote'} le ${formatDateHeure(d.demandeeLe)}`}
         action={retirer || undefined}
       >
-        « {d.motif} » En attente de la décision d’un approbateur de la MEP.
+        « {d.motif} » En attente de la décision d’un approbateur de la période.
+      </Alerte>
+    );
+  if (d.statut === 'Caduque')
+    return (
+      <Alerte
+        ton="warn"
+        icone={CalendarClock}
+        titre="Dérogation tombée : la date de la MEP a changé"
+        action={retirer || undefined}
+      >
+        Demandée par {d.demandeePar ?? 'le pilote'} le {formatDateHeure(d.demandeeLe)}
+        {d.decideePar ? `, accordée par ${d.decideePar}` : ''}. Elle valait pour l’ancien créneau : redemandez-la pour
+        la nouvelle date.
       </Alerte>
     );
   return null;
@@ -323,12 +345,16 @@ export function BandeauGelConflits({ allerIntervention }: { allerIntervention: (
               }
             >
               {[creneau && cal.debut ? creneauMep(cal, fuseau) : '', porteeGel(o, fuseau)].filter(Boolean).join(' · ')}.{' '}
-              {accordee ? 'Le Go est permis par la dérogation.' : 'Le Go sera bloqué sauf dérogation.'}
+              {accordee
+                ? 'Le Go est permis par la dérogation.'
+                : `Le Go sera bloqué sauf dérogation, accordée par ${o.decideurs ?? 'un approbateur de la période'}.`}
             </Alerte>
             {d && <EtatDerogation d={d} peutRetirer={pilote} />}
             {d?.peutDecider && (
               <div className="rounded-lg border border-line bg-surface p-3.5">
-                <p className="mb-2 text-sm font-medium">Vous êtes approbateur de cette MEP : votre décision ?</p>
+                <p className="mb-2 text-sm font-medium">
+                  Vous êtes approbateur de cette période de gel : votre décision ?
+                </p>
                 <DecisionDerogation
                   decider={(accorder, commentaire) =>
                     run(
@@ -387,14 +413,15 @@ export function BlocageGoGel() {
         return (
           <div key={cleOccurrence(o)} className="space-y-2">
             <Alerte ton="run" icone={Snowflake} titre={`Go bloqué : période de gel « ${o.nom} »`}>
-              {porteeGel(o, fuseau)}. Demandez une dérogation à un approbateur, ou changez la date.
+              {porteeGel(o, fuseau)}. Demandez une dérogation (accordée par{' '}
+              {o.decideurs ?? 'un approbateur de la période'}), ou changez la date.
             </Alerte>
             {d?.statut === 'Demandee' ? (
               <EtatDerogation d={d} peutRetirer={false} />
             ) : (
               <div className="rounded-lg border border-line p-3.5">
-                {d?.statut === 'Refusee' && <EtatDerogation d={d} peutRetirer={false} />}
-                <ChampsDerogation motif={motif} setMotif={setMotif} approbateurs={mep.approbations.map((a) => a.nom)} />
+                {(d?.statut === 'Refusee' || d?.statut === 'Caduque') && <EtatDerogation d={d} peutRetirer={false} />}
+                <ChampsDerogation motif={motif} setMotif={setMotif} decideurs={o.decideurs} />
                 <div className="mt-3 flex justify-end">
                   <Button
                     variante="primaire"

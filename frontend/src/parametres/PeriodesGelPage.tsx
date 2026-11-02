@@ -1,6 +1,7 @@
 // Paramètres › Périodes de gel (#129) : les administrateurs les définissent, tout le monde les voit. Pendant une période de
-// gel, le Go d'une MEP concernée est bloqué, sauf dérogation accordée par un approbateur désigné de la MEP.
-import { Lock, OctagonAlert, Pencil, Plus, RefreshCw, Save, Snowflake, Trash2 } from 'lucide-react';
+// gel, le Go d'une MEP concernée est bloqué, sauf dérogation accordée par un approbateur de la période (comptes ou équipes
+// choisis ; les administrateurs par défaut).
+import { Lock, OctagonAlert, Pencil, Plus, RefreshCw, Save, ShieldCheck, Snowflake, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { api, ApiError } from '../api';
 import { useAuth } from '../auth';
@@ -98,6 +99,12 @@ function Systemes({ p }: { p: PeriodeGel }) {
   );
 }
 
+/** Qui accorde les dérogations : les approbateurs de la période, ou les administrateurs. */
+function Decideurs({ p }: { p: PeriodeGel }) {
+  const parDefaut = p.approbateurIds.length === 0 && p.equipeApprobatriceIds.length === 0;
+  return <span className={parDefaut ? 'text-fg-muted' : undefined}>{parDefaut ? 'Administrateurs' : p.decideurs}</span>;
+}
+
 function Quand({ p }: { p: PeriodeGel }) {
   return (
     <span className="flex flex-col items-start gap-1">
@@ -138,6 +145,9 @@ interface Brouillon {
   systemes: string[];
   environnements: string[];
   productionSeulement: boolean;
+  /** Comptes et équipes qui décident des dérogations (vides : les administrateurs). */
+  approbateurs: string[];
+  equipes: string[];
 }
 
 function brouillonDe(p: PeriodeGel | null): Brouillon {
@@ -153,6 +163,8 @@ function brouillonDe(p: PeriodeGel | null): Brouillon {
     systemes: p?.systemeCatalogueIds ?? [],
     environnements: p?.environnements ?? [],
     productionSeulement: p?.productionSeulement ?? true,
+    approbateurs: p?.approbateurIds ?? [],
+    equipes: p?.equipeApprobatriceIds ?? [],
   };
 }
 
@@ -168,6 +180,8 @@ export function saisieDe(b: Brouillon, fuseau: string, version?: number): Period
     systemeCatalogueIds: b.tousSystemes ? [] : b.systemes,
     environnements: b.environnements,
     productionSeulement: b.productionSeulement,
+    approbateurIds: b.approbateurs,
+    equipeApprobatriceIds: b.equipes,
     ...(version !== undefined ? { version } : {}),
   };
 }
@@ -196,6 +210,8 @@ function EditeurPeriode({
   const toast = useToast();
   const catalogueLu = useReferentiel('catalogue').donnees;
   const catalogue = useMemo(() => catalogueLu ?? [], [catalogueLu]);
+  const comptes = useReferentiel('comptes').donnees;
+  const equipes = useReferentiel('equipes').donnees;
   const [b, setB] = useState<Brouillon>(() => brouillonDe(periode));
   const [erreurs, setErreurs] = useState<string[]>([]);
   const [envoi, setEnvoi] = useState(false);
@@ -408,10 +424,42 @@ function EditeurPeriode({
               <p className="text-xs text-fg-subtle">Rien de coché : tous les environnements.</p>
             </fieldset>
           </div>
-          <Alerte ton="wait" icone={Lock} titre="Approbateurs des dérogations">
-            Les approbateurs désignés de chaque MEP. Jamais le demandeur lui-même, ni le pilote, un suppléant ou un
-            responsable technique de la MEP.
-          </Alerte>
+          <fieldset className="space-y-2">
+            <legend className="mb-1.5 text-ui font-medium">Qui accorde les dérogations</legend>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Approbateurs">
+                {() => (
+                  <MultiSelect
+                    options={(comptes ?? [])
+                      .filter((c) => c.actif || b.approbateurs.includes(c.id))
+                      .map((c) => ({ valeur: c.id, libelle: c.nomAffiche, detail: c.login }))}
+                    valeurs={b.approbateurs}
+                    onChange={(v) => maj({ approbateurs: v })}
+                    placeholder="Choisir des personnes…"
+                    placeholderRecherche="Rechercher une personne…"
+                  />
+                )}
+              </Field>
+              <Field label="Équipes approbatrices" hint="Chaque membre de l’équipe peut décider.">
+                {() => (
+                  <MultiSelect
+                    options={(equipes ?? []).map((e) => ({ valeur: e.id, libelle: e.nom }))}
+                    valeurs={b.equipes}
+                    onChange={(v) => maj({ equipes: v })}
+                    placeholder="Choisir des équipes…"
+                    placeholderRecherche="Rechercher une équipe…"
+                  />
+                )}
+              </Field>
+            </div>
+            <Alerte ton="wait" icone={ShieldCheck}>
+              {b.approbateurs.length === 0 && b.equipes.length === 0
+                ? 'Personne de choisi : les administrateurs décident. '
+                : ''}
+              Jamais la personne qui a demandé la dérogation, ni le pilote, un suppléant ou un responsable technique de
+              la MEP.
+            </Alerte>
+          </fieldset>
           {periode && (
             <Alerte ton="run" icone={Snowflake} titre="Prochaines occurrences">
               {prochainesOccurrences.length === 0
@@ -481,7 +529,8 @@ export default function PeriodesGelPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Périodes de gel</h1>
           <p className="mt-1 text-sm text-fg-subtle">
             Pendant une période de gel, le Go d’une MEP concernée est bloqué, sauf dérogation accordée par un
-            approbateur. Les administrateurs les définissent ; tout le monde les voit.{' '}
+            approbateur de la période (à défaut, un administrateur). Les administrateurs les définissent ; tout le monde
+            les voit.{' '}
             {!admin && (
               <span className="inline-flex items-center gap-1">
                 <Lock className="size-3.5" aria-hidden />
@@ -554,6 +603,7 @@ export default function PeriodesGelPage() {
                     <th className="px-4 py-2.5 font-medium">Quand</th>
                     <th className="px-4 py-2.5 font-medium">Systèmes</th>
                     <th className="px-4 py-2.5 font-medium">Environnements</th>
+                    <th className="px-4 py-2.5 font-medium">Dérogations</th>
                     <th className="px-4 py-2.5 font-medium">Prochaine</th>
                     {admin && (
                       <th className="px-4 py-2.5">
@@ -577,6 +627,9 @@ export default function PeriodesGelPage() {
                       </td>
                       <td className="px-4 py-3">
                         <Environnements p={p} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <Decideurs p={p} />
                       </td>
                       <td className="px-4 py-3">
                         <TexteProchaine x={suivantes.get(p.id)} fuseau={fuseau} />
@@ -629,6 +682,10 @@ export default function PeriodesGelPage() {
                       <dt className="text-xs text-fg-subtle">Environnements</dt>
                       <dd>
                         <Environnements p={p} />
+                      </dd>
+                      <dt className="text-xs text-fg-subtle">Dérogations</dt>
+                      <dd>
+                        <Decideurs p={p} />
                       </dd>
                       <dt className="text-xs text-fg-subtle">Prochaine</dt>
                       <dd>

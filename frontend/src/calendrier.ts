@@ -252,6 +252,8 @@ export function texteGelMep(g: Pick<OccurrenceGel, 'nom' | 'derogation'>, phase:
       return `${g.nom} · dérogation demandée`;
     case 'Refusee':
       return `${g.nom} · dérogation refusée, Go bloqué`;
+    case 'Caduque':
+      return `${g.nom} · dérogation tombée (date changée), Go bloqué`;
     default:
       return `${g.nom} · Go bloqué sans dérogation`;
   }
