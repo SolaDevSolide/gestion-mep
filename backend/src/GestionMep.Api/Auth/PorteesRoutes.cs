@@ -24,7 +24,7 @@ public static class PorteesRoutes
 
     /// <summary>
     /// Fermées aux jetons : connexion et session (aucun jeton pour ouvrir l'interface), profil (il renouvelle la session),
-    /// gestion des jetons (un jeton ne crée pas d'autre jeton) et mode démonstration.
+    /// gestion des jetons (un jeton ne crée pas d'autre jeton), adresse d'abonnement au calendrier et mode démonstration.
     /// </summary>
     private static readonly string[] Fermees = ["/auth", "/utilisateurs/moi", "/jetons", "/admin/jetons", "/demo"];
 
@@ -64,6 +64,8 @@ public static class PorteesRoutes
         var lecture = HttpMethods.IsGet(methode) || HttpMethods.IsHead(methode);
         if (f == "/auth/moi") return lecture ? SansPortee : Fermee;
         if (Fermees.Any(p => f == p || f.StartsWith(p + "/", StringComparison.Ordinal))) return Fermee;
+        // Adresse d'abonnement au calendrier : un secret d'accès, géré comme les jetons (le flux .ics lui-même est public).
+        if (f == "/calendrier/abonnement") return Fermee;
         // Route inconnue (404), contrat OpenAPI, version de l'application, routes publiques (sondes, charte).
         if (f is "/*" or "/openapi.json" or "/application" || anonyme) return SansPortee;
         // Catalogue : sa propre portée, même pour les écritures réservées aux administrateurs (le rôle reste exigé ensuite :

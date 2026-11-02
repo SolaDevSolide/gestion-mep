@@ -69,7 +69,7 @@ Deux MEP sont **en conflit** quand leurs créneaux se chevauchent et qu'elles to
 
 ## API
 
-Toutes les routes exigent une session, sauf le flux d'abonnement.
+Toutes les routes exigent une session ou un [jeton d'accès](Jetons-d-accès.md), sauf le flux d'abonnement. Avec un jeton : lecture du calendrier et des périodes de gel avec `meps:lecture`, dérogations avec `meps:ecriture`, administration des périodes de gel avec `admin` ; la gestion de l'adresse d'abonnement (`/api/calendrier/abonnement`) est fermée aux jetons.
 
 | Route | Rôle |
 |---|---|

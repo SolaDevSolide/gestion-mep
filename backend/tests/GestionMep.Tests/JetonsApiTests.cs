@@ -290,10 +290,11 @@ public class JetonsApiTests : IDisposable
                 var forme = PorteesRoutes.Forme(r.RoutePattern.RawText!);
                 if (forme.StartsWith("/admin", StringComparison.Ordinal) && d.Ouverte) Assert.Equal(new[] { PorteesJeton.Admin }, d.UneParmi);
                 if (forme.StartsWith("/jetons", StringComparison.Ordinal) || forme.StartsWith("/admin/jetons", StringComparison.Ordinal)) Assert.False(d.Ouverte);
+                if (forme == "/calendrier/abonnement") Assert.False(d.Ouverte);
                 if (d.Ouverte && d.UneParmi.Count == 0) sansPortee.Add($"{m} {forme}");
             }
         }
-        var publiques = new[] { "/sante", "/sante/prete", "/version", "/charte", "/charte/schema.json" };
+        var publiques = new[] { "/sante", "/sante/prete", "/version", "/charte", "/charte/schema.json", "/calendrier/abonnement/*" };
         Assert.All(sansPortee, s => Assert.True(s == "GET /auth/moi" || s.EndsWith(" /application") || s.EndsWith(" /openapi.json") || s.EndsWith(" /*")
             || publiques.Any(p => s.EndsWith(" " + p, StringComparison.Ordinal)), $"Route ouverte sans portée : {s}"));
     }

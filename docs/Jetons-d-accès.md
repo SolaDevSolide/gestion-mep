@@ -32,7 +32,7 @@ Chaque jeton reçoit une ou plusieurs portées. Une route que ses portées ne co
 | `catalogue:ecriture` | Modifier le catalogue (réservé aux administrateurs : avec un jeton de service qui a aussi `admin`). Comprend `catalogue:lecture`. |
 | `admin` | Routes d'administration (`/api/admin/…` et les autres routes réservées aux administrateurs). **Jetons de service seulement.** |
 
-Quelques routes restent fermées à tous les jetons (403) : connexion, mot de passe, profil, connexion unique, mode démonstration, et la gestion des jetons elle-même (un jeton ne crée ni ne révoque de jeton). `GET /api/auth/moi` répond à tout jeton valide : il dit au nom de quel compte le jeton agit.
+Quelques routes restent fermées à tous les jetons (403) : connexion, mot de passe, profil, connexion unique, mode démonstration, la gestion des jetons elle-même (un jeton ne crée ni ne révoque de jeton) et celle de l'adresse d'abonnement au calendrier (`/api/calendrier/abonnement`). Le flux `.ics` de cette adresse reste public : il est protégé par son secret. `GET /api/auth/moi` répond à tout jeton valide : il dit au nom de quel compte le jeton agit.
 
 ## Durée, révocation, sécurité
 
