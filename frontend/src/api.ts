@@ -112,6 +112,11 @@ import type {
   EchangeLiaison,
   SynchroLiaison,
   EnvoiMepNoosphere,
+  JetonApi,
+  JetonCree,
+  JetonSaisie,
+  JetonServiceSaisie,
+  PorteeJeton,
 } from './types';
 
 export class ApiError extends Error {
@@ -688,4 +693,13 @@ export const api = {
     get<EchangeLiaison[]>(
       `/admin/liaisons/echanges${requete({ liaison: f.liaison, avant: f.avant, limite: f.limite ? String(f.limite) : undefined, refus: f.refus ? 'true' : undefined })}`,
     ),
+
+  // Jetons d'accès à l'API (#128) : « Mon profil » (les siens) et console › Jetons d'API (tous, jetons de service).
+  porteesJetons: () => get<PorteeJeton[]>('/jetons/portees'),
+  mesJetons: () => get<JetonApi[]>('/jetons'),
+  creerJeton: (s: JetonSaisie) => post<JetonCree>('/jetons', s),
+  revoquerMonJeton: (id: string) => post<JetonApi>(`/jetons/${id}/revoquer`),
+  jetons: () => get<JetonApi[]>('/admin/jetons'),
+  creerJetonService: (s: JetonServiceSaisie) => post<JetonCree>('/admin/jetons', s),
+  revoquerJeton: (id: string) => post<JetonApi>(`/admin/jetons/${id}/revoquer`),
 };

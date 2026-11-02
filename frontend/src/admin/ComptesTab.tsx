@@ -456,7 +456,10 @@ export default function ComptesTab() {
                           )}
                           <div className="min-w-0">
                             <div className="font-medium text-fg">{u.nomAffiche}</div>
-                            <div className="font-mono text-xs text-fg-subtle">{u.login}</div>
+                            <div className="font-mono text-xs text-fg-subtle">
+                              {u.login}
+                              {u.estTechnique && <Badge className="ml-1.5 font-sans">Technique</Badge>}
+                            </div>
                             {principal && (
                               <div className="text-xs text-fg-subtle">
                                 Relié à {principal.nomAffiche} : affiché sous ce nom

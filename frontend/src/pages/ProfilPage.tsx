@@ -16,6 +16,7 @@ import { ConfirmDialog } from '../ui/Dialog';
 import { EmptyState } from '../ui/EmptyState';
 import { Field, Input, Select } from '../ui/Input';
 import { useToast } from '../ui/Toast';
+import { JetonsPersonnels } from '../jetons/JetonsPersonnels';
 import { FormulaireMotDePasse } from './FormulaireMotDePasse';
 
 /** Retour de la connexion unique : le serveur renvoie vers /profil?sso=CODE. */
@@ -320,6 +321,8 @@ export default function ProfilPage() {
             />
           </div>
         </Card>
+
+        <JetonsPersonnels />
       </Apparition>
     </main>
   );

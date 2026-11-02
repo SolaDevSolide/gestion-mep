@@ -60,7 +60,22 @@ Les refus suivent le format habituel de l'API (*problem details*, voir [API](API
 
 ## Créer un jeton
 
-**Jeton personnel** : par l'API, depuis une session ouverte (`POST /api/jetons`) ; l'écran « Mon profil › Jetons d'accès » est en préparation. **Jeton de service** : `POST /api/admin/jetons` (administrateur), ou sur le serveur :
+### Jeton personnel : « Mon profil »
+
+La section **Jetons d'accès personnels**, en bas de « Mon profil », liste vos jetons : nom, début visible (`gmep_…`), portées, expiration et dernière utilisation (date et adresse IP). Les jetons révoqués ou expirés y restent 30 jours, atténués ; le journal d'administration les garde toujours.
+
+1. **Nouveau jeton** : un nom (pour le reconnaître), les portées (cases à cocher ; `meps:lecture` est cochée d'office) et la durée : 30, 90 (par défaut) ou 180 jours, 1 an, ou une date précise, 1 an au plus. La date d'expiration s'affiche avant de créer.
+2. **Jeton créé** : le jeton complet s'affiche **une seule fois**, avec **Copier** et un exemple d'appel `curl`. Rangez-le aussitôt dans le coffre de secrets de l'outil. Fermer sans l'avoir copié demande une confirmation.
+3. Sept jours avant l'expiration, le jeton passe en orange avec **Recréer** : un nouveau jeton, même nom et mêmes portées, mais une **nouvelle valeur** à reporter dans le script. L'ancien reste valable jusqu'à son expiration.
+4. **Révoquer** (après confirmation) : les appels avec ce jeton reçoivent aussitôt 401.
+
+Au plus 20 jetons actifs par personne. Par l'API, depuis une session ouverte : `POST /api/jetons`.
+
+### Jeton de service : console d'administration
+
+Onglet **Jetons d'API** de la console (administrateurs) : **Nouveau jeton de service** demande le nom de l'outil, son compte technique (créé avec le jeton, ou un compte technique existant), les portées (`admin` comprise), la durée (1 an par défaut et au plus) et, si besoin, une limite de débit propre. Le jeton s'affiche une fois, comme un jeton personnel. Trente jours avant l'expiration, **Recréer** prépare un nouveau jeton sur le même compte technique. Le même onglet liste les jetons personnels de tous les comptes (sans leur valeur) et permet de révoquer n'importe quel jeton. Voir [Administrer](Administrer.md#jetons-dapi).
+
+Par l'API : `POST /api/admin/jetons`. Sur le serveur :
 
 ```sh
 gestion-mep jetons creer "CI GitLab" --portees meps:lecture,execution --duree 180
