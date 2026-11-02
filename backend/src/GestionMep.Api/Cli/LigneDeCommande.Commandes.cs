@@ -41,6 +41,8 @@ public static partial class LigneDeCommande
         new("etapes-modeles", "Étapes modèles (bibliothèque)", "Une étape modèle se désigne par son identifiant (8 premiers caractères suffisent)."),
         new("modeles-recette", "Modèles de recette (bibliothèque)", "Un modèle se désigne par son identifiant (8 premiers caractères suffisent) ou son titre exact."),
         new("modeles-texte", "Modèles de texte des équipes (annonce, rappel, demande de MEP…)", "Un modèle se désigne par son identifiant (8 premiers caractères suffisent)."),
+        GroupePeriodesGel,
+        GroupeCalendrier,
         new("meps", "MEP et modèles de MEP", "Une MEP se désigne par son identifiant (8 premiers caractères suffisent, colonne ID de « meps lister »)."),
         new("pieces-jointes", "Pièces jointes"),
         new("sauvegardes", "Sauvegardes et restauration"),
@@ -290,6 +292,9 @@ public static partial class LigneDeCommande
 
         // ---------- Jetons d'accès à l'API (LigneDeCommande.Jetons.cs) ----------
         .. CommandesJetons,
+
+        // ---------- Périodes de gel et calendrier (LigneDeCommande.Calendrier.cs) ----------
+        .. CommandesCalendrier,
 
         // ---------- Journal d'administration ----------
         new("journal lister", "[--depuis AAAA-MM-JJ] [--limite n] [--type <type>]", "Journal d'administration, du plus récent au plus ancien (200 événements par défaut)",

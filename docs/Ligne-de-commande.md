@@ -1630,6 +1630,98 @@ Sortie `--json` : tableau { cle, libelle, groupe, description, liste }.
 gestion-mep modeles-texte variables
 ```
 
+### Périodes de gel (aucun Go sans dérogation)
+
+Une période se désigne par son identifiant (8 premiers caractères suffisent) ou son nom exact. Heures saisies dans le fuseau --fuseau (celui de l'instance par défaut, Europe/Paris), enregistrées en UTC.
+
+#### `periodes-gel lister`
+
+```
+gestion-mep periodes-gel lister
+```
+
+Périodes de gel : nom, début, fin, répétition, systèmes et environnements concernés.
+
+Sortie `--json` : tableau des périodes, comme GET /api/periodes-gel.
+
+```bash
+gestion-mep periodes-gel lister
+gestion-mep periodes-gel lister --json
+```
+
+#### `periodes-gel creer`
+
+```
+gestion-mep periodes-gel creer "<nom>" --debut "AAAA-MM-JJ HH:MM" --fin "AAAA-MM-JJ HH:MM" [options]
+```
+
+Crée une période de gel : aucun Go n'y est donné sans dérogation accordée.
+
+| Option | Effet |
+|---|---|
+| `--debut "AAAA-MM-JJ HH:MM"` | Début, inclus (AAAA-MM-JJ seul : minuit) |
+| `--fin "AAAA-MM-JJ HH:MM"` | Fin, exclue |
+| `--motif "…"` | Motif affiché aux pilotes |
+| `--systeme <SYSTÈME>` | Système du catalogue concerné (répétable ; absent : tous) |
+| `--environnement <nom>` | Environnement concerné (répétable ; absent : tous) |
+| `--production` | Seulement les MEP qui touchent la production |
+| `--repetition aucune\|hebdomadaire\|mensuelle\|fin-de-mois\|annuelle` | Répétition (fin-de-mois : même écart avec le dernier jour du mois) |
+| `--jusqu-au AAAA-MM-JJ` | Dernier jour où une répétition peut commencer |
+| `--fuseau <IANA>` | Fuseau des heures saisies (défaut Europe/Paris) |
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat } ; resultat : la période, comme GET /api/periodes-gel.
+
+```bash
+gestion-mep periodes-gel creer "Fêtes de fin d'année" --debut 2026-12-20 --fin 2027-01-04 --production --motif "Activité commerciale"
+gestion-mep periodes-gel creer "Clôture comptable" --debut "2026-11-28 18:00" --fin "2026-12-02 08:00" --systeme BDD --repetition fin-de-mois
+```
+
+#### `periodes-gel supprimer`
+
+```
+gestion-mep periodes-gel supprimer <période> [--oui]
+```
+
+Supprime une période de gel (les dérogations déjà inscrites dans les MEP restent).
+
+| Option | Effet |
+|---|---|
+| `--oui` | Confirme l'opération sans question (obligatoire hors terminal) |
+
+Sortie `--json` : enveloppe { code, messages, avertissements, resultat }.
+
+```bash
+gestion-mep periodes-gel supprimer "Clôture comptable" --oui
+```
+
+### Calendrier des MEP
+
+#### `calendrier exporter`
+
+```
+gestion-mep calendrier exporter [--du AAAA-MM-JJ] [--au AAAA-MM-JJ] [filtres] [--sortie <fichier.ics>]
+```
+
+Exporte le calendrier des MEP au format iCalendar (.ics), avec les périodes de gel. Heures en UTC dans le fichier (l'agenda les affiche dans son fuseau), journées entières en dates locales ; UID stable par MEP.
+
+| Option | Effet |
+|---|---|
+| `--du AAAA-MM-JJ` | Premier jour (défaut : début du mois en cours) |
+| `--au AAAA-MM-JJ` | Dernier jour inclus (défaut : un mois ; 366 jours au plus) |
+| `--fuseau <IANA>` | Fuseau des jours --du et --au (défaut Europe/Paris) |
+| `--systeme <SYSTÈME>` | Système du catalogue (répétable) |
+| `--etat <état>` | État (répétable) : preparation, execution, recette, retour-arriere, reussie, incidents, repliee, reportee, echec, annulee |
+| `--equipe <équipe>` | Équipe (répétable) |
+| `--sans-gels` | N'exporte pas les périodes de gel |
+| `--sortie <fichier.ics>` | Fichier à écrire (défaut : sortie standard) |
+
+Sortie `--json` : sans --sortie : { du, au, fuseauHoraire, meps, gels }, comme GET /api/calendrier ; avec --sortie : resultat { fichier, meps, gels }.
+
+```bash
+gestion-mep calendrier exporter --du 2026-11-01 --au 2026-12-31 --sortie mep.ics
+gestion-mep calendrier exporter --systeme BDD --etat preparation > mep-bdd.ics
+```
+
 ### MEP et modèles de MEP
 
 Une MEP se désigne par son identifiant (8 premiers caractères suffisent, colonne ID de « meps lister »).
