@@ -8,10 +8,10 @@ public static class MepMapping
     /// <summary>Compte vu par l'API ; <paramref name="nomPersonne"/> et <paramref name="equipeIds"/> viennent de l'annuaire (voir <see cref="Personnes"/>).</summary>
     public static UtilisateurDto VersDto(Utilisateur u, string nomPersonne, List<Guid> equipeIds) =>
         new(u.Id, u.Login, u.NomAffiche, u.EstAdmin, u.Role, u.Contact, u.Expertises.Select(x => new ExpertiseDto(x.SystemeCatalogueId, x.Detail)).ToList(),
-            u.Actif, u.DoitChangerMotDePasse, u.ComptePrincipalId, nomPersonne, equipeIds);
+            u.Actif, u.DoitChangerMotDePasse, u.ComptePrincipalId, nomPersonne, equipeIds, u.EstTechnique);
 
     public static CompteAnnuaireDto VersAnnuaire(UtilisateurDto u) =>
-        new(u.Id, u.Login, u.NomAffiche, u.Role, u.Contact, u.Expertises, u.Actif, u.ComptePrincipalId, u.NomPersonne, u.EquipeIds);
+        new(u.Id, u.Login, u.NomAffiche, u.Role, u.Contact, u.Expertises, u.Actif, u.ComptePrincipalId, u.NomPersonne, u.EquipeIds, u.EstTechnique);
 
     public static PieceJointeDto VersDto(PieceJointe p, IReadOnlyDictionary<Guid, string> nomsUtilisateurs) =>
         new(p.Id, p.MepId, p.EtapeId, p.ResolutionTypeId, p.ExecutionResolutionId, p.NomFichier, p.TypeContenu, p.Taille,

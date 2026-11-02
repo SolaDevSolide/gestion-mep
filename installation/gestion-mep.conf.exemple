@@ -39,6 +39,8 @@ ADMIN_MOT_DE_PASSE=
 # PROXY_RESEAUX=10.0.5.12/32
 # (console) Tentatives de connexion autorisées par minute et par adresse IP
 # CONNEXIONS_PAR_MINUTE=20
+# (console) Requêtes par minute d'un jeton d'accès à l'API
+# JETONS_PAR_MINUTE=600
 # (console) Écrans suivis en temps réel en même temps sur le serveur
 # FLUX_MAX=1000
 # (console) false : mode d'essai, la session fonctionne aussi en http simple (mots de passe en clair sur le réseau)

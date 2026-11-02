@@ -28,6 +28,7 @@ public static class DocumentationOpenApi
                 return Task.CompletedTask;
             });
             o.AddDocumentTransformer(AjouterContrats);
+            o.AddDocumentTransformer(AjouterAuthentifications);
             o.AddSchemaTransformer(NombresStricts);
             o.AddSchemaTransformer(ObjetsNullables);
         });
@@ -69,6 +70,33 @@ public static class DocumentationOpenApi
                     break;
             }
         }
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Deux façons de s'authentifier : cookie de session (interface web, en-tête <c>X-Requested-With</c> sur les écritures) ou
+    /// jeton d'accès <c>Authorization: Bearer gmep_…</c> (scripts et outils, voir docs/Jetons-d-accès.md).
+    /// </summary>
+    private static Task AjouterAuthentifications(OpenApiDocument document, OpenApiDocumentTransformerContext _, CancellationToken __)
+    {
+        document.Components ??= new OpenApiComponents();
+        document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+        document.Components.SecuritySchemes["session"] = new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.ApiKey, In = ParameterLocation.Cookie, Name = Auth.AuthentificationLocale.Cookie,
+            Description = "Cookie de session ouvert par POST /api/auth/connexion ; les écritures exigent aussi l'en-tête X-Requested-With.",
+        };
+        document.Components.SecuritySchemes["jeton"] = new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http, Scheme = "bearer",
+            Description = "Jeton d'accès gmep_… (personnel ou de service), limité à ses portées : meps:lecture, meps:ecriture, execution, "
+                + "catalogue:lecture, catalogue:ecriture, admin. Sans en-tête X-Requested-With.",
+        };
+        document.Security =
+        [
+            new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("session", document)] = [] },
+            new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("jeton", document)] = [] },
+        ];
         return Task.CompletedTask;
     }
 

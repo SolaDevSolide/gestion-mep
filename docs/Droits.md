@@ -70,10 +70,14 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Catalogue des systèmes (fiches : environnements, catégories, objets ; catégories par défaut), critères go / no-go, nombre minimum d'approbations | Administrateur (lecture pour tous) |
 | Comptes et console d'administration, équipes, comptes reliés d'une même personne | Administrateur (équipes : lecture pour tous) |
 | Modifier son propre profil et son mot de passe | Chacun |
+| Créer et révoquer ses jetons d'accès personnels (jamais la portée `admin`) | Chacun |
+| Créer des jetons de service, voir et révoquer tous les jetons | Administrateur |
 
 Un administrateur n'a **pas** les droits du pilote : pour donner le Go ou déclencher un retour arrière, il doit être pilote ou suppléant de la MEP. Après le Go, il peut le devenir avec le [pilotage de secours](Cycle-de-vie.md#pilotage-de-secours-et-passation) : motif obligatoire, trace au journal de la MEP et au journal d'administration, bandeau visible de tous. Il peut aussi annuler une MEP en préparation sans la piloter. Démarrer une étape ou prendre la main sur une étape d'une MEP dont il ne fait pas partie l'y ajoute comme **exécutant** seulement, y compris dans une MEP simplifiée : il ne devient pas suppléant (s'il l'était déjà, il le reste). Désigné pilote, il devient une personne de la MEP à part entière.
 
 **Refus** : une action refusée faute de droit répond « Droits insuffisants » (403 dans l'[API](API.md#codes-de-réponse)), avec la phrase qui dit qui peut la faire ; une action permise mais impossible dans l'état de la MEP est une règle métier (422).
+
+Un appel par [jeton d'accès](Jetons-d-accès.md) a les droits du compte du jeton, réduits à ses portées : un jeton personnel ceux de la personne (sans le rôle administrateur), un jeton de service ceux de son compte technique (administrateur avec la portée `admin`).
 
 ## Traçabilité
 

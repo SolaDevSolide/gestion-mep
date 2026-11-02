@@ -129,6 +129,7 @@ describe('Page de connexion : mode démonstration', () => {
       comptePrincipalId: null,
       nomPersonne: 'Bob',
       equipeIds: [],
+      estTechnique: false,
     };
     vi.mocked(api.connexionDemo).mockResolvedValue(bob);
     rendre();

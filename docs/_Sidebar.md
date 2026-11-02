@@ -24,6 +24,7 @@
 - [Contribuer](../CONTRIBUTING.md)
 - [Architecture](Architecture.md)
 - [API](API.md)
+- [Jetons d'accès à l'API](Jetons-d-accès.md)
 
 **Référence**
 - [Droits par rôle](Droits.md)

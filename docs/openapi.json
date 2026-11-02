@@ -5762,6 +5762,137 @@
         }
       }
     },
+    "/api/jetons/portees": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PorteeJetonDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jetons": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JetonDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JetonSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JetonCreeDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jetons/{id}": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JetonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jetons/{id}/revoquer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JetonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/sso": {
       "get": {
         "tags": [
@@ -7437,6 +7568,139 @@
           }
         }
       }
+    },
+    "/api/admin/jetons": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/TypeJeton"
+            }
+          },
+          {
+            "name": "compte",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "actifs",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JetonDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JetonSaisie"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JetonCreeDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/jetons/{id}": {
+      "get": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JetonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/jetons/{id}/revoquer": {
+      "post": {
+        "tags": [
+          "GestionMep.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JetonDto"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8851,7 +9115,8 @@
           "actif",
           "comptePrincipalId",
           "nomPersonne",
-          "equipeIds"
+          "equipeIds",
+          "estTechnique"
         ],
         "type": "object",
         "properties": {
@@ -8896,6 +9161,9 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "estTechnique": {
+            "type": "boolean"
           }
         },
         "description": "Compte tel que le voit tout utilisateur connecté (`GET /api/utilisateurs`) : de quoi choisir une personne (participant,\napprobateur, nouveau pilote, recherche). Ni le rôle administrateur ni l'état du mot de passe, réservés à la console."
@@ -8948,7 +9216,8 @@
               "doitChangerMotDePasse",
               "comptePrincipalId",
               "nomPersonne",
-              "equipeIds"
+              "equipeIds",
+              "estTechnique"
             ],
             "type": "object",
             "properties": {
@@ -9012,9 +9281,12 @@
                   "type": "string",
                   "format": "uuid"
                 }
+              },
+              "estTechnique": {
+                "type": "boolean"
               }
             },
-            "description": "Compte complet : le sien (`/api/auth/moi`, profil) ou ceux de la console d'administration (`/api/admin/utilisateurs`).\n`ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom\naffiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre."
+            "description": "Compte complet : le sien (`/api/auth/moi`, profil) ou ceux de la console d'administration (`/api/admin/utilisateurs`).\n`ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom\naffiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre ;\n`EstTechnique` : compte technique d'un jeton de service (sans mot de passe, il ne se connecte pas)."
           },
           "motDePasseProvisoire": {
             "type": "string"
@@ -11661,6 +11933,14 @@
           "Reussie",
           "Echec"
         ]
+      },
+      "EtatJeton": {
+        "enum": [
+          "Actif",
+          "Expire",
+          "Revoque"
+        ],
+        "description": "État d'un jeton à un instant donné : seul EtatJeton.Actif permet d'appeler l'API."
       },
       "EtatLiaison": {
         "enum": [
@@ -14630,6 +14910,148 @@
           "Echec",
           null
         ]
+      },
+      "JetonCreeDto": {
+        "required": [
+          "jeton",
+          "secret"
+        ],
+        "type": "object",
+        "properties": {
+          "jeton": {
+            "$ref": "#/components/schemas/JetonDto"
+          },
+          "secret": {
+            "type": "string"
+          }
+        },
+        "description": "Jeton créé : `Secret` est le jeton complet (`gmep_…`), renvoyé cette seule fois et jamais conservé."
+      },
+      "JetonDto": {
+        "required": [
+          "id",
+          "nom",
+          "type",
+          "etat",
+          "prefixe",
+          "portees",
+          "creeLe",
+          "creePar",
+          "expireLe",
+          "revoqueLe",
+          "revoquePar",
+          "derniereUtilisationLe",
+          "derniereAdresseIp",
+          "compteId",
+          "compteLogin",
+          "compteNom"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TypeJeton"
+          },
+          "etat": {
+            "$ref": "#/components/schemas/EtatJeton"
+          },
+          "prefixe": {
+            "type": "string"
+          },
+          "portees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "creeLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "creePar": {
+            "type": "string"
+          },
+          "expireLe": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revoqueLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "revoquePar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "derniereUtilisationLe": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "derniereAdresseIp": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "compteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "compteLogin": {
+            "type": "string"
+          },
+          "compteNom": {
+            "type": "string"
+          }
+        },
+        "description": "Jeton d'accès à l'API, sans son secret. `Prefixe` : début visible du jeton (`gmep_` et 8 caractères) ;\n`Etat` : `Actif`, `Expire` ou `Revoque` ; `DerniereUtilisationLe` et `DerniereAdresseIp` :\ndernier appel, à 5 minutes près ; `CompteId`, `CompteLogin`, `CompteNom` : compte au nom duquel il agit\n(la personne, ou le compte technique d'un jeton de service)."
+      },
+      "JetonSaisie": {
+        "required": [
+          "nom",
+          "portees",
+          "dureeJours"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "portees": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "dureeJours": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Nouveau jeton : nom (100 caractères au plus), portées (au moins une ; `admin` pour un jeton de service seulement)\net durée de validité en jours (1 à 365, 90 si absente)."
       },
       "LiaisonCompteSaisie": {
         "required": [
@@ -19063,6 +19485,29 @@
           }
         },
         "description": "Échec d'une étape pendant l'exécution, tiré du journal : motif, résolution lancée ensuite (la dernière avant la reprise),\nreprise de l'étape et sa réussite. `ArretMinutes` : de l'échec au redémarrage de l'étape."
+      },
+      "PorteeJetonDto": {
+        "required": [
+          "nom",
+          "description",
+          "types"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TypeJeton"
+            }
+          }
+        },
+        "description": "Portée d'un jeton (`GET /api/jetons/portees`) : nom, description et types de jetons qui peuvent la porter."
       },
       "PortSaisie": {
         "type": "object",
@@ -28030,6 +28475,13 @@
           null
         ]
       },
+      "TypeJeton": {
+        "enum": [
+          "Personnel",
+          "Service"
+        ],
+        "description": "Jeton personnel : créé par une personne pour ses scripts, il agit avec ses droits (jamais plus). Jeton de service : créé\npar un administrateur pour un outil (CI/CD, supervision), il agit sous un compte technique qui porte son nom."
+      },
       "TypeMep": {
         "enum": [
           "Complete",
@@ -28112,7 +28564,8 @@
           "doitChangerMotDePasse",
           "comptePrincipalId",
           "nomPersonne",
-          "equipeIds"
+          "equipeIds",
+          "estTechnique"
         ],
         "type": "object",
         "properties": {
@@ -28163,9 +28616,12 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "estTechnique": {
+            "type": "boolean"
           }
         },
-        "description": "Compte complet : le sien (`/api/auth/moi`, profil) ou ceux de la console d'administration (`/api/admin/utilisateurs`).\n`ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom\naffiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre."
+        "description": "Compte complet : le sien (`/api/auth/moi`, profil) ou ceux de la console d'administration (`/api/admin/utilisateurs`).\n`ComptePrincipalId` : compte principal auquel ce compte est relié (même personne), null sinon ; `NomPersonne` : nom\naffiché de la personne (celui du compte principal) ; `EquipeIds` : équipes dont ce compte est membre ;\n`EstTechnique` : compte technique d'un jeton de service (sans mot de passe, il ne se connecte pas)."
       },
       "ValeurVariableDto": {
         "required": [
@@ -28491,8 +28947,29 @@
           }
         }
       }
+    },
+    "securitySchemes": {
+      "session": {
+        "type": "apiKey",
+        "description": "Cookie de session ouvert par POST /api/auth/connexion ; les écritures exigent aussi l'en-tête X-Requested-With.",
+        "name": "gestion-mep.auth",
+        "in": "cookie"
+      },
+      "jeton": {
+        "type": "http",
+        "description": "Jeton d'accès gmep_… (personnel ou de service), limité à ses portées : meps:lecture, meps:ecriture, execution, catalogue:lecture, catalogue:ecriture, admin. Sans en-tête X-Requested-With.",
+        "scheme": "bearer"
+      }
     }
   },
+  "security": [
+    {
+      "session": []
+    },
+    {
+      "jeton": []
+    }
+  ],
   "tags": [
     {
       "name": "GestionMep.Api"

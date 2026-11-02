@@ -608,3 +608,14 @@ export type SourceNoosphere = S['SourceNoosphereDto'];
 /** Envoi d'une MEP à Noosphere, pour une liaison (« Envoyée à Noosphere »). */
 export type EnvoiMepNoosphere = S['EnvoiMepNoosphereDto'];
 export type ApplicationMepNoosphere = S['ApplicationMepNoosphereDto'];
+
+// ---------- Jetons d'accès à l'API (#128) ----------
+
+export type TypeJeton = NonNullable<S['TypeJeton']>;
+export type EtatJeton = NonNullable<S['EtatJeton']>;
+/** Jeton d'accès, sans son secret (préfixe visible, portées, état, dernière utilisation). */
+export type JetonApi = S['JetonDto'];
+/** Jeton créé : le secret complet n'est renvoyé qu'à cette occasion. */
+export type JetonCree = S['JetonCreeDto'];
+export type JetonSaisie = S['JetonSaisie'];
+export type PorteeJeton = S['PorteeJetonDto'];

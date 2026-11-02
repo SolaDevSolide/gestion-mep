@@ -81,6 +81,7 @@ public static class FichierInstallation
         ["PIECES_COMPRESSION_GAIN_MIN"] = "Stockage:CompressionGainMin",
         ["PROXY_RESEAUX"] = "ProxyInverse:Reseaux",
         ["CONNEXIONS_PAR_MINUTE"] = "Connexion:TentativesParMinute",
+        ["JETONS_PAR_MINUTE"] = "Jetons:RequetesParMinute",
         ["VERIFIER_MISES_A_JOUR"] = "MisesAJour:Verifier",
         ["LIEN_SIGNALEMENT"] = "Signalement:Lien",
         ["URL_PUBLIQUE"] = "Application:UrlPublique",

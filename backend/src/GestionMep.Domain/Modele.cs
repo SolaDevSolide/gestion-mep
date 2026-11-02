@@ -74,6 +74,11 @@ public class Utilisateur
     /// reliés restent distincts (connexion, droits, historique) mais s'affichent sous le nom du compte principal.
     /// </summary>
     public Guid? ComptePrincipalId { get; set; }
+    /// <summary>
+    /// Compte technique d'un jeton de service : il porte le nom du jeton, n'a pas de mot de passe et ne peut pas se
+    /// connecter à l'interface ; on peut l'ajouter à une MEP comme une personne.
+    /// </summary>
+    public bool EstTechnique { get; set; }
 }
 
 /// <summary>Équipe gérée par les administrateurs : regroupe des comptes, sert à filtrer les personnes et les MEP.</summary>

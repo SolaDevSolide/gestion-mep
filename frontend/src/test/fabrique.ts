@@ -236,6 +236,7 @@ export function utilisateur(p: Partial<Utilisateur> = {}): Utilisateur {
     comptePrincipalId: null,
     nomPersonne: p.nomAffiche ?? 'Claire',
     equipeIds: [],
+    estTechnique: false,
     ...p,
   };
 }

@@ -26,7 +26,9 @@ public static class AuthentificationLocale
     public static IServiceCollection AjouterAuthentification(this IServiceCollection services, IHostEnvironment env)
     {
         services.AddSingleton<IPasswordHasher<Utilisateur>, PasswordHasher<Utilisateur>>();
-        services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+        // Schéma par défaut : jeton d'accès si la requête en porte un (AuthentificationJeton), cookie de session sinon.
+        services.AddAuthentication(AuthentificationJeton.SchemaAuto)
+            .AjouterJetons()
             .AddCookie(o =>
             {
                 o.Cookie = new CookieSession();
@@ -198,7 +200,8 @@ public static class AuthentificationLocale
     {
         var l = NormaliserLogin(login);
         var u = l.Length == 0 ? null : await db.Utilisateurs.FirstOrDefaultAsync(x => x.Login == l);
-        if (u is null)
+        // Compte technique d'un jeton de service : jamais de connexion par mot de passe.
+        if (u is null || u.EstTechnique)
         {
             // Même coût qu'un vrai contrôle, pour ne pas révéler l'existence du login.
             hasher.HashPassword(new Utilisateur(), motDePasse ?? "");
