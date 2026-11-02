@@ -41,7 +41,7 @@ public static class MepsEndpoints
     /// Page de la liste filtrée : au plus <paramref name="limite"/> MEP après le curseur <paramref name="apres"/> (celui que
     /// renvoie la page précédente), le nombre total de résultats et le nombre de MEP (ou de modèles) sans filtre.
     /// </summary>
-    public static async Task<PageMepsDto> Page(MepDbContext db, bool? modele, FiltreMeps filtre, int? limite, string? apres)
+    public static async Task<PageMepsDto> Page(MepDbContext db, ServiceCalendrier cal, bool? modele, FiltreMeps filtre, int? limite, string? apres)
     {
         var n = limite ?? LimiteParDefaut;
         if (n is < 1 or > LimiteMax) throw ErreurHttp.Saisie($"« limite » doit être comprise entre 1 et {LimiteMax}.");
@@ -50,7 +50,7 @@ public static class MepsEndpoints
         var suite = curseur is null ? resultats : [.. resultats.SkipWhile(m => !curseur.Precede(m))];
         var page = suite.Take(n).ToList();
         var ensemble = await Vue(db, modele).CountAsync();
-        return new PageMepsDto(page, resultats.Count, ensemble, suite.Count > n ? CurseurMeps.De(page[^1]) : null);
+        return new PageMepsDto(page, resultats.Count, ensemble, suite.Count > n ? CurseurMeps.De(page[^1]) : null, await cal.Signalements(page));
     }
 
     /// <summary>
@@ -203,8 +203,9 @@ public static class MepsEndpoints
 
         // Liste paginée (#96) : mêmes filtres, ?limite= (30 par défaut, 200 au plus) et ?apres= (curseur « suivant » de la page
         // précédente) ; le navigateur charge les pages suivantes au fil de la lecture (« Afficher plus »).
-        api.MapGet("/meps/page", async (bool? modele, int? limite, string? apres, [AsParameters] ParametresFiltreMeps filtres, MepDbContext db) =>
-            await Page(db, modele, FiltreMeps.Lire(filtres), limite, apres));
+        // Signalements (#129) : gels et conflits des MEP de la page qui en ont.
+        api.MapGet("/meps/page", async (bool? modele, int? limite, string? apres, [AsParameters] ParametresFiltreMeps filtres, MepDbContext db,
+            ServiceCalendrier cal) => await Page(db, cal, modele, FiltreMeps.Lire(filtres), limite, apres));
 
         // Comptes de la barre de filtres (#96) : pour chaque valeur d'un critère, le nombre de MEP qu'on obtiendrait en la
         // choisissant, avec les autres critères en cours ; et, pour chaque critère actif, le nombre sans lui.

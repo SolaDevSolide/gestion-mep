@@ -9862,6 +9862,74 @@ export interface components {
             impact: null | string;
         };
         /**
+         * @description Dérogation au gel qui attend la décision de la personne qui lit (« Suivi en direct ») : la MEP, son créneau prévu
+         *     (`Debut` null : sans date) et ses systèmes, et la demande elle-même (`PeutDecider` toujours vrai ici).
+         */
+        DerogationEnAttenteDto: {
+            /** Format: uuid */
+            mepId: string;
+            outil: string;
+            versionCible: string;
+            /**
+             * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+             *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+             *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+             *     valeur par défaut, est la MEP complète.
+             * @enum {unknown}
+             */
+            type: "Complete" | "Simplifiee";
+            /** Format: date-time */
+            debut: null | string;
+            /** Format: date-time */
+            fin: null | string;
+            journeeEntiere: boolean;
+            fuseauHoraire: string;
+            pilote: null | string;
+            systemes: {
+                /** Format: uuid */
+                catalogueId: null | string;
+                nom: string;
+                environnements: {
+                    nom: string;
+                    production: boolean;
+                }[];
+                /** Format: int32 */
+                echecs: number;
+            }[];
+            /** Format: int32 */
+            nbEtapes: number;
+            retourArriereActive: boolean;
+            /**
+             * @description Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui
+             *     lit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur).
+             */
+            derogation: {
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                periodeGelId: string;
+                nomPeriode: string;
+                /** Format: date-time */
+                occurrence: string;
+                /** Format: date-time */
+                occurrenceFin: string;
+                motif: string;
+                /**
+                 * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                 * @enum {unknown}
+                 */
+                statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                demandeePar: null | string;
+                /** Format: date-time */
+                demandeeLe: string;
+                decideePar: null | string;
+                /** Format: date-time */
+                decideeLe: null | string;
+                commentaire: string;
+                peutDecider: boolean;
+            };
+        };
+        /**
          * @description Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui
          *     lit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur).
          */
@@ -12650,7 +12718,8 @@ export interface components {
         /**
          * @description Page de la liste des MEP (`GET /meps/page`) : `Meps`, la page ; `Total`, le nombre de MEP qui correspondent
          *     aux filtres ; `Ensemble`, le nombre de MEP (ou de modèles) sans filtre ; `Suivant`, le curseur à passer dans
-         *     `apres` pour la page suivante (null : c'était la dernière).
+         *     `apres` pour la page suivante (null : c'était la dernière) ; `Signalements` (#129), gels et conflits des MEP de la
+         *     page qui en ont.
          */
         PageMepsDto: {
             meps: components["schemas"]["MepResumeDto"][];
@@ -12659,6 +12728,7 @@ export interface components {
             /** Format: int32 */
             ensemble: number;
             suivant: null | string;
+            signalements: components["schemas"]["SignalementCalendrierDto"][];
         };
         ParametresDto: {
             /** Format: int32 */
@@ -14748,6 +14818,17 @@ export interface components {
         };
         /** @enum {unknown} */
         SensPort: "Entree" | "Sortie" | null;
+        /**
+         * @description Signalements du calendrier d'une MEP de la liste (cartes et tableau) : `Gels`, occurrences de gel qui touchent son
+         *     créneau (avec l'état de la dérogation) ; `Conflits`, autres MEP sur un même système au même moment. Seules les MEP
+         *     qui ont au moins un signalement figurent dans List&lt;SignalementCalendrierDto&gt; PageMepsDto.Signalements.
+         */
+        SignalementCalendrierDto: {
+            /** Format: uuid */
+            mepId: string;
+            gels: components["schemas"]["OccurrenceGelDto"][];
+            conflits: components["schemas"]["ConflitDto"][];
+        };
         /** @description Lancer (`actif` vrai) ou arrêter la simulation de collègues. */
         SimulationSaisie: {
             actif: boolean;
@@ -14863,7 +14944,8 @@ export interface components {
         /**
          * @description Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur
          *     avancement par le navigateur ; MEP prévues aujourd'hui ou demain (date annoncée) et la prochaine à venir ; MEP clôturées
-         *     depuis moins de 24 heures. `Maintenant` : heure du serveur.
+         *     depuis moins de 24 heures. `Maintenant` : heure du serveur. `Derogations` (#129) : demandes de dérogation au gel
+         *     que la personne qui lit peut accorder ou refuser.
          */
         SuiviDto: {
             enCours: {
@@ -15576,6 +15658,70 @@ export interface components {
             }[];
             /** Format: date-time */
             maintenant: string;
+            derogations: {
+                /** Format: uuid */
+                mepId: string;
+                outil: string;
+                versionCible: string;
+                /**
+                 * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+                 *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+                 *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+                 *     valeur par défaut, est la MEP complète.
+                 * @enum {unknown}
+                 */
+                type: "Complete" | "Simplifiee";
+                /** Format: date-time */
+                debut: null | string;
+                /** Format: date-time */
+                fin: null | string;
+                journeeEntiere: boolean;
+                fuseauHoraire: string;
+                pilote: null | string;
+                systemes: {
+                    /** Format: uuid */
+                    catalogueId: null | string;
+                    nom: string;
+                    environnements: {
+                        nom: string;
+                        production: boolean;
+                    }[];
+                    /** Format: int32 */
+                    echecs: number;
+                }[];
+                /** Format: int32 */
+                nbEtapes: number;
+                retourArriereActive: boolean;
+                /**
+                 * @description Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui
+                 *     lit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur).
+                 */
+                derogation: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    periodeGelId: string;
+                    nomPeriode: string;
+                    /** Format: date-time */
+                    occurrence: string;
+                    /** Format: date-time */
+                    occurrenceFin: string;
+                    motif: string;
+                    /**
+                     * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                     * @enum {unknown}
+                     */
+                    statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                    demandeePar: null | string;
+                    /** Format: date-time */
+                    demandeeLe: string;
+                    decideePar: null | string;
+                    /** Format: date-time */
+                    decideeLe: null | string;
+                    commentaire: string;
+                    peutDecider: boolean;
+                };
+            }[];
         };
         /**
          * @description Applications suivies. `DomainesSuivis` (facultatif) remplace la liste des domaines suivis : un domaine ajouté suit

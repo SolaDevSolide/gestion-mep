@@ -56,7 +56,35 @@ public static class SuiviEndpoints
             .ToList();
 
         return new SuiviDto(enCours, [.. prevues.Where(x => x.Dto.Date >= x.Jour && x.Dto.Date <= x.Jour.AddDays(1)).Select(x => x.Dto)],
-            prochaine, cloturees, maintenant);
+            prochaine, cloturees, maintenant, await DerogationsADecider(db, svc, utilisateurId));
+    }
+
+    /// <summary>
+    /// Demandes de dérogation au gel (#129) que <paramref name="utilisateurId"/> peut accorder ou refuser : MEP en préparation dont
+    /// il est approbateur désigné, mêmes règles que la décision elle-même (<see cref="ServiceCalendrier.PourMeps"/>). Les plus
+    /// anciennes demandes d'abord.
+    /// </summary>
+    public static async Task<List<DerogationEnAttenteDto>> DerogationsADecider(MepDbContext db, ServiceMep svc, Guid utilisateurId)
+    {
+        // Approbations et dérogations sont rangées en JSON : le tri se fait ici, sur les seules MEP en préparation.
+        var candidates = (await db.Meps.AsNoTracking().Where(m => !m.EstModele && m.Phase == Phase.Preparation)
+                .Select(m => new { m.Id, m.Approbations, m.DerogationsGel }).ToListAsync())
+            .Where(m => m.Approbations.Any(a => a.UtilisateurId == utilisateurId) && m.DerogationsGel.Any(d => d.Statut == StatutDerogation.Demandee))
+            .Select(m => m.Id).ToList();
+        if (candidates.Count == 0) return [];
+        var meps = await svc.ChargerPlusieurs(candidates);
+        var annuaire = await Personnes.Charger(db, avecEquipes: false);
+        var calendrier = await svc.Calendrier(meps, utilisateurId, annuaire);
+        return [.. meps.SelectMany(m =>
+        {
+            var c = calendrier[m.Id];
+            var pilote = m.Participants.FirstOrDefault(p => p.Id == m.PiloteId)?.Nom;
+            List<SystemeResumeDto> systemes = [.. m.Systemes.Select(s => new SystemeResumeDto(s.CatalogueId, s.Nom,
+                [.. s.Environnements.Select(e => new EnvironnementSystemeDto(e.Nom, e.Production))], 0))];
+            var nbEtapes = m.Etapes.Count(e => e.Plan == TypePlan.Deploiement);
+            return c.Derogations.Where(d => d.PeutDecider).Select(d => new DerogationEnAttenteDto(m.Id, m.Outil, m.VersionCible, m.Type,
+                c.Debut, c.Fin, c.JourneeEntiere, m.FuseauHoraire, pilote, systemes, nbEtapes, m.RetourArriereActive, d));
+        }).OrderBy(x => x.Derogation.DemandeeLe)];
     }
 
     /// <summary>Rapport de fin en classeur Excel (route et <c>gestion-mep meps excel &lt;id&gt; rapport</c>).</summary>

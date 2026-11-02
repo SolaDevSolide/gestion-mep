@@ -143,6 +143,38 @@ public sealed class ServiceCalendrier(MepDbContext db, TimeProvider temps)
         return resultat;
     }
 
+    // ---------- Liste des MEP ----------
+
+    private static readonly Phase[] PhasesSignalees = [Phase.Preparation, Phase.Execution, Phase.Recette, Phase.RetourArriere];
+
+    /// <summary>
+    /// Gels et conflits des MEP d'une page de la liste (cartes et tableau), pour celles qui en ont : MEP en préparation ou lancées
+    /// seulement (une MEP clôturée ou annulée n'a plus rien à signaler). Un nombre fixe de requêtes, quelle que soit la page.
+    /// </summary>
+    public async Task<List<SignalementCalendrierDto>> Signalements(IReadOnlyCollection<MepResumeDto> meps)
+    {
+        var parId = meps.Where(m => !m.EstModele && PhasesSignalees.Contains(m.Phase)).ToDictionary(m => m.Id);
+        if (parId.Count == 0) return [];
+        var ids = parId.Keys.ToList();
+        var fenetres = await db.Meps.AsNoTracking().Where(m => ids.Contains(m.Id) && m.Calendrier.Debut != null)
+            .Select(m => new { m.Id, Debut = m.Calendrier.Debut!.Value, m.Calendrier.Fin, m.DerogationsGel }).ToListAsync();
+        if (fenetres.Count == 0) return [];
+        var maintenant = Maintenant;
+        var periodes = await Periodes();
+        var elements = fenetres.Select(f =>
+        {
+            var r = parId[f.Id];
+            var enCours = Regles.EstLancee(r.Phase);
+            var systemes = r.Systemes.Select(VersSysteme).ToList();
+            var gels = Regles.GelsDuCreneau(f.Debut, Regles.FinEffective(f.Debut, f.Fin, enCours, maintenant), systemes, periodes)
+                .Select(o => Dto(o, f.DerogationsGel.LastOrDefault(d => d.PeriodeGelId == o.Periode.Id && d.Occurrence == o.Debut)?.Statut)).ToList();
+            return (f.Id, Gels: gels, Cible: new ElementCalendrier(f.Id, f.Debut, f.Fin, enCours, [.. systemes.Select(Regles.CleSysteme).Distinct()]));
+        }).ToList();
+        var conflits = await Conflits([.. elements.Select(e => e.Cible)]);
+        return [.. elements.Select(e => new SignalementCalendrierDto(e.Id, e.Gels, conflits.GetValueOrDefault(e.Id) ?? []))
+            .Where(s => s.Gels.Count > 0 || s.Conflits.Count > 0)];
+    }
+
     // ---------- Détail d'une MEP ----------
 
     /// <summary>

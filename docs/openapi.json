@@ -11332,6 +11332,206 @@
           }
         }
       },
+      "DerogationEnAttenteDto": {
+        "required": [
+          "mepId",
+          "outil",
+          "versionCible",
+          "type",
+          "debut",
+          "fin",
+          "journeeEntiere",
+          "fuseauHoraire",
+          "pilote",
+          "systemes",
+          "nbEtapes",
+          "retourArriereActive",
+          "derogation"
+        ],
+        "type": "object",
+        "properties": {
+          "mepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outil": {
+            "type": "string"
+          },
+          "versionCible": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "Complete",
+              "Simplifiee"
+            ],
+            "description": "Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).\nSimplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni\nrésolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la\nvaleur par défaut, est la MEP complète."
+          },
+          "debut": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "fin": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "journeeEntiere": {
+            "type": "boolean"
+          },
+          "fuseauHoraire": {
+            "type": "string"
+          },
+          "pilote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "systemes": {
+            "type": "array",
+            "items": {
+              "required": [
+                "catalogueId",
+                "nom",
+                "environnements",
+                "echecs"
+              ],
+              "type": "object",
+              "properties": {
+                "catalogueId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "nom": {
+                  "type": "string"
+                },
+                "environnements": {
+                  "type": "array",
+                  "items": {
+                    "required": [
+                      "nom",
+                      "production"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "nom": {
+                        "type": "string"
+                      },
+                      "production": {
+                        "type": "boolean"
+                      }
+                    },
+                    "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
+                  }
+                },
+                "echecs": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "description": "Système d'une MEP dans la liste : fiche du catalogue (`CatalogueId`, null pour un système saisi à la main),\nenvironnements touchés et `Echecs` survenus sur les étapes de ce système."
+            }
+          },
+          "nbEtapes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "retourArriereActive": {
+            "type": "boolean"
+          },
+          "derogation": {
+            "required": [
+              "id",
+              "periodeGelId",
+              "nomPeriode",
+              "occurrence",
+              "occurrenceFin",
+              "motif",
+              "statut",
+              "demandeePar",
+              "demandeeLe",
+              "decideePar",
+              "decideeLe",
+              "commentaire",
+              "peutDecider"
+            ],
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "periodeGelId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "nomPeriode": {
+                "type": "string"
+              },
+              "occurrence": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "occurrenceFin": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "motif": {
+                "type": "string"
+              },
+              "statut": {
+                "enum": [
+                  "Demandee",
+                  "Accordee",
+                  "Refusee",
+                  "Retiree"
+                ],
+                "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+              },
+              "demandeePar": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "demandeeLe": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "decideePar": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "decideeLe": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "commentaire": {
+                "type": "string"
+              },
+              "peutDecider": {
+                "type": "boolean"
+              }
+            },
+            "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+          }
+        },
+        "description": "Dérogation au gel qui attend la décision de la personne qui lit (« Suivi en direct ») : la MEP, son créneau prévu\n(`Debut` null : sans date) et ses systèmes, et la demande elle-même (`PeutDecider` toujours vrai ici)."
+      },
       "DerogationGelDto": {
         "required": [
           "id",
@@ -20867,7 +21067,8 @@
           "meps",
           "total",
           "ensemble",
-          "suivant"
+          "suivant",
+          "signalements"
         ],
         "type": "object",
         "properties": {
@@ -20890,9 +21091,15 @@
               "null",
               "string"
             ]
+          },
+          "signalements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SignalementCalendrierDto"
+            }
           }
         },
-        "description": "Page de la liste des MEP (`GET /meps/page`) : `Meps`, la page ; `Total`, le nombre de MEP qui correspondent\naux filtres ; `Ensemble`, le nombre de MEP (ou de modèles) sans filtre ; `Suivant`, le curseur à passer dans\n`apres` pour la page suivante (null : c'était la dernière)."
+        "description": "Page de la liste des MEP (`GET /meps/page`) : `Meps`, la page ; `Total`, le nombre de MEP qui correspondent\naux filtres ; `Ensemble`, le nombre de MEP (ou de modèles) sans filtre ; `Suivant`, le curseur à passer dans\n`apres` pour la page suivante (null : c'était la dernière) ; `Signalements` (#129), gels et conflits des MEP de la\npage qui en ont."
       },
       "ParametresDto": {
         "required": [
@@ -28018,6 +28225,33 @@
           null
         ]
       },
+      "SignalementCalendrierDto": {
+        "required": [
+          "mepId",
+          "gels",
+          "conflits"
+        ],
+        "type": "object",
+        "properties": {
+          "mepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OccurrenceGelDto"
+            }
+          },
+          "conflits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConflitDto"
+            }
+          }
+        },
+        "description": "Signalements du calendrier d'une MEP de la liste (cartes et tableau) : `Gels`, occurrences de gel qui touchent son\ncréneau (avec l'état de la dérogation) ; `Conflits`, autres MEP sur un même système au même moment. Seules les MEP\nqui ont au moins un signalement figurent dans List&lt;SignalementCalendrierDto&gt; PageMepsDto.Signalements."
+      },
       "SimulationSaisie": {
         "required": [
           "actif"
@@ -28436,7 +28670,8 @@
           "prevues",
           "prochaine",
           "cloturees",
-          "maintenant"
+          "maintenant",
+          "derogations"
         ],
         "type": "object",
         "properties": {
@@ -30857,9 +31092,212 @@
           "maintenant": {
             "type": "string",
             "format": "date-time"
+          },
+          "derogations": {
+            "type": "array",
+            "items": {
+              "required": [
+                "mepId",
+                "outil",
+                "versionCible",
+                "type",
+                "debut",
+                "fin",
+                "journeeEntiere",
+                "fuseauHoraire",
+                "pilote",
+                "systemes",
+                "nbEtapes",
+                "retourArriereActive",
+                "derogation"
+              ],
+              "type": "object",
+              "properties": {
+                "mepId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "outil": {
+                  "type": "string"
+                },
+                "versionCible": {
+                  "type": "string"
+                },
+                "type": {
+                  "enum": [
+                    "Complete",
+                    "Simplifiee"
+                  ],
+                  "description": "Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).\nSimplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni\nrésolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la\nvaleur par défaut, est la MEP complète."
+                },
+                "debut": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                },
+                "fin": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                },
+                "journeeEntiere": {
+                  "type": "boolean"
+                },
+                "fuseauHoraire": {
+                  "type": "string"
+                },
+                "pilote": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "systemes": {
+                  "type": "array",
+                  "items": {
+                    "required": [
+                      "catalogueId",
+                      "nom",
+                      "environnements",
+                      "echecs"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "catalogueId": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "format": "uuid"
+                      },
+                      "nom": {
+                        "type": "string"
+                      },
+                      "environnements": {
+                        "type": "array",
+                        "items": {
+                          "required": [
+                            "nom",
+                            "production"
+                          ],
+                          "type": "object",
+                          "properties": {
+                            "nom": {
+                              "type": "string"
+                            },
+                            "production": {
+                              "type": "boolean"
+                            }
+                          },
+                          "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
+                        }
+                      },
+                      "echecs": {
+                        "type": "integer",
+                        "format": "int32"
+                      }
+                    },
+                    "description": "Système d'une MEP dans la liste : fiche du catalogue (`CatalogueId`, null pour un système saisi à la main),\nenvironnements touchés et `Echecs` survenus sur les étapes de ce système."
+                  }
+                },
+                "nbEtapes": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "retourArriereActive": {
+                  "type": "boolean"
+                },
+                "derogation": {
+                  "required": [
+                    "id",
+                    "periodeGelId",
+                    "nomPeriode",
+                    "occurrence",
+                    "occurrenceFin",
+                    "motif",
+                    "statut",
+                    "demandeePar",
+                    "demandeeLe",
+                    "decideePar",
+                    "decideeLe",
+                    "commentaire",
+                    "peutDecider"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "periodeGelId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "nomPeriode": {
+                      "type": "string"
+                    },
+                    "occurrence": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "occurrenceFin": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "motif": {
+                      "type": "string"
+                    },
+                    "statut": {
+                      "enum": [
+                        "Demandee",
+                        "Accordee",
+                        "Refusee",
+                        "Retiree"
+                      ],
+                      "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                    },
+                    "demandeePar": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "demandeeLe": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "decideePar": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "decideeLe": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    },
+                    "commentaire": {
+                      "type": "string"
+                    },
+                    "peutDecider": {
+                      "type": "boolean"
+                    }
+                  },
+                  "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+                }
+              },
+              "description": "Dérogation au gel qui attend la décision de la personne qui lit (« Suivi en direct ») : la MEP, son créneau prévu\n(`Debut` null : sans date) et ses systèmes, et la demande elle-même (`PeutDecider` toujours vrai ici)."
+            }
           }
         },
-        "description": "Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur\navancement par le navigateur ; MEP prévues aujourd'hui ou demain (date annoncée) et la prochaine à venir ; MEP clôturées\ndepuis moins de 24 heures. `Maintenant` : heure du serveur."
+        "description": "Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur\navancement par le navigateur ; MEP prévues aujourd'hui ou demain (date annoncée) et la prochaine à venir ; MEP clôturées\ndepuis moins de 24 heures. `Maintenant` : heure du serveur. `Derogations` (#129) : demandes de dérogation au gel\nque la personne qui lit peut accorder ou refuser."
       },
       "SuiviLiaisonSaisie": {
         "required": [

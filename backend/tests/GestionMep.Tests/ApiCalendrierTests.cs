@@ -134,9 +134,16 @@ public class ApiCalendrierTests : IDisposable
         Assert.Equal(HttpStatusCode.Forbidden, (await alice.PostAsJsonAsync($"/api/meps/{id}/derogations-gel/{derogationId}/decision", new { accorder = true })).StatusCode);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await claire.PostAsJsonAsync($"/api/meps/{id}/derogations-gel/{derogationId}/decision", new { accorder = false })).StatusCode);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Execution", criteresCoches = criteres })).StatusCode);
+        // Suivi en direct : la demande attend Claire, pas Alice (qui l'a faite).
+        var aDecider = (await Ok(await claire.GetAsync("/api/suivi"))).GetProperty("derogations").EnumerateArray().ToList();
+        Assert.Equal([derogationId], aDecider.Select(x => x.GetProperty("derogation").GetProperty("id").GetGuid()));
+        Assert.Equal(id, aDecider[0].GetProperty("mepId").GetGuid());
+        Assert.Equal("Correctif de sécurité", aDecider[0].GetProperty("derogation").GetProperty("motif").GetString());
+        Assert.Empty((await Ok(await alice.GetAsync("/api/suivi"))).GetProperty("derogations").EnumerateArray());
         var accordee = await Ok(await claire.PostAsJsonAsync($"/api/meps/{id}/derogations-gel/{derogationId}/decision", new { accorder = true, commentaire = "Risque accepté" }));
         Assert.Equal("Accordee", accordee.GetProperty("calendrier").GetProperty("derogations")[0].GetProperty("statut").GetString());
         Assert.Empty(accordee.GetProperty("calendrier").GetProperty("gelsAuGo").EnumerateArray());
+        Assert.Empty((await Ok(await claire.GetAsync("/api/suivi"))).GetProperty("derogations").EnumerateArray());
 
         var go = await Ok(await alice.PostAsJsonAsync($"/api/meps/{id}/phase", new { phase = "Execution", criteresCoches = criteres }));
         Assert.Equal("Execution", go.GetProperty("phase").GetString());
@@ -193,6 +200,13 @@ public class ApiCalendrierTests : IDisposable
         Assert.Equal(HttpStatusCode.BadRequest, (await bob.GetAsync($"/api/calendrier?du=2026-01-01&au=2027-06-01")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await bob.GetAsync($"/api/calendrier?du={du}&fuseau=Mars/Olympus")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await bob.GetAsync($"/api/calendrier?du={du}&limite=501")).StatusCode);
+
+        // Liste des MEP (cartes et tableau) : mêmes signalements, seulement pour les MEP qui en ont.
+        var liste = await Ok(await bob.GetAsync("/api/meps/page?modele=false&recherche=Calendrier"));
+        var signalements = liste.GetProperty("signalements").EnumerateArray().ToDictionary(x => x.GetProperty("mepId").GetGuid());
+        Assert.Equal(new[] { a, b }.Order(), signalements.Keys.Order());
+        Assert.Equal([b], signalements[a].GetProperty("conflits").EnumerateArray().Select(x => x.GetProperty("mepId").GetGuid()));
+        Assert.Equal("Inventaire", signalements[a].GetProperty("gels")[0].GetProperty("nom").GetString());
 
         // Détail de la MEP : même créneau, même conflit, même gel (signalé, jamais bloquant pour la modification).
         var detail = (await Ok(await bob.GetAsync($"/api/meps/{b}"))).GetProperty("calendrier");

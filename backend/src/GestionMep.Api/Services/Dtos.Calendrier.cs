@@ -40,6 +40,21 @@ public record DerogationGelDto(Guid Id, Guid PeriodeGelId, string NomPeriode, Da
     string Commentaire, bool PeutDecider);
 
 /// <summary>
+/// Signalements du calendrier d'une MEP de la liste (cartes et tableau) : <c>Gels</c>, occurrences de gel qui touchent son
+/// créneau (avec l'état de la dérogation) ; <c>Conflits</c>, autres MEP sur un même système au même moment. Seules les MEP
+/// qui ont au moins un signalement figurent dans <see cref="PageMepsDto.Signalements"/>.
+/// </summary>
+public record SignalementCalendrierDto(Guid MepId, List<OccurrenceGelDto> Gels, List<ConflitDto> Conflits);
+
+/// <summary>
+/// Dérogation au gel qui attend la décision de la personne qui lit (« Suivi en direct ») : la MEP, son créneau prévu
+/// (<c>Debut</c> null : sans date) et ses systèmes, et la demande elle-même (<c>PeutDecider</c> toujours vrai ici).
+/// </summary>
+public record DerogationEnAttenteDto(Guid MepId, string Outil, string VersionCible, TypeMep Type, DateTimeOffset? Debut, DateTimeOffset? Fin,
+    bool JourneeEntiere, string FuseauHoraire, string? Pilote, List<SystemeResumeDto> Systemes, int NbEtapes, bool RetourArriereActive,
+    DerogationGelDto Derogation);
+
+/// <summary>
 /// Place de la MEP dans le calendrier (détail d'une MEP). <c>Debut</c> null : MEP sans date prévue (absente du calendrier).
 /// <c>Prevu</c> : créneau prévu (pas encore lancée) ; <c>EnCours</c> : lancée, elle s'étend au moins jusqu'à maintenant.
 /// <c>Gels</c> : occurrences de gel qui touchent le créneau ; <c>GelsAuGo</c> : celles qu'un Go donné maintenant toucherait sans

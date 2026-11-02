@@ -52,9 +52,10 @@ public record MepResumeDto(Guid Id, string Outil, string VersionCible, string Ob
 /// <summary>
 /// Page de la liste des MEP (<c>GET /meps/page</c>) : <c>Meps</c>, la page ; <c>Total</c>, le nombre de MEP qui correspondent
 /// aux filtres ; <c>Ensemble</c>, le nombre de MEP (ou de modèles) sans filtre ; <c>Suivant</c>, le curseur à passer dans
-/// <c>apres</c> pour la page suivante (null : c'était la dernière).
+/// <c>apres</c> pour la page suivante (null : c'était la dernière) ; <c>Signalements</c> (#129), gels et conflits des MEP de la
+/// page qui en ont.
 /// </summary>
-public record PageMepsDto(List<MepResumeDto> Meps, int Total, int Ensemble, string? Suivant);
+public record PageMepsDto(List<MepResumeDto> Meps, int Total, int Ensemble, string? Suivant, List<SignalementCalendrierDto> Signalements);
 
 /// <summary>
 /// Comptes de la barre de filtres de la liste (<c>GET /meps/facettes</c>), avec les filtres en cours : pour chaque valeur d'un
@@ -360,10 +361,11 @@ public record EvenementDto(long Id, DateTimeOffset Quand, string Auteur, string 
 /// <summary>
 /// Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur
 /// avancement par le navigateur ; MEP prévues aujourd'hui ou demain (date annoncée) et la prochaine à venir ; MEP clôturées
-/// depuis moins de 24 heures. <c>Maintenant</c> : heure du serveur.
+/// depuis moins de 24 heures. <c>Maintenant</c> : heure du serveur. <c>Derogations</c> (#129) : demandes de dérogation au gel
+/// que la personne qui lit peut accorder ou refuser.
 /// </summary>
 public record SuiviDto(List<MepDto> EnCours, List<MepPrevueDto> Prevues, MepPrevueDto? Prochaine, List<MepClotureeDto> Cloturees,
-    DateTimeOffset Maintenant);
+    DateTimeOffset Maintenant, List<DerogationEnAttenteDto> Derogations);
 
 /// <summary>MEP en préparation au créneau annoncé (Communication) ; <c>Debut</c> : date et heure annoncées (minuit sans heure).</summary>
 public record MepPrevueDto(Guid Id, string Outil, string VersionCible, TypeMep Type, DateOnly Date, TimeOnly? Heure, DateTimeOffset Debut,

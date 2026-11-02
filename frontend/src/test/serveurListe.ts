@@ -23,6 +23,7 @@ export function page(toutes: MepResume[], p: URLSearchParams, apres?: string | n
     total: resultats.length,
     ensemble: toutes.length,
     suivant: debut + limite < resultats.length ? String(debut + limite) : null,
+    signalements: [],
   };
 }
 
