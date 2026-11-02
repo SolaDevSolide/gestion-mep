@@ -1490,6 +1490,10 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.PrimitiveCollection<List<Guid>>("ApprobateurIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
+
                     b.Property<DateTimeOffset>("CreeeLe")
                         .HasColumnType("timestamp with time zone");
 
@@ -1499,6 +1503,10 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<string>("Environnements")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.PrimitiveCollection<List<Guid>>("EquipeApprobatriceIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
 
                     b.Property<DateTimeOffset>("Fin")
                         .HasColumnType("timestamp with time zone");

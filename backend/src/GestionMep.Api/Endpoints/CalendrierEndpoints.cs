@@ -106,14 +106,16 @@ public static class CalendrierEndpoints
             return await svc.Enregistrer(mep, acteur, "gel.derogation.demandee", $"Dérogation demandée pour la période de gel {Regles.DecrireOccurrence(o)} : {d.Motif}");
         })));
 
-        // Décision : approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur ; refus commenté.
+        // Décision : approbateur de la période (les administrateurs par défaut), ni pilote, ni suppléant, ni responsable technique
+        // de la MEP, ni demandeur ; refus commenté.
         api.MapPost("/meps/{id:guid}/derogations-gel/{derogationId:guid}/decision", async (Guid id, Guid derogationId, DecisionDerogationSaisie s,
             ClaimsPrincipal user, ServiceMep svc, MepDbContext db) => Results.Ok(await svc.Modifier(id, async mep =>
         {
             var acteur = Acteur.Depuis(user);
             var d = mep.DerogationsGel.FirstOrDefault(x => x.Id == derogationId) ?? throw ErreurHttp.NonTrouve("Dérogation introuvable.");
             var commentaire = ServiceMep.Texte(s.Commentaire);
-            Regles.DeciderDerogation(mep, acteur.Id, d, s.Accorder, commentaire, svc.Maintenant, await Personnes.Charger(db, avecEquipes: false));
+            var periode = await db.PeriodesGel.AsNoTracking().FirstOrDefaultAsync(p => p.Id == d.PeriodeGelId);
+            Regles.DeciderDerogation(mep, acteur.Id, acteur.EstAdmin, periode, d, s.Accorder, commentaire, svc.Maintenant, await Personnes.Charger(db));
             var detail = $"Dérogation {(s.Accorder ? "accordée" : "refusée")} pour la période de gel « {d.NomPeriode} »"
                 + (commentaire.Length > 0 ? $" : {commentaire}" : "");
             return await svc.Enregistrer(mep, acteur, s.Accorder ? "gel.derogation.accordee" : "gel.derogation.refusee", detail);

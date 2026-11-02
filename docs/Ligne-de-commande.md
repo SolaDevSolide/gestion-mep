@@ -1671,12 +1671,14 @@ Crée une période de gel : aucun Go n'y est donné sans dérogation accordée.
 | `--repetition aucune\|hebdomadaire\|mensuelle\|fin-de-mois\|annuelle` | Répétition (fin-de-mois : même écart avec le dernier jour du mois) |
 | `--jusqu-au AAAA-MM-JJ` | Dernier jour où une répétition peut commencer |
 | `--fuseau <IANA>` | Fuseau des heures saisies (défaut Europe/Paris) |
+| `--approbateur <login>` | Compte qui décide des dérogations (répétable ; absent, comme --equipe-approbatrice : les administrateurs) |
+| `--equipe-approbatrice <équipe>` | Équipe dont chaque membre décide des dérogations (répétable) |
 
 Sortie `--json` : enveloppe { code, messages, avertissements, resultat } ; resultat : la période, comme GET /api/periodes-gel.
 
 ```bash
 gestion-mep periodes-gel creer "Fêtes de fin d'année" --debut 2026-12-20 --fin 2027-01-04 --production --motif "Activité commerciale"
-gestion-mep periodes-gel creer "Clôture comptable" --debut "2026-11-28 18:00" --fin "2026-12-02 08:00" --systeme BDD --repetition fin-de-mois
+gestion-mep periodes-gel creer "Clôture comptable" --debut "2026-11-28 18:00" --fin "2026-12-02 08:00" --systeme BDD --repetition fin-de-mois --approbateur claire
 ```
 
 #### `periodes-gel supprimer`

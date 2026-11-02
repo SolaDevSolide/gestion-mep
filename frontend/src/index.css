@@ -368,6 +368,14 @@
 .activite {
   animation: activite 1.1s ease-in-out infinite;
 }
+/* Calendrier (#129) : jours et créneaux couverts par une période de gel, hachurés dans la couleur « en cours » de la charte. */
+.hachures-gel {
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--run-solid) 16%, transparent) 0 5px,
+    transparent 5px 11px
+  );
+}
 /* Graphe : repli et dépli d'une section. Les nœuds qui vont paraître sont d'abord mesurés en invisible (`noeud-mesure`,
    copies posées dans un nœud affiché, puis `noeud-cache`) ; le graphe affiché ne bouge pas d'ici là, et le bouton de la
    section signale l'attente (`attente-section`, après un court délai). Puis un seul mouvement : le cadre s'ouvre ou se

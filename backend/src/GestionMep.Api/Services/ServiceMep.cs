@@ -46,6 +46,8 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         m.Phase, m.EstModele, m.Outil, m.VersionCible, m.Type, m.Issue, m.ClotureeLe, Echecs = m.EchecsEtapes + m.EchecsRecette,
         Pilote = m.Participants.FirstOrDefault(p => p.Id == m.PiloteId)?.Nom, Reportee = m.Report is not null,
         m.Communication.DateAnnoncee, m.Communication.HeureDebutAnnoncee, m.FuseauHoraire,
+        // Dérogations au gel à décider (#129) : le suivi les montre à leurs approbateurs.
+        Derogations = m.DerogationsGel.Select(d => new { d.Id, d.Statut }),
     });
 
     private void Relever(Mep mep) => _releves[mep.Id] = new Releve(BlocsMep.Relever(mep), EstEnCours(mep), EmpreinteSuivi(mep));
@@ -365,6 +367,10 @@ public class ServiceMep(MepDbContext db, TimeProvider temps, DiffuseurMep diffus
         await db.ModelesRecette.Where(m => ids.Contains(m.Id)).ExecuteUpdateAsync(s => s.SetProperty(m => m.Utilisations, m => m.Utilisations + 1));
         await db.ResolutionsTypes.Where(r => ids.Contains(r.Id)).ExecuteUpdateAsync(s => s.SetProperty(r => r.Utilisations, r => r.Utilisations + 1));
     }
+
+    /// <summary>Place de ces MEP dans le calendrier, vue par <paramref name="utilisateurId"/> (#129), à l'heure de ce service.</summary>
+    public Task<Dictionary<Guid, CalendrierMepDto>> Calendrier(IReadOnlyList<Mep> meps, Guid? utilisateurId, AnnuairePersonnes annuaire) =>
+        new ServiceCalendrier(db, temps).PourMeps(meps, utilisateurId, annuaire);
 
     public async Task<MepDto> VersDto(Mep mep, Guid? utilisateurId) => (await VersDtos([mep], utilisateurId))[0];
 

@@ -11,6 +11,7 @@ import { bilanRecette, deploiementReussi, etapesDuPlan } from '../domaine';
 import type { CritereGoNoGo } from '../types';
 import { ClotureDialog } from './ClotureDialog';
 import { GoNoGoDialog } from './GoNoGoDialog';
+import { BlocageGoGel, raisonGoBloque } from './gel/GelMep';
 
 /** Décision Go / no-go (remplace l'ancien « Passer en exécution »). */
 export function BoutonGoNoGo({ taille = 'sm', lien = false }: { taille?: TailleBouton; lien?: boolean }) {
@@ -92,6 +93,8 @@ export function BoutonGoNoGo({ taille = 'sm', lien = false }: { taille?: TailleB
         criteres={criteres ?? []}
         erreursPlan={mep.erreursPlan}
         avertissements={mep.avertissements}
+        blocage={<BlocageGoGel />}
+        goBloque={raisonGoBloque(mep)}
         onGo={(ids) => run(() => api.go(mep.id, ids), 'Go : la MEP est en exécution.')}
         onNoGo={(motif, report) =>
           run(

@@ -146,7 +146,7 @@ En ligne de commande : `gestion-mep liaison appairer | liste | confirmer | synch
 
 ### Périodes de gel
 
-Les périodes de gel (clôture comptable, fin d'année…) bloquent le Go des MEP concernées, sauf dérogation accordée par un approbateur. Elles se gèrent par l'API (`/api/admin/periodes-gel`) ou en ligne de commande (`gestion-mep periodes-gel creer | lister | supprimer`). Voir [Calendrier et périodes de gel](Calendrier-et-gel.md).
+Les périodes de gel (clôture comptable, fin d'année…) bloquent le Go des MEP concernées, sauf dérogation accordée par un approbateur. Elles se gèrent dans **Paramètres › Périodes de gel** (nom, motif, dates, répétition, systèmes et environnements concernés, personnes et équipes qui accordent les dérogations, les administrateurs à défaut, prochaine occurrence et MEP touchées), par l'API (`/api/admin/periodes-gel`) ou en ligne de commande (`gestion-mep periodes-gel creer | lister | supprimer`, `--approbateur` et `--equipe-approbatrice` pour les approbateurs). Voir [Calendrier et périodes de gel](Calendrier-et-gel.md).
 
 ### Journal
 

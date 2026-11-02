@@ -9312,7 +9312,8 @@ export interface components {
                 fuseauHoraire: string;
                 globale: boolean;
                 /** @enum {unknown} */
-                derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                decideurs?: null | string;
             }[];
             gelsAuGo: {
                 /** Format: uuid */
@@ -9326,7 +9327,8 @@ export interface components {
                 fuseauHoraire: string;
                 globale: boolean;
                 /** @enum {unknown} */
-                derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                decideurs?: null | string;
             }[];
             conflits: {
                 /** Format: uuid */
@@ -9360,10 +9362,11 @@ export interface components {
                 occurrenceFin: string;
                 motif: string;
                 /**
-                 * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                 * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la
+                 *     date de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande.
                  * @enum {unknown}
                  */
-                statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                statut: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque";
                 demandeePar: null | string;
                 /** Format: date-time */
                 demandeeLe: string;
@@ -9862,8 +9865,79 @@ export interface components {
             impact: null | string;
         };
         /**
+         * @description Dérogation au gel qui attend la décision de la personne qui lit (« Suivi en direct ») : la MEP, son créneau prévu
+         *     (`Debut` null : sans date) et ses systèmes, et la demande elle-même (`PeutDecider` toujours vrai ici).
+         */
+        DerogationEnAttenteDto: {
+            /** Format: uuid */
+            mepId: string;
+            outil: string;
+            versionCible: string;
+            /**
+             * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+             *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+             *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+             *     valeur par défaut, est la MEP complète.
+             * @enum {unknown}
+             */
+            type: "Complete" | "Simplifiee";
+            /** Format: date-time */
+            debut: null | string;
+            /** Format: date-time */
+            fin: null | string;
+            journeeEntiere: boolean;
+            fuseauHoraire: string;
+            pilote: null | string;
+            systemes: {
+                /** Format: uuid */
+                catalogueId: null | string;
+                nom: string;
+                environnements: {
+                    nom: string;
+                    production: boolean;
+                }[];
+                /** Format: int32 */
+                echecs: number;
+            }[];
+            /** Format: int32 */
+            nbEtapes: number;
+            retourArriereActive: boolean;
+            /**
+             * @description Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui
+             *     lit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).
+             *     `Statut` Caduque : la date de la MEP a changé depuis la demande ; elle se redemande.
+             */
+            derogation: {
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                periodeGelId: string;
+                nomPeriode: string;
+                /** Format: date-time */
+                occurrence: string;
+                /** Format: date-time */
+                occurrenceFin: string;
+                motif: string;
+                /**
+                 * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la
+                 *     date de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande.
+                 * @enum {unknown}
+                 */
+                statut: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque";
+                demandeePar: null | string;
+                /** Format: date-time */
+                demandeeLe: string;
+                decideePar: null | string;
+                /** Format: date-time */
+                decideeLe: null | string;
+                commentaire: string;
+                peutDecider: boolean;
+            };
+        };
+        /**
          * @description Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui
-         *     lit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur).
+         *     lit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).
+         *     `Statut` Caduque : la date de la MEP a changé depuis la demande ; elle se redemande.
          */
         DerogationGelDto: {
             /** Format: uuid */
@@ -9877,10 +9951,11 @@ export interface components {
             occurrenceFin: string;
             motif: string;
             /**
-             * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+             * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la
+             *     date de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande.
              * @enum {unknown}
              */
-            statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+            statut: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque";
             demandeePar: null | string;
             /** Format: date-time */
             demandeeLe: string;
@@ -10162,7 +10237,8 @@ export interface components {
                 fuseauHoraire: string;
                 globale: boolean;
                 /** @enum {unknown} */
-                derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                decideurs?: null | string;
             }[];
         };
         /** @description Résultat de « Essayer » : la requête, la tentative (code ou erreur, extrait de réponse de 4 Ko au plus). */
@@ -11237,7 +11313,8 @@ export interface components {
                         fuseauHoraire: string;
                         globale: boolean;
                         /** @enum {unknown} */
-                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                        decideurs?: null | string;
                     }[];
                     gelsAuGo: {
                         /** Format: uuid */
@@ -11251,7 +11328,8 @@ export interface components {
                         fuseauHoraire: string;
                         globale: boolean;
                         /** @enum {unknown} */
-                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                        decideurs?: null | string;
                     }[];
                     conflits: {
                         /** Format: uuid */
@@ -11285,10 +11363,11 @@ export interface components {
                         occurrenceFin: string;
                         motif: string;
                         /**
-                         * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                         * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la
+                         *     date de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande.
                          * @enum {unknown}
                          */
-                        statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                        statut: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque";
                         demandeePar: null | string;
                         /** Format: date-time */
                         demandeeLe: string;
@@ -12133,7 +12212,8 @@ export interface components {
                     fuseauHoraire: string;
                     globale: boolean;
                     /** @enum {unknown} */
-                    derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                    derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                    decideurs?: null | string;
                 }[];
                 gelsAuGo: {
                     /** Format: uuid */
@@ -12147,7 +12227,8 @@ export interface components {
                     fuseauHoraire: string;
                     globale: boolean;
                     /** @enum {unknown} */
-                    derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                    derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                    decideurs?: null | string;
                 }[];
                 conflits: {
                     /** Format: uuid */
@@ -12181,10 +12262,11 @@ export interface components {
                     occurrenceFin: string;
                     motif: string;
                     /**
-                     * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                     * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la
+                     *     date de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande.
                      * @enum {unknown}
                      */
-                    statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                    statut: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque";
                     demandeePar: null | string;
                     /** Format: date-time */
                     demandeeLe: string;
@@ -12572,7 +12654,8 @@ export interface components {
         };
         /**
          * @description Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP
-         *     pour cette occurrence (null : aucune, ou hors d'une MEP).
+         *     pour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair
+         *     (détail d'une MEP seulement ; null ailleurs).
          */
         OccurrenceGelDto: {
             /** Format: uuid */
@@ -12586,6 +12669,7 @@ export interface components {
             fuseauHoraire: string;
             globale: boolean;
             derogation?: null | components["schemas"]["StatutDerogation"];
+            decideurs?: null | string;
         };
         /**
          * @description Optimisation des liens d'un plan : la liste des liens redondants montrée à la personne (voir `liens/redondants`).
@@ -12650,7 +12734,8 @@ export interface components {
         /**
          * @description Page de la liste des MEP (`GET /meps/page`) : `Meps`, la page ; `Total`, le nombre de MEP qui correspondent
          *     aux filtres ; `Ensemble`, le nombre de MEP (ou de modèles) sans filtre ; `Suivant`, le curseur à passer dans
-         *     `apres` pour la page suivante (null : c'était la dernière).
+         *     `apres` pour la page suivante (null : c'était la dernière) ; `Signalements` (#129), gels et conflits des MEP de la
+         *     page qui en ont.
          */
         PageMepsDto: {
             meps: components["schemas"]["MepResumeDto"][];
@@ -12659,6 +12744,7 @@ export interface components {
             /** Format: int32 */
             ensemble: number;
             suivant: null | string;
+            signalements: components["schemas"]["SignalementCalendrierDto"][];
         };
         ParametresDto: {
             /** Format: int32 */
@@ -12689,6 +12775,8 @@ export interface components {
          * @description Période de gel (#129). `Debut` et `Fin` (exclue) : première occurrence, en UTC. `SystemeCatalogueIds` vide :
          *     tous les systèmes ; `Environnements` vide : tous. `Recurrence` : répétition dans `FuseauHoraire`, jusqu'au
          *     jour local `FinRecurrence` (null : sans fin). `Systemes` : noms des systèmes concernés, pour l'affichage.
+         *     `ApprobateurIds`, `EquipeApprobatriceIds` : comptes et équipes qui décident des dérogations (vides : les
+         *     administrateurs) ; `Decideurs` : qui décide, en clair (« Claire Durand, équipe Comptabilité », « les administrateurs »).
          */
         PeriodeGelDto: {
             /** Format: uuid */
@@ -12707,6 +12795,9 @@ export interface components {
             /** Format: date */
             finRecurrence: null | string;
             fuseauHoraire: string;
+            approbateurIds: string[];
+            equipeApprobatriceIds: string[];
+            decideurs: string;
             /** Format: int32 */
             version: number;
             /** Format: date-time */
@@ -12717,7 +12808,8 @@ export interface components {
         /**
          * @description Création ou modification d'une période de gel (administrateurs). Instants ISO 8601 avec leur décalage (enregistrés en UTC).
          *     Absents : `SystemeCatalogueIds` et `Environnements` vides (tous), `Recurrence` Aucune, `FuseauHoraire`
-         *     celui de l'instance. `Version` : obligatoire en modification (409 si la période a changé depuis sa lecture).
+         *     celui de l'instance, `ApprobateurIds` et `EquipeApprobatriceIds` vides (les administrateurs décident).
+         *     `Version` : obligatoire en modification (409 si la période a changé depuis sa lecture).
          */
         PeriodeGelSaisie: {
             nom: null | string;
@@ -12735,6 +12827,8 @@ export interface components {
             fuseauHoraire: null | string;
             /** Format: int32 */
             version?: null | number;
+            approbateurIds?: null | string[];
+            equipeApprobatriceIds?: null | string[];
         };
         /**
          * @description Phase de la MEP. Stockée en entier : toute nouvelle valeur s'ajoute à la fin. Phase.Annulee : MEP arrêtée depuis la
@@ -13657,7 +13751,8 @@ export interface components {
                         fuseauHoraire: string;
                         globale: boolean;
                         /** @enum {unknown} */
-                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                        decideurs?: null | string;
                     }[];
                     gelsAuGo: {
                         /** Format: uuid */
@@ -13671,7 +13766,8 @@ export interface components {
                         fuseauHoraire: string;
                         globale: boolean;
                         /** @enum {unknown} */
-                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                        decideurs?: null | string;
                     }[];
                     conflits: {
                         /** Format: uuid */
@@ -13705,10 +13801,11 @@ export interface components {
                         occurrenceFin: string;
                         motif: string;
                         /**
-                         * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                         * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la
+                         *     date de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande.
                          * @enum {unknown}
                          */
-                        statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                        statut: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque";
                         demandeePar: null | string;
                         /** Format: date-time */
                         demandeeLe: string;
@@ -14630,7 +14727,8 @@ export interface components {
                         fuseauHoraire: string;
                         globale: boolean;
                         /** @enum {unknown} */
-                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                        decideurs?: null | string;
                     }[];
                     gelsAuGo: {
                         /** Format: uuid */
@@ -14644,7 +14742,8 @@ export interface components {
                         fuseauHoraire: string;
                         globale: boolean;
                         /** @enum {unknown} */
-                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                        decideurs?: null | string;
                     }[];
                     conflits: {
                         /** Format: uuid */
@@ -14678,10 +14777,11 @@ export interface components {
                         occurrenceFin: string;
                         motif: string;
                         /**
-                         * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                         * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la
+                         *     date de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande.
                          * @enum {unknown}
                          */
-                        statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                        statut: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque";
                         demandeePar: null | string;
                         /** Format: date-time */
                         demandeeLe: string;
@@ -14748,6 +14848,17 @@ export interface components {
         };
         /** @enum {unknown} */
         SensPort: "Entree" | "Sortie" | null;
+        /**
+         * @description Signalements du calendrier d'une MEP de la liste (cartes et tableau) : `Gels`, occurrences de gel qui touchent son
+         *     créneau (avec l'état de la dérogation) ; `Conflits`, autres MEP sur un même système au même moment. Seules les MEP
+         *     qui ont au moins un signalement figurent dans List&lt;SignalementCalendrierDto&gt; PageMepsDto.Signalements.
+         */
+        SignalementCalendrierDto: {
+            /** Format: uuid */
+            mepId: string;
+            gels: components["schemas"]["OccurrenceGelDto"][];
+            conflits: components["schemas"]["ConflitDto"][];
+        };
         /** @description Lancer (`actif` vrai) ou arrêter la simulation de collègues. */
         SimulationSaisie: {
             actif: boolean;
@@ -14836,7 +14947,7 @@ export interface components {
             detail: string;
         };
         /** @enum {unknown} */
-        StatutDerogation: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+        StatutDerogation: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
         /** @enum {unknown} */
         StatutResolution: "EnCours" | "Reussie" | "Echouee" | null;
         /** @enum {unknown} */
@@ -14863,7 +14974,8 @@ export interface components {
         /**
          * @description Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur
          *     avancement par le navigateur ; MEP prévues aujourd'hui ou demain (date annoncée) et la prochaine à venir ; MEP clôturées
-         *     depuis moins de 24 heures. `Maintenant` : heure du serveur.
+         *     depuis moins de 24 heures. `Maintenant` : heure du serveur. `Derogations` (#129) : demandes de dérogation au gel
+         *     que la personne qui lit peut accorder ou refuser.
          */
         SuiviDto: {
             enCours: {
@@ -15438,7 +15550,8 @@ export interface components {
                         fuseauHoraire: string;
                         globale: boolean;
                         /** @enum {unknown} */
-                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                        decideurs?: null | string;
                     }[];
                     gelsAuGo: {
                         /** Format: uuid */
@@ -15452,7 +15565,8 @@ export interface components {
                         fuseauHoraire: string;
                         globale: boolean;
                         /** @enum {unknown} */
-                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | null;
+                        derogation?: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque" | null;
+                        decideurs?: null | string;
                     }[];
                     conflits: {
                         /** Format: uuid */
@@ -15486,10 +15600,11 @@ export interface components {
                         occurrenceFin: string;
                         motif: string;
                         /**
-                         * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.
+                         * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la
+                         *     date de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande.
                          * @enum {unknown}
                          */
-                        statut: "Demandee" | "Accordee" | "Refusee" | "Retiree";
+                        statut: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque";
                         demandeePar: null | string;
                         /** Format: date-time */
                         demandeeLe: string;
@@ -15576,6 +15691,72 @@ export interface components {
             }[];
             /** Format: date-time */
             maintenant: string;
+            derogations: {
+                /** Format: uuid */
+                mepId: string;
+                outil: string;
+                versionCible: string;
+                /**
+                 * @description Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).
+                 *     Simplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni
+                 *     résolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la
+                 *     valeur par défaut, est la MEP complète.
+                 * @enum {unknown}
+                 */
+                type: "Complete" | "Simplifiee";
+                /** Format: date-time */
+                debut: null | string;
+                /** Format: date-time */
+                fin: null | string;
+                journeeEntiere: boolean;
+                fuseauHoraire: string;
+                pilote: null | string;
+                systemes: {
+                    /** Format: uuid */
+                    catalogueId: null | string;
+                    nom: string;
+                    environnements: {
+                        nom: string;
+                        production: boolean;
+                    }[];
+                    /** Format: int32 */
+                    echecs: number;
+                }[];
+                /** Format: int32 */
+                nbEtapes: number;
+                retourArriereActive: boolean;
+                /**
+                 * @description Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui
+                 *     lit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).
+                 *     `Statut` Caduque : la date de la MEP a changé depuis la demande ; elle se redemande.
+                 */
+                derogation: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    periodeGelId: string;
+                    nomPeriode: string;
+                    /** Format: date-time */
+                    occurrence: string;
+                    /** Format: date-time */
+                    occurrenceFin: string;
+                    motif: string;
+                    /**
+                     * @description État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la
+                     *     date de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande.
+                     * @enum {unknown}
+                     */
+                    statut: "Demandee" | "Accordee" | "Refusee" | "Retiree" | "Caduque";
+                    demandeePar: null | string;
+                    /** Format: date-time */
+                    demandeeLe: string;
+                    decideePar: null | string;
+                    /** Format: date-time */
+                    decideeLe: null | string;
+                    commentaire: string;
+                    peutDecider: boolean;
+                };
+            }[];
         };
         /**
          * @description Applications suivies. `DomainesSuivis` (facultatif) remplace la liste des domaines suivis : un domaine ajouté suit

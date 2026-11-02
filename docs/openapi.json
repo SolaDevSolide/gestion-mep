@@ -9173,11 +9173,18 @@
                     "Accordee",
                     "Refusee",
                     "Retiree",
+                    "Caduque",
                     null
+                  ]
+                },
+                "decideurs": {
+                  "type": [
+                    "null",
+                    "string"
                   ]
                 }
               },
-              "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+              "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
             }
           },
           "gelsAuGo": {
@@ -9224,11 +9231,18 @@
                     "Accordee",
                     "Refusee",
                     "Retiree",
+                    "Caduque",
                     null
+                  ]
+                },
+                "decideurs": {
+                  "type": [
+                    "null",
+                    "string"
                   ]
                 }
               },
-              "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+              "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
             }
           },
           "conflits": {
@@ -9338,9 +9352,10 @@
                     "Demandee",
                     "Accordee",
                     "Refusee",
-                    "Retiree"
+                    "Retiree",
+                    "Caduque"
                   ],
-                  "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                  "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la\ndate de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande."
                 },
                 "demandeePar": {
                   "type": [
@@ -9372,7 +9387,7 @@
                   "type": "boolean"
                 }
               },
-              "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+              "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).\n`Statut` Caduque : la date de la MEP a changé depuis la demande ; elle se redemande."
             }
           }
         },
@@ -11332,6 +11347,207 @@
           }
         }
       },
+      "DerogationEnAttenteDto": {
+        "required": [
+          "mepId",
+          "outil",
+          "versionCible",
+          "type",
+          "debut",
+          "fin",
+          "journeeEntiere",
+          "fuseauHoraire",
+          "pilote",
+          "systemes",
+          "nbEtapes",
+          "retourArriereActive",
+          "derogation"
+        ],
+        "type": "object",
+        "properties": {
+          "mepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outil": {
+            "type": "string"
+          },
+          "versionCible": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "Complete",
+              "Simplifiee"
+            ],
+            "description": "Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).\nSimplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni\nrésolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la\nvaleur par défaut, est la MEP complète."
+          },
+          "debut": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "fin": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "journeeEntiere": {
+            "type": "boolean"
+          },
+          "fuseauHoraire": {
+            "type": "string"
+          },
+          "pilote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "systemes": {
+            "type": "array",
+            "items": {
+              "required": [
+                "catalogueId",
+                "nom",
+                "environnements",
+                "echecs"
+              ],
+              "type": "object",
+              "properties": {
+                "catalogueId": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "uuid"
+                },
+                "nom": {
+                  "type": "string"
+                },
+                "environnements": {
+                  "type": "array",
+                  "items": {
+                    "required": [
+                      "nom",
+                      "production"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "nom": {
+                        "type": "string"
+                      },
+                      "production": {
+                        "type": "boolean"
+                      }
+                    },
+                    "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
+                  }
+                },
+                "echecs": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "description": "Système d'une MEP dans la liste : fiche du catalogue (`CatalogueId`, null pour un système saisi à la main),\nenvironnements touchés et `Echecs` survenus sur les étapes de ce système."
+            }
+          },
+          "nbEtapes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "retourArriereActive": {
+            "type": "boolean"
+          },
+          "derogation": {
+            "required": [
+              "id",
+              "periodeGelId",
+              "nomPeriode",
+              "occurrence",
+              "occurrenceFin",
+              "motif",
+              "statut",
+              "demandeePar",
+              "demandeeLe",
+              "decideePar",
+              "decideeLe",
+              "commentaire",
+              "peutDecider"
+            ],
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "periodeGelId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "nomPeriode": {
+                "type": "string"
+              },
+              "occurrence": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "occurrenceFin": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "motif": {
+                "type": "string"
+              },
+              "statut": {
+                "enum": [
+                  "Demandee",
+                  "Accordee",
+                  "Refusee",
+                  "Retiree",
+                  "Caduque"
+                ],
+                "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la\ndate de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande."
+              },
+              "demandeePar": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "demandeeLe": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "decideePar": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "decideeLe": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "commentaire": {
+                "type": "string"
+              },
+              "peutDecider": {
+                "type": "boolean"
+              }
+            },
+            "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).\n`Statut` Caduque : la date de la MEP a changé depuis la demande ; elle se redemande."
+          }
+        },
+        "description": "Dérogation au gel qui attend la décision de la personne qui lit (« Suivi en direct ») : la MEP, son créneau prévu\n(`Debut` null : sans date) et ses systèmes, et la demande elle-même (`PeutDecider` toujours vrai ici)."
+      },
       "DerogationGelDto": {
         "required": [
           "id",
@@ -11377,9 +11593,10 @@
               "Demandee",
               "Accordee",
               "Refusee",
-              "Retiree"
+              "Retiree",
+              "Caduque"
             ],
-            "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+            "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la\ndate de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande."
           },
           "demandeePar": {
             "type": [
@@ -11411,7 +11628,7 @@
             "type": "boolean"
           }
         },
-        "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+        "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).\n`Statut` Caduque : la date de la MEP a changé depuis la demande ; elle se redemande."
       },
       "DerogationGelSaisie": {
         "required": [
@@ -12361,11 +12578,18 @@
                     "Accordee",
                     "Refusee",
                     "Retiree",
+                    "Caduque",
                     null
+                  ]
+                },
+                "decideurs": {
+                  "type": [
+                    "null",
+                    "string"
                   ]
                 }
               },
-              "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+              "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
             }
           }
         },
@@ -15998,11 +16222,18 @@
                             "Accordee",
                             "Refusee",
                             "Retiree",
+                            "Caduque",
                             null
+                          ]
+                        },
+                        "decideurs": {
+                          "type": [
+                            "null",
+                            "string"
                           ]
                         }
                       },
-                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
                     }
                   },
                   "gelsAuGo": {
@@ -16049,11 +16280,18 @@
                             "Accordee",
                             "Refusee",
                             "Retiree",
+                            "Caduque",
                             null
+                          ]
+                        },
+                        "decideurs": {
+                          "type": [
+                            "null",
+                            "string"
                           ]
                         }
                       },
-                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
                     }
                   },
                   "conflits": {
@@ -16163,9 +16401,10 @@
                             "Demandee",
                             "Accordee",
                             "Refusee",
-                            "Retiree"
+                            "Retiree",
+                            "Caduque"
                           ],
-                          "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                          "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la\ndate de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande."
                         },
                         "demandeePar": {
                           "type": [
@@ -16197,7 +16436,7 @@
                           "type": "boolean"
                         }
                       },
-                      "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+                      "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).\n`Statut` Caduque : la date de la MEP a changé depuis la demande ; elle se redemande."
                     }
                   }
                 },
@@ -18996,11 +19235,18 @@
                         "Accordee",
                         "Refusee",
                         "Retiree",
+                        "Caduque",
                         null
+                      ]
+                    },
+                    "decideurs": {
+                      "type": [
+                        "null",
+                        "string"
                       ]
                     }
                   },
-                  "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                  "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
                 }
               },
               "gelsAuGo": {
@@ -19047,11 +19293,18 @@
                         "Accordee",
                         "Refusee",
                         "Retiree",
+                        "Caduque",
                         null
+                      ]
+                    },
+                    "decideurs": {
+                      "type": [
+                        "null",
+                        "string"
                       ]
                     }
                   },
-                  "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                  "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
                 }
               },
               "conflits": {
@@ -19161,9 +19414,10 @@
                         "Demandee",
                         "Accordee",
                         "Refusee",
-                        "Retiree"
+                        "Retiree",
+                        "Caduque"
                       ],
-                      "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                      "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la\ndate de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande."
                     },
                     "demandeePar": {
                       "type": [
@@ -19195,7 +19449,7 @@
                       "type": "boolean"
                     }
                   },
-                  "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+                  "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).\n`Statut` Caduque : la date de la MEP a changé depuis la demande ; elle se redemande."
                 }
               }
             },
@@ -20636,9 +20890,15 @@
                 "$ref": "#/components/schemas/StatutDerogation"
               }
             ]
+          },
+          "decideurs": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+        "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
       },
       "OptimisationLiensSaisie": {
         "required": [
@@ -20867,7 +21127,8 @@
           "meps",
           "total",
           "ensemble",
-          "suivant"
+          "suivant",
+          "signalements"
         ],
         "type": "object",
         "properties": {
@@ -20890,9 +21151,15 @@
               "null",
               "string"
             ]
+          },
+          "signalements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SignalementCalendrierDto"
+            }
           }
         },
-        "description": "Page de la liste des MEP (`GET /meps/page`) : `Meps`, la page ; `Total`, le nombre de MEP qui correspondent\naux filtres ; `Ensemble`, le nombre de MEP (ou de modèles) sans filtre ; `Suivant`, le curseur à passer dans\n`apres` pour la page suivante (null : c'était la dernière)."
+        "description": "Page de la liste des MEP (`GET /meps/page`) : `Meps`, la page ; `Total`, le nombre de MEP qui correspondent\naux filtres ; `Ensemble`, le nombre de MEP (ou de modèles) sans filtre ; `Suivant`, le curseur à passer dans\n`apres` pour la page suivante (null : c'était la dernière) ; `Signalements` (#129), gels et conflits des MEP de la\npage qui en ont."
       },
       "ParametresDto": {
         "required": [
@@ -21010,6 +21277,9 @@
           "recurrence",
           "finRecurrence",
           "fuseauHoraire",
+          "approbateurIds",
+          "equipeApprobatriceIds",
+          "decideurs",
           "version",
           "creeeLe",
           "modifieeLe"
@@ -21069,6 +21339,23 @@
           "fuseauHoraire": {
             "type": "string"
           },
+          "approbateurIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "equipeApprobatriceIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "decideurs": {
+            "type": "string"
+          },
           "version": {
             "type": "integer",
             "format": "int32"
@@ -21082,7 +21369,7 @@
             "format": "date-time"
           }
         },
-        "description": "Période de gel (#129). `Debut` et `Fin` (exclue) : première occurrence, en UTC. `SystemeCatalogueIds` vide :\ntous les systèmes ; `Environnements` vide : tous. `Recurrence` : répétition dans `FuseauHoraire`, jusqu'au\njour local `FinRecurrence` (null : sans fin). `Systemes` : noms des systèmes concernés, pour l'affichage."
+        "description": "Période de gel (#129). `Debut` et `Fin` (exclue) : première occurrence, en UTC. `SystemeCatalogueIds` vide :\ntous les systèmes ; `Environnements` vide : tous. `Recurrence` : répétition dans `FuseauHoraire`, jusqu'au\njour local `FinRecurrence` (null : sans fin). `Systemes` : noms des systèmes concernés, pour l'affichage.\n`ApprobateurIds`, `EquipeApprobatriceIds` : comptes et équipes qui décident des dérogations (vides : les\nadministrateurs) ; `Decideurs` : qui décide, en clair (« Claire Durand, équipe Comptabilité », « les administrateurs »)."
       },
       "PeriodeGelSaisie": {
         "required": [
@@ -21179,9 +21466,29 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "approbateurIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "equipeApprobatriceIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         },
-        "description": "Création ou modification d'une période de gel (administrateurs). Instants ISO 8601 avec leur décalage (enregistrés en UTC).\nAbsents : `SystemeCatalogueIds` et `Environnements` vides (tous), `Recurrence` Aucune, `FuseauHoraire`\ncelui de l'instance. `Version` : obligatoire en modification (409 si la période a changé depuis sa lecture)."
+        "description": "Création ou modification d'une période de gel (administrateurs). Instants ISO 8601 avec leur décalage (enregistrés en UTC).\nAbsents : `SystemeCatalogueIds` et `Environnements` vides (tous), `Recurrence` Aucune, `FuseauHoraire`\ncelui de l'instance, `ApprobateurIds` et `EquipeApprobatriceIds` vides (les administrateurs décident).\n`Version` : obligatoire en modification (409 si la période a changé depuis sa lecture)."
       },
       "Phase": {
         "enum": [
@@ -24271,11 +24578,18 @@
                             "Accordee",
                             "Refusee",
                             "Retiree",
+                            "Caduque",
                             null
+                          ]
+                        },
+                        "decideurs": {
+                          "type": [
+                            "null",
+                            "string"
                           ]
                         }
                       },
-                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
                     }
                   },
                   "gelsAuGo": {
@@ -24322,11 +24636,18 @@
                             "Accordee",
                             "Refusee",
                             "Retiree",
+                            "Caduque",
                             null
+                          ]
+                        },
+                        "decideurs": {
+                          "type": [
+                            "null",
+                            "string"
                           ]
                         }
                       },
-                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
                     }
                   },
                   "conflits": {
@@ -24436,9 +24757,10 @@
                             "Demandee",
                             "Accordee",
                             "Refusee",
-                            "Retiree"
+                            "Retiree",
+                            "Caduque"
                           ],
-                          "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                          "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la\ndate de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande."
                         },
                         "demandeePar": {
                           "type": [
@@ -24470,7 +24792,7 @@
                           "type": "boolean"
                         }
                       },
-                      "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+                      "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).\n`Statut` Caduque : la date de la MEP a changé depuis la demande ; elle se redemande."
                     }
                   }
                 },
@@ -27624,11 +27946,18 @@
                             "Accordee",
                             "Refusee",
                             "Retiree",
+                            "Caduque",
                             null
+                          ]
+                        },
+                        "decideurs": {
+                          "type": [
+                            "null",
+                            "string"
                           ]
                         }
                       },
-                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
                     }
                   },
                   "gelsAuGo": {
@@ -27675,11 +28004,18 @@
                             "Accordee",
                             "Refusee",
                             "Retiree",
+                            "Caduque",
                             null
+                          ]
+                        },
+                        "decideurs": {
+                          "type": [
+                            "null",
+                            "string"
                           ]
                         }
                       },
-                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                      "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
                     }
                   },
                   "conflits": {
@@ -27789,9 +28125,10 @@
                             "Demandee",
                             "Accordee",
                             "Refusee",
-                            "Retiree"
+                            "Retiree",
+                            "Caduque"
                           ],
-                          "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                          "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la\ndate de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande."
                         },
                         "demandeePar": {
                           "type": [
@@ -27823,7 +28160,7 @@
                           "type": "boolean"
                         }
                       },
-                      "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+                      "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).\n`Statut` Caduque : la date de la MEP a changé depuis la demande ; elle se redemande."
                     }
                   }
                 },
@@ -28017,6 +28354,33 @@
           "Sortie",
           null
         ]
+      },
+      "SignalementCalendrierDto": {
+        "required": [
+          "mepId",
+          "gels",
+          "conflits"
+        ],
+        "type": "object",
+        "properties": {
+          "mepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OccurrenceGelDto"
+            }
+          },
+          "conflits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConflitDto"
+            }
+          }
+        },
+        "description": "Signalements du calendrier d'une MEP de la liste (cartes et tableau) : `Gels`, occurrences de gel qui touchent son\ncréneau (avec l'état de la dérogation) ; `Conflits`, autres MEP sur un même système au même moment. Seules les MEP\nqui ont au moins un signalement figurent dans List&lt;SignalementCalendrierDto&gt; PageMepsDto.Signalements."
       },
       "SimulationSaisie": {
         "required": [
@@ -28354,6 +28718,7 @@
           "Accordee",
           "Refusee",
           "Retiree",
+          "Caduque",
           null
         ]
       },
@@ -28436,7 +28801,8 @@
           "prevues",
           "prochaine",
           "cloturees",
-          "maintenant"
+          "maintenant",
+          "derogations"
         ],
         "type": "object",
         "properties": {
@@ -30454,11 +30820,18 @@
                               "Accordee",
                               "Refusee",
                               "Retiree",
+                              "Caduque",
                               null
+                            ]
+                          },
+                          "decideurs": {
+                            "type": [
+                              "null",
+                              "string"
                             ]
                           }
                         },
-                        "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                        "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
                       }
                     },
                     "gelsAuGo": {
@@ -30505,11 +30878,18 @@
                               "Accordee",
                               "Refusee",
                               "Retiree",
+                              "Caduque",
                               null
+                            ]
+                          },
+                          "decideurs": {
+                            "type": [
+                              "null",
+                              "string"
                             ]
                           }
                         },
-                        "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP)."
+                        "description": "Occurrence d'une période de gel (fin exclue, UTC). `Derogation` : état de la dernière demande de dérogation de la MEP\npour cette occurrence (null : aucune, ou hors d'une MEP). `Decideurs` : qui peut accorder une dérogation, en clair\n(détail d'une MEP seulement ; null ailleurs)."
                       }
                     },
                     "conflits": {
@@ -30619,9 +30999,10 @@
                               "Demandee",
                               "Accordee",
                               "Refusee",
-                              "Retiree"
+                              "Retiree",
+                              "Caduque"
                             ],
-                            "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP."
+                            "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la\ndate de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande."
                           },
                           "demandeePar": {
                             "type": [
@@ -30653,7 +31034,7 @@
                             "type": "boolean"
                           }
                         },
-                        "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur)."
+                        "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).\n`Statut` Caduque : la date de la MEP a changé depuis la demande ; elle se redemande."
                       }
                     }
                   },
@@ -30857,9 +31238,213 @@
           "maintenant": {
             "type": "string",
             "format": "date-time"
+          },
+          "derogations": {
+            "type": "array",
+            "items": {
+              "required": [
+                "mepId",
+                "outil",
+                "versionCible",
+                "type",
+                "debut",
+                "fin",
+                "journeeEntiere",
+                "fuseauHoraire",
+                "pilote",
+                "systemes",
+                "nbEtapes",
+                "retourArriereActive",
+                "derogation"
+              ],
+              "type": "object",
+              "properties": {
+                "mepId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "outil": {
+                  "type": "string"
+                },
+                "versionCible": {
+                  "type": "string"
+                },
+                "type": {
+                  "enum": [
+                    "Complete",
+                    "Simplifiee"
+                  ],
+                  "description": "Type de MEP. Complète : plan détaillé (versions, suppléants choisis, durée, criticité et résolutions liées par étape).\nSimplifiée : un pilote dont toutes les autres personnes sont suppléantes, ni versions, ni durée, ni criticité, ni\nrésolutions liées (le jour J, toutes les résolutions des systèmes de l'étape sont proposées). Stocké en entier : 0, la\nvaleur par défaut, est la MEP complète."
+                },
+                "debut": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                },
+                "fin": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                },
+                "journeeEntiere": {
+                  "type": "boolean"
+                },
+                "fuseauHoraire": {
+                  "type": "string"
+                },
+                "pilote": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "systemes": {
+                  "type": "array",
+                  "items": {
+                    "required": [
+                      "catalogueId",
+                      "nom",
+                      "environnements",
+                      "echecs"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "catalogueId": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "format": "uuid"
+                      },
+                      "nom": {
+                        "type": "string"
+                      },
+                      "environnements": {
+                        "type": "array",
+                        "items": {
+                          "required": [
+                            "nom",
+                            "production"
+                          ],
+                          "type": "object",
+                          "properties": {
+                            "nom": {
+                              "type": "string"
+                            },
+                            "production": {
+                              "type": "boolean"
+                            }
+                          },
+                          "description": "Environnement d'un système de la MEP (`Production` : copié de la fiche du catalogue, ou déduit du nom hors catalogue)."
+                        }
+                      },
+                      "echecs": {
+                        "type": "integer",
+                        "format": "int32"
+                      }
+                    },
+                    "description": "Système d'une MEP dans la liste : fiche du catalogue (`CatalogueId`, null pour un système saisi à la main),\nenvironnements touchés et `Echecs` survenus sur les étapes de ce système."
+                  }
+                },
+                "nbEtapes": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "retourArriereActive": {
+                  "type": "boolean"
+                },
+                "derogation": {
+                  "required": [
+                    "id",
+                    "periodeGelId",
+                    "nomPeriode",
+                    "occurrence",
+                    "occurrenceFin",
+                    "motif",
+                    "statut",
+                    "demandeePar",
+                    "demandeeLe",
+                    "decideePar",
+                    "decideeLe",
+                    "commentaire",
+                    "peutDecider"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "periodeGelId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "nomPeriode": {
+                      "type": "string"
+                    },
+                    "occurrence": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "occurrenceFin": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "motif": {
+                      "type": "string"
+                    },
+                    "statut": {
+                      "enum": [
+                        "Demandee",
+                        "Accordee",
+                        "Refusee",
+                        "Retiree",
+                        "Caduque"
+                      ],
+                      "description": "État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. StatutDerogation.Caduque : la\ndate de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande."
+                    },
+                    "demandeePar": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "demandeeLe": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "decideePar": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "decideeLe": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "format": "date-time"
+                    },
+                    "commentaire": {
+                      "type": "string"
+                    },
+                    "peutDecider": {
+                      "type": "boolean"
+                    }
+                  },
+                  "description": "Demande de dérogation au gel. `DemandeePar`, `DecideePar` : noms affichés. `PeutDecider` : la personne qui\nlit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).\n`Statut` Caduque : la date de la MEP a changé depuis la demande ; elle se redemande."
+                }
+              },
+              "description": "Dérogation au gel qui attend la décision de la personne qui lit (« Suivi en direct ») : la MEP, son créneau prévu\n(`Debut` null : sans date) et ses systèmes, et la demande elle-même (`PeutDecider` toujours vrai ici)."
+            }
           }
         },
-        "description": "Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur\navancement par le navigateur ; MEP prévues aujourd'hui ou demain (date annoncée) et la prochaine à venir ; MEP clôturées\ndepuis moins de 24 heures. `Maintenant` : heure du serveur."
+        "description": "Tableau de bord « Suivi en direct » : MEP lancées (exécution, recette, retour arrière), complètes pour le calcul de leur\navancement par le navigateur ; MEP prévues aujourd'hui ou demain (date annoncée) et la prochaine à venir ; MEP clôturées\ndepuis moins de 24 heures. `Maintenant` : heure du serveur. `Derogations` (#129) : demandes de dérogation au gel\nque la personne qui lit peut accorder ou refuser."
       },
       "SuiviLiaisonSaisie": {
         "required": [

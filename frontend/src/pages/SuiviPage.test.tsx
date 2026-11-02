@@ -61,6 +61,7 @@ function suivi(p: Partial<Suivi> = {}): Suivi {
       },
     ],
     maintenant: '2026-10-16T15:00:00Z',
+    derogations: [],
     ...p,
   };
 }

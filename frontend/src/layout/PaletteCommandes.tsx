@@ -20,6 +20,7 @@ import {
   UserRound,
   UserSearch,
   Wrench,
+  Snowflake,
 } from 'lucide-react';
 import { Command } from 'cmdk';
 import { Dialog as D } from 'radix-ui';
@@ -340,6 +341,13 @@ export function PaletteCommandes({ open, onOpenChange }: { open: boolean; onOpen
                   onSelect={() => aller('/parametres/go-no-go')}
                 >
                   Paramètres : Go / no-go et approbations
+                </Entree>
+                <Entree
+                  icone={<Snowflake className="size-4" />}
+                  mots={['paramètres', 'gel', 'périodes', 'clôture', 'calendrier', 'dérogation']}
+                  onSelect={() => aller('/parametres/periodes-gel')}
+                >
+                  Paramètres : Périodes de gel
                 </Entree>
                 <Entree
                   icone={<Mail className="size-4" />}

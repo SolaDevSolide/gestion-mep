@@ -35,7 +35,7 @@ Un **éditeur** d'une MEP est son pilote, un suppléant, un responsable techniqu
 | Approuver ou refuser | Approbateur désigné, qui n'est ni pilote, ni suppléant, ni responsable technique de la MEP (comptes reliés compris) |
 | Go / no-go | Pilote ou suppléant (pendant une période de gel : seulement avec une dérogation accordée) |
 | Demander ou retirer une dérogation au gel (motif obligatoire) | Pilote ou suppléant, en préparation |
-| Accorder ou refuser une dérogation au gel (commentaire obligatoire pour un refus) | Approbateur désigné, qui n'est ni pilote, ni suppléant, ni responsable technique de la MEP, ni la personne qui l'a demandée (comptes reliés compris) |
+| Accorder ou refuser une dérogation au gel (commentaire obligatoire pour un refus) | Approbateur de la période de gel (personne ou membre d'une équipe choisie pour la période ; à défaut, administrateur), qui n'est ni pilote, ni suppléant, ni responsable technique de la MEP, ni la personne qui l'a demandée (comptes reliés compris) |
 | Démarrer une étape disponible | Personne de la MEP reliée à un compte, ou administrateur |
 | Terminer une étape, appliquer une résolution | Exécutant de l'étape, pilote ou suppléant |
 | Prendre la main sur une étape | Personne de la MEP reliée à un compte, ou administrateur (motif obligatoire) |

@@ -1,6 +1,6 @@
 import { ListeAvertissements } from './PlanCheck';
 import { ArrowLeft, OctagonAlert, Rocket, ShieldQuestion, ThumbsDown } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { CritereGoNoGo } from '../types';
 import { Alerte } from '../ui/Alerte';
 import { Button } from '../ui/Button';
@@ -20,6 +20,10 @@ interface Props {
   /** Avertissements non bloquants de la vérification du plan. */
   avertissements?: string[];
   chargement?: boolean;
+  /** Période de gel (#129) : ce qui bloque le Go et la demande de dérogation, affichés en tête. */
+  blocage?: ReactNode;
+  /** Raison qui grise le bouton Go (période de gel sans dérogation accordée) ; null : rien ne le bloque. */
+  goBloque?: string | null;
   /** Retourne true si la décision a abouti. */
   onGo: (criteresCoches: string[]) => Promise<boolean | void> | boolean | void;
   /** `report` : reporter aussi la MEP (#93), avec la date visée facultative (AAAA-MM-JJ, vide : sans date). */
@@ -34,6 +38,8 @@ export function GoNoGoDialog({
   erreursPlan = [],
   avertissements = [],
   chargement,
+  blocage,
+  goBloque = null,
   onGo,
   onNoGo,
 }: Props) {
@@ -114,7 +120,8 @@ export function GoNoGoDialog({
               variante="succes"
               icone={<Rocket className="size-4" aria-hidden />}
               chargement={envoi === 'go'}
-              disabled={!tousCoches || chargement}
+              disabled={!tousCoches || chargement || goBloque !== null}
+              title={goBloque ?? undefined}
               onClick={() => void decider('go')}
             >
               Go : passer en exécution
@@ -150,6 +157,7 @@ export function GoNoGoDialog({
         </div>
       ) : (
         <div className="space-y-4">
+          {blocage}
           {erreursPlan.length > 0 && (
             <Alerte ton="warn" icone={OctagonAlert} titre={`${erreursPlan.length} point(s) à corriger dans le plan`}>
               Le serveur refusera le Go tant que le plan est incomplet (voir « Vérifier le plan »).

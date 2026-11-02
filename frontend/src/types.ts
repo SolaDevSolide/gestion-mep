@@ -229,6 +229,46 @@ export type VariablesMep = S['VariablesMepDto'];
 export type Suivi = S['SuiviDto'];
 export type MepPrevue = S['MepPrevueDto'];
 export type MepCloturee = S['MepClotureeDto'];
+// ---------- Calendrier et périodes de gel (#129) ----------
+
+/** MEP du calendrier : créneau en UTC (`fin` null : durée inconnue), phase, production, gels et conflits. */
+export type ElementCalendrier = S['ElementCalendrierDto'];
+/** Page du calendrier : MEP de la plage `du`–`au` (jours du fuseau `fuseauHoraire`) et occurrences des périodes de gel. */
+export type PageCalendrier = S['PageCalendrierDto'];
+/** Occurrence d'une période de gel (fin exclue) ; `derogation` : état de la demande de la MEP pour cette occurrence. */
+export type OccurrenceGel = S['OccurrenceGelDto'];
+/** Autre MEP sur un même système au même moment (signalement, jamais bloquant). */
+export type ConflitCalendrier = S['ConflitDto'];
+export type PeriodeGel = S['PeriodeGelDto'];
+export type RecurrenceGel = S['RecurrenceGel'];
+export type StatutDerogation = NonNullable<S['StatutDerogation']>;
+export type DerogationGel = S['DerogationGelDto'];
+/** Place d'une MEP dans le calendrier (détail d'une MEP). */
+export type CalendrierMep = NonNullable<Mep['calendrier']>;
+/** Gels et conflits d'une MEP de la liste (cartes et tableau). */
+export type SignalementCalendrier = S['SignalementCalendrierDto'];
+/** Dérogation qui attend la décision de la personne connectée (« Suivi en direct »). */
+export type DerogationEnAttente = S['DerogationEnAttenteDto'];
+/** Adresse d'abonnement au calendrier : `url` n'est donnée qu'à la création ou la régénération. */
+export type AbonnementCalendrier = S['AbonnementCalendrierDto'];
+export type PeriodeGelSaisie = SaisieVerifiee<
+  S['PeriodeGelSaisie'],
+  {
+    nom: string;
+    debut: string;
+    fin: string;
+    motif: string;
+    systemeCatalogueIds: string[];
+    environnements: string[];
+    productionSeulement: boolean;
+    recurrence: RecurrenceGel;
+    finRecurrence: string | null;
+    version?: number;
+    approbateurIds: string[];
+    equipeApprobatriceIds: string[];
+  }
+>;
+
 /** Rapport de fin (#61), figé à la clôture ; `calculeApres` : MEP clôturée avant les rapports, figé à sa première demande. */
 export type RapportFin = S['RapportFinDto'];
 export type SyntheseRapport = S['SyntheseRapportDto'];

@@ -229,15 +229,15 @@ public class ReglesCalendrierTests
         Assert.Throws<RegleMetierException>(() => Regles.DemanderDerogation(m, Bob, o, "Encore", Maintenant));
         Assert.Throws<GoBloqueParGelException>(() => Go(m, [gel]));
 
-        // Ni le demandeur, ni le suppléant, ni quelqu'un qui n'est pas approbateur désigné.
-        Assert.Throws<DroitInsuffisantException>(() => Regles.DeciderDerogation(m, Alice, d, true, "", Maintenant));
-        Assert.Throws<DroitInsuffisantException>(() => Regles.DeciderDerogation(m, Bob, d, true, "", Maintenant));
-        Assert.Throws<DroitInsuffisantException>(() => Regles.DeciderDerogation(m, Dave, d, true, "", Maintenant));
-        Assert.Throws<RegleMetierException>(() => Regles.DeciderDerogation(m, Claire, d, false, "", Maintenant));
-        Regles.DeciderDerogation(m, Claire, d, true, "Risque accepté", Maintenant);
+        // Période sans approbateurs : un administrateur décide, mais ni le demandeur, ni le suppléant, ni un non-administrateur.
+        Assert.Throws<DroitInsuffisantException>(() => Regles.DeciderDerogation(m, Alice, true, null, d, true, "", Maintenant));
+        Assert.Throws<DroitInsuffisantException>(() => Regles.DeciderDerogation(m, Bob, true, null, d, true, "", Maintenant));
+        Assert.Throws<DroitInsuffisantException>(() => Regles.DeciderDerogation(m, Dave, false, null, d, true, "", Maintenant));
+        Assert.Throws<RegleMetierException>(() => Regles.DeciderDerogation(m, Claire, true, null, d, false, "", Maintenant));
+        Regles.DeciderDerogation(m, Claire, true, null, d, true, "Risque accepté", Maintenant);
         Assert.Equal(StatutDerogation.Accordee, d.Statut);
         Assert.Equal(Claire, d.DecideeParId);
-        Assert.Throws<RegleMetierException>(() => Regles.DeciderDerogation(m, Claire, d, true, "", Maintenant));
+        Assert.Throws<RegleMetierException>(() => Regles.DeciderDerogation(m, Claire, true, null, d, true, "", Maintenant));
 
         Go(m, [gel]);
         Assert.Equal(Phase.Execution, m.Phase);
@@ -256,8 +256,78 @@ public class ReglesCalendrierTests
         ], []);
         var o = Regles.GelsConcernes(m, [Gel(Maintenant.AddHours(-1), Maintenant.AddHours(1))], Maintenant)[0];
         var d = Regles.DemanderDerogation(m, Alice, o, "Urgent", Maintenant);
-        var refus = Assert.Throws<DroitInsuffisantException>(() => Regles.DeciderDerogation(m, aliceBis, d, true, "", Maintenant, annuaire));
-        Assert.Contains("pilote, par un compte relié", refus.Message);
+        var refus = Assert.Throws<DroitInsuffisantException>(() => Regles.DeciderDerogation(m, aliceBis, true, null, d, true, "", Maintenant, annuaire));
+        Assert.Contains("la personne qui l'a demandée", refus.Message);
+    }
+
+    [Fact]
+    public void Les_approbateurs_de_la_periode_decident_a_la_place_des_administrateurs_comptes_relies_et_equipes_compris()
+    {
+        var m = Prete();
+        Guid daveBis = Guid.NewGuid(), erin = Guid.NewGuid(), comptabilite = Guid.NewGuid();
+        var annuaire = new AnnuairePersonnes(
+        [
+            new(Alice, null, "Alice", "alice", true), new(Bob, null, "Bob", "bob", true), new(Claire, null, "Claire", "claire", true),
+            new(Dave, null, "Dave", "dave", true), new(daveBis, Dave, "Dave", "dave.admin", true), new(erin, null, "Erin", "erin", true),
+        ], [new Equipe { Id = comptabilite, Nom = "Comptabilité", MembreIds = [erin] }]);
+        var gel = Gel(Maintenant.AddHours(-1), Maintenant.AddHours(1));
+        gel.ApprobateurIds = [Dave];
+        var d = Regles.DemanderDerogation(m, Alice, Regles.GelsAuGo(m, [gel], Maintenant)[0], "Urgent", Maintenant);
+
+        // Un administrateur ne décide plus quand la période a ses approbateurs.
+        Assert.False(Regles.EstApprobateurGel(gel, Claire, estAdmin: true, annuaire));
+        Assert.Throws<DroitInsuffisantException>(() => Regles.DeciderDerogation(m, Claire, true, gel, d, true, "", Maintenant, annuaire));
+        Assert.True(Regles.EstApprobateurGel(gel, daveBis, estAdmin: false, annuaire));
+        Assert.False(Regles.EstApprobateurGel(gel, erin, estAdmin: false, annuaire));
+        gel.EquipeApprobatriceIds = [comptabilite];
+        Assert.True(Regles.EstApprobateurGel(gel, erin, estAdmin: false, annuaire));
+        // Période supprimée depuis la demande : les administrateurs.
+        Assert.True(Regles.EstApprobateurGel(null, Claire, estAdmin: true, annuaire));
+        Assert.False(Regles.EstApprobateurGel(null, Dave, estAdmin: false, annuaire));
+
+        Regles.DeciderDerogation(m, erin, false, gel, d, true, "Clôture terminée pour ce système", Maintenant, annuaire);
+        Assert.Equal(StatutDerogation.Accordee, d.Statut);
+        Go(m, [gel]);
+    }
+
+    [Fact]
+    public void Un_approbateur_de_la_periode_ne_decide_jamais_de_sa_propre_demande_ni_d_une_mep_qu_il_pilote()
+    {
+        var m = Prete();
+        var gel = Gel(Maintenant.AddHours(-1), Maintenant.AddHours(1));
+        gel.ApprobateurIds = [Alice, Bob];
+        var o = Regles.GelsAuGo(m, [gel], Maintenant)[0];
+        var d = Regles.DemanderDerogation(m, Bob, o, "Urgent", Maintenant);
+        Assert.Contains("la personne qui l'a demandée",
+            Assert.Throws<DroitInsuffisantException>(() => Regles.DeciderDerogation(m, Bob, false, gel, d, true, "", Maintenant)).Message);
+        Assert.Contains("pilote", Assert.Throws<DroitInsuffisantException>(() => Regles.DeciderDerogation(m, Alice, false, gel, d, true, "", Maintenant)).Message);
+    }
+
+    [Fact]
+    public void Une_derogation_se_demande_des_la_preparation_et_tombe_si_la_date_de_la_mep_change()
+    {
+        // Demandée en préparation, bien avant le jour de la MEP (le créneau prévu touche le gel).
+        var m = Annoncee(new DateOnly(2026, 11, 28), new TimeOnly(20, 0), new TimeOnly(22, 0));
+        Regles.Decider(m, Claire, DecisionApprobation.Approuvee, "", Maintenant);
+        var gel = Gel(Paris(2026, 11, 26), Paris(2026, 12, 1));
+        var o = Assert.Single(Regles.GelsConcernes(m, [gel], Maintenant));
+        var d = Regles.DemanderDerogation(m, Alice, o, "Correctif de paie", Maintenant);
+        Regles.DeciderDerogation(m, Claire, true, gel, d, true, "", Maintenant);
+        Regles.MettreAJourCalendrier(m);
+        Assert.Equal(StatutDerogation.Accordee, d.Statut);
+
+        // Même jour, autre heure : l'accord tombe ; la dérogation se redemande.
+        m.Communication.HeureDebutAnnoncee = new TimeOnly(21, 0);
+        Regles.MettreAJourCalendrier(m);
+        Assert.Equal(StatutDerogation.Caduque, d.Statut);
+        Assert.False(Regles.DerogationAccordee(m, o));
+        var nouvelle = Regles.DemanderDerogation(m, Alice, o, "Correctif de paie, nouvel horaire", Maintenant);
+        Assert.Equal(StatutDerogation.Demandee, nouvelle.Statut);
+
+        // Une demande en attente tombe aussi ; une fois la MEP lancée, rien ne change plus.
+        m.Communication.HeureDebutAnnoncee = new TimeOnly(19, 0);
+        Regles.MettreAJourCalendrier(m);
+        Assert.Equal(StatutDerogation.Caduque, nouvelle.Statut);
     }
 
     [Fact]
@@ -269,7 +339,7 @@ public class ReglesCalendrierTests
         m.DerogationsGel.Add(new DerogationGel { PeriodeGelId = gel.Id, Occurrence = o.Debut.AddDays(-7), Statut = StatutDerogation.Accordee });
         Assert.Throws<GoBloqueParGelException>(() => Go(m, [gel]));
         var d = Regles.DemanderDerogation(m, Alice, o, "Urgent", Maintenant);
-        Regles.DeciderDerogation(m, Claire, d, true, "", Maintenant);
+        Regles.DeciderDerogation(m, Claire, true, null, d, true, "", Maintenant);
         Go(m, [gel]);
     }
 
@@ -280,7 +350,7 @@ public class ReglesCalendrierTests
         var gel = Gel(Maintenant.AddHours(-1), Maintenant.AddHours(1));
         var o = Regles.GelsAuGo(m, [gel], Maintenant)[0];
         var d = Regles.DemanderDerogation(m, Alice, o, "Urgent", Maintenant);
-        Regles.DeciderDerogation(m, Claire, d, true, "", Maintenant);
+        Regles.DeciderDerogation(m, Claire, true, null, d, true, "", Maintenant);
         Assert.Throws<DroitInsuffisantException>(() => Regles.RetirerDerogation(m, Claire, d));
         Regles.RetirerDerogation(m, Bob, d);
         Assert.Throws<GoBloqueParGelException>(() => Go(m, [gel]));
@@ -323,7 +393,7 @@ public class ReglesCalendrierTests
             Regles.TexteGel(m, [gel], Nom, Maintenant));
         var d = Regles.DemanderDerogation(m, Alice, Regles.GelsDeLaMep(m, [gel], Maintenant)[0], "Urgent", Maintenant);
         Assert.EndsWith(": dérogation demandée, en attente d'accord", Regles.TexteGel(m, [gel], Nom, Maintenant));
-        Regles.DeciderDerogation(m, Claire, d, true, "", Maintenant);
+        Regles.DeciderDerogation(m, Claire, true, null, d, true, "", Maintenant);
         Assert.EndsWith(": dérogation accordée par Claire Durand", Regles.TexteGel(m, [gel], Nom, Maintenant));
         var valeurs = VariablesTexte.Valeurs(m, null, null, new Dictionary<Guid, string>(), Maintenant, gel: Regles.TexteGel(m, [gel], Nom, Maintenant));
         Assert.StartsWith("« Clôture comptable »", valeurs["gel"].Texte);

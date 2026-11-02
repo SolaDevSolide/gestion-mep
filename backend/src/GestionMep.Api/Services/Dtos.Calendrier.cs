@@ -7,37 +7,58 @@ namespace GestionMep.Api.Services;
 /// Période de gel (#129). <c>Debut</c> et <c>Fin</c> (exclue) : première occurrence, en UTC. <c>SystemeCatalogueIds</c> vide :
 /// tous les systèmes ; <c>Environnements</c> vide : tous. <c>Recurrence</c> : répétition dans <c>FuseauHoraire</c>, jusqu'au
 /// jour local <c>FinRecurrence</c> (null : sans fin). <c>Systemes</c> : noms des systèmes concernés, pour l'affichage.
+/// <c>ApprobateurIds</c>, <c>EquipeApprobatriceIds</c> : comptes et équipes qui décident des dérogations (vides : les
+/// administrateurs) ; <c>Decideurs</c> : qui décide, en clair (« Claire Durand, équipe Comptabilité », « les administrateurs »).
 /// </summary>
 public record PeriodeGelDto(Guid Id, string Nom, DateTimeOffset Debut, DateTimeOffset Fin, string Motif, List<Guid> SystemeCatalogueIds,
     List<string> Systemes, List<string> Environnements, bool ProductionSeulement, RecurrenceGel Recurrence, DateOnly? FinRecurrence,
-    string FuseauHoraire, int Version, DateTimeOffset CreeeLe, DateTimeOffset ModifieeLe);
+    string FuseauHoraire, List<Guid> ApprobateurIds, List<Guid> EquipeApprobatriceIds, string Decideurs, int Version,
+    DateTimeOffset CreeeLe, DateTimeOffset ModifieeLe);
 
 /// <summary>
 /// Création ou modification d'une période de gel (administrateurs). Instants ISO 8601 avec leur décalage (enregistrés en UTC).
 /// Absents : <c>SystemeCatalogueIds</c> et <c>Environnements</c> vides (tous), <c>Recurrence</c> Aucune, <c>FuseauHoraire</c>
-/// celui de l'instance. <c>Version</c> : obligatoire en modification (409 si la période a changé depuis sa lecture).
+/// celui de l'instance, <c>ApprobateurIds</c> et <c>EquipeApprobatriceIds</c> vides (les administrateurs décident).
+/// <c>Version</c> : obligatoire en modification (409 si la période a changé depuis sa lecture).
 /// </summary>
 public record PeriodeGelSaisie(string? Nom, DateTimeOffset? Debut, DateTimeOffset? Fin, string? Motif, List<Guid>? SystemeCatalogueIds,
     List<string>? Environnements, bool? ProductionSeulement, RecurrenceGel? Recurrence, DateOnly? FinRecurrence, string? FuseauHoraire,
-    int? Version = null);
+    int? Version = null, List<Guid>? ApprobateurIds = null, List<Guid>? EquipeApprobatriceIds = null);
 
 /// <summary>
 /// Occurrence d'une période de gel (fin exclue, UTC). <c>Derogation</c> : état de la dernière demande de dérogation de la MEP
-/// pour cette occurrence (null : aucune, ou hors d'une MEP).
+/// pour cette occurrence (null : aucune, ou hors d'une MEP). <c>Decideurs</c> : qui peut accorder une dérogation, en clair
+/// (détail d'une MEP seulement ; null ailleurs).
 /// </summary>
 public record OccurrenceGelDto(Guid PeriodeGelId, string Nom, string Motif, DateTimeOffset Debut, DateTimeOffset Fin, string FuseauHoraire,
-    bool Globale, StatutDerogation? Derogation = null);
+    bool Globale, StatutDerogation? Derogation = null, string? Decideurs = null);
 
 /// <summary>Autre MEP sur un même système dont le créneau chevauche celui de la MEP (signalement, jamais bloquant).</summary>
 public record ConflitDto(Guid MepId, string Outil, string VersionCible, EtatMep Etat, DateTimeOffset Debut, DateTimeOffset? Fin, List<string> Systemes);
 
 /// <summary>
 /// Demande de dérogation au gel. <c>DemandeePar</c>, <c>DecideePar</c> : noms affichés. <c>PeutDecider</c> : la personne qui
-/// lit peut l'accorder ou la refuser (approbateur désigné, ni pilote, ni suppléant, ni responsable technique, ni demandeur).
+/// lit peut l'accorder ou la refuser (approbateur de la période, ni pilote, ni suppléant, ni responsable technique, ni demandeur).
+/// <c>Statut</c> Caduque : la date de la MEP a changé depuis la demande ; elle se redemande.
 /// </summary>
 public record DerogationGelDto(Guid Id, Guid PeriodeGelId, string NomPeriode, DateTimeOffset Occurrence, DateTimeOffset OccurrenceFin,
     string Motif, StatutDerogation Statut, string? DemandeePar, DateTimeOffset DemandeeLe, string? DecideePar, DateTimeOffset? DecideeLe,
     string Commentaire, bool PeutDecider);
+
+/// <summary>
+/// Signalements du calendrier d'une MEP de la liste (cartes et tableau) : <c>Gels</c>, occurrences de gel qui touchent son
+/// créneau (avec l'état de la dérogation) ; <c>Conflits</c>, autres MEP sur un même système au même moment. Seules les MEP
+/// qui ont au moins un signalement figurent dans <see cref="PageMepsDto.Signalements"/>.
+/// </summary>
+public record SignalementCalendrierDto(Guid MepId, List<OccurrenceGelDto> Gels, List<ConflitDto> Conflits);
+
+/// <summary>
+/// Dérogation au gel qui attend la décision de la personne qui lit (« Suivi en direct ») : la MEP, son créneau prévu
+/// (<c>Debut</c> null : sans date) et ses systèmes, et la demande elle-même (<c>PeutDecider</c> toujours vrai ici).
+/// </summary>
+public record DerogationEnAttenteDto(Guid MepId, string Outil, string VersionCible, TypeMep Type, DateTimeOffset? Debut, DateTimeOffset? Fin,
+    bool JourneeEntiere, string FuseauHoraire, string? Pilote, List<SystemeResumeDto> Systemes, int NbEtapes, bool RetourArriereActive,
+    DerogationGelDto Derogation);
 
 /// <summary>
 /// Place de la MEP dans le calendrier (détail d'une MEP). <c>Debut</c> null : MEP sans date prévue (absente du calendrier).

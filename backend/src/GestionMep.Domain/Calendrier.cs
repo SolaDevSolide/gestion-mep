@@ -7,8 +7,11 @@ namespace GestionMep.Domain;
 /// </summary>
 public enum RecurrenceGel { Aucune, Hebdomadaire, Mensuelle, FinDeMois, Annuelle }
 
-/// <summary>État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP.</summary>
-public enum StatutDerogation { Demandee, Accordee, Refusee, Retiree }
+/// <summary>
+/// État d'une demande de dérogation à une période de gel. Stocké en texte dans le JSON de la MEP. <see cref="Caduque"/> : la
+/// date de la MEP a changé après la demande ou l'accord ; la dérogation ne vaut plus et se redemande.
+/// </summary>
+public enum StatutDerogation { Demandee, Accordee, Refusee, Retiree, Caduque }
 
 /// <summary>
 /// Période de gel (#129) définie par un administrateur : aucune MEP n'y reçoit le Go sans dérogation accordée. Les bornes
@@ -35,6 +38,13 @@ public class PeriodeGel
     public DateOnly? FinRecurrence { get; set; }
     /// <summary>Fuseau IANA dans lequel la période se répète et s'affiche.</summary>
     public string FuseauHoraire { get; set; } = Fuseaux.ParDefaut;
+    /// <summary>
+    /// Comptes qui peuvent accorder ou refuser une dérogation à cette période. Vide, comme <see cref="EquipeApprobatriceIds"/> :
+    /// les administrateurs.
+    /// </summary>
+    public List<Guid> ApprobateurIds { get; set; } = [];
+    /// <summary>Équipes dont chaque membre peut accorder ou refuser une dérogation à cette période.</summary>
+    public List<Guid> EquipeApprobatriceIds { get; set; } = [];
     /// <summary>Compteur de révision : deux administrateurs qui modifient la même période, le second reçoit 409.</summary>
     public int Version { get; set; }
     public DateTimeOffset CreeeLe { get; set; }
@@ -62,8 +72,9 @@ public class FenetreCalendrier
 
 /// <summary>
 /// Demande de dérogation à une occurrence de période de gel, pour donner le Go pendant le gel : motif obligatoire, accord d'un
-/// approbateur désigné de la MEP qui n'est ni pilote, ni suppléant, ni responsable technique (séparation des tâches), jamais
-/// le demandeur lui-même. Chaque étape est inscrite au journal de la MEP.
+/// approbateur de la période (<see cref="PeriodeGel.ApprobateurIds"/>, les administrateurs par défaut) qui n'est ni pilote, ni
+/// suppléant, ni responsable technique de la MEP (séparation des tâches), jamais le demandeur lui-même. Elle tombe si la date
+/// de la MEP change ensuite (<see cref="StatutDerogation.Caduque"/>). Chaque étape est inscrite au journal de la MEP.
 /// </summary>
 public class DerogationGel
 {
@@ -81,6 +92,12 @@ public class DerogationGel
     public Guid? DecideeParId { get; set; }
     public DateTimeOffset? DecideeLe { get; set; }
     public string Commentaire { get; set; } = "";
+    /// <summary>
+    /// Créneau prévu de la MEP au moment de la demande (UTC, fin exclue) : s'il change ensuite, la demande ou l'accord tombe.
+    /// Null : demande antérieure à cette règle.
+    /// </summary>
+    public DateTimeOffset? CreneauDebut { get; set; }
+    public DateTimeOffset? CreneauFin { get; set; }
 }
 
 /// <summary>

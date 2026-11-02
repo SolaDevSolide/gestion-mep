@@ -49,6 +49,8 @@ La mini-carte est masquée par défaut (bouton en bas à droite, mémorisé pour
 
 Entrée **Suivi en direct** du menu, ouverte à tous. En haut, quatre chiffres : MEP en cours, échecs à traiter, retours arrière et prochaine MEP (la première MEP en préparation, non reportée, dont la date annoncée, section Communication, n'est pas passée).
 
+Un approbateur y voit d'abord les **dérogations au gel** qui attendent sa décision, avec le motif du pilote, et peut les accorder ou les refuser sur place (voir [Calendrier et périodes de gel](Calendrier-et-gel.md#décider-dune-dérogation)).
+
 Puis une carte par MEP lancée (exécution, recette ou retour arrière ; ni les MEP annulées ni les reportées) : avancement, sections colorées comme dans la vue d'ensemble (une pastille par étape hors section), fin estimée et retard, échecs et ce qu'ils bloquent, qui exécute quoi, compte à rebours avant l'échéance de retour arrière. Les **retours arrière** viennent en premier, puis les MEP qui ont des **échecs** à traiter, puis les autres, la plus ancienne lancée d'abord. « Vue d'ensemble » ouvre la MEP sur son premier onglet ; les puces des systèmes touchés (une alerte signale celui d'une étape en échec) ouvrent leur historique.
 
 ![Animation : Suivi en direct : la carte de « Paiement mobile » se met à jour, puis « Vue d'ensemble »](images/suivi-en-direct.webp)
@@ -88,6 +90,8 @@ La liste des MEP (page d'accueil) se filtre par une rangée de critères au-dess
 ![Animation : filtre Système : BDD, puis « Avec un échec sur ces systèmes »](images/rechercher-des-mep.webp)
 
 *Dès qu'un critère est actif, les résultats passent en tableau.*
+
+L'affichage **Calendrier** montre les mêmes MEP par mois, par semaine ou en liste, et s'exporte dans un agenda (voir [Calendrier et périodes de gel](Calendrier-et-gel.md#le-calendrier-des-mep)).
 
 | État | MEP retenues |
 |---|---|
