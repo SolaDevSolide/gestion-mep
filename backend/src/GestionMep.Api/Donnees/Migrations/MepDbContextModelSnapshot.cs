@@ -18,7 +18,7 @@ namespace GestionMep.Api.Donnees.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -854,6 +854,9 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<int?>("RequetesParMinute")
+                        .HasColumnType("integer");
 
                     b.Property<DateTimeOffset?>("RevoqueLe")
                         .HasColumnType("timestamp with time zone");

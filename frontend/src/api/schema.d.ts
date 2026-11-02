@@ -8863,7 +8863,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["JetonSaisie"];
+                    "application/json": components["schemas"]["JetonServiceSaisie"];
                 };
             };
             responses: {
@@ -11377,7 +11377,8 @@ export interface components {
          * @description Jeton d'accès à l'API, sans son secret. `Prefixe` : début visible du jeton (`gmep_` et 8 caractères) ;
          *     `Etat` : `Actif`, `Expire` ou `Revoque` ; `DerniereUtilisationLe` et `DerniereAdresseIp` :
          *     dernier appel, à 5 minutes près ; `CompteId`, `CompteLogin`, `CompteNom` : compte au nom duquel il agit
-         *     (la personne, ou le compte technique d'un jeton de service).
+         *     (la personne, ou le compte technique d'un jeton de service) ; `RequetesParMinute` : limite de débit propre à un jeton
+         *     de service (null : réglage global `jetons-par-minute`).
          */
         JetonDto: {
             /** Format: uuid */
@@ -11402,6 +11403,8 @@ export interface components {
             compteId: string;
             compteLogin: string;
             compteNom: string;
+            /** Format: int32 */
+            requetesParMinute: null | number;
         };
         /**
          * @description Nouveau jeton : nom (100 caractères au plus), portées (au moins une ; `admin` pour un jeton de service seulement)
@@ -11412,6 +11415,21 @@ export interface components {
             portees: null | string[];
             /** Format: int32 */
             dureeJours: null | number;
+        };
+        /**
+         * @description Nouveau jeton de service : comme JetonSaisie, plus le compte technique à réutiliser (`CompteTechniqueId` ;
+         *     absent : un compte technique est créé au nom du jeton) et une limite de débit propre (`RequetesParMinute`, 1 à
+         *     100 000 ; absente : réglage global).
+         */
+        JetonServiceSaisie: {
+            nom: null | string;
+            portees: null | string[];
+            /** Format: int32 */
+            dureeJours: null | number;
+            /** Format: uuid */
+            compteTechniqueId: null | string;
+            /** Format: int32 */
+            requetesParMinute: null | number;
         };
         /** @description Relie le compte à `ComptePrincipalId` (même personne) ; `Desactiver` : désactive aussi le compte relié. */
         LiaisonCompteSaisie: {

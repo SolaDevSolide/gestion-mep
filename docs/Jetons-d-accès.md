@@ -13,11 +13,11 @@ Un jeton ne sert qu'à l'API : il ne permet pas de se connecter à l'interface.
 | | Jeton personnel | Jeton de service |
 |---|---|---|
 | Créé par | chaque personne, pour elle-même (depuis une session : `POST /api/jetons`) | un administrateur (`POST /api/admin/jetons`, ou `gestion-mep jetons creer`) |
-| Agit au nom de | la personne qui l'a créé | un **compte technique** qui porte le nom du jeton (« CI GitLab », « Supervision ») |
+| Agit au nom de | la personne qui l'a créé | un **compte technique** : créé avec le jeton, à son nom (« CI GitLab », login `svc-ci-gitlab`), ou repris d'un jeton précédent |
 | Droits | ceux de la personne, réduits à ses portées ; jamais ceux d'administrateur | ceux du compte technique, réduits à ses portées ; administrateur avec la portée `admin` |
 | Journal | les actions sont signées du nom de la personne | les actions sont signées du nom du jeton |
 
-Le compte technique d'un jeton de service n'a pas de mot de passe et ne peut pas se connecter. Il apparaît dans la liste des comptes : ajoutez-le à une MEP comme une personne pour qu'il puisse la modifier ou l'exécuter (par exemple démarrer et terminer les étapes de déploiement automatique). Révoquer le jeton désactive aussi son compte technique ; son nom reste dans l'historique des MEP.
+Le compte technique d'un jeton de service n'a pas de mot de passe et ne peut pas se connecter. Il apparaît dans la liste des comptes : ajoutez-le à une MEP comme une personne pour qu'il puisse la modifier ou l'exécuter (par exemple démarrer et terminer les étapes de déploiement automatique). Pour remplacer un jeton qui arrive à expiration, créez le nouveau sur le **même compte technique** (`compteTechniqueId`, ou `--compte svc-…` en ligne de commande) : il garde ses équipes et sa place dans les MEP. Révoquer le dernier jeton actif d'un compte technique désactive ce compte ; son nom reste dans l'historique des MEP. Un nouveau jeton sur ce compte le réactive.
 
 ## Portées
 
@@ -38,11 +38,11 @@ Quelques routes restent fermées à tous les jetons (403) : connexion, mot de pa
 
 - **Expiration** : 90 jours par défaut, 1 an au plus, pour les deux sortes de jetons. Un jeton expiré répond 401 : en créer un nouveau.
 - **Révocation** : immédiate et définitive, par son propriétaire (`POST /api/jetons/{id}/revoquer`) ou par un administrateur (`POST /api/admin/jetons/{id}/revoquer`, ou `gestion-mep jetons revoquer`). Un administrateur peut révoquer n'importe quel jeton.
-- **Compte désactivé** : les jetons d'une personne désactivée cessent de fonctionner tout de suite, et reprennent si le compte est réactivé (sauf expiration ou révocation entre-temps).
+- **Compte désactivé** : désactiver le compte d'une personne (ou le relier à un autre en le désactivant) révoque aussitôt ses jetons personnels, chacun inscrit au journal ; réactiver le compte ne les fait pas revenir.
 - **Affiché une seule fois** : le jeton complet n'est montré qu'à sa création. Le serveur n'en garde que l'empreinte (SHA-256) et le début visible, `gmep_` suivi de 8 caractères, qui sert à le reconnaître dans les listes et le journal. Un jeton perdu ne se retrouve pas : le révoquer et en créer un autre.
 - **Reconnaissable** : tous les jetons commencent par `gmep_`. Les outils de détection de secrets (dépôts de code, journaux) peuvent chercher ce préfixe ; un jeton qui a fui se révoque aussitôt.
 - **Dernière utilisation** : date et adresse IP du dernier appel, enregistrées à 5 minutes près et visibles dans les listes.
-- **Limite de débit** : 600 requêtes par minute et par jeton par défaut (réglage `jetons-par-minute`, modifiable sans redémarrage) ; au-delà, 429 jusqu'à la minute suivante.
+- **Limite de débit** : 600 requêtes par minute et par jeton par défaut (réglage `jetons-par-minute`, modifiable sans redémarrage) ; un jeton de service peut avoir sa propre limite (`requetesParMinute`, 1 à 100 000), par exemple pour une supervision qui interroge souvent. Au-delà, 429 jusqu'à la minute suivante, avec l'en-tête `Retry-After` (secondes à attendre).
 - **Pas de session, pas de CSRF** : une requête qui porte un jeton est authentifiée par lui seul (le cookie éventuel est ignoré), n'ouvre jamais de session et n'a pas besoin de l'en-tête `X-Requested-With`.
 - **Journal d'administration** : chaque création et chaque révocation y est inscrite (`jeton.cree`, `jeton.revoque`), avec le préfixe du jeton, jamais son secret.
 
@@ -64,6 +64,7 @@ Les refus suivent le format habituel de l'API (*problem details*, voir [API](API
 
 ```sh
 gestion-mep jetons creer "CI GitLab" --portees meps:lecture,execution --duree 180
+gestion-mep jetons creer "CI GitLab 2027" --portees meps:lecture,execution --compte svc-ci-gitlab
 gestion-mep jetons liste --type service
 gestion-mep jetons revoquer gmep_3fK9aQ2x --oui
 ```

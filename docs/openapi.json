@@ -8121,7 +8121,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/JetonSaisie"
+                "$ref": "#/components/schemas/JetonServiceSaisie"
               }
             }
           },
@@ -16463,7 +16463,8 @@
           "derniereAdresseIp",
           "compteId",
           "compteLogin",
-          "compteNom"
+          "compteNom",
+          "requetesParMinute"
         ],
         "type": "object",
         "properties": {
@@ -16535,9 +16536,16 @@
           },
           "compteNom": {
             "type": "string"
+          },
+          "requetesParMinute": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         },
-        "description": "Jeton d'accès à l'API, sans son secret. `Prefixe` : début visible du jeton (`gmep_` et 8 caractères) ;\n`Etat` : `Actif`, `Expire` ou `Revoque` ; `DerniereUtilisationLe` et `DerniereAdresseIp` :\ndernier appel, à 5 minutes près ; `CompteId`, `CompteLogin`, `CompteNom` : compte au nom duquel il agit\n(la personne, ou le compte technique d'un jeton de service)."
+        "description": "Jeton d'accès à l'API, sans son secret. `Prefixe` : début visible du jeton (`gmep_` et 8 caractères) ;\n`Etat` : `Actif`, `Expire` ou `Revoque` ; `DerniereUtilisationLe` et `DerniereAdresseIp` :\ndernier appel, à 5 minutes près ; `CompteId`, `CompteLogin`, `CompteNom` : compte au nom duquel il agit\n(la personne, ou le compte technique d'un jeton de service) ; `RequetesParMinute` : limite de débit propre à un jeton\nde service (null : réglage global `jetons-par-minute`)."
       },
       "JetonSaisie": {
         "required": [
@@ -16571,6 +16579,55 @@
           }
         },
         "description": "Nouveau jeton : nom (100 caractères au plus), portées (au moins une ; `admin` pour un jeton de service seulement)\net durée de validité en jours (1 à 365, 90 si absente)."
+      },
+      "JetonServiceSaisie": {
+        "required": [
+          "nom",
+          "portees",
+          "dureeJours",
+          "compteTechniqueId",
+          "requetesParMinute"
+        ],
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "portees": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "dureeJours": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "compteTechniqueId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "requetesParMinute": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Nouveau jeton de service : comme JetonSaisie, plus le compte technique à réutiliser (`CompteTechniqueId` ;\nabsent : un compte technique est créé au nom du jeton) et une limite de débit propre (`RequetesParMinute`, 1 à\n100 000 ; absente : réglage global)."
       },
       "LiaisonCompteSaisie": {
         "required": [

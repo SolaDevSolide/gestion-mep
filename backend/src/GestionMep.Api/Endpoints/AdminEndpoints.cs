@@ -88,7 +88,10 @@ public static class AdminEndpoints
         return changements;
     }
 
-    /// <summary>Désactive le compte et ferme ses sessions (sauf le dernier administrateur actif) ; renvoie false s'il l'était déjà.</summary>
+    /// <summary>
+    /// Désactive le compte, ferme ses sessions et révoque ses jetons personnels (sauf le dernier administrateur actif) ;
+    /// renvoie false s'il l'était déjà.
+    /// </summary>
     public static async Task<bool> Desactiver(MepDbContext db, Acteur? acteur, Utilisateur u)
     {
         await ExigerAutreAdmin(db, u, MessageDernierAdmin);
@@ -96,6 +99,7 @@ public static class AdminEndpoints
         u.Actif = false;
         u.TamponSecurite = Guid.NewGuid();
         JournalAdmin.Ecrire(db, acteur, "compte.desactive", $"Compte {JournalAdmin.Compte(u)} désactivé");
+        await ServiceJetons.RevoquerPersonnels(db, acteur, u, DateTimeOffset.UtcNow);
         await db.SaveChangesAsync();
         return true;
     }
@@ -136,6 +140,7 @@ public static class AdminEndpoints
         {
             compte.Actif = false;
             compte.TamponSecurite = Guid.NewGuid();
+            await ServiceJetons.RevoquerPersonnels(db, acteur, compte, DateTimeOffset.UtcNow);
         }
         JournalAdmin.Ecrire(db, acteur, "compte.relie",
             $"Compte {JournalAdmin.Compte(compte)} relié à {JournalAdmin.Compte(principal)} (même personne){(desactive ? " et désactivé" : "")}");

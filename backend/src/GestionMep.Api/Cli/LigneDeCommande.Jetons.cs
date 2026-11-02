@@ -16,18 +16,22 @@ public static partial class LigneDeCommande
 
     private static Commande[] CommandesJetons =>
     [
-        new("jetons creer", "\"<nom>\" --portees <portée,…> [--duree <jours>]",
+        new("jetons creer", "\"<nom>\" --portees <portée,…> [--duree <jours>] [--compte <login>] [--debit <n>]",
             "Crée un jeton de service (outil CI/CD, supervision) et affiche son secret, une seule fois",
             a => JetonsCreer(a.Arg(0, "<nom>"), a.Depuis(1)))
         {
             Options = [("--portees <portée,…>", $"Portées séparées par des virgules : {string.Join(", ", PorteesJeton.Toutes)}"),
-                ("--duree <jours>", $"Durée de validité, de 1 à {Regles.DureeJetonMaxJours} jours (défaut {Regles.DureeJetonParDefautJours})")],
-            Details = "Le jeton agit sous un compte technique qui porte son nom (sans mot de passe) : ajouter ce compte à une MEP pour qu'il "
+                ("--duree <jours>", $"Durée de validité, de 1 à {Regles.DureeJetonMaxJours} jours (défaut {Regles.DureeJetonParDefautJours})"),
+                ("--compte <login>", "Compte technique existant sous lequel le jeton agit (par défaut, un compte svc-… est créé à son nom)"),
+                ("--debit <n>", "Requêtes par minute propres à ce jeton (par défaut, le réglage jetons-par-minute)")],
+            Details = "Le jeton agit sous un compte technique qui porte son nom (login svc-…, sans mot de passe), ou sous celui donné par "
+                + "--compte (pour remplacer un jeton qui arrive à expiration sans changer de compte) : ajouter ce compte à une MEP pour qu'il "
                 + "puisse la modifier ou l'exécuter. Le secret n'est affiché qu'une fois (même avec --quiet) : le ranger aussitôt dans le "
                 + "coffre de l'outil. Les jetons personnels se créent depuis « Mon profil ».",
             Json = "resultat : { jeton, secret }, jeton comme GET /api/admin/jetons/{id}",
             Exemples = ["gestion-mep jetons creer \"CI GitLab\" --portees meps:lecture,execution --duree 180",
-                "gestion-mep jetons creer Supervision --portees meps:lecture --json   (pour un script : resultat.secret)"],
+                "gestion-mep jetons creer Supervision --portees meps:lecture --debit 1200 --json   (pour un script : resultat.secret)",
+                "gestion-mep jetons creer \"CI GitLab 2027\" --portees meps:lecture,execution --compte svc-ci-gitlab"],
         },
         new("jetons liste", "[--type personnel|service] [--compte <login>] [--actifs]",
             "Jetons : préfixe, nom, type, compte, portées, état, expiration, dernière utilisation", a => JetonsListe(a.Args))
@@ -42,7 +46,8 @@ public static partial class LigneDeCommande
         {
             Destructive = true,
             Options = [OptionOui],
-            Details = "Le compte technique d'un jeton de service est aussi désactivé ; son nom reste dans l'historique des MEP.",
+            Details = "Le compte technique d'un jeton de service est aussi désactivé s'il n'a plus d'autre jeton actif ; son nom reste dans "
+                + "l'historique des MEP.",
             Json = "resultat : le jeton révoqué",
             Exemples = ["gestion-mep jetons revoquer gmep_3fK9aQ2x --oui"],
         },
@@ -54,10 +59,12 @@ public static partial class LigneDeCommande
 
     private static async Task<int> JetonsCreer(string nom, string[] args)
     {
-        var o = Options.Lire(args, ["--portees", "--duree"]);
+        var o = Options.Lire(args, ["--portees", "--duree", "--compte", "--debit"]);
         var portees = ListePortees(o.Valeur("--portees"));
         await using var db = Base(Configuration());
-        var cree = await ServiceJetons.CreerService(db, null, new JetonSaisie(nom, portees, o.Entier("--duree")), DateTimeOffset.UtcNow);
+        Guid? compte = o.Valeur("--compte") is { } login ? (await Compte(db, login)).Id : null;
+        var cree = await ServiceJetons.CreerService(db, null, new JetonServiceSaisie(nom, portees, o.Entier("--duree"), compte, o.Entier("--debit")),
+            DateTimeOffset.UtcNow);
         Resultat(cree);
         Informer($"Jeton de service « {cree.Jeton.Nom} » créé ({cree.Jeton.Prefixe}), compte technique {cree.Jeton.CompteLogin}, "
             + $"expire le {Date(cree.Jeton.ExpireLe)}.");

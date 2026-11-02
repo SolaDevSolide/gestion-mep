@@ -23,7 +23,7 @@ public static class ServiceJetons
     {
         var j = l.Jeton;
         return new JetonDto(j.Id, j.Nom, j.Type, j.Etat(maintenant), j.Prefixe, [.. j.Portees], j.CreeLe, j.CreePar, j.ExpireLe, j.RevoqueLe, j.RevoquePar,
-            j.DerniereUtilisationLe, j.DerniereAdresseIp, j.UtilisateurId, l.Login, l.Nom);
+            j.DerniereUtilisationLe, j.DerniereAdresseIp, j.UtilisateurId, l.Login, l.Nom, j.RequetesParMinute);
     }
 
     /// <summary>Jetons choisis, du plus récent au plus ancien, avec le compte au nom duquel chacun agit.</summary>
@@ -78,33 +78,62 @@ public static class ServiceJetons
     }
 
     /// <summary>
-    /// Jeton de service : un compte technique est créé à son nom (sans mot de passe, impossible à connecter), pour qu'il
-    /// signe le journal et qu'on puisse l'ajouter à une MEP. Le nom ne peut pas imiter un autre compte (400).
+    /// Jeton de service. Sans <see cref="JetonServiceSaisie.CompteTechniqueId"/>, un compte technique est créé au nom du jeton
+    /// (login <c>svc-…</c>, sans mot de passe, impossible à connecter) pour qu'il signe le journal et qu'on puisse l'ajouter à
+    /// une MEP ; le nom ne peut alors pas imiter un autre compte (400). Avec, le jeton agit sous ce compte technique existant
+    /// (« Recréer » un jeton qui arrive à expiration garde ainsi le même compte, ses équipes et ses MEP) : 422 si ce n'est
+    /// pas un compte technique ; un compte technique désactivé (ses jetons révoqués) est réactivé.
     /// </summary>
-    public static async Task<JetonCreeDto> CreerService(MepDbContext db, Acteur? acteur, JetonSaisie c, DateTimeOffset maintenant)
+    public static async Task<JetonCreeDto> CreerService(MepDbContext db, Acteur? acteur, JetonServiceSaisie c, DateTimeOffset maintenant)
     {
-        var compte = new Utilisateur { EstTechnique = true, MotDePasseHash = "", Role = RoleCompteTechnique };
-        var (jeton, secret) = Nouveau(TypeJeton.Service, c, compte.Id, acteur, maintenant);
-        await AuthentificationLocale.ExigerNomDisponible(db, jeton.Nom, null);
-        compte.NomAffiche = jeton.Nom;
-        compte.Login = $"service-{compte.Id.ToString("N")[..12]}";
-        db.Utilisateurs.Add(compte);
+        var debit = Regles.ValiderDebitJeton(TypeJeton.Service, c.RequetesParMinute);
+        var saisie = new JetonSaisie(c.Nom, c.Portees, c.DureeJours);
+        Utilisateur compte;
+        var nouveauCompte = c.CompteTechniqueId is null;
+        if (c.CompteTechniqueId is { } id)
+        {
+            compte = await db.Utilisateurs.FirstOrDefaultAsync(u => u.Id == id) ?? throw ErreurHttp.NonTrouve("Compte technique introuvable.");
+            if (!compte.EstTechnique)
+                throw ErreurHttp.Regle([$"{compte.NomAffiche} n'est pas un compte technique : un jeton de service n'agit jamais au nom d'une personne."]);
+        }
+        else compte = new Utilisateur { EstTechnique = true, MotDePasseHash = "", Role = RoleCompteTechnique };
+        var (jeton, secret) = Nouveau(TypeJeton.Service, saisie, compte.Id, acteur, maintenant);
+        jeton.RequetesParMinute = debit;
+        if (nouveauCompte)
+        {
+            await AuthentificationLocale.ExigerNomDisponible(db, jeton.Nom, null);
+            compte.NomAffiche = jeton.Nom;
+            compte.Login = await LoginLibre(db, Regles.LoginCompteTechnique(jeton.Nom));
+            db.Utilisateurs.Add(compte);
+        }
+        else if (!compte.Actif) compte.Actif = true;
         db.JetonsApi.Add(jeton);
         JournalAdmin.Ecrire(db, acteur, "jeton.cree",
-            $"{Libelle(jeton)} créé : portées {string.Join(", ", jeton.Portees)}, expire le {Date(jeton.ExpireLe)}, compte technique {compte.Login}");
+            $"{Libelle(jeton)} créé : portées {string.Join(", ", jeton.Portees)}, expire le {Date(jeton.ExpireLe)}, "
+            + $"compte technique {compte.Login}{(nouveauCompte ? "" : " (existant)")}{(debit is { } d ? $", {d} requêtes par minute" : "")}");
         await db.SaveChangesAsync();
         return new JetonCreeDto(await Dto(db, jeton, maintenant), secret);
     }
 
+    /// <summary>Login proposé, ou suivi de -2, -3… s'il est déjà pris.</summary>
+    private static async Task<string> LoginLibre(MepDbContext db, string login)
+    {
+        var pris = await db.Utilisateurs.AsNoTracking().Where(u => u.Login.StartsWith(login)).Select(u => u.Login).ToListAsync();
+        if (!pris.Contains(login)) return login;
+        for (var i = 2; ; i++)
+            if (!pris.Contains($"{login}-{i}")) return $"{login}-{i}";
+    }
+
     /// <summary>
-    /// Révocation définitive (422 si déjà révoqué). Le compte technique d'un jeton de service est aussi désactivé : il garde
-    /// son nom dans l'historique des MEP.
+    /// Révocation définitive (422 si déjà révoqué). Le compte technique d'un jeton de service est aussi désactivé quand il n'a
+    /// plus d'autre jeton actif : il garde son nom dans l'historique des MEP.
     /// </summary>
     public static async Task<JetonDto> Revoquer(MepDbContext db, Acteur? acteur, JetonApi jeton, DateTimeOffset maintenant)
     {
         Regles.RevoquerJeton(jeton, acteur?.Nom ?? JournalAdmin.AuteurLigneDeCommande, maintenant);
         var compte = await db.Utilisateurs.FirstAsync(u => u.Id == jeton.UtilisateurId);
-        if (jeton.Type == TypeJeton.Service && compte.EstTechnique && compte.Actif)
+        if (jeton.Type == TypeJeton.Service && compte.EstTechnique && compte.Actif
+            && !await db.JetonsApi.AnyAsync(j => j.UtilisateurId == compte.Id && j.Id != jeton.Id && j.RevoqueLe == null && j.ExpireLe > maintenant))
         {
             compte.Actif = false;
             compte.TamponSecurite = Guid.NewGuid();
@@ -113,6 +142,22 @@ public static class ServiceJetons
             jeton.Type == TypeJeton.Service ? $"{Libelle(jeton)} révoqué" : $"{Libelle(jeton)} de {JournalAdmin.Compte(compte)} révoqué");
         await db.SaveChangesAsync();
         return await Dto(db, jeton, maintenant);
+    }
+
+    /// <summary>
+    /// Compte désactivé : ses jetons personnels encore actifs sont révoqués aussitôt (réactiver le compte ne les fait pas
+    /// revenir), chacun inscrit au journal. L'appelant enregistre. Renvoie le nombre de jetons révoqués.
+    /// </summary>
+    public static async Task<int> RevoquerPersonnels(MepDbContext db, Acteur? acteur, Utilisateur compte, DateTimeOffset maintenant)
+    {
+        var actifs = await db.JetonsApi.Where(j => j.UtilisateurId == compte.Id && j.Type == TypeJeton.Personnel && j.RevoqueLe == null && j.ExpireLe > maintenant)
+            .ToListAsync();
+        foreach (var j in actifs)
+        {
+            Regles.RevoquerJeton(j, acteur?.Nom ?? JournalAdmin.AuteurLigneDeCommande, maintenant);
+            JournalAdmin.Ecrire(db, acteur, "jeton.revoque", $"{Libelle(j)} de {JournalAdmin.Compte(compte)} révoqué : compte désactivé");
+        }
+        return actifs.Count;
     }
 
     public static List<PorteeJetonDto> Portees() => PorteesJeton.Toutes

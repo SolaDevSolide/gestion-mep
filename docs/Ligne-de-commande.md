@@ -1076,21 +1076,24 @@ Un jeton se désigne par son préfixe (gmep_ et 8 caractères, colonne PRÉFIXE 
 #### `jetons creer`
 
 ```
-gestion-mep jetons creer "<nom>" --portees <portée,…> [--duree <jours>]
+gestion-mep jetons creer "<nom>" --portees <portée,…> [--duree <jours>] [--compte <login>] [--debit <n>]
 ```
 
-Crée un jeton de service (outil CI/CD, supervision) et affiche son secret, une seule fois. Le jeton agit sous un compte technique qui porte son nom (sans mot de passe) : ajouter ce compte à une MEP pour qu'il puisse la modifier ou l'exécuter. Le secret n'est affiché qu'une fois (même avec --quiet) : le ranger aussitôt dans le coffre de l'outil. Les jetons personnels se créent depuis « Mon profil ».
+Crée un jeton de service (outil CI/CD, supervision) et affiche son secret, une seule fois. Le jeton agit sous un compte technique qui porte son nom (login svc-…, sans mot de passe), ou sous celui donné par --compte (pour remplacer un jeton qui arrive à expiration sans changer de compte) : ajouter ce compte à une MEP pour qu'il puisse la modifier ou l'exécuter. Le secret n'est affiché qu'une fois (même avec --quiet) : le ranger aussitôt dans le coffre de l'outil. Les jetons personnels se créent depuis « Mon profil ».
 
 | Option | Effet |
 |---|---|
 | `--portees <portée,…>` | Portées séparées par des virgules : meps:lecture, meps:ecriture, execution, catalogue:lecture, catalogue:ecriture, admin |
 | `--duree <jours>` | Durée de validité, de 1 à 365 jours (défaut 90) |
+| `--compte <login>` | Compte technique existant sous lequel le jeton agit (par défaut, un compte svc-… est créé à son nom) |
+| `--debit <n>` | Requêtes par minute propres à ce jeton (par défaut, le réglage jetons-par-minute) |
 
 Sortie `--json` : enveloppe { code, messages, avertissements, resultat } ; resultat : { jeton, secret }, jeton comme GET /api/admin/jetons/{id}.
 
 ```bash
 gestion-mep jetons creer "CI GitLab" --portees meps:lecture,execution --duree 180
-gestion-mep jetons creer Supervision --portees meps:lecture --json   (pour un script : resultat.secret)
+gestion-mep jetons creer Supervision --portees meps:lecture --debit 1200 --json   (pour un script : resultat.secret)
+gestion-mep jetons creer "CI GitLab 2027" --portees meps:lecture,execution --compte svc-ci-gitlab
 ```
 
 #### `jetons liste`
@@ -1120,7 +1123,7 @@ gestion-mep jetons liste --type service --actifs --json
 gestion-mep jetons revoquer <jeton> [--oui]
 ```
 
-Révoque un jeton, personnel ou de service : il ne fonctionne plus, définitivement. Le compte technique d'un jeton de service est aussi désactivé ; son nom reste dans l'historique des MEP.
+Révoque un jeton, personnel ou de service : il ne fonctionne plus, définitivement. Le compte technique d'un jeton de service est aussi désactivé s'il n'a plus d'autre jeton actif ; son nom reste dans l'historique des MEP.
 
 | Option | Effet |
 |---|---|

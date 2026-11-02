@@ -56,7 +56,7 @@ public static class JetonsEndpoints
         admin.MapGet("/{id:guid}", async (Guid id, MepDbContext db, TimeProvider horloge) =>
             await ServiceJetons.Dto(db, await ServiceJetons.Charger(db, id), horloge.GetUtcNow()));
 
-        admin.MapPost("", async Task<Created<JetonCreeDto>> (JetonSaisie c, ClaimsPrincipal user, MepDbContext db, TimeProvider horloge) =>
+        admin.MapPost("", async Task<Created<JetonCreeDto>> (JetonServiceSaisie c, ClaimsPrincipal user, MepDbContext db, TimeProvider horloge) =>
         {
             var cree = await ServiceJetons.CreerService(db, Acteur.Depuis(user), c, horloge.GetUtcNow());
             return TypedResults.Created($"/api/admin/jetons/{cree.Jeton.Id}", cree);
