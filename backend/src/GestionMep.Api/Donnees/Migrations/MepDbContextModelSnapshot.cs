@@ -780,6 +780,76 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.ToTable("IdentitesExternes");
                 });
 
+            modelBuilder.Entity("GestionMep.Domain.JetonApi", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreeLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreePar")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid?>("CreeParId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DerniereAdresseIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset?>("DerniereUtilisationLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Empreinte")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("ExpireLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Portees")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Prefixe")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("RevoqueLe")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RevoquePar")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("UtilisateurId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Empreinte")
+                        .IsUnique();
+
+                    b.HasIndex("UtilisateurId");
+
+                    b.ToTable("JetonsApi");
+                });
+
             modelBuilder.Entity("GestionMep.Domain.Liaison", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1650,6 +1720,9 @@ namespace GestionMep.Api.Donnees.Migrations
                     b.Property<bool>("EstAdmin")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("EstTechnique")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Expertises")
                         .IsRequired()
                         .HasColumnType("jsonb");
@@ -1816,6 +1889,15 @@ namespace GestionMep.Api.Donnees.Migrations
                         .IsRequired();
 
                     b.Navigation("Utilisateur");
+                });
+
+            modelBuilder.Entity("GestionMep.Domain.JetonApi", b =>
+                {
+                    b.HasOne("GestionMep.Domain.Utilisateur", null)
+                        .WithMany()
+                        .HasForeignKey("UtilisateurId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("GestionMep.Domain.Mep", b =>

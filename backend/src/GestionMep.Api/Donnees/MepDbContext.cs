@@ -70,6 +70,7 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
     public DbSet<EchangeLiaison> EchangesLiaison => Set<EchangeLiaison>();
     public DbSet<NonceLiaison> NoncesLiaison => Set<NonceLiaison>();
     public DbSet<DeploiementLiaison> DeploiementsLiaison => Set<DeploiementLiaison>();
+    public DbSet<JetonApi> JetonsApi => Set<JetonApi>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -391,6 +392,23 @@ public class MepDbContext(DbContextOptions<MepDbContext> options) : DbContext(op
             e.Property(x => x.Contenu).AsJsonObjet();
             // La MEP peut disparaître : la ligne garde le dernier envoi, pour annoncer la suppression à Noosphere.
             e.HasOne<Liaison>().WithMany().HasForeignKey(x => x.LiaisonId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Jetons d'accès à l'API (#128) : empreinte seule (unique), supprimés avec leur compte.
+        b.Entity<JetonApi>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.Nom).HasMaxLength(100);
+            e.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Prefixe).HasMaxLength(20);
+            e.Property(x => x.Empreinte).HasMaxLength(64);
+            e.HasIndex(x => x.Empreinte).IsUnique();
+            e.HasIndex(x => x.UtilisateurId);
+            e.Property(x => x.Portees).AsJson();
+            e.Property(x => x.CreePar).HasMaxLength(255);
+            e.Property(x => x.RevoquePar).HasMaxLength(255);
+            e.Property(x => x.DerniereAdresseIp).HasMaxLength(64);
+            e.HasOne<Utilisateur>().WithMany().HasForeignKey(x => x.UtilisateurId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<IdentiteExterne>(e =>
