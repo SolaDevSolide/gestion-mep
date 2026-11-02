@@ -529,6 +529,7 @@ export function BarreFiltres({
   donnees,
   modeles,
   resultats,
+  sansPeriode = false,
 }: {
   f: FiltreMeps;
   maj: (p: Partial<FiltreMeps>) => void;
@@ -536,6 +537,8 @@ export function BarreFiltres({
   /** Vue des modèles : seule l'équipe s'ajoute à la recherche. */
   modeles: boolean;
   resultats: number;
+  /** Calendrier (#129) : la période affichée remplace le critère « Période ». */
+  sansPeriode?: boolean;
 }) {
   const toast = useToast();
   const [ouvert, setOuvert] = useState<string | null>(null);
@@ -546,7 +549,7 @@ export function BarreFiltres({
     maj,
     comptes: comptesDe(donnees.facettes),
   };
-  const liste = criteres(ctx, modeles);
+  const liste = criteres(ctx, modeles).filter((c) => !(sansPeriode && c.cle === 'periode'));
   const actifs = liste.filter((c) => c.valeur);
   const n = nbCriteres(f) - (f.recherche.trim() ? 1 : 0);
   const toutEffacer = () => maj({ ...FILTRE_VIDE });

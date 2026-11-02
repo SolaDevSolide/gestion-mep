@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../api';
 import { normaliser } from '../../recherche';
 import { NOMS_ETATS, parametresListe, PREFIXE_LIBRE, type FiltreMeps, type NomEtat } from '../../rechercheMeps';
-import type { FacettesMeps, MepResume } from '../../types';
+import type { FacettesMeps, MepResume, SignalementCalendrier } from '../../types';
+
+const parMep = (l: SignalementCalendrier[] = []): Record<string, SignalementCalendrier> =>
+  Object.fromEntries(l.map((x) => [x.mepId, x]));
 
 /** Délai avant d'envoyer la recherche au serveur, le temps de finir de taper. */
 export const DELAI_RECHERCHE = 250;
@@ -16,6 +19,8 @@ export interface ListeMeps {
   ensemble: number;
   suivant: string | null;
   facettes: FacettesMeps;
+  /** Gels et conflits des MEP chargées qui en ont (#129), par identifiant de MEP. */
+  signalements: Record<string, SignalementCalendrier>;
 }
 
 export interface ListeMepsLue {
@@ -72,6 +77,7 @@ export function useListeMeps(f: FiltreMeps, modele: boolean): ListeMepsLue {
           ensemble: page.ensemble,
           suivant: page.suivant,
           facettes,
+          signalements: parMep(page.signalements),
         };
         listeRef.current = l;
         setListe(l);
@@ -103,6 +109,7 @@ export function useListeMeps(f: FiltreMeps, modele: boolean): ListeMepsLue {
           total: page.total,
           ensemble: page.ensemble,
           suivant: page.suivant,
+          signalements: { ...l.signalements, ...parMep(page.signalements) },
         };
         listeRef.current = suite;
         setListe(suite);

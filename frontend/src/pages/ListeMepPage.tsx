@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   CalendarDays,
+  CalendarRange,
   Copy,
   Factory,
   Feather,
@@ -51,6 +52,9 @@ import { useToast } from '../ui/Toast';
 import { EnChargement, Squelette } from '../ui/Squelette';
 import { OctagonAlert } from 'lucide-react';
 import { BarreFiltres } from './liste/BarreFiltres';
+import { CalendrierMeps } from './liste/CalendrierMeps';
+import { Signalements } from './liste/Signalements';
+import { estJour, FUSEAU_INSTANCE, jourLocal, VUES_CALENDRIER, type VueCalendrier } from '../calendrier';
 import { useListeMeps } from './liste/listeMeps';
 import { SqueletteTableauMeps, TableauMeps } from './liste/TableauMeps';
 
@@ -272,7 +276,7 @@ function SqueletteCartesMeps({ cartes }: { cartes: number }) {
   ));
 }
 
-type Affichage = 'cartes' | 'tableau';
+type Affichage = 'cartes' | 'tableau' | 'calendrier';
 
 export default function ListeMepPage() {
   const [vue, setVue] = useState<'meps' | 'modeles'>('meps');
@@ -314,6 +318,22 @@ export default function ListeMepPage() {
   const meps = liste?.meps ?? [];
   const personnes = useMemo(() => personnesDeRecherche(comptes ?? []), [comptes]);
   const affichage: Affichage = modele ? 'cartes' : (choixAffichage ?? (estVide(f) ? 'cartes' : 'tableau'));
+  const calendrier = affichage === 'calendrier';
+  // Calendrier (#129) : vue, jour affiché et jour choisi dans l'adresse (un lien rouvre la même période).
+  const aujourdhui = jourLocal(new Date(now).toISOString(), FUSEAU_INSTANCE);
+  const vueCalendrier: VueCalendrier = VUES_CALENDRIER.find((v) => v === parametres.get('vue')) ?? 'mois';
+  const jourCalendrier = estJour(parametres.get('jour')) ? parametres.get('jour')! : aujourdhui;
+  const changerCalendrier = (c: { vue?: VueCalendrier; ancre?: string; jour?: string }) =>
+    setParametres(
+      (avant) => {
+        const p = new URLSearchParams(avant);
+        if (c.vue) p.set('vue', c.vue);
+        const jour = c.jour ?? c.ancre;
+        if (jour) p.set('jour', jour);
+        return p;
+      },
+      { replace: true },
+    );
   const retraits = RETRAITS.map((r) => ({ ...r, nombre: liste?.facettes.sans[r.cle] ?? 0 })).filter(
     (r) => r.nombre > 0,
   );
@@ -426,18 +446,30 @@ export default function ListeMepPage() {
                     </>
                   ),
                 },
+                {
+                  valeur: 'calendrier',
+                  titre: 'Calendrier',
+                  libelle: (
+                    <>
+                      <CalendarRange className="size-4" aria-hidden />
+                      <span className="sr-only sm:not-sr-only">Calendrier</span>
+                    </>
+                  ),
+                },
               ]}
             />
           )}
-          <BoutonExportExcel
-            url={urlExportListe(f, modele)}
-            disabled={liste === null || liste.total === 0}
-            title={
-              modele
-                ? 'Les modèles affichés, recherche et équipe comprises.'
-                : 'Les MEP affichées, filtres compris, avec un onglet des échecs d’étape.'
-            }
-          />
+          {!calendrier && (
+            <BoutonExportExcel
+              url={urlExportListe(f, modele)}
+              disabled={liste === null || liste.total === 0}
+              title={
+                modele
+                  ? 'Les modèles affichés, recherche et équipe comprises.'
+                  : 'Les MEP affichées, filtres compris, avec un onglet des échecs d’étape.'
+              }
+            />
+          )}
         </div>
       </div>
       {/* Critères : chargés avec la page (catalogue, équipes, personnes), leur place est tenue en attendant (pas quand la
@@ -455,6 +487,7 @@ export default function ListeMepPage() {
           f={filtreApplique}
           maj={maj}
           modeles={modele}
+          sansPeriode={calendrier}
           resultats={liste.total}
           donnees={{ facettes: liste.facettes, catalogue: catalogue ?? [], equipes: equipes ?? [], personnes }}
         />
@@ -480,6 +513,16 @@ export default function ListeMepPage() {
         />
       )}
 
+      {calendrier && !modele && (
+        <CalendrierMeps
+          f={f}
+          vue={vueCalendrier}
+          ancre={jourCalendrier}
+          jourChoisi={jourCalendrier}
+          changer={changerCalendrier}
+        />
+      )}
+
       {liste === null && !erreur && affichage === 'tableau' && <SqueletteTableauMeps />}
       {liste === null && !erreur && affichage === 'cartes' && (
         <EnChargement libelle="Chargement des mises en production…" className="mt-6 space-y-3">
@@ -487,7 +530,7 @@ export default function ListeMepPage() {
         </EnChargement>
       )}
 
-      {liste !== null && liste.ensemble === 0 && (
+      {!calendrier && liste !== null && liste.ensemble === 0 && (
         <div className="mt-6 rounded-xl border border-dashed border-line-strong bg-surface">
           <EmptyState
             icone={Rocket}
@@ -510,7 +553,7 @@ export default function ListeMepPage() {
         </div>
       )}
 
-      {liste !== null && liste.ensemble > 0 && liste.total === 0 && (
+      {!calendrier && liste !== null && liste.ensemble > 0 && liste.total === 0 && (
         <div className="mt-6 rounded-xl border border-dashed border-line-strong bg-surface">
           <EmptyState
             icone={SearchX}
@@ -639,6 +682,7 @@ export default function ListeMepPage() {
                     ))}
                   </div>
                 )}
+                <Signalements s={liste?.signalements[m.id]} phase={m.phase} className="mt-2.5" />
                 {m.estModele ? (
                   <p className="mt-4 text-xs text-fg-subtle tnum sm:pr-32">
                     {m.nbEtapes} étape{m.nbEtapes > 1 ? 's' : ''} de déploiement
@@ -689,7 +733,7 @@ export default function ListeMepPage() {
           Chargement des mises en production suivantes…
         </p>
       )}
-      {suite && !chargementSuite && (
+      {suite && !chargementSuite && !calendrier && (
         <div className="mt-6 flex justify-center">
           <Button onClick={afficherPlus}>Afficher plus</Button>
         </div>
