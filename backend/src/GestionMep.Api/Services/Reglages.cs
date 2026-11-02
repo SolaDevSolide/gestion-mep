@@ -74,6 +74,8 @@ public static class Reglages
             TypeReglage.Entier, "10", 1, 90),
         new("connexions-par-minute", "Connexion:TentativesParMinute", GroupeConnexions, "Tentatives de connexion par minute",
             "Par adresse IP, en plus du blocage d'un compte après 5 échecs depuis la même adresse.", TypeReglage.Entier, "20", 1, 10_000),
+        new("jetons-par-minute", Securite.ProtectionsHttp.CleRequetesParJeton, GroupeConnexions, "Requêtes par minute d'un jeton d'accès",
+            "Par jeton d'accès à l'API (scripts, CI/CD, supervision). Au-delà : refus (429) jusqu'à la minute suivante.", TypeReglage.Entier, "600", 1, 100_000),
         new("flux-max", "Flux:ConnexionsMax", GroupeConnexions, "Écrans suivis en temps réel",
             "Nombre maximal de MEP ouvertes en même temps sur tout le serveur (20 au plus par compte).", TypeReglage.Entier, "1000", 1, 100_000),
         new("verifier-mises-a-jour", "MisesAJour:Verifier", GroupeMisesAJour, "Signaler les nouvelles versions",

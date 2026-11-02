@@ -28,6 +28,16 @@ public static class AdminEndpoints
             throw ErreurHttp.Regle([message]);
     }
 
+    /// <summary>
+    /// 422 pour le compte technique d'un jeton de service : il ne reçoit jamais de mot de passe (il ne doit pas pouvoir se
+    /// connecter) et ne se relie à personne.
+    /// </summary>
+    public static void ExigerComptePersonne(Utilisateur u)
+    {
+        if (u.EstTechnique)
+            throw ErreurHttp.Regle([$"{u.NomAffiche} est le compte technique d'un jeton de service : ni mot de passe, ni compte relié."]);
+    }
+
     private static string Nom(string? nomAffiche)
     {
         var nom = ServiceMep.Texte(nomAffiche);
@@ -103,6 +113,7 @@ public static class AdminEndpoints
     /// <summary>Nouveau mot de passe provisoire (sessions fermées), renvoyé une seule fois.</summary>
     public static async Task<string> ReinitialiserMotDePasse(MepDbContext db, Acteur? acteur, Utilisateur u, IPasswordHasher<Utilisateur> hasher)
     {
+        ExigerComptePersonne(u);
         var mdp = AuthentificationLocale.PoserMotDePasseProvisoire(u, hasher);
         JournalAdmin.Ecrire(db, acteur, "compte.mdp-reinitialise", $"Mot de passe de {JournalAdmin.Compte(u)} réinitialisé");
         await db.SaveChangesAsync();
@@ -116,6 +127,8 @@ public static class AdminEndpoints
     /// </summary>
     public static async Task Relier(MepDbContext db, Acteur? acteur, Utilisateur compte, Utilisateur principal, bool desactiver)
     {
+        ExigerComptePersonne(compte);
+        ExigerComptePersonne(principal);
         var desactive = desactiver && compte.Actif;
         if (desactive) await ExigerAutreAdmin(db, compte, MessageDernierAdmin);
         Regles.Relier(compte, principal, await db.Utilisateurs.AsNoTracking().Where(u => u.ComptePrincipalId == compte.Id).ToListAsync());

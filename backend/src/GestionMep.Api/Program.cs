@@ -160,6 +160,8 @@ app.UseStaticFiles(fichiersStatiques);
 app.UtiliserProtectionCsrf();
 app.UtiliserGardeConnexionUnique();
 app.UseAuthentication();
+// Jetons d'accès : 401 pour un jeton refusé, 403 hors de ses portées (avant les droits de la route).
+app.UtiliserJetons();
 app.UseAuthorization();
 app.UtiliserMotDePasseProvisoire();
 app.UseRateLimiter();
@@ -204,6 +206,7 @@ api.MapCharte();
 api.MapConnexions(app.Configuration);
 api.MapPiecesJointes();
 api.MapLiaisons();
+api.MapJetons();
 // Une route /api inconnue ne doit jamais retomber sur index.html.
 api.Map("{**reste}", () => ReponsesErreur.Resultat(404, "Route introuvable."));
 

@@ -7,16 +7,17 @@ public record ExpertiseDto(Guid SystemeCatalogueId, string Detail);
 /// <summary>
 /// Compte complet : le sien (<c>/api/auth/moi</c>, profil) ou ceux de la console d'administration (<c>/api/admin/utilisateurs</c>).
 /// <c>ComptePrincipalId</c> : compte principal auquel ce compte est relié (même personne), null sinon ; <c>NomPersonne</c> : nom
-/// affiché de la personne (celui du compte principal) ; <c>EquipeIds</c> : équipes dont ce compte est membre.
+/// affiché de la personne (celui du compte principal) ; <c>EquipeIds</c> : équipes dont ce compte est membre ;
+/// <c>EstTechnique</c> : compte technique d'un jeton de service (sans mot de passe, il ne se connecte pas).
 /// </summary>
 public record UtilisateurDto(Guid Id, string Login, string NomAffiche, bool EstAdmin, string Role, string Contact, List<ExpertiseDto> Expertises, bool Actif,
-    bool DoitChangerMotDePasse, Guid? ComptePrincipalId, string NomPersonne, List<Guid> EquipeIds);
+    bool DoitChangerMotDePasse, Guid? ComptePrincipalId, string NomPersonne, List<Guid> EquipeIds, bool EstTechnique);
 /// <summary>
 /// Compte tel que le voit tout utilisateur connecté (<c>GET /api/utilisateurs</c>) : de quoi choisir une personne (participant,
 /// approbateur, nouveau pilote, recherche). Ni le rôle administrateur ni l'état du mot de passe, réservés à la console.
 /// </summary>
 public record CompteAnnuaireDto(Guid Id, string Login, string NomAffiche, string Role, string Contact, List<ExpertiseDto> Expertises, bool Actif,
-    Guid? ComptePrincipalId, string NomPersonne, List<Guid> EquipeIds);
+    Guid? ComptePrincipalId, string NomPersonne, List<Guid> EquipeIds, bool EstTechnique);
 
 /// <summary>
 /// Équipe : <c>MembreIds</c>, comptes membres (un compte peut appartenir à plusieurs équipes) ; <c>ContactSupport</c> et

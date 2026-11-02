@@ -15,6 +15,11 @@ public static class ProtectionsHttp
     public const string PolitiqueConnexion = "connexion";
     public const string EnTeteCsrf = "X-Requested-With";
 
+    /// <summary>Requêtes par minute permises à un jeton d'accès (réglage jetons-par-minute).</summary>
+    public static int RequetesParJeton(IConfiguration config) => Math.Max(1, config.GetValue(CleRequetesParJeton, 600));
+
+    public const string CleRequetesParJeton = "Jetons:RequetesParMinute";
+
     public static IServiceCollection AjouterProtectionsHttp(this IServiceCollection services, IConfiguration config)
     {
         // Reverse proxy HTTPS (IIS, nginx, Traefik…) : adresse du client et schéma d'origine, acceptés seulement des
@@ -38,7 +43,18 @@ public static class ProtectionsHttp
             o.OnRejected = (ctx, annulation) => new ValueTask(ReponsesErreur.Ecrire(ctx.HttpContext, StatusCodes.Status429TooManyRequests,
                 ctx.HttpContext.Request.Path.StartsWithSegments(Services.ServiceLiaisons.Chemin)
                     ? $"Plus de {Endpoints.LiaisonEndpoints.RequetesParMinute} requêtes par minute sur cette liaison. Réessayez dans une minute."
+                    : ctx.HttpContext.User.HasClaim(c => c.Type == Auth.AuthentificationJeton.ClaimJeton)
+                    ? $"Plus de {RequetesParJeton(config)} requêtes par minute avec ce jeton d'accès. Réessayez dans une minute."
                     : "Trop de tentatives de connexion. Réessayez dans une minute.", annulation: annulation));
+            // Jetons d'accès (#128) : requêtes par minute et par jeton (réglage modifiable, relu à chaque requête). Les autres
+            // requêtes n'ont pas de limite globale.
+            o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+            {
+                if (ctx.User.FindFirst(Auth.AuthentificationJeton.ClaimJeton)?.Value is not { } jeton) return RateLimitPartition.GetNoLimiter("");
+                var parMinute = RequetesParJeton(config);
+                return RateLimitPartition.GetFixedWindowLimiter($"jeton|{jeton}|{parMinute}",
+                    _ => new FixedWindowRateLimiterOptions { PermitLimit = parMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 });
+            });
             // Liaison avec Noosphere : 120 requêtes par minute et par liaison (clé de signature), par adresse sans signature.
             o.AddPolicy(Endpoints.LiaisonEndpoints.PolitiqueDebit, ctx => RateLimitPartition.GetFixedWindowLimiter(Endpoints.LiaisonEndpoints.Cle(ctx),
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = Endpoints.LiaisonEndpoints.RequetesParMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
@@ -84,8 +100,9 @@ public static class ProtectionsHttp
         app.Use(async (ctx, suivant) =>
         {
             var m = ctx.Request.Method;
+            // Appel par jeton d'accès : pas de cookie lu, donc rien à protéger (un jeton refusé répond 401, voir AuthentificationJeton).
             if (ctx.Request.Path.StartsWithSegments("/api") && !HttpMethods.IsGet(m) && !HttpMethods.IsHead(m) && !HttpMethods.IsOptions(m)
-                && !ctx.Request.Headers.ContainsKey(EnTeteCsrf))
+                && !ctx.Request.Headers.ContainsKey(EnTeteCsrf) && !Auth.AuthentificationJeton.PorteJeton(ctx.Request))
             {
                 await ReponsesErreur.Ecrire(ctx, StatusCodes.Status403Forbidden, $"En-tête {EnTeteCsrf} manquant.");
                 return;
