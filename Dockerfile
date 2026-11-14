@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # 2. API .NET
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS back
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS back
 # Numéro de version affiché dans l'application et comparé aux versions publiées (« 1.2.0 ») ; donné par la CI.
 ARG VERSION=0.0.0-dev
 WORKDIR /src/backend
